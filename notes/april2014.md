@@ -2,7 +2,8 @@
 BEFORE SWITCH:
 
  - [ ] migrate all projects
-
+ - [ ] clean up everything: on all host machines after migration stabilizes
+ - [ ] replicate everything around: x.c.repair(qlimit:1000000, limit:30, destructive:true, cb:console.log, dryrun:false)
  - [ ] test ui changes on other browsers.
 
 

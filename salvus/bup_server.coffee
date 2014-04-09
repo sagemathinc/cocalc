@@ -1732,7 +1732,7 @@ class GlobalClient
                             @get_project(project.project_id).set_last_save
                                 last_save : last_save
                                 cb        : cb
-                    ], cb)
+                    ], (err) => cb(err))
 
                 dbg("#{projects.length} projects need to be sync'd")
                 async.mapLimit(projects, opts.limit, f, (err) => cb())
