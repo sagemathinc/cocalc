@@ -63,7 +63,8 @@ from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
 
 # Flag to turn off all use of quotas, since it will take a while to set these up after migration.
-QUOTAS_ENABLED=False
+QUOTAS_ENABLED=True
+QUOTAS_OVERRIDE=25000
 
 USERNAME =  pwd.getpwuid(os.getuid())[0]
 
@@ -249,7 +250,7 @@ class Project(object):
 
     def get_zfs_status(self):
         q = {}
-        if not QUOTAS_ENABLED:
+        if not QUOTAS_ENABLED or QUOTAS_OVERRIDE:
             return q
         try:
             for x in ['userquota', 'userused']:
@@ -382,7 +383,8 @@ class Project(object):
             if n == 0:
                 break
 
-        # So crontabs, remote logins, etc., won't happen -- but we *DO* maybe want remote login/crontab. Not sure.
+        # So crontabs, remote logins, etc., won't happen... and user can't just get more free time via crontab. Not sure.
+        # We need another state, which is that the project is "on" but daemons are all stopped and not using RAM.
         self.delete_user()
         self.unset_quota()
         self.umount_snapshots()
@@ -593,6 +595,8 @@ class Project(object):
         """
         if not QUOTAS_ENABLED:
             return
+        if QUOTAS_OVERRIDE:
+            disk = scratch = QUOTAS_OVERRIDE
         cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, disk), '%s/projects'%ZPOOL])
         cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, scratch), '%s/scratch'%ZPOOL])
 
@@ -735,7 +739,7 @@ class Project(object):
             if QUOTAS_ENABLED and 'Disk quota exceeded' in e:
                 self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", 'root@'+remote,
                           'zfs set userquota@%s=%sM %s/projects'%(
-                                        self.uid, self.get_settings()['disk'], ZPOOL)])
+                                        self.uid, QUOTAS_OVERRIDE if QUOTAS_OVERRIDE else self.get_settings()['disk'], ZPOOL)])
                 f(ignore_errors=False)
             elif 'ERROR' in e:
                 raise RuntimeError(e)

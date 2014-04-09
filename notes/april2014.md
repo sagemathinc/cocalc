@@ -1,18 +1,33 @@
 
 BEFORE SWITCH:
 
- - [ ] migrate all projects
- - [ ] clean up everything: on all host machines after migration stabilizes
- - [ ] replicate everything around: x.c.repair(qlimit:1000000, limit:30, destructive:true, cb:console.log, dryrun:false)
+--> - [ ] migrate all projects
+--> - [ ] write and run code to ensure all replication is up to date
+
  - [ ] test ui changes on other browsers.
- 
- - [ ] include some more anti-bitcoin mining measures.
+
+ - [ ] setup new conf files for after the switch
+
+ - [ ] update base vm:
+       - ensure that bup/projects mounts as /projects
+       - update code
+
+ - [ ] hourly or rolling snapshots of new *compute vm's* filesystems
+
+ - [ ] delete users again
+
 
 ====
 
 AFTER SWITCH:
 
-- [ ] write and run code to ensure all replication is up to date
+ - [ ] disable all swap on hosts (requires shutting down old compute vm's first)
+
+ - [ ] add a bigger (?) timeout between vm stop/start (?)
+
+ - [ ] function to "truly" move a project within a given data center
+
+ - [ ] write clean() -- for each project on a given host that hasn't been used in the last n days, delete .sagemathcloud, etc., directories
 
  - [ ] MAYBE -- or maybe not -- change bup_storage to never delete account: it's very useful for linking projects and sharing files to have account available at all times.  will make, e.g., persistent sshfs possible; make sure .ssh is not ssh excluded from rsync
 
@@ -39,6 +54,7 @@ AFTER SWITCH:
 
 ======
 
+ - [x] include some more anti-bitcoin mining measures.
 
       - [x] switch the existing looping script to use RF=1
 
@@ -62,6 +78,7 @@ AFTER SWITCH:
 
 
 # DONE
+ - [x] 25gb temporary quota until after we assign quotas based on du.
 
 
  - [x] start a testing hub and test live projects
