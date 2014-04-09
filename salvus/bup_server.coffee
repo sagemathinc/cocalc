@@ -1647,6 +1647,107 @@ class GlobalClient
                 opts.cb(err, status)
             )
 
+    # For every project, check that the bup_last_save times are all the same, so that everything is fully replicated.
+    # If not, replicate from the current location (or newest) out to others.
+    repair: (opts) =>
+        opts = defaults opts,
+            limit       : 5           # number to do in parallel
+            qlimit      : 10000000    # limit on number of projects to pull from database
+            destructive : false
+            timeout     : TIMEOUT
+            dryrun      : false       # if true, just return the projects that need sync; don't actually sync
+            cb          : required    # cb(err, errors)
+        dbg = (m) => winston.debug("GlobalClient.repair(#{opts.project_id}): #{m}")
+        dbg()
+        projects = []
+        errors = {}
+        async.series([
+            (cb) =>
+                dbg("querying database....")
+                @database.select
+                    table     : 'projects'
+                    columns   : ['project_id', 'bup_location', 'bup_last_save']
+                    objectify : true
+                    limit     : opts.qlimit # TODO: change to use paging...
+                    cb        : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("got #{r.length} records")
+                            r.sort()
+                            for project in r
+                                if not project.bup_last_save? or misc.len(project.bup_last_save) == 0
+                                    continue
+                                times = {}
+                                for _, tm of project.bup_last_save
+                                    times[tm] = true
+                                times = misc.keys(times)
+                                if times.length > 1
+                                    # at least one replica must be out of date
+                                    if project.bup_location?
+                                        # choose the running location rather than newest, just in case.
+                                        # should usually be the same, but might not be in case of split brain, etc.
+                                        project.source_id = project.bup_location
+                                        t = project.bup_last_save[project.bup_location]
+                                    else
+                                        times.sort()
+                                        t = times[times.length-1]
+                                        # choose any location with that time
+                                        for server_id, tm of project.bup_last_save
+                                            if "#{tm}" == t   # t is an map key so a string.
+                                                project.source_id = server_id
+                                                project.timestamp = tm
+                                                break
+                                        if not project.source_id?  # should be impossible
+                                            cb("BUG -- project.source_id didn't get set -- #{misc.to_json(project)}")
+                                            return
+                                    project.targets = (server_id for server_id, tm of project.bup_last_save when "#{tm}" != t)
+                                    projects.push(project)
+                            cb()
+            (cb) =>
+                if opts.dryrun
+                    cb(); return
+                f = (project, cb) =>
+                    dbg("syncing project #{project.project_id}")
+                    async.series([
+                        (cb) =>
+                            @project
+                                project_id : project.project_id
+                                server_id  : project.source_id
+                                cb         : (err, p) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        p.sync
+                                            targets     : (@servers.by_id[server_id].host for server_id in project.targets)
+                                            timeout     : opts.timeout
+                                            destructive : opts.destructive
+                                            snapshots   : true
+                                            cb          : cb
+                        (cb) =>
+                            # success -- update database
+                            last_save = {}
+                            for server_id in project.targets
+                                last_save[server_id] = project.timestamp
+                            @get_project(project.project_id).set_last_save
+                                last_save : last_save
+                                cb        : cb
+                    ], cb)
+
+                dbg("#{projects.length} projects need to be sync'd")
+                async.mapLimit(projects, opts.limit, f, (err) => cb())
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else if misc.len(errors) > 0
+                opts.cb?(errors)
+            else
+                if opts.dryrun
+                    opts.cb?(undefined, projects)
+                else
+                    opts.cb?()
+        )
+
 
 
 ###########################
@@ -1976,11 +2077,16 @@ class ClientProject
 
     sync: (opts) =>
         opts = defaults opts,
-            timeout            : TIMEOUT
-            destructive        : false
-            snapshots          : true   # whether to sync snapshots -- if not given, only syncs live files
-            cb                 : undefined
+            targets     : required   # array of hostnames (not server id's!) to sync to
+            timeout     : TIMEOUT
+            destructive : false
+            snapshots   : true   # whether to sync snapshots -- if not given, only syncs live files
+            cb          : undefined
+        if opts.targets.length == 0  # trivial special case
+            opts.cb?()
+            return
         params = []
+        params.push("--targets=#{opts.targets.join(',')}")
         if opts.snapshots
             params.push('--snapshots')
         if opts.destructive

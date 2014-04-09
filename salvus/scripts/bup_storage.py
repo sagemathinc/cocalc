@@ -473,9 +473,7 @@ class Project(object):
             except Exception, msg:
                 # the save log is only a convenience -- not critical.
                 log("WARNING: unable to write to save log -- %s"%msg)
-
         return result
-
 
     def tag(self, tag, delete=False):
         """
@@ -890,7 +888,7 @@ if __name__ == "__main__":
         status = project.sync(*args, **kwds)
         print json.dumps(status)
     parser_sync = subparsers.add_parser('sync', help='sync with all replicas')
-    parser_sync.add_argument("--targets", help="if given, a comma separated ip addresses of computers to replicate to NOT including the current machine", dest="targets", default="", type=str)
+    parser_sync.add_argument("--targets", help="REQUIRED: a comma separated ip addresses of computers to replicate to NOT including the current machine", dest="targets", default="", type=str)
     parser_sync.add_argument("--destructive", help="sync, destructively overwriting all remote replicas (DANGEROUS)",
                                    dest="destructive", default=False, action="store_const", const=True)
     parser_sync.add_argument("--snapshots", help="include snapshots in sync",
