@@ -12,9 +12,9 @@ BEFORE SWITCH:
        - ensure that bup/projects mounts as /projects
        - update code
 
- - [ ] hourly or rolling snapshots of new *compute vm's* filesystems
+ - [ ] hourly or rolling snapshots of new *compute vm's* filesystems:
+         - https://github.com/zfsnap/zfsnap/tree/legacy
 
- - [ ] delete users again
 
 
 ====
@@ -78,6 +78,9 @@ AFTER SWITCH:
 
 
 # DONE
+
+ - [x] delete users again
+
  - [x] 25gb temporary quota until after we assign quotas based on du.
 
 

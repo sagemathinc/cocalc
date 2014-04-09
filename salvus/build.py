@@ -74,6 +74,15 @@ Before building, do:
     # To remove:
     dpkg -r kmod-spl-3.2.0-59-generic kmod-spl-devel kmod-spl-devel-3.2.0-59-generic spl kmod-zfs-3.2.0-59-generic kmod-zfs-devel kmod-zfs-devel-3.2.0-59-generic zfs zfs-devel zfs-dracut zfs-test
 
+# ZFSNAP:
+
+  git clone https://github.com/zfsnap/zfsnap.git
+  git fetch origin legacy
+  git branch legacy
+  git checkout legacy
+  cp sbin/zfsnap.sh /usr/local/bin/
+  cp -rv share/zfsnap/ /usr/local/share/
+
 
 
 # LZ4 -- compression
