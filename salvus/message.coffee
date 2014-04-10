@@ -84,6 +84,17 @@ message
     project_id    : undefined
     status        : undefined
 
+message
+    event         : 'project_get_state'
+    id            : undefined
+    project_id    : undefined
+    state         : undefined
+
+message
+    event         : 'project_get_local_state'
+    id            : undefined
+    project_id    : undefined
+    state         : undefined
 
 #
 # A period ping message must usually be sent by the client to keep a

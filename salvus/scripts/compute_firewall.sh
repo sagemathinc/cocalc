@@ -20,7 +20,11 @@ do
     iptables -A INPUT -p tcp --dport 1024: --source 10.1.$N.3 -j ACCEPT
 done
 
-# accept incoming traffic to ports >= 1024 from localhost -- this is used for port forwarding over ssh
+# staging/testing machine
+iptables -A INPUT -p tcp --dport 1024: --source 10.1.15.7 -j ACCEPT
+
+# accept incoming traffic to ports >= 1024 from localhost -- this is used for port
+# forwarding over ssh, and the local_hub to sage_server and console_server connections.
 iptables -A INPUT -p tcp --dport 1024: --source localhost -j ACCEPT
 
 # reject incoming tcp connections to ports >= 1024 from any source that

@@ -406,18 +406,6 @@ init_http_proxy_server = () =>
                             cb("user does not have write access to this project")
                         else
                             cb()
-
-            (cb) ->
-                database.get_project_location
-                    project_id  : project_id
-                    allow_cache : false
-                    cb          : (err, _location) ->
-                        if err
-                            cb(err)
-                        else
-                            if _location?
-                                host = _location.host
-                            cb()
             (cb) ->
                 if host?
                     cb()
@@ -454,7 +442,7 @@ init_http_proxy_server = () =>
                 else
                     cb("unknown url type -- #{type}")
             ], (err) ->
-                winston.debug("target: setup proxy; time=#{misc.walltime(tm)} seconds")
+                winston.debug("target: setup proxy; time=#{misc.walltime(tm)} seconds -- err=#{err}; host=#{host}; port=#{port}; type=#{type}")
                 if err
                     cb(err)
                 else
@@ -1376,6 +1364,32 @@ class Client extends EventEmitter
                             @push_to_client(message.project_status(id:mesg.id, status:status))
 
 
+    mesg_project_get_state: (mesg) =>
+        winston.debug("mesg_project_get_state")
+        @get_project mesg, 'read', (err, project) =>
+            if err
+                return
+            else
+                project.local_hub.project.get_state
+                    cb   : (err, state) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(message.project_get_state(id:mesg.id, state:state))
+
+    mesg_project_get_local_state: (mesg) =>
+        winston.debug("mesg_project_get_local_state")
+        @get_project mesg, 'read', (err, project) =>
+            if err
+                return
+            else
+                project.local_hub.project.get_local_state
+                    cb   : (err, state) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(message.project_get_local_state(id:mesg.id, state:state))
+
 
     mesg_update_project_data: (mesg) =>
         winston.debug("mesg_update_project_data")
@@ -1571,7 +1585,7 @@ class Client extends EventEmitter
                 cb           : (err, session) =>
                     #winston.debug("in mesg_codemirror_get_session: project.get_codemirror_session (project_id=#{mesg.project_id}, path=#{mesg.path}) -- returned (err=#{err})")
                     if err
-                        @error_to_client(id:mesg.id, error:"Problem getting file editing session -- #{err}")
+                        @error_to_client(id:mesg.id, error:"Problem getting file editing session -- #{misc.to_json(err)}")
                     else
                         if not @_file_access?
                             @_file_access = {}

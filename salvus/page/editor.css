@@ -32,6 +32,7 @@ Editor for files in a project
     /* font-size: 10pt; */
     padding-right: 1em;
     padding-bottom: 1px;
+    padding-top: 6px;
 }
 
 .salvus-editor-filename-pill {

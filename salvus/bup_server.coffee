@@ -21,7 +21,6 @@ misc_node = require('misc_node')
 uuid      = require('node-uuid')
 cassandra = require('cassandra')
 cql       = require("node-cassandra-cql")
-HashRing  = require 'hashring'
 
 # Set the log level
 winston.remove(winston.transports.Console)
@@ -29,17 +28,13 @@ winston.add(winston.transports.Console, level: 'debug')
 
 {defaults, required} = misc
 
-REGISTRATION_INTERVAL_S = 15       # register with the database every this many seconds
-REGISTRATION_TTL_S      = 60       # ttl for registration record
-
-
-REPLICATION_FACTOR = 1  # per data center
-
 TIMEOUT = 60*60
 
 # never do a save action more frequently than this - more precisely, saves just get
 # ignored until this much time elapses *and* an interesting file changes.
-MIN_SAVE_INTERVAL_S = 60
+MIN_SAVE_INTERVAL_S = 90
+
+STORAGE_SERVERS_UPDATE_INTERVAL_S = 180  # How frequently (in seconds)  to query the database for the list of storage servers
 
 IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds.
 
@@ -192,20 +187,25 @@ class Project
 
                     when 'save'
                         if state in ['running'] or opts.param=='force'
-                            @state = 'saving'
-                            @_action
-                                action  : 'save'
-                                param   : opts.param
-                                timeout : opts.timeout
-                                cb      : (err, r) =>
-                                    result = r
-                                    if err
-                                        @dbg("action", opts, "failed to save -- #{err}")
-                                        @state = 'error'
-                                    else
-                                        @dbg("action", opts, "saved successfully -- changing state from saving back to running")
-                                        @state = 'running'
-                                    cb(err)
+                            if not @_last_save? or misc.walltime() - @_last_save >= MIN_SAVE_INTERVAL_S
+                                @state = 'saving'
+                                @_last_save = misc.walltime()
+                                @_action
+                                    action  : 'save'
+                                    param   : opts.param
+                                    timeout : opts.timeout
+                                    cb      : (err, r) =>
+                                        result = r
+                                        if err
+                                            @dbg("action", opts, "failed to save -- #{err}")
+                                            @state = 'error'
+                                        else
+                                            @dbg("action", opts, "saved successfully -- changing state from saving back to running")
+                                            @state = 'running'
+                                        cb(err)
+                            else
+                                # ignore
+                                cb()
                         else
                             cb()
 
@@ -509,7 +509,7 @@ start_server = () ->
 
 c=require('cassandra');x={};d=new c.Salvus(hosts:['10.1.11.2'], keyspace:'salvus', username:'salvus', password:fs.readFileSync('/home/salvus/salvus/salvus/data/secrets/cassandra/salvus').toString().trim(),consistency:1,cb:((e,d)->console.log(e);x.d=d))
 
-require('bup_server').global_client(database:x.d, replication_factor:1, cb:(e,c)->x.e=e;x.c=c)
+require('bup_server').global_client(database:x.d, cb:(e,c)->x.e=e;x.c=c)
 
 (x.c.register_server(host:"10.1.#{i}.5",dc:0,cb:console.log) for i in [10..21])
 
@@ -531,7 +531,11 @@ class GlobalProject
             table   : "projects"
             columns : ["bup_location"]
             where   : {project_id : @project_id}
-            cb      : cb
+            cb      : (err, result) =>
+                if err
+                    cb(err)
+                else
+                    cb(undefined, result[0])
 
     set_location_pref: (server_id, cb) =>
         @database.update
@@ -546,7 +550,7 @@ class GlobalProject
     local_hub_address: (opts) =>
         opts = defaults opts,
             timeout : 30
-            cb : required      # cb(err, {host:hostname, port:port, status:status})
+            cb : required      # cb(err, {host:hostname, port:port, status:status, server_id:server_id})
         if @_local_hub_address_queue?
             @_local_hub_address_queue.push(opts.cb)
         else
@@ -561,14 +565,14 @@ class GlobalProject
     _local_hub_address: (opts) =>
         opts = defaults opts,
             timeout : 90
-            cb : required      # cb(err, {host:hostname, port:port})
+            cb : required      # cb(err, {host:hostname, port:port, status:status, server_id:server_id})
         dbg = (m) -> winston.info("local_hub_address(#{@project_id}): #{m}")
         dbg()
         server_id = undefined
         port      = undefined
         status    = undefined
         attempt = (cb) =>
-            dbg("making an attempt to start")
+            dbg("attempt")
             async.series([
                 (cb) =>
                     dbg("see if host running")
@@ -596,9 +600,8 @@ class GlobalProject
                                             cb()
                 (cb) =>
                     if port?
-                        dbg("success -- we got our host")
-                        @_update_project_settings()   # non-blocking -- might as well do this on success.
-                        cb()
+                        dbg("success -- we got our host #{server_id} at port #{port}")
+                        @_update_project_settings(cb)
                     else
                         dbg("fail -- not working yet")
                         cb(true)
@@ -617,11 +620,11 @@ class GlobalProject
                         setTimeout(f, 5000)
                     else
                         # success!?
-                        host = @global_client.servers[server_id]?.host
+                        host = @global_client.servers.by_id[server_id]?.host
                         if not host?
                             opts.cb("unknown server #{server_id}")
                         else
-                            opts.cb(undefined, {host:host, port:port, status:status})
+                            opts.cb(undefined, {host:host, port:port, status:status, server_id:server_id})
          f()
 
 
@@ -661,7 +664,7 @@ class GlobalProject
                 @get_location_pref (err, result) =>
                     if not err and result?
                         dbg("setting prefered start target to #{result[0]}")
-                        target = result[0]
+                        target = result
                         cb()
                     else
                         cb(err)
@@ -760,8 +763,15 @@ class GlobalProject
     save: (opts) =>
         opts = defaults opts,
             cb : undefined
+        # if we just saved this project, return immediately -- note: THIS IS "CLIENT" side, but there is a similar guard on the actual compute node
+        if @_last_save? and misc.walltime() - @_last_save < MIN_SAVE_INTERVAL_S
+            opts.cb?(undefined)
+            return
+
+        # put this here -- we don't even want to *try* more frequently than MIN_SAVE_INTERVAL_S, in case of save bup repo being broken (?)
+        @_last_save = misc.walltime()
+
         dbg = (m) -> winston.debug("GlobalProject.save(#{@project_id}): #{m}")
-        dbg()
 
         need_to_save = false
         project      = undefined
@@ -796,23 +806,16 @@ class GlobalProject
             (cb) =>
                 if not need_to_save
                     cb(); return
-                dbg("get the save targets for replication")
-                @get_last_save
-                    cb : (err, last_save) =>
-                        if err
-                            cb(err)
-                        else
-                            if last_save?
-                                # targets are all ip addresses of servers we've replicated to so far (if any)
-                                dbg("last_save = #{misc.to_json(last_save)}")
-                                targets = (@global_client.servers[x].host for x,t of last_save when x != server_id)
-                                dbg("targets = #{misc.to_json(targets)}")
-                                # leave undefined otherwise -- will use consistent hashing to do initial save
-                            cb()
+                dbg("get the targets for replication")
+                @get_hosts
+                    cb : (err, t) =>
+                        targets = (@global_client.servers.by_id[x].host for x in t when x != server_id)  # targets as ip addresses
+                        dbg("sync_targets = #{misc.to_json(targets)}")
+                        cb(err)
             (cb) =>
                 if not need_to_save
                     cb(); return
-                dbg("actually save the project and sync to targets=#{misc.to_json(targets)}")
+                dbg("save the project and sync")
                 project.save
                     targets : targets
                     cb      : (err, result) =>
@@ -824,7 +827,10 @@ class GlobalProject
                             last_save[server_id] = r.timestamp*1000
                             if r.sync?
                                 for x in r.sync
-                                    s = @global_client.hosts[x.host].server_id
+                                    if x.host == '' # special case - the server hosting the project
+                                        s = server_id
+                                    else
+                                        s = @global_client.servers.by_host[x.host].server_id
                                     if not x.error?
                                         last_save[s] = r.timestamp*1000
                                     else
@@ -1018,27 +1024,79 @@ class GlobalProject
     get_hosts: (opts) =>
         opts = defaults opts,
             cb : required
-        @database.select
-            table : 'projects'
-            where : {project_id:@project_id}
-            columns : ['bup_last_save']
-            cb      : (err, result) =>
-                if err
-                    opts.cb(err)
+        hosts = []
+        dbg = (m) -> winston.debug("GlobalProject.get_hosts(#{@project_id}): #{m}")
+        async.series([
+            (cb) =>
+                dbg("get last save info from database...")
+                @database.select
+                    table : 'projects'
+                    where : {project_id:@project_id}
+                    columns : ['bup_last_save']
+                    cb      : (err, r) =>
+                        if err or not r? or r.length == 0
+                            cb(err)
+                        else
+                            if r[0][0]?
+                                hosts = misc.keys(r[0][0])
+                            cb()
+            (cb) =>
+                servers = @global_client.servers
+                dbg("hosts=#{misc.to_json(hosts)}; ensure that we have (at least) one host from each of the #{misc.keys(servers.by_dc).length} data center")
+                last_save = {}
+                now = cassandra.now()
+                for dc, servers_in_dc of servers.by_dc
+                    have_one = false
+                    for h in hosts
+                        if servers_in_dc[h]?
+                            have_one = true
+                            break
+                    if not have_one
+                        h = misc.random_choice(misc.keys(servers_in_dc))
+                        hosts.push(h)
+                        last_save[h] = now # brand new, so nothing to save yet
+                if misc.len(last_save) > 0
+                    dbg("added new hosts: #{misc.to_json(last_save)}")
+                    @set_last_save
+                        last_save : last_save
+                        cb        : cb
                 else
-                    if result.length == 0 or not result[0][0]?
-                        hosts = []
-                    else
-                        hosts = misc.keys(result[0][0])
-                    if hosts.length == 0
-                         # default hosts -- for a new project
-                         hosts = @global_client.replicas(project_id: @project_id)
-                         last_save = {}
-                         n = cassandra.now()
-                         for server_id in hosts
-                             last_save[server_id] = n
-                         @set_last_save(last_save: last_save)
-                    opts.cb(undefined, hosts)
+                    cb()
+        ], (err) => opts.cb(undefined, hosts))
+
+    # determine state just on pref host.
+    get_local_state: (opts) =>
+        opts = defaults opts,
+            timeout : 15
+            cb      : required
+        server_id = undefined
+        project = undefined
+        state = 'error'
+        async.series([
+            (cb) =>
+                @get_location_pref (err, s) =>
+                    server_id = s; cb(err)
+            (cb) =>
+                if not server_id?
+                    cb(); return
+                @project
+                    server_id : server_id
+                    cb        : (err, p) =>
+                        if err
+                            dbg("failed to get project on server #{server_id} -- #{err}")
+                        project = p
+                        cb(err)
+            (cb) =>
+                if not server_id?
+                    state = 'closed'
+                    cb(); return
+                project.get_state
+                    timeout : opts.timeout
+                    cb : (err, s) =>
+                        state = s; cb(err)
+        ], (err) =>
+            opts.cb(undefined, {state:state, host:@global_client.servers.by_id[server_id]?.host, server_id:server_id})
+        )
 
     # determine the global state by querying *all servers*
     # guaranteed to return length > 0
@@ -1086,34 +1144,33 @@ class GlobalProject
                                     cb()
                     ], cb)
 
-                async.map(servers, f, cb)
+                async.map servers, f, (err) => cb(err)
 
         ], (err) => opts.cb?(err, @state)
         )
 
 
 
-global_client_cache={}
+global_client_cache=undefined
 
 exports.global_client = (opts) ->
     opts = defaults opts,
         database           : undefined
-        replication_factor : REPLICATION_FACTOR
         cb                 : required
-    key = misc.to_json(opts.replication_factor)
-    C = global_client_cache[key]
+    C = global_client_cache
     if C?
         opts.cb(undefined, C)
     else
-        global_client_cache[key] = new GlobalClient(database : opts.database, replication_factor : opts.replication_factor, cb : opts.cb)
+        global_client_cache = new GlobalClient
+            database : opts.database
+            cb       : opts.cb
 
 
 class GlobalClient
     constructor: (opts) ->
         opts = defaults opts,
-            database           : undefined   # connection to cassandra database
-            replication_factor : REPLICATION_FACTOR
-            cb                 : required   # cb(err, @) -- called when initialized
+            database : undefined   # connection to cassandra database
+            cb       : required   # cb(err, @) -- called when initialized
 
         @_project_cache = {}
 
@@ -1132,13 +1189,15 @@ class GlobalClient
                             else
                                 v = program.address.split('.')
                                 a = parseInt(v[1]); b = parseInt(v[3])
-                                if a == 1 and b>=1 and b<=7
-                                    hosts = ("10.1.#{i}.1" for i in [1..7]).join(',')
+                                if program.address == '10.1.15.7'  # devel
+                                    hosts = ["10.1.15.2", '10.1.16.2', '10.1.14.2']
+                                else if a == 1 and b>=1 and b<=7
+                                    hosts = ("10.1.#{i}.1" for i in [1..7])
                                 else if a == 1 and b>=10 and b<=21
-                                    hosts = ("10.1.#{i}.1" for i in [10..21]).join(',')
+                                    hosts = ("10.1.#{i}.1" for i in [10..21])
                                 else if a == 3
                                     # TODO -- change this as soon as we get a DB spun up at Google...
-                                    hosts = ("10.1.#{i}.1" for i in [10..21]).join(',')
+                                    hosts = ("10.1.#{i}.1" for i in [10..21])
                             @database = new cassandra.Salvus
                                 hosts       : hosts
                                 keyspace    : if process.env.USER=='wstein' then 'test' else 'salvus'
@@ -1147,11 +1206,10 @@ class GlobalClient
                                 password    : password.toString().trim()
                                 cb          : cb
             (cb) =>
-                @replication_factor = opts.replication_factor
                 @_update(cb)
         ], (err) =>
             if not err
-                setInterval(@_update, 1000*60)  # update minute
+                setInterval(@_update, 1000*STORAGE_SERVERS_UPDATE_INTERVAL_S)  # update regularly
                 opts.cb(undefined, @)
             else
                 opts.cb(err, @)
@@ -1164,34 +1222,29 @@ class GlobalClient
         return P
 
     _update: (cb) =>
-        #dbg = (m) -> winston.debug("GlobalClient._update: #{m}")
-        #dbg("querying for storage servers...")
+        dbg = (m) -> winston.debug("GlobalClient._update: #{m}")
+        #dbg("updating list of available storage servers...")
         @database.select
             table     : 'storage_servers'
             columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret', 'vnodes']
             objectify : true
             where     : {dummy:true}
             cb        : (err, results) =>
-                #dbg("got results; now initializing hashrings")
                 if err
                     cb?(err); return
-                @servers = {}
-                @hosts = {}
+                #dbg("got #{results.length} storage servers")
+                # parse result
+                @servers = {by_dc:{}, by_id:{}, by_host:{}}
                 x = {}
                 max_dc = 0
                 for r in results
                     max_dc = Math.max(max_dc, r.dc)
                     r.host = cassandra.inet_to_str(r.host)  # parse inet datatype
-                    @servers[r.server_id] = r
-                    @hosts[r.host] = r
-                    if not x[r.dc]?
-                        x[r.dc] = {}
-                    v = x[r.dc]
-                    v[r.server_id] = {vnodes:r.vnodes}
-                @hashrings = [undefined for i in [0..max_dc]]
-                for dc, obj of x
-                    @hashrings[dc] = new HashRing(obj)
-                #dbg("all updated")
+                    @servers.by_id[r.server_id] = r
+                    if not @servers.by_dc[r.dc]?
+                        @servers.by_dc[r.dc] = {}
+                    @servers.by_dc[r.dc][r.server_id] = r
+                    @servers.by_host[r.host] = r
                 cb?()
 
     push_servers_files: (opts) =>
@@ -1211,12 +1264,12 @@ class GlobalClient
                 dbg("writing file")
                 # @servers = {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
                 servers_conf = {}
-                for server_id, x of @servers
+                for server_id, x of @servers.by_id
                     servers_conf[server_id] = {host:x.host, vnodes:x.vnodes, dc:x.dc}
                 fs.writeFile(file, misc.to_json(servers_conf), cb)
             (cb) =>
                 f = (server_id, c) =>
-                    host = @servers[server_id].host
+                    host = @servers.by_id[server_id].host
                     dbg("copying #{file} to #{host}...")
                     misc_node.execute_code
                         command : "scp"
@@ -1227,7 +1280,7 @@ class GlobalClient
                             if err
                                 errors[server_id] = err
                             c()
-                async.map misc.keys(@servers), f, (err) =>
+                async.map misc.keys(@servers.by_id), f, (err) =>
                     if misc.len(errors) == 0
                         opts.cb?()
                     else
@@ -1332,34 +1385,14 @@ class GlobalClient
                         cb    : cb
                 async.map(results, f, (err) => opts.cb?(err))
 
-
-    replicas: (opts) =>
-        opts = defaults opts,
-            project_id         : required
-            replication_factor : undefined
-        if not opts.replication_factor?
-            opts.replication_factor = @replication_factor
-        if typeof(opts.replication_factor) == 'number'
-            rep = (opts.replication_factor for i in [0...@hashrings.length])
-        else
-            rep = opts.replication_factor
-        v = []
-        i = 0
-        for hr in @hashrings
-            if rep[i] > 0  # hashring.range doesn't deal with 0 correctly.
-                for id in hr.range(opts.project_id, rep[i], true)
-                    v.push(id)
-            i += 1
-        return v
-
     storage_server: (opts) =>
         opts = defaults opts,
             server_id : required
             cb        : required
-        if not @servers[opts.server_id]?
+        if not @servers.by_id[opts.server_id]?
             opts.cb("server #{opts.server_id} unknown")
             return
-        s = @servers[opts.server_id]
+        s = @servers.by_id[opts.server_id]
         if not s.host?
             opts.cb("no hostname known for #{opts.server_id}")
             return
@@ -1392,7 +1425,6 @@ class GlobalClient
         opts = defaults opts,
             project_id : required
             server_id  : undefined  # if undefined gets best working client pre-started; if defined connect if possible but don't start anything
-            replication_factor : undefined
             prefer     : undefined  # if given, should be array of prefered servers -- only used if project isn't already opened somewhere
             prefer_not : undefined  # array of servers we prefer not to use
             cb         : required   # cb(err, Project client connection on some host)
@@ -1453,11 +1485,10 @@ class GlobalClient
             (cb) =>
                 if works
                     cb(); return
-                dbg("try harder: get list of all replicas (except current) and ask in parallel about status of each")
+                dbg("try harder: get list of all locations (except current) and ask in parallel about status of each")
                 @project_status
-                    project_id         : opts.project_id
-                    replication_factor : opts.replication_factor
-                    cb                 : (err, _status) =>
+                    project_id  : opts.project_id
+                    cb          : (err, _status) =>
                         if err
                             cb(err)
                         else
@@ -1535,7 +1566,6 @@ class GlobalClient
     project_status: (opts) =>
         opts = defaults opts,
             project_id         : required
-            replication_factor : undefined
             timeout            : 20   # seconds
             cb                 : required    # cb(err, sorted list of status objects)
         status = []
@@ -1561,55 +1591,181 @@ class GlobalClient
                                     @score_servers(healthy   : [replica])
                                     t.status = _status
                                     cb()
-        async.map @replicas(project_id:opts.project_id), f, (err) =>
-            status.sort (a,b) =>
-                if a.error? and b.error?
-                    return 0  # doesn't matter -- both are broken/useless
-                if a.error? and not b.error
-                    # b is better
-                    return 1
-                if b.error? and not a.error?
-                    # a is better
-                    return -1
-                # sort of arbitrary -- mainly care about newest snapshot being newer = better = -1
-                if a.status.newest_snapshot?
-                    if not b.status.newest_snapshot?
-                        # a is better
-                        return -1
-                    else if a.status.newest_snapshot > b.status.newest_snapshot
-                        # a is better
-                        return -1
-                    else if a.status.newest_snapshot < b.status.newest_snapshot
-                        # b is better
-                        return 1
+        hosts = undefined
+        async.series([
+            (cb) =>
+                @get_project(opts.project_id).get_hosts
+                    cb : (err, h) =>
+                        hosts = h; cb(err)
+            (cb) =>
+                async.map hosts, f, (err) =>
+                    status.sort (a,b) =>
+                        if a.error? and b.error?
+                            return 0  # doesn't matter -- both are broken/useless
+                        if a.error? and not b.error
+                            # b is better
+                            return 1
+                        if b.error? and not a.error?
+                            # a is better
+                            return -1
+                        # sort of arbitrary -- mainly care about newest snapshot being newer = better = -1
+                        if a.status.newest_snapshot?
+                            if not b.status.newest_snapshot?
+                                # a is better
+                                return -1
+                            else if a.status.newest_snapshot > b.status.newest_snapshot
+                                # a is better
+                                return -1
+                            else if a.status.newest_snapshot < b.status.newest_snapshot
+                                # b is better
+                                return 1
+                        else
+                            if b.status.newest_snapshot?
+                                # b is better
+                                return 1
+                        # Next compare health of server
+                        health_a = @servers.by_id[a.replica_id]?.health
+                        health_b = @servers.by_id[b.replica_id]?.health
+                        if health_a? and health_b?
+                            health_a = Math.round(3.8*health_a)
+                            health_b = Math.round(3.8*health_b)
+                            if health_a < health_b
+                                # b is better
+                                return 1
+                            else if health_a > health_b
+                                # a is better
+                                return -1
+                        # no error, so load must be defined
+                        # smaller load is better -- later take into account free RAM, etc...
+                        if a.status.load[0] < b.status.load[0]
+                            return -1
+                        else if a.status.load[0] > b.status.load[0]
+                            return 1
+                        return 0
+                    cb()
+            ], (err) =>
+                opts.cb(err, status)
+            )
+
+    # For every project, check that the bup_last_save times are all the same, so that everything is fully replicated.
+    # If not, replicate from the current location (or newest) out to others.
+    repair: (opts) =>
+        opts = defaults opts,
+            limit       : 5           # number to do in parallel
+            qlimit      : 10000000    # limit on number of projects to pull from database
+            destructive : false
+            timeout     : TIMEOUT
+            dryrun      : false       # if true, just return the projects that need sync; don't actually sync
+            status      : []
+            cb          : required    # cb(err, errors)
+        dbg = (m) => winston.debug("GlobalClient.repair(#{opts.project_id}): #{m}")
+        dbg()
+        projects = []
+        errors = {}
+        async.series([
+            (cb) =>
+                dbg("querying database....")
+                @database.select
+                    table     : 'projects'
+                    columns   : ['project_id', 'bup_location', 'bup_last_save']
+                    objectify : true
+                    limit     : opts.qlimit # TODO: change to use paging...
+                    cb        : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("got #{r.length} records")
+                            r.sort (a,b) ->
+                                if a.project_id < b.project_id
+                                    return -1
+                                else if a.project_id > b.project_id
+                                    return 1
+                                else
+                                    return 0
+                            for project in r
+                                if not project.bup_last_save? or misc.len(project.bup_last_save) == 0
+                                    continue
+                                times = {}
+                                for _, tm of project.bup_last_save
+                                    times[tm] = true
+                                times = misc.keys(times)
+                                if times.length > 1
+                                    # at least one replica must be out of date
+                                    if project.bup_location?
+                                        # choose the running location rather than newest, just in case.
+                                        # should usually be the same, but might not be in case of split brain, etc.
+                                        project.source_id = project.bup_location
+                                        t = project.bup_last_save[project.bup_location]
+                                    else
+                                        times.sort()
+                                        t = times[times.length-1]
+                                        # choose any location with that time
+                                        for server_id, tm of project.bup_last_save
+                                            if "#{tm}" == t   # t is an map key so a string.
+                                                project.source_id = server_id
+                                                project.timestamp = tm
+                                                break
+                                        if not project.source_id?  # should be impossible
+                                            cb("BUG -- project.source_id didn't get set -- #{misc.to_json(project)}")
+                                            return
+                                    project.targets = (server_id for server_id, tm of project.bup_last_save when "#{tm}" != t)
+                                    projects.push(project)
+                            cb()
+            (cb) =>
+                if opts.dryrun
+                    cb(); return
+                i = 0
+                j = 0
+                f = (project, cb) =>
+                    i += 1
+                    dbg("*** syncing project #{i}/#{projects.length} ***: #{project.project_id}")
+                    s = {'status':'running...', project:project}
+                    opts.status.push(s)
+                    async.series([
+                        (cb) =>
+                            @project
+                                project_id : project.project_id
+                                server_id  : project.source_id
+                                cb         : (err, p) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        p.sync
+                                            targets     : (@servers.by_id[server_id].host for server_id in project.targets)
+                                            timeout     : opts.timeout
+                                            destructive : opts.destructive
+                                            snapshots   : true
+                                            cb          : cb
+                        (cb) =>
+                            # success -- update database
+                            last_save = {}
+                            for server_id in project.targets
+                                last_save[server_id] = project.timestamp
+                            @get_project(project.project_id).set_last_save
+                                last_save : last_save
+                                cb        : cb
+                    ], (err) =>
+                        j += 1
+                        dbg("*** got result #{j}/#{projects.length} for #{project.project_id}: #{err}")
+                        s['status'] = 'done'
+                        if err
+                            s['error'] = err
+                        cb(err)
+                    )
+
+                dbg("#{projects.length} projects need to be sync'd")
+                async.mapLimit(projects, opts.limit, f, (err) => cb())
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else if misc.len(errors) > 0
+                opts.cb?(errors)
+            else
+                if opts.dryrun
+                    opts.cb?(undefined, projects)
                 else
-                    if b.status.newest_snapshot?
-                        # b is better
-                        return 1
-                # Next compare health of server
-                health_a = @servers[a.replica_id]?.health
-                health_b = @servers[b.replica_id]?.health
-                if health_a? and health_b?
-                    health_a = Math.round(3.8*health_a)
-                    health_b = Math.round(3.8*health_b)
-                    if health_a < health_b
-                        # b is better
-                        return 1
-                    else if health_a > health_b
-                        # a is better
-                        return -1
-                # no error, so load must be defined
-                # smaller load is better -- later take into account free RAM, etc...
-                if a.status.load[0] < b.status.load[0]
-                    return -1
-                else if a.status.load[0] > b.status.load[0]
-                    return 1
-
-                return 0
-
-            opts.cb(undefined, status)
-
-
+                    opts.cb?()
+        )
 
 
 
@@ -1640,9 +1796,6 @@ class Client
         dbg = (m) => winston.debug("Storage client (#{@host}:#{@port}): #{m}")
         dbg()
         async.series([
-            (cb) =>
-                dbg("ensure secret_token")
-                read_secret_token(cb)
             (cb) =>
                 dbg("connect to locked socket")
                 misc_node.connect_to_locked_socket
@@ -1943,12 +2096,16 @@ class ClientProject
 
     sync: (opts) =>
         opts = defaults opts,
-            timeout            : TIMEOUT
-            destructive        : false
-            replication_factor : REPLICATION_FACTOR    # number of replicas per datacenter; alternatively, given [2,1,3] would mean "2" in dc0, 1 in dc1, etc
-            snapshots          : true   # whether to sync snapshots -- if not given, only syncs live files
-            cb                 : undefined
-        params = ['--replication_factor', opts.replication_factor]
+            targets     : required   # array of hostnames (not server id's!) to sync to
+            timeout     : TIMEOUT
+            destructive : false
+            snapshots   : true   # whether to sync snapshots -- if not given, only syncs live files
+            cb          : undefined
+        if opts.targets.length == 0  # trivial special case
+            opts.cb?()
+            return
+        params = []
+        params.push("--targets=#{opts.targets.join(',')}")
         if opts.snapshots
             params.push('--snapshots')
         if opts.destructive
@@ -2020,5 +2177,4 @@ main = () ->
 
 if program._name == 'bup_server.js'
     main()
-
 
