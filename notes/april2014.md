@@ -3,7 +3,13 @@
 
  - [ ] all proxy server stuff is broken, so ipython, latex, file download, etc.
 
+<<<<<<< HEAD
     - try again using the testing server
+=======
+ - [x] update base vm:
+       - ensure that bup/projects mounts as /projects
+       - update code
+>>>>>>> eec468fd0ae90e4615ba3ffcf3a0ff4f1f1a343c
 
 
  - [x] gce nodes -- need to fix /bup/projects2 issue,

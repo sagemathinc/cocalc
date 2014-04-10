@@ -75,8 +75,7 @@ ZPOOL = 'bup'  # must have ZPOOL/bups and ZPOOL/projects filesystems
 BUP_PATH       = '/bup/bups'
 
 # The path where project working files appear
-# PROJECTS_PATH  = '/projects'
-PROJECTS_PATH  = '/bup/projects'
+PROJECTS_PATH  = '/projects'
 
 # Default account settings
 
