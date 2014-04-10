@@ -731,9 +731,18 @@ class Project(object):
 
         if os.path.exists(self.project_mnt):
             def f(ignore_errors):
-                return self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, "--delete", "--ignore-errors"] + self.exclude('') +
+                o = self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, "--delete", "--ignore-errors"] + self.exclude('') +
                           ['-e', 'ssh -o StrictHostKeyChecking=no',
-                          self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=ignore_errors)
+                          self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=True)
+                # include only lines that don't contain any of the following errors, since permission denied errors are standard with
+                # FUSE mounts, and there is no way to make rsync not report them (despite the -x option above).
+                # TODO: This is horrible code since a different rsync version could break it.
+                v = ('\n'.join([a for a in o.splitlines() if a.strip() and 'ERROR' not in a and 'see previous errors' not in a and 'failed: Permission denied' not in a and 'Command exited with non-zero status' not in a])).strip()
+                if ignore_errors:
+                    return v
+                else:
+                    if v:  # report the error
+                        raise RuntimeError(v)
 
             e = f(ignore_errors=True)
             if QUOTAS_ENABLED and 'Disk quota exceeded' in e:
@@ -741,7 +750,7 @@ class Project(object):
                           'zfs set userquota@%s=%sM %s/projects'%(
                                         self.uid, QUOTAS_OVERRIDE if QUOTAS_OVERRIDE else self.get_settings()['disk'], ZPOOL)])
                 f(ignore_errors=False)
-            elif 'ERROR' in e:
+            elif e:
                 raise RuntimeError(e)
 
         if not snapshots:

@@ -1,25 +1,33 @@
 
 BEFORE SWITCH:
 
---> - [ ] migrate all projects
---> - [ ] write and run code to ensure all replication is up to date
-
- - [ ] test ui changes on other browsers.
-
- - [ ] setup new conf files for after the switch
+- [x] migrate all projects
+- [x] write and run code to ensure all replication is up to date
 
  - [ ] update base vm:
        - ensure that bup/projects mounts as /projects
        - update code
 
- - [ ] hourly or rolling snapshots of new *compute vm's* filesystems:
-         - https://github.com/zfsnap/zfsnap/tree/legacy
+ - [ ] setup new conf files for after the switch
+
+ - [ ] stop all current compute vm's
+
+ - [ ] restart all new compute vm's and all hub vm's
+
+ - [ ] fix issues until works
 
 
 
 ====
 
 AFTER SWITCH:
+
+ - [ ] test ui changes on other browsers.
+
+ - [ ] hourly or rolling snapshots of new *compute vm's* filesystems:
+         - https://github.com/zfsnap/zfsnap/tree/legacy
+
+ - [ ] test/fix ui changes on other browsers.
 
  - [ ] disable all swap on hosts (requires shutting down old compute vm's first)
 
@@ -28,6 +36,8 @@ AFTER SWITCH:
  - [ ] function to "truly" move a project within a given data center
 
  - [ ] write clean() -- for each project on a given host that hasn't been used in the last n days, delete .sagemathcloud, etc., directories
+
+ - [ ] install something randy needs:  I think this will be possible in the release planned for this summer, but for now it would be nice to use Jake's mpld3 package, which doesn't seem to be installed.  I tried downloading and following the instructions at   https://github.com/jakevdp/mpld3 but didn't have permissions.  Is this something you could install globally?
 
  - [ ] MAYBE -- or maybe not -- change bup_storage to never delete account: it's very useful for linking projects and sharing files to have account available at all times.  will make, e.g., persistent sshfs possible; make sure .ssh is not ssh excluded from rsync
 

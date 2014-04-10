@@ -1715,6 +1715,7 @@ class GlobalClient
                 if opts.dryrun
                     cb(); return
                 i = 0
+                j = 0
                 f = (project, cb) =>
                     i += 1
                     dbg("*** syncing project #{i}/#{projects.length} ***: #{project.project_id}")
@@ -1744,7 +1745,8 @@ class GlobalClient
                                 last_save : last_save
                                 cb        : cb
                     ], (err) =>
-                        dbg("*** got result for #{project.project_id}: #{err}")
+                        j += 1
+                        dbg("*** got result #{j}/#{projects.length} for #{project.project_id}: #{err}")
                         s['status'] = 'done'
                         if err
                             s['error'] = err
