@@ -8,7 +8,7 @@ BEFORE SWITCH:
        - ensure that bup/projects mounts as /projects
        - update code
 
- - [ ] setup new conf files for after the switch
+ - [x] setup new conf files for after the switch
 
  - [ ] stop all current compute vm's
 

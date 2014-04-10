@@ -77,6 +77,7 @@ Before building, do:
 # ZFSNAP:
 
   git clone https://github.com/zfsnap/zfsnap.git
+  cd zfsnap
   git fetch origin legacy
   git branch legacy
   git checkout legacy

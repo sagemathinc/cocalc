@@ -21,18 +21,5 @@
 # 
 # m h  dom mon dow   command
 
-# inspired by http://alblue.bandlem.com/2008/11/crontab-generated-zfs-snapshots.html
-POOL=bup
-@reboot  /sbin/zpool scrub $POOL
-@daily   /sbin/zpool scrub $POOL
-@hourly  /sbin/zpool status $POOL | /usr/bin/egrep -q "scrub completed|none requested" && /sbin/zfs snapshot -r $POOL/projects@AutoH-`date +"\%FT\%H:\%M"`
-@daily   /sbin/zfs snapshot -r $POOL/projects@AutoD-`date +"\%F"`
-@weekly  /sbin/zfs snapshot -r $POOL/projects@AutoW-`date +"\%Y-\%U"`
-@monthly /sbin/zfs snapshot -r $POOL/projects@AutoM-`date +"\%Y-\%m"`
-@yearly  /sbin/zfs snapshot -r $POOL/projects@AutoY-`date +"\%Y"`
-
-@hourly  /sbin/zpool status $POOL | /usr/bin/egrep -q "scrub completed|none requested" && /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL/projects@AutoH- | /usr/bin/sort -r | /usr/bin/tail -n +26 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
-@daily   /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL/projects@AutoD- | /usr/bin/sort -r | /usr/bin/tail -n +9 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
-@weekly  /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL/projects@AutoW- | /usr/bin/sort -r | /usr/bin/tail -n +7 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
-@monthly /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL/projects@AutoM- | /usr/bin/sort -r | /usr/bin/tail -n +14 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
-
+10 * * * *      /usr/local/bin/zfsnap.sh snapshot -a 5d -r bup
+0 0 * * *      /usr/local/bin/zfsnap.sh snapshot -a 30d -r bup
