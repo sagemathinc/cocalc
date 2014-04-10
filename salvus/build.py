@@ -144,6 +144,14 @@ tmux -V
 
       install_scripts('/usr/local/bin/')
 
+# SAGE user:
+
+    system-wide: open up permissions so that octave, etc., works -- this is ****HORRIBLE**** -- it makes it so any user
+    could fill / and kill a node; rebooting clears this out though.  STUPID design.  So stupid.  Must be fixed.
+
+        chmod a+rwx /usr/local/sage/sage-6.2/local/share/sage/ext/*
+
+
 # POLYMAKE system-wide:
 
   # From http://www.polymake.org/doku.php/howto/install

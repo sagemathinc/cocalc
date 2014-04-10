@@ -3,8 +3,9 @@
  - [ ] update base vm:
        - [x] ensure that bup/projects mounts as /projects
        - [x] update code
-       - firewall is wrong -- it would ban all internode traffic which isn't what we want due to .5 instead of .4
-       - system-wide: open up permissions so that octave works...
+       - [x] firewall is wrong -- it would ban all internode traffic which isn't what we want due to .5 instead of .4
+       - [x ] system-wide: open up permissions so that octave, etc., works: chmod a+rwx /usr/local/sage/sage-6.2/local/share/sage/ext/*
+
        - gce booting configuration
 
  - [ ] write a post explaining what is new and awesome, and what the architecture is.
