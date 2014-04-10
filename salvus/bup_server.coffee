@@ -1192,12 +1192,13 @@ class GlobalClient
                                 if program.address == '10.1.15.7'  # devel
                                     hosts = ["10.1.15.2", '10.1.16.2', '10.1.14.2']
                                 else if a == 1 and b>=1 and b<=7
-                                    hosts = ("10.1.#{i}.1" for i in [1..7])
+                                    hosts = ("10.1.#{i}.2" for i in [1..7])
                                 else if a == 1 and b>=10 and b<=21
-                                    hosts = ("10.1.#{i}.1" for i in [10..21])
+                                    hosts = ("10.1.#{i}.2" for i in [10..21])
                                 else if a == 3
                                     # TODO -- change this as soon as we get a DB spun up at Google...
                                     hosts = ("10.1.#{i}.1" for i in [10..21])
+                            winston.debug("database hosts=#{misc.to_json(hosts)}")
                             @database = new cassandra.Salvus
                                 hosts       : hosts
                                 keyspace    : if process.env.USER=='wstein' then 'test' else 'salvus'
