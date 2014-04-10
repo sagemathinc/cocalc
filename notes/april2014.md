@@ -1,26 +1,26 @@
-
-BEFORE SWITCH:
-
-- [x] migrate all projects
-- [x] write and run code to ensure all replication is up to date
-
- - [ ] update base vm:
-       - ensure that bup/projects mounts as /projects
-       - update code
-
- - [x] setup new conf files for after the switch
-
- - [ ] stop all current compute vm's
-
- - [ ] restart all new compute vm's and all hub vm's
-
- - [ ] fix issues until works
+# major issues
 
 
+ - [ ] all proxy server stuff is broken, so ipython, latex, file download, etc.
 
-====
+    - try again using the testing server
 
-AFTER SWITCH:
+
+ - [x] gce nodes -- need to fix /bup/projects2 issue,
+
+ - [ ] gce rebooting configuration
+
+ - [ ] system-wide: open up permissions so that octave works...
+
+
+ - [ ] firewall is wrong -- it would ban all internode traffic which isn't what we want due to .5 instead of .4
+
+
+---
+
+
+ - [ ] /scratch permissions probably wrong
+
 
  - [ ] test ui changes on other browsers.
 
@@ -88,6 +88,25 @@ AFTER SWITCH:
 
 
 # DONE
+
+BEFORE SWITCH:
+
+- [x] migrate all projects
+- [x] write and run code to ensure all replication is up to date
+
+ - [ ] update base vm:
+       - ensure that bup/projects mounts as /projects
+       - update code
+
+ - [x] setup new conf files for after the switch
+
+ - [ ] stop all current compute vm's
+
+ - [ ] restart all new compute vm's and all hub vm's
+
+
+
+ - [ ] fix issues until works
 
  - [x] delete users again
 
