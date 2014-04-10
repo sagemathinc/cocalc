@@ -36,7 +36,7 @@ connect_to_database = (cb) ->
         else
             new cassandra.Salvus
                 #hosts    : if process.env.USER=='wstein' then ['localhost'] else ("10.1.#{i}.2" for i in [1,2,3,4,5,7,10,11,12,13,14,15,16,17,18,19,20,21])
-                hosts    : if process.env.USER=='wstein' then ['localhost'] else ("10.1.#{i}.2" for i in [10,21])
+                hosts    : if process.env.USER=='wstein' then ['localhost'] else ("10.1.#{i}.2" for i in [1..7])
                 keyspace : if process.env.USER=='wstein' then 'test' else 'salvus'        # TODO
                 username : if process.env.USER=='wstein' then 'salvus' else 'hub'         # TODO
                 consistency : 1
@@ -4577,6 +4577,7 @@ exports.bup_set_quotas = (opts) ->
         end : 10
         limit : 1
         qlimit : 1000000
+        errors : required
         cb : undefined
     dbg = (m) -> winston.debug("bup_set_quotas: #{m}")
     dbg()
@@ -4686,6 +4687,13 @@ exports.bup_set_quotas = (opts) ->
                 else
                     return 0
             work = work.slice(opts.start, opts.end)
+            g = (task, cb) ->
+                f (task, err) ->
+                    if err
+                        errors.push({task:task, error:err})
+                        winston.debug("error! -- #{err}")
+                        winston.debug("#{errors.length} ERRORS so far")
+                cb()
             async.mapLimit(work, opts.limit, f, cb)
     ], (err) -> opts.cb?(err))
 
@@ -4699,10 +4707,11 @@ exports.migrate2_bup_all = (opts) ->
         start : undefined    # if given, only takes projects.slice(start, stop) -- useful for debugging
         stop  : undefined
         status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
-        timeout : 7200         # timeout on any given migration -- actually leaves them running, but moves on...
+        timeout : 2000         # timeout on any given migration -- actually leaves them running, but moves on...
         exclude : []
         only  : undefined      # if given, *ONLY* migrate projects in this list.
         reverse : false
+        sort_by_time : true    # if true, stort by time (with newest first)
         loop  : 0              # if >=1; call it again with same inputs once it finishes
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
 
@@ -4753,19 +4762,17 @@ exports.migrate2_bup_all = (opts) ->
                     if result?
                         dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
                         result.sort (a,b) ->
+                            if opts.sort_by_time
+                                if a.last_edited > b.last_edited
+                                    return -1
+                                else if a.last_edited < b.last_edited
+                                    return 1
                             if a.project_id < b.project_id
                                 return -1
                             else if a.project_id > b.project_id
                                 return 1
                             else
                                 return 0
-
-                        if opts.start? and opts.stop?
-                            result = result.slice(opts.start, opts.stop)
-                        else if opts.start?
-                            result = result.slice(opts.start)
-                        else if opts.stop?
-                            result = result.slice(0, opts.stop)
 
                         dbg("filter out known abusers: before #{result.length}")
                         result = (x for x in result when not x.abuser?)
@@ -4777,14 +4784,24 @@ exports.migrate2_bup_all = (opts) ->
 
                         dbg("filter out those that are already done: before #{result.length}")
                         v = []
+                        t = new Date(1396877998939)
                         for x in result
                             if not x.bup_last_save? or misc.len(x.bup_last_save) < 3
                                 v.push(x)
                             else
                                 for k, tm of x.bup_last_save
-                                    if tm < x.last_edited
+                                    if tm < t or tm < x.last_edited
                                         v.push(x)
                                         break
+                        result = v
+                        if opts.start? and opts.stop?
+                            result = result.slice(opts.start, opts.stop)
+                        else if opts.start?
+                            result = result.slice(opts.start)
+                        else if opts.stop?
+                            result = result.slice(0, opts.stop)
+
+
                         projects = result
                         todo = projects.length
                         dbg("of these -- #{todo} in the range remain to be migrated")
@@ -4858,14 +4875,14 @@ exports.migrate2_bup_all = (opts) ->
         if opts.loop
             f = () =>
                 opts.loop += 1
-                exports.migrate_bup_all(opts)
+                exports.migrate2_bup_all(opts)
             winston.debug("WAITING 90 seconds to space things out... before doing loop #{opts.loop+1}")
             setTimeout(f, 1000*90)
             return
         opts.cb?(err, errors)
     )
 
-exports.migrate2_bup = (opts) ->
+exports.xxxmigrate2_bup = (opts) ->
     opts = defaults opts,
         project_id    : required
         bup_last_save : {}
@@ -4938,8 +4955,8 @@ exports.migrate2_bup = (opts) ->
                 database.cql("UPDATE projects set bup_last_save[?]=? WHERE project_id=?",
                              [k, d, opts.project_id], c)
             async.map(misc.keys(opts.bup_last_save), f, cb)
-
         (cb) ->
+            cb(); return
             if host?
                 cb(); return
             dbg("get current location of project from database")
@@ -4950,14 +4967,26 @@ exports.migrate2_bup = (opts) ->
                     cb(err)
         (cb) ->
             dbg("get ordered list of hosts, based on newest snapshots")
+            dc0 = ("10.1.#{i}.4" for i in [1..7])
             get_snapshots
                 project_id : opts.project_id
                 cb         : (err, snapshots) ->
-                    # randomize so not all in same DC0...
-                    v = ([snaps[0], Math.random(), host] for host, snaps of snapshots when snaps?.length >=1)
-                    v.sort()
-                    v.reverse()
-                    v = (x[2] for x in v when x[2] != host)
+                    v = ([snaps[0], h] for h, snaps of snapshots when snaps?.length >=1)
+                    v.sort (a,b) ->
+                       if a[0] > b[0]
+                           return -1
+                       if a[0] < b[0]
+                           return 1
+                       #if a[1].slice(0,4) == '10.3'
+                       #    return 1
+                       #if b[1].slice(0,4) == '10.3'
+                       #    return -1
+                       #if a[1] in dc0
+                       #    return -1
+                       #if b[1] in dc0
+                       #    return -1
+                       return 0
+                    v = (x[1] for x in v when x[1] != host)
                     if host?
                         v = [host].concat(v)
                     dbg("v = #{misc.to_json(v)}")
@@ -4989,11 +5018,13 @@ exports.migrate2_bup = (opts) ->
             f = (host, c) ->
                 if done
                     c(); return
-                dbg("run python script to migrate over from #{host} to #{targets.join(',')}...")
+                it = misc.random_choice((x for x in targets when x != '10.1.1.5'))
+                other_targets = (x for x in targets when x != it)
+                dbg("run python script on #{it} to migrate over from #{host} to #{targets.join(',')}...")
                 execute_on
                     user        : 'root'
-                    host        : targets[0]
-                    command     : "/home/salvus/salvus/salvus/scripts/bup_storage.py migrate_remote #{host} --targets=#{targets.slice(1).join(',')} #{opts.project_id}"
+                    host        : it
+                    command     : "/home/salvus/salvus/salvus/scripts/bup_storage.py migrate_remote #{host} --targets=#{other_targets.join(',')} #{opts.project_id}"
                     timeout     : 3*60*60
                     err_on_exit : false
                     err_on_stderr : false
@@ -5085,4 +5116,460 @@ exports.delete_all_bup_saves = (limit, cb) ->
 
 
 # fs.writeFileSync('s.json', JSON.stringify(s))
+
+exports.project_to_user = (projects, cb) ->
+    users = {}
+    f = (project_id, cb) ->
+        get_current_location
+           project_id : project_id
+           cb         : (err, host) ->
+               if err
+                   cb(err)
+               else
+                   users[project_id] = "#{username(project_id)}@#{host}"
+                   cb()
+    async.map(projects, f, (err) -> cb(err, users))
+
+
+
+
+shuffle = (a) ->
+    i = a.length
+    while --i > 0
+        j = ~~(Math.random() * (i + 1))
+        t = a[j]
+        a[j] = a[i]
+        a[i] = t
+    a
+
+
+exports.migrate2_bup_all = (opts) ->
+    opts = defaults opts,
+        limit : 1            # no more than this many projects will be migrated simultaneously
+        qlimit : 100000
+        start : undefined    # if given, only takes projects.slice(start, stop) -- useful for debugging
+        stop  : undefined
+        status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
+        timeout : 60*60        # timeout on any given migration -- actually leaves them running, but moves on...
+        exclude : []
+        only  : undefined      # if given, *ONLY* migrate projects in this list.
+        force : false
+        reverse : false
+        replicate: true       
+        sort_by_time : true    # if true, stort by time (with newest first)
+        shuffle : false
+        loop  : 0              # if >=1; call it again with same inputs once it finishes
+        cb    : undefined      # cb(err, {project_id:errors when migrating that project})
+
+    projects = undefined
+    errors   = {}
+    done = 0
+    fail = 0
+    todo = undefined
+    dbg = (m) -> winston.debug("#{new Date()} -- migrate2_bup_all: #{m}")
+    t = misc.walltime()
+    servers = {by_id:{}, by_dc:{}, by_host:{}}
+
+    async.series([
+        (cb) ->
+            connect_to_database(cb)
+        (cb) ->
+            dbg("get storage server information")
+            database.select
+                table     : "storage_servers"
+                columns   : ['server_id', 'host', 'port', 'dc']
+                where     : {dummy:true}
+                objectify : true
+                cb        : (err, results) =>
+                    if err
+                        cb(err)
+                    else
+                        for x in results
+                            x.host = cassandra.inet_to_str(x.host)
+                            v = servers.by_dc[x.dc]
+                            if not v?
+                                servers.by_dc[x.dc] = [x]
+                            else
+                                v.push(x)
+                            servers.by_id[x.server_id] = x
+                            servers.by_host[x.host] = x
+                        cb()
+        (cb) ->
+            dbg("querying database...")
+            where = undefined
+            if opts.only
+                where = {project_id:{'in':opts.only}}
+            database.select
+                table   : 'projects'
+                columns : ['project_id', 'last_edited', 'bup_last_save', 'abuser', 'last_snapshot']
+                objectify : true
+                limit   : opts.qlimit
+                where   : where
+                consistency : 1
+                cb      : (err, result) ->
+                    if result?
+                        dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
+                        result.sort (a,b) ->
+                            if opts.sort_by_time
+                                if a.last_edited > b.last_edited
+                                    return -1
+                                else if a.last_edited < b.last_edited
+                                    return 1
+                            if a.project_id < b.project_id
+                                return -1
+                            else if a.project_id > b.project_id
+                                return 1
+                            else
+                                return 0
+                        if opts.shuffle
+                            result = shuffle(result)
+                        if opts.force
+                            projects = result
+                            cb(); return 
+
+                        dbg("filter out known abusers: before #{result.length}")
+                        result = (x for x in result when not x.abuser?)
+                        dbg("filter out known abusers: after #{result.length}")
+
+                        dbg("filter out those that haven't ever had a snapshot: before #{result.length}")
+                        result = (x for x in result when x.last_snapshot?)
+                        dbg("filter out those that haven't ever had a snapshot: after #{result.length}")
+
+                        dbg("filter out those that are already done: before #{result.length}")
+                        v = []
+                        t = new Date(1396877998939)
+                        for x in result
+                            if not x.bup_last_save? or ((opts.replicate and misc.len(x.bup_last_save) < 3) or misc.len(x.bup_last_save)<1)
+                                v.push(x)
+                            else
+                                if opts.replicate
+                                    for k, tm of x.bup_last_save
+                                        if tm < t or tm < x.last_edited
+                                            v.push(x)
+                                            break
+                                else
+                                    tm = Math.max((tm for k, tm of x.bup_last_save)...)  # best time
+                                    if tm <= t or tm < x.last_edited
+                                        v.push(x)
+                                    
+                        result = v
+                        if opts.start? and opts.stop?
+                            result = result.slice(opts.start, opts.stop)
+                        else if opts.start?
+                            result = result.slice(opts.start)
+                        else if opts.stop?
+                            result = result.slice(0, opts.stop)
+
+
+                        projects = result
+                        todo = projects.length
+                        dbg("of these -- #{todo} in the range remain to be migrated")
+                    cb(err)
+        (cb) ->
+            i = 1
+            times = []
+            start0 = misc.walltime()
+            g = (i, cb) ->
+                project = projects[i]
+                project_id = project.project_id
+                dbg("*******************************************")
+                dbg("Starting to migrate #{project_id}: #{i+1}/#{todo}")
+                dbg("*******************************************")
+                start = misc.walltime()
+                if opts.status?
+                    stat = {status:'migrating...', project_id:project_id}
+                    opts.status.push(stat)
+                exports.migrate2_bup
+                    project_id    : project_id
+                    bup_last_save : project.bup_last_save
+                    status        : stat
+                    servers       : servers
+                    replicate     : opts.replicate
+                    cb            : (err) ->
+
+                        tm = misc.walltime(start)
+                        times.push(tm)
+                        avg_time = times.reduce((t,s)->t+s)/times.length
+                        eta_time = ((todo - times.length) * avg_time)/opts.limit
+
+                        total_time = misc.walltime(start0)
+                        avg_time2 = total_time / times.length
+                        eta_time2 = (todo - times.length) * avg_time2
+
+                        if err
+                            if stat?
+                                stat.status='failed'
+                                stat.error = err
+                                stat.walltime = tm
+                            fail += 1
+                        else
+                            if stat?
+                                stat.status='done'
+                            done += 1
+                        dbg("******************************************* ")
+                        dbg("finished #{project_id} in #{tm} seconds     ")
+                        dbg("MIGRATE_ALL (loop=#{opts.loop+1}, #{opts.limit} at once) STATUS: (success=#{done} + fail=#{fail} = #{done+fail})/#{todo}; #{todo-done-fail} left")
+                        dbg("    total time     : #{total_time}")
+                        dbg("    avg time per   : #{avg_time}s/each")
+                        dbg("    eta if per     : #{eta_time/3600}h or #{eta_time/60}m")
+                        dbg("    effective avg  : #{avg_time2}s/each")
+                        dbg("    effective eta  : #{eta_time2/3600}h or #{eta_time2/60}m")
+                        dbg("*******************************************")
+                        if err
+                            errors[project_id] = err
+                        cb()
+            f = (i, cb) ->
+                h = () ->
+                    dbg("timed out #{i}=#{misc.to_json(projects[i])} after #{opts.timeout} seconds")
+                    cb()
+                timer = setTimeout(h, opts.timeout*1000)
+                g i, () ->
+                    clearTimeout(timer)
+                    cb()
+
+            v = [0...projects.length]
+            if opts.reverse
+                v.reverse()
+            async.mapLimit(v, opts.limit, f, cb)
+    ], (err) ->
+        if opts.loop
+            f = () =>
+                opts.loop += 1
+                exports.migrate2_bup_all(opts)
+            winston.debug("WAITING 2 minutes to space things out... before doing loop #{opts.loop+1}")
+            setTimeout(f, 1000*60*2)
+            return
+        opts.cb?(err, errors)
+    )
+
+exports.data_center = data_center = (h) ->
+    a = h.split('.')
+    if a[1] == '3'
+        return 2
+    if parseInt(a[2]) >= 10
+        return 0
+    return 1
+
+exports.migrate2_bup = (opts) ->
+    opts = defaults opts,
+        project_id    : required
+        bup_last_save : {}
+        status        : undefined
+        servers       : required
+        replicate     : true
+        cb            : required
+    dbg = (m) -> winston.debug("migrate2_bup(#{opts.project_id}): #{m}")
+    dbg()
+
+    needs_update = undefined
+    last_migrate_bup = cassandra.now()
+    host = undefined
+    hosts = undefined
+    client = undefined
+    last_migrate_bup_error = undefined   # could be useful to know below...
+    abuser = undefined
+    lastmod = undefined
+    hashrings = undefined
+    targets = undefined
+    servers = opts.servers
+
+
+
+
+    async.series([
+        (cb) ->
+             dbg("re-determine bup_last_save")
+             database.select_one
+                 where : {project_id : opts.project_id}
+                 columns : ['bup_last_save']
+                 table   : 'projects'
+                 consistency : 2
+                 cb      : (err, result) -> 
+                     if err
+                         cb(err); return 
+                     if not result[0]
+                         opts.bup_last_save = {}
+                     else
+                         opts.bup_last_save = result[0]
+                     dbg("result=#{misc.to_json(result)}")
+                     if misc.len(opts.bup_last_save) < 3
+                         # ensure have at least one from each dc
+                         dcs = ("#{servers.by_id[x].dc}" for x in misc.keys(opts.bup_last_save))
+                         for dc in ['0','1','2']
+                             if dc not in dcs
+                                 opts.bup_last_save[misc.random_choice(servers.by_dc[dc]).server_id] = new Date(0)
+                     dbg("bup_last_save=#{misc.to_json(opts.bup_last_save)}")
+                     cb()
+        (cb) ->
+            if servers?
+                cb(); return
+            dbg("get storage server information")
+            database.select
+                table     : "storage_servers"
+                columns   : ['server_id', 'host', 'port', 'dc']
+                where     : {dummy:true}
+                objectify : true
+                cb        : (err, results) =>
+                    if err
+                        cb(err)
+                    else
+                        for x in results
+                            x.host = cassandra.inet_to_str(x.host)
+                            v = servers.by_dc[x.dc]
+                            if not v?
+                                servers.by_dc[x.dc] = [x]
+                            else
+                                v.push(x)
+                            servers.by_id[x.server_id] = x
+                        cb()
+
+        (cb) ->
+            dbg("setting last_migrate_bup_error to start...")
+            database.update
+                table : 'projects'
+                set   : {last_migrate_bup_error : "start"}
+                where : {project_id : opts.project_id}
+                cb    : cb
+        (cb) ->
+            dbg("success -- record bup_last_save, etc.  in database -- so if interrupted use same choice next time")
+            f = (k, c) ->
+                d = opts.bup_last_save[k]
+                if d.low? and d.low==0
+                    d = new Date(0)
+                database.cql("UPDATE projects set bup_last_save[?]=? WHERE project_id=?",
+                             [k, d, opts.project_id], c)
+            async.map(misc.keys(opts.bup_last_save), f, cb)
+        (cb) ->
+            if host?
+                cb(); return
+            dbg("get current location of project from database")
+            get_current_location
+                project_id : opts.project_id
+                cb         : (err, x) ->
+                    host = x
+                    cb(err)
+        (cb) ->
+            dbg("get ordered list of hosts, based on newest snapshots")
+            get_snapshots
+                project_id : opts.project_id
+                cb         : (err, snapshots) ->
+                    v = ([snaps[0], h] for h, snaps of snapshots when snaps?.length >=1)
+                    v.sort (a,b) ->
+                       if a[0] > b[0]
+                           return -1
+                       if a[0] < b[0]
+                           return 1
+                       return 0
+                    v = (x[1] for x in v when x[1] != host)
+                    if host?
+                        v = [host].concat(v)
+                    # huge number of very old unused projects hosted on 10.1.1.4 but not touched in forever
+                    #v = (x for x in v when x not in ['10.1.1.4','10.1.2.4','10.1.3.4','10.1.4.4'])
+                    dbg("v = #{misc.to_json(v)}")
+                    if v.length == 0
+                        # nothing to do -- project never opened
+                        hosts = undefined
+                        cb()
+                    else
+                        hosts = v
+                        cb()
+        (cb) ->
+            if not hosts?
+                cb(); return
+            dbg("project is available on #{hosts}")
+            if opts.status?
+                opts.status.hosts = hosts
+            cb()
+
+
+        (cb) ->
+            if not hosts?
+                cb(); return
+            done = false
+            targets = (servers.by_id[id].host for id in misc.keys(opts.bup_last_save))
+            targets.sort()
+            if opts.status?
+                opts.status.targets = targets
+            errors = {}
+            f = (host, c) ->
+                if done
+                    c(); return
+
+
+                # choose the migration_host to be the one in the same DC as the host of the project that we're migrating from.
+                host_dc = data_center(host)
+                for migrate_host in targets
+                    if data_center(migrate_host) == host_dc
+                        break
+
+                # or choose it at random
+                #migrate_host = misc.random_choice((x for x in targets when x != '10.1.18.5' and x != '10.1.1.5') ) 
+
+                if opts.replicate
+                    other_targets = (x for x in targets when x != migrate_host)
+                else
+                    other_targets = []
+                    for x in targets
+                        if x != migrate_host
+                            # record where we really replicated in database.
+                            delete opts.bup_last_save[servers.by_host[x].server_id]
+                    if misc.len(opts.bup_last_save) != 1
+                        #console.log("servers=", servers)
+                        cb("BUG! - number of other targets wrong: targets=#{misc.to_json(targets)}; other_targets=#{misc.to_json(other_targets)}; migrate_host=#{migrate_host}; bup_last_save=#{misc.to_json(opts.bup_last_save)}")
+
+                        return
+
+                dbg("run python script on #{migrate_host} to migrate over from #{host} to #{targets.join(',')}...")
+                execute_on
+                    user        : 'root'
+                    host        : migrate_host
+                    command     : "/home/salvus/salvus/salvus/scripts/bup_storage.py migrate_remote #{host} --targets=#{other_targets.join(',')} #{opts.project_id}"
+                    timeout     : 3*60*60
+                    err_on_exit : false
+                    err_on_stderr : false
+                    cb          : (err, output) ->
+                        if err
+                            errors[host] = err
+                            c()
+                        else
+                            out = output.stdout + output.stderr
+                            if out.indexOf('ABUSE') != -1
+                                done = true
+                                # mark as an abusive project
+                                abuser = true
+                            if out.indexOf('SUCCESS') != -1
+                                done = true
+                                c()
+                            else
+                                errors[host] = output.stderr
+                                c()
+
+            async.mapSeries hosts, f, (err) ->
+                if not done
+                    cb(errors)
+                else
+                    cb()
+        (cb) ->
+            dbg("success -- record bup_last_save, etc.  in database")
+            f = (k, c) ->
+                database.cql("UPDATE projects set bup_last_save[?]=? WHERE project_id=?",
+                             [k, last_migrate_bup, opts.project_id], c)
+            async.map(misc.keys(opts.bup_last_save), f, cb)
+        (cb) ->
+            dbg("success -- record other stuff  in database")
+            database.update
+                table : 'projects'
+                set   : {last_migrate_bup_error:undefined, abuser:abuser}
+                where : {project_id : opts.project_id}
+                cb    : cb
+    ], (err) ->
+        if err
+            database.update
+                table : 'projects'
+                set   : {last_migrate_bup_error : misc.to_json(err), last_migrate_bup : last_migrate_bup}
+                where : {project_id : opts.project_id}
+        if opts.status?
+            opts.status.error = err
+        opts.cb(err)
+    )
 

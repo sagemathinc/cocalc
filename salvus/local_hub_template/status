@@ -13,8 +13,6 @@ def done():
 
 def set(prop, val):
     status[prop] = val
-    if val is False:
-        done()
 
 def read(prop, filename, strip=False, int_value=False, to_int=False):
     try:
@@ -33,7 +31,6 @@ def read(prop, filename, strip=False, int_value=False, to_int=False):
         status[prop] = s
     except:
         status[prop] = False
-        done()
 
 read('version', os.path.join(SMC, "salvus_version.js"), strip=True, int_value=True)
 
@@ -55,7 +52,7 @@ for daemon in ['local_hub', 'sage_server', 'console_server']:
         set(daemon+'.pid', False)
 
 for name in ['secret_token', 'local_hub.port', 'raw.port', 'console_server.port', 'sage_server.port']:
-    to_int = 'port' in name 
+    to_int = 'port' in name
     read(name, os.path.join(SMC, 'data', name), to_int=to_int)
 
 done()

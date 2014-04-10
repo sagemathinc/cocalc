@@ -49,7 +49,7 @@ if hostname.startswith('compute'):
 
     # Start the bup storage server:
     if hostname.startswith('compute'):
-        os.system("zpool import -f bup; su - salvus -c 'cd /home/salvus/salvus/salvus/&& . salvus-env&& ./bup_server start'")
+        os.system("zpool import -f bup; zfs set mountpoint=/projects bup/projects; su - salvus -c 'cd /home/salvus/salvus/salvus/&& . salvus-env&& ./bup_server start'")
         # Install crontab for snapshotting the bup pool, etc.
         os.system("crontab /home/salvus/salvus/salvus/scripts/root-compute.crontab")
 
@@ -57,7 +57,7 @@ if hostname.startswith('compute'):
 os.system("chmod og-rwx -R /home/salvus/&")
 
 
-# Configure the backup machine(s)
+# Configure the backup machine(s) -- deprecated...
 if hostname.startswith('backup'):
     # create a /home/storage directory owned by salvus
     os.system("mkdir -p /home/storage; chown -R salvus. /home/storage")
@@ -67,8 +67,6 @@ if hostname.startswith('backup'):
     os.system("echo 'salvus ALL=(ALL) NOPASSWD: /sbin/zfs *' >> /etc/sudoers.d/salvus ")
     os.system("echo 'salvus ALL=(ALL) NOPASSWD: /sbin/zpool *' >> /etc/sudoers.d/salvus ")
     os.system("chmod 0440 /etc/sudoers.d/salvus ")
-    # import the projects pool
-    os.system("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 
 
 if hostname.startswith('cassandra'):

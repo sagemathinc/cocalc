@@ -237,26 +237,27 @@
             <ul class="nav nav-pills  project-pages">
                 <!-- Settings specific to this project -->
                 <!-- Browse through files in the project -->
+                <!-- Project settings -->
 
                 <!-- we use data-target instead of href=# to avoid the highly annoying link text that appears on hover at the bottom of the screen! -->
                 <li class="super-menu project-pages-button">
                     <a data-target="project-file-listing"  data-toggle="tooltip" data-placement="right" title="Browse files"><i class="project-control-icon fa fa-folder-open-o"></i> Files</a></li>
 
+                <!-- File editor with links to recent files -->
+                <li class="super-menu project-pages-button"><a data-target="project-editor" data-toggle="tooltip" data-placement="bottom" title="Recent files"><i class="project-control-icon fa fa-clock-o"> </i> Recent</a></li>
+
                 <!-- Create a new file (or, etc.)-->
-                <li class="super-menu project-pages-button"><a data-target="project-new-file" data-toggle="tooltip" data-placement="right" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon fa fa-plus"> </i> New</a></li>
+                <li class="super-menu project-pages-button"><a data-target="project-new-file" data-toggle="tooltip" data-placement="right" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon fa fa-plus-circle"> </i> New</a></li>
 
 
                 <!-- Project activities  -->
                 <li class="super-menu project-pages-button"><a data-target="project-activity" data-toggle="tooltip" data-placement="right" title="Log of project activity and central chat"><i class="project-control-icon fa fa-list"> </i> Log</a></li>
 
-                <!-- File editor with links to recent files -->
-                <li class="super-menu project-pages-button"><a data-target="project-editor" data-toggle="tooltip" data-placement="bottom" title="Recent files"><i class="project-control-icon fa fa-clock-o"> </i> Recent</a></li>
-
                 <!-- Search -->
-                <li class="super-menu project-pages-button project-search-menu-item"><a data-target="project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project"> <i class="project-control-icon fa fa-search"> </i> Find</a></li>
+                <li class="super-menu project-pages-button project-search-menu-item"><a data-target="project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project"> <i class="project-control-icon fa fa-search"> </i> </a></li>
 
-                <!-- Project settings -->
-                <li class="super-menu project-pages-button pull-right  project-settings-menu-item"><a data-target="project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls"><i class="project-control-icon fa fa-wrench"> </i>  <span class="salvus-project-status-indicator"></span></a></li>
+                <li class="super-menu project-pages-button  project-settings-menu-item"><a data-target="project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls"><i class="project-control-icon fa fa-wrench"> </i>  </a>
+                </li>
 
 
             </ul>
@@ -453,7 +454,7 @@
                     <div class="well" style="margin-left:3em; margin-right:3em;">
                         <div class="row-fluid">
                             <div class="span6 well project-heading-well">
-                                <h4>Title and Description <span class="lighten"> (click to edit)</span></h4>
+                                <h4><i class="fa fa-gear"> </i>&nbsp;&nbsp;  Title and Description <span class="lighten"> (click to edit)</span></h4>
                                 <!-- Title of the project (editable) -->
                                 <h4>
                                     <span class="project-public"><i class="fa fa-eye">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
@@ -467,9 +468,10 @@
 
                             <div class="span6 well project-settings-well">
                                 <!-- The project id -->
+                                <h4><i class="fa fa-gears"> </i>&nbsp;&nbsp; Status</h4>
                                 <div class="row-fluid project-settings-move" >
                                     <div class="span4">
-                                        <h4>Project id</h4>
+                                        <h5>Project id</h5>
                                     </div>
                                     <div class="span8">
                                         <pre class="project-id">loading&hellip;</pre>
@@ -479,7 +481,7 @@
                                 <div class="row-fluid project-settings-move">
                                     <!-- Current location of the project -->
                                     <div class="span4">
-                                        <h4>Location</h4>
+                                        <h5>Location</h5>
                                     </div>
                                     <div class="span8">
                                         <!--<pre><a class="project-location project-move-button"></a></pre>-->
@@ -489,10 +491,16 @@
 
                                 <div class="row-fluid project-settings-move">
                                     <div class="span4">
-                                        <h4>Status</h4>
+                                        <h5>Project Server</h5>
                                     </div>
-                                    <div class="span8">
+                                    <div class="span5">
                                         <pre><span class="salvus-project-status-indicator"></span></pre>
+                                    </div>
+                                    <div class="span3">
+                                        <a href="#restart-project" class="btn  btn-warning"
+                                           data-toggle="tooltip" data-placement="right" title="Restart this project server">
+                                            <i class="fa fa-refresh"> </i> Restart
+                                        </a>
                                     </div>
                                 </div>
 
@@ -584,7 +592,7 @@
                         </div>
                         <div class="row-fluid">
                             <div class="span6 well project-settings-well">
-                                <h4>Restart...</h4>
+                                <h4><i class="fa fa-refresh"> </i>&nbsp;&nbsp;  Restart...</h4>
 
                                 <div class="row-fluid">
                                     <div class="span8">
@@ -619,7 +627,7 @@
                                 </div>
                             </div>
                             <div class="span6 well project-settings-well">
-                                <h4>Danger!</h4>
+                                <h4><i class="fa fa-warning"> </i>&nbsp;&nbsp; Danger!</h4>
                                 <div class="row-fluid project-settings-make-public hide">
                                     <div class="hide">
                                         <div class="span8">
@@ -767,13 +775,17 @@
                 <i class="fa fa-trash-o"> </i>
             </a>
         </div>
-        <div class="span6">
+        <div class="span5">
             <a> <i class="fa project-file-icon fa-file" style="padding-right:1em"> </i></a>
             <a  href="#open-file" class="project-file-name"></a><span class="project-file-name-extension"></span>
         </div>
 
-        <div class="span4">
+        <div class="span3">
             <span class="project-file-last-mod-date">
+            </span>
+        </div>
+        <div class="span2">
+            <span class="project-file-size">
             </span>
         </div>
 

@@ -406,18 +406,6 @@ init_http_proxy_server = () =>
                             cb("user does not have write access to this project")
                         else
                             cb()
-
-            (cb) ->
-                database.get_project_location
-                    project_id  : project_id
-                    allow_cache : false
-                    cb          : (err, _location) ->
-                        if err
-                            cb(err)
-                        else
-                            if _location?
-                                host = _location.host
-                            cb()
             (cb) ->
                 if host?
                     cb()
@@ -454,7 +442,7 @@ init_http_proxy_server = () =>
                 else
                     cb("unknown url type -- #{type}")
             ], (err) ->
-                winston.debug("target: setup proxy; time=#{misc.walltime(tm)} seconds")
+                winston.debug("target: setup proxy; time=#{misc.walltime(tm)} seconds -- err=#{err}; host=#{host}; port=#{port}; type=#{type}")
                 if err
                     cb(err)
                 else

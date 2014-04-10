@@ -301,7 +301,7 @@ class KeyValueStore
     constructor: (@cassandra, opts={}) ->
         @opts = defaults(opts,  name:required)
 
-    set: (opts={}) ->
+    set: (opts={}) =>
         opts = defaults opts,
             key   : undefined
             value : undefined
@@ -315,27 +315,32 @@ class KeyValueStore
             ttl:opts.ttl
             cb:opts.cb
 
-    get: (opts={}) ->
+    get: (opts={}) =>
         opts = defaults opts,
             key       : undefined
             cb        : undefined  # cb(error, value)
             timestamp : false      # if specified, result is {value:the_value, timestamp:the_timestamp} instead of just value.
         if opts.timestamp
-            @cassandra.select(
+            @cassandra.select
                 table     : 'key_value'
                 columns   : ['value']
                 timestamp : ['value']
                 where     : {name:@opts.name, key:to_json(opts.key)}
-                cb : (error, results) ->
-                    opts.cb?(error, if results.length == 1 then {'value':from_json(results[0][0].value), 'timestamp':results[0][0].timestamp})
-            )
+                cb : (error, results) =>
+                    if error
+                        opts.cb?(error)
+                    else
+                        opts.cb?(undefined, if results?.length == 1 then {'value':from_json(results[0][0].value), 'timestamp':results[0][0].timestamp})
         else
-            @cassandra.select(
+            @cassandra.select
                 table:'key_value'
                 columns:['value']
                 where:{name:@opts.name, key:to_json(opts.key)}
-                cb:(error, results) -> opts.cb?(error, if results.length == 1 then from_json(results[0][0]))
-            )
+                cb:(error, results) => 
+                    if error
+                        opts.cb?(error)
+                    else
+                        opts.cb?(undefined, if results.length == 1 then from_json(results[0][0]))
 
     delete: (opts={}) ->
         opts = defaults(opts, key:undefined, cb:undefined)
@@ -349,14 +354,17 @@ class KeyValueStore
         opts = defaults(opts,  cb:undefined)
         @cassandra.count(table:'key_value', where:{name:@opts.name}, cb:opts.cb)
 
-    all: (opts={}) ->
+    all: (opts={}) =>
         opts = defaults(opts,  cb:undefined)
-        @cassandra.select(
+        @cassandra.select
             table:'key_value'
             columns:['key', 'value']
             where:{name:@opts.name}
-            cb:(error, results) -> opts.cb(error, [from_json(r[0]), from_json(r[1])] for r in results)
-        )
+            cb: (error, results) => 
+                if error
+                    opts.cb?(error)
+                else
+                    opts.cb?(undefined, [from_json(r[0]), from_json(r[1])] for r in results)
 
 # Convert individual entries in columns from cassandra formats to what we
 # want to use everywhere in Salvus. For example, uuids ficare converted to

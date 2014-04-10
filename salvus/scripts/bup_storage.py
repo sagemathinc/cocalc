@@ -51,6 +51,7 @@ chmod og-rwx /bup/conf
 chown salvus. /bup/conf
 
 """
+
 # If UNSAFE_MODE=False, we only provide a restricted subset of options.  When this
 # script will be run via sudo, it is useful to minimize what it is able to do, e.g.,
 # there is no reason it should have easy command-line options to overwrite any file
@@ -62,7 +63,8 @@ from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
 
 # Flag to turn off all use of quotas, since it will take a while to set these up after migration.
-QUOTAS_ENABLED=False
+QUOTAS_ENABLED=True
+QUOTAS_OVERRIDE=25000
 
 USERNAME =  pwd.getpwuid(os.getuid())[0]
 
@@ -73,8 +75,7 @@ ZPOOL = 'bup'  # must have ZPOOL/bups and ZPOOL/projects filesystems
 BUP_PATH       = '/bup/bups'
 
 # The path where project working files appear
-# PROJECTS_PATH  = '/projects'
-PROJECTS_PATH  = '/bup/projects'
+PROJECTS_PATH  = '/projects'
 
 # Default account settings
 
@@ -248,7 +249,7 @@ class Project(object):
 
     def get_zfs_status(self):
         q = {}
-        if not QUOTAS_ENABLED:
+        if not QUOTAS_ENABLED or QUOTAS_OVERRIDE:
             return q
         try:
             for x in ['userquota', 'userused']:
@@ -380,7 +381,10 @@ class Project(object):
             log("kill attempt left %s procs"%n)
             if n == 0:
                 break
-        self.delete_user()  # so crontabs, remote logins, etc., won't happen
+
+        # So crontabs, remote logins, etc., won't happen... and user can't just get more free time via crontab. Not sure.
+        # We need another state, which is that the project is "on" but daemons are all stopped and not using RAM.
+        self.delete_user()
         self.unset_quota()
         self.umount_snapshots()
 
@@ -449,7 +453,12 @@ class Project(object):
 
             result['timestamp'] = timestamp
 
-            self.cmd(["/usr/bin/bup", "save", "--strip", "-n", self.branch, '-d', timestamp, path])
+            # It is important to still sync out, etc., even if there is an error.  Many errors are nonfatal, e.g., a file vanishes during save.
+            try:
+                self.cmd(["/usr/bin/bup", "save", "--strip", "-n", self.branch, '-d', timestamp, path])
+            except RuntimeError, msg:
+                log("WARNING: running bup failed with error: %s"%msg)
+                result['error'] = str(msg)
 
             # record this so can properly describe the true "interval of time" over which the snapshot happened,
             # in case we want to for some reason...
@@ -471,9 +480,7 @@ class Project(object):
             except Exception, msg:
                 # the save log is only a convenience -- not critical.
                 log("WARNING: unable to write to save log -- %s"%msg)
-
         return result
-
 
     def tag(self, tag, delete=False):
         """
@@ -592,6 +599,8 @@ class Project(object):
         """
         if not QUOTAS_ENABLED:
             return
+        if QUOTAS_OVERRIDE:
+            disk = scratch = QUOTAS_OVERRIDE
         cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, disk), '%s/projects'%ZPOOL])
         cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, scratch), '%s/scratch'%ZPOOL])
 
@@ -661,6 +670,14 @@ class Project(object):
         else:
             cfs_quota = int(100000*cores)
 
+        # Special case -- if certain files are in the project, make them slow as molasses
+        try:
+            for bad in open('/root/banned_files').read().split():
+                if os.path.exists(os.path.join(self.project_mnt, bad)):
+                    cfs_quota = 1000
+        except Exception, msg:
+            log("WARNING: non-fatal issue reading banned_files file: %s"%msg)
+
         self.cmd(["cgcreate", "-g", "memory,cpu:%s"%self.username])
         open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sG"%memory)
         open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(str(cpu_shares))
@@ -718,17 +735,26 @@ class Project(object):
 
         if os.path.exists(self.project_mnt):
             def f(ignore_errors):
-                return self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, "--delete", "--ignore-errors"] + self.exclude('') +
+                o = self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, "--delete", "--ignore-errors"] + self.exclude('') +
                           ['-e', 'ssh -o StrictHostKeyChecking=no',
-                          self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=ignore_errors)
+                          self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=True)
+                # include only lines that don't contain any of the following errors, since permission denied errors are standard with
+                # FUSE mounts, and there is no way to make rsync not report them (despite the -x option above).
+                # TODO: This is horrible code since a different rsync version could break it.
+                v = ('\n'.join([a for a in o.splitlines() if a.strip() and 'ERROR' not in a and 'see previous errors' not in a and 'failed: Permission denied' not in a and 'Command exited with non-zero status' not in a])).strip()
+                if ignore_errors:
+                    return v
+                else:
+                    if v:  # report the error
+                        raise RuntimeError(v)
 
             e = f(ignore_errors=True)
             if QUOTAS_ENABLED and 'Disk quota exceeded' in e:
                 self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", 'root@'+remote,
                           'zfs set userquota@%s=%sM %s/projects'%(
-                                        self.uid, self.get_settings()['disk'], ZPOOL)])
+                                        self.uid, QUOTAS_OVERRIDE if QUOTAS_OVERRIDE else self.get_settings()['disk'], ZPOOL)])
                 f(ignore_errors=False)
-            elif 'ERROR' in e:
+            elif e:
                 raise RuntimeError(e)
 
         if not snapshots:
@@ -819,7 +845,8 @@ class Project(object):
         log("rsync from remote to local")
         t = time.time()
         x = self.cmd("rsync -Haxq --ignore-errors --delete %s root@%s:%s/ %s/; chown -R %s:%s %s/"%(
-               ' '.join(self.exclude(project_mnt+"/")), host, project_mnt, self.project_mnt, self.uid, self.gid, self.project_mnt), ignore_errors=True)
+               ' '.join(self.exclude("")),
+               host, project_mnt, self.project_mnt, self.uid, self.gid, self.project_mnt), ignore_errors=True)
         log("time to rsync=%s"%(time.time()-t))
         for a in x.splitlines():
             # allow these errors only -- e.g., sshfs mounts cause them
@@ -844,123 +871,6 @@ class Project(object):
         print "SUCCESS"
         return True
 
-    def xxx_migrate_remote(self, host, lastmod, max_snaps=10):
-        log = self._log('migrate_remote')
-
-        live_path = "/projects/%s/"%self.project_id
-        snap_path  = os.path.join(live_path, '.zfs/snapshot/')
-
-        log("is it an abusive bitcoin miner?")
-        x = self.cmd("bup ls master/latest/", verbose=1, ignore_errors=True)  # will fail if nothing local
-        if 'minerd' in x or 'coin' in x:
-            log("ABUSE")
-            print "ABUSE"
-            # nothing more to do
-            return
-
-        def sync_out():
-            status = self.sync(destructive=True, snapshots=True)
-            print str(status)
-            for r in status:
-                if r.get('error', False):
-                    print "FAIL"
-                    return False
-            return True
-
-        log("get list of local snapshots")
-        try:
-            local_snapshots = self.cmd("bup ls master/", verbose=1).split()[:-1]
-        except:
-            local_snapshots = []
-        local_snapshots.sort()
-        local_snapshot_times = [time.mktime(time.strptime(s, "%Y-%m-%d-%H%M%S")) for s in local_snapshots]
-
-        if len(local_snapshots) == 0:
-            newest_local = 0
-        else:
-            newest_local = local_snapshot_times[-1]
-
-        log("newest_local=%s, lastmod=%s"%(newest_local, lastmod))
-        if newest_local+3 >= lastmod:  # 3 seconds due to rounding...
-            sync_out()
-            print "SUCCESS"
-            return
-
-        x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls %s/'"%(host, live_path), ignore_errors=True, verbose=1)
-        if 'minerd' in x or 'coin' in x:
-            log("ABUSE")
-            print "ABUSE"
-            # nothing more to do
-            return
-
-        log("maybe they are not a bitcoin miner after all...")
-        if not os.path.exists(self.bup_path):
-            self.cmd(['/usr/bin/bup', 'init'])
-
-        log("get list of remote snapshots")
-        x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path), verbose=1, ignore_errors=True)
-        if 'No such file or' in x:
-            # try to mount and try again
-            self.cmd("ssh -o StrictHostKeyChecking=no  root@%s 'zfs set mountpoint=/projects/%s projects/%s; zfs mount projects/%s'"%(
-                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=600)
-            x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path), verbose=1, ignore_errors=False)
-        remote_snapshots = x.splitlines()
-        remote_snapshots.sort()
-
-        log("do we need to do anything?")
-        if len(remote_snapshots) == 0:
-            # this shouldn't come up, but well...
-            print "SUCCESS"
-            return
-        remote_snapshot_times = [time.mktime(time.strptime(s, "%Y-%m-%dT%H:%M:%S")) for s in remote_snapshots]
-        newest_remote = remote_snapshot_times[-1]
-
-
-        if newest_remote < newest_local:
-            log("nothing more to do -- we have enough")
-            if sync_out():
-                print "SUCCESS"
-            return
-
-        log("get some more snapshots")
-        # v = indices into remote_snapshots list of the snapshots we need
-        v = [i for i in range(len(remote_snapshots)) if remote_snapshot_times[i] not in local_snapshot_times]
-
-        if len(v) > max_snaps:
-            log('shrinking list to save time')
-            trim = math.ceil(len(v)/max_snaps)
-            w = [v[i] for i in range(len(v)) if i%trim==0]
-            for i in range(1,5):
-                if w[-i] != v[-i]:
-                    w.append(v[-i])
-            v = w
-
-        log("in fact, get %s more snapshots"%len(v))
-
-        just_get_home = False
-        for i in v:
-            path = os.path.join(snap_path, remote_snapshots[i])
-            tm   = remote_snapshot_times[i]
-
-            try:
-                self.cmd(["/usr/bin/bup", "on", 'root@'+host, "index", "-x"] + self.exclude(path+'/') + [path],
-                         timeout=600)
-            except:
-                just_get_home = True
-                break
-            self.cmd(["/usr/bin/bup", "on", 'root@'+host, "save", "--strip", "-n", 'master', '-d', tm, path])
-
-        if just_get_home:
-            log("problems indexing zfs snapshots -- so just get a copy of the live filesystem")
-            self.cmd(["/usr/bin/bup", "on", 'root@'+host, "index", "-x"] + self.exclude(live_path+'/') + [live_path], ignore_errors=True)
-            self.cmd(["/usr/bin/bup", "on", 'root@'+host, "save", "--strip", "-n", 'master', live_path])
-
-        if len(v) > 5:
-           log("doing a cleanup too, so we start fresh")
-           self.cleanup()
-
-        if sync_out():
-            print "SUCCESS"
 
 
 
@@ -1004,7 +914,7 @@ if __name__ == "__main__":
         status = project.sync(*args, **kwds)
         print json.dumps(status)
     parser_sync = subparsers.add_parser('sync', help='sync with all replicas')
-    parser_sync.add_argument("--targets", help="if given, a comma separated ip addresses of computers to replicate to NOT including the current machine", dest="targets", default="", type=str)
+    parser_sync.add_argument("--targets", help="REQUIRED: a comma separated ip addresses of computers to replicate to NOT including the current machine", dest="targets", default="", type=str)
     parser_sync.add_argument("--destructive", help="sync, destructively overwriting all remote replicas (DANGEROUS)",
                                    dest="destructive", default=False, action="store_const", const=True)
     parser_sync.add_argument("--snapshots", help="include snapshots in sync",
