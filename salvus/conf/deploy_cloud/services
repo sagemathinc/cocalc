@@ -1,7 +1,7 @@
 # services
 base = 'salvus-2014-03-25-1417'
 
-newbase = 'salvus-2014-04-07-1316'
+newbase='salvus-2014-04-08-2239'
 baset = base
 
 cassandra_ram = 8
@@ -66,7 +66,7 @@ cloud20  {'hostname':'web20',      'vcpus':web_cpu,       'ram':web_ram,       '
 cloud21  {'hostname':'web21',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
 
 # new compute vm's
-cloud1   {'hostname':'compute1dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':newbase, 'disk':'bup:1024:none:qcow2,projects:512:none:qcow2', 'vnc':13100}
+cloud1   {'hostname':'compute1dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':newbase, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
 cloud2   {'hostname':'compute2dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':newbase, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
 cloud3   {'hostname':'compute3dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':newbase, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
 cloud4   {'hostname':'compute4dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':newbase, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
@@ -98,7 +98,7 @@ cloud2   {'hostname':'compute5a',  'vcpus':6,   'ram':16,   'base':base, 'disk':
 
 cloud6   {'hostname':'compute6a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
 
-cloud1   {'hostname':'compute7a',  'vcpus':6,   'ram':16,   'base':base, 'disk':'projects:512:none:qcow2,projects2:512:none:qcow2,storage:512:none:qcow2', 'vnc':13007}
+cloud1   {'hostname':'compute7a',  'vcpus':6,   'ram':16,   'base':base, 'disk':'projects-sn1:512:none:qcow2,projects2-sn1:512:none:qcow2,storage:512:none:qcow2', 'vnc':13007}
 
 cloud10  {'hostname':'compute10a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
 cloud11  {'hostname':'compute11a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
