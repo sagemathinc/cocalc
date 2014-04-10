@@ -79,7 +79,7 @@ def conf():
         cmd("nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd")
 
     # Copy over newest version of certain scripts and set permissions
-    for s in ['create_project_user.py', 'ensure_ssh_access.py', 'ensure_file_exists.py', 'compact_zvol', 'cgroup.py']:
+    for s in ['bup_storage.py', 'hashring.py']:
         os.system("cp /home/salvus/salvus/salvus/scripts/%s /usr/local/bin/; chmod og-w /usr/local/bin/%s; chmod og+rx /usr/local/bin/%s"%(s,s,s))
 
     # make it so there is a stable mac address for people who want to run their legal copy of magma, etc. in a private project.
@@ -90,21 +90,7 @@ def conf():
     if os.path.exists("/mnt/conf/post"):
         cmd("/mnt/conf/post")
 
-    # Create the storage user in case it doesn't exist
-    cmd("groupadd -g 999 -o storage")
-    cmd("useradd -u 999 -g 999 -o -d /home/storage storage")
-
     cmd("chmod og-rwx -R /home/salvus/")
-    cmd("chmod og-rwx -R /home/storage/")
-
-    # Copy over newest version of storage management script to storage user.
-    os.system("cp /home/salvus/salvus/salvus/scripts/smc_storage.py /home/storage/; chown storage. /home/storage/smc_storage.py")
-
-    # Remove the temporary ZFS send/recv streams -- they can't possibly be valid since we're just booting up.
-    cmd("rm /home/storage/.storage*")
-
-    # Import the ZFS pool -- without mounting!
-    cmd("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 
     if hostname.startswith('compute'):
         # Create a firewall so that only the hub nodes can connect to things like ipython and the raw server.
@@ -112,9 +98,9 @@ def conf():
         # Delete data that doesn't need to be on this node
         cmd("rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra")
         # Start the storage server
-        cmd("su - salvus /home/salvus/salvus/salvus/scripts/start_storage_server")
-        # Get rid of private ssh key, which isn't needed on compute vm's
-        cmd("rm /home/salvus/.ssh/id_rsa")
+        os.system("zpool import -f bup; zfs set mountpoint=/projects bup/projects; su - salvus -c 'cd /home/salvus/salvus/salvus/&& . salvus-env&& ./bup_server start'")
+        # Install crontab for snapshotting the bup pool, etc.
+        os.system("crontab /home/salvus/salvus/salvus/scripts/root-compute.crontab")
 
     if hostname.startswith("cassandra"):
         # Delete data that doesn't need to be on this node

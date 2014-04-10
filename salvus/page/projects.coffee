@@ -360,11 +360,11 @@ exports.open_project = open_project = (project, item) ->
     proj = project_page(project)
     top_navbar.switch_to_page(project.project_id)
 
-    if not (project.location? and project.location != "deploying")
+    if not (project.bup_location?)
         alert_message
             type:"info"
             message:"Opening project #{project.title}... (this takes about 30 seconds)"
-            timeout: 10
+            timeout: 15
         if item?
             item.find(".projects-location").html("<i class='fa-spinner fa-spin'> </i>restoring...")
         salvus_client.project_info
@@ -375,11 +375,11 @@ exports.open_project = open_project = (project, item) ->
                     if item?
                         item.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
                     return
-                if not info.location?
+                if not info.bup_location?
                     if item?
                         item.find(".projects-location").html("(none)")
                 else
-                    project.location = location
+                    project.location = info.bup_location
                     if item?
                         item.find(".projects-location").text("")
     return proj
@@ -413,7 +413,7 @@ new_project_button = $("#projects-create_project-button-create_project").click (
         description = $("#projects-create_project-description").attr("placeholder")
 
     new_project_button.icon_spin(start:true)
-    alert_message(message:"Creating new project '#{title}'.  This takes about 30 seconds.", timeout:10)
+    alert_message(message:"Creating new project '#{title}'.  Project will automatically appear in the list in a few seconds.", timeout:10)
     salvus_client.create_project
         title       : title
         description : description

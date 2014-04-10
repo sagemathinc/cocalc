@@ -50,8 +50,6 @@ uuid    = require('node-uuid')
 
 moment  = require('moment')
 
-storage = require('storage')
-
 _ = require('underscore')
 
 CONSISTENCIES = (cql.types.consistencies[k] for k in ['any', 'one', 'two', 'three', 'quorum', 'localQuorum', 'eachQuorum', 'all'])
@@ -90,7 +88,7 @@ exports.inet_to_str = (r) -> [r[0], r[1], r[2], r[3]].join('.')
 
 #########################################################################
 
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted'].concat(PROJECT_GROUPS)
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'bup_location', 'size', 'deleted'].concat(PROJECT_GROUPS)
 
 # This is used in account creation right now, so has to be set.
 # It is actually not used in practice and the limits have no meaning.
@@ -303,7 +301,7 @@ class KeyValueStore
     constructor: (@cassandra, opts={}) ->
         @opts = defaults(opts,  name:required)
 
-    set: (opts={}) ->
+    set: (opts={}) =>
         opts = defaults opts,
             key   : undefined
             value : undefined
@@ -317,27 +315,32 @@ class KeyValueStore
             ttl:opts.ttl
             cb:opts.cb
 
-    get: (opts={}) ->
+    get: (opts={}) =>
         opts = defaults opts,
             key       : undefined
             cb        : undefined  # cb(error, value)
             timestamp : false      # if specified, result is {value:the_value, timestamp:the_timestamp} instead of just value.
         if opts.timestamp
-            @cassandra.select(
+            @cassandra.select
                 table     : 'key_value'
                 columns   : ['value']
                 timestamp : ['value']
                 where     : {name:@opts.name, key:to_json(opts.key)}
-                cb : (error, results) ->
-                    opts.cb?(error, if results.length == 1 then {'value':from_json(results[0][0].value), 'timestamp':results[0][0].timestamp})
-            )
+                cb : (error, results) =>
+                    if error
+                        opts.cb?(error)
+                    else
+                        opts.cb?(undefined, if results?.length == 1 then {'value':from_json(results[0][0].value), 'timestamp':results[0][0].timestamp})
         else
-            @cassandra.select(
+            @cassandra.select
                 table:'key_value'
                 columns:['value']
                 where:{name:@opts.name, key:to_json(opts.key)}
-                cb:(error, results) -> opts.cb?(error, if results.length == 1 then from_json(results[0][0]))
-            )
+                cb:(error, results) => 
+                    if error
+                        opts.cb?(error)
+                    else
+                        opts.cb?(undefined, if results.length == 1 then from_json(results[0][0]))
 
     delete: (opts={}) ->
         opts = defaults(opts, key:undefined, cb:undefined)
@@ -351,14 +354,17 @@ class KeyValueStore
         opts = defaults(opts,  cb:undefined)
         @cassandra.count(table:'key_value', where:{name:@opts.name}, cb:opts.cb)
 
-    all: (opts={}) ->
+    all: (opts={}) =>
         opts = defaults(opts,  cb:undefined)
-        @cassandra.select(
+        @cassandra.select
             table:'key_value'
             columns:['key', 'value']
             where:{name:@opts.name}
-            cb:(error, results) -> opts.cb(error, [from_json(r[0]), from_json(r[1])] for r in results)
-        )
+            cb: (error, results) => 
+                if error
+                    opts.cb?(error)
+                else
+                    opts.cb?(undefined, [from_json(r[0]), from_json(r[1])] for r in results)
 
 # Convert individual entries in columns from cassandra formats to what we
 # want to use everywhere in Salvus. For example, uuids ficare converted to
@@ -2009,11 +2015,6 @@ class exports.Salvus extends exports.Cassandra
 
         @_touch_project_cache[id] = misc.walltime()
 
-        # Try to make a snapshot (will not make them too frequently) if the project is *not* currently being replicated
-        storage.snapshot
-            project_id              : opts.project_id
-            only_if_not_replicating : true  # since making snapshots can mess up replication
-
         set = {last_edited: now()}
         if opts.size
             set.size = opts.size
@@ -2362,7 +2363,6 @@ class exports.Salvus extends exports.Cassandra
                 if error
                     opts.cb(error)
                 else
-
                     for r in results
                         # fill in a default name for the project -- used in the URL
                         if not r.name and r.title?

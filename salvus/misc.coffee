@@ -553,6 +553,10 @@ exports.make_valid_name = (s) ->
 
 
 
+# format is 2014-04-04-061502
+exports.parse_bup_timestamp = (s) ->
+    v = [s.slice(0,4), s.slice(5,7), s.slice(8,10), s.slice(11,13), s.slice(13,15), s.slice(15,17), '0']
+    return new Date("#{v[1]}/#{v[2]}/#{v[0]} #{v[3]}:#{v[4]}:#{v[5]} UTC")
 
 
 

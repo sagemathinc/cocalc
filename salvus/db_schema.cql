@@ -274,6 +274,15 @@ CREATE TABLE projects (
 
      last_edited      timestamp,// timestamp of last modification of the project
 
+
+     bup_location     uuid,     // location using new bup-based storage system
+     bup_last_save    map<uuid, timestamp>,
+     bup_repo_size_kb     int,      // last known size of bup repository in kilobytes = 1000 bytes
+     bup_working_size_kb  int,      // last known size of working directory in kilobytes = 1000 bytes
+
+
+     settings         map<text,text>,  // various project settings, e.g., 'memory', 'cpu_shares', 'cores', 'disk', 'mintime', 'login_shell'
+
      location         varchar,  // the username@host on which deployed: JSON -- {username:, host:, port:, path:}
 
      status           varchar,  // 'new'=just created, 'opened'=right after opening, 'closed'=right after closing, etc. -- maybe "archived" at some pointed (?)
@@ -286,6 +295,7 @@ CREATE TABLE projects (
      last_replication_error varchar, // JSON -- last error message from replication failure.
 
      quota            varchar,
+
 
      quota_zfs        varchar,  // string, e.g., '10G' or '19390834300'  (can be with units or no units and bytes)
      usage_zfs        varchar,  // JSON: {avail:?, used:?, usedsnap:?})  # ? are strings like '17M' or '13G' as output by zfs.  NOT bytes.
@@ -316,7 +326,9 @@ CREATE TABLE projects (
      linked_projects      set<uuid>,   // projects that this one links to.
 
 
-     timeout_disabled  boolean // if true, never automatically kill this project simply due to it sitting around unused.
+     timeout_disabled  boolean, // if true, never automatically kill this project simply due to it sitting around unused.
+
+     abuser varchar
 
 );
 
@@ -572,6 +584,18 @@ CREATE TABLE banned_email_addresses (
     email_address varchar PRIMARY KEY,
     dummy         boolean
 );
+
+CREATE TABLE storage_servers (
+    dummy     boolean,
+    server_id uuid,
+    host      inet,
+    port      int,
+    dc        int,
+    health    float,
+    secret    varchar,
+    PRIMARY KEY(dummy, server_id)
+);
+
 
 
 /*STORAGE */
