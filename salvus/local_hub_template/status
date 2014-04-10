@@ -31,7 +31,6 @@ def read(prop, filename, strip=False, int_value=False, to_int=False):
         status[prop] = s
     except:
         status[prop] = False
-        done()
 
 read('version', os.path.join(SMC, "salvus_version.js"), strip=True, int_value=True)
 

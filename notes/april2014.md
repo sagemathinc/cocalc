@@ -1,19 +1,13 @@
 # major issues
 
- - [ ] update base vm:
-       - [x] ensure that bup/projects mounts as /projects
-       - [x] update code
-       - [x] firewall is wrong -- it would ban all internode traffic which isn't what we want due to .5 instead of .4
-       - [x ] system-wide: open up permissions so that octave, etc., works: chmod a+rwx /usr/local/sage/sage-6.2/local/share/sage/ext/*
-
-       - gce booting configuration
 
  - [ ] write a post explaining what is new and awesome, and what the architecture is.
 
-
-
+ - [x] change status to not bail when value is False; otherwise, broken sage ==> can't access project!
 
 # after rollout
+
+ - [ ] fix gce boot -- right now it boots up but doesn't mount the zfs pool -- or rather it starts getting rsync'd too before finishing the mount (?).  This is very bad.  Maybe don't go on VPN until /projects is mounted to avoid potential data loss.
 
  - [ ] setup so that cqlsh doesnt' need env variable but uses .cqlshrc
 
@@ -33,6 +27,10 @@
  - [ ] write clean() -- for each project on a given host that hasn't been used in the last n days, delete .sagemathcloud, etc., directories
 
  - [ ] install something randy needs:  I think this will be possible in the release planned for this summer, but for now it would be nice to use Jake's mpld3 package, which doesn't seem to be installed.  I tried downloading and following the instructions at   https://github.com/jakevdp/mpld3 but didn't have permissions.  Is this something you could install globally?
+
+  - [ ] make this standard  -- https://github.com/biocore/scikit-bio
+
+
 
  - [ ] MAYBE -- or maybe not -- change bup_storage to never delete account: it's very useful for linking projects and sharing files to have account available at all times.  will make, e.g., persistent sshfs possible; make sure .ssh is not ssh excluded from rsync
 
@@ -58,6 +56,11 @@
 
 
 ======
+
+ - [x] gce booting configuration:
+
+        fdisk /dev/sdd
+        mkfs.ext4 /dev/sdd1 && mkdir /mnt/conf2 && mount /dev/sdd1 /mnt/conf2 && rsync -axvH /mnt/conf/ /mnt/conf2/ && ls /mnt/conf2 && sync
 
 
  - [x] all proxy server stuff is broken, so ipython, latex, file download, etc.
@@ -222,4 +225,10 @@ for x in os.popen("apparmor_status").readlines():
 
  - compute5a will be /projects on compute2dc1
 
+
+ - [x] update base vm:
+       - [x] ensure that bup/projects mounts as /projects
+       - [x] update code
+       - [x] firewall is wrong -- it would ban all internode traffic which isn't what we want due to .5 instead of .4
+       - [x] system-wide: open up permissions so that octave, etc., works: chmod a+rwx /usr/local/sage/sage-6.2/local/share/sage/ext/*
 
