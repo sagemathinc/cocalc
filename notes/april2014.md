@@ -1,32 +1,20 @@
 # major issues
 
+ - [ ] update base vm:
+       - [x] ensure that bup/projects mounts as /projects
+       - [x] update code
+       - firewall is wrong -- it would ban all internode traffic which isn't what we want due to .5 instead of .4
+       - system-wide: open up permissions so that octave works...
+       - gce booting configuration
 
- - [ ] all proxy server stuff is broken, so ipython, latex, file download, etc.
-
-<<<<<<< HEAD
-    - try again using the testing server
-=======
- - [x] update base vm:
-       - ensure that bup/projects mounts as /projects
-       - update code
->>>>>>> eec468fd0ae90e4615ba3ffcf3a0ff4f1f1a343c
+ - [ ] write a post explaining what is new and awesome, and what the architecture is.
 
 
- - [x] gce nodes -- need to fix /bup/projects2 issue,
-
- - [ ] gce rebooting configuration
-
- - [ ] system-wide: open up permissions so that octave works...
 
 
- - [ ] firewall is wrong -- it would ban all internode traffic which isn't what we want due to .5 instead of .4
+# after rollout
 
-
----
-
-
- - [ ] /scratch permissions probably wrong
-
+ - [ ] setup so that cqlsh doesnt' need env variable but uses .cqlshrc
 
  - [ ] test ui changes on other browsers.
 
@@ -69,6 +57,14 @@
 
 
 ======
+
+
+ - [x] all proxy server stuff is broken, so ipython, latex, file download, etc.
+
+    - try again using the testing server
+
+ - [x] gce nodes -- need to fix /bup/projects2 issue,
+
 
  - [x] include some more anti-bitcoin mining measures.
 
