@@ -4,7 +4,7 @@ BEFORE SWITCH:
 - [x] migrate all projects
 - [x] write and run code to ensure all replication is up to date
 
- - [ ] update base vm:
+ - [x] update base vm:
        - ensure that bup/projects mounts as /projects
        - update code
 
