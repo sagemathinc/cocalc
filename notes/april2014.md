@@ -3,9 +3,17 @@
 
  - [ ] write a post explaining what is new and awesome, and what the architecture is.
 
- - [x] change status to not bail when value is False; otherwise, broken sage ==> can't access project!
+ - [ ] i observe two bup saves happening at once -- that should be impossible, and could result in corruption.
+ root@compute8dc2:/bup/bups/4cff8798-41d0-4d9b-b516-ba106ba89c57/objects# ps ax |grep 4cff8798-41d0-4d9b-b516-ba106ba89c57|grep bup
+ 8792 ?        S      0:00 sudo /usr/local/bin/bup_storage.py save --targets=10.1.17.5,10.1.1.5 4cff8798-41d0-4d9b-b516-ba106ba89c57
+ 8793 ?        S      0:00 python /usr/local/bin/bup_storage.py save --targets=10.1.17.5,10.1.1.5 4cff8798-41d0-4d9b-b516-ba106ba89c57
+10309 ?        S      2:27 bup-save --strip -n master -d 1397161051 /projects/4cff8798-41d0-4d9b-b516-ba106ba89c57
+11668 ?        Ss     0:20 bup-fuse -o --uid 632382271 --gid 632382271 /projects/4cff8798-41d0-4d9b-b516-ba106ba89c57/.snapshots
+12748 ?        S      0:00 sudo /usr/local/bin/bup_storage.py save --targets=10.1.17.5,10.1.1.5 4cff8798-41d0-4d9b-b516-ba106ba89c57
+12749 ?        S      0:00 python /usr/local/bin/bup_storage.py save --targets=10.1.17.5,10.1.1.5 4cff8798-41d0-4d9b-b516-ba106ba89c57
+13104 ?        S      2:16 bup-save --strip -n master -d 1397161256 /projects/4cff8798-41d0-4d9b-b516-ba106ba89c57
 
-# after rollout
+ALSO, when a file vanishes between index and save, we get an error, but still there is a new commit -- we should always remount the snapshots.
 
  - [ ] fix gce boot -- right now it boots up but doesn't mount the zfs pool -- or rather it starts getting rsync'd too before finishing the mount (?).  This is very bad.  Maybe don't go on VPN until /projects is mounted to avoid potential data loss.
 
@@ -56,6 +64,9 @@
 
 
 ======
+
+ - [x] change status to not bail when value is False; otherwise, broken sage ==> can't access project!
+
 
  - [x] gce booting configuration:
 

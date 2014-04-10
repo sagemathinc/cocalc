@@ -453,7 +453,12 @@ class Project(object):
 
             result['timestamp'] = timestamp
 
-            self.cmd(["/usr/bin/bup", "save", "--strip", "-n", self.branch, '-d', timestamp, path])
+            # It is important to still sync out, etc., even if there is an error.  Many errors are nonfatal, e.g., a file vanishes during save.
+            try:
+                self.cmd(["/usr/bin/bup", "save", "--strip", "-n", self.branch, '-d', timestamp, path])
+            except RuntimeError, msg:
+                log("WARNING: running bup failed with error: %s"%msg)
+                result['error'] = str(msg)
 
             # record this so can properly describe the true "interval of time" over which the snapshot happened,
             # in case we want to for some reason...
