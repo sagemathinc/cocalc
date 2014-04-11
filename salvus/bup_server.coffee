@@ -990,7 +990,7 @@ class GlobalProject
             (cb) =>
                 s = "UPDATE projects SET bup_last_save[?]=? WHERE project_id=?"
                 f = (server_id, cb) =>
-                    @database.cql(s, [server_id, opts.last_save[server_id], @project_id], cb)
+                    @database.cql(s, [server_id, opts.last_save[server_id], @project_id], cql.types.consistencies.eachQuorum, cb)
                 async.map(misc.keys(opts.last_save), f, cb)
             (cb) =>
                 if opts.bup_repo_size_kb?
@@ -1033,7 +1033,7 @@ class GlobalProject
                     table   : 'projects'
                     where   : {project_id:@project_id}
                     columns : ['bup_last_save']
-                    consistency : 3  # temporary  -- mainly until cassandra gets repaired
+                    consistency : cql.types.consistencies.localQuorum   
                     cb      : (err, r) =>
                         if err or not r? or r.length == 0
                             cb(err)
