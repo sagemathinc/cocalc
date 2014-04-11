@@ -1349,7 +1349,7 @@ class Monitor(object):
         """
         cmd = '&&'.join(["host -v google.com > /dev/null"]*rounds) + "; echo $?"
         ans = []
-        exclude = set(self._hosts['cellserver'] + self._hosts['compute-2'] + self._hosts['webdev'])
+        exclude = set(self._hosts['cellserver'] + [x for x in self._hosts['compute'] if x.startswith('10.1')] + self._hosts['webdev'])
         h = ' '.join([host for host in self._hosts[hosts] if host not in exclude])
         if not h:
             return []
@@ -1451,7 +1451,7 @@ class Monitor(object):
         return {
             'timestamp' : time.time(),
             'dns'       : self.dns(),
-            'zfs'       : self.zfs(),
+            #'zfs'       : self.zfs(),
             'load'      : self.load(),
             'cassandra' : self.cassandra(),
             'stats'     : self.stats(),
@@ -1478,9 +1478,9 @@ class Monitor(object):
         for x in all['dns'][:n]:
             print x
 
-        print "ZFS"
-        for x in all['zfs'][:n]:
-            print x
+        #print "ZFS"
+        #for x in all['zfs'][:n]:
+        #    print x
 
         print "LOAD"
         for x in all['load'][:n]:
@@ -1543,9 +1543,9 @@ class Monitor(object):
         for x in all['load']:
             if x['load15'] > 400:
                 m += "A machine is going *crazy* with load!: %s"%x
-        for x in all['zfs']:
-            if x['nproc'] > 10000:
-                m += "Large amount of ZFS: %s"%x
+        #for x in all['zfs']:
+        #    if x['nproc'] > 10000:
+        #        m += "Large amount of ZFS: %s"%x
         if m:
             try:
                 email(m, subject="SMC issue")
