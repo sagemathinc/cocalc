@@ -741,7 +741,7 @@ class Project(object):
                 # include only lines that don't contain any of the following errors, since permission denied errors are standard with
                 # FUSE mounts, and there is no way to make rsync not report them (despite the -x option above).
                 # TODO: This is horrible code since a different rsync version could break it.
-                v = ('\n'.join([a for a in o.splitlines() if a.strip() and 'ERROR' not in a and 'see previous errors' not in a and 'failed: Permission denied' not in a and 'Command exited with non-zero status' not in a])).strip()
+                v = ('\n'.join([a for a in o.splitlines() if a.strip() and 'ERROR' not in a and 'to the list of known hosts' not in a and 'see previous errors' not in a and 'failed: Permission denied' not in a and 'Command exited with non-zero status' not in a])).strip()
                 if ignore_errors:
                     return v
                 else:

@@ -1,9 +1,47 @@
-# major issues
 
+ - [x] 99 projects have >3 replicas in practice, though not (usually) in db -- these appear "lost" to users in some cases.
+   For each:
+       - copy all files into their current location
+       - move files for projects not specifically listed in bup_last_save to a TO_DELETE location
+
+  Plan:
+
+    phase 1:
+     - sync from *all* actual replicas to master
+     - save from master to *all* replicas
+    phase 2:
+     - add all replicas to bup_locations in database.
+
+  Update everything.
+
+  Later -- reduce number of replicas in some cases.
+
+ - [ ] after repairing cassandra data reduce the write consistency level when making new projects... maybe. (?)
 
  - [ ] write a post explaining what is new and awesome, and what the architecture is.
 
- - [ ] i observe two bup saves happening at once -- that should be impossible, and could result in corruption.
+key points:
+
+   - direct tcp connections instead of ssh tunnels (limits of sshd)
+   - fix uid issue
+   - project states
+   - move/rename/copy file buttons
+   - faster file listing
+   - live files, with zfs snapshots every few minutes, which are not consistent across dc's, and will vanish if a project were moved in a dc
+       - dedup'd across projects on a given host
+       - compressed
+       - quota
+   - set bup repo of snapshots that are consistent across dc's -- highly deduped and compressed; easy to sync around; git-based so branches are possible; dynamic fuse mounting
+   - /scratch
+   - sync to other dc's is done via rsync
+   - daemon that runs on compute vm's and starts/stops projects, sets quotas, replicates, etc., but knows nothing global (e.g., no database).
+
+
+ - [ ] (in progress on cloud3) create a full offsite-able backup of all bup repos of projects in dc1, and also the database nodes in dc1.
+
+ - [ ] run through and do "bup ls master" on every repo in an offline archive, and investigate/fix ones that don't work, if any.
+
+ - [ ] i observe two bup saves happening at once -- that should be *impossible*, and could result in corruption.
  root@compute8dc2:/bup/bups/4cff8798-41d0-4d9b-b516-ba106ba89c57/objects# ps ax |grep 4cff8798-41d0-4d9b-b516-ba106ba89c57|grep bup
  8792 ?        S      0:00 sudo /usr/local/bin/bup_storage.py save --targets=10.1.17.5,10.1.1.5 4cff8798-41d0-4d9b-b516-ba106ba89c57
  8793 ?        S      0:00 python /usr/local/bin/bup_storage.py save --targets=10.1.17.5,10.1.1.5 4cff8798-41d0-4d9b-b516-ba106ba89c57
@@ -12,7 +50,6 @@
 12748 ?        S      0:00 sudo /usr/local/bin/bup_storage.py save --targets=10.1.17.5,10.1.1.5 4cff8798-41d0-4d9b-b516-ba106ba89c57
 12749 ?        S      0:00 python /usr/local/bin/bup_storage.py save --targets=10.1.17.5,10.1.1.5 4cff8798-41d0-4d9b-b516-ba106ba89c57
 13104 ?        S      2:16 bup-save --strip -n master -d 1397161256 /projects/4cff8798-41d0-4d9b-b516-ba106ba89c57
-
 ALSO, when a file vanishes between index and save, we get an error, but still there is a new commit -- we should always remount the snapshots.
 
  - [ ] fix gce boot -- right now it boots up but doesn't mount the zfs pool -- or rather it starts getting rsync'd too before finishing the mount (?).  This is very bad.  Maybe don't go on VPN until /projects is mounted to avoid potential data loss.
@@ -26,8 +63,6 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 
  - [ ] test/fix ui changes on other browsers.
 
- - [ ] disable all swap on hosts (requires shutting down old compute vm's first)
-
  - [ ] add a bigger (?) timeout between vm stop/start (?)
 
  - [ ] function to "truly" move a project within a given data center
@@ -36,7 +71,7 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 
  - [ ] install something randy needs:  I think this will be possible in the release planned for this summer, but for now it would be nice to use Jake's mpld3 package, which doesn't seem to be installed.  I tried downloading and following the instructions at   https://github.com/jakevdp/mpld3 but didn't have permissions.  Is this something you could install globally?
 
-  - [ ] make this standard  -- https://github.com/biocore/scikit-bio
+  - [ ] make this standard  -- https://github.com/biocore/scikit-bio   -- see https://mail.google.com/mail/u/0/?shva=1#inbox/1454ce211132e2bf
 
 
 
@@ -64,6 +99,18 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 
 
 ======
+
+
+- [x] read consistency issue: if db say bup_last_save empty, but it isn't, we destroy everything and completely loose project (?!)
+
+ - project_id=48099d72-a9f0-4090-a4a5-a5681b612222
+  bup_last_save *should* be these,
+ - 10.1.4.5 10.1.15.5 10.3.7.4
+  but suddenly became these:  10.1.5.5, 10.1.21.5, 10.3.4.4
+
+  Only explanation, after reading the code is that I better run nodetool repair.
+
+
 
  - [x] change status to not bail when value is False; otherwise, broken sage ==> can't access project!
 
