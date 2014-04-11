@@ -1030,9 +1030,10 @@ class GlobalProject
             (cb) =>
                 dbg("get last save info from database...")
                 @database.select
-                    table : 'projects'
-                    where : {project_id:@project_id}
+                    table   : 'projects'
+                    where   : {project_id:@project_id}
                     columns : ['bup_last_save']
+                    consistency : 3  # temporary  -- mainly until cassandra gets repaired
                     cb      : (err, r) =>
                         if err or not r? or r.length == 0
                             cb(err)
