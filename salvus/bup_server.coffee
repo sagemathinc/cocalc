@@ -1073,7 +1073,7 @@ class GlobalProject
     # determine state just on pref host.
     get_local_state: (opts) =>
         opts = defaults opts,
-            timeout : 15
+            timeout : 25
             cb      : required
         server_id = undefined
         project = undefined
@@ -1108,7 +1108,7 @@ class GlobalProject
     # guaranteed to return length > 0
     get_state: (opts) =>
         opts = defaults opts,
-            timeout : 7
+            timeout : 15
             cb      : required
         dbg = (m) -> winston.info("get_state: #{m}")
         dbg()
@@ -1573,7 +1573,7 @@ class GlobalClient
     project_status: (opts) =>
         opts = defaults opts,
             project_id         : required
-            timeout            : 20   # seconds
+            timeout            : 30   # seconds
             cb                 : required    # cb(err, sorted list of status objects)
         status = []
         f = (replica, cb) =>
@@ -1809,7 +1809,7 @@ class Client
                     host    : @host
                     port    : @port
                     token   : @secret
-                    timeout : 20
+                    timeout : 25
                     cb      : (err, socket) =>
                         if err
                             dbg("failed to connect: #{err}")
