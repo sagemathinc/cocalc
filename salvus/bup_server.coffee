@@ -985,12 +985,17 @@ class GlobalProject
         opts = defaults opts,
             last_save : required    # map  {server_id:timestamp, ...}
             bup_repo_size_kb : undefined  # if given, should be int
+            allow_delete : false
             cb        : undefined
         async.series([
             (cb) =>
                 s = "UPDATE projects SET bup_last_save[?]=? WHERE project_id=?"
                 f = (server_id, cb) =>
-                    @database.cql(s, [server_id, opts.last_save[server_id], @project_id], cql.types.consistencies.eachQuorum, cb)
+                    if not opts.last_save[server_id] and not opts.allow_delete
+                        winston.debug("refusing to delete last_save entry! -- #{@project_id}, #{server_id}")
+                        cb()
+                    else
+                        @database.cql(s, [server_id, opts.last_save[server_id], @project_id], cql.types.consistencies.eachQuorum, cb)
                 async.map(misc.keys(opts.last_save), f, cb)
             (cb) =>
                 if opts.bup_repo_size_kb?
@@ -1033,7 +1038,7 @@ class GlobalProject
                     table   : 'projects'
                     where   : {project_id:@project_id}
                     columns : ['bup_last_save']
-                    consistency : cql.types.consistencies.localQuorum   
+                    consistency : cql.types.consistencies.localQuorum
                     cb      : (err, r) =>
                         if err or not r? or r.length == 0
                             cb(err)
