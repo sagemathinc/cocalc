@@ -891,7 +891,8 @@ class GlobalProject
 
     stop: (opts) =>
         opts = defaults opts,
-            cb : undefined
+            force : false
+            cb    : undefined
         @get_host_where_running
             cb : (err, server_id) =>
                 if err
@@ -2037,8 +2038,8 @@ class ClientProject
             cb         : undefined
         opts.action = 'stop'
         if opts.force
-            opts.param = 'force'
-            delete opts.force
+            opts.param = '--force'
+        delete opts.force        
         @action(opts)
 
 

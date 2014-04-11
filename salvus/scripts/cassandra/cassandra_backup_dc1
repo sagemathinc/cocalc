@@ -3,7 +3,7 @@
 import os
 target = "%s/vm/images/cassandra/"%os.environ['HOME']
 
-BWLIMIT=5000 # 5MB/s
+BWLIMIT=5000 # 
 
 for i in range(1,8):
     host = "10.1.%s.2"%i
