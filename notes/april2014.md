@@ -2,6 +2,15 @@
 
 - [ ] redo file copy button to just be a straight cp.  BUT -- need to also fix FUSE mounting of bup to have proper permissions, or this leads to problems.    Pretty broken right now.
 
+
+- [ ] put this script in base vm's:
+
+        root@compute18dc0:~# more update_salvus
+        su - salvus -c "cd salvus/salvus; . salvus-env; git pull; ./make_coffee"
+        cp /home/salvus/salvus/salvus/scripts/bup_storage.py /usr/local/bin/
+        chmod og-w /usr/local/bin/bup_storage.py
+        chmod a+rx /usr/local/bin/bup_storage.py
+
 - [ ] do a scan for projects for which they have no files but the bup repo does.
 
 - [ ] project undelete doesn't work.
