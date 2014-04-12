@@ -4,6 +4,8 @@
 
 - [ ] do a scan for projects for which they have no files but the bup repo does.
 
+- [ ] project undelete doesn't work.
+
 - [ ] bitcoin miner:
 
 root@compute14dc0:~# su - 7063e18c4477488fbcc6a07a6c9ef5ae

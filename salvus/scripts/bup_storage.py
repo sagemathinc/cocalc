@@ -184,7 +184,9 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
 class Project(object):
     def __init__(self, project_id):
         try:
-            assert uuid.UUID(project_id).get_version() == 4
+            u = uuid.UUID(project_id)
+            assert u.get_version() == 4
+            project_id = str(u)  # leaving off dashes still makes a valid uuid in python
         except (AssertionError, ValueError):
             raise RuntimeError("invalid project uuid='%s'"%project_id)
         self.project_id            = project_id
