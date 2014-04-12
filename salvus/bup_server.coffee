@@ -891,7 +891,8 @@ class GlobalProject
 
     stop: (opts) =>
         opts = defaults opts,
-            cb : undefined
+            force : false
+            cb    : undefined
         @get_host_where_running
             cb : (err, server_id) =>
                 if err
@@ -985,12 +986,17 @@ class GlobalProject
         opts = defaults opts,
             last_save : required    # map  {server_id:timestamp, ...}
             bup_repo_size_kb : undefined  # if given, should be int
+            allow_delete : false
             cb        : undefined
         async.series([
             (cb) =>
                 s = "UPDATE projects SET bup_last_save[?]=? WHERE project_id=?"
                 f = (server_id, cb) =>
-                    @database.cql(s, [server_id, opts.last_save[server_id], @project_id], cb)
+                    if not opts.last_save[server_id] and not opts.allow_delete
+                        winston.debug("refusing to delete last_save entry! -- #{@project_id}, #{server_id}")
+                        cb()
+                    else
+                        @database.cql(s, [server_id, opts.last_save[server_id], @project_id], cql.types.consistencies.eachQuorum, cb)
                 async.map(misc.keys(opts.last_save), f, cb)
             (cb) =>
                 if opts.bup_repo_size_kb?
@@ -1030,9 +1036,10 @@ class GlobalProject
             (cb) =>
                 dbg("get last save info from database...")
                 @database.select
-                    table : 'projects'
-                    where : {project_id:@project_id}
+                    table   : 'projects'
+                    where   : {project_id:@project_id}
                     columns : ['bup_last_save']
+                    consistency : cql.types.consistencies.localQuorum
                     cb      : (err, r) =>
                         if err or not r? or r.length == 0
                             cb(err)
@@ -1067,7 +1074,7 @@ class GlobalProject
     # determine state just on pref host.
     get_local_state: (opts) =>
         opts = defaults opts,
-            timeout : 15
+            timeout : 25
             cb      : required
         server_id = undefined
         project = undefined
@@ -1102,7 +1109,7 @@ class GlobalProject
     # guaranteed to return length > 0
     get_state: (opts) =>
         opts = defaults opts,
-            timeout : 7
+            timeout : 15
             cb      : required
         dbg = (m) -> winston.info("get_state: #{m}")
         dbg()
@@ -1192,12 +1199,13 @@ class GlobalClient
                                 if program.address == '10.1.15.7'  # devel
                                     hosts = ["10.1.15.2", '10.1.16.2', '10.1.14.2']
                                 else if a == 1 and b>=1 and b<=7
-                                    hosts = ("10.1.#{i}.1" for i in [1..7])
+                                    hosts = ("10.1.#{i}.2" for i in [1..7])
                                 else if a == 1 and b>=10 and b<=21
-                                    hosts = ("10.1.#{i}.1" for i in [10..21])
+                                    hosts = ("10.1.#{i}.2" for i in [10..21])
                                 else if a == 3
                                     # TODO -- change this as soon as we get a DB spun up at Google...
                                     hosts = ("10.1.#{i}.1" for i in [10..21])
+                            winston.debug("database hosts=#{misc.to_json(hosts)}")
                             @database = new cassandra.Salvus
                                 hosts       : hosts
                                 keyspace    : if process.env.USER=='wstein' then 'test' else 'salvus'
@@ -1566,7 +1574,7 @@ class GlobalClient
     project_status: (opts) =>
         opts = defaults opts,
             project_id         : required
-            timeout            : 20   # seconds
+            timeout            : 30   # seconds
             cb                 : required    # cb(err, sorted list of status objects)
         status = []
         f = (replica, cb) =>
@@ -1802,7 +1810,7 @@ class Client
                     host    : @host
                     port    : @port
                     token   : @secret
-                    timeout : 20
+                    timeout : 25
                     cb      : (err, socket) =>
                         if err
                             dbg("failed to connect: #{err}")
@@ -2030,8 +2038,8 @@ class ClientProject
             cb         : undefined
         opts.action = 'stop'
         if opts.force
-            opts.param = 'force'
-            delete opts.force
+            opts.param = '--force'
+        delete opts.force        
         @action(opts)
 
 

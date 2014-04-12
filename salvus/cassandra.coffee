@@ -336,7 +336,7 @@ class KeyValueStore
                 table:'key_value'
                 columns:['value']
                 where:{name:@opts.name, key:to_json(opts.key)}
-                cb:(error, results) => 
+                cb:(error, results) =>
                     if error
                         opts.cb?(error)
                     else
@@ -360,7 +360,7 @@ class KeyValueStore
             table:'key_value'
             columns:['key', 'value']
             where:{name:@opts.name}
-            cb: (error, results) => 
+            cb: (error, results) =>
                 if error
                     opts.cb?(error)
                 else

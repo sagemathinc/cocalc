@@ -22,6 +22,9 @@ done
 
 # staging/testing machine
 iptables -A INPUT -p tcp --dport 1024: --source 10.1.15.7 -j ACCEPT
+# admin machines
+iptables -A INPUT -p tcp --dport 1024: --source 10.1.3.1 -j ACCEPT
+iptables -A INPUT -p tcp --dport 1024: --source 10.1.10.1 -j ACCEPT
 
 # accept incoming traffic to ports >= 1024 from localhost -- this is used for port
 # forwarding over ssh, and the local_hub to sage_server and console_server connections.
