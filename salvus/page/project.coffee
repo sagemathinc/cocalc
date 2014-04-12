@@ -1165,7 +1165,7 @@ class ProjectPage
             return false
         dialog.find("a[href=#copy-file]").click () =>
             dialog.modal('hide')
-            @copy_file_dialog(obj.fullname)
+            @copy_file_dialog(obj.fullname, obj.isdir)
             return false
         dialog.find("a[href=#move-file]").click () =>
             dialog.modal('hide')
@@ -1568,24 +1568,33 @@ class ProjectPage
             @click_to_rename_file(path, file_link)
             return false
 
-    copy_file_dialog:  (path, cb) =>
+    copy_file_dialog:  (path, isdir, cb) =>
         dialog = $(".project-copy-file-dialog").clone()
         dialog.modal()
         new_dest = undefined
         new_src = undefined
+        args = undefined
         async.series([
             (cb) =>
                 if path.slice(0,'.snapshots/'.length) == '.snapshots/'
-                    dest = path.slice('.snapshots/master/2014-04-06-052506/'.length)
+                    dest = "/projects/#{@project.project_id}/" + path.slice('.snapshots/master/2014-04-06-052506/'.length)
                 else
                     dest = path
-                dialog.find(".copy-file-src").val(path)
-                dialog.find(".copy-file-dest").val(dest).focus()
+                if isdir   # so the file goes *into* the destination folder
+                    dest += '/'
+
+                args = () =>
+                    return ['-rltgoDxH', '--backup', '--backup-dir=.trash/', dialog.find(".copy-file-src").val(), dialog.find(".copy-file-dest").val()]
+
+                update_rsync_command = () =>
+                    dialog.find(".salvus-rsync-command").text("rsync #{args().join(' ')}")
+
+                update_rsync_command()
+
+                dialog.find(".copy-file-src").val(path).keyup(update_rsync_command)
+                dialog.find(".copy-file-dest").val(dest).focus().keyup(update_rsync_command)
                 submit = (ok) =>
                     dialog.modal('hide')
-                    if ok
-                        new_src = dialog.find(".copy-file-src").val()
-                        new_dest = dialog.find(".copy-file-dest").val()
                     cb()
                     return false
                 dialog.find(".btn-close").click(()=>submit(false))
@@ -1596,10 +1605,10 @@ class ProjectPage
                 alert_message(type:'info', message:"Copying #{new_src} to #{new_dest}...")
                 salvus_client.exec
                     project_id : @project.project_id
-                    command    : 'rsync'
-                    args       : ['-axH', '--backup', '--backup-dir=.trash/', new_src, new_dest]
-                    timeout    : 60   # how long grep runs on client
-                    network_timeout : 75   # how long network call has until it must return something or get total error.
+                    command    : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
+                    args       : args()
+                    timeout    : 90   # how long rsync runs on client
+                    network_timeout : 120   # how long network call has until it must return something or get total error.
                     err_on_exit: true
                     path       : '.'
                     cb         : (err, output) =>

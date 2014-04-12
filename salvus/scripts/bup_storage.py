@@ -184,7 +184,9 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
 class Project(object):
     def __init__(self, project_id):
         try:
-            assert uuid.UUID(project_id).get_version() == 4
+            u = uuid.UUID(project_id)
+            assert u.get_version() == 4
+            project_id = str(u)  # leaving off dashes still makes a valid uuid in python
         except (AssertionError, ValueError):
             raise RuntimeError("invalid project uuid='%s'"%project_id)
         self.project_id            = project_id
@@ -437,6 +439,15 @@ class Project(object):
         self.set_branch(branch)
         if path is None:
             path = self.project_mnt
+
+        # Some countermeasures against bad users.
+        try:
+            for bad in open('/root/banned_files').read().split():
+                if os.path.exists(bad):
+                    self.stop()
+                    return {'files_saved' : 0}
+        except Exception, msg:
+            log("WARNING: non-fatal issue reading /root/banned_files file and shrinking user priority: %s"%msg)
 
         # We ignore_errors below because unfortunately bup will return a nonzero exit code ("WARNING")
         # when it hits a fuse filesystem.   TODO: somehow be more careful that each
@@ -693,13 +704,16 @@ class Project(object):
             except:
                 # cgroup quota service not supported
                 pass
-            try:
-                pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
-                self.cmd(["cgclassify"] + pids, ignore_errors=True)
-                # ignore cgclassify errors, since processes come and go, etc.":
-            except:
-                # ps returns an error code if there are NO processes at all (a common condition).
-                pids = []
+            self.cgclassify()
+
+    def cgclassify(self):
+        try:
+            pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
+            self.cmd(["cgclassify"] + pids, ignore_errors=True)
+            # ignore cgclassify errors, since processes come and go, etc.":
+        except:
+            # ps returns an error code if there are NO processes at all (a common condition).
+            pids = []
 
     def sync(self, targets="", destructive=False, snapshots=True):
         log = self._log('sync')

@@ -185,7 +185,7 @@
         <input type="text" style="width:100%" class="copy-file-dest" value="">
         <br><hr>
         <span class="lighten">
-            <b>Note:</b> The copy is done using <pre>rsync -axH --backup --backup-dir=.trash/ source dest</pre> so
+            <b>Note:</b> The copy is done using <pre class="salvus-rsync-command">rsync -rltgoDvxH --backup --backup-dir=.trash/ source dest</pre> so
             destination files that would be overwritten are instead copied to the trash.
         </span>
     </div>
