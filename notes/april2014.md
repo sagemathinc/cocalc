@@ -1,5 +1,17 @@
 - [x] frontend: don't include "a" in rsync option for recovering/copying files -- just use r
 
+- [ ] bitcoin miner:
+
+root@compute14dc0:~# su - 7063e18c4477488fbcc6a07a6c9ef5ae
+~$ ls
+gen.term  go  gonchmod  sh
+~$ ls -lht
+total 294K
+-rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae   74 Apr 12 14:23 go
+-rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae   36 Apr 12 09:21 gen.term
+-rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae    0 Mar 26 16:18 gonchmod
+-rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae 584K Mar 26 15:58 sh
+
 - [ ] get GCE restart to actually work
 
 - [ ] project folder connections (?)
