@@ -440,10 +440,12 @@ class Project(object):
         if path is None:
             path = self.project_mnt
 
+        # Some countermeasures against bad users.
         try:
             for bad in open('/root/banned_files').read().split():
                 if os.path.exists(os.path.join(self.project_mnt, bad)):
                     open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write("1000")
+                    cgclassify()
                     break
         except Exception, msg:
             log("WARNING: non-fatal issue reading /root/banned_files file and shrinking user priority: %s"%msg)
@@ -703,13 +705,16 @@ class Project(object):
             except:
                 # cgroup quota service not supported
                 pass
-            try:
-                pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
-                self.cmd(["cgclassify"] + pids, ignore_errors=True)
-                # ignore cgclassify errors, since processes come and go, etc.":
-            except:
-                # ps returns an error code if there are NO processes at all (a common condition).
-                pids = []
+            cgclassify()
+
+    def cgclassify():
+        try:
+            pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
+            self.cmd(["cgclassify"] + pids, ignore_errors=True)
+            # ignore cgclassify errors, since processes come and go, etc.":
+        except:
+            # ps returns an error code if there are NO processes at all (a common condition).
+            pids = []
 
     def sync(self, targets="", destructive=False, snapshots=True):
         log = self._log('sync')
