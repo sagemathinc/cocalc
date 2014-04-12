@@ -1,5 +1,9 @@
 - [x] frontend: don't include "a" in rsync option for recovering/copying files -- just use r
 
+- [ ] redo file copy button to just be a straight cp.  BUT -- need to also fix FUSE mounting of bup to have proper permissions, or this leads to problems.    Pretty broken right now.
+
+- [ ] do a scan for projects for which they have no files but the bup repo does.
+
 - [ ] bitcoin miner:
 
 root@compute14dc0:~# su - 7063e18c4477488fbcc6a07a6c9ef5ae
