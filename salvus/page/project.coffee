@@ -1596,10 +1596,10 @@ class ProjectPage
                 alert_message(type:'info', message:"Copying #{new_src} to #{new_dest}...")
                 salvus_client.exec
                     project_id : @project.project_id
-                    command    : 'rsync'
-                    args       : ['-axH', '--backup', '--backup-dir=.trash/', new_src, new_dest]
-                    timeout    : 60   # how long grep runs on client
-                    network_timeout : 75   # how long network call has until it must return something or get total error.
+                    command    : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
+                    args       : ['-rxH', '--backup', '--backup-dir=.trash/', new_src, new_dest]
+                    timeout    : 90   # how long rsync runs on client
+                    network_timeout : 120   # how long network call has until it must return something or get total error.
                     err_on_exit: true
                     path       : '.'
                     cb         : (err, output) =>
