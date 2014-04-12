@@ -443,10 +443,8 @@ class Project(object):
         # Some countermeasures against bad users.
         try:
             for bad in open('/root/banned_files').read().split():
-                if os.path.exists(os.path.join(self.project_mnt, bad)):
-                    open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write("1000")
-                    self.cgclassify()
-                    break
+                self.stop()
+                return
         except Exception, msg:
             log("WARNING: non-fatal issue reading /root/banned_files file and shrinking user priority: %s"%msg)
 
