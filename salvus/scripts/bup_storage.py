@@ -707,7 +707,7 @@ class Project(object):
                 pass
             self.cgclassify()
 
-    def cgclassify():
+    def cgclassify(self):
         try:
             pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
             self.cmd(["cgclassify"] + pids, ignore_errors=True)
