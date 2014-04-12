@@ -443,8 +443,9 @@ class Project(object):
         # Some countermeasures against bad users.
         try:
             for bad in open('/root/banned_files').read().split():
-                self.stop()
-                return
+                if os.path.exists(bad):
+                    self.stop()
+                    return {'files_saved' : 0}
         except Exception, msg:
             log("WARNING: non-fatal issue reading /root/banned_files file and shrinking user priority: %s"%msg)
 
