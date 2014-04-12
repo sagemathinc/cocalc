@@ -1576,7 +1576,7 @@ class ProjectPage
         async.series([
             (cb) =>
                 if path.slice(0,'.snapshots/'.length) == '.snapshots/'
-                    dest = path.slice('.snapshots/master/2014-04-06-052506/'.length)
+                    dest = "/projects/#{@project.project_id}/" + path.slice('.snapshots/master/2014-04-06-052506/'.length)
                 else
                     dest = path
                 dialog.find(".copy-file-src").val(path)
