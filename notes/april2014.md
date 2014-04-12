@@ -1,24 +1,55 @@
+- [x] frontend: don't include "a" in rsync option for recovering/copying files -- just use r
 
- - [x] 99 projects have >3 replicas in practice, though not (usually) in db -- these appear "lost" to users in some cases.
-   For each:
-       - copy all files into their current location
-       - move files for projects not specifically listed in bup_last_save to a TO_DELETE location
+- [ ] get GCE restart to actually work
 
-  Plan:
+- [ ] project folder connections (?)
 
-    phase 1:
-     - sync from *all* actual replicas to master
-     - save from master to *all* replicas
-    phase 2:
-     - add all replicas to bup_locations in database.
+       zfs set sharenfs=on bup/projects
+       sudo zfs set sharenfs='rw=@10.1.1.0/16',no_subtree_check,async,no_root_squash bup/projects
+       apt-get install  nfs-kernel-server
 
-  Update everything.
+   Seems very flaky, and only mildly faster or maybe even *SLOWER* than sshfs, at least over our network.
 
-  Later -- reduce number of replicas in some cases.
+   This seems very nice... and works fantastically!
+
+      sshfs -o cache_timeout=10 -o kernel_cache -o auto_cache -o uid=1959631043 -o gid=1959631043 -o allow_other -o default_permissions 10.1.1.5:/projects/test/sage compute1
+
+
+      cd /projects/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b; mkdir -p projects/edf7b34d-8ef9-49ad-b83f-8fa4cde53380; sshfs -o cache_timeout=10 -o kernel_cache -o auto_cache -o uid=1959631043 -o gid=1959631043 -o allow_other -o default_permissions 10.1.3.5:/projects/edf7b34d-8ef9-49ad-b83f-8fa4cde53380 projects/edf7b34d-8ef9-49ad-b83f-8fa4cde53380
+
+      fusermount -u edf7b34d-8ef9-49ad-b83f-8fa4cde53380
+
+    # mounting student projects
+
+    coffee> x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
+    coffee> p=x.c.get_project('cc96c0e6-8daf-467d-b8d2-354f9c5144a5')
+    coffee> p.get_location_pref(console.log)
+    undefined 'b9cd6c52-059d-44e1-ace0-be0a26568713'
+    coffee> x.c.servers.by_id['b9cd6c52-059d-44e1-ace0-be0a26568713'].host
+    '10.1.15.5'
+
+    # then at the shell
+
+    export project_id=cc96c0e6-8daf-467d-b8d2-354f9c5144a5; export host=10.1.15.5; export uid=447893796
+
+    mkdir -p students/$project_id && sshfs -o cache_timeout=10 -o kernel_cache -o auto_cache -o uid=$uid -o gid=$uid -o allow_other -o default_permissions $host:/projects/$project_id students/$project_id; chown $uid:$uid students/$project_id
+
+- [ ] rewrite `bup_server` to use a local sqlite database; then state is preserved upon restart/crash/reboot/etc.
+
+- [ ] "pip install --user pymc": https://mail.google.com/mail/u/0/?shva=1#search/Carlos+Rodriguez/14541f56e95e0756
+
+- [ ] code to "rebuild/repair a node" -- hmm; because of this maybe need some way to know when a project was last sync'd based on filesystem
+
+- [ ] --delete and --update together with rsync - what happens? -- we might as well make the replication actually a merge of newest files!
 
  - [ ] after repairing cassandra data reduce the write consistency level when making new projects... maybe. (?)
 
+ - [ ] I'm also trying to install pymc (python montecarlo) but when I run it, it complains that the ver of numpy is too old... any tips on how to upgrade numpy or how to make pymc work?....; github ticket #2
+
+ - [ ] put project creation date in project
+
  - [ ] write a post explaining what is new and awesome, and what the architecture is.
+
 
 key points:
 
@@ -100,6 +131,26 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 
 ======
 
+ - [x] delete all lines in compute vm's /etc/passwd files that include /bup/projects.
+
+
+
+ - [x] 99 projects have >3 replicas in practice, though not (usually) in db -- these appear "lost" to users in some cases.
+   For each:
+       - copy all files into their current location
+       - move files for projects not specifically listed in bup_last_save to a TO_DELETE location
+
+  Plan:
+
+    phase 1:
+     - sync from *all* actual replicas to master
+     - save from master to *all* replicas
+    phase 2:
+     - add all replicas to bup_locations in database.
+
+  Update everything.
+
+  Later -- reduce number of replicas in some cases.
 
 - [x] read consistency issue: if db say bup_last_save empty, but it isn't, we destroy everything and completely loose project (?!)
 
