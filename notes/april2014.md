@@ -1,3 +1,26 @@
+ - [ ] write a post explaining what is new and awesome, and what the architecture is.
+key points:
+
+   - direct tcp connections instead of ssh tunnels (limits of sshd)
+   - fix uid issue
+   - project states
+   - move/rename/copy file buttons
+   - faster file listing
+   - live files, with zfs snapshots every few minutes, which are not consistent across dc's, and will vanish if a project were moved in a dc
+       - dedup'd across projects on a given host
+       - compressed
+       - quota
+   - set bup repo of snapshots that are consistent across dc's -- highly deduped and compressed; easy to sync around; git-based so branches are possible; dynamic fuse mounting
+   - /scratch
+   - sync to other dc's is done via rsync
+   - daemon that runs on compute vm's and starts/stops projects, sets quotas, replicates, etc., but knows nothing global (e.g., no database).
+
+
+- [ ] consider putting a sync at the start of save, even if nothing has changed.  NOT sure.
+
+- [ ] bup -- should put my caching code back in, e.g., my main project has 250-ish commits and is already taking .25 - 1 s
+
+- [ ] get GCE restart to actually work
 
 - [ ] make it so `bup_server` will refuse to start if some sanity checks regarding the filesystem fail, e.g., that bup/projects is mounted as  /projects
 
@@ -19,11 +42,7 @@
 
 - [ ] bug: snapshot browser file search doesn't work... for obvious reason: it is searching on the wrong thing!
 
-- [ ] do a scan for projects for which they have no files but the bup repo does. (?)
-
 - [ ] project undelete doesn't work.
-
-- [ ] get GCE restart to actually work
 
 - [ ] project folder connections (?)
 
@@ -70,25 +89,6 @@
  - [ ] I'm also trying to install pymc (python montecarlo) but when I run it, it complains that the ver of numpy is too old... any tips on how to upgrade numpy or how to make pymc work?....; github ticket #2
 
  - [ ] put project creation date in project
-
- - [ ] write a post explaining what is new and awesome, and what the architecture is.
-
-
-key points:
-
-   - direct tcp connections instead of ssh tunnels (limits of sshd)
-   - fix uid issue
-   - project states
-   - move/rename/copy file buttons
-   - faster file listing
-   - live files, with zfs snapshots every few minutes, which are not consistent across dc's, and will vanish if a project were moved in a dc
-       - dedup'd across projects on a given host
-       - compressed
-       - quota
-   - set bup repo of snapshots that are consistent across dc's -- highly deduped and compressed; easy to sync around; git-based so branches are possible; dynamic fuse mounting
-   - /scratch
-   - sync to other dc's is done via rsync
-   - daemon that runs on compute vm's and starts/stops projects, sets quotas, replicates, etc., but knows nothing global (e.g., no database).
 
 
  - [ ] (in progress on cloud3) create a full offsite-able backup of all bup repos of projects in dc1, and also the database nodes in dc1.
