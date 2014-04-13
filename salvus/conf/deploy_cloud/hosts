@@ -146,14 +146,14 @@
 #10.3.1.2 gce1 cassandra1gce1
 #10.3.2.2 gce1 cassandra2gce1
 
-10.3.1.4 gce1 compute1dc2 compute
-10.3.2.4 gce1 compute2dc2 compute 
-10.3.3.4 gce1 compute3dc2 compute 
-10.3.4.4 gce1 compute4dc2 compute 
-10.3.5.4 gce1 compute5dc2 compute 
-10.3.6.4 gce1 compute6dc2 compute 
-10.3.7.4 gce1 compute7dc2 compute 
-10.3.8.4 gce1 compute8dc2 compute 
+10.3.1.4 gce1 compute1dc2 compute compute-2
+10.3.2.4 gce1 compute2dc2 compute compute-2
+10.3.3.4 gce1 compute3dc2 compute compute-2 
+10.3.4.4 gce1 compute4dc2 compute compute-2 
+10.3.5.4 gce1 compute5dc2 compute compute-2 
+10.3.6.4 gce1 compute6dc2 compute compute-2 
+10.3.7.4 gce1 compute7dc2 compute compute-2 
+10.3.8.4 gce1 compute8dc2 compute compute-2 
 
 #10.3.1.1 dc2 cassandra1dc2   cassandra-2
 #10.3.2.1 dc2 cassandra2dc2   cassandra-2

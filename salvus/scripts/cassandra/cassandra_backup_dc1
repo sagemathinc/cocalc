@@ -5,7 +5,7 @@ target = "%s/vm/images/cassandra/"%os.environ['HOME']
 
 BWLIMIT=5000 # 
 
-os.environ['BUP_DIR']="%s/vm/images/cassandra-bup"%os.environ["HOME"]
+BUP_DIR=os.environ['BUP_DIR']="%s/vm/images/cassandra-bup"%os.environ["HOME"]
 
 def cmd(s):
     print s
@@ -17,3 +17,4 @@ for i in range(1,8):
 
 cmd("time bup index %s"%target)
 cmd("time bup save %s -n cassandra"%target)
+
