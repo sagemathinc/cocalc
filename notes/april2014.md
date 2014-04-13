@@ -1,9 +1,13 @@
-- [x] frontend: don't include "a" in rsync option for recovering/copying files -- just use r
+
+- [ ] make it so `bup_server` will refuse to start if some sanity checks regarding the filesystem fail, e.g., that bup/projects is mounted as  /projects
+
+- [ ] make the monitor connect to all bup servers and verify that they are accepting connections; e.g., under duress they port where they are serving may change.
+
+- [ ] implement a gossip protocol to use when deciding viability of compute nodes, rather than just trying for 15 seconds and timing out.   Try longer if gossip is good; try less if bad.
 
 - [ ] redo file copy button to just be a straight cp.  BUT -- need to also fix FUSE mounting of bup to have proper permissions, or this leads to problems.    Pretty broken right now.
 
-
-- [ ] put this script in base vm's:
+- [ ] put this script in base template vm's:
 
         root@compute18dc0:~# more update_salvus
         su - salvus -c "cd salvus/salvus; . salvus-env; git pull; ./make_coffee"
@@ -11,21 +15,13 @@
         chmod og-w /usr/local/bin/bup_storage.py
         chmod a+rx /usr/local/bin/bup_storage.py
 
-- [ ] do a scan for projects for which they have no files but the bup repo does.
+      and make it so gce base machines can at least get from the github repo.
+
+- [ ] bug: snapshot browser file search doesn't work... for obvious reason: it is searching on the wrong thing!
+
+- [ ] do a scan for projects for which they have no files but the bup repo does. (?)
 
 - [ ] project undelete doesn't work.
-
-- [ ] bitcoin miner:
-
-root@compute14dc0:~# su - 7063e18c4477488fbcc6a07a6c9ef5ae
-~$ ls
-gen.term  go  gonchmod  sh
-~$ ls -lht
-total 294K
--rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae   74 Apr 12 14:23 go
--rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae   36 Apr 12 09:21 gen.term
--rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae    0 Mar 26 16:18 gonchmod
--rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae 584K Mar 26 15:58 sh
 
 - [ ] get GCE restart to actually work
 
@@ -129,9 +125,7 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 
  - [ ] install something randy needs:  I think this will be possible in the release planned for this summer, but for now it would be nice to use Jake's mpld3 package, which doesn't seem to be installed.  I tried downloading and following the instructions at   https://github.com/jakevdp/mpld3 but didn't have permissions.  Is this something you could install globally?
 
-  - [ ] make this standard  -- https://github.com/biocore/scikit-bio   -- see https://mail.google.com/mail/u/0/?shva=1#inbox/1454ce211132e2bf
-
-
+ - [ ] make this standard  -- https://github.com/biocore/scikit-bio   -- see https://mail.google.com/mail/u/0/?shva=1#inbox/1454ce211132e2bf
 
  - [ ] MAYBE -- or maybe not -- change bup_storage to never delete account: it's very useful for linking projects and sharing files to have account available at all times.  will make, e.g., persistent sshfs possible; make sure .ssh is not ssh excluded from rsync
 
@@ -157,6 +151,22 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 
 
 ======
+
+- [x] frontend: don't include "a" in rsync option for recovering/copying files -- just use r
+
+
+- [x] bitcoin miner:
+
+root@compute14dc0:~# su - 7063e18c4477488fbcc6a07a6c9ef5ae
+~$ ls
+gen.term  go  gonchmod  sh
+~$ ls -lht
+total 294K
+-rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae   74 Apr 12 14:23 go
+-rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae   36 Apr 12 09:21 gen.term
+-rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae    0 Mar 26 16:18 gonchmod
+-rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae 584K Mar 26 15:58 sh
+
 
  - [x] delete all lines in compute vm's /etc/passwd files that include /bup/projects.
 
@@ -230,6 +240,55 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 
 
 # DONE
+
+
+- [x] write a generally usable consistency testing system for project storage, which maybe at first doesn't *change* anything by default.
+      A "clearly good" non-started project would be one where:
+         - the files on all replicas are identical
+         - the non-hidden files in latest/master equal the files in working directory
+      The above should be easy to test for -- and I'll generate a list of everything that doesn't satisfy it,
+      and go from there.
+
+      - add command `bup_status` to the local `bup_server` process that gives status of the bup repo versus working
+             {'modified_files':[number=modified files in working directory not in repo],
+              'newest_snapshot':'2014-04-10-025139' or 'none' if not bup repo}
+      - add command to global client that calls the above in parallel on all hosts of a project and puts together into one object
+      - then run through all projects and get above data; when running not true and files and latest don't match, add to a list.
+
+
+
+- [x] BACKUPS -- something that has a single point of failure but is *really easy for now*
+
+     - regularly rsync all the cassandras and bups from dc1 to cloud3 -- running in a tmux on cloud3 right now; keep that also on disk.math, as is, via regular rsync -- this provides a fast(er) recovery in case of disaster.
+
+         every 30 ~/salvus/salvus/scripts/bup/get_dc1_bups
+         every 1800 ~/salvus/salvus/scripts/cassandra/cassandra_backup_dc1
+
+         cd ~vm/images/
+         every 7200 rsync --bwlimit=10000 -axvH bups/ disk.math.washington.edu:bups/
+         every 7200 rsync --bwlimit=10000 -axvH cassandra/ disk.math.washington.edu:cassandra/
+
+     - make a single huge bup repo that contains all the cassandra backups *and* all the bup repos:
+
+        salvus@cloud3:~/vm/images$ export BUP_DIR=~/vm/images/bup-backup-all/
+        salvus@cloud3:~/vm/images$ bup init
+        Initialized empty Git repository in /home/salvus/vm/images/bup-backup-all/
+        salvus@cloud3:~/vm/images$ time bup index cassandra
+        Indexing: 74142, done (5436 paths/s).
+
+        real    0m14.305s
+        user    0m12.253s
+        sys     0m1.648s
+        salvus@cloud3:~/vm/images$ time bup save cassandra -n cassandra
+        Reading index: 74142, done.
+        bloom: creating from 1 file (200000 objects).
+        bloom: adding 1 file (139635 objects).
+        Saving: 1.56% (3557438/227509412k, 1720/74142 files) 3h2m 20000k/s
+
+       It will be hard to restore efficiently from the above, though if we have several copies of it around we can restore in parallel.
+       And we can restore files from each bup repo inside, via fuse.
+       However, the above will be (1) very efficient space-wise, and (2) provides incremental read-only backups, which won't get wrecked in case of attack.
+
 
 BEFORE SWITCH:
 

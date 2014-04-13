@@ -443,7 +443,7 @@ class Project(object):
         # Some countermeasures against bad users.
         try:
             for bad in open('/root/banned_files').read().split():
-                if os.path.exists(bad):
+                if os.path.exists(os.path.join(self.project_mnt,bad)):
                     self.stop()
                     return {'files_saved' : 0}
         except Exception, msg:
