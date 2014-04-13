@@ -745,7 +745,7 @@ class GlobalProject
 
 
     restart: (opts) =>
-        dbg = (m) -> winston.debug("GlobalProject.restart(#{@project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.restart(#{@project_id}): #{m}")
         dbg()
         @running_project
             cb : (err, project) =>
@@ -771,7 +771,7 @@ class GlobalProject
         # put this here -- we don't even want to *try* more frequently than MIN_SAVE_INTERVAL_S, in case of save bup repo being broken (?)
         @_last_save = misc.walltime()
 
-        dbg = (m) -> winston.debug("GlobalProject.save(#{@project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.save(#{@project_id}): #{m}")
 
         need_to_save = false
         project      = undefined
@@ -849,6 +849,89 @@ class GlobalProject
                 opts.cb?(errors)
             else
                 opts.cb?()
+        )
+
+
+    sync: (opts) =>
+        opts = defaults opts,
+            destructive : false
+            snapshots   : true   # whether to sync snapshots -- if false, only syncs live files
+            union       : false  # if true, sync's by making the files and bup repo the union of that on all replicas -- this is for *REPAIR*
+            timeout     : TIMEOUT
+            cb          : undefined
+
+        dbg = (m) => winston.debug("GlobalProject.sync(#{@project_id}): #{m}")
+
+        project   = undefined
+        targets   = undefined
+        server_id = undefined
+        result    = undefined
+        errors    = []
+        async.series([
+            (cb) =>
+                dbg("figure out master if there is one")
+                @get_location_pref (err,s) =>
+                        server_id = s
+                        dbg("got master=#{server_id}")
+                        cb(err)
+            (cb) =>
+                dbg("lookup the servers that host this project")
+                @get_hosts
+                    cb : (err, hosts) =>
+                        if err
+                            cb(err)
+                        else
+                            targets = hosts
+                            dbg("servers=#{misc.to_json(targets)}")
+                            if not server_id? # no master (project never used), so choose one at random
+                                server_id = misc.random_choice(targets)
+                            targets = (@global_client.servers.by_id[x].host for x in targets when x!= server_id)
+                            cb()
+            (cb) =>
+                dbg("get the project itself")
+                @project
+                    server_id : server_id
+                    cb        : (err, p) =>
+                        project = p; cb(err)
+            (cb) =>
+                dbg("do the sync")
+                tm = cassandra.now()
+                project.sync
+                    targets     : targets
+                    union       : opts.union
+                    destructive : opts.destructive
+                    snapshots   : opts.snapshots
+                    timeout     : opts.timeout
+                    cb          : (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            r = x.result
+                            if not r?
+                                cb()
+                                return
+                            dbg("record info about syncing in database")
+                            last_save = {}
+                            last_save[server_id] = tm
+                            for x in r
+                                if x.host == '' # special case - the server hosting the project
+                                    s = server_id
+                                else
+                                    s = @global_client.servers.by_host[x.host].server_id
+                                if not x.error?
+                                    last_save[s] = tm
+                                else
+                                    errors.push(x.error)
+                            @set_last_save
+                                last_save : last_save
+                                cb        : cb
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else if errors.length > 0
+                opts.cb?(errors)
+            else
+                opts.cb?(undefined, result)
         )
 
 
@@ -1777,6 +1860,82 @@ class GlobalClient
 
 
 
+    sync_union: (opts) =>
+        opts = defaults opts,
+            limit       : 5           # number to do in parallel
+            qlimit      : 10000000    # limit on number of projects to pull from database
+            timeout     : TIMEOUT
+            dryrun      : false       # if true, just return the projects that need sync; don't actually sync
+            status      : []
+            projects     : undefined   # if given, do sync on exactly these projects and no others
+            cb          : required    # cb(err, errors)
+        dbg = (m) => winston.debug("GlobalClient.sync_union(#{opts.project_id}): #{m}")
+        dbg()
+        projects = []
+        errors = {}
+        async.series([
+            (cb) =>
+                if opts.projects?
+                    projects = opts.projects
+                    cb()
+                    return
+                dbg("querying database for all projects with any data")
+                @database.select
+                    table     : 'projects'
+                    columns   : ['project_id', 'bup_last_save']
+                    objectify : true
+                    limit     : opts.qlimit # TODO: change to use paging...
+                    consistency : 1
+                    cb        : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("got #{r.length} records")
+                            r.sort (a,b) ->
+                                if a.project_id < b.project_id
+                                    return -1
+                                else if a.project_id > b.project_id
+                                    return 1
+                                else
+                                    return 0
+                            projects = (x.project_id for x in r when x.bup_last_save? and misc.len(x.bup_last_save) > 0)
+                            cb()
+            (cb) =>
+                if opts.dryrun
+                    cb(); return
+                i = 0
+                j = 0
+                f = (project_id, cb) =>
+                    i += 1
+                    dbg("*** syncing project #{i}/#{projects.length} ***: #{project_id}")
+                    s = {'status':'running...', project_id:project_id}
+                    opts.status.push(s)
+                    @get_project(project_id).sync
+                        union : true
+                        cb    : (err) =>
+                            j += 1
+                            dbg("*** got result #{j}/#{projects.length} for #{project_id}: #{err}")
+                            s['status'] = 'done'
+                            if err
+                                errors[project_id] = err
+                                s['error'] = err
+                            cb()
+                dbg("#{projects.length} projects need to be sync'd")
+                async.mapLimit(projects, opts.limit, f, (err) => cb())
+
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else if misc.len(errors) > 0
+                opts.cb?(errors)
+            else
+                if opts.dryrun
+                    opts.cb?(undefined, projects)
+                else
+                    opts.cb?()
+        )
+
+
 ###########################
 ## Client -- code below mainly sets up a connection to a given storage server
 ###########################
@@ -2039,7 +2198,7 @@ class ClientProject
         opts.action = 'stop'
         if opts.force
             opts.param = '--force'
-        delete opts.force        
+        delete opts.force
         @action(opts)
 
 
@@ -2107,7 +2266,8 @@ class ClientProject
             targets     : required   # array of hostnames (not server id's!) to sync to
             timeout     : TIMEOUT
             destructive : false
-            snapshots   : true   # whether to sync snapshots -- if not given, only syncs live files
+            snapshots   : true   # whether to sync snapshots -- if false, only syncs live files
+            union       : false  # if true, sync's by making the files and bup repo the union of that on all replicas -- this is for *REPAIR*
             cb          : undefined
         if opts.targets.length == 0  # trivial special case
             opts.cb?()
@@ -2118,6 +2278,8 @@ class ClientProject
             params.push('--snapshots')
         if opts.destructive
             params.push('--destructive')
+        if opts.union
+            params.push('--union')
         @action
             action  : 'sync'
             param   : params

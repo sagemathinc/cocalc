@@ -261,6 +261,19 @@ class Project(object):
         except RuntimeError:
             return None
 
+    #def bup_status(self):
+    #    s = {'newest_snapshot':self.newest_snapshot()}
+    #    if s['newest_snapshot']:
+    #        path = self.project_mnt+'/'
+    #        self.cmd(["/usr/bin/bup", "index", "-x"] + self.exclude(path) + [path], ignore_errors=True)
+    #        s['modified_files'] = [x for x in self.cmd(["/usr/bin/bup", "index", '-m', path],verbose=1).splitlines() if x!=path]
+    #        try:
+    #            self.cmd(["/usr/bin/bup", "ls", "master/latest"], ignore_errors=False)
+    #            s['corrupt'] = False
+    #        except:
+    #            s['corrupt'] = True
+    #    return s
+
     def status(self, running=False):
         log = self._log("status")
         if running:
@@ -715,7 +728,14 @@ class Project(object):
             # ps returns an error code if there are NO processes at all (a common condition).
             pids = []
 
-    def sync(self, targets="", destructive=False, snapshots=True):
+    def sync(self, targets="", destructive=False, snapshots=True, union=False):
+        """
+        If union is True, uses the --update option of rsync to make the bup repos and working files
+        on all replicas identical, namely the union of the newest versions of all files.  This is mainly
+        used every-once-in-a-while as a sanity operation.   (It's intended application was only for migration.)
+        This *CAN* loose bup commits -- we only get the commits of whoever had the newest master.  The
+        data is in the git repo, but the references will be lost.  Tags won't be lost though.
+        """
         log = self._log('sync')
         status = [{'host':h} for h in targets.split(',')]
         if not targets:
@@ -726,18 +746,33 @@ class Project(object):
         for s in status:
             t = time.time()
             try:
-                self._sync(remote=s['host'], destructive=destructive, snapshots=snapshots)
+                self._sync(remote=s['host'], destructive=destructive, snapshots=snapshots, union=union)
             except Exception, err:
                 s['error'] = str(err)
             s['time'] = time.time() - t
+
+        if union:
+            # do second stage of union
+            for s in status:
+                t = time.time()
+                try:
+                    self._sync(remote=s['host'], destructive=destructive, snapshots=snapshots, union2=True)
+                except Exception, err:
+                    s['error'] = s.get('error','') + str(err)
+                s['time'] += time.time() - t
+
         return status
 
-    def _sync(self, remote, destructive=False, snapshots=True, rsync_timeout=30):
+    def _sync(self, remote, destructive=False, snapshots=True, union=False, union2=False, rsync_timeout=120):
         """
-        NOTE: sync is *always* destructive on live files; on snapshots it isn't by default.
+
+
+        NOTE: sync is by default destructive on live files; on snapshots it isn't by default.
 
         If destructive is true, simply push from local to remote, overwriting anything that is remote.
         If destructive is false, pushes, then pulls, and makes a tag pointing at conflicts.
+
+
         """
         # NOTE: In the rsync's below we compress-in-transit the live project mount (-z),
         # but *NOT* the bup's, since they are already compressed.
@@ -746,6 +781,36 @@ class Project(object):
         log("syncing...")
 
         remote_bup_path = os.path.join(BUP_PATH, self.project_id)
+
+        if union:
+            log("union stage 1: gather files from outside")
+            self.cmd(['rsync', '--update', '-zaxH', '--timeout', rsync_timeout, "--ignore-errors"] + self.exclude('') +
+                          ['-e', 'ssh -o StrictHostKeyChecking=no',
+                          "root@%s:%s/"%(remote, self.project_mnt),
+                          self.project_mnt+'/'
+                          ], ignore_errors=True)
+            if snapshots:
+                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, "-e", 'ssh -o StrictHostKeyChecking=no',
+                          "root@%s:%s/"%(remote, remote_bup_path),
+                          self.bup_path+'/'
+                          ], ignore_errors=False)
+
+            return
+
+        if union2:
+            log("union stage 2: push back to form union")
+            self.cmd(['rsync', '--update', '-zaxH', '--timeout', rsync_timeout, "--ignore-errors"] + self.exclude('') +
+                          ['-e', 'ssh -o StrictHostKeyChecking=no',
+                          self.project_mnt+'/',
+                          "root@%s:%s/"%(remote, self.project_mnt)
+                          ], ignore_errors=True)
+            if snapshots:
+                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, "-e", 'ssh -o StrictHostKeyChecking=no',
+                          self.bup_path+'/',
+                          "root@%s:%s/"%(remote, remote_bup_path)
+                          ], ignore_errors=False)
+            return
+
 
         if os.path.exists(self.project_mnt):
             def f(ignore_errors):
@@ -909,6 +974,11 @@ if __name__ == "__main__":
         print json.dumps(project.status(running=running))
     parser_status.set_defaults(func=lambda args: print_status(args.running))
 
+    #parser_bup_status = subparsers.add_parser('bup_status', help='get status of bup repo and live working directory')
+    #def print_bup_status():
+    #    print json.dumps(project.bup_status())
+    #parser_bup_status.set_defaults(func=lambda args: print_bup_status())
+
     parser_stop = subparsers.add_parser('stop', help='Kill all processes running as this user and delete user.')
     parser_stop.add_argument("--only_if_idle", help="only actually stop the project if the project is idle long enough",
                                    dest="only_if_idle", default=False, action="store_const", const=True)
@@ -933,9 +1003,12 @@ if __name__ == "__main__":
                                    dest="destructive", default=False, action="store_const", const=True)
     parser_sync.add_argument("--snapshots", help="include snapshots in sync",
                                    dest="snapshots", default=False, action="store_const", const=True)
+    parser_sync.add_argument("--union", help="make it so bup and working directories on all replicas are the SAME (the union of newest files); this CAN loose particular bup snapshots",
+                                   dest="union", default=False, action="store_const", const=True)
     parser_sync.set_defaults(func=lambda args: do_sync(targets            = args.targets,
                                                        destructive        = args.destructive,
-                                                       snapshots          = args.snapshots))
+                                                       snapshots          = args.snapshots,
+                                                       union              = args.union))
 
     parser_settings = subparsers.add_parser('settings', help='set settings for this user; also outputs settings in JSON')
     parser_settings.add_argument("--memory", dest="memory", help="memory settings in gigabytes",
