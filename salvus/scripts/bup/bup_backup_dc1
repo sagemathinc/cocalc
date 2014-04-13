@@ -11,13 +11,13 @@ def cmd(s):
     print s
     os.system(s)
 
-cmd("time rsync -axvH --delete --bwlimit=%s root@10.1.1.5:/bup/bups/ 306ad75d-ffe0-43a4-911d-60b8cd133bc8/"%BWLIMIT)
-cmd("time rsync -axvH --delete --bwlimit=%s root@10.1.2.5:/bup/bups/ a7cc2a28-5e70-44d9-bbc7-1c5afea1fc9e/"%BWLIMIT)
-cmd("time rsync -axvH --delete --bwlimit=%s root@10.1.3.5:/bup/bups/ 4e4a8d4e-4efa-4435-8380-54795ef6eb8f/"%BWLIMIT)
-cmd("time rsync -axvH --delete --bwlimit=%s root@10.1.4.5:/bup/bups/ 630910c8-d0ef-421f-894e-6f58a954f215/"%BWLIMIT)
-cmd("time rsync -axvH --delete --bwlimit=%s root@10.1.5.5:/bup/bups/ e06fb88a-1683-41d6-97d8-92e1f3fb5196/"%BWLIMIT)
-cmd("time rsync -axvH --delete --bwlimit=%s root@10.1.6.5:/bup/bups/ d47df269-f3a3-47ed-854b-17d6d31fa4fd/"%BWLIMIT)
-cmd("time rsync -axvH --delete --bwlimit=%s root@10.1.7.5:/bup/bups/ bc74ea05-4878-4c5c-90e2-facb70cfe338/"%BWLIMIT)
+v = ['306ad75d-ffe0-43a4-911d-60b8cd133bc8', 'a7cc2a28-5e70-44d9-bbc7-1c5afea1fc9e', '4e4a8d4e-4efa-4435-8380-54795ef6eb8f',
+     '630910c8-d0ef-421f-894e-6f58a954f215', 'e06fb88a-1683-41d6-97d8-92e1f3fb5196', 'd47df269-f3a3-47ed-854b-17d6d31fa4fd',
+     'bc74ea05-4878-4c5c-90e2-facb70cfe338']
+
+for i, server_id in enumerate(v):
+    cmd("time rsync -avxH --delete --bwlimit=%s root@10.1.%s.5:/bup/bups/ %s/306ad75d-ffe0-43a4-911d-60b8cd133bc8/"%(BWLIMIT, i+1, target))
 
 cmd("time bup index %s"%target)
 cmd("time bup save %s -n bups"%target)
+cmd("time rsync -axvH %s disk.math.washington.edu:bups-bup/"%os.environ['BUP_DIR'])
