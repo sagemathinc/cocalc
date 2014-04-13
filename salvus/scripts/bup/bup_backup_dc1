@@ -20,4 +20,4 @@ for i, server_id in enumerate(v):
 
 cmd("time bup index %s"%target)
 cmd("time bup save %s -n bups"%target)
-cmd("time rsync -axvH %s disk.math.washington.edu:bups-bup/"%os.environ['BUP_DIR'])
+cmd("time rsync -axvH %s/ disk.math.washington.edu:bups-bup/"%os.environ['BUP_DIR'])
