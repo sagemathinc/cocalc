@@ -888,7 +888,6 @@ class Project(object):
         a = self.project_mnt
         for segment in os.path.split(m):
             a = os.path.join(a, segment)
-            print a
             self.cmd(["chown", "%s:%s"%(self.uid, self.gid), a])
 
     def umount_remote(self, mount_point):
