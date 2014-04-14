@@ -1,3 +1,7 @@
+- [ ] official quotas.  Maybe just make them all 20GB.
+
+- [ ] setup remote environment for dev/testing
+
 - [ ] project folder connections (?)
 
        zfs set sharenfs=on bup/projects

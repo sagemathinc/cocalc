@@ -934,7 +934,6 @@ class GlobalProject
                 opts.cb?(undefined, result)
         )
 
-
     # if some project is actually running, return it; otherwise undefined
     running_project: (opts) =>
         opts = defaults opts,
@@ -1053,17 +1052,31 @@ class GlobalProject
     # get local copy of project on a specific host
     project: (opts) =>
         opts = defaults opts,
-            server_id : required
+            server_id : undefined  # if server_id is not given uses the preferred location
             cb        : required
-        @global_client.storage_server
-            server_id : opts.server_id
-            cb        : (err, s) =>
-                if err
-                    opts.cb(err)
+        project = undefined
+        async.series([
+            (cb) =>
+                if not opts.server_id?
+                    @get_location_pref (err, server_id) =>
+                        opts.server_id = server_id
+                        cb(err)
                 else
-                    s.project   # this is cached
-                        project_id : @project_id
-                        cb         : opts.cb
+                    cb()
+            (cb) =>
+                @global_client.storage_server
+                    server_id : opts.server_id
+                    cb        : (err, s) =>
+                        if err
+                            cb(err)
+                        else
+                            s.project   # this is cached
+                                project_id : @project_id
+                                cb         : (err, p) =>
+                                    project = p
+                                    cb(err)
+        ], (err) =>
+            opts.cb(err, project))
 
     set_last_save: (opts) =>
         opts = defaults opts,
@@ -1194,7 +1207,7 @@ class GlobalProject
         opts = defaults opts,
             timeout : 15
             cb      : required
-        dbg = (m) -> winston.info("get_state: #{m}")
+        dbg = (m) => winston.info("get_state: #{m}")
         dbg()
         servers = undefined
         @state = {}
@@ -1238,6 +1251,97 @@ class GlobalProject
 
         ], (err) => opts.cb?(err, @state)
         )
+
+    # mount a remote project (or directory in one) so that it is accessible in this project
+    # NOTE: Neither project has to be running; however, both must have a defined master "bup_location".
+
+    # WARNING: This is valid at the time when mounted.  However, if the remote project moves
+    # *and* the client is restarted, it will loose the interval timer state
+    # below, and the mount will become invalid.   Thus use with extreme caution until
+    # this state is better tracked (e.g., via a local database whose state survives restart, or
+    # via the database, or some other approach).
+    mount_remote: (opts) =>
+        opts = defaults opts,
+            project_id  : required    # id of the remote project
+            remote_path : ''          # path to mount in the remote project (relative to $HOME of that project)
+            mount_point : required    # local mount point, relative to $HOME
+            cb          : undefined
+
+        dbg = (m) => winston.info("mount_remote(#{misc.to_json(opts)}): #{m}")
+        dbg()
+
+        remote_host = undefined
+        project     = p
+        interval    = 30000
+
+        # This client will query the database every interval seconds to see if the remote
+        # project has moved -- if so, it will change the mount accordingly.    I'm putting
+        # this code in specifically for limited testing use to get a feel for this feature
+        # before planning something more robust!
+        if not @_mount_remote_interval?
+            @_mount_remote_interval = {}
+
+        async.series([
+            (cb) =>
+                dbg("get current location of remote project")
+                @global_client.get_project(opts.project_id).get_location_pref (err, server_id) =>
+                    if err
+                        cb(err)
+                    else
+                        remote_host = @global_client.servers.by_id[server_id].host
+                        dbg("remote_host=#{remote_host}")
+                        cb()
+            (cb) =>
+                dbg("get this project on prefered host")
+                @project
+                    cb : (err, p) =>
+                        project = p; cb(err)
+            (cb) =>
+                dbg("execute mount command")
+                project.mount_remote
+                    remote_host : remote_host
+                    project_id  : opts.project_id
+                    mount_point : opts.mount_point
+                    remote_path : opts.remote_path
+                    cb          : cb
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else
+                key = opts.mount_point  # if something else was already mounted here, above code would have failed.
+                if not @_mount_remote_interval[key]?
+                    dbg("setup interval check to see if remote project moves, and if so remount it")
+                    # see comments above -- this is just for testing purposes
+                    f = () =>
+                        @global_client.get_project(opts.project_id).get_location_pref (err, server_id) =>
+                            if remote_host != @global_client.servers.by_id[server_id].host
+                                @umount_remote
+                                    mount_point : opts.mount_point
+                                    cb          : (err) =>
+                                        @mount_remote(opts)
+                    @_mount_remote_interval[key] = setInterval(f, interval)
+                opts.cb?()
+        )
+
+    umount_remote: (opts) =>
+        opts = defaults opts,
+            mount_point : required
+            cb          : undefined
+        winston.info("umount_remote: #{opts.mount_points}")
+        @project
+            cb : (err, project) =>
+                if err
+                    opts.cb?(err)
+                else
+                    project.umount_remote
+                        mount_point : opts.mount_point
+                        cb          : (err) =>
+                            if @_mount_remote_interval[opts.mount_point]?
+                                clearInterval(@_mount_remote_interval[opts.mount_point])
+                                delete @_mount_remote_interval[opts.mount_point]
+                            opts.cb?(err)
+
+
 
 
 
@@ -2283,8 +2387,39 @@ class ClientProject
         @action
             action  : 'sync'
             param   : params
-            timeout : TIMEOUT
+            timeout : opts.timeout
             cb      : opts.cb
+
+
+    mount_remote: (opts) =>
+        opts = defaults opts,
+            remote_host : required
+            project_id  : required
+            mount_point : required
+            remote_path : required
+            timeout     : TIMEOUT
+            cb          : undefined
+        params = ["--remote_host", opts.remote_host,
+                  "--project_id",  opts.project_id,
+                  "--mount_point", opts.mount_point,
+                  "--remote_path", opts.remote_path]
+        @action
+            action  : 'mount_remote'
+            param   : params
+            timeout : opts.timeout
+            cb      : opts.cb
+
+    umount_remote: (opts) =>
+        opts = defaults opts,
+            mount_point : required
+            timeout     : TIMEOUT
+            cb          : undefined
+        @action
+            action  : 'umount_remote'
+            param   : ["--mount_point", opts.mount_point]
+            timeout : opts.timeout
+            cb      : opts.cb
+
 
 
 client_project_cache = {}
