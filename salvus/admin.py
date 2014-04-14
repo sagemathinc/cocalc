@@ -1468,7 +1468,7 @@ class Monitor(object):
                         down.append(x)
         return down
 
-    def print_status(self, all=None, n=5):
+    def print_status(self, all=None, n=9):
         if all is None:
             all = self.all( )
 
