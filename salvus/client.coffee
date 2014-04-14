@@ -1597,6 +1597,17 @@ class exports.Connection extends EventEmitter
             timeout : 120
             cb      : opts.cb
 
+    #################################################
+    # Some UI state
+    #################################################
+    in_fullscreen_mode: (state) =>
+        if state?
+            @_fullscreen_mode = state
+        return $(window).width() <=979 or @_fullscreen_mode
+
+
+
+
 #################################################
 # Other account Management functionality shared between client and server
 #################################################

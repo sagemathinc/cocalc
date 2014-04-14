@@ -12,11 +12,12 @@
 }
 
 .salvus-connection-status {
-    width     : 5.5em;
-    font-size : 9pt;
-    line-height: 10pt;
-    margin-top: 9pt;
-    cursor    : default;
+    width       : 6.5em;
+    font-size   : 10pt;
+    line-height : 10pt;
+    cursor      : default;
+    margin-top  : 2ex;
+    margin-right: 1ex;
 }
 
 .salvus-top_navbar {
@@ -28,17 +29,26 @@
     z-index:100000;
     right:0;
     top:0;
-    color:#999;
-    font-size: 22px;
+    font-size: 12pt;
+    padding:4px;
+    color: #999;
+    font-weight: bold;
 }
+
+.salvus-fullscreen-activate:hover {
+    color: #222;
+}
+
 
 .salvus-fullscreen-deactivate {
     position:fixed;
     z-index:100000;
     right:0;
     top:0;
-    font-size:22px;
-    color:#bbb;
+    font-size:12pt;
+    padding:4px;
+    color: #999;
+    font-weight: bold;
 }
 
 .salvus-fullscreen-deactivate:hover {
@@ -51,4 +61,17 @@
     font-size: 19px;
     top: 2px;
     position: relative;
+}
+
+
+.salvus-connection-status-connecting {
+    background-color : red;
+    color            : white;
+    padding          : 1ex;
+    z-index          : 100001;
+
+}
+
+.salvus-connection-status:hover {
+    color: #222
 }

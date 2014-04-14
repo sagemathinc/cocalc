@@ -21,21 +21,22 @@ last_ping_time = ''
 exports.ping_time = () -> last_ping_time
 
 salvus_client.on "connecting", () ->
-    $("#connection_status").html("<font color='#a00'>connecting...</font>")
-    $("#connection_protocol").html('')
-    $("#connection_bars").hide()
-    $("#ping_time").html('')
+    $(".salvus-connection-status-connecting").show()
+    $(".salvus-fullscreen-activate").hide()
+    $(".salvus-connection-status-protocol").html('')
+    $(".salvus-connection-status-ping-time").html('')
     connection_protocol = ''
     last_ping_time = ''
     $("a[href=#salvus-connection-reconnect]").find("i").addClass('fa-spin')
 
 salvus_client.on "connected", (protocol) ->
     connection_protocol = protocol
-    $("#connection_status").html("")
-    $("#connection_protocol").html(protocol.slice(0,9))   # more than 9 characters takes too much space.
-    $("#connection_bars").show()
+    $(".salvus-connection-status-connecting").hide()
+    if not salvus_client.in_fullscreen_mode()
+        $(".salvus-fullscreen-activate").show()
+    $(".salvus-connection-status-protocol").html(protocol.slice(0,9))   # more than 9 characters takes too much space.
     $("a[href=#salvus-connection-reconnect]").find("i").removeClass('fa-spin')
 
 salvus_client.on "ping", (ping_time) ->
     last_ping_time = ping_time
-    $("#ping_time").html("#{(ping_time*1000).toFixed(0)}ms")
+    $(".salvus-connection-status-ping-time").html("#{(ping_time*1000).toFixed(0)}ms")
