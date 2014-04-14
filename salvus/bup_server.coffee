@@ -1271,7 +1271,7 @@ class GlobalProject
         dbg()
 
         remote_host = undefined
-        project     = p
+        project     = undefined
         interval    = 30000
 
         # This client will query the database every interval seconds to see if the remote
