@@ -261,19 +261,6 @@ class Project(object):
         except RuntimeError:
             return None
 
-    #def bup_status(self):
-    #    s = {'newest_snapshot':self.newest_snapshot()}
-    #    if s['newest_snapshot']:
-    #        path = self.project_mnt+'/'
-    #        self.cmd(["/usr/bin/bup", "index", "-x"] + self.exclude(path) + [path], ignore_errors=True)
-    #        s['modified_files'] = [x for x in self.cmd(["/usr/bin/bup", "index", '-m', path],verbose=1).splitlines() if x!=path]
-    #        try:
-    #            self.cmd(["/usr/bin/bup", "ls", "master/latest"], ignore_errors=False)
-    #            s['corrupt'] = False
-    #        except:
-    #            s['corrupt'] = True
-    #    return s
-
     def status(self, running=False):
         log = self._log("status")
         if running:
@@ -357,7 +344,6 @@ class Project(object):
                 log("nonfatal error -- %s"%msg)
             else:
                 raise
-
 
     def touch(self):
         open(self.touch_file,'w')
@@ -456,7 +442,7 @@ class Project(object):
         # Some countermeasures against bad users.
         try:
             for bad in open('/root/banned_files').read().split():
-                if os.path.exists(bad):
+                if os.path.exists(os.path.join(self.project_mnt,bad)):
                     self.stop()
                     return {'files_saved' : 0}
         except Exception, msg:
@@ -586,22 +572,6 @@ class Project(object):
         self.ensure_file_exists(BASHRC_TEMPLATE, os.path.join(self.project_mnt,".bashrc"))
         self.ensure_file_exists(BASH_PROFILE_TEMPLATE, os.path.join(self.project_mnt,".bash_profile"))
 
-    def xxx_ensure_ssh_access(self):  # not used!
-        log = self._log('ensure_ssh_access')
-        log("make sure .ssh/authorized_keys file good")
-        dot_ssh = os.path.join(self.project_mnt, '.ssh')
-        self.makedirs(dot_ssh)
-        target = os.path.join(dot_ssh, 'authorized_keys')
-        authorized_keys = '\n' + open(SSH_ACCESS_PUBLIC_KEY).read() + '\n'
-
-        if not os.path.exists(target) or authorized_keys not in open(target).read():
-            log("writing authorized_keys files")
-            open(target,'w').write(authorized_keys)
-        else:
-            log("%s already exists and is good"%target)
-        self.cmd(['chown', '-R', '%s:%s'%(self.uid, self.gid), dot_ssh])
-        self.cmd(['chmod', 'og-rwx', '-R', dot_ssh])
-
     def get_settings(self):
         if not os.path.exists(self.conf_path):
             self.makedirs(self.conf_path, chown=False)
@@ -627,7 +597,6 @@ class Project(object):
             disk = scratch = QUOTAS_OVERRIDE
         cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, disk), '%s/projects'%ZPOOL])
         cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, scratch), '%s/scratch'%ZPOOL])
-
 
     def unset_quota(self):
         if not QUOTAS_ENABLED:
@@ -882,77 +851,7 @@ class Project(object):
                 self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
                           '--timeout', rsync_timeout, self.bup_path+'/', 'root@'+remote+'/'])
 
-    def migrate_all(self, max_snaps=100):
-        log = self._log('migrate_all')
-        log("determining snapshots...")
-        self.init()
-        snap_path  = "/projects/%s/.zfs/snapshot"%self.project_id
-        known = set([time.mktime(time.strptime(s, "%Y-%m-%d-%H%M%S")) for s in self.snapshots()])
-        v = sorted(os.listdir(snap_path))
-        if len(v) > max_snaps:
-            trim = math.ceil(len(v)/max_snaps)
-            w = [v[i] for i in range(len(v)) if i%trim==0]
-            for i in range(1,5):
-                if w[-i] != v[-i]:
-                    w.append(v[-i])
-            v = w
-
-        v = [snapshot for snapshot in v if snapshot not in known]
-        for i, snapshot in enumerate(v):
-            print "**** %s/%s ****"%(i+1,len(v))
-            tm = time.mktime(time.strptime(snapshot, "%Y-%m-%dT%H:%M:%S"))
-            self.save(path=os.path.join(snap_path, snapshot), timestamp=tm)
-
-        self.cleanup()
-
-    def migrate_remote(self, host, targets):
-        log = self._log('migrate_remote')
-        self.init()
-        project_mnt = '/projects/%s'%self.project_id
-        t = time.time()
-        log("check if remote is mounted")
-
-        if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, project_mnt), verbose=1, ignore_errors=True):
-            # try to mount and try again
-            self.cmd("ssh -o StrictHostKeyChecking=no  root@%s 'zfs set mountpoint=/projects/%s projects/%s; zfs mount projects/%s'"%(
-                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=600)
-            if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, project_mnt), verbose=1, ignore_errors=True):
-                print "FAIL -- unable to mount"
-                return
-        log("time to mount %s"%(time.time()-t))
-
-        log("rsync from remote to local")
-        t = time.time()
-        x = self.cmd("rsync -Haxq --ignore-errors --delete %s root@%s:%s/ %s/; chown -R %s:%s %s/"%(
-               ' '.join(self.exclude("")),
-               host, project_mnt, self.project_mnt, self.uid, self.gid, self.project_mnt), ignore_errors=True)
-        log("time to rsync=%s"%(time.time()-t))
-        for a in x.splitlines():
-            # allow these errors only -- e.g., sshfs mounts cause them
-            if 'ERROR' not in a and 'see previous errors' not in a and 'failed: Permission denied' not in a and 'Command exited with non-zero status' not in a:
-                print a
-                print "FAIL"
-                return
-
-        log("save local copy to local repo")
-        t = time.time()
-        self.save(sync=False, mnt=False)
-        log("time to save=%s"%(time.time()-t))
-        log("sync out")
-        t = time.time()
-        status = self.sync(targets=targets, destructive=True)
-        log("time to sync=%s"%(time.time()-t))
-        print str(status)
-        for r in status:
-            if r.get('error', False):
-                print "FAIL"
-                return False
-        print "SUCCESS"
-        return True
-
-
-
-
+                
 
 if __name__ == "__main__":
 
@@ -973,11 +872,6 @@ if __name__ == "__main__":
     def print_status(running):
         print json.dumps(project.status(running=running))
     parser_status.set_defaults(func=lambda args: print_status(args.running))
-
-    #parser_bup_status = subparsers.add_parser('bup_status', help='get status of bup repo and live working directory')
-    #def print_bup_status():
-    #    print json.dumps(project.bup_status())
-    #parser_bup_status.set_defaults(func=lambda args: print_bup_status())
 
     parser_stop = subparsers.add_parser('stop', help='Kill all processes running as this user and delete user.')
     parser_stop.add_argument("--only_if_idle", help="only actually stop the project if the project is idle long enough",
@@ -1052,14 +946,6 @@ if __name__ == "__main__":
     parser_checkout.add_argument("--snapshot", dest="snapshot", help="which tag or snapshot to checkout (default: latest)", type=str, default='latest')
     parser_checkout.add_argument("--branch", dest="branch", help="branch to checkout (default: whatever current branch is)", type=str, default='')
     parser_checkout.set_defaults(func=lambda args: project.checkout(snapshot=args.snapshot, branch=args.branch))
-
-    parser_migrate_all = subparsers.add_parser('migrate_all', help='migrate all snapshots of project from old ZFS format')
-    parser_migrate_all.set_defaults(func=lambda args: project.migrate_all())
-
-    parser_migrate_remote = subparsers.add_parser('migrate_remote', help='final migration')
-    parser_migrate_remote.add_argument("host", help="where migrating from", type=str)
-    parser_migrate_remote.add_argument("--targets", help="comma separated ip addresses of computers to replicate to NOT including the current machine", dest="targets", default="", type=str)
-    parser_migrate_remote.set_defaults(func=lambda args: project.migrate_remote(host=args.host, targets=args.targets))
 
     args = parser.parse_args()
 

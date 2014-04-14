@@ -2,12 +2,12 @@
 # top_navbar -- the top level navbar
 #########################################################################
 
+{salvus_client} = require('salvus_client')
+
+
 $(document).on 'keydown', (ev) =>
     #console.log(ev)
     if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79    # ctrl (or meta) o.
-        return false
-    if (ev.altKey and ev.ctrlKey) and ev.keyCode == 70    # ctrl-o-f = fullscreen
-        toggle_fullscreen()
         return false
 
 misc = require("misc")
@@ -247,22 +247,22 @@ $(window).resize () ->
     $("body").css
         'padding-top': ($(".salvus-top_navbar").height()) + 'px'
 
-toggle_fullscreen = () ->
-    if $(".salvus-top_navbar").is(":visible") # not in fullscreen mode
-        $(".salvus-fullscreen").toggle()
-        $(".salvus-top_navbar").hide()
-        top_navbar.fullscreen(true)
-        $("body").css('padding-top':0)
-    else
-        $(".salvus-fullscreen").toggle()
-        $(".salvus-top_navbar").show()
-        top_navbar.fullscreen(false)
-        $("body").css
-            'padding-top': ($(".salvus-top_navbar").height()) + 'px'
+$(".salvus-fullscreen-activate").click () ->
+    salvus_client.in_fullscreen_mode(true)
+    $(".salvus-fullscreen").toggle()
+    $(".salvus-top_navbar").hide()
+    top_navbar.fullscreen(true)
+    $("body").css('padding-top':0)
+    return false
+
+$(".salvus-fullscreen-deactivate").click () ->
+    salvus_client.in_fullscreen_mode(false)
+    $(".salvus-fullscreen").toggle()
+    $(".salvus-top_navbar").show()
+    top_navbar.fullscreen(false)
+    $("body").css('padding-top': ($(".salvus-top_navbar").height()) + 'px')
     return false
 
 
-$(".salvus-fullscreen-activate").click(toggle_fullscreen)
-$(".salvus-fullscreen-deactivate").click(toggle_fullscreen)
-$("#connection_protocol").tooltip(delay:{ show: 500, hide: 100 })
-$("#ping_time").tooltip(delay:{ show: 500, hide: 100 })
+$(".salvus-connection-status-protocol").tooltip(delay:{ show: 500, hide: 100 })
+$(".salvus-connection-status-ping-time").tooltip(delay:{ show: 500, hide: 100 })

@@ -322,10 +322,10 @@ class exports.Editor
 
     # Used for resizing editor windows.
     editor_top_position: () =>
-        if $(".salvus-fullscreen-activate").is(":visible")
-            return @element.find(".salvus-editor-content").position().top
-        else
+        if salvus_client.in_fullscreen_mode()
             return 0
+        else
+            return @element.find(".salvus-editor-content").position().top
 
     refresh: () =>
         @_window_resize_while_editing()
