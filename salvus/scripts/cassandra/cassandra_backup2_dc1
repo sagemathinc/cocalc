@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+
+import os
+BUP_DIR=os.environ['BUP_DIR']="%s/vm/images/cassandra2-bup"%os.environ["HOME"]
+
+def cmd(s):
+    print s
+    os.system(s)
+
+cmd("bup init")
+for i in range(1,8):
+    host = "10.1.%s.2"%i
+    cmd("time bup on %s init"%host)
+    cmd("time bup on %s index /mnt/cassandra"%host)
+    cmd("time bup on %s save /mnt/cassandra -n %s"%(host, host))
+ 
+cmd("time rsync -axvH %s/ disk.math.washington.edu:cassandra2-bup/"%os.environ['BUP_DIR'])

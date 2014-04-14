@@ -1,0 +1,24 @@
+#!/usr/bin/env python
+
+import os
+
+os.environ['BUP_DIR']="%s/vm/images/bups2-bup"%os.environ["HOME"]
+
+def cmd(s):
+    print s
+    os.system(s)
+
+cmd("bup init")
+
+v = ['306ad75d-ffe0-43a4-911d-60b8cd133bc8', 'a7cc2a28-5e70-44d9-bbc7-1c5afea1fc9e', '4e4a8d4e-4efa-4435-8380-54795ef6eb8f',
+     '630910c8-d0ef-421f-894e-6f58a954f215', 'e06fb88a-1683-41d6-97d8-92e1f3fb5196', 'd47df269-f3a3-47ed-854b-17d6d31fa4fd',
+     'bc74ea05-4878-4c5c-90e2-facb70cfe338']
+
+for i, server_id in enumerate(v):
+    j = i+1
+    cmd("time bup on root@10.1.%s.5 init"%j)
+    cmd("time bup on root@10.1.%s.5 index /bup/bups"%j)
+    cmd("time bup on root@10.1.%s.5 save /bup/bups -n %s"%(j, server_id))
+
+
+cmd("time rsync -axvH %s/ disk.math.washington.edu:bups2-bup/"%os.environ['BUP_DIR'])
