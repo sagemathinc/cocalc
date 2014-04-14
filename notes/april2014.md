@@ -1,49 +1,3 @@
- - [ ] write a post explaining what is new and awesome, and what the architecture is.
-key points:
-
-   - direct tcp connections instead of ssh tunnels (limits of sshd)
-   - fix uid issue
-   - project states
-   - move/rename/copy file buttons
-   - faster file listing
-   - live files, with zfs snapshots every few minutes, which are not consistent across dc's, and will vanish if a project were moved in a dc
-       - dedup'd across projects on a given host
-       - compressed
-       - quota
-   - set bup repo of snapshots that are consistent across dc's -- highly deduped and compressed; easy to sync around; git-based so branches are possible; dynamic fuse mounting
-   - /scratch
-   - sync to other dc's is done via rsync
-   - daemon that runs on compute vm's and starts/stops projects, sets quotas, replicates, etc., but knows nothing global (e.g., no database).
-
-
-- [ ] consider putting a sync at the start of save, even if nothing has changed.  NOT sure.
-
-- [ ] bup -- should put my caching code back in, e.g., my main project has 250-ish commits and is already taking .25 - 1 s
-
-- [ ] get GCE restart to actually work
-
-- [ ] make it so `bup_server` will refuse to start if some sanity checks regarding the filesystem fail, e.g., that bup/projects is mounted as  /projects
-
-- [ ] make the monitor connect to all bup servers and verify that they are accepting connections; e.g., under duress they port where they are serving may change.
-
-- [ ] implement a gossip protocol to use when deciding viability of compute nodes, rather than just trying for 15 seconds and timing out.   Try longer if gossip is good; try less if bad.
-
-- [ ] redo file copy button to just be a straight cp.  BUT -- need to also fix FUSE mounting of bup to have proper permissions, or this leads to problems.    Pretty broken right now.
-
-- [ ] put this script in base template vm's:
-
-        root@compute18dc0:~# more update_salvus
-        su - salvus -c "cd salvus/salvus; . salvus-env; git pull; ./make_coffee"
-        cp /home/salvus/salvus/salvus/scripts/bup_storage.py /usr/local/bin/
-        chmod og-w /usr/local/bin/bup_storage.py
-        chmod a+rx /usr/local/bin/bup_storage.py
-
-      and make it so gce base machines can at least get from the github repo.
-
-- [ ] bug: snapshot browser file search doesn't work... for obvious reason: it is searching on the wrong thing!
-
-- [ ] project undelete doesn't work.
-
 - [ ] project folder connections (?)
 
        zfs set sharenfs=on bup/projects
@@ -75,6 +29,55 @@ key points:
     export project_id=cc96c0e6-8daf-467d-b8d2-354f9c5144a5; export host=10.1.15.5; export uid=447893796
 
     mkdir -p students/$project_id && sshfs -o cache_timeout=10 -o kernel_cache -o auto_cache -o uid=$uid -o gid=$uid -o allow_other -o default_permissions $host:/projects/$project_id students/$project_id; chown $uid:$uid students/$project_id
+
+
+ - [ ] rekey ssl cert: http://support.godaddy.com/help/article/4976/rekeying-an-ssl-certificate
+
+ - [ ] write a post explaining what is new and awesome, and what the architecture is.
+key points:
+
+   - direct tcp connections instead of ssh tunnels (limits of sshd)
+   - fix uid issue
+   - project states
+   - move/rename/copy file buttons
+   - faster file listing
+   - live files, with zfs snapshots every few minutes, which are not consistent across dc's, and will vanish if a project were moved in a dc
+       - dedup'd across projects on a given host
+       - compressed
+       - quota
+   - set bup repo of snapshots that are consistent across dc's -- highly deduped and compressed; easy to sync around; git-based so branches are possible; dynamic fuse mounting
+   - /scratch
+   - sync to other dc's is done via rsync
+   - daemon that runs on compute vm's and starts/stops projects, sets quotas, replicates, etc., but knows nothing global (e.g., no database).
+
+
+- [ ] consider putting a sync at the start of projsavect e, even if nothing has changed.  NOT sure.
+
+- [ ] bup -- should put my caching code back in, e.g., my main project has 250-ish commits and is already taking .25 - 1 s
+
+- [ ] get GCE restart to actually work
+
+- [ ] make it so `bup_server` will refuse to start if some sanity checks regarding the filesystem fail, e.g., that bup/projects is mounted as  /projects
+
+- [ ] make the monitor connect to all bup servers and verify that they are accepting connections; e.g., under duress they port where they are serving may change.
+
+- [ ] implement a gossip protocol to use when deciding viability of compute nodes, rather than just trying for 15 seconds and timing out.   Try longer if gossip is good; try less if bad.
+
+- [ ] redo file copy button to just be a straight cp.  BUT -- need to also fix FUSE mounting of bup to have proper permissions, or this leads to problems.    Pretty broken right now.
+
+- [ ] put this script in base template vm's:
+
+        root@compute18dc0:~# more update_salvus
+        su - salvus -c "cd salvus/salvus; . salvus-env; git pull; ./make_coffee"
+        cp /home/salvus/salvus/salvus/scripts/bup_storage.py /usr/local/bin/
+        chmod og-w /usr/local/bin/bup_storage.py
+        chmod a+rx /usr/local/bin/bup_storage.py
+
+      and make it so gce base machines can at least get from the github repo.
+
+- [ ] bug: snapshot browser file search doesn't work... for obvious reason: it is searching on the wrong thing!
+
+- [ ] project undelete doesn't work.
 
 - [ ] rewrite `bup_server` to use a local sqlite database; then state is preserved upon restart/crash/reboot/etc.
 
@@ -375,7 +378,7 @@ and also push out the correct consistent hashing file
         - progress: if there is a way to give how far along with doing something (e.g., rsyncing out to replicas)
     could do this by creating a conf file that is *NOT* rsync'd that stores stuff:   conf/state.json
 
-- [ ] port forward for testing server: "salvus@cloud15:~$ sudo ssh -L cloud1.math.washington.edu:443:10.1.15.7:443 10.1.15.7
+- [ ] port forward for testing server: "salvus@cloud15:~$ sudo ssh -L cloud15.math.washington.edu:443:10.1.15.7:443 10.1.15.7
 "
 
 - [ ] migration -- no way to finish without some painful actions

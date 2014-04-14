@@ -851,7 +851,52 @@ class Project(object):
                 self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
                           '--timeout', rsync_timeout, self.bup_path+'/', 'root@'+remote+'/'])
 
-                
+    def mount_remote(self, remote_host, project_id, mount_point='', remote_path=''):
+        """
+        Use sshfs to make it so /projects/project_id/remote_path (which is on the remote host)
+        appears as a local directory at /projects/project_id/mount_point.
+        """
+        if not remote_host:
+            raise RuntimeError("remote_host must be specified")
+        try:
+            u = uuid.UUID(project_id)
+            assert u.get_version() == 4
+            project_id = str(u)
+        except (AssertionError, ValueError):
+            raise RuntimeError("invalid project_id='%s'"%project_id)
+        if not mount_point:
+            m = os.path.join('projects', project_id, remote_path)
+        else:
+            m = mount_point.lstrip('/')
+        mount_point = os.path.join(self.project_mnt, m)
+
+        if not os.path.exists(mount_point):
+            self.makedirs(mount_point)
+        elif not os.path.isdir(mount_point):
+            raise ValueError("mount_point='%s' must be a directory"%mount_point)
+
+        self.cmd(["sshfs",
+                  "-o", "kernel_cache",
+                  "-o", "auto_cache",
+                  "-o", "uid=%s"%self.uid,
+                  "-o", "gid=%s"%self.gid,
+                  "-o", "allow_other",
+                  "-o", "default_permissions",
+                  "%s:%s"%(remote_host, os.path.join(PROJECTS_PATH, project_id, remote_path)),
+                  mount_point])
+
+        a = self.project_mnt
+        for segment in os.path.split(m):
+            a = os.path.join(a, segment)
+            print a
+            self.cmd(["chown", "%s:%s"%(self.uid, self.gid), a])
+
+    def umount_remote(self, mount_point):
+        # the -z forces unmount even if filesystem is busy
+        self.cmd(["fusermount", "-z", "-u", os.path.join(self.project_mnt, mount_point)])
+
+
+
 
 if __name__ == "__main__":
 
@@ -904,6 +949,7 @@ if __name__ == "__main__":
                                                        snapshots          = args.snapshots,
                                                        union              = args.union))
 
+
     parser_settings = subparsers.add_parser('settings', help='set settings for this user; also outputs settings in JSON')
     parser_settings.add_argument("--memory", dest="memory", help="memory settings in gigabytes",
                                type=int, default=None)
@@ -920,6 +966,23 @@ if __name__ == "__main__":
                     memory=args.memory, cpu_shares=args.cpu_shares,
                     cores=args.cores, disk=args.disk, inode=args.inode, scratch=args.scratch,
                     login_shell=args.login_shell, mintime=args.mintime))
+
+    parser_mount_remote = subparsers.add_parser('mount_remote', help='Use sshfs to make it so /projects/project_id/remote_path (which is on the remote host) appears as a local directory at /projects/project_id/mount_point.')
+    parser_mount_remote.add_argument("--remote_host", help="", dest="remote_host", default="", type=str)
+    parser_mount_remote.add_argument("--project_id", help="", dest="remote_project_id", default="", type=str)
+    parser_mount_remote.add_argument("--mount_point", help="", dest="mount_point", default="", type=str)
+    parser_mount_remote.add_argument("--remote_path", help="", dest="remote_path", default="", type=str)
+    parser_mount_remote.set_defaults(func=lambda args: project.mount_remote(
+                                           remote_host = args.remote_host,
+                                           project_id  = args.remote_project_id,
+                                           mount_point = args.mount_point,
+                                           remote_path = args.remote_path))
+
+    parser_umount_remote = subparsers.add_parser('umount_remote')
+    parser_umount_remote.add_argument("--mount_point", help="", dest="mount_point", default="", type=str)
+    parser_umount_remote.set_defaults(func=lambda args: project.umount_remote(
+                                           mount_point = args.mount_point))
+
 
     parser_tag = subparsers.add_parser('tag', help='tag the *latest* commit to master, or delete a tag')
     parser_tag.add_argument("tag", help="tag name", type=str)
