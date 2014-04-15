@@ -1,0 +1,151 @@
+
+<h1><a href="https://cloud.sagemath.com" target="_blank"><a href="https://cloud.sagemath.com" target="_blank">SageMathCloud</a></a>'s new backend architecture, part 1</h1>
+
+<b>Keywords:</b> ZFS, bup, rsync, Sage
+
+<br><br>
+<a href="https://cloud.sagemath.com" target="_blank">SageMathCloud</a> (SMC) is
+a browser-based hosted cloud computing environment for easily collaborating on
+Python programs, IPython notebooks, Sage worksheets and LaTeX documents.
+I spent the last four months wishing very much that <b>less</b> people would use SMC.
+Today that has changed, and this  post explains some of the reasons why.
+
+
+<h2>Consistency Versus Availability</h2>
+<p>
+    Consistency and availability are competing requirements.  It is trivial
+    to keep the files in a <a href="https://cloud.sagemath.com" target="_blank">SageMathCloud</a>  project consistent if we store it
+    in exactly one place; however, when the machine that project is on goes
+    down for any reason, the project stops working, and the users of the project
+    are very unhappy. By making many copies of the files in a project, it's
+    fairly easy to ensure that the project is always available, even if network
+    switches in multiple data centers completely fail, etc.  Unfortunately, if
+    there are too many users and the synchronization itself puts too heavy of a load
+    on the overall system, then machines will fail more frequently, and though
+    projects are  available, files do not stay consistent and
+    data is lost to the user (though still "out there" somewhere for <b>me</b> to find).
+</p>
+
+<p>
+    Horizontal scalability of file storage and availability of files are also competing requirements.
+    If there are a few compute machines in one place, then they can all mount user
+    files from one central file server.  Unfortunately, this approach leads to horrible performance
+    if instead the network is slow and has high latency; it also doesn't scale up to potentially
+    millions of users. A benchmark I care about is
+    downloading a <a href="http://boxen.math.washington.edu/home/sagemath/sage-mirror/linux/64bit/sage-6.1.1-x86_64-Linux-Ubuntu_12.04_x86_64.tar.lzma" target="_blank">Sage binary (630MB)</a> and extracting it (creating over 70,000 files);
+    I want this to take at most 3 minutes total, which is hard using a networked filesystem served over
+    the general Internet between data centers.  Instead, in SMC, we store the files for user projects on
+    the compute machines themselves, which provides optimal speed.  Moreover, we use a compressed filesystem,
+    so in many cases read and write speeds are nearly twice as fast as they might be otherwise.
+</p>
+
+<h2>New Architecture of <a href="https://cloud.sagemath.com" target="_blank">SageMathCloud</a> </h2>
+
+An SMC project with id <tt>project_id</tt> consists of two directories of files, replicated across several machines using rsync:
+
+<ol>
+    <li> The HOME directory: <tt>/projects/project_id</tt></li>
+    <li> A <a href="https://github.com/bup/bup"  target="_blank">bup</a> repository: <tt>/bup/bups/project_id</tt></li>
+</ol>
+
+Users can also create files they don't care too much about in <tt>/scratch</tt>, which is a compressed and deduplicated ZFS filesystem.
+It is not backed up in any way, and is local to that compute.
+
+<p>
+    The <tt>/projects</tt> directory is one single big <a  target="_blank" href="http://zfsonlinux.org/">ZFS</a> filesystem, which
+    is both lz4 compressed and deduplicated.   ZFS compression is just plain awesome.  ZFS deduplication
+    is much more subtle, as deduplication is tricky to do right. Since data can
+    be deleted at any time, one can't just use a  <a  target="_blank" href="http://en.wikipedia.org/wiki/Bloom_filter">bloom filter</a>
+    to very efficiently tell whether data is already known to the filesystem, and instead ZFS uses a much
+    less memory efficient data structure.  Nonetheless, deduplication works well in our situation, since the compute
+    machines all have sufficient RAM (around 30-60GB), and the total data stored in <tt>/projects</tt> is
+    well under 1TB.  In fact, right now most compute machines have about 100GB stored in <tt>/projects</tt>.
+</p>
+
+<p>
+    The <tt>/bup/bups</tt> directory is also one single big ZFS filesystem; however, it is neither
+    compressed nor deduplicated.  It contains <a href="https://github.com/bup/bup" target="_blank">bup</a>
+    repositories, where bup is an <b><i>awesome</i></b> git-based
+    backup tool written in Python that is designed for storing snapshots of
+    potentially large
+    collections of arbitrary files in a
+    compressed and highly deduplicated way.   Since the git pack format is already compressed and deduplicated,
+    and bup itself is highly efficient at deduplication, we would gain almost nothing by using
+    compression or deduplication directly on this ZFS filesystem.   When bup deduplicates data, it does so using
+    a sliding window through the file, unlike ZFS which simply breaks the file up into blocks, so bup
+    does a much better job at deduplication.  Right now, most compute machines have about 50GB stored in <tt>/bup/bups</tt>.
+</p>
+
+<p>
+    When somebody actively uses a project, the "important" working files are snapshotted about once every two minutes.
+    These snapshots are done using bup and stored in <tt>/bup/bups/project_id</tt>, as mentioned above.
+    After a snapshot is successfully created, the files in the working directory and in the bup repository
+    are copied via rsync to each replica node.  The users of the project do not have direct access to
+    <tt>/bup/bups/project_id</tt>, since it is of vital importance that these snapshots cannot be corrupted
+    or deleted, e.g., if you are sharing a project with a fat fingered colleague, you want peace of mind that
+    even if they mess up all your files, you can easily get them back.  However, all snapshots are mounted
+    at <tt>/projects/project_id/.snapshots</tt> and browseable by the user; this uses bup's FUSE filesystem
+    support, enhanced with some <a href="github.com/williamstein/bup-1" target="_blank">patches I wrote</a>
+    to support file permissions, sizes, change times, etc.
+    Incidentally, the bup snapshots have no impact on the user's disk quota.
+</p>
+
+<p>
+    We also backup <i>all</i> of the bup archives (and the database nodes) to a single large bup archive,
+    which we regularly backup offsite on encrypted USB drives.
+    Right now, with nearly 50,000 projects, the total size of this large
+    bup archive is under 250GB (!), and we can use it efficiently recover any particular
+    version of any file in any project.  The size is relatively small due to the
+    excellent deduplication and compression that bup provides.
+</p>
+
+<p>
+    In addition to the bup snapshots, we also create periodic snapshots of the two
+    ZFS filesystems mentioned above... just in case.  Old snapshots are regularly deleted.
+    These are accessible to users if they search around enough with the command line, but
+    are not consistent between different hosts
+    of the project, hence using them is not encouraged.   This ensures that even if the whole
+    replication/bup system were to somehow
+    mess up a project, I can still recover everything exactly as it was
+    before the problem happened; so far there haven't been any reports of problems.
+</p>
+
+<h2>Capacity</h2>
+
+Right now there are about 6000 unique weekly users of SageMathCloud and often about 300-400 simultaneous users, and there
+are nearly 50,000 distinct projects.     Our machines are at about 20% disk space capacity, and most of them can easily be
+expanded by a factor of 10 (from 1TB to 12TB). Similarly, disk space for our Google compute engine nodes is
+<a href="https://cloud.google.com/products/compute-engine/#pricing">$0.04 GB / month</a>.
+So space-wise we could scale up by a factor of 100 without too much trouble.
+The CPU load is at about 10% as I write this, during a busy afternoon with 363 clients connected
+very actively modifying 89 projects.
+<b>The architecture that we have built could scale up to a million users, if only they would come our way...</b>
+
+
+
+
+
+
+<h2>Project Control Daemon</h2>
+
+- project states
+- daemon that runs on compute vm's and starts/stops projects, sets quotas, replicates, etc., but knows nothing global (e.g., no database).
+
+
+<h2>Communication</h2>
+
+
+- direct tcp connections instead of ssh tunnels (limits of sshd)
+
+
+<h2>Other Changes</h2>
+
+- fix uid issue: sshfs, npm
+
+- move/rename/copy file buttons
+- much, much faster file listing
+
+
+- set bup repo of snapshots that are consistent across dc's -- highly deduped and compressed; easy to sync around; git-based so branches are possible; dynamic fuse mounting
+- /scratch
+- sync to other dc's is done via rsync
