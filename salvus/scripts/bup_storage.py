@@ -851,11 +851,14 @@ class Project(object):
                 self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
                           '--timeout', rsync_timeout, self.bup_path+'/', 'root@'+remote+'/'])
 
-    def mount_remote(self, remote_host, project_id, mount_point='', remote_path=''):
+    def mount_remote(self, remote_host, project_id, mount_point='', remote_path='', read_only=False):
         """
-        Use sshfs to make it so /projects/project_id/remote_path (which is on the remote host)
+        Make it so /projects/project_id/remote_path (which is on the remote host)
         appears as a local directory at /projects/project_id/mount_point.
         """
+        log = self._log('mount_remote')
+        log("mounting..")
+
         if not remote_host:
             raise RuntimeError("remote_host must be specified")
         try:
@@ -864,6 +867,7 @@ class Project(object):
             project_id = str(u)
         except (AssertionError, ValueError):
             raise RuntimeError("invalid project_id='%s'"%project_id)
+
         if not mount_point:
             m = os.path.join('projects', project_id, remote_path)
         else:
@@ -871,24 +875,24 @@ class Project(object):
         mount_point = os.path.join(self.project_mnt, m)
 
         if not os.path.exists(mount_point):
+            log("creating mount point")
             self.makedirs(mount_point)
         elif not os.path.isdir(mount_point):
             raise ValueError("mount_point='%s' must be a directory"%mount_point)
 
-        self.cmd(["sshfs",
-                  "-o", "kernel_cache",
-                  "-o", "auto_cache",
-                  "-o", "uid=%s"%self.uid,
-                  "-o", "gid=%s"%self.gid,
-                  "-o", "allow_other",
-                  "-o", "default_permissions",
-                  "%s:%s"%(remote_host, os.path.join(PROJECTS_PATH, project_id, remote_path)),
-                  mount_point])
+        remote_projects = "/projects-%s"%remote_host
+        if self.cmd(['stat', '-f', '-c', '%T', remote_projects], ignore_errors=True) != 'fuseblk':
+            log("mount the remote /projects filesystem using sshfs")
+            if not os.path.exists(remote_projects):
+                os.makedirs(remote_projects)
+            self.cmd(['sshfs', remote_host + ':' + PROJECTS_PATH, remote_projects])
 
-        a = self.project_mnt
-        for segment in os.path.split(m):
-            a = os.path.join(a, segment)
-            self.cmd(["chown", "%s:%s"%(self.uid, self.gid), a])
+        remote_path = os.path.join(remote_projects, project_id)
+
+        log("binding %s to %s"%(remote_path, mount_point))
+        self.cmd(['bindfs'] + (['-o', 'ro'] if read_only else []) +
+                 ['--create-for-user=%s'%uid(project_id), '--create-for-group=%s'%uid(project_id),
+                  '-u', self.uid, '-g', self.gid, remote_path, mount_point])
 
     def umount_remote(self, mount_point):
         # the -z forces unmount even if filesystem is busy
@@ -966,16 +970,20 @@ if __name__ == "__main__":
                     cores=args.cores, disk=args.disk, inode=args.inode, scratch=args.scratch,
                     login_shell=args.login_shell, mintime=args.mintime))
 
-    parser_mount_remote = subparsers.add_parser('mount_remote', help='Use sshfs to make it so /projects/project_id/remote_path (which is on the remote host) appears as a local directory at /projects/project_id/mount_point.')
-    parser_mount_remote.add_argument("--remote_host", help="", dest="remote_host", default="", type=str)
-    parser_mount_remote.add_argument("--project_id", help="", dest="remote_project_id", default="", type=str)
-    parser_mount_remote.add_argument("--mount_point", help="", dest="mount_point", default="", type=str)
-    parser_mount_remote.add_argument("--remote_path", help="", dest="remote_path", default="", type=str)
+    parser_mount_remote = subparsers.add_parser('mount_remote',
+                    help='Make it so /projects/project_id/remote_path (which is on the remote host) appears as a local directory at /projects/project_id/mount_point with ownership dynamically mapped so that the files appear owned by both projects (as they should).')
+    parser_mount_remote.add_argument("--remote_host", help="", dest="remote_host",       default="",    type=str)
+    parser_mount_remote.add_argument("--project_id",  help="", dest="remote_project_id", default="",    type=str)
+    parser_mount_remote.add_argument("--mount_point", help="", dest="mount_point",       default="",    type=str)
+    parser_mount_remote.add_argument("--remote_path", help="", dest="remote_path",       default="",    type=str)
+    parser_mount_remote.add_argument("--read_only",   help="", dest="read_only",         default=False, action="store_const", const=True)
     parser_mount_remote.set_defaults(func=lambda args: project.mount_remote(
                                            remote_host = args.remote_host,
                                            project_id  = args.remote_project_id,
                                            mount_point = args.mount_point,
-                                           remote_path = args.remote_path))
+                                           remote_path = args.remote_path,
+                                           read_only   = args.read_only)
+                                     )
 
     parser_umount_remote = subparsers.add_parser('umount_remote')
     parser_umount_remote.add_argument("--mount_point", help="", dest="mount_point", default="", type=str)

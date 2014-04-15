@@ -1,4 +1,28 @@
-- [ ] official quotas.  Maybe just make them all 20GB.
+- [ ] new base vm's:
+
+        - add bindfs apt-get and include it in build.py
+
+- [ ] write to bup list        
+
+- [ ] sshfs code: permissions on other end are wrong.  Oh man.
+      change it so that:
+
+         (1) we ensure that we have mounted the entire remote /projects directory as /projects-target, when a given remote mount is needed.  This could be done *either* using sshfs or using nfs.  We make this only visible/usable by root.  Using straight 'sshfs 10.1.13.5:/projects /projects-10.1.13.5' makes /projects-10.1.13.5 readable/visible *only* by root, which is good.
+
+         (2) then we do "bindfs --create-for-user=275991804 --create-for-group=275991804 -u 1959631043 -g 1959631043 /projects-10.1.13.5/project_id/path0 /projects/project_id/path1
+
+         This fully works as we want.
+         And bindfs (http://bindfs.org/) is pretty awesome; it lets you mount things read only, etc.
+         It's fully FUSE, so no issues of kernel locking, etc.
+
+      Regarding projects moving:
+
+          - when a client *initiates* a move, it will query the db for any mounts and then inform the bup_servers of them. Thus the move logic is event driven, where the event is "move a project".   If the global client doing the moving can't contact the local bup_server, it will keep trying... (?)
+
+
+
+
+- [ ] quotas
 
 - [ ] setup remote environment for dev/testing
 
@@ -33,6 +57,10 @@
     export project_id=cc96c0e6-8daf-467d-b8d2-354f9c5144a5; export host=10.1.15.5; export uid=447893796
 
     mkdir -p students/$project_id && sshfs -o cache_timeout=10 -o kernel_cache -o auto_cache -o uid=$uid -o gid=$uid -o allow_other -o default_permissions $host:/projects/$project_id students/$project_id; chown $uid:$uid students/$project_id
+
+    CRITICAL: we must *also* use bindfs with the --create-for-user= option!!
+
+    bindfs --create-for-user=275991804 --create-for-group=275991804 -u 1959631043 -g 1959631043
 
 
  - [ ] rekey ssl cert: http://support.godaddy.com/help/article/4976/rekeying-an-ssl-certificate
@@ -157,6 +185,8 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 - [ ] manual project move system -- bring it back...
 
 
+
+- [x] file copy is now completely broken.
 ======
 
 - [x] frontend: don't include "a" in rsync option for recovering/copying files -- just use r
