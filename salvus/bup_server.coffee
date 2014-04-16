@@ -1206,6 +1206,7 @@ class GlobalProject
     get_state: (opts) =>
         opts = defaults opts,
             timeout : 15
+            id      : true     # if false, instead give hostnames as keys instead of server_id's  (useful for interactive work)
             cb      : required
         dbg = (m) => winston.info("get_state: #{m}")
         dbg()
@@ -1243,7 +1244,11 @@ class GlobalProject
                                     if err
                                         dbg("error getting state on #{server_id} -- #{err}")
                                         s = 'error'
-                                    @state[server_id] = s
+                                    if opts.id
+                                        key = server_id
+                                    else
+                                        key = @global_client.servers.by_id[server_id].host
+                                    @state[key] = s
                                     cb()
                     ], cb)
 
@@ -2030,7 +2035,7 @@ class GlobalClient
             status      : []
             projects     : undefined   # if given, do sync on exactly these projects and no others
             cb          : required    # cb(err, errors)
-        dbg = (m) => winston.debug("GlobalClient.sync_union(#{opts.project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalClient.sync_union: #{m}")
         dbg()
         projects = []
         errors = {}
@@ -2094,6 +2099,51 @@ class GlobalClient
                     opts.cb?(undefined, projects)
                 else
                     opts.cb?()
+        )
+
+    # one-time throw-away code... but keep since could be useful to adapt!
+    set_quotas: (opts) =>
+        opts = defaults opts,
+            limit    : 5           # number to do in parallel
+            errors   : required    # map where errors are stored as they happen
+            stop     : 99999999    # stop a
+            dryrun   : true
+            cb       : required    # cb(err, quotas)
+        dbg = (m) => winston.debug("GlobalClient.set_quotas: #{m}")
+        dbg()
+        errors = {}
+        quotas = {}
+        async.series([
+            (cb) =>
+                fs.readFile "use-bups", (err, data) =>
+                    if err
+                        cb(err)
+                    else
+                        for x in data.toString().split('\n')
+                            v = x.split('\t')
+                            if v.length >= 2
+                                a = v[0]
+                                a.slice(0, a.length-2)
+                                usage = parseInt(a)
+                                project_id = v[1].trim()
+                                quotas[project_id] = Math.min(20000, Math.max(3*Math.round(usage), 5000))
+                        cb()
+            (cb) =>
+                if opts.dryrun
+                    cb(); return
+                i = 0
+                f = (project_id, cb) =>
+                    i += 1
+                    dbg("setting quota for project #{project_id} -- #{i}/#{misc.len(quotas)}")
+                    @get_project(project_id).set_settings
+                        disk : quotas[project_id]
+                        cb   : (err) =>
+                            if err
+                                opts.errors[project_id] = err
+                            cb(err)
+                async.mapLimit(misc.keys(quotas).slice(0,opts.stop), opts.limit, f, (err) => cb())
+        ], (err) =>
+            opts.cb?(err, quotas)
         )
 
 
