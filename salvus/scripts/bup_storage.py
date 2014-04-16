@@ -64,7 +64,7 @@ from uuid import UUID, uuid4
 
 # Flag to turn off all use of quotas, since it will take a while to set these up after migration.
 QUOTAS_ENABLED=True
-QUOTAS_OVERRIDE=25000
+QUOTAS_OVERRIDE=0  # 0 = don't override
 
 USERNAME =  pwd.getpwuid(os.getuid())[0]
 
@@ -80,8 +80,8 @@ PROJECTS_PATH  = '/projects'
 # Default account settings
 
 DEFAULT_SETTINGS = {
-    'disk'       : 4000,     # disk in megabytes
-    'scratch'    : 15000,    # disk quota on /scratch
+    'disk'       : 5000,     # default disk in megabytes
+    'scratch'    : 15000,    # default disk quota on /scratch
     'inode'      : 200000,   # not used with ZFS
     'memory'     : 8,        # memory in gigabytes
     'cpu_shares' : 256,

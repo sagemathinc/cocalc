@@ -2402,7 +2402,7 @@ class ClientProject
         opts = defaults opts,
             timeout    : TIMEOUT
             memory     : undefined
-            cpu_shares : undefined
+            cpu_shares : undefined   # fair is 256, not 1 !!!!
             cores      : undefined
             disk       : undefined
             scratch    : undefined
