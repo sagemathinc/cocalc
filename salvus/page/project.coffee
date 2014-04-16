@@ -890,7 +890,10 @@ class ProjectPage
                     if status.settings?
                         usage.find(".salvus-project-settings-cores").text(status.settings.cores)
                         usage.find(".salvus-project-settings-memory").text(status.settings.memory + "GB")
-                        usage.find(".salvus-project-settings-mintime").text(Math.round(status.settings.mintime/3600))
+                        mintime = Math.round(status.settings.mintime/3600)
+                        if mintime > 10000
+                            mintime = "&infin;"
+                        usage.find(".salvus-project-settings-mintime").html(mintime)
                         usage.find(".salvus-project-settings-cpu_shares").text(Math.round(status.settings.cpu_shares/256))
 
                     usage.show()
