@@ -1,11 +1,20 @@
 
-- [ ] fix ipython file update bug: https://github.com/sagemath/cloud/issues/104
+--> - [ ] fix ipython file update bug: https://github.com/sagemath/cloud/issues/104
 
 - [ ] quotas
 
-- [ ] update base vm's:
+     * make the quota = min(25GB, max(5 times the bup repo size, 5GB))
 
-        - add bindfs apt-get and include it in build.py
+    - gather the bup usage files together in one place on cloud3
+    - write throw-away code in `bup_server` that runs through them and sets disk and scratch for all based on above formulas
+    - run throw-away code above.
+    - push out new `bup_storage.py` that doesn't override quota, so new quotas get used.
+
+- [ ] setup automatic destruction of old zfsnap snapshots:
+
+        0 * * * *  /usr/local/bin/zfsnap.sh destroy -r bup
+
+- [ ] settings: disable "restart" button when state is not "running"
 
 - [ ] write to bup list
 
@@ -157,9 +166,12 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 - [ ] manual project move system -- bring it back...
 
 
+======
+
+- [x] update base vm's: add bindfs apt-get and include it in build.py
+
 
 - [x] file copy is now completely broken.
-======
 
 - [x] frontend: don't include "a" in rsync option for recovering/copying files -- just use r
 
