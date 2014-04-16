@@ -1726,6 +1726,125 @@ def ruby(code):
     """
     script('sage-native-execute ruby')(code)
 
+
+def fortran(x, library_paths=[], libraries=[], verbose=False):
+    """
+    Compile Fortran code and make it available to use.
+
+    INPUT:
+
+        - x -- a string containing code
+
+    Use this as a decorator.   For example, put this in a cell and evaluate it::
+
+        %fortran
+
+        C FILE: FIB1.F
+              SUBROUTINE FIB(A,N)
+        C
+        C     CALCULATE FIRST N FIBONACCI NUMBERS
+        C
+              INTEGER N
+              REAL*8 A(N)
+              DO I=1,N
+                 IF (I.EQ.1) THEN
+                    A(I) = 0.0D0
+                 ELSEIF (I.EQ.2) THEN
+                    A(I) = 1.0D0
+                 ELSE
+                    A(I) = A(I-1) + A(I-2)
+                 ENDIF
+              ENDDO
+              END
+        C END FILE FIB1.F
+
+
+    In the next cell, evaluate this::
+
+        import numpy
+        n = numpy.array(range(10),dtype=float)
+        fib(n,int(10))
+        n
+
+    This will produce this output: array([  0.,   1.,   1.,   2.,   3.,   5.,   8.,  13.,  21.,  34.])
+    """
+    import __builtin__
+    from sage.misc.temporary_file import tmp_dir
+    if len(x.splitlines()) == 1 and os.path.exists(x):
+        filename = x
+        x = open(x).read()
+        if filename.lower().endswith('.f90'):
+            x = '!f90\n' + x
+
+    from numpy import f2py
+    from random import randint
+
+    # Create everything in a temporary directory
+    mytmpdir = tmp_dir()
+
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(mytmpdir)
+
+        old_import_path = os.sys.path
+        os.sys.path.append(mytmpdir)
+
+        name = "fortran_module_%s"%randint(0,2**64)  # Python module name
+        # if the first line has !f90 as a comment, gfortran will
+        # treat it as Fortran 90 code
+        if x.startswith('!f90'):
+            fortran_file = name + '.f90'
+        else:
+            fortran_file = name + '.f'
+
+        s_lib_path = ""
+        s_lib = ""
+        for s in library_paths:
+            s_lib_path = s_lib_path + "-L%s "
+
+        for s in libraries:
+            s_lib = s_lib + "-l%s "%s
+
+        log = name + ".log"
+        extra_args = '--quiet --f77exec=sage-inline-fortran --f90exec=sage-inline-fortran %s %s >"%s" 2>&1'%(
+            s_lib_path, s_lib, log)
+
+        f2py.compile(x, name, extra_args = extra_args, source_fn=fortran_file)
+        log_string = open(log).read()
+
+        # f2py.compile() doesn't raise any exception if it fails.
+        # So we manually check whether the compiled file exists.
+        # NOTE: the .so extension is used expect on Cygwin,
+        # that is even on OS X where .dylib might be expected.
+        soname = name
+        uname = os.uname()[0].lower()
+        if uname[:6] == "cygwin":
+            soname += '.dll'
+        else:
+            soname += '.so'
+        if not os.path.isfile(soname):
+            raise RuntimeError("failed to compile Fortran code:\n" + log_string)
+
+        if verbose:
+            print log_string
+
+        m = __builtin__.__import__(name)
+
+    finally:
+        os.sys.path = old_import_path
+        os.chdir(old_cwd)
+        try:
+            import shutil
+            shutil.rmtree(mytmpdir)
+        except OSError:
+            # This can fail for example over NFS
+            pass
+
+    for k, x in m.__dict__.iteritems():
+        if k[0] != '_':
+            salvus.namespace[k] = x
+
+
 def sh(code):
     """
     Run a bash script in Salvus.

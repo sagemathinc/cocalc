@@ -87,14 +87,9 @@
 }
 
 .project-file-link-style {
-    background-color:#ffffff;
-    margin-top:0px;
-    margin-bottom:0px;
-    padding-top:0px;
-    padding-bottom:0px;
-    min-height:26px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
+    background-color : #ffffff;
+    /*border-bottom    : 1px solid #eee;*/
+    cursor           : pointer;
 }
 
 @media (max-width: 979px) {

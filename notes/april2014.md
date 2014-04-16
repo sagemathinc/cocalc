@@ -1,4 +1,18 @@
-- [ ] official quotas.  Maybe just make them all 20GB.
+
+- [ ] fix ipython file update bug: https://github.com/sagemath/cloud/issues/104
+
+- [ ] quotas
+
+- [ ] update base vm's:
+
+        - add bindfs apt-get and include it in build.py
+
+- [ ] write to bup list
+
+- [ ] Regarding projects moving:
+
+     - when a client *initiates* a move, it will query the db for any mounts and then inform the bup_servers of them. Thus the move logic is event driven, where the event is "move a project".   If the global client doing the moving can't contact the local bup_server, it will keep trying... (?)
+
 
 - [ ] setup remote environment for dev/testing
 
@@ -34,26 +48,12 @@
 
     mkdir -p students/$project_id && sshfs -o cache_timeout=10 -o kernel_cache -o auto_cache -o uid=$uid -o gid=$uid -o allow_other -o default_permissions $host:/projects/$project_id students/$project_id; chown $uid:$uid students/$project_id
 
+    CRITICAL: we must *also* use bindfs with the --create-for-user= option!!
+
+    bindfs --create-for-user=275991804 --create-for-group=275991804 -u 1959631043 -g 1959631043
+
 
  - [ ] rekey ssl cert: http://support.godaddy.com/help/article/4976/rekeying-an-ssl-certificate
-
- - [ ] write a post explaining what is new and awesome, and what the architecture is.
-key points:
-
-   - direct tcp connections instead of ssh tunnels (limits of sshd)
-   - fix uid issue
-   - project states
-   - move/rename/copy file buttons
-   - faster file listing
-   - live files, with zfs snapshots every few minutes, which are not consistent across dc's, and will vanish if a project were moved in a dc
-       - dedup'd across projects on a given host
-       - compressed
-       - quota
-   - set bup repo of snapshots that are consistent across dc's -- highly deduped and compressed; easy to sync around; git-based so branches are possible; dynamic fuse mounting
-   - /scratch
-   - sync to other dc's is done via rsync
-   - daemon that runs on compute vm's and starts/stops projects, sets quotas, replicates, etc., but knows nothing global (e.g., no database).
-
 
 - [ ] consider putting a sync at the start of projsavect e, even if nothing has changed.  NOT sure.
 
@@ -157,6 +157,8 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 - [ ] manual project move system -- bring it back...
 
 
+
+- [x] file copy is now completely broken.
 ======
 
 - [x] frontend: don't include "a" in rsync option for recovering/copying files -- just use r
@@ -433,4 +435,32 @@ for x in os.popen("apparmor_status").readlines():
        - [x] update code
        - [x] firewall is wrong -- it would ban all internode traffic which isn't what we want due to .5 instead of .4
        - [x] system-wide: open up permissions so that octave, etc., works: chmod a+rwx /usr/local/sage/sage-6.2/local/share/sage/ext/*
+
+ - [x] write a post explaining what is new and awesome, and what the architecture is.
+key points:
+   - direct tcp connections instead of ssh tunnels (limits of sshd)
+   - fix uid issue
+   - project states
+   - move/rename/copy file buttons
+   - faster file listing
+   - live files, with zfs snapshots every few minutes, which are not consistent across dc's, and will vanish if a project were moved in a dc
+       - dedup'd across projects on a given host
+       - compressed
+       - quota
+   - set bup repo of snapshots that are consistent across dc's -- highly deduped and compressed; easy to sync around; git-based so branches are possible; dynamic fuse mounting
+   - /scratch
+   - sync to other dc's is done via rsync
+   - daemon that runs on compute vm's and starts/stops projects, sets quotas, replicates, etc., but knows nothing global (e.g., no database).
+
+- [x] sshfs code: permissions on other end are wrong.  Oh man.
+      change it so that:
+
+         (1) we ensure that we have mounted the entire remote /projects directory as /projects-target, when a given remote mount is needed.  This could be done *either* using sshfs or using nfs.  We make this only visible/usable by root.  Using straight 'sshfs 10.1.13.5:/projects /projects-10.1.13.5' makes /projects-10.1.13.5 readable/visible *only* by root, which is good.
+
+         (2) then we do "bindfs --create-for-user=275991804 --create-for-group=275991804 -u 1959631043 -g 1959631043 /projects-10.1.13.5/project_id/path0 /projects/project_id/path1
+
+         This fully works as we want.
+         And bindfs (http://bindfs.org/) is pretty awesome; it lets you mount things read only, etc.
+         It's fully FUSE, so no issues of kernel locking, etc.
+
 

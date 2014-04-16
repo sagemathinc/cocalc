@@ -1370,7 +1370,7 @@ class ProjectPage
                         if date?
                             t.find(".project-file-last-mod-date").attr('title', date.toISOString()).timeago()
                         name = obj.name
-                        t.find(".project-file-icon").removeClass("fa-file").addClass("fa-folder")
+                        t.find(".project-file-icon").removeClass("fa-file").addClass("fa-folder-open-o").css('font-size':'21pt')
                     else
                         if obj.name.indexOf('.') != -1
                             ext = filename_extension(obj.name)
@@ -1571,9 +1571,10 @@ class ProjectPage
     copy_file_dialog:  (path, isdir, cb) =>
         dialog = $(".project-copy-file-dialog").clone()
         dialog.modal()
-        new_dest = undefined
-        new_src = undefined
         args = undefined
+        rsync = ""
+        new_src = undefined
+        new_dest = undefined
         async.series([
             (cb) =>
                 if path.slice(0,'.snapshots/'.length) == '.snapshots/'
@@ -1584,17 +1585,31 @@ class ProjectPage
                     dest += '/'
 
                 args = () =>
-                    return ['-rltgoDxH', '--backup', '--backup-dir=.trash/', dialog.find(".copy-file-src").val(), dialog.find(".copy-file-dest").val()]
+                    new_src  = dialog.find(".copy-file-src").val()
+                    new_dest = dialog.find(".copy-file-dest").val()
+                    return ['-rltgoDxH', '--backup', '--backup-dir=.trash/', new_src, new_dest]
 
-                update_rsync_command = () =>
-                    dialog.find(".salvus-rsync-command").text("rsync #{args().join(' ')}")
+                update_rsync_command = (evt) =>
+                    v = []
+                    for a in args()
+                        if a.indexOf(' ') != -1
+                            v.push("'#{a}'")
+                        else
+                            v.push(a)
+                    rsync = "rsync #{v.join(' ')}"
+                    dialog.find(".salvus-rsync-command").text(rsync)
+                    if evt?.which == 13
+                        submit(true)
+
+                dialog.find(".copy-file-src").val(path).keyup(update_rsync_command)
+                dialog.find(".copy-file-dest").val(dest).focus().select().keyup(update_rsync_command)
 
                 update_rsync_command()
 
-                dialog.find(".copy-file-src").val(path).keyup(update_rsync_command)
-                dialog.find(".copy-file-dest").val(dest).focus().keyup(update_rsync_command)
                 submit = (ok) =>
                     dialog.modal('hide')
+                    if not ok
+                        new_dest = undefined
                     cb()
                     return false
                 dialog.find(".btn-close").click(()=>submit(false))
@@ -1607,13 +1622,13 @@ class ProjectPage
                     project_id : @project.project_id
                     command    : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
                     args       : args()
-                    timeout    : 90   # how long rsync runs on client
+                    timeout    : 120   # how long rsync runs on client
                     network_timeout : 120   # how long network call has until it must return something or get total error.
                     err_on_exit: true
                     path       : '.'
                     cb         : (err, output) =>
                         if err
-                            alert_message(type:"error", message:"Error copying #{new_src} to #{new_dest} -- #{output.stderr}")
+                            alert_message(type:"error", message:"Error copying #{new_src} to #{new_dest} -- #{err}")
                         else
                             alert_message(type:"success", message:"Successfully copied #{new_src} to #{new_dest}")
                             @update_file_list_tab()
