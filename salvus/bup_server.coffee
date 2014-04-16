@@ -1206,6 +1206,7 @@ class GlobalProject
     get_state: (opts) =>
         opts = defaults opts,
             timeout : 15
+            id      : true     # if false, instead give hostnames as keys instead of server_id's  (useful for interactive work)
             cb      : required
         dbg = (m) => winston.info("get_state: #{m}")
         dbg()
@@ -1243,7 +1244,11 @@ class GlobalProject
                                     if err
                                         dbg("error getting state on #{server_id} -- #{err}")
                                         s = 'error'
-                                    @state[server_id] = s
+                                    if opts.id
+                                        key = server_id
+                                    else
+                                        key = @global_client.servers.by_id[server_id].host
+                                    @state[key] = s
                                     cb()
                     ], cb)
 
@@ -1340,6 +1345,63 @@ class GlobalProject
                                 clearInterval(@_mount_remote_interval[opts.mount_point])
                                 delete @_mount_remote_interval[opts.mount_point]
                             opts.cb?(err)
+
+    set_settings: (opts) =>
+        # For the options see the settings method of ClientProject.
+        # This method changes settings in the database; also, if the project is currently running
+        # somewhere, it updates the settings on that running instance.
+        dbg = (m) => winston.info("set_settings(#{misc.to_json(opts)}): #{m}")
+        dbg()
+
+        cb0     = opts.cb
+        timeout = opts.timeout
+        delete opts.cb
+        delete opts.timeout
+        async.series([
+            (cb) =>
+                dbg("change settings in the database")
+                f = (key, c) =>
+                    if opts[key]?
+                        @database.cql("UPDATE projects SET settings[?]=? WHERE project_id=?", [key, "#{opts[key]}", @project_id], c)
+                    else
+                        c()
+                async.map(misc.keys(opts), f, (err) => cb(err))
+            (cb) =>
+                dbg("checking if project is running, and if so set settings locally there.")
+                @get_host_where_running
+                    cb : (err, server_id) =>
+                        if err or not server_id?
+                            dbg("project not running")
+                            cb(err)
+                        else
+                            dbg("project running at #{server_id}, so changing settings there")
+                            @project
+                                server_id : server_id
+                                cb        : (err, project) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        opts.cb = cb
+                                        opts.timeout = timeout
+                                        project.settings(opts)
+        ], (err) => cb0?(err))
+
+    get_settings: (opts) =>
+        opts = defaults opts,
+            cb          : undefined
+        # Get project settings from the database; these are only the settings that
+        # over-ride defaults.
+        @database.select_one
+            table     : 'projects'
+            columns   : ['settings']
+            objectify : false
+            where     : {project_id : @project_id}
+            cb        : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, result[0])
+
 
 
 
@@ -1973,7 +2035,7 @@ class GlobalClient
             status      : []
             projects     : undefined   # if given, do sync on exactly these projects and no others
             cb          : required    # cb(err, errors)
-        dbg = (m) => winston.debug("GlobalClient.sync_union(#{opts.project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalClient.sync_union: #{m}")
         dbg()
         projects = []
         errors = {}
@@ -2037,6 +2099,51 @@ class GlobalClient
                     opts.cb?(undefined, projects)
                 else
                     opts.cb?()
+        )
+
+    # one-time throw-away code... but keep since could be useful to adapt!
+    set_quotas: (opts) =>
+        opts = defaults opts,
+            limit    : 5           # number to do in parallel
+            errors   : required    # map where errors are stored as they happen
+            stop     : 99999999    # stop a
+            dryrun   : true
+            cb       : required    # cb(err, quotas)
+        dbg = (m) => winston.debug("GlobalClient.set_quotas: #{m}")
+        dbg()
+        errors = {}
+        quotas = {}
+        async.series([
+            (cb) =>
+                fs.readFile "use-bups", (err, data) =>
+                    if err
+                        cb(err)
+                    else
+                        for x in data.toString().split('\n')
+                            v = x.split('\t')
+                            if v.length >= 2
+                                a = v[0]
+                                a.slice(0, a.length-2)
+                                usage = parseInt(a)
+                                project_id = v[1].trim()
+                                quotas[project_id] = Math.min(20000, Math.max(3*Math.round(usage), 5000))
+                        cb()
+            (cb) =>
+                if opts.dryrun
+                    cb(); return
+                i = 0
+                f = (project_id, cb) =>
+                    i += 1
+                    dbg("setting quota for project #{project_id} -- #{i}/#{misc.len(quotas)}")
+                    @get_project(project_id).set_settings
+                        disk : quotas[project_id]
+                        cb   : (err) =>
+                            if err
+                                opts.errors[project_id] = err
+                            cb(err)
+                async.mapLimit(misc.keys(quotas).slice(0,opts.stop), opts.limit, f, (err) => cb())
+        ], (err) =>
+            opts.cb?(err, quotas)
         )
 
 
@@ -2345,7 +2452,7 @@ class ClientProject
         opts = defaults opts,
             timeout    : TIMEOUT
             memory     : undefined
-            cpu_shares : undefined
+            cpu_shares : undefined   # fair is 256, not 1 !!!!
             cores      : undefined
             disk       : undefined
             scratch    : undefined
