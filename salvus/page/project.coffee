@@ -1370,7 +1370,7 @@ class ProjectPage
                         if date?
                             t.find(".project-file-last-mod-date").attr('title', date.toISOString()).timeago()
                         name = obj.name
-                        t.find(".project-file-icon").removeClass("fa-file").addClass("fa-folder")
+                        t.find(".project-file-icon").removeClass("fa-file").addClass("fa-folder-open-o").css('font-size':'21pt')
                     else
                         if obj.name.indexOf('.') != -1
                             ext = filename_extension(obj.name)
