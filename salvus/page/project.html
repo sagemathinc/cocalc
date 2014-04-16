@@ -65,7 +65,7 @@
 
             <a class="btn btn-large btn-primary" href="#copy-file"><i class="fa fa-copy"> </i> Copy</a>
 
-            <a class="btn btn-danger btn-large" href="#delete-file"><i class="fa fa-trash-o"> </i> Delete</a>
+            <a class="btn btn-danger btn-large" href="#delete-file"><i class="fa fa-trash-o"> </i> Trash</a>
         </span>
     </div>
     <div class="modal-footer">
@@ -549,30 +549,30 @@
 
                             <div class="span6 well project-settings-well">
                                 <h4><i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Quota</h4>
-                                <span class="project-disk_usage hide">
+                                <span class="project-disk_usage">
                                     <ul>
-                                        <li class="salvus-zfs-quotas"> Home directory: used
-                                            <b><span class="salvus-userused-projects"></span></b> of <b><span class="salvus-userquota-projects"></span></b>
+                                        <li class="salvus-zfs-quotas"> Disk usage:
+                                            <b><span class="salvus-userused-projects">(loading...)</span></b> of <b><span class="salvus-userquota-projects"></span></b>
                                         </li>
 
-                                        <li class="salvus-zfs-quotas"> /scratch: used
+                                        <li class="salvus-zfs-quotas"> <tt>/scratch</tt> disk usage:
 
-                                            <b><span class="salvus-userused-scratch"></span></b> of <b><span class="salvus-userquota-scratch"></span></b>
+                                            <b><span class="salvus-userused-scratch">(loading...)</span></b> of <b><span class="salvus-userquota-scratch"></span></b>
                                         </li>
                                         <li>
-                                            Can use up to <b><span class="salvus-project-settings-cores"></span> CPU cores</b>
-                                        </li>
-
-                                        <li>
-                                            Can use up to <b><span class="salvus-project-settings-memory"></span> RAM</b>
+                                            CPU cores: <b><span class="salvus-project-settings-cores">(loading...)</span></b> (shared)
                                         </li>
 
                                         <li>
-                                            Stops after <b><span class="salvus-project-settings-mintime"></span> hours</b> of inactivity
+                                            RAM: <b><span class="salvus-project-settings-memory">(loading...)</span></b> (shared)
                                         </li>
 
                                         <li>
-                                            Gets <b><span class="salvus-project-settings-cpu_shares"></span> relative CPU share</b> (1 is fair sharing with other projects).
+                                            Timeout: <b><span class="salvus-project-settings-mintime">(loading...)</span> hours</b> of inactivity
+                                        </li>
+
+                                        <li>
+                                            CPU share: <b><span class="salvus-project-settings-cpu_shares">(loading...)</span></b>
                                         </li>
 
                                     </ul>
