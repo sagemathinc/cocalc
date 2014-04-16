@@ -1370,7 +1370,7 @@ def serve(port, host):
                      'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
                      'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
                      'reset', 'restore', 'md', 'load', 'typeset_mode', 'default_mode',
-                     'sage_chat']:
+                     'sage_chat', 'fortran']:
             namespace[name] = getattr(sage_salvus, name)
 
         sage_salvus.default_namespace = dict(namespace)

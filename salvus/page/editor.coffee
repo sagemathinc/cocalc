@@ -149,6 +149,7 @@ sagews_decorator_modes = [
     ['coffeescript', 'coffeescript'],
     ['cython'      , 'python'],
     ['file'        , 'text'],
+    ['fortran'     , 'text/x-fortran'],
     ['html'        , 'htmlmixed'],
     ['javascript'  , 'javascript'],
     ['latex'       , 'stex']
