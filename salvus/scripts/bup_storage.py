@@ -82,12 +82,12 @@ PROJECTS_PATH  = '/projects'
 DEFAULT_SETTINGS = {
     'disk'       : 5000,     # default disk in megabytes
     'scratch'    : 15000,    # default disk quota on /scratch
-    'inode'      : 200000,   # not used with ZFS
     'memory'     : 8,        # memory in gigabytes
     'cpu_shares' : 256,
-    'cores'      : 2,
+    'cores'      : 1,
     'login_shell': '/bin/bash',
-    'mintime'    : 60*60*3,  # default = 3 hours idle (no save) time before kill
+    'mintime'    : 60*60*3,  # default = 3 hours idle (no save) time before kill    
+    'inode'      : 200000   # not used with ZFS
 }
 
 FILESYSTEM = 'zfs'   # 'zfs' or 'ext4'
@@ -217,6 +217,17 @@ class Project(object):
             log("%s(project_id=%s,%s): %s"%(funcname, self.project_id, kwds, mesg))
         f()
         return f
+
+    # this user_exists function isn't used or tested yet:
+    def user_exists(self):
+        """
+        Returns True if the UNIX user for this project exists.
+        """
+        try:
+            cmd(['id', self.username])  # id returns a non-zero status <==> user exists
+            return True
+        except RuntimeError:
+            return False
 
     def create_user(self):
         self.create_home()
