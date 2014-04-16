@@ -1341,6 +1341,63 @@ class GlobalProject
                                 delete @_mount_remote_interval[opts.mount_point]
                             opts.cb?(err)
 
+    set_settings: (opts) =>
+        # For the options see the settings method of ClientProject.
+        # This method changes settings in the database; also, if the project is currently running
+        # somewhere, it updates the settings on that running instance.
+        dbg = (m) => winston.info("set_settings(#{misc.to_json(opts)}): #{m}")
+        dbg()
+
+        cb0     = opts.cb
+        timeout = opts.timeout
+        delete opts.cb
+        delete opts.timeout
+        async.series([
+            (cb) =>
+                dbg("change settings in the database")
+                f = (key, c) =>
+                    if opts[key]?
+                        @database.cql("UPDATE projects SET settings[?]=? WHERE project_id=?", [key, "#{opts[key]}", @project_id], c)
+                    else
+                        c()
+                async.map(misc.keys(opts), f, (err) => cb(err))
+            (cb) =>
+                dbg("checking if project is running, and if so set settings locally there.")
+                @get_host_where_running
+                    cb : (err, server_id) =>
+                        if err or not server_id?
+                            dbg("project not running")
+                            cb(err)
+                        else
+                            dbg("project running at #{server_id}, so changing settings there")
+                            @project
+                                server_id : server_id
+                                cb        : (err, project) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        opts.cb = cb
+                                        opts.timeout = timeout
+                                        project.settings(opts)
+        ], (err) => cb0?(err))
+
+    get_settings: (opts) =>
+        opts = defaults opts,
+            cb          : undefined
+        # Get project settings from the database; these are only the settings that
+        # over-ride defaults.
+        @database.select_one
+            table     : 'projects'
+            columns   : ['settings']
+            objectify : false
+            where     : {project_id : @project_id}
+            cb        : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, result[0])
+
+
 
 
 
@@ -2345,7 +2402,7 @@ class ClientProject
         opts = defaults opts,
             timeout    : TIMEOUT
             memory     : undefined
-            cpu_shares : undefined
+            cpu_shares : undefined   # fair is 256, not 1 !!!!
             cores      : undefined
             disk       : undefined
             scratch    : undefined
