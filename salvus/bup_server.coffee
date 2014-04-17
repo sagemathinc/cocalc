@@ -1416,7 +1416,10 @@ class GlobalProject
                 if err
                     opts.cb(err)
                 else
-                    opts.cb(undefined, result[0])
+                    if result[0]?
+                        opts.cb(undefined, result[0])
+                    else
+                        opts.cb(undefined, {})
 
 
 
