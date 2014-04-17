@@ -157,7 +157,10 @@ create_project_item = (project) ->
     #if project.host != ""
     #    item.find(".projects-active").show().tooltip(title:"This project is opened, so you can access it quickly, search it, etc.", placement:"top", delay:500)
 
-    item.find(".projects-last_edited").attr('title', (new Date(project.last_edited)).toISOString()).timeago()
+    try
+        item.find(".projects-last_edited").attr('title', (new Date(project.last_edited)).toISOString()).timeago()
+    catch e
+        console.log("error setting time of project #{project.project_id} to #{project.last_edited} -- #{e}; please report to wstein@gmail.com")
 
     #if project.size?
     #    item.find(".projects-size").text(human_readable_size(project.size))
@@ -375,7 +378,7 @@ exports.open_project = open_project = (project, item) ->
                     if item?
                         item.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
                     return
-                if not info.bup_location?
+                if not info?.bup_location?
                     if item?
                         item.find(".projects-location").html("(none)")
                 else
