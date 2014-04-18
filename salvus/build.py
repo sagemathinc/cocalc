@@ -436,10 +436,14 @@ In /etc/sysctl.conf, put:
 
 """
 
-TINC_VERSION='1.0.23'       # options here -- http://tinc-vpn.org/packages/
-CASSANDRA_VERSION='1.2.9'   # options here -- http://downloads.datastax.com/community/
-NODE_VERSION='0.10.21'      # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
-SETUPTOOLS_VERSION='2.0.2'  # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
+TINC_VERSION       = '1.0.23'    # options here -- http://tinc-vpn.org/packages/
+CASSANDRA_VERSION  = '2.0.6'     # options here -- http://downloads.datastax.com/community/
+NODE_VERSION       = '0.10.26'   # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
+PYTHON_VERSION     = '2.7.6'     # options here -- https://www.python.org/ftp/python/
+SETUPTOOLS_VERSION = '3.4.4'     # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
+NGINX_VERSION      = '1.5.9'     # options here -- http://nginx.org/download/
+HAPROXY_VERSION    = '1.5-dev22' # options here -- http://haproxy.1wt.eu/download/1.5/src/devel/
+STUNNEL_VERSION    = '5.0.1'     # options here -- https://www.stunnel.org/downloads.html
 
 import logging, os, shutil, subprocess, sys, time
 
@@ -540,6 +544,10 @@ def build_tinc():
 def build_python():
     log.info('building python'); start = time.time()
     try:
+        target = 'Python-%s.tgz'%PYTHON_VERSION
+        if not os.path.exists(os.path.join(SRC, target)):
+            cmd("rm -f Python-*", SRC)
+            download("https://www.python.org/ftp/python/%s/Python-%s.tgz"%(PYTHON_VERSION, PYTHON_VERSION))
         path = extract_package('Python')
         cmd('./configure --prefix="%s"  --libdir="%s"/lib --enable-shared'%(PREFIX,PREFIX), path)
         cmd('make -j %s'%NCPU, path)
@@ -569,6 +577,11 @@ def build_node():
 def build_nginx():
     log.info('building nginx'); start = time.time()
     try:
+        target = "nginx-%s.tar.gz"%NGINX_VERSION
+        if not os.path.exists(os.path.join(SRC, target)):
+            cmd('rm -f nginx-v*.tar.*', SRC)  # remove any source tarballs that might have got left around
+            download("http://nginx.org/download/nginx-%s.tar.gz"%NGINX_VERSION)
+
         path = extract_package('nginx')
         cmd('./configure --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
@@ -581,6 +594,11 @@ def build_nginx():
 def build_haproxy():
     log.info('building haproxy'); start = time.time()
     try:
+        target = "haproxy-%s.tar.gz"%HAPROXY_VERSION
+        if not os.path.exists(os.path.join(SRC, target)):
+            cmd('rm -f haproxy*', SRC)  # remove any source tarballs that might have got left around
+            download("http://haproxy.1wt.eu/download/1.5/src/devel/haproxy-%s.tar.gz"%HAPROXY_VERSION)
+
         path = extract_package('haproxy')
 
         # patch log.c so it can write the log to a file instead of syslog
@@ -594,6 +612,10 @@ def build_haproxy():
 def build_stunnel():
     log.info('building stunnel'); start = time.time()
     try:
+        target = "stunnel-%s.tar.gz"%STUNNEL_VERSION
+        if not os.path.exists(os.path.join(SRC, target)):
+            cmd('rm -f stunnel*', SRC)  # remove any source tarballs that might have got left around
+            download("https://www.stunnel.org/downloads/stunnel-%s.tar.gz"%STUNNEL_VERSION)
         path = extract_package('stunnel')
         cmd('./configure --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
