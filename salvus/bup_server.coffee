@@ -126,9 +126,14 @@ class Project
                     cb : (err, s) =>
                         state = s; cb(err)
             (cb) =>
+                if opts.param == 'force'
+                    force = true
+                    delete opts.param
+                else
+                    force = false
                 switch opts.action
                     when 'start'
-                        if state in ['stopped', 'error'] or opts.param=='force'
+                        if state in ['stopped', 'error'] or force
                             @state = 'starting'
                             @_action
                                 action  : 'start'
@@ -147,7 +152,7 @@ class Project
                             cb()
 
                     when 'restart'
-                        if state in ['running', 'error'] or opts.param=='force'
+                        if state in ['running', 'error'] or force
                             @state = 'restarting'
                             @_action
                                 action  : 'restart'
@@ -166,7 +171,7 @@ class Project
                             cb()
 
                     when 'stop'
-                        if state in ['running', 'error'] or opts.param=='force'
+                        if state in ['running', 'error'] or force
                             @state = 'stopping'
                             @_action
                                 action  : 'stop'
@@ -186,7 +191,7 @@ class Project
 
 
                     when 'save'
-                        if state in ['running'] or opts.param=='force'
+                        if state in ['running'] or force
                             if not @_last_save? or misc.walltime() - @_last_save >= MIN_SAVE_INTERVAL_S
                                 @state = 'saving'
                                 @_last_save = misc.walltime()
@@ -731,6 +736,17 @@ class GlobalProject
                     server_id : server_id
                     cb        : (err, p) =>
                         project = p; cb (err)
+            (cb) =>
+                if not server_id?  # already running
+                    cb(); return
+                dbg("get current non-default settings from the database and set before starting project")
+                @get_settings
+                    cb : (err, settings) =>
+                        if err
+                            cb(err)
+                        else
+                            settings.cb = cb
+                            project.settings(settings)
             (cb) =>
                 if not server_id?  # already running
                     cb(); return
@@ -1400,7 +1416,10 @@ class GlobalProject
                 if err
                     opts.cb(err)
                 else
-                    opts.cb(undefined, result[0])
+                    if result[0]?
+                        opts.cb(undefined, result[0])
+                    else
+                        opts.cb(undefined, {})
 
 
 
@@ -2408,7 +2427,7 @@ class ClientProject
             cb         : undefined
         opts.action = 'stop'
         if opts.force
-            opts.param = '--force'
+            opts.param = 'force'
         delete opts.force
         @action(opts)
 

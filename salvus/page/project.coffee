@@ -860,13 +860,16 @@ class ProjectPage
         @container.find(".project-project_title").text(@project.title)
         @container.find(".project-project_description").text(@project.description)
 
+        if not @project.title? # make sure that things work even if @project is invalid.
+            @project.title = ""
+            alert_message(type:"error", message:"Project #{@project.project_id} is corrupt. Please report.")
         label = @project.title.slice(0,MAX_TITLE_LENGTH) + if @project.title.length > MAX_TITLE_LENGTH then "..." else ""
         top_navbar.set_button_label(@project.project_id, label)
         document.title = "Sagemath: #{@project.title}"
 
         if not @_computing_status
             @_computing_usage = true
-            timer = setTimeout( (()=>@_computing_usage=False), 30000)
+            timer = setTimeout( (()=>@_computing_usage=false), 30000)
             salvus_client.project_status
                 project_id : @project.project_id
                 cb         : (err, status) =>
@@ -890,7 +893,10 @@ class ProjectPage
                     if status.settings?
                         usage.find(".salvus-project-settings-cores").text(status.settings.cores)
                         usage.find(".salvus-project-settings-memory").text(status.settings.memory + "GB")
-                        usage.find(".salvus-project-settings-mintime").text(Math.round(status.settings.mintime/3600))
+                        mintime = Math.round(status.settings.mintime/3600)
+                        if mintime > 10000
+                            mintime = "&infin;"
+                        usage.find(".salvus-project-settings-mintime").html(mintime)
                         usage.find(".salvus-project-settings-cpu_shares").text(Math.round(status.settings.cpu_shares/256))
 
                     usage.show()
