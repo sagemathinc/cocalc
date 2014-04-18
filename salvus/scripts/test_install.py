@@ -5,7 +5,7 @@ This script runs tests to verify that a given SMC machine has all claimed softwa
 even works a little bit.
 """
 
-import os, sys, time
+import math, os, sys, time
 from subprocess import Popen, PIPE
 
 
@@ -27,13 +27,13 @@ def test_sage_packages():
     sklearn  # this is for scikit-learn
     theano
     scikits-image
-    Shapely
-    SimPy
+    shapely  # for the Shapely package
+    simpy
     xlrd xlwt
     pyproj
     bitarray
     h5py
-    netcdf4
+    netCDF4
     patsy
     lxml
     munkres
@@ -42,6 +42,20 @@ def test_sage_packages():
     plotly
     mahotas
     snappy
+    scimath
+    rpy2
+    neuron
+    mpl_toolkits.basemap
+    Bio
+    brian
+    Gnuplot
+    guppy
+    nose
+    nzmath
+    pybtex
+    CryptoPlus
+    pyx
+    zmq
     """
     imports = sum([x.split('#')[0].split() for x in imports.splitlines()],[])
 
@@ -62,7 +76,7 @@ def main():
             sys.stdout.flush()
             t0 = time.time()
             a = t()
-            sys.stdout.write(" (%s seconds)"%(time.time()-t0))
+            sys.stdout.write(" (%s seconds)"%(int(time.time()-t0)))
             if a:
                 print "FAIL!: %s"%a
             else:
