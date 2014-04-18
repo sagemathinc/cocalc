@@ -1,29 +1,22 @@
 
---> - [ ] fix ipython file update bug: https://github.com/sagemath/cloud/issues/104
 
-- [ ] quotas
+- [ ] ie file editing completely broken due to top position location determination issue: https://mail.google.com/mail/u/0/?shva=1#inbox/14570edecf01f3dc
 
-     * make the quota = min(25GB, max(5 times the bup repo size, 5GB))
-
-    - gather the bup usage files together in one place on cloud3
-    - write throw-away code in `bup_server` that runs through them and sets disk and scratch for all based on above formulas
-    - run throw-away code above.
-    - push out new `bup_storage.py` that doesn't override quota, so new quotas get used.
-
-- [ ] setup automatic destruction of old zfsnap snapshots:
-
-        0 * * * *  /usr/local/bin/zfsnap.sh destroy -r bup
-
-- [ ] settings: disable "restart" button when state is not "running"
-
-- [ ] write to bup list
-
-- [ ] Regarding projects moving:
-
-     - when a client *initiates* a move, it will query the db for any mounts and then inform the bup_servers of them. Thus the move logic is event driven, where the event is "move a project".   If the global client doing the moving can't contact the local bup_server, it will keep trying... (?)
+- [ ] new base vm:
+       -- ubuntu 14.04
+       -- sage 6.2
 
 
-- [ ] setup remote environment for dev/testing
+
+- [ ] bup -- should put my caching code back in, e.g., my main project has 250-ish commits and is already taking .25 - 1 s; I did a quick test with my code and it was much, much faster.
+
+- [ ] increasing quota -- I should make an admin interface for this...
+
+        x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
+        p=x.c.get_project('4255de6e-adc9-4a1e-ad9c-78493da07e64')
+        p.set_settings(cb:console.log, cores:12, cpu_shares:4*256, memory:20000)
+
+- [ ] rewrite sync to completely remove the differential sync doc from the hub -- just forward everything back and forth between browser client and local hub.  This should speed things up, avoid a lot of state issues, and lay a good foundation for further optimizations and fixes.
 
 - [ ] project folder connections (?)
 
@@ -62,13 +55,17 @@
     bindfs --create-for-user=275991804 --create-for-group=275991804 -u 1959631043 -g 1959631043
 
 
+- [ ] get GCE VM restart to actually robustly work with all proper mounting.
+
+
+- [ ] Regarding projects moving:
+
+     - when a client *initiates* a move, it will query the db for any mounts and then inform the bup_servers of them. Thus the move logic is event driven, where the event is "move a project".   If the global client doing the moving can't contact the local bup_server, it will keep trying... (?)
+
+
+- [ ] setup remote environment for dev/testing
+
  - [ ] rekey ssl cert: http://support.godaddy.com/help/article/4976/rekeying-an-ssl-certificate
-
-- [ ] consider putting a sync at the start of projsavect e, even if nothing has changed.  NOT sure.
-
-- [ ] bup -- should put my caching code back in, e.g., my main project has 250-ish commits and is already taking .25 - 1 s
-
-- [ ] get GCE restart to actually work
 
 - [ ] make it so `bup_server` will refuse to start if some sanity checks regarding the filesystem fail, e.g., that bup/projects is mounted as  /projects
 
@@ -151,10 +148,6 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 
 - [ ] go through and chown/sync every project systematically; evidently I didn't in the current migration, so I'll just put a chown in the start script for now -- this slows things down, but is temporary.
 
-- [ ] update quota information using du script and re-enable quotas
-
-- [ ] write code that cleans up /bup/projects fs by removing .sagemathcloud directories, etc., of projects not used for a while
-
 - [ ] make it so move is never automatic but prompted?
 
 - [ ] automated rolloing snapshots of bup/projects
@@ -167,6 +160,31 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 
 
 ======
+
+- [x] p.stop(...) got unrecognized argument --force ....
+
+- [x] claritalb.org site messed up... but restarting the hub made problem vanish.  HMM so issue with global state.
+
+- [x] quotas finish:
+      - had to set QUOTA_OVERRIDE back temporarily since quota isn't being set in conf file on projects when they first start.  NEED to do that first, then re-enable it.  Also, I wrote but didn't send an email about quotas.
+
+- [x] write to bup list
+
+
+- [x] fix ipython file update bug: https://github.com/sagemath/cloud/issues/104
+
+- [x] quotas
+
+     * make the quota = min(25GB, max(5 times the bup repo size, 5GB))
+
+    - gather the bup usage files together in one place on cloud3
+    - write throw-away code in `bup_server` that runs through them and sets disk and scratch for all based on above formulas
+    - run throw-away code above.
+    - push out new `bup_storage.py` that doesn't override quota, so new quotas get used.
+
+- [x] setup automatic destruction of old zfsnap snapshots:
+
+        0 * * * *  /usr/local/bin/zfsnap.sh destroy -r bup
 
 - [x] update base vm's: add bindfs apt-get and include it in build.py
 

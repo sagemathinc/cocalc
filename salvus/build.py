@@ -17,27 +17,52 @@ The components are:
     * sage -- we do *not* build or include Sage; it must be available system-wide or for
       user in order for worksheets to work (everything but worksheets should work without Sage).
 
-Supported Platform: Ubuntu 12.04
+Supported Platform: Ubuntu 14.04
+
+Steps:
+
+    salvus@cloud3:~/iso$ wget http://releases.ubuntu.com/14.04/ubuntu-14.04-beta2-server-amd64.iso
+    salvus@cloud3:~/vm/images/base3$ qemu-img create -f qcow2 salvus-2014-04-17-14-4630.img 100G
+    salvus@cloud3:~/vm/images/base3$ virt-install --connect=qemu:///system --ram 16000 -n salvus-2014-04-17-14-4630 --cdrom ~/iso/ubuntu-14.04-beta2-server-amd64.iso  --cpu=host --network=network:default,model=virtio --vcpus=16 --noautoconsole --graphics=vnc,port=13389  --disk=salvus-2014-04-17-14-4630.img,device=disk,bus=virtio,format=qcow2,cache=writeback
+
+Install with 100GB disk with 32GB /, 10GB /tmp, and /usr/local a ZFS dedup,compressed filesystem.  No encryption, since base vm doesn't host user data.
+
+    apt-get update; apt-get upgrade
+
+Add this to /etc/apt/sources.list then "apt-get update; apt-get install ubuntu-zfs":
+
+    deb http://ppa.launchpad.net/zfs-native/stable/ubuntu trusty main
+    deb-src http://ppa.launchpad.net/zfs-native/stable/ubuntu trusty main
+
+Setup a ZFS pool with compress and dedup.
+
+    root@salvus-base:/etc/apt# zpool create pool /dev/vda3
+    root@salvus-base:/etc/apt# zpool list pool
+    NAME   SIZE  ALLOC   FREE    CAP  DEDUP  HEALTH  ALTROOT
+    pool    60G   133K  60.0G     0%  1.00x  ONLINE  -
+    root@salvus-base:/etc/apt# zpool set dedup=on pool
+    cannot set property for 'pool': 'dedup' is readonly
+    root@salvus-base:/etc/apt# zfs set dedup=on pool
+    root@salvus-base:/etc/apt# zfs set compression=lz4 pool
+    root@salvus-base:/etc/apt# zfs create pool/local
+    root@salvus-base:/etc/apt# zfs set mountpoint=/usr/local pool/local
+    cannot mount '/usr/local': directory is not empty
+    property may be set but unable to remount filesystem
+    root@salvus-base:/etc/apt# mv /usr/local /usr/local.orig
+    root@salvus-base:/etc/apt# zfs mount pool/local
+    root@salvus-base:/etc/apt# rsync -axvH /usr/local.orig/ /usr/local/
+
+    root@salvus-base:/# mv home home.orig
+    root@salvus-base:/# zfs create pool/home
+    root@salvus-base:/# zfs set mountpoint=/home pool/home
+    root@salvus-base:/# zfs set compression=lz4 pool/home
+    root@salvus-base:/# zfs set dedup=on pool/home
+    root@salvus-base:/# rsync -axvH /home.orig/ /home/
+
 
 Before building, do:
 
-# For a full machine with shared users:
-
     Change this line in /etc/login.defs:  "UMASK           077"
-
-  Don't bother for LXC.
-
-# LIBC version:
-
-  On Debian, add this line to /etc/apt/sources.list
-
-      deb     http://http.debian.net/debian jessie main
-
-  Then do "apt-get update", then "apt-cache policy libc-dev6" to find the newest version.
-  Then do
-      apt-get install libc6-dev=2.17-97
-  and finally comment out the above line and do "apt-get update" again, in order to avoid breaking "apt-get upgrade".
-
 
 # ATLAS:
 
@@ -54,10 +79,10 @@ Before building, do:
 
 # Install critical packages:
 
-         apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof
+         apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof  tk-dev
 
 
-# Install ZFS (see http://zfsonlinux.org/generic-deb.html)
+# SKIP -- I'm using standard PPA now; Install ZFS (see http://zfsonlinux.org/generic-deb.html)
 
     apt-get install build-essential gawk alien fakeroot linux-headers-$(uname -r) zlib1g-dev uuid-dev libblkid-dev libselinux-dev parted lsscsi wget
 
@@ -74,6 +99,8 @@ Before building, do:
     # To remove:
     dpkg -r kmod-spl-3.2.0-59-generic kmod-spl-devel kmod-spl-devel-3.2.0-59-generic spl kmod-zfs-3.2.0-59-generic kmod-zfs-devel kmod-zfs-devel-3.2.0-59-generic zfs zfs-devel zfs-dracut zfs-test
 
+
+
 # ZFSNAP:
 
   git clone https://github.com/zfsnap/zfsnap.git
@@ -81,18 +108,7 @@ Before building, do:
   git fetch origin legacy
   git branch legacy
   git checkout legacy
-  cp sbin/zfsnap.sh /usr/local/bin/
-  cp -rv share/zfsnap/ /usr/local/share/
-
-
-
-# LZ4 -- compression
-
-    # Ubuntu
-    sudo add-apt-repository ppa:gezakovacs/lz4; sudo apt-get update; sudo apt-get install liblz4-tool
-
-    # Debian
-    cd /tmp/; wget https://dl.dropboxusercontent.com/u/59565338/LZ4/lz4-r109.tar.gz; tar xvf lz4-r109.tar.gz; cd lz4-r109; make install; rm -rf /tmp/lz4-r109
+  cp sbin/zfsnap.sh /usr/local/bin/; cp -rv share/zfsnap/ /usr/local/share/
 
 
 # For VM hardware hosts only (?):  chmod a+rw /dev/fuse
@@ -106,101 +122,26 @@ MaxStartups 128
 # Additional packages (mainly for users, not building).
 
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr tcl-dev tk-dev golang-go libicu-dev libicu-devlibicu-dev libicu-dev libicu-dev iceweasel xvfb tree bindfs
+   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr go libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimag
+e-lib python-sklearn  python-sklearn-doc  python-sklearn-lib
 
 
 
 # Aldor - in 13.10, have to modify /etc/apt/sources.list.d/pippijn-ppa-*.list and replace version with "precise"
+
    sudo add-apt-repository ppa:pippijn/ppa
    sudo apt-get update; sudo apt-get install aldor open-axiom*
 
-NOTE: With ubuntu 12.04 I do this:
-          apt-add-repository ppa:texlive-backports/ppa
-          apt-get update; apt-get dist-upgrade
 
-# upgrade to octave 3.6 -- Only on ubuntu 12.04!
-          apt-add-repository ppa:dr-graef/octave-3.6.precise
-          apt-get update; apt-get install octave;  # or is it apt-get dist-upgrade  ?
+# Octave: needed by octave for plotting:
 
-          cd /usr/share/fonts/truetype; ln -s liberation ttf-liberation   # needed by octave for plotting.
-
-
-# Tmux -- Ensure tmux is at least 1.8 and if not:
-
-tmux -V
-
-       wget http://downloads.sourceforge.net/tmux/tmux-1.8.tar.gz && tar xvf tmux-1.8.tar.gz && cd tmux-1.8/ &&  ./configure && make -j40 && sudo make install &&  cd .. && rm -rf tmux-1.8*
+      cd /usr/share/fonts/truetype; ln -s liberation ttf-liberation
 
 
 # Dropbox --
   so it's possible to setup dropbox to run in projects... at some point (users could easily do this anyways, but making it systemwide is best).
 
       Get it here: https://www.dropbox.com/install?os=lnx
-
-
-# SAGE SCRIPTS:
-  Do from within Sage (as root):
-
-      install_scripts('/usr/local/bin/')
-
-# SAGE user:
-
-    system-wide: open up permissions so that octave, etc., works -- this is ****HORRIBLE**** -- it makes it so any user
-    could fill / and kill a node; rebooting clears this out though.  STUPID design.  So stupid.  Must be fixed.
-
-        chmod a+rwx /usr/local/sage/sage-6.2/local/share/sage/ext/*
-
-
-# POLYMAKE system-wide:
-
-  # From http://www.polymake.org/doku.php/howto/install
-
-     sudo apt-get install ant default-jdk g++ libboost-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libperl-dev libsvn-perl libterm-readline-gnu-perl libxml-libxml-perl libxml-libxslt-perl libxml-perl libxml-writer-perl libxml2-dev w3c-dtd-xhtml xsltproc
-
-  # Then... get latest from http://www.polymake.org/doku.php/download/start and build:
-      sudo su
-      cd /tmp/; wget http://www.polymake.org/lib/exe/fetch.php/download/polymake-2.12-rc3.tar.bz2; tar xvf polymake-2.12-rc3.tar.bz2; cd polymake-2.12; ./configure; make -j4; make install
-      rm -rf /tmp/polymake*
-
-
-# MACAULAY2:
-
-   Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
-
-## Ubuntu:
-
-    sudo su
-    # apt-get install libntl-5.4.2 libpari-gmp3  # ubuntu 12.04
-    apt-get install libntl-dev libntl0  libpari-gmp3 # ubuntu 13.10
-    cd /tmp/; wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb; wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb; sudo dpkg -i Macaulay2-1.6-common.deb Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb; rm *.deb
-
-## Debian
-
-    sudo su
-    apt-get install libntl-dev libntl0  libpari-gmp3
-    cd /tmp/; rm Macaulay2*.deb; wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Debian/Macaulay2-1.6-amd64-Linux-Debian-7.0.deb; wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb;  sudo dpkg -i Macaulay2*.deb; rm Macaulay2*.deb
-
-# Install Julia
-
-   sudo su
-   umask 022; cd /usr/local/; git clone git://github.com/JuliaLang/julia.git; cd julia; make -j4 install;  cd /usr/local/bin; ln -s /usr/local/julia/julia .
-
-# FEnICS -- automated solution of differential equations by finite element methods
-
-    add-apt-repository ppa:fenics-packages/fenics
-    apt-get update; apt-get install fenics
-
-
-# Snappy
-
-    umask 022; sage -i http://snappy.computop.org/get/snappy-2.0.3.spkg
-
-
-# Cartographic Projections Library:
-
-    sage -sh
-    sudo su
-    cd /tmp; wget http://download.osgeo.org/proj/proj-4.8.0.tar.gz; tar xvf proj-4.8.0.tar.gz; cd proj-4.8.0; ./configure --prefix=/usr; make install
 
 # Build Sage (as usual)
 
@@ -217,6 +158,72 @@ tmux -V
    - http://trac.sagemath.org/ticket/15178 -- bug in pexpect, which breaks ipython !ls.
      (just put f=filename in function which in /usr/local/sage/current/local/lib/python2.7/site-packages/pexpect.py)
 
+
+# SAGE SCRIPTS:
+  Do from within Sage (as root):
+
+      install_scripts('/usr/local/bin/')
+
+# SAGE user:
+
+    system-wide: open up permissions so that octave, etc., works -- this is ****HORRIBLE**** -- it makes it so any user
+    could fill / and kill a node; rebooting clears this out though.  STUPID design.  So stupid.  Must be fixed.  A better work-around would be put this directory on a different more constrained filesystems.
+
+        chmod a+rwx /usr/local/sage/sage-6.2/local/share/sage/ext/*
+
+
+# POLYMAKE system-wide:
+
+  # From http://www.polymake.org/doku.php/howto/install
+
+     sudo apt-get install ant default-jdk g++ libboost-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libperl-dev libsvn-perl libterm-readline-gnu-perl libxml-libxml-perl libxml-libxslt-perl libxml-perl libxml-writer-perl libxml2-dev w3c-dtd-xhtml xsltproc
+
+  # Then... get latest from http://www.polymake.org/doku.php/download/start and build:
+
+      sudo su
+      cd /tmp/&& wget http://www.polymake.org/lib/exe/fetch.php/download/polymake-2.13.tar.bz2&& tar xvf polymake-2.13.tar.bz2; cd polymake-2.13 && ./configure && make -j8 && make install
+      rm -rf /tmp/polymake*
+
+
+# MACAULAY2:
+
+   Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
+
+## Ubuntu:
+
+    sudo su
+    apt-get install libntl-dev libntl0  libpari-gmp3
+    cd /tmp/ && wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb && wget  http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.6-amd64-Linux-Ubuntu-13.04.deb && sudo dpkg -i Macaulay2-1.6-amd64-Linux-Ubuntu-13.04.deb && rm *.deb
+
+
+
+# Install Julia
+
+   sudo su
+   umask 022  &&  cd /usr/local/ && git clone git://github.com/JuliaLang/julia.git  &&  cd julia  &&  make -j16 install  &&   cd /usr/local/bin  &&  ln -s /usr/local/julia/julia .
+
+# FEnICS -- automated solution of differential equations by finite element methods
+
+    add-apt-repository ppa:fenics-packages/fenics
+    apt-get update; apt-get install fenics
+
+
+# Snappy  (find newest version at http://www.math.uic.edu/t3m/SnapPy//get/?C=M;O=D)
+
+   umask 022
+   sage -sh
+   easy_install -U -f http://snappy.computop.org/get snappy
+   # (the sage package doesn't work...)
+
+# Cartographic Projections Library -- find newest version at http://download.osgeo.org/proj/?C=M;O=D
+
+    sage -sh
+    sudo su
+    export V=4.9.0b2
+    cd /tmp && wget http://download.osgeo.org/proj/proj-$V.tar.gz && tar xvf proj-$V.tar.gz
+    cd proj-4.9.0 && ./configure --prefix=/usr; make -j8 install
+
+
 # PIP:
 
     sage -sh
@@ -231,16 +238,19 @@ tmux -V
 
 (Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
 
-Also do this into sage (where the version may change -- check -- https://pypi.python.org/pypi/scimath); I don't understand why pip doesn't work, but it doesn't:
+Also do this into sage (where the version may change -- check -- https://pypi.python.org/pypi/scimath); I don't understand why pip doesn't work, but it doesn't:  (newest ver at https://www.enthought.com/repo/ets/index3.html)
 
     ./sage -sh
-     wget http://www.enthought.com/repo/ets/scimath-4.1.2.tar.gz; tar xvf scimath-4.1.2.tar.gz; cd scimath-4.1.2; python setup.py install; cd ..; rm -rf scimath-4.1.2*
+     wget http://www.enthought.com/repo/ets/scimath-4.1.2.tar.gz && tar xvf scimath-4.1.2.tar.gz && cd scimath-4.1.2 && python setup.py install && cd .. && rm -rf scimath-4.1.2*
+
+     # I got some sandbox error and did the above as root instead, then chown'd....
 
 
 # Clawpack: requires a special flag
 
     # system-wide
-    sudo su; umask 022; pip install clawpack
+    sudo su; umask 022
+    pip install clawpack
 
     # in sage
     sage -sh; umask 022
@@ -248,16 +258,17 @@ Also do this into sage (where the version may change -- check -- https://pypi.py
 
 # We have to upgrade rpy2, since the one in sage is so old, and it breaks ipython's r interface.
 
+    sage -sh
     pip install --upgrade rpy2
 
 # Neuron -- requested by Jose Guzman
 
    umask 022
-   cd /tmp; hg clone http://www.neuron.yale.edu/hg/neuron/iv; hg clone http://www.neuron.yale.edu/hg/neuron/nrn
+   cd /tmp && hg clone http://www.neuron.yale.edu/hg/neuron/iv  &&  hg clone http://www.neuron.yale.edu/hg/neuron/nrn
    sage -sh
-   cd /tmp/iv; ./build.sh; ./configure --prefix=/usr/local/; make -j16; sudo make install
+   cd /tmp/iv  &&  ./build.sh && ./configure --prefix=/usr/local/ && make -j16 && sudo make install
    # the make install below ends in an error, but it seems to work for people who care.
-   cd /tmp/nrn; ./build.sh; ./configure --prefix=/usr/local/ --with-iv=/usr/local/ --with-nrnpython; make -j16; sudo make install; cd src/nrnpython/; python setup.py install
+   cd /tmp/nrn && ./build.sh && ./configure --prefix=/usr/local/ --with-iv=/usr/local/ --with-nrnpython && make -j16 && sudo make install && cd src/nrnpython/ && python setup.py install
    rm -rf /tmp/iv /tmp/nrn
 
 Test with "import neuron".
@@ -265,13 +276,13 @@ Test with "import neuron".
 # basemap -- won't install through pip/easy_install, so we do this:
 
     sage -sh
-    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.7/basemap-1.0.7.tar.gz; tar xf basemap-1.0.7.tar.gz; cd basemap-1.0.7; python setup.py install; cd ..; rm -rf basemap-1.0.7*
+    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.7/basemap-1.0.7.tar.gz && tar xf basemap-1.0.7.tar.gz && cd basemap-1.0.7 && python setup.py install && cd .. && rm -rf basemap-1.0.7*
 
 ## TEST:   echo "from mpl_toolkits.basemap import Basemap" | python
 
 # System-wide Python packages not through apt:
 
-   umask 022; /usr/bin/pip install -U scikit-learn theano
+   umask 022; /usr/bin/pip install -U theano
 
 
 # Also, edit the banner:
@@ -294,11 +305,8 @@ Test with "import neuron".
 
     ln -s local/share data
 
+    export MAKE="make -j16"
     ./sage -i biopython  chomp database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull  topcom zeromq stein-watkins-ecdb
-
-# temporary workaround:
-
-    ./sage -i http://sage.math.washington.edu/home/SimonKing/Cohomology/p_group_cohomology-2.1.4.p1.spkg
 
 
 # Make the new Sage able to import stuff installed in the system-wide python, e.g., "import dolfin" (some complicated FEM library). Do this *after* pip is installed.
@@ -342,17 +350,19 @@ r packages could be automated like so (?)
 # 4ti2 into sage: until the optional spkg gets fixed:
 
     ./sage -sh; umask 022
-    cd /tmp; wget http://www.4ti2.de/version_1.6/4ti2-1.6.tar.gz && tar xf 4ti2-1.6.tar.gz && cd 4ti2-1.6 ; ./configure --prefix=/usr/local/sage/current/local/; time make -j16
+    export V=1.6.2
+    cd /tmp && wget http://www.4ti2.de/version_$V/4ti2-$V.tar.gz && tar xf 4ti2-$V.tar.gz && cd 4ti2-$V && ./configure --prefix=/usr/local/sage/current/local/ && time make -j16
     make install      # this *must* be a separate step!!
     rm -rf /tmp/4ti2*
 
+    # also, install it outside of sage.
+    sudo su
+    umask 022
+    export V=1.6.2
+    cd /tmp && wget http://www.4ti2.de/version_$V/4ti2-$V.tar.gz && tar xf 4ti2-$V.tar.gz && cd 4ti2-$V && ./configure --prefix=/usr/local/ && time make -j16
+    make install      # this *must* be a separate step!!
+    rm -rf /tmp/4ti2*
 
-# Update to ipython 1.x
-
-    sage -sh
-    pip install --upgrade ipython
-    cd $SAGE_ROOT/devel/sage; wget http://wstein.org/home/wstein/tmp/trac-14713.patch; hg import trac-14713.patch
-    cd $SAGE_ROOT/; ./sage -br
 
 # Fix permissions, just in case.
 
