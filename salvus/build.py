@@ -127,7 +127,7 @@ e-lib python-sklearn  python-sklearn-doc  python-sklearn-lib
 
 
 
-# Aldor - in 13.10, have to modify /etc/apt/sources.list.d/pippijn-ppa-*.list and replace version with "precise"
+# Aldor, have to modify /etc/apt/sources.list.d/pippijn-ppa-*.list and replace version with "precise"
 
    sudo add-apt-repository ppa:pippijn/ppa
    sudo apt-get update; sudo apt-get install aldor open-axiom*
@@ -333,15 +333,7 @@ r packages could be automated like so (?)
 
 # R 3.x system-wide:
 
-  Add this to /etc/apt/sources.list:
-
-     deb http://cran.cnr.Berkeley.edu/bin/linux/ubuntu precise/        # ubuntu
-
-     deb http://cran.cnr.Berkeley.edu/bin/linux/debian wheezy-cran3/   # debian
-
-  Then
-
-     apt-get update; apt-get upgrade; apt-get install r-recommended
+     apt-get install r-recommended
 
      umask 022 && /usr/bin/R
      install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields", "circular", "glmnet"), repos='http://cran.cs.wwu.edu/')
@@ -468,25 +460,47 @@ if 'MAKE' in os.environ:
 # due to some packages cheating npm.  So I'm typically just copying over node_modules/start-stop-daemon from previous installs.
 
 NODE_MODULES = [
-    'commander', 'start-stop-daemon', 'winston', 'sockjs', 'node-cassandra-cql',
-    'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify@1.16.4', 'uglify-js2',
-    'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
+    'commander',
+    'start-stop-daemon',
+    'winston',
+    'sockjs',
+    'node-cassandra-cql',
+    'sockjs-client-ws',
+    'coffee-script',
+    'node-uuid',
+    'browserify@1.16.4',
+    'uglify-js2',
+    'passport',
+    'passport-github',
+    'express',
+    'nodeunit',
+    'validator',
+    'async',
     'password-hash',
     'emailjs@0.3.4',   # version hold back because of https://github.com/eleith/emailjs/commits/master
-    'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
-    'mkdirp', 'walk', 'temp', 'googlediff', 'formidable@latest',
-    'moment', 'underscore', 'read', 'hashring', 'rimraf'
+    'cookies',
+    'htmlparser',
+    'mime',
+    'pty.js',
+    'posix',
+    'mkdirp',
+    'walk',
+    'temp',
+    'googlediff',
+    'formidable@latest',
+    'moment',
+    'underscore',
+    'read',
+    'hashring',
+    'rimraf'
     ]
 
 PYTHON_PACKAGES = [
-    'ipython','readline', # a usable command line  (ipython uses readline)
+    'readline',
+    'ipython',            # a usable command line  (ipython uses readline)
     'python-daemon',      # daemonization of python modules
     'paramiko',           # ssh2 implementation in python
-    'cql',                # interface to Cassandra
-    'fuse-python',        # used by bup: Python bindings to "filesystem in user space"
-    'pyxattr',            # used by bup
-    'pylibacl',           # used by bup
-    'pyinotify'
+    'cql'                 # interface to Cassandra
     ]
 
 if not os.path.exists(BUILD):
@@ -520,6 +534,8 @@ def extract_package(basename):
     for filename in os.listdir(SRC):
         if filename.startswith(basename):
             i = filename.rfind('.tar.')
+            if i == -1:
+                i = filename.rfind('.tgz')
             path = os.path.join(BUILD, filename[:i])
             if os.path.exists(path):
                 shutil.rmtree(path)
@@ -664,6 +680,7 @@ def build_python_packages():
         cmd('python setup.py install', path)
         cmd('easy_install pip', path)
         for pkg in PYTHON_PACKAGES:
+            print "***", pkg
             cmd('pip install %s'%pkg, '/tmp')
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
