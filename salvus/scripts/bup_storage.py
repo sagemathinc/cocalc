@@ -68,8 +68,8 @@ QUOTAS_OVERRIDE=0  # 0 = don't override
 
 USERNAME =  pwd.getpwuid(os.getuid())[0]
 
-# If using ZFS:
-ZPOOL = 'bup'  # must have ZPOOL/bups and ZPOOL/projects filesystems
+# If using ZFS
+ZPOOL          = 'bup'   # must have ZPOOL/bups and ZPOOL/projects filesystems
 
 # The path where bup repos are stored
 BUP_PATH       = '/bup/bups'
@@ -917,6 +917,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Bup-backed SMC project storage system")
     subparsers = parser.add_subparsers(help='sub-command help')
 
+    parser.add_argument("--zpool", help="the ZFS pool that has bup/projects in it", dest="zpool", default=ZPOOL, type=str)
+
     parser.add_argument("project_id", help="project id -- most subcommand require this", type=str)
 
     parser_init = subparsers.add_parser('init', help='init project repo and directory')
@@ -1031,6 +1033,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     t0 = time.time()
+    ZPOOL = args.zpool
     project = Project(project_id  = args.project_id)
     args.func(args)
     log("total time: %s seconds"%(time.time()-t0))

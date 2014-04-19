@@ -38,6 +38,8 @@ STORAGE_SERVERS_UPDATE_INTERVAL_S = 180  # How frequently (in seconds)  to query
 
 IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds.
 
+ZPOOL = if process.env.BUP_POOL? then process.env.BUP_POOL else 'bup'
+
 CONF = "/bup/conf"
 fs.exists CONF, (exists) ->
     if exists
@@ -59,7 +61,7 @@ bup_storage = (opts) =>
     winston.debug("bup_storage: running #{misc.to_json(opts.args)}")
     misc_node.execute_code
         command : "sudo"
-        args    : ["/usr/local/bin/bup_storage.py"].concat(opts.args)
+        args    : ["/usr/local/bin/bup_storage.py", "--zpool", ZPOOL].concat(opts.args)
         timeout : opts.timeout
         path    : process.cwd()
         cb      : (err, output) =>
@@ -2581,7 +2583,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--replication [string]', 'replication factor (default: 2)', String, '2')
 
     .option('--port [integer]', "port to listen on (default: assigned by OS)", String, 0)
-    .option('--address [string]', 'address to listen on (default: the tinc network or 127.0.0.1 if no tinc)', String, '')
+    .option('--address [string]', 'address to listen on (default: the tinc network if there, or eth1 if there, or 127.0.0.1)', String, '')
 
     .parse(process.argv)
 
@@ -2605,6 +2607,6 @@ main = () ->
         winston.error("Uncaught exception: #{err}")
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
-if program._name == 'bup_server.js'
+if program._name == 'bup_server'
     main()
 

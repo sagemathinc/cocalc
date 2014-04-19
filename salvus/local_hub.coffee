@@ -162,7 +162,7 @@ restart_console_server = (cb) ->   # cb(err)
                                 try
                                     port = parseInt(data.toString())
                                     cb()
-                                catch
+                                catch error
                                     cb('reading port corrupt')
             misc.retry_until_success
                 f  : f
