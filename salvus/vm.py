@@ -184,7 +184,7 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
     #################################
     try:
         cmd = ['virt-install',
-               '--connect', 'qemu:///system',
+               ',
                '--cpu', 'host',
                '--network', 'network:default,model=virtio',
                '--name', hostname,
