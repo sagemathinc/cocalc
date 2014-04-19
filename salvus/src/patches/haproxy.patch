@@ -1,6 +1,6 @@
---- src/log.c	2012-06-03 15:43:45.000000000 -0700
-+++ /Users/wstein/log.c	2012-07-18 18:05:15.000000000 -0700
-@@ -663,6 +663,16 @@
+--- src/log.c	2014-02-02 15:41:29.000000000 -0800
++++ /tmp/log.c	2014-04-18 22:02:21.914798083 -0700
+@@ -795,6 +795,16 @@
  	int nblogger;
  	char *log_ptr;
  
@@ -17,26 +17,32 @@
  	dataptr = message;
  
  	if (p == NULL) {
-@@ -739,12 +749,18 @@
+@@ -870,15 +880,21 @@
+ 			log_ptr--;
  		} while (fac_level && log_ptr > dataptr);
  		*log_ptr = '<';
- 
--		sent = sendto(*plogfd, log_ptr, size + log_ptr - dataptr,
-+		if (logfile) {
-+			file = fopen(logfile,"a");
-+			fprintf(file, "%s", log_ptr); 
-+			fclose(file);
-+		} else {
-+			sent = sendto(*plogfd, log_ptr, size + log_ptr - dataptr,
+-
+-		sent = sendto(*plogfd, log_ptr, size - (log_ptr - dataptr),
++ 
++                if (logfile) {
++                        file = fopen(logfile,"a");
++                        fprintf(file, "%s", log_ptr); 
++                        fclose(file);
++                } else {
++	    	        sent = sendto(*plogfd, log_ptr, size - (log_ptr - dataptr),
  			      MSG_DONTWAIT | MSG_NOSIGNAL,
  			      (struct sockaddr *)&logsrv->addr, get_addr_len(&logsrv->addr));
 -		if (sent < 0) {
 -			Alert("sendto logger #%d failed: %s (errno=%d)\n",
 -				nblogger, strerror(errno), errno);
-+			if (sent < 0) {
-+				Alert("sendto logger #%d failed: %s (errno=%d)\n",
-+				      nblogger, strerror(errno), errno);
-+			}
- 		}
- 		nblogger++;
+-		}
+-		nblogger++;
++		        if (sent < 0) {
++		          	Alert("sendto logger #%d failed: %s (errno=%d)\n",
++			       	nblogger, strerror(errno), errno);
++		        }
++               }
++	       nblogger++;
  	}
+ }
+ 
