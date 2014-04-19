@@ -1502,7 +1502,7 @@ class GlobalClient
         #dbg("updating list of available storage servers...")
         @database.select
             table     : 'storage_servers'
-            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret', 'vnodes']
+            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret']
             objectify : true
             where     : {dummy:true}
             cb        : (err, results) =>
@@ -1538,10 +1538,10 @@ class GlobalClient
                 @_update(cb)
             (cb) =>
                 dbg("writing file")
-                # @servers = {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
+                # @servers = {server_id:{host:'ip address', dc:2}, ...}
                 servers_conf = {}
                 for server_id, x of @servers.by_id
-                    servers_conf[server_id] = {host:x.host, vnodes:x.vnodes, dc:x.dc}
+                    servers_conf[server_id] = {host:x.host, dc:x.dc}
                 fs.writeFile(file, misc.to_json(servers_conf), cb)
             (cb) =>
                 f = (server_id, c) =>
@@ -1574,10 +1574,9 @@ class GlobalClient
         opts = defaults opts,
             host   : required
             dc     : 0           # 0, 1, 2, .etc.
-            vnodes : 128
             timeout: 30
             cb     : undefined
-        dbg = (m) -> winston.debug("GlobalClient.add_storage_server(#{opts.host}, #{opts.dc},#{opts.vnodes}): #{m}")
+        dbg = (m) -> winston.debug("GlobalClient.add_storage_server(#{opts.host}, #{opts.dc}): #{m}")
         dbg("adding storage server to the database by grabbing server_id files, etc.")
         get_file = (path, cb) =>
             dbg("get_file: #{path}")
@@ -1594,7 +1593,7 @@ class GlobalClient
                     else
                         cb(undefined, output.stdout)
 
-        set = {host:opts.host, dc:opts.dc, vnodes:opts.vnodes, port:undefined, secret:undefined}
+        set = {host:opts.host, dc:opts.dc, port:undefined, secret:undefined}
         where = {server_id:undefined, dummy:true}
 
         async.series([

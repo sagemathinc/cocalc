@@ -876,138 +876,6 @@ class exports.Salvus extends exports.Cassandra
                 opts.cb(err, v)
 
     #####################################
-    # Snap servers
-    #####################################
-    snap_servers: (opts) =>
-        opts = defaults opts,
-            server_ids : undefined
-            columns    : ['id', 'host', 'port', 'key', 'size']
-            cb         : required
-
-        if opts.server_ids?
-            if opts.server_ids.length == 0
-                opts.cb(false, [])
-                return
-            where = {dummy:true, id:{'in':opts.server_ids}}
-        else
-            where = {dummy:true}
-
-        @select
-            table     : 'snap_servers'
-            columns   : opts.columns
-            where     : where
-            objectify : true
-            cb        : opts.cb
-
-    # Return one snap server and repo_id with the given commit.
-    # The servers are the same format as output by snap_servers above.
-    snap_locate_commit: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            timestamp  : required
-            cb         : required   # (err, {server:{host:?,port:?,key:?}, repo_id:?})
-
-        answer    = undefined
-        servers   = undefined
-        async.series([
-            (cb) =>
-                @snap_servers
-                    cb : (err, _servers) =>
-                        servers = _servers
-                        cb(err)
-            (cb) =>
-                server_ids = (x.id for x in servers)
-                @select
-                    table      : 'snap_commits'   # this query uses ALLOW FILTERING.
-                    where      : {server_id:{'in':server_ids}, project_id : opts.project_id, timestamp : opts.timestamp}
-                    columns    : ['server_id', 'repo_id']
-                    objectify  : true
-                    cb         : (err, locations) =>
-                        if err
-                            cb(err); return
-                        server_ids = (x.server_id for x in locations)
-                        servers = (x for x in servers when x.id in server_ids)
-                        if servers.length == 0
-                            cb("no snapshot server with snapshot #{opts.timestamp} of #{opts.project_id}"); return
-                        server = misc.random_choice(servers)
-                        for x in locations
-                            if x.server_id == server.id
-                                answer = {server:server, repo_id:x.repo_id}
-                                cb()
-                                return
-                        cb("Internal BUG -- problem location snapshot server with snapshot #{opts.timestamp} of #{opts.project_id}")
-
-        ], (err) => opts.cb(err, answer))
-
-    snap_commits: (opts) =>
-        opts = defaults opts,
-            server_ids : required
-            project_id : required
-            columns    : ['server_id', 'project_id', 'timestamp', 'size']
-            cb         : required
-
-        if opts.server_ids.length == 0
-            opts.cb(false, [])
-            return
-
-        @select
-            table   : 'snap_commits'
-            where   : {server_id:{'in':opts.server_ids}, project_id:opts.project_id}
-            columns : opts.columns
-            objectify : true
-            cb      : opts.cb
-
-    snap_ls_cache: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            timestamp  : required
-            path       : required
-            listing    : undefined   # if given, store listing in the cache
-            ttl        : 3600*24*7   # 1 week
-            cb         : required    # cb(err, listing or undefined)
-
-        where = {project_id:opts.project_id, timestamp:opts.timestamp, path:opts.path}
-        if opts.listing?
-            # store in cache
-            @update
-                table : 'snap_ls_cache'
-                set   : {listing:opts.listing}
-                json  : ['listing']
-                where : where
-                ttl   : opts.ttl
-                cb    : opts.cb
-        else
-            # get listing out of cache, if there.
-            @select
-                table   : 'snap_ls_cache'
-                columns : ['listing']
-                where   : where
-                json    : ['listing']
-                objectify : false
-                cb      : (err, results) =>
-                    if err
-                        opts.cb(err)
-                    else if results.length == 0
-                        opts.cb(false, undefined)  # no error, but nothing in caching
-                    else
-                        opts.cb(false, results[0][0])
-
-    random_snap_server: (opts) =>
-        opts = defaults opts,
-            cb        : required
-        @snap_servers
-            cb : (err, results) =>
-                if err
-                    opts.cb(err)
-                else
-                    if results.length == 0
-                        opts.cb("No snapshot servers are available -- try again later.")
-                    else
-                        opts.cb(false, misc.random_choice(results))
-
-
-
-    #####################################
     # Managing compute servers
     #####################################
     # if keyspace is test, and there are no compute servers, returns
@@ -2501,7 +2369,7 @@ class exports.Salvus extends exports.Cassandra
                     json      : ['hub_servers']
                     columns   : [ 'timestamp', 'accounts', 'projects', 'active_projects',
                                   'last_day_projects', 'last_week_projects',
-                                  'last_month_projects', 'snap_servers', 'hub_servers']
+                                  'last_month_projects', 'hub_servers']
                     cb        : (err, result) =>
                         if err
                             cb(err)
@@ -2551,13 +2419,6 @@ class exports.Salvus extends exports.Cassandra
                     where : {ttl : 'month'}
                     cb    : (err, val) =>
                         stats.last_month_projects = val
-                        cb(err)
-            (cb) =>
-                @count
-                    table : 'snap_servers'
-                    where : {dummy:true}
-                    cb    : (err, val) =>
-                        stats.snap_servers = val
                         cb(err)
             (cb) =>
                 @select
