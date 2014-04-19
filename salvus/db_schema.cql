@@ -5,6 +5,12 @@ CREATE KEYSPACE salvus WITH replication = {
   'DC1': '3'
 };
 
+CREATE KEYSPACE salvus WITH replication = {
+  'class': 'NetworkTopologyStrategy',
+  'DC0': '1'
+};
+
+
 */
 
 /* NOTE: as explained at https://cloud.sagemath.com/projects/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/files/salvus/salvus/db_schema.cql
@@ -34,34 +40,6 @@ CREATE TABLE key_value (
      PRIMARY KEY(name, key)
 );
 
-/* TODO: THIS compute_servers table IS NOT USED ANYMORE */
-CREATE TABLE compute_servers (
-    dummy boolean,
-    host varchar,
-    running boolean,
-    score int,
-    PRIMARY KEY(dummy, host)
-);
-CREATE INDEX ON compute_servers (running);
-
-
-
-
-CREATE TABLE services (
-    service_id uuid PRIMARY KEY,
-    name varchar,
-    address varchar,
-    port int,
-    running boolean,
-    username varchar,
-    pid int,
-    monitor_pid int
-);
-
-CREATE INDEX ON services (running);
-
-CREATE INDEX ON services (name);
-
 CREATE TABLE status (
     service_id uuid,
     time timestamp,
@@ -80,26 +58,6 @@ CREATE TABLE log (
     message varchar,
     PRIMARY KEY(service_id, time)
 );
-
-CREATE TABLE plans (
-    plan_id          uuid PRIMARY KEY,
-    current          boolean,          // whether or not this plan is currently active
-
-    name             varchar,          // name of this plan
-    description      varchar,          // text describing this plan
-
-    price            varchar,          // JSON that describes price structure
-
-    session_limit    int,   // how many simultaneous sessions the user can have
-    storage_limit    int,   // total file space user can use
-    max_session_time int,   // maximum time in minutes that a session can last
-    ram_limit        int,   // maximum virtual ram usage in gigabytes per session
-    support_level    varchar,   // you can pay for better support
-
-    stateless_exec_limits varchar, // JSON {walltime:seconds, cputime:seconds, vmem:MB, numfiles:int, quota:MB}
-);
-
-CREATE INDEX ON plans(current)
 
 // If you add columns to this table, also get_account in cassandra.coffee
 // and account_settings_defaults in message.coffee.
@@ -190,7 +148,7 @@ CREATE TABLE central_log (
     time   timestamp PRIMARY KEY,
     event  varchar,
     value  varchar
-)
+);
 
 CREATE INDEX ON central_log(event);
 
@@ -283,37 +241,6 @@ CREATE TABLE projects (
 
      settings         map<text,text>,  // various project settings, e.g., 'memory', 'cpu_shares', 'cores', 'disk', 'mintime', 'login_shell'
 
-     location         varchar,  // the username@host on which deployed: JSON -- {username:, host:, port:, path:}
-
-     status           varchar,  // 'new'=just created, 'opened'=right after opening, 'closed'=right after closing, etc. -- maybe "archived" at some pointed (?)
-
-     storage          varchar,  // storage type; ''=just some account; 'zfs'=the new ZFS-based hashring storage system.
-     locations        map<text, text>,   // ip_address --> snapshots available there
-     modified_files   map<text, text>,   // snapshot_name --> [list of files changed]
-     last_snapshot    timestamp,  // likely last timestamp of a successful snapshot
-     replicating      boolean,   // set to try with a ttl (of one hour) when we start replicating this project out; will not try again until this lock is removed
-     last_replication_error varchar, // JSON -- last error message from replication failure.
-
-     quota            varchar,
-
-
-     quota_zfs        varchar,  // string, e.g., '10G' or '19390834300'  (can be with units or no units and bytes)
-     usage_zfs        varchar,  // JSON: {avail:?, used:?, usedsnap:?})  # ? are strings like '17M' or '13G' as output by zfs.  NOT bytes.
-     errors_zfs       map<timestamp, text>, // error messages with the zfs storage system.  Monitor this every so often.
-
-     last_migrated    timestamp, // DEPRECATED: used for migrating from /mnt/home to new ZFS /projects/ format.  delete/ignore when done.
-
-     last_migrated2   timestamp, // used from ZFS to Cassandra/image format.  delete/ignore when done.
-     location2        varchar,   // location in new ZFS/cassandra setup used for migration.
-     last_migrate2_error varchar, // DEPRECATED: used for migrating2
-
-     last_migrated3   timestamp, // used from ZFS to Cassandra/image format.  delete/ignore when done.
-     last_migrate3_error varchar, // DEPRECATED: used for migrating2
-
-     old_location     varchar,   // DEPRECATED: used for migrating... (so can delete after that is done).
-
-     backup           varchar,  // DEPRECATED: hosts on which files are backed up (via rsnapshot): JSON format not yet determined
-
      size             int,      // total size in bytes at last save
      deleted          boolean,  // if true, user deleted the project, so nobody sees it.
 
@@ -322,11 +249,6 @@ CREATE TABLE projects (
      invited_collaborator set<uuid>,   // accounts that have been invited to collaborate
      viewer               set<uuid>,   // accounts who are viewers
      invited_viewer       set<uuid>,    // accounts who have been invited to view.
-
-     linked_projects      set<uuid>,   // projects that this one links to.
-
-
-     timeout_disabled  boolean, // if true, never automatically kill this project simply due to it sitting around unused.
 
      abuser varchar
 
@@ -337,7 +259,6 @@ CREATE TABLE projects (
 CREATE INDEX ON projects(account_id);
 
 CREATE INDEX ON projects(snapshots_disabled);  /* rare lookup */
-CREATE INDEX ON projects(location);   /* rare lookup -- mainly used for manually checking on weirdness... */
 
 CREATE TABLE project_users (
      project_id       uuid,
@@ -382,93 +303,6 @@ CREATE TABLE hub_servers (
     clients    int,        /* total number of connected clients right now */
     PRIMARY KEY(dummy, host, port)
 );
-
-
-////////////////////////////////////////////
-// Snap -- the project snapshot servers
-////////////////////////////////////////////
-
-/* The snap servers -- entries in this table should always be inserted with a
-   very small ttl (e.g., 15 seconds); the entry then gets periodically updated. */
-CREATE TABLE snap_servers (
-    dummy      boolean,   /* so all stored in same place, so "select *" query is instance instead of 10 seconds! */
-    id         uuid,
-    host       varchar,    /* hostname */
-    port       int,        /* integer port */
-    key        varchar,    /* random string needed to unlock tcp connection */
-    size       int,        /* total size in kilobytes of the objects/pack directory of the archive */
-    PRIMARY KEY(dummy, id)
-);
-
-
-CREATE TABLE snap_commits (
-    server_id  uuid,       /* id into snap_servers table above */
-    project_id uuid,       /* id of the project */
-    timestamp  varchar,    /* date of commit, in the bup string format */
-    utc_seconds_epoch int, /* timestamp of commit in seconds since the epoch in UTC time */
-    size       int,        /* size in kilobytes that making this snapshot increased the total size of the bup archive */
-    repo_id    uuid,       /* id of the bup repo that contains this snapshot */
-    modified_files varchar, /* JSON list of strings of the paths of the files that were modified in this commit. */
-    PRIMARY KEY(server_id, project_id, timestamp)
-);
-
-
-/* Basically this is the most recent entry per server in snap_commits above, but
-   designed to provide easy access based on the project_id.
-   To use this, client queries table based on project_id, then takes the
-   entries such that the given server is up, and sorts by timestamp.
-   This is mainly useful for recovering or moving projects.  */
-CREATE TABLE last_snapshot (
-    project_id uuid,
-    server_id  uuid,
-    repo_id    uuid,
-    timestamp  varchar,
-    utc_seconds_epoch int,
-    PRIMARY KEY(project_id, server_id)
-);
-
-
-
-/* This would be very slow... but note that we do not do this query during any normal website ops.
-   This is something that was just meant for maybe offline stuff... */
-CREATE INDEX ON snap_commits(repo_id);
-
-CREATE TABLE snap_modified_files (
-    project_id uuid,
-    filename   varchar,
-    timestamp  varchar,
-    dummy      boolean,
-    PRIMARY KEY(project_id, filename, timestamp)
-);
-
-
-
-/* snap_ls_cache entries should always be inserted with a ttl (e.g., a few days) */
-CREATE TABLE snap_ls_cache (
-    project_id uuid,       /* id of the project */
-    timestamp  varchar,    /* date of commit, in the bup string format */
-    path       varchar,    /* path into the commit */
-    listing    varchar,    /* JSON */
-    PRIMARY KEY(project_id, timestamp, path)
-);
-
-////////////////////////////////////////////
-// Sessions -- live compute sessions
-////////////////////////////////////////////
-
-CREATE TABLE sessions (
-     session_id       uuid PRIMARY KEY,
-     project_id       uuid,
-     hub              varchar,    // "hostname:port" -- when hub restarted, admin deletes all these records
-     server           varchar     // "hostname:port" -- server that session is running on
-);
-// there could be other metadata about the session, e.g., RAM limits, etc.
-
-CREATE INDEX on sessions(project_id);
-CREATE INDEX on sessions(hub);
-CREATE INDEX on sessions(server);
-
-
 
 
 
