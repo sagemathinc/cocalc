@@ -1263,8 +1263,6 @@ class Client extends EventEmitter
                     title       : mesg.title
                     description : mesg.description
                     public      : mesg.public
-                    quota       : DEFAULTS.quota   # TODO -- account based
-                    idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
                     cb          : cb
             (cb) =>
                 dbg("start project opening so that when user tries to open it in a moment it opens more quickly")
@@ -4033,26 +4031,10 @@ get_account_settings = (mesg, push_to_client) ->
                         account_settings.id = mesg.id
                         cb()
 
-        # 3. Get information about user plan
         (cb) ->
-            database.get_plan
-                plan_id : account_settings['plan_id']
-                cb : (error, plan) ->
-                    if error
-                        push_to_client(message.error(id:mesg.id, error:error))
-                        cb(true) # bail out
-                    else
-                        # TODO -- none of this is used anymore
-                        account_settings.plan_name = plan.name
-                        account_settings.storage_limit = plan.storage_limit
-                        account_settings.session_limit = plan.session_limit
-                        account_settings.max_session_time = plan.max_session_time
-                        account_settings.ram_limit = plan.ram_limit
-                        account_settings.support_level = plan.support_level
-
-                        # 4. Send result to client
-                        push_to_client(message.account_settings(account_settings))
-                        cb() # done!
+            # 3. Send result to client
+            push_to_client(message.account_settings(account_settings))
+            cb() # done!
     ])
 
 # mesg is an account_settings message.  We save everything in the

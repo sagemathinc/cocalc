@@ -435,7 +435,7 @@ PYTHON_VERSION     = '2.7.6'     # options here -- https://www.python.org/ftp/py
 SETUPTOOLS_VERSION = '3.4.4'     # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
 NGINX_VERSION      = '1.5.9'     # options here -- http://nginx.org/download/
 HAPROXY_VERSION    = '1.5-dev22' # options here -- http://haproxy.1wt.eu/download/1.5/src/devel/
-STUNNEL_VERSION    = '5.0.1'     # options here -- https://www.stunnel.org/downloads.html
+STUNNEL_VERSION    = '5.01'     # options here -- https://www.stunnel.org/downloads.html
 
 import logging, os, shutil, subprocess, sys, time
 
