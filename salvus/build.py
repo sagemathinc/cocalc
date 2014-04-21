@@ -105,9 +105,9 @@ Before building, do:
 
   git clone https://github.com/zfsnap/zfsnap.git
   cd zfsnap
-  git fetch origin legacy
-  git branch legacy
-  git checkout legacy
+  #git fetch origin legacy
+  #git branch legacy
+  #git checkout legacy
   cp sbin/zfsnap.sh /usr/local/bin/; cp -rv share/zfsnap/ /usr/local/share/
 
 

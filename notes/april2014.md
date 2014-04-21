@@ -1,22 +1,22 @@
+- [ ] SUNDAY GOAL: rewrite sync to completely remove the differential sync doc from the hub -- just forward everything back and forth between browser client and local hub.  This should speed things up, avoid a lot of state issues, and lay a good foundation for further optimizations and fixes.
 
-
-- [ ] ie file editing completely broken due to top position location determination issue: https://mail.google.com/mail/u/0/?shva=1#inbox/14570edecf01f3dc
-
-- [ ] new base vm:
-       -- ubuntu 14.04
-       -- sage 6.2
 
 
 
 - [ ] bup -- should put my caching code back in, e.g., my main project has 250-ish commits and is already taking .25 - 1 s; I did a quick test with my code and it was much, much faster.
+
+
+- [ ] report that ie file editing completely broken in FULLSCREEN due to top position location determination issue: https://mail.google.com/mail/u/0/?shva=1#inbox/14570edecf01f3dc
+
+- [ ] new base vm:
+       -- ubuntu 14.04
+       -- sage 6.2.x
 
 - [ ] increasing quota -- I should make an admin interface for this...
 
         x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
         p=x.c.get_project('4255de6e-adc9-4a1e-ad9c-78493da07e64')
         p.set_settings(cb:console.log, cores:12, cpu_shares:4*256, memory:20000)
-
-- [ ] rewrite sync to completely remove the differential sync doc from the hub -- just forward everything back and forth between browser client and local hub.  This should speed things up, avoid a lot of state issues, and lay a good foundation for further optimizations and fixes.
 
 - [ ] project folder connections (?)
 
