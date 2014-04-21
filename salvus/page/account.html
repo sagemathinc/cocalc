@@ -200,6 +200,12 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
         <div class="tab-content">
             <div class="tab-pane active" id="account-settings-tab">
                 <div class="row">
+                    <!-- TODO: this is a temporary warning/note -- settings *should* take effect immediately, and there should be no save/cancel button. -->
+                    <span class="lighten">
+                        <h4  style="margin-left: 2em;">NOTE: Editor and terminal settings only apply to newly (re-)opened files after saving settings.</h4>
+                    </span>
+                </div>
+                <div class="row">
                     <div class="span5 well">
                         <div class="row">
                             <div class="row span5">
@@ -446,6 +452,15 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                 <label class="checkbox" rel="tooltip" title="If checked, trailing whitespace will be stripped from files when they are saved.">
                                     <input type="checkbox" checked="checked" class="account-settings-strip_trailing_whitespace">Delete trailing whitespace:
                                     <span class="lighten">remove whenever file is saved</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="row span5">
+                                <label class="checkbox" rel="tooltip" title="If checked, pressing tab inserts four spaces instead of a tab character.">
+                                    <input type="checkbox" checked="checked" class="account-settings-spaces_instead_of_tabs">Spaces instead of tabs:
+                                    <span class="lighten">send 4 spaces when the tab key is pressed</span>
                                 </label>
                             </div>
                         </div>
