@@ -88,13 +88,7 @@ exports.inet_to_str = (r) -> [r[0], r[1], r[2], r[3]].join('.')
 
 #########################################################################
 
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'bup_location', 'size', 'deleted'].concat(PROJECT_GROUPS)
-
-# This is used in account creation right now, so has to be set.
-# It is actually not used in practice and the limits have no meaning.
-DEFAULT_PLAN_ID = "13814000-1dd2-11b2-0000-fe8ebeead9df"
-exports.create_default_plan = (conn, cb) ->
-    conn.cql("UPDATE plans SET current=true, name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000, support_level='None' WHERE plan_id=#{DEFAULT_PLAN_ID}",[],cb)
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted'].concat(PROJECT_GROUPS)
 
 exports.create_schema = (conn, cb) ->
     t = misc.walltime()
@@ -108,10 +102,6 @@ exports.create_schema = (conn, cb) ->
     async.mapSeries blocks, f, (err, results) ->
         winston.info("created schema in #{misc.walltime()-t} seconds.")
         winston.info(err)
-        if not err
-            # create default plan 0
-            exports.create_default_plan(conn, (error, results) => cb(error) if error)
-
         cb(err)
 
 class UUIDStore
@@ -876,138 +866,6 @@ class exports.Salvus extends exports.Cassandra
                 opts.cb(err, v)
 
     #####################################
-    # Snap servers
-    #####################################
-    snap_servers: (opts) =>
-        opts = defaults opts,
-            server_ids : undefined
-            columns    : ['id', 'host', 'port', 'key', 'size']
-            cb         : required
-
-        if opts.server_ids?
-            if opts.server_ids.length == 0
-                opts.cb(false, [])
-                return
-            where = {dummy:true, id:{'in':opts.server_ids}}
-        else
-            where = {dummy:true}
-
-        @select
-            table     : 'snap_servers'
-            columns   : opts.columns
-            where     : where
-            objectify : true
-            cb        : opts.cb
-
-    # Return one snap server and repo_id with the given commit.
-    # The servers are the same format as output by snap_servers above.
-    snap_locate_commit: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            timestamp  : required
-            cb         : required   # (err, {server:{host:?,port:?,key:?}, repo_id:?})
-
-        answer    = undefined
-        servers   = undefined
-        async.series([
-            (cb) =>
-                @snap_servers
-                    cb : (err, _servers) =>
-                        servers = _servers
-                        cb(err)
-            (cb) =>
-                server_ids = (x.id for x in servers)
-                @select
-                    table      : 'snap_commits'   # this query uses ALLOW FILTERING.
-                    where      : {server_id:{'in':server_ids}, project_id : opts.project_id, timestamp : opts.timestamp}
-                    columns    : ['server_id', 'repo_id']
-                    objectify  : true
-                    cb         : (err, locations) =>
-                        if err
-                            cb(err); return
-                        server_ids = (x.server_id for x in locations)
-                        servers = (x for x in servers when x.id in server_ids)
-                        if servers.length == 0
-                            cb("no snapshot server with snapshot #{opts.timestamp} of #{opts.project_id}"); return
-                        server = misc.random_choice(servers)
-                        for x in locations
-                            if x.server_id == server.id
-                                answer = {server:server, repo_id:x.repo_id}
-                                cb()
-                                return
-                        cb("Internal BUG -- problem location snapshot server with snapshot #{opts.timestamp} of #{opts.project_id}")
-
-        ], (err) => opts.cb(err, answer))
-
-    snap_commits: (opts) =>
-        opts = defaults opts,
-            server_ids : required
-            project_id : required
-            columns    : ['server_id', 'project_id', 'timestamp', 'size']
-            cb         : required
-
-        if opts.server_ids.length == 0
-            opts.cb(false, [])
-            return
-
-        @select
-            table   : 'snap_commits'
-            where   : {server_id:{'in':opts.server_ids}, project_id:opts.project_id}
-            columns : opts.columns
-            objectify : true
-            cb      : opts.cb
-
-    snap_ls_cache: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            timestamp  : required
-            path       : required
-            listing    : undefined   # if given, store listing in the cache
-            ttl        : 3600*24*7   # 1 week
-            cb         : required    # cb(err, listing or undefined)
-
-        where = {project_id:opts.project_id, timestamp:opts.timestamp, path:opts.path}
-        if opts.listing?
-            # store in cache
-            @update
-                table : 'snap_ls_cache'
-                set   : {listing:opts.listing}
-                json  : ['listing']
-                where : where
-                ttl   : opts.ttl
-                cb    : opts.cb
-        else
-            # get listing out of cache, if there.
-            @select
-                table   : 'snap_ls_cache'
-                columns : ['listing']
-                where   : where
-                json    : ['listing']
-                objectify : false
-                cb      : (err, results) =>
-                    if err
-                        opts.cb(err)
-                    else if results.length == 0
-                        opts.cb(false, undefined)  # no error, but nothing in caching
-                    else
-                        opts.cb(false, results[0][0])
-
-    random_snap_server: (opts) =>
-        opts = defaults opts,
-            cb        : required
-        @snap_servers
-            cb : (err, results) =>
-                if err
-                    opts.cb(err)
-                else
-                    if results.length == 0
-                        opts.cb("No snapshot servers are available -- try again later.")
-                    else
-                        opts.cb(false, misc.random_choice(results))
-
-
-
-    #####################################
     # Managing compute servers
     #####################################
     # if keyspace is test, and there are no compute servers, returns
@@ -1086,30 +944,6 @@ class exports.Salvus extends exports.Cassandra
         ], opts.cb)
 
     #####################################
-    # User plans (what features they get)
-    #####################################
-    get_plan: (opts={}) ->
-        opts = defaults opts,
-            plan_id : required
-            cb      : required
-
-        if not misc.is_valid_uuid_string(opts.plan_id)   # I've seen 0 in tracebacks
-            opts.plan_id = DEFAULT_PLAN_ID
-        @select
-            table  : 'plans'
-            where  : {plan_id:opts.plan_id}
-            columns: ['plan_id', 'name', 'description', 'price', 'current', 'stateless_exec_limits',
-                      'session_limit', 'storage_limit', 'max_session_time', 'ram_limit', 'support_level']
-            objectify: true
-            cb : (error, results) ->
-                if error
-                    opts.cb(error)
-                else if results.length != 1
-                    opts.cb("No plan with id #{opts.plan_id}")
-                else
-                    opts.cb(false, results[0])
-
-    #####################################
     # Account Management
     #####################################
     is_email_address_available: (email_address, cb) =>
@@ -1155,7 +989,6 @@ class exports.Salvus extends exports.Cassandra
                         last_name     : opts.last_name
                         email_address : opts.email_address
                         password_hash : opts.password_hash
-                        plan_id       : DEFAULT_PLAN_ID
                     where : {account_id:account_id}
                     cb    : cb
             (cb) =>
@@ -1363,7 +1196,6 @@ class exports.Salvus extends exports.Cassandra
             account_id    : undefined
             columns       : ['account_id', 'password_hash',
                              'first_name', 'last_name', 'email_address',
-                             'plan_id', 'plan_starttime',
                              'default_system', 'evaluate_key',
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
                              'connect_Github', 'connect_Google', 'connect_Dropbox',
@@ -1670,7 +1502,7 @@ class exports.Salvus extends exports.Cassandra
         @select
             table     : "feedback"
             where     : {account_id:opts.account_id}
-            columns   : ['time', 'category', 'data', 'description', 'status', 'notes', 'url']
+            columns   : ['time', 'category', 'data', 'description', 'notes', 'url']
             json      : ['data']
             objectify : true
             cb        : opts.cb
@@ -1682,30 +1514,11 @@ class exports.Salvus extends exports.Cassandra
         @select
             table     : "feedback"
             where     : {category:opts.category}
-            columns   : ['time', 'account_id', 'data', 'description', 'status', 'notes', 'url']
+            columns   : ['time', 'account_id', 'data', 'description', 'notes', 'url']
             json      : ['data']
             objectify : true
             cb        : opts.cb
 
-
-    #############
-    # Plans
-    ############
-    create_plan: (opts={}) ->
-        opts = defaults(opts,  name:undefined, cb:undefined)
-        @update
-            table : 'plans'
-            where : {plan_id:uuid.v4()}
-            set   : {name:opts.name, created:now()}
-            cb    : opts.cb
-
-    plan: (opts={}) ->
-        opts = defaults(opts,  id:undefined, columns:[], cb:undefined)
-        @select(table:'plans', columns:columns, where:{plan_id:id}, cb:opts.cb)
-
-    current_plans: (opts={}) ->
-        opts = defaults(columns:[], cb:undefined)
-        @select(table:'plans', columns:opts.columns, where:{current:true}, cb:opts.cb)
 
 
     #############
@@ -1789,7 +1602,6 @@ class exports.Salvus extends exports.Cassandra
             where   : {project_id: opts.project_id}
             columns : opts.columns
             objectify : opts.objectify
-            json    : ['quota', 'location']
             cb      : opts.cb
 
     # get map {project_group:[{account_id:?,first_name:?,last_name:?}], ...}
@@ -1888,112 +1700,6 @@ class exports.Salvus extends exports.Cassandra
                             cb()
         ], (err) => opts.cb(err, list))
 
-    # TODO: REWRITE THE function below (and others) to use get_project_data above.
-    _get_project_location: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-        @select
-            table   : 'projects'
-            where   : {project_id: opts.project_id}
-            columns : ['location','title']   # include title to avoid situation when location is null.
-            json    : ['location']
-            cb : (err, results) ->
-                if err
-                    opts.cb(err)
-                else if results.length == 0
-                    opts.cb("There is no project with ID #{opts.project_id}.")  # error
-                else
-                    location = results[0][0]
-                    # We also support "" for the host not being
-                    # defined, since some drivers might not
-                    # support setting a column to null.
-                    if not location
-                        location = undefined
-                    opts.cb(false, location)
-
-    # Caching wrapper around _get_project_location
-    # Right now projects *can't* move, so caching their location makes a lot of sense.
-    get_project_location: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            allow_cache : false # if false, will always get location from database; client can use this to first try cached version and if fails, use;  since projects can move, caching is a very bad idea.
-            cb          : required
-        if not @_project_location_cache?
-            @_project_location_cache = {'array':[], 'obj':{}}
-        if opts.allow_cache
-            location = @_project_location_cache.obj[opts.project_id]
-            if location?
-                opts.cb(false, location)
-                return
-        @_get_project_location
-            project_id : opts.project_id
-            cb         : (err, location) =>
-                if err
-                    opts.cb(err)
-                else
-                    @_project_location_cache.obj[opts.project_id] = location
-                    @_project_location_cache.array.push(opts.project_id)
-                    while @_project_location_cache.array.length > 1 # TODO!!!! make bigger -- this is just for testing.
-                        delete @_project_location_cache.obj[@_project_location_cache.array.shift()]
-                    opts.cb(false, location)
-
-
-    set_project_location: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            location   : required    # "" means "not deployed anywhere" -- see get_project_location above.
-            ttl        : undefined   # used when deploying
-            cb         : undefined
-        @update
-            table : 'projects'
-            json  : ['location']
-            ttl   : opts.ttl
-            set   :
-                location : opts.location
-            where :
-                project_id : opts.project_id
-            cb    : opts.cb
-
-    is_project_being_opened: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-        @uuid_value_store(name:'project_open_lock').get(uuid:opts.project_id, cb:opts.cb)
-
-    lock_project_for_opening: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            ttl        : required
-            cb         : required
-        @uuid_value_store(name:'project_open_lock').set(uuid:opts.project_id, value:true, ttl:opts.ttl, cb:opts.cb)
-
-    remove_project_opening_lock: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            cb         : undefined
-        @uuid_value_store(name:'project_open_lock').delete(uuid:opts.project_id, cb:opts.cb)
-
-
-    is_project_being_saved: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-        @uuid_value_store(name:'project_save_lock').get(uuid:opts.project_id, cb:opts.cb)
-
-    lock_project_for_saving: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            ttl        : required
-            cb         : required
-        @uuid_value_store(name:'project_save_lock').set(uuid:opts.project_id, value:true, ttl:opts.ttl, cb:opts.cb)
-
-    remove_project_saving_lock: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            cb         : undefined
-        @uuid_value_store(name:'project_save_lock').delete(uuid:opts.project_id, cb:opts.cb)
-
     # Set last_edited for this project to right now, and possibly update its size.
     # It is safe and efficient to call this function very frequently since it will
     # actually hit the database at most once every 30 seconds (per project).  In particular,
@@ -2038,60 +1744,13 @@ class exports.Salvus extends exports.Cassandra
                         cb    : cb
                 async.map(RECENT_TIMES_ARRAY, f, (err) -> opts.cb?(err))
 
-    # Return all projects that were active in the last week, but *not* active in the last ttl seconds,
-    # whose status is not 'closed'.
-    stale_projects: (opts) =>
-        opts = defaults opts,
-            ttl     : 60*60*24   # time in seconds (up to a week)
-            cb      : required
-        dbg = (m) -> winston.debug("database stale_projects(#{opts.ttl}): #{m}")
-
-        project_ids = undefined
-        t = misc.mswalltime() - opts.ttl*1000  # cassandra timestamps come back in ms since UTC epoch
-        ans = undefined
-        async.series([
-            (cb) =>
-                @select
-                    table   : 'recently_modified_projects'
-                    where   : {ttl:'week'}
-                    limit   : 100000   # TODO: something better when we have 100,000 weekly users...
-                    columns : ['project_id']
-                    cb      : (err, v) =>
-                        if err
-                            cb(err)
-                        else
-                            project_ids = (x[0] for x in v)
-                            dbg("got #{project_ids.length} project id's in last week")
-                            cb()
-            (cb) =>
-                @select
-                    table   : 'projects'
-                    where   : {'project_id':{'in':project_ids}}
-                    columns : ['project_id', 'location', 'last_edited', 'timeout_disabled', 'status']
-                    cb      : (err, v) =>
-                        if err
-                            cb(err)
-                        else
-                            dbg("got #{v.length} matching projects")
-                            ans = ({'project_id':x[0], 'location':misc.from_json(x[1]), 'last_edited':x[2]} for x in v when x[1] and x[2] <= t and not x[3] and x[4] != 'closed')
-                            dbg("of these #{ans.length} are open but old.")
-                            cb()
-        ], (err) =>
-            if err
-                dbg("error -- #{err}")
-            opts.cb(err, ans)
-        )
-
     create_project: (opts) ->
         opts = defaults opts,
             project_id  : required
             account_id  : required  # owner
             title       : required
-            location    : undefined
             description : undefined  # optional
             public      : required
-            quota       : required
-            idle_timeout: required
             cb          : required
 
         async.series([
@@ -2102,14 +1761,10 @@ class exports.Salvus extends exports.Cassandra
                     set   :
                         account_id  : opts.account_id
                         title       : opts.title
-                        location    : opts.location
                         last_edited : now()
                         description : opts.description
                         public      : opts.public
-                        quota       : opts.quota
-                        status      : 'new'
                     where : {project_id: opts.project_id}
-                    json  : ['quota', 'location']
                     cb    : (error, result) ->
                         if error
                             opts.cb(error)
@@ -2130,31 +1785,6 @@ class exports.Salvus extends exports.Cassandra
                     delta : 1
                     cb    : cb
         ], opts.cb)
-
-    # DEPRECATED
-    set_all_project_owners_to_users: (cb) =>
-        # DELETE THIS: This is solely due fix some database consistency issues... -- that said, this
-        # is a deprecated table anyways, so this can be deleted soon.
-        @select
-            table: 'projects'
-            limit: 100000
-            columns: ['project_id', 'account_id']
-            objectify: false
-            cb: (err, results) =>
-                 f = (r, cb) =>
-                     if not r[0]? or not r[1]?
-                          console.log("skipping", r)
-                          cb()
-                          return
-                     @update
-                         table : 'project_users'
-                         set   :
-                               mode : 'owner'
-                         where :
-                               project_id : r[0]
-                               account_id : r[1]
-                         cb: cb
-                 async.map(results, f, cb)
 
     undelete_project: (opts) ->
         opts = defaults opts,
@@ -2355,7 +1985,6 @@ class exports.Salvus extends exports.Cassandra
 
         @select
             table     : 'projects'
-            json      : ['location', 'quota']
             columns   : PROJECT_COLUMNS
             objectify : true
             where     : { project_id:{'in':opts.ids} }
@@ -2386,71 +2015,6 @@ class exports.Salvus extends exports.Cassandra
                     for r in results
                         v = v.concat(r)
                     opts.cb(false, v)
-
-    get_project_open_info: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-        @select
-            table      : 'projects'
-            columns    : ['quota', 'idle_timeout']
-            json       : ['quota']
-            objectify  : true
-            cb         : (err, results) ->
-                if err
-                    opts.cb(err)
-                else if results.length == 0
-                    opts.cb("No project in the database with id #{project_id}")
-                else
-                    opts.cb(false, results[0])
-
-    # DEPRECATED
-    get_project_bundles: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-
-        @select
-            table      : 'project_bundles'
-            columns    : ['filename', 'bundle']
-            where      : { project_id:opts.project_id }
-            cb         : (err, results) ->
-                if err
-                    opts.cb(err)
-                else
-                    v = []
-                    for r in results
-                        v.push([r[0], new Buffer(r[1], 'hex')])
-                    opts.cb(err, v)
-
-    # DEPRECATED
-    get_project_bundle_filenames: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-
-        @select
-            table      : 'project_bundles'
-            columns    : ['filename']
-            where      : { project_id:opts.project_id }
-            cb         : opts.cb
-
-    # DEPRECATED
-    save_project_bundle: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            filename   : required
-            bundle     : required
-            cb         : required
-
-        @update
-            table      : 'project_bundles'
-            set        :
-                bundle : opts.bundle.toString('hex')
-            where      :
-                project_id : opts.project_id
-                filename   : opts.filename
-            cb         : opts.cb
 
     # Get array of uuid's all *all* projects in the database
     get_all_project_ids: (opts) =>   # cb(err, [project_id's])
@@ -2501,7 +2065,7 @@ class exports.Salvus extends exports.Cassandra
                     json      : ['hub_servers']
                     columns   : [ 'timestamp', 'accounts', 'projects', 'active_projects',
                                   'last_day_projects', 'last_week_projects',
-                                  'last_month_projects', 'snap_servers', 'hub_servers']
+                                  'last_month_projects', 'hub_servers']
                     cb        : (err, result) =>
                         if err
                             cb(err)
@@ -2551,13 +2115,6 @@ class exports.Salvus extends exports.Cassandra
                     where : {ttl : 'month'}
                     cb    : (err, val) =>
                         stats.last_month_projects = val
-                        cb(err)
-            (cb) =>
-                @count
-                    table : 'snap_servers'
-                    where : {dummy:true}
-                    cb    : (err, val) =>
-                        stats.snap_servers = val
                         cb(err)
             (cb) =>
                 @select

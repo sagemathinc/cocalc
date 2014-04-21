@@ -38,6 +38,8 @@ STORAGE_SERVERS_UPDATE_INTERVAL_S = 180  # How frequently (in seconds)  to query
 
 IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds.
 
+ZPOOL = if process.env.BUP_POOL? then process.env.BUP_POOL else 'bup'
+
 CONF = "/bup/conf"
 fs.exists CONF, (exists) ->
     if exists
@@ -59,7 +61,7 @@ bup_storage = (opts) =>
     winston.debug("bup_storage: running #{misc.to_json(opts.args)}")
     misc_node.execute_code
         command : "sudo"
-        args    : ["/usr/local/bin/bup_storage.py"].concat(opts.args)
+        args    : ["/usr/local/bin/bup_storage.py", "--zpool", ZPOOL].concat(opts.args)
         timeout : opts.timeout
         path    : process.cwd()
         cb      : (err, output) =>
@@ -1502,7 +1504,7 @@ class GlobalClient
         #dbg("updating list of available storage servers...")
         @database.select
             table     : 'storage_servers'
-            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret', 'vnodes']
+            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret']
             objectify : true
             where     : {dummy:true}
             cb        : (err, results) =>
@@ -1538,10 +1540,10 @@ class GlobalClient
                 @_update(cb)
             (cb) =>
                 dbg("writing file")
-                # @servers = {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
+                # @servers = {server_id:{host:'ip address', dc:2}, ...}
                 servers_conf = {}
                 for server_id, x of @servers.by_id
-                    servers_conf[server_id] = {host:x.host, vnodes:x.vnodes, dc:x.dc}
+                    servers_conf[server_id] = {host:x.host, dc:x.dc}
                 fs.writeFile(file, misc.to_json(servers_conf), cb)
             (cb) =>
                 f = (server_id, c) =>
@@ -1574,10 +1576,9 @@ class GlobalClient
         opts = defaults opts,
             host   : required
             dc     : 0           # 0, 1, 2, .etc.
-            vnodes : 128
             timeout: 30
             cb     : undefined
-        dbg = (m) -> winston.debug("GlobalClient.add_storage_server(#{opts.host}, #{opts.dc},#{opts.vnodes}): #{m}")
+        dbg = (m) -> winston.debug("GlobalClient.add_storage_server(#{opts.host}, #{opts.dc}): #{m}")
         dbg("adding storage server to the database by grabbing server_id files, etc.")
         get_file = (path, cb) =>
             dbg("get_file: #{path}")
@@ -1594,7 +1595,7 @@ class GlobalClient
                     else
                         cb(undefined, output.stdout)
 
-        set = {host:opts.host, dc:opts.dc, vnodes:opts.vnodes, port:undefined, secret:undefined}
+        set = {host:opts.host, dc:opts.dc, port:undefined, secret:undefined}
         where = {server_id:undefined, dummy:true}
 
         async.series([
@@ -2582,7 +2583,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--replication [string]', 'replication factor (default: 2)', String, '2')
 
     .option('--port [integer]', "port to listen on (default: assigned by OS)", String, 0)
-    .option('--address [string]', 'address to listen on (default: the tinc network or 127.0.0.1 if no tinc)', String, '')
+    .option('--address [string]', 'address to listen on (default: the tinc network if there, or eth1 if there, or 127.0.0.1)', String, '')
 
     .parse(process.argv)
 
@@ -2606,6 +2607,6 @@ main = () ->
         winston.error("Uncaught exception: #{err}")
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
-if program._name == 'bup_server.js'
+if program._name == 'bup_server'
     main()
 
