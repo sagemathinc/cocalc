@@ -1337,6 +1337,9 @@ class GlobalProject
                     # see comments above -- this is just for testing purposes
                     f = () =>
                         @global_client.get_project(opts.project_id).get_location_pref (err, server_id) =>
+                            if err
+                                # database error -- try again later
+                                return
                             if remote_host != @global_client.servers.by_id[server_id].host
                                 @umount_remote
                                     mount_point : opts.mount_point
