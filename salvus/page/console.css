@@ -27,9 +27,10 @@
     padding       : 10px;
     font-weight   : bold;
     overflow      : hidden;
-    color:#555;
-    max-width : 40%;
-    padding-top: 4px;
+    color         : #555;
+    max-width     : 40%;
+    max-height    : 1.5em;
+    padding-top   : 4px;
     padding-bottom: 0;
 }
 

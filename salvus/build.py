@@ -105,9 +105,9 @@ Before building, do:
 
   git clone https://github.com/zfsnap/zfsnap.git
   cd zfsnap
-  git fetch origin legacy
-  git branch legacy
-  git checkout legacy
+  #git fetch origin legacy
+  #git branch legacy
+  #git checkout legacy
   cp sbin/zfsnap.sh /usr/local/bin/; cp -rv share/zfsnap/ /usr/local/share/
 
 
@@ -122,12 +122,10 @@ MaxStartups 128
 # Additional packages (mainly for users, not building).
 
 
-   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr go libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimag
-e-lib python-sklearn  python-sklearn-doc  python-sklearn-lib
+   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr go libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse
 
 
-
-# Aldor - in 13.10, have to modify /etc/apt/sources.list.d/pippijn-ppa-*.list and replace version with "precise"
+# Aldor, have to modify /etc/apt/sources.list.d/pippijn-ppa-*.list and replace version with "precise"
 
    sudo add-apt-repository ppa:pippijn/ppa
    sudo apt-get update; sudo apt-get install aldor open-axiom*
@@ -333,15 +331,7 @@ r packages could be automated like so (?)
 
 # R 3.x system-wide:
 
-  Add this to /etc/apt/sources.list:
-
-     deb http://cran.cnr.Berkeley.edu/bin/linux/ubuntu precise/        # ubuntu
-
-     deb http://cran.cnr.Berkeley.edu/bin/linux/debian wheezy-cran3/   # debian
-
-  Then
-
-     apt-get update; apt-get upgrade; apt-get install r-recommended
+     apt-get install r-recommended
 
      umask 022 && /usr/bin/R
      install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields", "circular", "glmnet"), repos='http://cran.cs.wwu.edu/')
@@ -436,10 +426,14 @@ In /etc/sysctl.conf, put:
 
 """
 
-TINC_VERSION='1.0.23'       # options here -- http://tinc-vpn.org/packages/
-CASSANDRA_VERSION='1.2.9'   # options here -- http://downloads.datastax.com/community/
-NODE_VERSION='0.10.21'      # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
-SETUPTOOLS_VERSION='2.0.2'  # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
+TINC_VERSION       = '1.0.23'    # options here -- http://tinc-vpn.org/packages/
+CASSANDRA_VERSION  = '2.0.6'     # options here -- http://downloads.datastax.com/community/
+NODE_VERSION       = '0.10.26'   # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
+PYTHON_VERSION     = '2.7.6'     # options here -- https://www.python.org/ftp/python/
+SETUPTOOLS_VERSION = '3.4.4'     # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
+NGINX_VERSION      = '1.5.9'     # options here -- http://nginx.org/download/
+HAPROXY_VERSION    = '1.5-dev22' # options here -- http://haproxy.1wt.eu/download/1.5/src/devel/
+STUNNEL_VERSION    = '5.01'     # options here -- https://www.stunnel.org/downloads.html
 
 import logging, os, shutil, subprocess, sys, time
 
@@ -464,25 +458,47 @@ if 'MAKE' in os.environ:
 # due to some packages cheating npm.  So I'm typically just copying over node_modules/start-stop-daemon from previous installs.
 
 NODE_MODULES = [
-    'commander', 'start-stop-daemon', 'winston', 'sockjs', 'node-cassandra-cql',
-    'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify@1.16.4', 'uglify-js2',
-    'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
+    'commander',
+    'start-stop-daemon',
+    'winston',
+    'sockjs',
+    'node-cassandra-cql',
+    'sockjs-client-ws',
+    'coffee-script',
+    'node-uuid',
+    'browserify@1.16.4',
+    'uglify-js2',
+    'passport',
+    'passport-github',
+    'express',
+    'nodeunit',
+    'validator',
+    'async',
     'password-hash',
     'emailjs@0.3.4',   # version hold back because of https://github.com/eleith/emailjs/commits/master
-    'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
-    'mkdirp', 'walk', 'temp', 'googlediff', 'formidable@latest',
-    'moment', 'underscore', 'read', 'hashring', 'rimraf'
+    'cookies',
+    'htmlparser',
+    'mime',
+    'pty.js',
+    'posix',
+    'mkdirp',
+    'walk',
+    'temp',
+    'googlediff',
+    'formidable@latest',
+    'moment',
+    'underscore',
+    'read',
+    'hashring',
+    'rimraf'
     ]
 
 PYTHON_PACKAGES = [
-    'ipython','readline', # a usable command line  (ipython uses readline)
+    'readline',
+    'ipython',            # a usable command line  (ipython uses readline)
     'python-daemon',      # daemonization of python modules
     'paramiko',           # ssh2 implementation in python
-    'cql',                # interface to Cassandra
-    'fuse-python',        # used by bup: Python bindings to "filesystem in user space"
-    'pyxattr',            # used by bup
-    'pylibacl',           # used by bup
-    'pyinotify'
+    'cql'                 # interface to Cassandra
     ]
 
 if not os.path.exists(BUILD):
@@ -516,6 +532,8 @@ def extract_package(basename):
     for filename in os.listdir(SRC):
         if filename.startswith(basename):
             i = filename.rfind('.tar.')
+            if i == -1:
+                i = filename.rfind('.tgz')
             path = os.path.join(BUILD, filename[:i])
             if os.path.exists(path):
                 shutil.rmtree(path)
@@ -540,6 +558,10 @@ def build_tinc():
 def build_python():
     log.info('building python'); start = time.time()
     try:
+        target = 'Python-%s.tgz'%PYTHON_VERSION
+        if not os.path.exists(os.path.join(SRC, target)):
+            cmd("rm -f Python-*", SRC)
+            download("https://www.python.org/ftp/python/%s/Python-%s.tgz"%(PYTHON_VERSION, PYTHON_VERSION))
         path = extract_package('Python')
         cmd('./configure --prefix="%s"  --libdir="%s"/lib --enable-shared'%(PREFIX,PREFIX), path)
         cmd('make -j %s'%NCPU, path)
@@ -569,6 +591,11 @@ def build_node():
 def build_nginx():
     log.info('building nginx'); start = time.time()
     try:
+        target = "nginx-%s.tar.gz"%NGINX_VERSION
+        if not os.path.exists(os.path.join(SRC, target)):
+            cmd('rm -f nginx-v*.tar.*', SRC)  # remove any source tarballs that might have got left around
+            download("http://nginx.org/download/nginx-%s.tar.gz"%NGINX_VERSION)
+
         path = extract_package('nginx')
         cmd('./configure --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
@@ -581,6 +608,11 @@ def build_nginx():
 def build_haproxy():
     log.info('building haproxy'); start = time.time()
     try:
+        target = "haproxy-%s.tar.gz"%HAPROXY_VERSION
+        if not os.path.exists(os.path.join(SRC, target)):
+            cmd('rm -f haproxy*', SRC)  # remove any source tarballs that might have got left around
+            download("http://haproxy.1wt.eu/download/1.5/src/devel/haproxy-%s.tar.gz"%HAPROXY_VERSION)
+
         path = extract_package('haproxy')
 
         # patch log.c so it can write the log to a file instead of syslog
@@ -594,6 +626,10 @@ def build_haproxy():
 def build_stunnel():
     log.info('building stunnel'); start = time.time()
     try:
+        target = "stunnel-%s.tar.gz"%STUNNEL_VERSION
+        if not os.path.exists(os.path.join(SRC, target)):
+            cmd('rm -f stunnel*', SRC)  # remove any source tarballs that might have got left around
+            download("https://www.stunnel.org/downloads/stunnel-%s.tar.gz"%STUNNEL_VERSION)
         path = extract_package('stunnel')
         cmd('./configure --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
@@ -642,6 +678,7 @@ def build_python_packages():
         cmd('python setup.py install', path)
         cmd('easy_install pip', path)
         for pkg in PYTHON_PACKAGES:
+            print "***", pkg
             cmd('pip install %s'%pkg, '/tmp')
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
