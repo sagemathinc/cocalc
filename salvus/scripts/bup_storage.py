@@ -687,7 +687,8 @@ class Project(object):
         open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(str(cpu_shares))
         open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write(str(cfs_quota))
 
-        z = "\n%s  cpu,memory  %s\n"%(self.username, self.username)
+        # important -- using self.username instead of self.uid does NOT work reliably!
+        z = "\n%s  cpu,memory  %s\n"%(self.uid, self.username)
         cur = open("/etc/cgrules.conf").read() if os.path.exists("/etc/cgrules.conf") else ''
 
         if z not in cur:
