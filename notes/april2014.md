@@ -1,3 +1,6 @@
+- [ ] need to write the uid instead of username in the control groups rules file
+
+- [ ] when user "control-d" a console session (?) this maybe results in node using 100% of cpu -- I saw this once; test
 
 
 - [ ] ie file editing completely broken due to top position location determination issue: https://mail.google.com/mail/u/0/?shva=1#inbox/14570edecf01f3dc
@@ -6,9 +9,10 @@
        -- ubuntu 14.04
        -- sage 6.2
 
+- [ ] reduce power of gce machines... too much now; combine changing this with fixing rebooting.
 
-
-- [ ] bup -- should put my caching code back in, e.g., my main project has 250-ish commits and is already taking .25 - 1 s; I did a quick test with my code and it was much, much faster.
+- [ ] fix this for GOOD!  (line 113 bs)
+        salvus@web10:~/salvus/salvus$ vi /home/salvus/salvus/salvus/node_modules/http-proxy/lib/http-proxy/passes/ws-incoming.js
 
 - [ ] increasing quota -- I should make an admin interface for this...
 
