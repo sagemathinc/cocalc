@@ -1,9 +1,8 @@
-- [ ] need to write the uid instead of username in the control groups rules file
+- [x] need to write the uid instead of username in the control groups rules file
 
 - [ ] when user "control-d" a console session (?) this maybe results in node using 100% of cpu -- I saw this once; test
 
 - [ ] rewrite sync to completely remove the differential sync doc from the hub -- just forward everything back and forth between browser client and local hub.  This should speed things up, avoid a lot of state issues, and lay a good foundation for further optimizations and fixes.
-
 
 - [ ] reduce power of gce machines... too much now; combine changing this with fixing rebooting.
 
