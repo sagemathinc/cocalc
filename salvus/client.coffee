@@ -548,7 +548,7 @@ class exports.Connection extends EventEmitter
             timeout : opts.timeout
             cb      : opts.cb
 
-    call: (opts={}) ->
+    call: (opts={}) =>
         # This function:
         #    * Modifies the message by adding an id attribute with a random uuid value
         #    * Sends the message to the hub
@@ -576,6 +576,20 @@ class exports.Connection extends EventEmitter
                         @call_callbacks[id] = null
                 ), opts.timeout*1000
             )
+
+    call_local_hub: (opts) =>
+        opts = defaults opts,
+            project_id : required    # determines the destination local hub
+            message    : required
+            timeout    : undefined
+            cb         : undefined
+        m = message.local_hub
+                project_id : opts.project_id
+                message    : opts.message
+                timeout    : opts.timeout
+        @call
+            message : m
+            cb      : opts.cb
 
 
     #################################################

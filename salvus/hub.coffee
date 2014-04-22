@@ -1578,8 +1578,13 @@ class Client extends EventEmitter
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
+            if not mesg.message?
+                # in case the message itself is invalid -- is possible
+                @error_to_client(id:mesg.id, error:"message must be defined")
+                return
             project.call
-                message : mesg.message
+                mesg    : mesg.message
+                timeout : mesg.timeout
                 cb      : (err, resp) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
@@ -3065,7 +3070,7 @@ class Project
     call: (opts) =>
         opts = defaults opts,
             mesg    : required
-            timeout : 10
+            timeout : 15
             cb      : undefined
         @_fixpath(opts.mesg)
         opts.mesg.project_id = @project_id
