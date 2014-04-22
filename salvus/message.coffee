@@ -1187,3 +1187,18 @@ message
     id         : undefined
 
 
+
+
+###########################################################
+#
+# Direct messaging between browser client and local_hub,
+# forwarded on by global hub after ensuring write access.
+#
+###########################################################
+message
+    event      : 'local_hub'
+    id         : undefined
+    message    : required   # arbitrary message
+
+
+

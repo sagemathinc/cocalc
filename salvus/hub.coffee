@@ -1569,8 +1569,24 @@ class Client extends EventEmitter
 
 
     ################################################
-    # CodeMirror Sessions
+    # Directly communicate with the local hub.  If the
+    # client has write access to the local hub, there's no
+    # reason they shouldn't be allowed to send arbitrary messages
+    # directly (they could anyways from the terminal).
     ################################################
+    mesg_local_hub: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            project.call
+                message : mesg.message
+                cb      : (err, resp) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        resp.id = mesg.id
+                        @push_to_client(resp)
+
     mesg_codemirror_get_session: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err
