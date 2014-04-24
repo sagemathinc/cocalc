@@ -1,12 +1,19 @@
-- [x] need to write the uid instead of username in the control groups rules file
-
-- [ ] when user "control-d" a console session (?) this maybe results in node using 100% of cpu -- I saw this once; test
+- [x] upgrade to nginx 1.6.0 stable
 
 - [ ] rewrite sync to completely remove the differential sync doc from the hub -- just forward everything back and forth between browser client and local hub.  This should speed things up, avoid a lot of state issues, and lay a good foundation for further optimizations and fixes.
- 
+
          # this now works in the javascript console:
          s=require('salvus_client').salvus_client
          s.call({message:{event:'local_hub', project_id:'224ed24d-16c2-402e-b206-46738eaf9fb8', message:{event:'codemirror_get_session', path:'a.py'}}, cb:function(e,r){console.log(e,r)}})
+
+    - [ ] sync2: add clientid to messages so localhub can distinguish clients
+    - [ ] sync2: project touch activity needs to be based on something new since codemirror objects are going away in hub.  WHAT?
+
+
+
+
+- [ ] when user "control-d" a console session (?) this maybe results in node using 100% of cpu -- I saw this once; test
+
 
 
 - [ ] reduce power of gce machines... too much now; combine changing this with fixing rebooting.
@@ -24,11 +31,14 @@
        -- ubuntu 14.04
        -- sage 6.2.x
 
+
+- [ ] upgrade to codemirror 4.1
+
 - [ ] increasing quota -- I should make an admin interface for this...
 
         x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
-        p=x.c.get_project('4255de6e-adc9-4a1e-ad9c-78493da07e64')
-        p.set_settings(cb:console.log, cores:12, cpu_shares:4*256, memory:20000)
+        p=x.c.get_project('0069cdc2-3baa-4561-9c9e-17cb08e9b849')
+        p.set_settings(cb:console.log, cores:12, cpu_shares:4*256, memory:20000, mintime:999999999999999)
 
 - [ ] project folder connections (?)
 
@@ -504,5 +514,9 @@ key points:
          This fully works as we want.
          And bindfs (http://bindfs.org/) is pretty awesome; it lets you mount things read only, etc.
          It's fully FUSE, so no issues of kernel locking, etc.
+
+
+- [x] need to write the uid instead of username in the control groups rules file
+
 
 
