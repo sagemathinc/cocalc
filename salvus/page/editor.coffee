@@ -1031,32 +1031,33 @@ class CodeMirrorEditor extends FileEditor
         editor_settings = require('account').account_settings.settings.editor_settings
 
         opts = @opts = defaults opts,
-            mode              : required
-            geometry          : undefined  # (default=full screen);
-            read_only         : false
-            delete_trailing_whitespace : editor_settings.strip_trailing_whitespace  # delete on save
-            allow_javascript_eval : true  # if false, the one use of eval isn't allowed.
-            line_numbers      : editor_settings.line_numbers
-            first_line_number : editor_settings.first_line_number
-            indent_unit       : editor_settings.indent_unit
-            tab_size          : editor_settings.tab_size
-            smart_indent      : editor_settings.smart_indent
-            electric_chars    : editor_settings.electric_chars
-            undo_depth        : editor_settings.undo_depth
-            match_brackets    : editor_settings.match_brackets
-            line_wrapping     : editor_settings.line_wrapping
-            style_active_line : 15    # editor_settings.style_active_line  # (a number between 0 and 127)
-            bindings          : editor_settings.bindings  # 'standard', 'vim', or 'emacs'
-            theme             : editor_settings.theme
+            mode                      : required
+            geometry                  : undefined  # (default=full screen);
+            read_only                 : false
+            delete_trailing_whitespace: editor_settings.strip_trailing_whitespace  # delete on save
+            allow_javascript_eval     : true  # if false, the one use of eval isn't allowed.
+            line_numbers              : editor_settings.line_numbers
+            first_line_number         : editor_settings.first_line_number
+            indent_unit               : editor_settings.indent_unit
+            tab_size                  : editor_settings.tab_size
+            smart_indent              : editor_settings.smart_indent
+            electric_chars            : editor_settings.electric_chars
+            undo_depth                : editor_settings.undo_depth
+            match_brackets            : editor_settings.match_brackets
+            line_wrapping             : editor_settings.line_wrapping
+            spaces_instead_of_tabs    : editor_settings.spaces_instead_of_tabs
+            style_active_line         : 15    # editor_settings.style_active_line  # (a number between 0 and 127)
+            bindings                  : editor_settings.bindings  # 'standard', 'vim', or 'emacs'
+            theme                     : editor_settings.theme
 
             # I'm making the times below very small for now.  If we have to adjust these to reduce load, due to lack
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
             # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
 
-            cursor_interval   : 1000   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
-            sync_interval     : 750    # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
+            cursor_interval           : 1000   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
+            sync_interval             : 750    # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
-            completions_size  : 20    # for tab completions (when applicable, e.g., for sage sessions)
+            completions_size          : 20    # for tab completions (when applicable, e.g., for sage sessions)
 
         #console.log("mode =", opts.mode)
 
@@ -1136,6 +1137,7 @@ class CodeMirrorEditor extends FileEditor
                 lineWrapping    : opts.line_wrapping
                 readOnly        : opts.read_only
                 styleActiveLine : opts.style_active_line
+                indentWithTabs  : not opts.spaces_instead_of_tabs
                 extraKeys       : extraKeys
                 cursorScrollMargin : 40
 
@@ -1224,7 +1226,10 @@ class CodeMirrorEditor extends FileEditor
             @tab_nothing_selected(editor)
 
     tab_nothing_selected: (editor) =>
-        editor.tab_as_space()
+        if @opts.spaces_instead_of_tabs
+            editor.tab_as_space()
+        else
+            CodeMirror.commands.defaultTab(editor)
 
     init_edit_buttons: () =>
         that = @

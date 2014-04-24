@@ -391,8 +391,13 @@ $("#account").find("a[href=#sign-out]").click (event) ->
 # Account settings
 ################################################
 
-EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace', 'line_wrapping',
-                              'line_numbers', 'smart_indent', 'match_brackets', 'electric_chars']
+EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
+                              'line_wrapping',
+                              'line_numbers',
+                              'smart_indent',
+                              'match_brackets',
+                              'electric_chars',
+                              'spaces_instead_of_tabs']
 
 OTHER_SETTINGS_CHECKBOXES = ['confirm_close']
 

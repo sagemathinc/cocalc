@@ -963,7 +963,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
         pos  = @codemirror.getCursor()
         line = @codemirror.getLine(pos.line).slice(0, pos.ch)
         if pos.ch == 0 or line[pos.ch-1] in ")]}'\"\t "
-            @codemirror.tab_as_space()
+            if @editor.opts.spaces_instead_of_tabs
+                @codemirror.tab_as_space()
+            else
+                CodeMirror.commands.defaultTab(@codemirror)
             return
         @introspect_line
             line : line
