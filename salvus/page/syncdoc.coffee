@@ -189,7 +189,7 @@ class AbstractSynchronizedDoc extends EventEmitter
             sync_interval : 1000    # no matter what, we won't send sync messages back to the server more frequently than this (in ms)
             cb         : required   # cb(err) once doc has connected to hub first time and got session info; will in fact keep trying until success
 
-        @project_id = @opts.project_id
+        @project_id = @opts.project_id   # must also be set by derived classes that don't call this constructor!
         @filename   = @opts.filename
 
         @connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
@@ -311,13 +311,25 @@ class AbstractSynchronizedDoc extends EventEmitter
                     else
                         cb()
 
-    call: (opts) =>
+    xxx_call: (opts) =>
         opts = defaults opts,
             message     : required
             timeout     : 30
             cb          : undefined
         opts.message.session_uuid = @session_uuid
         salvus_client.call(opts)
+
+    call: (opts) =>
+        opts = defaults opts,
+            message     : required
+            timeout     : 30
+            cb          : undefined
+        opts.message.session_uuid = @session_uuid
+        salvus_client.call_local_hub
+            message    : opts.message
+            timeout    : opts.timeout
+            project_id : @project_id
+            cb         : opts.cb
 
     broadcast_cursor_pos: (pos) =>
         @send_broadcast_message({event:'cursor', pos:pos, patch_moved_cursor:@_patch_moved_cursor}, false)
@@ -392,7 +404,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
     disconnect_from_session: (cb) =>
         @_remove_listeners()
         if @session_uuid? # no need to re-disconnect if not connected (and would cause serious error!)
-            salvus_client.call
+            @call
                 timeout : 10
                 message : message.codemirror_disconnect(session_uuid : @session_uuid)
                 cb      : cb
@@ -410,6 +422,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @opts = defaults opts,
             cursor_interval : 1000
             sync_interval   : 750   # never send sync messages up stream more often than this
+        @project_id = @editor.project_id
 
         @filename    = @editor.filename
 
@@ -417,6 +430,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @connect    = @_connect
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
         @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
+
 
         @editor.save = @save
         @codemirror  = @editor.codemirror
@@ -428,7 +442,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @init_cursorActivity_event()
 
         synchronized_string
-            project_id    : @editor.project_id
+            project_id    : @project_id
             filename      : misc.meta_file(@filename, 'chat')
             sync_interval : 1000
             cb            : (err, chat_session) =>
@@ -555,9 +569,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @_remove_execute_callbacks()
         if @session_uuid?
             # no need to re-disconnect (and would cause serious error!)
-            salvus_client.call
+            @call
                 timeout : 10
-                message : message.codemirror_disconnect(session_uuid : @session_uuid)
+                message : message.codemirror_disconnect()
                 cb      : cb
 
         # store pref in localStorage to not auto-open this file next time
@@ -575,14 +589,14 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             @_execute_callbacks.push(uuid)
         else
             @_execute_callbacks = [uuid]
-        salvus_client.send(
-            message.codemirror_execute_code
-                id   : uuid
-                code : opts.code
-                data : opts.data
-                preparse : opts.preparse
+        @call
+            message : message.codemirror_execute_code
+                id           : uuid
+                code         : opts.code
+                data         : opts.data
+                preparse     : opts.preparse
                 session_uuid : @session_uuid
-        )
+                
         if opts.cb?
             salvus_client.execute_callbacks[uuid] = opts.cb
 
@@ -598,7 +612,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             preparse : true
             cb       : required
 
-        salvus_client.call
+        @call
             message: message.codemirror_introspect
                 line         : opts.line
                 preparse     : opts.preparse
@@ -949,7 +963,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if not @session_uuid?
             opts.cb("session_uuid must be set before sending a signal")
             return
-        salvus_client.call
+        @call
             message: message.codemirror_send_signal
                 signal : opts.signal
                 session_uuid : @session_uuid
@@ -1203,14 +1217,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if opts.cb?
             salvus_client.execute_callbacks[uuid] = opts.cb
 
-        salvus_client.send(
-            message.codemirror_execute_code
+        @call
+            message : message.codemirror_execute_code
                 session_uuid : @session_uuid
                 id           : uuid
                 code         : opts.code
                 data         : opts.data
                 preparse     : opts.preparse
-        )
 
         return uuid
 

@@ -332,7 +332,7 @@ message
 message
     event        : 'codemirror_disconnect'
     id           : undefined
-    session_uuid : required
+    session_uuid : undefined  # gets filled in
 
 # Broadcast mesg to all clients connected to this session.
 # This is used for cursors, updating session id's, etc.
