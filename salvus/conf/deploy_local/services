@@ -2,7 +2,7 @@
 
 #  import admin; reload(admin); s = admin.Services('conf/deploy_local/', username='wstein'); h=s._hosts
 
-[cassandra] {'cluster_name':'salvus1', 'commitlog_total_space_in_mb':'128', 'thrift_framed_transport_size_in_mb':'39', 'MAX_HEAP_SIZE':'500M',  'HEAP_NEWSIZE':'256M',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer'}
+[cassandra] {'cluster_name':'salvus1', 'commitlog_total_space_in_mb':'128', 'thrift_framed_transport_size_in_mb':'39'}
 #{'read_request_timeout_in_ms':'60000', 'request_timeout_in_ms':'60000', 'range_request_timeout_in_ms':'60000'}
 localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
 
