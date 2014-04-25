@@ -595,7 +595,7 @@ class Client extends EventEmitter
     # Pushing messages to this particular connected client
     #######################################################
     push_to_client: (mesg) =>
-        winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}") if mesg.event != 'pong'
+        winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),600)}") if mesg.event != 'pong'
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
 
     push_data_to_client: (channel, data) ->
@@ -839,7 +839,7 @@ class Client extends EventEmitter
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
         if mesg.event.slice(0,4) != 'ping' and mesg.event != 'codemirror_bcast'
-            winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 300)}")
+            winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 600)}")
         handler = @["mesg_#{mesg.event}"]
         if handler?
             handler(mesg)
@@ -1571,8 +1571,8 @@ class Client extends EventEmitter
     ################################################
     # Directly communicate with the local hub.  If the
     # client has write access to the local hub, there's no
-    # reason they shouldn't be allowed to send arbitrary messages
-    # directly (they could anyways from the terminal).
+    # reason they shouldn't be allowed to send arbitrary
+    # messages directly (they could anyways from the terminal).
     ################################################
     mesg_local_hub: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
@@ -1582,16 +1582,24 @@ class Client extends EventEmitter
                 # in case the message itself is invalid -- is possible
                 @error_to_client(id:mesg.id, error:"message must be defined")
                 return
+
+            # It's extremely useful if the local hub has a way to distinguish between different clients who are
+            # being proxied through the same hub.
+            mesg.message.client_id = @id
+
+            # Make the actual call
             project.call
                 mesg    : mesg.message
                 timeout : mesg.timeout
                 cb      : (err, resp) =>
                     if err
+                        winston.debug("Error #{err} calling message #{to_json(mesg.message)}")
                         @error_to_client(id:mesg.id, error:err)
                     else
                         resp.id = mesg.id
                         @push_to_client(resp)
 
+    ###
     mesg_codemirror_get_session: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err
@@ -1695,6 +1703,7 @@ class Client extends EventEmitter
         @get_codemirror_session mesg, (err, session) =>
             if not err
                 session.client_call(@, mesg)
+    ###
 
     ## -- user search
     mesg_user_search: (mesg) =>
@@ -2544,6 +2553,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         if mesg.id?
             @_multi_response[mesg.id]?(false, mesg)
             return
+        if mesg.client_id?
+            # TODO: we must ensure that message from this local hub are allowed to
+            # send messages to this client!!
+            clients[mesg.client_id].push_to_client(mesg)
+        ###
         switch mesg.event
             when 'codemirror_diffsync_ready'
                 @get_codemirror_session
@@ -2558,6 +2572,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     cb           : (err, session) =>
                         if not err
                             session.broadcast_mesg_to_clients(mesg)
+        ###
 
     handle_blob: (opts) =>
         opts = defaults opts,
@@ -2668,21 +2683,22 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     call: (opts) =>
         opts = defaults opts,
             mesg           : required
-            timeout        : 10
+            timeout        : undefined  # NOTE: a nonzero timeout MUST be specified, or we will not even listen for a response from the local hub!  (Ensures leaking listeners won't happen.)
             multi_response : false   # if true, timeout ignored; call @remove_multi_response_listener(mesg.id) to remove
             cb             : undefined
 
         if not opts.mesg.id?
-            opts.mesg.id = uuid.v4()
+            if opts.timeout or opts.multi_response   # opts.timeout being undefined or 0 both mean "don't do it"
+                opts.mesg.id = uuid.v4()
 
         @local_hub_socket (err, socket) =>
             if err
                 opts.cb?(err)
                 return
-            socket.write_mesg 'json', opts.mesg
+            socket.write_mesg('json', opts.mesg)
             if opts.multi_response
                 @_multi_response[opts.mesg.id] = opts.cb
-            else
+            else if opts.timeout
                 socket.recv_mesg
                     type    : 'json'
                     id      : opts.mesg.id
@@ -4377,7 +4393,7 @@ class SageSession
         @conn = undefined
 
     send_json: (client, mesg) ->
-        winston.debug("hub --> sage_server: #{misc.trunc(to_safe_str(mesg),300)}")
+        winston.debug("hub --> sage_server: #{misc.trunc(to_safe_str(mesg),600)}")
         async.series([
             (cb) =>
                 if @conn?

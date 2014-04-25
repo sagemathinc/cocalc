@@ -1,13 +1,19 @@
 - [x] upgrade to nginx 1.6.0 stable
 
-- [ ] rewrite sync to completely remove the differential sync doc from the hub -- just forward everything back and forth between browser client and local hub.  This should speed things up, avoid a lot of state issues, and lay a good foundation for further optimizations and fixes.
+
+--> - [ ] rewrite sync to completely remove the differential sync doc from the hub -- just forward everything back and forth between browser client and local hub.  This should speed things up, avoid a lot of state issues, and lay a good foundation for further optimizations and fixes.
 
          # this now works in the javascript console:
          s=require('salvus_client').salvus_client
          s.call({message:{event:'local_hub', project_id:'224ed24d-16c2-402e-b206-46738eaf9fb8', message:{event:'codemirror_get_session', path:'a.py'}}, cb:function(e,r){console.log(e,r)}})
 
-    - [ ] sync2: add clientid to messages so localhub can distinguish clients
+   --> - [ ] sync2: add clientid to messages so localhub can distinguish clients
+
     - [ ] sync2: project touch activity needs to be based on something new since codemirror objects are going away in hub.  WHAT?
+
+    - [ ] sync2: address this remark in hub.coffee, and comment out the code right below it:
+            # TODO: we must ensure that message from this local hub are allowed to
+            # send messages to this client!!
 
 
 

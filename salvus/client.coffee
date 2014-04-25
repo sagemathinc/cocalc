@@ -558,7 +558,7 @@ class exports.Connection extends EventEmitter
         #      However, if the message later arrives it may still be handled by @handle_message.
         opts = defaults opts,
             message : required
-            timeout : null
+            timeout : undefined
             cb      : undefined
         if not opts.cb?
             @send(opts.message)
@@ -567,7 +567,7 @@ class exports.Connection extends EventEmitter
         opts.message.id = id
         @call_callbacks[id] = opts.cb
         @send(opts.message)
-        if opts.timeout?
+        if opts.timeout
             setTimeout(
                 (() =>
                     if @call_callbacks[id]?
@@ -592,9 +592,10 @@ class exports.Connection extends EventEmitter
                 console.log("call_local_hub:#{misc.to_json(opts.message)} got back #{misc.to_json(err:err,resp:resp)}")
                 opts.cb?(err, resp)
         else
-            f = undefined            
+            f = undefined
         @call
             message : m
+            timeout : opts.timeout
             cb      : f
 
 

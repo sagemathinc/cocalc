@@ -1198,7 +1198,7 @@ message
 message
     event      : 'local_hub'
     project_id : required
-    timeout    : 15
+    timeout    : undefined
     id         : undefined
     message    : required   # arbitrary message
 

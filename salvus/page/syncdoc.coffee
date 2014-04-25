@@ -230,7 +230,9 @@ class AbstractSynchronizedDoc extends EventEmitter
                 session_uuid : @session_uuid
                 mesg         : mesg
                 self         : self    #if true, then also include this client to receive message
-            salvus_client.send(m)
+            @call
+                message : m
+                timeout : 0
 
     __receive_broadcast: (mesg) =>
         if mesg.session_uuid == @session_uuid
@@ -311,14 +313,6 @@ class AbstractSynchronizedDoc extends EventEmitter
                     else
                         cb()
 
-    xxx_call: (opts) =>
-        opts = defaults opts,
-            message     : required
-            timeout     : 30
-            cb          : undefined
-        opts.message.session_uuid = @session_uuid
-        salvus_client.call(opts)
-
     call: (opts) =>
         opts = defaults opts,
             message     : required
@@ -329,7 +323,9 @@ class AbstractSynchronizedDoc extends EventEmitter
             message    : opts.message
             timeout    : opts.timeout
             project_id : @project_id
-            cb         : opts.cb
+            cb         : (err, resp) =>
+                #console.log("call: #{err}, #{misc.to_json(resp)}")
+                opts.cb?(err, resp)
 
     broadcast_cursor_pos: (pos) =>
         @send_broadcast_message({event:'cursor', pos:pos, patch_moved_cursor:@_patch_moved_cursor}, false)
@@ -596,7 +592,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 data         : opts.data
                 preparse     : opts.preparse
                 session_uuid : @session_uuid
-                
+
         if opts.cb?
             salvus_client.execute_callbacks[uuid] = opts.cb
 
