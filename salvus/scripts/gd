@@ -1,1 +1,1 @@
-git diff --color
+git diff --color "$@"

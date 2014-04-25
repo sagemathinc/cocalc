@@ -82,25 +82,6 @@ Before building, do:
          apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof  tk-dev
 
 
-# SKIP -- I'm using standard PPA now; Install ZFS (see http://zfsonlinux.org/generic-deb.html)
-
-    apt-get install build-essential gawk alien fakeroot linux-headers-$(uname -r) zlib1g-dev uuid-dev libblkid-dev libselinux-dev parted lsscsi wget
-
-    wget http://archive.zfsonlinux.org/downloads/zfsonlinux/spl/spl-0.6.2.tar.gz && wget http://archive.zfsonlinux.org/downloads/zfsonlinux/zfs/zfs-0.6.2.tar.gz && tar -xzf spl-0.6.2.tar.gz && tar -xzf zfs-0.6.2.tar.gz
-
-    # **IMPORTANT**!  See https://github.com/zfsonlinux/zfs/issues/845
-    # comment out line 98 in zfs-0.6.2/lib/libshare/libshare.c so have this:
-    #
-    #      /* update_zfs_shares(impl_handle, NULL); */
-    #
-
-    cd spl-0.6.2 && ./configure && make deb-utils deb-kmod && dpkg -i kmod-spl-devel_0.6.2-1_amd64.deb kmod-spl-devel-3*.deb && cd ../zfs-0.6.2 && ./configure && make deb-utils deb-kmod && cd .. && dpkg -i */*.deb
-
-    # To remove:
-    dpkg -r kmod-spl-3.2.0-59-generic kmod-spl-devel kmod-spl-devel-3.2.0-59-generic spl kmod-zfs-3.2.0-59-generic kmod-zfs-devel kmod-zfs-devel-3.2.0-59-generic zfs zfs-devel zfs-dracut zfs-test
-
-
-
 # ZFSNAP:
 
   git clone https://github.com/zfsnap/zfsnap.git
@@ -122,8 +103,13 @@ MaxStartups 128
 # Additional packages (mainly for users, not building).
 
 
-   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr go libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse
+   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin
 
+
+# Cgroups configuration (!!) -- very important!
+
+   echo "session optional pam_cgroup.so" >> /etc/pam.d/common-session
+   pam-auth-update  # select defaults -- this probably isn't needed.
 
 # Aldor, have to modify /etc/apt/sources.list.d/pippijn-ppa-*.list and replace version with "precise"
 
