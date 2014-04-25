@@ -86,7 +86,7 @@ DEFAULT_SETTINGS = {
     'cpu_shares' : 256,
     'cores'      : 1,
     'login_shell': '/bin/bash',
-    'mintime'    : 60*60*3,  # default = 3 hours idle (no save) time before kill    
+    'mintime'    : 60*60*3,  # default = 3 hours idle (no save) time before kill
     'inode'      : 200000   # not used with ZFS
 }
 
@@ -688,15 +688,17 @@ class Project(object):
         open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write(str(cfs_quota))
 
         # important -- using self.username instead of self.uid does NOT work reliably!
-        z = "\n%s  cpu,memory  %s\n"%(self.uid, self.username)
+        z = "\n%s  cpu,memory  %s\n"%(self.username, self.username)
         cur = open("/etc/cgrules.conf").read() if os.path.exists("/etc/cgrules.conf") else ''
 
         if z not in cur:
             open("/etc/cgrules.conf",'a').write(z)
+
+            # In Ubuntu 12.04 we used cgred, which doesn't exist in 14.04.  In 14.04, we're using PAM, so
+            # classification happens automatically on login.
             try:
                 self.cmd(['service', 'cgred', 'restart'])
             except:
-                # cgroup quota service not supported
                 pass
             self.cgclassify()
 
