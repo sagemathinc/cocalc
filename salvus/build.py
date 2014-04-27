@@ -103,7 +103,7 @@ MaxStartups 128
 # Additional packages (mainly for users, not building).
 
 
-   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin
+   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin r-recommended
 
 
 # Cgroups configuration (!!) -- very important!
@@ -129,10 +129,7 @@ MaxStartups 128
 
 # Build Sage (as usual)
 
-    umask 022   # always do this so that the resulting build is usable without painful permission hacking.
-                # the hack would be:
-                #   chmod a+r -R .;    find . -perm /u+x -execdir chmod a+x {} \;
-
+    umask 022
     #export SAGE_ATLAS_LIB=/usr/lib/   #<--- too slow!
     export MAKE="make -j20"
     make
@@ -174,6 +171,7 @@ MaxStartups 128
    umask 022  &&  cd /usr/local/ && git clone git://github.com/JuliaLang/julia.git  &&  cd julia  &&  make -j16 install  &&   cd /usr/local/bin  &&  ln -s /usr/local/julia/julia .
 
 # FEnICS -- automated solution of differential equations by finite element methods
+  (Test with "import dolfin".)
 
     add-apt-repository ppa:fenics-packages/fenics
     apt-get update; apt-get install fenics
@@ -203,20 +201,6 @@ Also do this into sage (where the version may change -- check -- https://pypi.py
      # I got some sandbox error and did the above as root instead, then chown'd....
 
 
-# Clawpack: requires a special flag
-
-    # system-wide
-    sudo su; umask 022
-    pip install clawpack
-
-    # in sage
-    sage -sh; umask 022
-    export LDFLAGS=-shared; pip install clawpack
-
-# We have to upgrade rpy2, since the one in sage is so old, and it breaks ipython's r interface.
-
-    sage -sh
-    pip install --upgrade rpy2
 
 # Neuron -- requested by Jose Guzman
 
@@ -239,52 +223,9 @@ Test with "import neuron".
 
 # System-wide Python packages not through apt:
 
-   umask 022; /usr/bin/pip install -U theano
-
-
-
-# OPTIONAL SAGE PACKAGES
-
-    Add this back to src/bin/sage-env:
-
-        # this is to be compatible with optional packages that haven't
-        # been updated to not use SAGE_DATA
-        export SAGE_DATA="$SAGE_SHARE"
-
-    ln -s local/share data
-
-    export MAKE="make -j16"
-    ./sage -i biopython  chomp database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull  topcom zeromq stein-watkins-ecdb
-
-
-# Make the new Sage able to import stuff installed in the system-wide python, e.g., "import dolfin" (some complicated FEM library). Do this *after* pip is installed.
-
-    cd $SAGE_ROOT/local/lib/python
-    echo "import sys; sys.path.append('/usr/lib/python2.7/dist-packages/'); sys.path.append('/usr/lib/pymodules/python2.7')" >> sitecustomize.py
-    chmod a+r sitecustomize.py
-
-
-# R Packages into Sage's R:
-
-    umask 022 && sage -R
-    install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields", "circular", "glmnet"), repos='http://cran.cs.wwu.edu/')
-
-r packages could be automated like so (?)
-
-                0 jan@snapperkob:~/src/r-install-packages-0.1ubuntu5$cat r-install-packages.R
-                #! /usr/bin/Rscript --vanilla
-                options(repos="http://cran.ru.ac.za/")
-                res <- try(install.packages(c("deSolve", "fracdiff", "plyr", "reshape2", "ggplot2", "PBSddesolve"), dependencies=TRUE))
-
-                if(inherits(res, "try-error")) q(status=1) else q()
-                0 jan@snapperkob:~/src/r-install-packages-0.1ubuntu5$
-
-# R 3.x system-wide:
-
-     apt-get install r-recommended
-
-     umask 022 && /usr/bin/R
-     install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields", "circular", "glmnet"), repos='http://cran.cs.wwu.edu/')
+   umask 022;
+   /usr/bin/pip install -U theano
+   /usr/bin/pip install clawpack
 
 
 # 4ti2 into sage: until the optional spkg gets fixed:
@@ -303,12 +244,6 @@ r packages could be automated like so (?)
     make install      # this *must* be a separate step!!
     rm -rf /tmp/4ti2*
 
-
-# Fix permissions, just in case.
-
-    cd /usr/local/sage/current
-    sudo chown -R salvus. .
-    chmod -R a+r *; find . -perm /u+x -execdir chmod a+x {} \;
 
 
 # Delete cached packages
@@ -346,17 +281,6 @@ r packages could be automated like so (?)
    mkdir local_hub_template/node_modules
    cp scripts/skel/.sagemathcloud/node_modules/*.js local_hub_template/node_modules/
    ./make_coffee --all
-
-# System-wide Cassandra: http://www.datastax.com/documentation/cassandra/2.0/cassandra/install/installDeb_t.html
-
-       add-apt-repository ppa:webupd8team/java; apt-get update; apt-get install oracle-java7-installer libjna-java
-           # if the above goes wrong, do this:
-           #  rm /var/lib/dpkg/info/oracle-java7-installer*; apt-get purge oracle-java7-installer*; rm /etc/apt/sources.list.d/*java*
-
-       echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
-       curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -
-       apt-get update; apt-get install dsc20; service cassandra stop; rm -rf /var/lib/cassandra/data/system/*
-
 
 #HOSTS
 
@@ -476,6 +400,8 @@ SAGE_PIP_PACKAGES = [
     'psutil',
     'plotly',
     'mahotas',
+    'rpy2',     # We have to upgrade rpy2, since the one in sage is so old, and it breaks IPython Notebook's R interface.
+    'clawpack',
     'requests', # Python HTTP for Humans.
     'psycopg2', # Python-PostgreSQL Database Adapter
     'nose',     # nose extends unittest to make testing easier
@@ -487,6 +413,71 @@ SAGE_PIP_PACKAGES = [
     'httplib2', # A comprehensive HTTP client library.
     'greenlet'  # Lightweight in-process concurrent programming
     ]
+
+SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
+
+R_PACKAGES = [
+    'ggplot2',
+    'stringr',
+    'plyr',
+    'reshape2',
+    'zoo',
+    'car',
+    'mvtnorm',
+    'e1071',
+    'Rcpp',
+    'lattice',
+    'KernSmooth',
+    'Matrix',
+    'cluster',
+    'codetools',
+    'mgcv',
+    'rpart',
+    'survival',
+    'fields',
+    'circular',
+    'glmnet'
+]
+
+SAGE_OPTIONAL_PACKAGES = [
+    'biopython',
+    'chomp',
+    'database_cremona_ellcurve',
+    'database_odlyzko_zeta',
+    'database_pari',
+    'biopython',
+    'brian',
+    'cbc',
+    'cluster_seed',
+    'coxeter3',
+    'cryptominisat',
+    'cunningham_tables',
+    'database_gap',
+    'database_jones_numfield',
+    'database_kohel',
+    'database_symbolic_data',
+    'dot2tex',
+    'gap_packages',
+    'gnuplotpy',
+    'guppy',
+    'kash3',
+    'lie',
+    'lrs',
+    'nauty',
+    'normaliz',
+    'nose',
+    'nzmath',
+    'p_group_cohomology',
+    'phc',
+    'pybtex',
+    'pycryptoplus',
+    'pyx',
+    'pyzmq',
+    'qhull',
+    'topcom',
+    'zeromq',
+    'stein-watkins-ecdb'
+]
 
 if not os.path.exists(BUILD):
     os.makedirs(BUILD)
@@ -554,6 +545,22 @@ class BuildSage(object):
     def cmd(self, s):
         cmd(s, self.SAGE_ROOT)
 
+    def everything(self):
+        """
+        Do everything to patch/update/install/enhance this Sage install.
+        """
+        self.patch_pexpect()
+        self.patch_banner()
+        self.patch_sage_env()
+        self.octave_ext()
+        self.install_projlib()
+        self.install_pip()
+        self.extend_sys_path()
+        self.install_pip_packages()
+        self.install_R_packages()
+        self.install_optional_packages()
+        self.fix_permissions()
+
     def patch_pexpect(self):
         """
         Patch around pexpect bug in sage -- see http://trac.sagemath.org/ticket/15178
@@ -582,6 +589,27 @@ class BuildSage(object):
             v[3] = '\xe2\x94\x82 Enhanced for SageMathCloud.                                        \xe2\x94\x82\n'
             w = [v[i] for i in [0,1,3,4]]
             open(path,'w').write(''.join(w))
+
+    def patch_sage_env(self):
+        """
+        Many optional Sage packages are still up as optional packages, but they **DON'T work**
+        due to Andrew/Volker/whoever deprecating SAGE_DATA before they updated our optional
+        packages accordingly (which sucks).  Anyways, this works around the issue for now, which is
+        at least present in sage-6.2.rc0.
+        """
+        path = self.path("src/bin/sage-env")
+        f = open(path).read()
+        target = 'export SAGE_DATA="$SAGE_SHARE"'
+        if target not in f:
+            print "patching %s"%path
+            open(path,'a').write('\n'+target)
+        else:
+            print "%s already patched"%path
+        data = self.path("data")
+        if not os.path.exists(data):
+            # absolute paths are fine, since we will NEVER be moving this sage install
+            os.symlink(self.path("local/share"), data)
+        os.environ['SAGE_DATA'] = os.environ['SAGE_SHARE']
 
     def octave_ext(self):
         """
@@ -622,6 +650,28 @@ class BuildSage(object):
         download("https://raw.githubusercontent.com/pypa/pip/master/contrib/get-pip.py")
         cmd("python get-pip.py", SRC)
 
+    def extend_sys_path(self):
+        """
+        Make this Sage install able to import modules installed in the system-wide
+        Python, e.g., make it so there is some hope that maybe
+        'import dolfin' works, even though dolfin is some
+        complicated FEM library installed system-wide via Ubuntu packages
+        This MUST be done *after* pip is installed.
+        """
+        target = self.path("local/lib/python/sitecustomize.py")
+        paths = ['/usr/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7']
+        # sanity check
+        for p in paths:
+            if not os.path.exists(p):
+                raise RuntimeError("path %s does not exist"%p)
+        f = open(target).read() if os.path.exists(target) else ""
+        to_add = "import sys; sys.path.extend(%r)"%paths
+        if to_add not in f:
+            print "patching %s by appending '%s'"%(target, to_add)
+            open(target, 'a').write('\n' + to_add)
+        else:
+            print "%s already patched"%target
+
     def install_pip_packages(self, upgrade=True):
         """Install each pip-installable package."""
 
@@ -633,7 +683,29 @@ class BuildSage(object):
             # NOTE: the "--no-deps" is critical below; otherwise, pip will do things like install a version of numpy that is
             # much newer than the one in Sage, and incompatible (due to not having patches), which if it installs at all, will
             # break Sage (i.e. lots of doctests fail, etc.).
-            self.cmd("pip install %s --no-deps %s"%('--upgrade' if upgrade else '', package))
+            e = ' '.join(["%s=%s"%x for x in SAGE_PIP_PACKAGES_ENV[package].items()]) if package in SAGE_PIP_PACKAGES_ENV else ''
+            self.cmd("%s pip install %s --no-deps %s"%(e, '--upgrade' if upgrade else '', package))
+
+    def install_R_packages(self):
+        s = ','.join(['"%s"'%name for name in R_PACKAGES])
+        c = 'install.packages(c(%s), repos="http://cran.cs.wwu.edu/")'%s
+        self.cmd("echo '%s' | R --no-save"%c)
+
+    def install_optional_packages(self):
+        from sage.all import install_package
+        if 'MAKE' not in os.environ:
+            # some packages, e.g., chomp, won't build without MAKE being set.
+            os.environ['MAKE'] = "make -j%s"%NCPU
+        for package in SAGE_OPTIONAL_PACKAGES:
+            print "** Installing/upgrading %s **"%package
+            #install_package(package)
+            # We have to do this (instead of use install_package) because Sage's install_package
+            # command is completely broken in rc0 at least (April 27, 2014).
+            self.cmd("sage -i %s"%package)
+
+    def fix_permissions(self):
+        self.cmd("chmod a+r -R .; find . -perm /u+x -execdir chmod a+x {} \;")
+
 
 ###########################################################################
 #
