@@ -195,16 +195,6 @@ MaxStartups 128
     cd proj-4.9.0 && ./configure --prefix=/usr; make -j8 install
 
 
-
-# pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
-# Execute this inside of sage:
-
-    os.environ['PROJ_DIR']='/usr/'; os.environ['NETCDF4_DIR']='/usr/'; os.environ['HDF5_DIR']='/usr/'; os.environ['C_INCLUDE_PATH']='/usr/lib/openmpi/include'
-
-    [(s, os.system("pip install %s"%s)) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn theano scikits-image  Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil plotly mahotas'.split()]
-
-(Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
-
 Also do this into sage (where the version may change -- check -- https://pypi.python.org/pypi/scimath); I don't understand why pip doesn't work, but it doesn't:  (newest ver at https://www.enthought.com/repo/ets/index3.html)
 
     ./sage -sh
@@ -461,6 +451,33 @@ PYTHON_PACKAGES = [
     'cql'                 # interface to Cassandra
     ]
 
+SAGE_PIP_PACKAGES = [
+    'tornado',            # used by IPython notebook
+
+    'pandas',
+    'statsmodels',
+    'numexpr',
+    'tables',
+    'scikit_learn',
+    'theano',
+    'scikits-image',
+    'Shapely',
+    'SimPy',
+    'xlrd',
+    'xlwt',
+    'pyproj',
+    'bitarray',
+    'h5py',
+    'netcdf4',
+    'patsy',
+    'lxml',
+    'munkres',
+    'oct2py',
+    'psutil',
+    'plotly',
+    'mahotas'
+    ]
+
 if not os.path.exists(BUILD):
     os.makedirs(BUILD)
 
@@ -504,61 +521,106 @@ def extract_package(basename):
                 shutil.rmtree(path)
             cmd('tar xf "%s"'%os.path.abspath(os.path.join(SRC, filename)), BUILD)
             return path
+    raise RuntimeError("unable to extract package %s"%basename)
 
 ###########################################################################
 # Functions that install extra packages and bug fixes to turn a standard
 # Sage install into the one used in SMC.
 ###########################################################################
-def sage_patch_pexpect():
-    # see http://trac.sagemath.org/ticket/15178
-    from sage.all import SAGE_ROOT
-    path = os.path.join(SAGE_ROOT, "local/lib/python2.7/site-packages/pexpect.py")
-    f = open(path).read()
-    before = "if os.access (filename, os.X_OK) and not os.path.isdir(f):"
-    after  = "if os.access (filename, os.X_OK) and not os.path.isdir(filename):"
-    if before in f:
-        print "pexpect still has bug: patching"
-        open(path,'w').write(f.replace(before, after))
-    else:
-        print "pexpect bug already patched"
-
-def sage_banner():
-    # The default Sage banner is too verbose, frightening (since I always run devel versions),
-    # and misleading -- since notebook() doesn't work on SMC, and help(...) is basically useless.
-    from sage.all import SAGE_ROOT
-    path = os.path.join(SAGE_ROOT, "local/bin/sage-banner")
-    v = open(path).readlines()
-    if len(v) < 5:
-        print "Sage banner already patched."
-    else:
-        print "Patching the Sage banner."
-        v[3] = '\xe2\x94\x82 Enhanced for SageMathCloud.                                        \xe2\x94\x82\n'
-        w = [v[i] for i in [0,1,3,4]]
-        open(path,'w').write(''.join(w))
-
-def sage_octave_ext():
-    # The /usr/local/sage/current/local/share/sage/ext/octave must be writeable by all, which is
-    # a stupid horrible bug/shortcoming in Sage that people constantly hit.   As a workaround,
-    # we link it to a constrained filesystem for this purpose.
-    from sage.all import SAGE_ROOT
-    target = os.path.join(SAGE_ROOT, "local/share/sage/ext/octave")
-    src = "/pool/octave"
-
-    if not (os.path.exists(src) and os.path.isdir(src)):
-        raise RuntimeError("please create a limited ZFS pool mounted as /pool/octave, with read-write access to all:\n\n\tzfs create pool/octave && chmod a+rwx /pool/octave && zfs set quota=1G pool/octave\n")
-
-    if os.path.exists(target):
+class BuildSage(object):
+    def __init__(self):
         try:
-            shutil.rmtree(target)
+            from sage.all import SAGE_ROOT
         except:
-            os.unlink(target)
-    os.symlink(src, target)
+            raise RuntimeError("BuildSage must be run from within a Sage install")
+        self.SAGE_ROOT = SAGE_ROOT
 
-def sage_pip():
-    download("https://raw.githubusercontent.com/pypa/pip/master/contrib/get-pip.py")
-    cmd("python get-pip.py", SRC)
+    def path(self, path):
+        """
+        Turn a path relative to SAGE_ROOT into an absolute path.
+        """
+        return os.path.join(self.SAGE_ROOT, path)
 
+    def cmd(self, s):
+        cmd(s, self.SAGE_ROOT)
 
+    def patch_pexpect(self):
+        """
+        Patch around pexpect bug in sage -- see http://trac.sagemath.org/ticket/15178
+        """
+        path = self.path("local/lib/python2.7/site-packages/pexpect.py")
+        f = open(path).read()
+        before = "if os.access (filename, os.X_OK) and not os.path.isdir(f):"
+        after  = "if os.access (filename, os.X_OK) and not os.path.isdir(filename):"
+        if before in f:
+            print "pexpect still has bug: patching"
+            open(path,'w').write(f.replace(before, after))
+        else:
+            print "pexpect bug already patched"
+
+    def patch_banner(self):
+        """
+        The default Sage banner is too verbose, frightening (since I always run devel versions),
+        and misleading -- since notebook() doesn't work on SMC, and help(...) is basically useless.
+        """
+        path = self.path("local/bin/sage-banner")
+        v = open(path).readlines()
+        if len(v) < 5:
+            print "Sage banner already patched."
+        else:
+            print "Patching the Sage banner."
+            v[3] = '\xe2\x94\x82 Enhanced for SageMathCloud.                                        \xe2\x94\x82\n'
+            w = [v[i] for i in [0,1,3,4]]
+            open(path,'w').write(''.join(w))
+
+    def octave_ext(self):
+        """
+        The /usr/local/sage/current/local/share/sage/ext/octave must be writeable by all, which is
+        a stupid horrible bug/shortcoming in Sage that people constantly hit.   As a workaround,
+        we link it to a constrained filesystem for this purpose.
+        """
+        target = self.path("local/share/sage/ext/octave")
+        src = "/pool/octave"
+
+        if not (os.path.exists(src) and os.path.isdir(src)):
+            raise RuntimeError("please create a limited ZFS pool mounted as /pool/octave, with read-write access to all:\n\n\tzfs create pool/octave && chmod a+rwx /pool/octave && zfs set quota=1G pool/octave\n")
+
+        if os.path.exists(target):
+            try:
+                shutil.rmtree(target)
+            except:
+                os.unlink(target)
+        os.symlink(src, target)
+
+    def install_projlib(self):
+        """
+        Install the proj cartographic transformations and geodetic computations library
+        into Sage, which is a dep for the pyproj pip package.
+        """
+        version_base = "4.9.0"
+        version = version_base + "b2"  # find newest version at http://download.osgeo.org/proj/?C=M;O=D
+        download("http://download.osgeo.org/proj/proj-%s.tar.gz"%version)
+        path = extract_package("proj-%s"%version)
+        # their tarball if annoying, with path not what is before .tar.gz. UGH.
+        i = path.find(version_base)
+        path = path[:i+len(version_base)]
+        cmd("./configure --prefix=%s"%self.SAGE_ROOT, path)
+        cmd("make -j%s install"%NCPU, path)
+
+    def install_pip(self):
+        """Install pip itself into Sage; it should come with Sage, but doesn't yet."""
+        download("https://raw.githubusercontent.com/pypa/pip/master/contrib/get-pip.py")
+        cmd("python get-pip.py", SRC)
+
+    def install_pip_packages(self, upgrade=True):
+        """Install each pip-installable package."""
+
+        os.environ['PROJ_DIR']=os.environ['NETCDF4_DIR']=os.environ['HDF5_DIR']='/usr/'
+        os.environ['C_INCLUDE_PATH']='/usr/lib/openmpi/include'
+
+        for package in SAGE_PIP_PACKAGES:
+            print package
+            self.cmd("pip install %s %s"%('--upgrade' if upgrade else '', package))
 
 ###########################################################################
 #
