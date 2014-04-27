@@ -157,8 +157,6 @@ MaxStartups 128
 
    Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
 
-## Ubuntu:
-
     sudo su
     apt-get install libntl-dev libntl0  libpari-gmp3
     cd /tmp/ && wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb && wget  http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.6-amd64-Linux-Ubuntu-13.04.deb && sudo dpkg -i Macaulay2-1.6-amd64-Linux-Ubuntu-13.04.deb && rm *.deb
@@ -177,89 +175,19 @@ MaxStartups 128
     apt-get update; apt-get install fenics
 
 
-# Snappy  (find newest version at http://www.math.uic.edu/t3m/SnapPy//get/?C=M;O=D)
-
-   umask 022
-   sage -sh
-   easy_install -U -f http://snappy.computop.org/get snappy
-   # (the sage package doesn't work; the pip version doesn't work either...)
-
-# Cartographic Projections Library -- find newest version at http://download.osgeo.org/proj/?C=M;O=D
-
-    sage -sh
-    sudo su
-    export V=4.9.0b2
-    cd /tmp && wget http://download.osgeo.org/proj/proj-$V.tar.gz && tar xvf proj-$V.tar.gz
-    cd proj-4.9.0 && ./configure --prefix=/usr; make -j8 install
-
-
-Also do this into sage (where the version may change -- check -- https://pypi.python.org/pypi/scimath); I don't understand why pip doesn't work, but it doesn't:  (newest ver at https://www.enthought.com/repo/ets/index3.html)
-
-    ./sage -sh
-     wget http://www.enthought.com/repo/ets/scimath-4.1.2.tar.gz && tar xvf scimath-4.1.2.tar.gz && cd scimath-4.1.2 && python setup.py install && cd .. && rm -rf scimath-4.1.2*
-
-     # I got some sandbox error and did the above as root instead, then chown'd....
-
-
-
-# Neuron -- requested by Jose Guzman
-
-   umask 022
-   cd /tmp && hg clone http://www.neuron.yale.edu/hg/neuron/iv  &&  hg clone http://www.neuron.yale.edu/hg/neuron/nrn
-   sage -sh
-   cd /tmp/iv  &&  ./build.sh && ./configure --prefix=/usr/local/ && make -j16 && sudo make install
-   # the make install below ends in an error, but it seems to work for people who care.
-   cd /tmp/nrn && ./build.sh && ./configure --prefix=/usr/local/ --with-iv=/usr/local/ --with-nrnpython && make -j16 && sudo make install && cd src/nrnpython/ && python setup.py install
-   rm -rf /tmp/iv /tmp/nrn
-
-Test with "import neuron".
-
-# basemap -- won't install through pip/easy_install, so we do this:
-
-    sage -sh
-    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.7/basemap-1.0.7.tar.gz && tar xf basemap-1.0.7.tar.gz && cd basemap-1.0.7 && python setup.py install && cd .. && rm -rf basemap-1.0.7*
-
-## TEST:   echo "from mpl_toolkits.basemap import Basemap" | python
-
 # System-wide Python packages not through apt:
 
+   sudo su
    umask 022;
    /usr/bin/pip install -U theano
-   /usr/bin/pip install clawpack
-
-
-# 4ti2 into sage: until the optional spkg gets fixed:
-
-    ./sage -sh; umask 022
-    export V=1.6.2
-    cd /tmp && wget http://www.4ti2.de/version_$V/4ti2-$V.tar.gz && tar xf 4ti2-$V.tar.gz && cd 4ti2-$V && ./configure --prefix=/usr/local/sage/current/local/ && time make -j16
-    make install      # this *must* be a separate step!!
-    rm -rf /tmp/4ti2*
-
-    # also, install it outside of sage.
-    sudo su
-    umask 022
-    export V=1.6.2
-    cd /tmp && wget http://www.4ti2.de/version_$V/4ti2-$V.tar.gz && tar xf 4ti2-$V.tar.gz && cd 4ti2-$V && ./configure --prefix=/usr/local/ && time make -j16
-    make install      # this *must* be a separate step!!
-    rm -rf /tmp/4ti2*
+   /usr/bin/pip install -U clawpack
 
 
 
-# Delete cached packages
 
-   #cd SAGE_ROOT
-   rm -rf upstream; local/var/tmp/sage/build/
 
-# Run sage one last time
 
-  ./sage
 
-# Copy over the newest SageTex, so it actually works (only do this with the default sage):
-
-    sudo su
-    umask 022
-    cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/ && texhash
 
 # Setup /usr/local/bin/skel
 
@@ -296,6 +224,91 @@ On the VM hosts, some things are critical:
 In /etc/sysctl.conf, put:
 
     vm.swappiness=1
+
+
+
+
+####
+
+
+# Cartographic Projections Library -- find newest version at http://download.osgeo.org/proj/?C=M;O=D
+
+    sage -sh
+    sudo su
+    export V=4.9.0b2
+    cd /tmp && wget http://download.osgeo.org/proj/proj-$V.tar.gz && tar xvf proj-$V.tar.gz
+    cd proj-4.9.0 && ./configure --prefix=/usr; make -j8 install
+
+
+Also do this into sage (where the version may change -- check -- https://pypi.python.org/pypi/scimath); I don't understand why pip doesn't work, but it doesn't:  (newest ver at https://www.enthought.com/repo/ets/index3.html)
+
+    ./sage -sh
+     wget http://www.enthought.com/repo/ets/scimath-4.1.2.tar.gz && tar xvf scimath-4.1.2.tar.gz && cd scimath-4.1.2 && python setup.py install && cd .. && rm -rf scimath-4.1.2*
+
+     # I got some sandbox error and did the above as root instead, then chown'd....
+
+
+# Neuron -- requested by Jose Guzman
+
+   umask 022
+   cd /tmp && hg clone http://www.neuron.yale.edu/hg/neuron/iv  &&  hg clone http://www.neuron.yale.edu/hg/neuron/nrn
+   sage -sh
+   cd /tmp/iv  &&  ./build.sh && ./configure --prefix=/usr/local/ && make -j16 && sudo make install
+   # the make install below ends in an error, but it seems to work for people who care.
+   cd /tmp/nrn && ./build.sh && ./configure --prefix=/usr/local/ --with-iv=/usr/local/ --with-nrnpython && make -j16 && sudo make install && cd src/nrnpython/ && python setup.py install
+   rm -rf /tmp/iv /tmp/nrn
+
+Test with "import neuron".
+
+# basemap -- won't install through pip/easy_install, so we do this:
+
+    sage -sh
+    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.7/basemap-1.0.7.tar.gz && tar xf basemap-1.0.7.tar.gz && cd basemap-1.0.7 && python setup.py install && cd .. && rm -rf basemap-1.0.7*
+
+## TEST:   echo "from mpl_toolkits.basemap import Basemap" | python
+
+
+
+# 4ti2 into sage: until the optional spkg gets fixed:
+
+    ./sage -sh; umask 022
+    export V=1.6.2
+    cd /tmp && wget http://www.4ti2.de/version_$V/4ti2-$V.tar.gz && tar xf 4ti2-$V.tar.gz && cd 4ti2-$V && ./configure --prefix=/usr/local/sage/current/local/ && time make -j16
+    make install      # this *must* be a separate step!!
+    rm -rf /tmp/4ti2*
+
+    # also, install it outside of sage.
+    sudo su
+    umask 022
+    export V=1.6.2
+    cd /tmp && wget http://www.4ti2.de/version_$V/4ti2-$V.tar.gz && tar xf 4ti2-$V.tar.gz && cd 4ti2-$V && ./configure --prefix=/usr/local/ && time make -j16
+    make install      # this *must* be a separate step!!
+    rm -rf /tmp/4ti2*
+
+
+
+# Delete cached packages
+
+   #cd SAGE_ROOT
+   rm -rf upstream; local/var/tmp/sage/build/
+
+
+# Run sage one last time
+
+   ./sage
+
+# Copy over the newest SageTex, so it actually works (only do this with the default sage):
+
+    sudo su
+    umask 022
+    cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/ && texhash
+
+
+
+
+
+
+
 
 
 """
@@ -524,7 +537,7 @@ def extract_package(basename):
             return path
     raise RuntimeError("unable to extract package %s"%basename)
 
-###########################################################################
+#######################$###################################################
 # Functions that install extra packages and bug fixes to turn a standard
 # Sage install into the one used in SMC.
 ###########################################################################
@@ -549,6 +562,7 @@ class BuildSage(object):
         """
         Do everything to patch/update/install/enhance this Sage install.
         """
+        self.patch_sage_location()
         self.patch_pexpect()
         self.patch_banner()
         self.patch_sage_env()
@@ -559,7 +573,28 @@ class BuildSage(object):
         self.install_pip_packages()
         self.install_R_packages()
         self.install_optional_packages()
+        self.install_snappy()
         self.fix_permissions()
+
+    def patch_sage_location(self):
+        """
+        Since we build Sage in-place and never move it, the sage-location script
+        is a total waste of time, which only gets worse the more optional packages
+        we install. Thus we disable it completely.
+        """
+        target = self.path("src/bin/sage-location")
+        f = open(target).read()
+        before = "'__main__':"
+        after  = "'__main__' and False:"
+        if before in f:
+            print "patching %s"%target
+            f = f.replace(before, after)
+            open(target,'w').write(f)
+        else:
+            if after not in f:
+                raise RuntimeError("unable to patch %s"%target)
+            print "already patched %s"%target
+
 
     def patch_pexpect(self):
         """
@@ -702,6 +737,12 @@ class BuildSage(object):
             # We have to do this (instead of use install_package) because Sage's install_package
             # command is completely broken in rc0 at least (April 27, 2014).
             self.cmd("sage -i %s"%package)
+
+    def install_snappy(self):
+        """
+        Install snappy -- see http://www.math.uic.edu/t3m/SnapPy/doc/installing.html
+        """
+        self.cmd("python -m easy_install -U -f http://snappy.computop.org/get snappy")
 
     def fix_permissions(self):
         self.cmd("chmod a+r -R .; find . -perm /u+x -execdir chmod a+x {} \;")
