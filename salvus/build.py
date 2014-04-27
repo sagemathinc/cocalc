@@ -137,24 +137,11 @@ MaxStartups 128
     export MAKE="make -j20"
     make
 
-# Workaround bugs in Sage
+# SAGE SCRIPTS -- once only, ever.  Not needed when sage is upgraded.
 
-   - http://trac.sagemath.org/ticket/15178 -- bug in pexpect, which breaks ipython !ls.
-     (just put f=filename in function which in /usr/local/sage/current/local/lib/python2.7/site-packages/pexpect.py)
-
-
-# SAGE SCRIPTS:
   Do from within Sage (as root):
 
       install_scripts('/usr/local/bin/',ignore_existing=True)
-
-# SAGE user:
-
-    system-wide: open up permissions so that octave, etc., works -- this is ****HORRIBLE**** -- it makes it so any user
-    could fill / and kill a node; rebooting clears this out though.  STUPID design.  So stupid.  Must be fixed.  A better work-around would be put this directory on a different more constrained filesystems.
-
-        chmod a+rwx /usr/local/sage/sage-6.2/local/share/sage/ext/*
-
 
 # POLYMAKE system-wide:
 
@@ -269,15 +256,6 @@ Test with "import neuron".
    umask 022; /usr/bin/pip install -U theano
 
 
-# Also, edit the banner:
-
-  local/bin/sage-banner
-
-        +--------------------------------------------------------------------+
-        | Sage Version 5.10.beta5, Release Date: 2013-05-26                  |
-        | Enhanced for the SageMathCloud                                     |
-        | Type "help()" for help.                                            |
-        +--------------------------------------------------------------------+
 
 # OPTIONAL SAGE PACKAGES
 
@@ -556,6 +534,24 @@ def sage_banner():
         v[3] = '\xe2\x94\x82 Enhanced for SageMathCloud.                                        \xe2\x94\x82\n'
         w = [v[i] for i in [0,1,3,4]]
         open(path,'w').write(''.join(w))
+
+def sage_octave_ext():
+    # The /usr/local/sage/current/local/share/sage/ext/octave must be writeable by all, which is
+    # a stupid horrible bug/shortcoming in Sage that people constantly hit.   As a workaround,
+    # we link it to a constrained filesystem for this purpose.
+    from sage.all import SAGE_ROOT
+    target = os.path.join(SAGE_ROOT, "local/share/sage/ext/octave")
+    src = "/pool/octave"
+
+    if not (os.path.exists(src) and os.path.isdir(src)):
+        raise RuntimeError("please create a limited ZFS pool mounted as /pool/octave, with read-write access to all:\n\n\tzfs create pool/octave && chmod a+rwx /pool/octave && zfs set quota=1G pool/octave\n")
+
+    if os.path.exists(target):
+        try:
+            shutil.rmtree(target)
+        except:
+            os.unlink(target)
+    os.symlink(src, target)
 
 
 
