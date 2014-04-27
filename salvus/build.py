@@ -184,7 +184,7 @@ MaxStartups 128
    umask 022
    sage -sh
    easy_install -U -f http://snappy.computop.org/get snappy
-   # (the sage package doesn't work...)
+   # (the sage package doesn't work; the pip version doesn't work either...)
 
 # Cartographic Projections Library -- find newest version at http://download.osgeo.org/proj/?C=M;O=D
 
@@ -195,10 +195,6 @@ MaxStartups 128
     cd proj-4.9.0 && ./configure --prefix=/usr; make -j8 install
 
 
-# PIP:
-
-    sage -sh
-    wget https://raw.github.com/pypa/pip/master/contrib/get-pip.py; python get-pip.py
 
 # pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
 # Execute this inside of sage:
@@ -468,8 +464,12 @@ PYTHON_PACKAGES = [
 if not os.path.exists(BUILD):
     os.makedirs(BUILD)
 
-os.environ['PATH'] = os.path.join(PREFIX, 'bin') + ':' + os.environ['PATH']
-os.environ['LD_LIBRARY_PATH'] = os.path.join(PREFIX, 'lib') + ':' + os.environ.get('LD_LIBRARY_PATH','')
+if 'SAGE_ROOT' not in os.environ:
+    print "Building salvus user code (so updating PATHs..."
+    os.environ['PATH'] = os.path.join(PREFIX, 'bin') + ':' + os.environ['PATH']
+    os.environ['LD_LIBRARY_PATH'] = os.path.join(PREFIX, 'lib') + ':' + os.environ.get('LD_LIBRARY_PATH','')
+else:
+    print "Building/updating a Sage install"
 
 # number of cpus
 try:
@@ -489,7 +489,8 @@ def cmd(s, path):
 
 def download(url):
     # download target of given url to SRC directory
-    cmd("wget '%s'"%url, SRC)
+    import urllib
+    urllib.urlretrieve(url, os.path.join(SRC, os.path.split(url)[-1]))
 
 def extract_package(basename):
     # find tar ball in SRC directory, extract it in build directory, and return resulting path
@@ -553,9 +554,9 @@ def sage_octave_ext():
             os.unlink(target)
     os.symlink(src, target)
 
-
-
-
+def sage_pip():
+    download("https://raw.githubusercontent.com/pypa/pip/master/contrib/get-pip.py")
+    cmd("python get-pip.py", SRC)
 
 
 
