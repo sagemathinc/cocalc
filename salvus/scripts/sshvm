@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+
+import os, sys
+
+n = sys.argv[1]
+if '@' in n:
+    user, host = n.split('@')
+    user = user + '@'
+else:
+    user = ''
+    host = n 
+
+os.system("ssh %s`kvm_addresses.py %s`"%(user, host))

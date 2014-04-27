@@ -21,4 +21,4 @@ for i, server_id in enumerate(v):
     cmd("time bup on root@10.1.%s.5 save /bup/bups -n %s"%(j, server_id))
 
 
-cmd("time rsync -axvH %s/ disk.math.washington.edu:bups2-bup/"%os.environ['BUP_DIR'])
+cmd("time rsync -axvH --delete %s/ disk.math.washington.edu:bups2-bup/"%os.environ['BUP_DIR'])
