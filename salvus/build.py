@@ -453,8 +453,8 @@ PYTHON_PACKAGES = [
 
 SAGE_PIP_PACKAGES = [
     'tornado',            # used by IPython notebook
-
     'pandas',
+    'patsy',
     'statsmodels',
     'numexpr',
     'tables',
@@ -475,7 +475,17 @@ SAGE_PIP_PACKAGES = [
     'oct2py',
     'psutil',
     'plotly',
-    'mahotas'
+    'mahotas',
+    'requests', # Python HTTP for Humans.
+    'psycopg2', # Python-PostgreSQL Database Adapter
+    'nose',     # nose extends unittest to make testing easier
+    'redis',    # Python client for Redis key-value store
+    'pymongo',  # Python driver for MongoDB
+    'fabric',   # Fabric is a simple, Pythonic tool for remote execution and deployment.
+    'MySQL-python', # Python interface to MySQL
+    'paramiko', # SSH2 protocol library
+    'httplib2', # A comprehensive HTTP client library.
+    'greenlet'  # Lightweight in-process concurrent programming
     ]
 
 if not os.path.exists(BUILD):
@@ -619,8 +629,11 @@ class BuildSage(object):
         os.environ['C_INCLUDE_PATH']='/usr/lib/openmpi/include'
 
         for package in SAGE_PIP_PACKAGES:
-            print package
-            self.cmd("pip install %s %s"%('--upgrade' if upgrade else '', package))
+            print "** Installing/upgrading %s **"%package
+            # NOTE: the "--no-deps" is critical below; otherwise, pip will do things like install a version of numpy that is
+            # much newer than the one in Sage, and incompatible (due to not having patches), which if it installs at all, will
+            # break Sage (i.e. lots of doctests fail, etc.).
+            self.cmd("pip install %s --no-deps %s"%('--upgrade' if upgrade else '', package))
 
 ###########################################################################
 #
