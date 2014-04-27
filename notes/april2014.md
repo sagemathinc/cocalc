@@ -1,29 +1,74 @@
-- [x] need to write the uid instead of username in the control groups rules file
+## Upgrading things
+
+- [x] change scripts so google machines are smaller.
+
+- [x] figure out how to do cgroups with 14.04  (cgred stuff, etc.,) -- it seems to just work if we use usernames (not uid!)  There is no cgred daemon to restart.
+
+- [ ] write script to automate installing everything into new clean sage build and run on both
+      make to include code to fix permissions.
+
+- [ ] snapshot gce base image
+
+- [ ] fix the gce first-boot not running appropriate scripts issue
+
+- [ ] set one of my projects to use a specific google vm and restart it using the new 14.04 ubuntu, and TEST.
+
+- [ ] upgrade 1 compute vm at UW and test
+
+- [ ] restart rest of UW compute vm's and test
+
+- [ ] send out email that compute vm's are all upgraded
+
+- [ ] restart one of the web machines using new vm image; restart nginx, hub, etc., and test
+
+- [ ] once that works, restart rest of web machines and services
+
+- [ ] upgrade and restart stunnel on one HOST machine, then on the rest
+
+- [ ] upgrade and restart haproxy on one HOST machine, then on the rest
+
+- [ ] make a clone vm and test out what upgrading to cassandra2 requires.
+
+
+---
+
+
+
+
+
+- [ ] rewrite sync to remove the differential sync doc from the hub -- just forward everything back and forth between browser client and local hub.  This should speed things up, avoid a lot of state issues, and lay a good foundation for further optimizations and fixes.
+
+
+
+----
+
+- [ ] upgrade to codemirror 4.x: https://mail.google.com/mail/u/0/?shva=1#inbox/145896f4d974137d
+
+
+- [ ] suggested security improvements: https://mail.google.com/mail/u/0/?shva=1#inbox/14585eafa47360e4
 
 - [ ] when user "control-d" a console session (?) this maybe results in node using 100% of cpu -- I saw this once; test
 
-- [ ] rewrite sync to completely remove the differential sync doc from the hub -- just forward everything back and forth between browser client and local hub.  This should speed things up, avoid a lot of state issues, and lay a good foundation for further optimizations and fixes.
 
-- [ ] reduce power of gce machines... too much now; combine changing this with fixing rebooting.
+- [ ] publishing with constraints
 
-- [ ] fix this for GOOD!  (line 113 bs)
-        salvus@web10:~/salvus/salvus$ vi /home/salvus/salvus/salvus/node_modules/http-proxy/lib/http-proxy/passes/ws-incoming.js
+- [ ] change proxy server to use master and properly setup proxy server: https://github.com/nodejitsu/node-http-proxy
 
+- [ ] bup storage: the `save_log` is possibly a BAD, BAD idea. Look:
+  root@compute12dc0:/bup/bups/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b# ls -lht conf
+  total 383M
+  -rw------- 1 root root 382M Apr 26 19:03 save_log.json
 
 - [ ] bup -- should put my caching code back in, e.g., my main project has 250-ish commits and is already taking .25 - 1 s; I did a quick test with my code and it was much, much faster.
 
 
 - [ ] report that ie file editing completely broken in FULLSCREEN due to top position location determination issue: https://mail.google.com/mail/u/0/?shva=1#inbox/14570edecf01f3dc
 
-- [ ] new base vm:
-       -- ubuntu 14.04
-       -- sage 6.2.x
-
 - [ ] increasing quota -- I should make an admin interface for this...
 
         x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
         p=x.c.get_project('4255de6e-adc9-4a1e-ad9c-78493da07e64')
-        p.set_settings(cb:console.log, cores:12, cpu_shares:4*256, memory:20000)
+        p.set_settings(cb:console.log, cores:12, cpu_shares:4*256, memory:12, mintime:24*60*60)   # mintime is in units of seconds.
 
 - [ ] project folder connections (?)
 
@@ -167,6 +212,11 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 
 
 ======
+
+- [x] need to write the uid instead of username in the control groups rules file
+- [x] make it so there is a setting in editor settings about whether or not tab sends a tab character or 4 spaces.
+
+
 
 - [x] p.stop(...) got unrecognized argument --force ....
 
@@ -499,5 +549,18 @@ key points:
          This fully works as we want.
          And bindfs (http://bindfs.org/) is pretty awesome; it lets you mount things read only, etc.
          It's fully FUSE, so no issues of kernel locking, etc.
+
+- [] fix this for GOOD!  (line 113 bs)
+        salvus@web10:~/salvus/salvus$ vi /home/salvus/salvus/salvus/node_modules/http-proxy/lib/http-proxy/passes/ws-incoming.js
+      - I reported this upstream at https://github.com/nodejitsu/node-http-proxy/issues/626
+
+- [x] new base vm:
+       -- [x] need to make the local_hub_template! (and put on gce and other machine) -- copy both data and node_modules
+	       -- pty.js issues!
+		   -- raw http server doesn't work with new modules.
+       -- [x] ubuntu 14.04
+       -- [x] sage 6.2.x
+       -- [x] updating haproxy, nginx, node.js, cassandra, etc.
+	   -- [x] ENSURE: chmod a+rwx -R /usr/local/sage/sage-6.2/local/share/sage/ext
 
 
