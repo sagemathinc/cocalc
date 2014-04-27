@@ -526,6 +526,37 @@ def extract_package(basename):
             cmd('tar xf "%s"'%os.path.abspath(os.path.join(SRC, filename)), BUILD)
             return path
 
+###########################################################################
+# Functions that install extra packages and bug fixes to turn a standard
+# Sage install into the one used in SMC.
+###########################################################################
+def patch_pexpect():
+    # see http://trac.sagemath.org/ticket/15178
+    from sage.all import SAGE_ROOT
+    path = os.path.join(SAGE_ROOT, "local/lib/python2.7/site-packages/pexpect.py")
+    f = open(path).read()
+    before = "if os.access (filename, os.X_OK) and not os.path.isdir(f):"
+    after  = "if os.access (filename, os.X_OK) and not os.path.isdir(filename):"
+    if before in f:
+        print "pexpect still has bug: patching"
+        open(path,'w').write(f.replace(before, after))
+    else:
+        print "pexpect bug already patched"
+
+
+
+
+
+###########################################################################
+#
+# Functions to build each of the main from-source components of SMC.
+# These are super-important so we don't trust the ones in Ubuntu. (And
+# in some cases we want to install on OS X, say.)
+# Also, we do some small amount of patching.
+#
+###########################################################################
+
+
 def build_tinc():
     log.info('building tinc'); start = time.time()
     try:
