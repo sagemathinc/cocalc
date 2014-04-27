@@ -146,7 +146,7 @@ MaxStartups 128
 # SAGE SCRIPTS:
   Do from within Sage (as root):
 
-      install_scripts('/usr/local/bin/')
+      install_scripts('/usr/local/bin/',ignore_existing=True)
 
 # SAGE user:
 
@@ -530,7 +530,7 @@ def extract_package(basename):
 # Functions that install extra packages and bug fixes to turn a standard
 # Sage install into the one used in SMC.
 ###########################################################################
-def patch_pexpect():
+def sage_patch_pexpect():
     # see http://trac.sagemath.org/ticket/15178
     from sage.all import SAGE_ROOT
     path = os.path.join(SAGE_ROOT, "local/lib/python2.7/site-packages/pexpect.py")
@@ -542,6 +542,22 @@ def patch_pexpect():
         open(path,'w').write(f.replace(before, after))
     else:
         print "pexpect bug already patched"
+
+def sage_banner():
+    # The default Sage banner is too verbose, frightening (since I always run devel versions),
+    # and misleading -- since notebook() doesn't work on SMC, and help(...) is basically useless.
+    from sage.all import SAGE_ROOT
+    path = os.path.join(SAGE_ROOT, "local/bin/sage-banner")
+    v = open(path).readlines()
+    if len(v) < 5:
+        print "Sage banner already patched."
+    else:
+        print "Patching the Sage banner."
+        v[3] = '\xe2\x94\x82 Enhanced for SageMathCloud.                                        \xe2\x94\x82\n'
+        w = [v[i] for i in [0,1,3,4]]
+        open(path,'w').write(''.join(w))
+
+
 
 
 
