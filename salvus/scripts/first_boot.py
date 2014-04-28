@@ -49,7 +49,7 @@ if hostname.startswith('compute'):
 
     # Start the bup storage server:
     if hostname.startswith('compute'):
-        os.system("zpool import -f bup; zfs set mountpoint=/projects bup/projects; su - salvus -c 'cd /home/salvus/salvus/salvus/&& . salvus-env&& ./bup_server start'")
+        os.system("zpool import -f bup; zfs set mountpoint=/projects bup/projects; chmod og-r /projects; su - salvus -c 'cd /home/salvus/salvus/salvus/&& . salvus-env&& ./bup_server start'")
         # Install crontab for snapshotting the bup pool, etc.
         os.system("crontab /home/salvus/salvus/salvus/scripts/root-compute.crontab")
 

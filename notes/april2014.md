@@ -4,12 +4,12 @@
 
 - [x] figure out how to do cgroups with 14.04  (cgred stuff, etc.,) -- it seems to just work if we use usernames (not uid!)  There is no cgred daemon to restart.
 
-- [ ] write script to automate installing everything into new clean sage build and run on both
+- [x] write script to automate installing everything into new clean sage build and run on both
       make to include code to fix permissions.
 
-- [ ] /projects and /home directory permission suggestions.      
+- [x] /projects and /home directory permission suggestions.
 
-- [ ] delete sage-6.2.beta8 thing on both vm's
+- [x] delete sage-6.2.beta8 thing on both vm's
 
 - [ ] snapshot gce base image
 
