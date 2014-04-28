@@ -414,7 +414,6 @@ SAGE_PIP_PACKAGES = [
     'paramiko', # SSH2 protocol library
     'httplib2', # A comprehensive HTTP client library.
     'greenlet',  # Lightweight in-process concurrent programming
-    'quantlib',  # Python interface to QuantLib
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
