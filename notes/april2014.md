@@ -7,6 +7,10 @@
 - [ ] write script to automate installing everything into new clean sage build and run on both
       make to include code to fix permissions.
 
+- [ ] /projects and /home directory permission suggestions.      
+
+- [ ] delete sage-6.2.beta8 thing on both vm's
+
 - [ ] snapshot gce base image
 
 - [ ] fix the gce first-boot not running appropriate scripts issue
