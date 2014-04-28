@@ -234,14 +234,6 @@ In /etc/sysctl.conf, put:
 
 
 
-# basemap -- won't install through pip/easy_install, so we do this:
-
-    sage -sh
-    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.7/basemap-1.0.7.tar.gz && tar xf basemap-1.0.7.tar.gz && cd basemap-1.0.7 && python setup.py install && cd .. && rm -rf basemap-1.0.7*
-
-## TEST:   echo "from mpl_toolkits.basemap import Basemap" | python
-
-
 
 # 4ti2 into sage: until the optional spkg gets fixed:
 
@@ -562,6 +554,7 @@ class BuildSage(object):
         self.install_enthought_packages()
         self.install_quantlib()
         self.install_neuron()
+        self.install_basemap()
         self.clean_up()
         self.extend_sys_path()
         self.fix_permissions()
@@ -796,6 +789,30 @@ class BuildSage(object):
         cmd("./build.sh && ./configure --prefix=%s && make -j%s && make install"%(SAGE_LOCAL, NCPU), "/tmp/iv")
         cmd("./build.sh && ./configure --prefix=%s --with-iv=%s --with-nrnpython && make -j%s && make install && cd src/nrnpython/ && python setup.py install"%(SAGE_LOCAL, SAGE_LOCAL, NCPU), "/tmp/nrn")
         clean_up()
+
+    def install_basemap(self):
+        """
+        basemap -- Plot data on map projections with matplotlib
+        """
+        try:
+            import mpl_toolkits.basemap
+            installed_version = mpl_toolkits.basemap.__version__
+            import urllib2
+            version = [x for x in urllib2.urlopen("https://raw.githubusercontent.com/matplotlib/basemap/master/setup.py").readlines()
+                        if x.startswith('__version__')][0].split('=')[1].strip(' \'"\n')
+            log.info("version=%s, installed_version=%s", version, installed_version)
+            if version == installed_version:
+                log.info("basemap version %s already installed", version)
+                return
+        except Exception, msg:
+            pass
+        cmd("/usr/bin/git clone https://github.com/matplotlib/basemap", "/tmp")
+        cmd("python setup.py install", "/tmp/basemap")
+        shutil.rmtree("/tmp/basemap")
+
+    def install_4ti2(self):
+        """
+        """
 
     def clean_up(self):
         # clean up packages downloaded and extracted using the download command
