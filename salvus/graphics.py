@@ -364,6 +364,9 @@ def graphics3d_to_jsonable(p):
         else:
             handler(p.all[0])(p)
 
+    def nothing(p):
+        pass
+
 
     def handler(p):
         if isinstance(p, sage.plot.plot3d.index_face_set.IndexFaceSet):
@@ -380,6 +383,9 @@ def graphics3d_to_jsonable(p):
             return convert_point
         elif isinstance(p, sage.plot.plot3d.base.PrimitiveObject):
             return convert_index_face_set
+        elif isinstance(p, sage.plot.plot3d.base.Graphics3d):
+            # this is an empty scene
+            return nothing
         else:
             raise NotImplementedError("unhandled type ", type(p))
 
