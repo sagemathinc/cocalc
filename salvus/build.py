@@ -227,29 +227,15 @@ In /etc/sysctl.conf, put:
 
     vm.swappiness=1
 
-
-
-
-####
-
-
-
-
-# 4ti2 into sage: until the optional spkg gets fixed:
-
-    ./sage -sh; umask 022
-    export V=1.6.2
-    cd /tmp && wget http://www.4ti2.de/version_$V/4ti2-$V.tar.gz && tar xf 4ti2-$V.tar.gz && cd 4ti2-$V && ./configure --prefix=/usr/local/sage/current/local/ && time make -j16
-    make install      # this *must* be a separate step!!
-    rm -rf /tmp/4ti2*
-
-    # also, install it outside of sage.
+# Install 4ti2 system-wide...
     sudo su
     umask 022
     export V=1.6.2
     cd /tmp && wget http://www.4ti2.de/version_$V/4ti2-$V.tar.gz && tar xf 4ti2-$V.tar.gz && cd 4ti2-$V && ./configure --prefix=/usr/local/ && time make -j16
     make install      # this *must* be a separate step!!
     rm -rf /tmp/4ti2*
+
+
 
 
 
@@ -283,7 +269,7 @@ NGINX_VERSION      = '1.5.9'     # options here -- http://nginx.org/download/
 HAPROXY_VERSION    = '1.5-dev22' # options here -- http://haproxy.1wt.eu/download/1.5/src/devel/
 STUNNEL_VERSION    = '5.01'     # options here -- https://www.stunnel.org/downloads.html
 
-import logging, os, shutil, subprocess, sys, time
+import logging, os, shutil, subprocess, sys, time, urllib2
 
 # Enable logging
 logging.basicConfig()
@@ -555,6 +541,7 @@ class BuildSage(object):
         self.install_quantlib()
         self.install_neuron()
         self.install_basemap()
+        self.install_4ti2()
         self.clean_up()
         self.extend_sys_path()
         self.fix_permissions()
@@ -742,7 +729,6 @@ class BuildSage(object):
         # We grab the list of tarball names from the website, so we can determine
         # the newest version of each that we want below.
         repo = 'https://www.enthought.com/repo/ets/'
-        import urllib2
         packages = [x.split('"')[1] for x in urllib2.urlopen(repo).readlines() if '.tar.gz"' in x]
         for pkg in ENTHOUGHT_PACKAGES:
             v = [x for x in packages if x.lower().startswith(pkg)]
@@ -797,7 +783,6 @@ class BuildSage(object):
         try:
             import mpl_toolkits.basemap
             installed_version = mpl_toolkits.basemap.__version__
-            import urllib2
             version = [x for x in urllib2.urlopen("https://raw.githubusercontent.com/matplotlib/basemap/master/setup.py").readlines()
                         if x.startswith('__version__')][0].split('=')[1].strip(' \'"\n')
             log.info("version=%s, installed_version=%s", version, installed_version)
@@ -813,6 +798,24 @@ class BuildSage(object):
     def install_4ti2(self):
         """
         """
+        site = "http://www.4ti2.de/"
+        target = [x for x in urllib2.urlopen("%s/download_4ti2.html"%site).readlines() if 'source code</a>' in x][0].split('"')[1]
+        version = target.split("_")[1].split('/')[0]
+        z = [x for x in sorted(os.listdir(self.path("local/var/lib/sage/installed"))) if x.startswith('4ti2')]
+        if len(z) == 0:
+            installed_version = ''
+        else:
+            installed_version = z[-1].split('-')[1]
+        if version == installed_version:
+            log.info("4ti2 version %s already installed", version)
+            return
+        download(site + target)
+        pkg = target.split('/')[-1]
+        path = extract_package(pkg)
+        cmd("./configure --prefix=/usr/local/sage/current/local/ && time make -j%s"%NCPU, path)
+        cmd("make install", path)
+        open(self.path("local/var/lib/sage/installed/4ti2-%s"%version),'w')
+        shutil.rmtree(path)
 
     def clean_up(self):
         # clean up packages downloaded and extracted using the download command
