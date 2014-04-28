@@ -676,9 +676,10 @@ class BuildSage(object):
             log.info("%s already patched"%target)
 
     def unextend_sys_path(self):
-        target = self.path("local/lib/python/sitecustomize.py")
-        if os.path.exists(target):
-            os.unlink(target)
+        for f in ["local/lib/python/sitecustomize.py", "local/lib/python/sitecustomize.pyc"]:
+            target = self.path(f)
+            if os.path.exists(target):
+                os.unlink(target)
 
     def install_pip_packages(self, upgrade=True):
         """Install each pip-installable package."""
