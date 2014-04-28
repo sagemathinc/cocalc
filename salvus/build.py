@@ -234,26 +234,6 @@ In /etc/sysctl.conf, put:
 
 
 
-Also do this into sage (where the version may change -- check -- https://pypi.python.org/pypi/scimath); I don't understand why pip doesn't work, but it doesn't:  (newest ver at https://www.enthought.com/repo/ets/index3.html)
-
-    ./sage -sh
-     wget http://www.enthought.com/repo/ets/scimath-4.1.2.tar.gz && tar xvf scimath-4.1.2.tar.gz && cd scimath-4.1.2 && python setup.py install && cd .. && rm -rf scimath-4.1.2*
-
-     # I got some sandbox error and did the above as root instead, then chown'd....
-
-
-# Neuron -- requested by Jose Guzman
-
-   umask 022
-   cd /tmp && hg clone http://www.neuron.yale.edu/hg/neuron/iv  &&  hg clone http://www.neuron.yale.edu/hg/neuron/nrn
-   sage -sh
-   cd /tmp/iv  &&  ./build.sh && ./configure --prefix=/usr/local/ && make -j16 && sudo make install
-   # the make install below ends in an error, but it seems to work for people who care.
-   cd /tmp/nrn && ./build.sh && ./configure --prefix=/usr/local/ --with-iv=/usr/local/ --with-nrnpython && make -j16 && sudo make install && cd src/nrnpython/ && python setup.py install
-   rm -rf /tmp/iv /tmp/nrn
-
-Test with "import neuron".
-
 # basemap -- won't install through pip/easy_install, so we do this:
 
     sage -sh
@@ -581,6 +561,7 @@ class BuildSage(object):
         self.install_snappy()
         self.install_enthought_packages()
         self.install_quantlib()
+        self.install_neuron()
         self.clean_up()
         self.extend_sys_path()
         self.fix_permissions()
@@ -798,6 +779,23 @@ class BuildSage(object):
         path = extract_package(pkg)
         cmd("./configure", path)
         cmd("make -j%s -C Python install"%NCPU, path)
+
+    def install_neuron(self):
+        """
+        Neuron -- for empirically-based simulations of neurons and networks of neurons
+
+        (requested by Jose Guzman)
+        """
+        def clean_up():
+            shutil.rmtree("/tmp/iv")
+            shutil.rmtree("/tmp/nrn")
+        from sage.all import SAGE_LOCAL
+        clean_up()
+        cmd("/usr/bin/hg clone http://www.neuron.yale.edu/hg/neuron/iv", "/tmp")
+        cmd("/usr/bin/hg clone http://www.neuron.yale.edu/hg/neuron/nrn", "/tmp")
+        cmd("./build.sh && ./configure --prefix=%s && make -j%s && make install"%(SAGE_LOCAL, NCPU), "/tmp/iv")
+        cmd("./build.sh && ./configure --prefix=%s --with-iv=%s --with-nrnpython && make -j%s && make install && cd src/nrnpython/ && python setup.py install"%(SAGE_LOCAL, SAGE_LOCAL, NCPU), "/tmp/nrn")
+        clean_up()
 
     def clean_up(self):
         # clean up packages downloaded and extracted using the download command
