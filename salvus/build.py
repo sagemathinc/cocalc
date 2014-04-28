@@ -762,8 +762,8 @@ class BuildSage(object):
         (requested by Jose Guzman)
         """
         def clean_up():
-            shutil.rmtree("/tmp/iv")
-            shutil.rmtree("/tmp/nrn")
+            if os.path.exists('/tmp/iv'): shutil.rmtree("/tmp/iv")
+            if os.path.exists('/tmp/nrn'): shutil.rmtree("/tmp/nrn")
         from sage.all import SAGE_LOCAL
         clean_up()
         cmd("/usr/bin/hg clone http://www.neuron.yale.edu/hg/neuron/iv", "/tmp")
