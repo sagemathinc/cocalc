@@ -332,6 +332,7 @@ PYTHON_PACKAGES = [
     ]
 
 SAGE_PIP_PACKAGES = [
+    'mercurial',          # used when installing neuron
     'tornado',            # used by IPython notebook
     'pandas',
     'patsy',
@@ -766,8 +767,8 @@ class BuildSage(object):
             if os.path.exists('/tmp/nrn'): shutil.rmtree("/tmp/nrn")
         from sage.all import SAGE_LOCAL
         clean_up()
-        cmd("/usr/bin/hg clone http://www.neuron.yale.edu/hg/neuron/iv", "/tmp")
-        cmd("/usr/bin/hg clone http://www.neuron.yale.edu/hg/neuron/nrn", "/tmp")
+        cmd("hg clone http://www.neuron.yale.edu/hg/neuron/iv", "/tmp")
+        cmd("hg clone http://www.neuron.yale.edu/hg/neuron/nrn", "/tmp")
         cmd("./build.sh && ./configure --prefix=%s && make -j%s && make install"%(SAGE_LOCAL, NCPU), "/tmp/iv")
         cmd("./build.sh && ./configure --prefix=%s --with-iv=%s --with-nrnpython && make -j%s && make install && cd src/nrnpython/ && python setup.py install"%(SAGE_LOCAL, SAGE_LOCAL, NCPU), "/tmp/nrn")
         clean_up()
