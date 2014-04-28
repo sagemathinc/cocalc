@@ -103,8 +103,10 @@ MaxStartups 128
 # Additional packages (mainly for users, not building).
 
 
-   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin r-recommended
+   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html quantlib-ruby r-cran-rquantlib
 
+
+# NOTE: as of April 27 the quantlib python indings that get installed above don't work in Ubuntu 14.04 (e.g., 'import QuantLib' fails)
 
 # Cgroups configuration (!!) -- very important!
 
@@ -231,14 +233,6 @@ In /etc/sysctl.conf, put:
 ####
 
 
-# Cartographic Projections Library -- find newest version at http://download.osgeo.org/proj/?C=M;O=D
-
-    sage -sh
-    sudo su
-    export V=4.9.0b2
-    cd /tmp && wget http://download.osgeo.org/proj/proj-$V.tar.gz && tar xvf proj-$V.tar.gz
-    cd proj-4.9.0 && ./configure --prefix=/usr; make -j8 install
-
 
 Also do this into sage (where the version may change -- check -- https://pypi.python.org/pypi/scimath); I don't understand why pip doesn't work, but it doesn't:  (newest ver at https://www.enthought.com/repo/ets/index3.html)
 
@@ -302,11 +296,6 @@ Test with "import neuron".
     sudo su
     umask 022
     cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/ && texhash
-
-
-
-
-
 
 
 
@@ -424,7 +413,8 @@ SAGE_PIP_PACKAGES = [
     'MySQL-python', # Python interface to MySQL
     'paramiko', # SSH2 protocol library
     'httplib2', # A comprehensive HTTP client library.
-    'greenlet'  # Lightweight in-process concurrent programming
+    'greenlet',  # Lightweight in-process concurrent programming
+    'quantlib',  # Python interface to QuantLib
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -492,15 +482,21 @@ SAGE_OPTIONAL_PACKAGES = [
     'stein-watkins-ecdb'
 ]
 
+ENTHOUGHT_PACKAGES = [
+    'pyface',
+    'traits',
+    'scimath',
+]
+
 if not os.path.exists(BUILD):
     os.makedirs(BUILD)
 
 if 'SAGE_ROOT' not in os.environ:
-    print "Building salvus user code (so updating PATHs..."
+    log.info("Building salvus user code (so updating PATHs...)")
     os.environ['PATH'] = os.path.join(PREFIX, 'bin') + ':' + os.environ['PATH']
     os.environ['LD_LIBRARY_PATH'] = os.path.join(PREFIX, 'lib') + ':' + os.environ.get('LD_LIBRARY_PATH','')
 else:
-    print "Building/updating a Sage install"
+    log.info("Building/updating a Sage install")
 
 # number of cpus
 try:
@@ -515,16 +511,25 @@ log.info("detected %s cpus", NCPU)
 def cmd(s, path):
     s = 'cd "%s" && '%path + s
     log.info("cmd: %s", s)
+    t0 = time.time()
     if os.system(s):
-        raise RuntimeError('command failed: "%s"'%s)
+        raise RuntimeError('command failed: "%s" (%s seconds)'%(s, time.time()-t0))
+    else:
+        log.info("cmd %s took %s seconds", s, time.time()-t0)
 
 def download(url):
     # download target of given url to SRC directory
     import urllib
-    urllib.urlretrieve(url, os.path.join(SRC, os.path.split(url)[-1]))
+    t0 = time.time()
+    target = os.path.join(SRC, os.path.split(url)[-1].split('?')[0])
+    log.info("Downloading %s to %s..."%(url, target))
+    urllib.urlretrieve(url, target)
+    log.info("Took %s seconds"%(time.time()-t0))
+    return target
 
 def extract_package(basename):
-    # find tar ball in SRC directory, extract it in build directory, and return resulting path
+    log.info("extracting package %s by finding tar ball in SRC directory, extract it in build directory, and return resulting path",
+             basename)
     for filename in os.listdir(SRC):
         if filename.startswith(basename):
             i = filename.rfind('.tar.')
@@ -532,6 +537,7 @@ def extract_package(basename):
                 i = filename.rfind('.tgz')
             path = os.path.join(BUILD, filename[:i])
             if os.path.exists(path):
+                log.info("removing existing path %s", path)
                 shutil.rmtree(path)
             cmd('tar xf "%s"'%os.path.abspath(os.path.join(SRC, filename)), BUILD)
             return path
@@ -562,6 +568,7 @@ class BuildSage(object):
         """
         Do everything to patch/update/install/enhance this Sage install.
         """
+        self.unextend_sys_path()
         self.patch_sage_location()
         self.patch_pexpect()
         self.patch_banner()
@@ -569,11 +576,14 @@ class BuildSage(object):
         self.octave_ext()
         self.install_projlib()
         self.install_pip()
-        self.extend_sys_path()
         self.install_pip_packages()
         self.install_R_packages()
         self.install_optional_packages()
         self.install_snappy()
+        self.install_enthought_packages()
+        self.install_quantlib()
+        self.clean_up()
+        self.extend_sys_path()
         self.fix_permissions()
 
     def patch_sage_location(self):
@@ -587,13 +597,13 @@ class BuildSage(object):
         before = "'__main__':"
         after  = "'__main__' and False:"
         if before in f:
-            print "patching %s"%target
+            log.info("patching %s"%target)
             f = f.replace(before, after)
             open(target,'w').write(f)
         else:
             if after not in f:
                 raise RuntimeError("unable to patch %s"%target)
-            print "already patched %s"%target
+            log.info("already patched %s"%target)
 
 
     def patch_pexpect(self):
@@ -605,10 +615,10 @@ class BuildSage(object):
         before = "if os.access (filename, os.X_OK) and not os.path.isdir(f):"
         after  = "if os.access (filename, os.X_OK) and not os.path.isdir(filename):"
         if before in f:
-            print "pexpect still has bug: patching"
+            log.info("pexpect still has bug: patching")
             open(path,'w').write(f.replace(before, after))
         else:
-            print "pexpect bug already patched"
+            log.info("pexpect bug already patched")
 
     def patch_banner(self):
         """
@@ -618,9 +628,9 @@ class BuildSage(object):
         path = self.path("local/bin/sage-banner")
         v = open(path).readlines()
         if len(v) < 5:
-            print "Sage banner already patched."
+            log.info("Sage banner already patched.")
         else:
-            print "Patching the Sage banner."
+            log.info("Patching the Sage banner.")
             v[3] = '\xe2\x94\x82 Enhanced for SageMathCloud.                                        \xe2\x94\x82\n'
             w = [v[i] for i in [0,1,3,4]]
             open(path,'w').write(''.join(w))
@@ -636,10 +646,10 @@ class BuildSage(object):
         f = open(path).read()
         target = 'export SAGE_DATA="$SAGE_SHARE"'
         if target not in f:
-            print "patching %s"%path
+            log.info("patching %s"%path)
             open(path,'a').write('\n'+target)
         else:
-            print "%s already patched"%path
+            log.info("%s already patched"%path)
         data = self.path("data")
         if not os.path.exists(data):
             # absolute paths are fine, since we will NEVER be moving this sage install
@@ -682,6 +692,7 @@ class BuildSage(object):
 
     def install_pip(self):
         """Install pip itself into Sage; it should come with Sage, but doesn't yet."""
+        self.unextend_sys_path()
         download("https://raw.githubusercontent.com/pypa/pip/master/contrib/get-pip.py")
         cmd("python get-pip.py", SRC)
 
@@ -702,19 +713,25 @@ class BuildSage(object):
         f = open(target).read() if os.path.exists(target) else ""
         to_add = "import sys; sys.path.extend(%r)"%paths
         if to_add not in f:
-            print "patching %s by appending '%s'"%(target, to_add)
+            log.info("patching %s by appending '%s'"%(target, to_add))
             open(target, 'a').write('\n' + to_add)
         else:
-            print "%s already patched"%target
+            log.info("%s already patched"%target)
+
+    def unextend_sys_path(self):
+        target = self.path("local/lib/python/sitecustomize.py")
+        if os.path.exists(target):
+            os.unlink(target)
 
     def install_pip_packages(self, upgrade=True):
         """Install each pip-installable package."""
+        self.unextend_sys_path()
 
         os.environ['PROJ_DIR']=os.environ['NETCDF4_DIR']=os.environ['HDF5_DIR']='/usr/'
         os.environ['C_INCLUDE_PATH']='/usr/lib/openmpi/include'
 
         for package in SAGE_PIP_PACKAGES:
-            print "** Installing/upgrading %s **"%package
+            log.info("** Installing/upgrading %s **"%package)
             # NOTE: the "--no-deps" is critical below; otherwise, pip will do things like install a version of numpy that is
             # much newer than the one in Sage, and incompatible (due to not having patches), which if it installs at all, will
             # break Sage (i.e. lots of doctests fail, etc.).
@@ -732,7 +749,7 @@ class BuildSage(object):
             # some packages, e.g., chomp, won't build without MAKE being set.
             os.environ['MAKE'] = "make -j%s"%NCPU
         for package in SAGE_OPTIONAL_PACKAGES:
-            print "** Installing/upgrading %s **"%package
+            log.info("** Installing/upgrading %s **"%package)
             #install_package(package)
             # We have to do this (instead of use install_package) because Sage's install_package
             # command is completely broken in rc0 at least (April 27, 2014).
@@ -744,8 +761,55 @@ class BuildSage(object):
         """
         self.cmd("python -m easy_install -U -f http://snappy.computop.org/get snappy")
 
+    def install_enthought_packages(self):
+        """
+        Like Sage does, Enthought has a bunch of packages that are not easily available
+        from pypi...
+        """
+        # We grab the list of tarball names from the website, so we can determine
+        # the newest version of each that we want below.
+        repo = 'https://www.enthought.com/repo/ets/'
+        import urllib2
+        packages = [x.split('"')[1] for x in urllib2.urlopen(repo).readlines() if '.tar.gz"' in x]
+        for pkg in ENTHOUGHT_PACKAGES:
+            v = [x for x in packages if x.lower().startswith(pkg)]
+            v.sort()
+            newest = v[-1]
+            log.info("installing %s..."%newest)
+            download(os.path.join(repo, newest))
+            path = extract_package(newest)
+            cmd("python setup.py install", path)
+
+    def install_quantlib(self):
+        # See http://sourceforge.net/projects/quantlib/
+        VERSION = "1.4"
+        try:
+            # check if already installed
+            import QuantLib
+            if QuantLib.__version__ == VERSION:
+                log.info("QuantLib version %s is already installed"%VERSION)
+                return
+        except:
+            pass
+        pkg = "QuantLib-SWIG-%s.tar.gz"%VERSION
+        url = "http://downloads.sourceforge.net/project/quantlib/QuantLib/%s/other%%20languages/%s"%(VERSION, pkg)
+        # I got this url from the "direct link" think in source forge.  I don't know if is stable over time; if not... Bummer.
+        url +="?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fquantlib%2Ffiles%2FQuantLib%2F1.4%2Fother%2520languages%2F&ts=1398645275&use_mirror=softlayer-dal"
+        download(url)
+        path = extract_package(pkg)
+        cmd("./configure", path)
+        cmd("make -j%s -C Python install"%NCPU, path)
+
+    def clean_up(self):
+        # clean up packages downloaded and extracted using the download command
+
+
+        # clean up packages left over from optional Sage package installs
+        pass
+
     def fix_permissions(self):
         self.cmd("chmod a+r -R .; find . -perm /u+x -execdir chmod a+x {} \;")
+
 
 
 ###########################################################################
@@ -866,20 +930,19 @@ def build_cassandra():
             cmd('mv dsc-cassandra-%s-bin.tar.gz dsc-cassandra-%s.tar.gz'%(CASSANDRA_VERSION, CASSANDRA_VERSION), SRC)
         path = extract_package('dsc-cassandra')
         target2 = os.path.join(PREFIX, 'cassandra')
-        print target2
+        log.info(target2)
         if os.path.exists(target2):
             shutil.rmtree(target2)
         os.makedirs(target2)
-        print "copying over"
+        log.info("copying over")
         cmd('cp -rv * "%s"'%target2, path)
         cmd('cp -v "%s/start-cassandra" "%s"/'%(PATCHES, os.path.join(PREFIX, 'bin')), path)
-        print "making symlink so can use fast JNA java native thing"
+        log.info("making symlink so can use fast JNA java native thing")
         cmd("ln -sf /usr/share/java/jna.jar %s/local/cassandra/lib/"%DATA, path)
 
-        print "building python library"
+        log.info("building python library")
         cmd("cd pylib && python setup.py install", path)
 
-        print "CASSANDRA IMPORTANT -- you might need to apply the patch from https://issues.apache.org/jira/browse/CASSANDRA-5895    !?!?"
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
@@ -896,7 +959,7 @@ def build_python_packages():
         cmd('python setup.py install', path)
         cmd('easy_install pip', path)
         for pkg in PYTHON_PACKAGES:
-            print "***", pkg
+            log.info("***", pkg)
             cmd('pip install %s'%pkg, '/tmp')
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
