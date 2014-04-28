@@ -187,10 +187,6 @@ MaxStartups 128
 
 
 
-
-
-
-
 # Setup /usr/local/bin/skel
 
    rsync -axvHL ~/salvus/salvus/local_hub_template/ ~/.sagemathcloud/
@@ -242,7 +238,7 @@ In /etc/sysctl.conf, put:
 # Delete cached packages
 
    #cd SAGE_ROOT
-   rm -rf upstream; local/var/tmp/sage/build/
+   rm -rf upstream local/var/tmp/sage/build/
 
 
 # Run sage one last time
@@ -552,7 +548,7 @@ class BuildSage(object):
         is a total waste of time, which only gets worse the more optional packages
         we install. Thus we disable it completely.
         """
-        target = self.path("src/bin/sage-location")
+        target = self.path("local/bin/sage-location")
         f = open(target).read()
         before = "'__main__':"
         after  = "'__main__' and False:"
@@ -819,10 +815,26 @@ class BuildSage(object):
 
     def clean_up(self):
         # clean up packages downloaded and extracted using the download command
+        src = os.path.join(os.environ['HOME'], 'salvus', 'salvus', 'src')
+        for s in os.listdir(src):
+            if s != 'patches':
+                target = os.path.join(src, s)
+                log.info("removing %s"%target)
+                os.unlink(target)
+        build =  os.path.join(os.environ['HOME'], 'salvus', 'salvus', 'data', 'build')
+        for s in os.listdir(build):
+            target = os.path.join(build, s)
+            log.info("removing %s"%target)
+            shutil.rmtree(target)
 
 
         # clean up packages left over from optional Sage package installs
-        pass
+        # This should be a make target, but isn't (in sage-6.2, at least).
+        for p in ['upstream', 'local/var/tmp/sage/build']:
+            path = self.path(p)
+            if os.path.exists(path):
+                log.info("deleting %s"%path)
+                shutil.rmtree(path)
 
     def fix_permissions(self):
         self.cmd("chmod a+r -R .; find . -perm /u+x -execdir chmod a+x {} \;")
