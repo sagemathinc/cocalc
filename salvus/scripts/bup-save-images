@@ -8,3 +8,4 @@ time bup save $HOME/vm/images/base3 -n master
 du -sch $BUP_DIR
 time bup ls master/latest/$HOME/vm/images/base3
 
+time rsync -axvH --delete $BUP_DIR/ disk.math.washington.edu:base3-bup
