@@ -332,6 +332,7 @@ PYTHON_PACKAGES = [
     ]
 
 SAGE_PIP_PACKAGES = [
+    'mpld3',        # D3 Renderings of Matplotlib Graphics -- https://github.com/jakevdp/mpld3
     'mercurial',          # used when installing neuron
     'tornado',            # used by IPython notebook
     'pandas',
