@@ -1,5 +1,5 @@
 # services
-base='salvus-2014-04-15-1846'
+base='salvus-2014-04-28-1500'
 
 cassandra_ram = 8
 cassandra_cpu = 2
@@ -68,6 +68,9 @@ cloud15  {'hostname':'webdev',     'vcpus':2,       'ram':4,       'base':base, 
 cloud1   {'hostname':'compute1dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
 cloud2   {'hostname':'compute2dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
 cloud3   {'hostname':'compute3dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
+
+cloud3   {'hostname':'compute3testdc1',  'vcpus':1,   'ram':2, 'base':base, 'disk':'bup:10:none:qcow2', 'vnc':13110}
+
 cloud4   {'hostname':'compute4dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
 cloud5   {'hostname':'compute5dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
 cloud6   {'hostname':'compute6dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
@@ -112,7 +115,7 @@ cloud19  {'hostname':'compute19a', 'vcpus':old_compute_cpu,   'ram':old_compute_
 cloud20  {'hostname':'compute20a', 'vcpus':old_compute_cpu,   'ram':old_compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
 cloud21  {'hostname':'compute21a', 'vcpus':old_compute_cpu,   'ram':old_compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
 
-#On-site aggregate backup of all projects; just in case, maybe for easy analytics.  
+#On-site aggregate backup of all projects; just in case, maybe for easy analytics.
 #cloud1 {'hostname':'backup1', 'vcpus':8, 'ram':16, 'base':base, 'disk':'projects:2048:none:qcow2', 'vnc':13001}
 
 
