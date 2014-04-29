@@ -860,13 +860,16 @@ class ProjectPage
         @container.find(".project-project_title").text(@project.title)
         @container.find(".project-project_description").text(@project.description)
 
+        if not @project.title? # make sure that things work even if @project is invalid.
+            @project.title = ""
+            alert_message(type:"error", message:"Project #{@project.project_id} is corrupt. Please report.")
         label = @project.title.slice(0,MAX_TITLE_LENGTH) + if @project.title.length > MAX_TITLE_LENGTH then "..." else ""
         top_navbar.set_button_label(@project.project_id, label)
         document.title = "Sagemath: #{@project.title}"
 
         if not @_computing_status
             @_computing_usage = true
-            timer = setTimeout( (()=>@_computing_usage=False), 30000)
+            timer = setTimeout( (()=>@_computing_usage=false), 30000)
             salvus_client.project_status
                 project_id : @project.project_id
                 cb         : (err, status) =>
@@ -890,7 +893,10 @@ class ProjectPage
                     if status.settings?
                         usage.find(".salvus-project-settings-cores").text(status.settings.cores)
                         usage.find(".salvus-project-settings-memory").text(status.settings.memory + "GB")
-                        usage.find(".salvus-project-settings-mintime").text(Math.round(status.settings.mintime/3600))
+                        mintime = Math.round(status.settings.mintime/3600)
+                        if mintime > 10000
+                            mintime = "&infin;"
+                        usage.find(".salvus-project-settings-mintime").html(mintime)
                         usage.find(".salvus-project-settings-cpu_shares").text(Math.round(status.settings.cpu_shares/256))
 
                     usage.show()
@@ -1165,7 +1171,7 @@ class ProjectPage
             return false
         dialog.find("a[href=#copy-file]").click () =>
             dialog.modal('hide')
-            @copy_file_dialog(obj.fullname)
+            @copy_file_dialog(obj.fullname, obj.isdir)
             return false
         dialog.find("a[href=#move-file]").click () =>
             dialog.modal('hide')
@@ -1370,7 +1376,7 @@ class ProjectPage
                         if date?
                             t.find(".project-file-last-mod-date").attr('title', date.toISOString()).timeago()
                         name = obj.name
-                        t.find(".project-file-icon").removeClass("fa-file").addClass("fa-folder")
+                        t.find(".project-file-icon").removeClass("fa-file").addClass("fa-folder-open-o").css('font-size':'21pt')
                     else
                         if obj.name.indexOf('.') != -1
                             ext = filename_extension(obj.name)
@@ -1568,24 +1574,48 @@ class ProjectPage
             @click_to_rename_file(path, file_link)
             return false
 
-    copy_file_dialog:  (path, cb) =>
+    copy_file_dialog:  (path, isdir, cb) =>
         dialog = $(".project-copy-file-dialog").clone()
         dialog.modal()
-        new_dest = undefined
+        args = undefined
+        rsync = ""
         new_src = undefined
+        new_dest = undefined
         async.series([
             (cb) =>
                 if path.slice(0,'.snapshots/'.length) == '.snapshots/'
-                    dest = path.slice('.snapshots/master/2014-04-06-052506/'.length)
+                    dest = "/projects/#{@project.project_id}/" + path.slice('.snapshots/master/2014-04-06-052506/'.length)
                 else
                     dest = path
-                dialog.find(".copy-file-src").val(path)
-                dialog.find(".copy-file-dest").val(dest).focus()
+                if isdir   # so the file goes *into* the destination folder
+                    dest += '/'
+
+                args = () =>
+                    new_src  = dialog.find(".copy-file-src").val()
+                    new_dest = dialog.find(".copy-file-dest").val()
+                    return ['-rltgoDxH', '--backup', '--backup-dir=.trash/', new_src, new_dest]
+
+                update_rsync_command = (evt) =>
+                    v = []
+                    for a in args()
+                        if a.indexOf(' ') != -1
+                            v.push("'#{a}'")
+                        else
+                            v.push(a)
+                    rsync = "rsync #{v.join(' ')}"
+                    dialog.find(".salvus-rsync-command").text(rsync)
+                    if evt?.which == 13
+                        submit(true)
+
+                dialog.find(".copy-file-src").val(path).keyup(update_rsync_command)
+                dialog.find(".copy-file-dest").val(dest).focus().select().keyup(update_rsync_command)
+
+                update_rsync_command()
+
                 submit = (ok) =>
                     dialog.modal('hide')
-                    if ok
-                        new_src = dialog.find(".copy-file-src").val()
-                        new_dest = dialog.find(".copy-file-dest").val()
+                    if not ok
+                        new_dest = undefined
                     cb()
                     return false
                 dialog.find(".btn-close").click(()=>submit(false))
@@ -1596,15 +1626,15 @@ class ProjectPage
                 alert_message(type:'info', message:"Copying #{new_src} to #{new_dest}...")
                 salvus_client.exec
                     project_id : @project.project_id
-                    command    : 'rsync'
-                    args       : ['-axH', '--backup', '--backup-dir=.trash/', new_src, new_dest]
-                    timeout    : 60   # how long grep runs on client
-                    network_timeout : 75   # how long network call has until it must return something or get total error.
+                    command    : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
+                    args       : args()
+                    timeout    : 120   # how long rsync runs on client
+                    network_timeout : 120   # how long network call has until it must return something or get total error.
                     err_on_exit: true
                     path       : '.'
                     cb         : (err, output) =>
                         if err
-                            alert_message(type:"error", message:"Error copying #{new_src} to #{new_dest} -- #{output.stderr}")
+                            alert_message(type:"error", message:"Error copying #{new_src} to #{new_dest} -- #{err}")
                         else
                             alert_message(type:"success", message:"Successfully copied #{new_src} to #{new_dest}")
                             @update_file_list_tab()

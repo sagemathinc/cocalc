@@ -162,7 +162,7 @@ restart_console_server = (cb) ->   # cb(err)
                                 try
                                     port = parseInt(data.toString())
                                     cb()
-                                catch
+                                catch error
                                     cb('reading port corrupt')
             misc.retry_until_success
                 f  : f
@@ -1896,7 +1896,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--timeout [number]', 'kill all processes if there is no activity for this many *seconds* (use 0 to disable, which is the default)', Number, 0)
     .parse(process.argv)
 
-if program._name == 'local_hub.js'
+if program._name.split('.')[0] == 'local_hub'
     if program.debug
         winston.remove(winston.transports.Console)
         winston.add(winston.transports.Console, level: program.debug)

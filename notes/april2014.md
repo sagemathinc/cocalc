@@ -1,40 +1,163 @@
+## Upgrading things
 
- - [x] 99 projects have >3 replicas in practice, though not (usually) in db -- these appear "lost" to users in some cases.
-   For each:
-       - copy all files into their current location
-       - move files for projects not specifically listed in bup_last_save to a TO_DELETE location
+- [x] change scripts so google machines are smaller.
 
-  Plan:
+- [x] figure out how to do cgroups with 14.04  (cgred stuff, etc.,) -- it seems to just work if we use usernames (not uid!)  There is no cgred daemon to restart.
 
-    phase 1:
-     - sync from *all* actual replicas to master
-     - save from master to *all* replicas
-    phase 2:
-     - add all replicas to bup_locations in database.
+- [x] write script to automate installing everything into new clean sage build and run on both
+      make to include code to fix permissions.
 
-  Update everything.
+- [x] /projects and /home directory permission suggestions.
 
-  Later -- reduce number of replicas in some cases.
+- [x] delete sage-6.2.beta8 thing on both vm's
+
+- [ ] snapshot gce base image
+
+- [ ] fix the gce first-boot not running appropriate scripts issue
+
+- [ ] set one of my projects to use a specific google vm and restart it using the new 14.04 ubuntu, and TEST.
+
+- [ ] upgrade 1 compute vm at UW and test
+
+- [ ] restart rest of UW compute vm's and test
+
+- [ ] send out email that compute vm's are all upgraded
+
+- [ ] restart one of the web machines using new vm image; restart nginx, hub, etc., and test
+
+- [ ] once that works, restart rest of web machines and services
+
+- [ ] upgrade and restart stunnel on one HOST machine, then on the rest
+
+- [ ] upgrade and restart haproxy on one HOST machine, then on the rest
+
+- [ ] make a clone vm and test out what upgrading to cassandra2 requires.
+
+
+---
+
+
+
+
+
+- [ ] rewrite sync to remove the differential sync doc from the hub -- just forward everything back and forth between browser client and local hub.  This should speed things up, avoid a lot of state issues, and lay a good foundation for further optimizations and fixes.
+
+
+
+----
+
+- [ ] upgrade to codemirror 4.x: https://mail.google.com/mail/u/0/?shva=1#inbox/145896f4d974137d
+
+
+- [ ] suggested security improvements: https://mail.google.com/mail/u/0/?shva=1#inbox/14585eafa47360e4
+
+- [ ] when user "control-d" a console session (?) this maybe results in node using 100% of cpu -- I saw this once; test
+
+
+- [ ] publishing with constraints
+
+- [ ] change proxy server to use master and properly setup proxy server: https://github.com/nodejitsu/node-http-proxy
+
+- [ ] bup storage: the `save_log` is possibly a BAD, BAD idea. Look:
+  root@compute12dc0:/bup/bups/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b# ls -lht conf
+  total 383M
+  -rw------- 1 root root 382M Apr 26 19:03 save_log.json
+
+- [ ] bup -- should put my caching code back in, e.g., my main project has 250-ish commits and is already taking .25 - 1 s; I did a quick test with my code and it was much, much faster.
+
+
+- [ ] report that ie file editing completely broken in FULLSCREEN due to top position location determination issue: https://mail.google.com/mail/u/0/?shva=1#inbox/14570edecf01f3dc
+
+- [ ] increasing quota -- I should make an admin interface for this...
+
+        x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
+        p=x.c.get_project('4255de6e-adc9-4a1e-ad9c-78493da07e64')
+        p.set_settings(cb:console.log, cores:12, cpu_shares:4*256, memory:12, mintime:24*60*60)   # mintime is in units of seconds.
+
+- [ ] project folder connections (?)
+
+       zfs set sharenfs=on bup/projects
+       sudo zfs set sharenfs='rw=@10.1.1.0/16',no_subtree_check,async,no_root_squash bup/projects
+       apt-get install  nfs-kernel-server
+
+   Seems very flaky, and only mildly faster or maybe even *SLOWER* than sshfs, at least over our network.
+
+   This seems very nice... and works fantastically!
+
+      sshfs -o cache_timeout=10 -o kernel_cache -o auto_cache -o uid=1959631043 -o gid=1959631043 -o allow_other -o default_permissions 10.1.1.5:/projects/test/sage compute1
+
+
+      cd /projects/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b; mkdir -p projects/edf7b34d-8ef9-49ad-b83f-8fa4cde53380; sshfs -o cache_timeout=10 -o kernel_cache -o auto_cache -o uid=1959631043 -o gid=1959631043 -o allow_other -o default_permissions 10.1.3.5:/projects/edf7b34d-8ef9-49ad-b83f-8fa4cde53380 projects/edf7b34d-8ef9-49ad-b83f-8fa4cde53380
+
+      fusermount -u edf7b34d-8ef9-49ad-b83f-8fa4cde53380
+
+    # mounting student projects
+
+    coffee> x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
+    coffee> p=x.c.get_project('cc96c0e6-8daf-467d-b8d2-354f9c5144a5')
+    coffee> p.get_location_pref(console.log)
+    undefined 'b9cd6c52-059d-44e1-ace0-be0a26568713'
+    coffee> x.c.servers.by_id['b9cd6c52-059d-44e1-ace0-be0a26568713'].host
+    '10.1.15.5'
+
+    # then at the shell
+
+    export project_id=cc96c0e6-8daf-467d-b8d2-354f9c5144a5; export host=10.1.15.5; export uid=447893796
+
+    mkdir -p students/$project_id && sshfs -o cache_timeout=10 -o kernel_cache -o auto_cache -o uid=$uid -o gid=$uid -o allow_other -o default_permissions $host:/projects/$project_id students/$project_id; chown $uid:$uid students/$project_id
+
+    CRITICAL: we must *also* use bindfs with the --create-for-user= option!!
+
+    bindfs --create-for-user=275991804 --create-for-group=275991804 -u 1959631043 -g 1959631043
+
+
+- [ ] get GCE VM restart to actually robustly work with all proper mounting.
+
+
+- [ ] Regarding projects moving:
+
+     - when a client *initiates* a move, it will query the db for any mounts and then inform the bup_servers of them. Thus the move logic is event driven, where the event is "move a project".   If the global client doing the moving can't contact the local bup_server, it will keep trying... (?)
+
+
+- [ ] setup remote environment for dev/testing
+
+ - [ ] rekey ssl cert: http://support.godaddy.com/help/article/4976/rekeying-an-ssl-certificate
+
+- [ ] make it so `bup_server` will refuse to start if some sanity checks regarding the filesystem fail, e.g., that bup/projects is mounted as  /projects
+
+- [ ] make the monitor connect to all bup servers and verify that they are accepting connections; e.g., under duress they port where they are serving may change.
+
+- [ ] implement a gossip protocol to use when deciding viability of compute nodes, rather than just trying for 15 seconds and timing out.   Try longer if gossip is good; try less if bad.
+
+- [ ] redo file copy button to just be a straight cp.  BUT -- need to also fix FUSE mounting of bup to have proper permissions, or this leads to problems.    Pretty broken right now.
+
+- [ ] put this script in base template vm's:
+
+        root@compute18dc0:~# more update_salvus
+        su - salvus -c "cd salvus/salvus; . salvus-env; git pull; ./make_coffee"
+        cp /home/salvus/salvus/salvus/scripts/bup_storage.py /usr/local/bin/
+        chmod og-w /usr/local/bin/bup_storage.py
+        chmod a+rx /usr/local/bin/bup_storage.py
+
+      and make it so gce base machines can at least get from the github repo.
+
+- [ ] bug: snapshot browser file search doesn't work... for obvious reason: it is searching on the wrong thing!
+
+- [ ] project undelete doesn't work.
+
+- [ ] rewrite `bup_server` to use a local sqlite database; then state is preserved upon restart/crash/reboot/etc.
+
+- [ ] "pip install --user pymc": https://mail.google.com/mail/u/0/?shva=1#search/Carlos+Rodriguez/14541f56e95e0756
+
+- [ ] code to "rebuild/repair a node" -- hmm; because of this maybe need some way to know when a project was last sync'd based on filesystem
+
+- [ ] --delete and --update together with rsync - what happens? -- we might as well make the replication actually a merge of newest files!
 
  - [ ] after repairing cassandra data reduce the write consistency level when making new projects... maybe. (?)
 
- - [ ] write a post explaining what is new and awesome, and what the architecture is.
+ - [ ] I'm also trying to install pymc (python montecarlo) but when I run it, it complains that the ver of numpy is too old... any tips on how to upgrade numpy or how to make pymc work?....; github ticket #2
 
-key points:
-
-   - direct tcp connections instead of ssh tunnels (limits of sshd)
-   - fix uid issue
-   - project states
-   - move/rename/copy file buttons
-   - faster file listing
-   - live files, with zfs snapshots every few minutes, which are not consistent across dc's, and will vanish if a project were moved in a dc
-       - dedup'd across projects on a given host
-       - compressed
-       - quota
-   - set bup repo of snapshots that are consistent across dc's -- highly deduped and compressed; easy to sync around; git-based so branches are possible; dynamic fuse mounting
-   - /scratch
-   - sync to other dc's is done via rsync
-   - daemon that runs on compute vm's and starts/stops projects, sets quotas, replicates, etc., but knows nothing global (e.g., no database).
+ - [ ] put project creation date in project
 
 
  - [ ] (in progress on cloud3) create a full offsite-able backup of all bup repos of projects in dc1, and also the database nodes in dc1.
@@ -71,9 +194,7 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 
  - [ ] install something randy needs:  I think this will be possible in the release planned for this summer, but for now it would be nice to use Jake's mpld3 package, which doesn't seem to be installed.  I tried downloading and following the instructions at   https://github.com/jakevdp/mpld3 but didn't have permissions.  Is this something you could install globally?
 
-  - [ ] make this standard  -- https://github.com/biocore/scikit-bio   -- see https://mail.google.com/mail/u/0/?shva=1#inbox/1454ce211132e2bf
-
-
+ - [ ] make this standard  -- https://github.com/biocore/scikit-bio   -- see https://mail.google.com/mail/u/0/?shva=1#inbox/1454ce211132e2bf
 
  - [ ] MAYBE -- or maybe not -- change bup_storage to never delete account: it's very useful for linking projects and sharing files to have account available at all times.  will make, e.g., persistent sshfs possible; make sure .ssh is not ssh excluded from rsync
 
@@ -82,10 +203,6 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 - [ ] deal with the exception around this - codecs.open(self.save_log,'a',"utf-8-sig").write(json.dumps(r)+'\n')
 
 - [ ] go through and chown/sync every project systematically; evidently I didn't in the current migration, so I'll just put a chown in the start script for now -- this slows things down, but is temporary.
-
-- [ ] update quota information using du script and re-enable quotas
-
-- [ ] write code that cleans up /bup/projects fs by removing .sagemathcloud directories, etc., of projects not used for a while
 
 - [ ] make it so move is never automatic but prompted?
 
@@ -100,6 +217,77 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 
 ======
 
+- [x] need to write the uid instead of username in the control groups rules file
+- [x] make it so there is a setting in editor settings about whether or not tab sends a tab character or 4 spaces.
+
+
+
+- [x] p.stop(...) got unrecognized argument --force ....
+
+- [x] claritalb.org site messed up... but restarting the hub made problem vanish.  HMM so issue with global state.
+
+- [x] quotas finish:
+      - had to set QUOTA_OVERRIDE back temporarily since quota isn't being set in conf file on projects when they first start.  NEED to do that first, then re-enable it.  Also, I wrote but didn't send an email about quotas.
+
+- [x] write to bup list
+
+
+- [x] fix ipython file update bug: https://github.com/sagemath/cloud/issues/104
+
+- [x] quotas
+
+     * make the quota = min(25GB, max(5 times the bup repo size, 5GB))
+
+    - gather the bup usage files together in one place on cloud3
+    - write throw-away code in `bup_server` that runs through them and sets disk and scratch for all based on above formulas
+    - run throw-away code above.
+    - push out new `bup_storage.py` that doesn't override quota, so new quotas get used.
+
+- [x] setup automatic destruction of old zfsnap snapshots:
+
+        0 * * * *  /usr/local/bin/zfsnap.sh destroy -r bup
+
+- [x] update base vm's: add bindfs apt-get and include it in build.py
+
+
+- [x] file copy is now completely broken.
+
+- [x] frontend: don't include "a" in rsync option for recovering/copying files -- just use r
+
+
+- [x] bitcoin miner:
+
+root@compute14dc0:~# su - 7063e18c4477488fbcc6a07a6c9ef5ae
+~$ ls
+gen.term  go  gonchmod  sh
+~$ ls -lht
+total 294K
+-rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae   74 Apr 12 14:23 go
+-rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae   36 Apr 12 09:21 gen.term
+-rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae    0 Mar 26 16:18 gonchmod
+-rwxrwx--- 1 7063e18c4477488fbcc6a07a6c9ef5ae 7063e18c4477488fbcc6a07a6c9ef5ae 584K Mar 26 15:58 sh
+
+
+ - [x] delete all lines in compute vm's /etc/passwd files that include /bup/projects.
+
+
+
+ - [x] 99 projects have >3 replicas in practice, though not (usually) in db -- these appear "lost" to users in some cases.
+   For each:
+       - copy all files into their current location
+       - move files for projects not specifically listed in bup_last_save to a TO_DELETE location
+
+  Plan:
+
+    phase 1:
+     - sync from *all* actual replicas to master
+     - save from master to *all* replicas
+    phase 2:
+     - add all replicas to bup_locations in database.
+
+  Update everything.
+
+  Later -- reduce number of replicas in some cases.
 
 - [x] read consistency issue: if db say bup_last_save empty, but it isn't, we destroy everything and completely loose project (?!)
 
@@ -152,6 +340,55 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 
 
 # DONE
+
+
+- [x] write a generally usable consistency testing system for project storage, which maybe at first doesn't *change* anything by default.
+      A "clearly good" non-started project would be one where:
+         - the files on all replicas are identical
+         - the non-hidden files in latest/master equal the files in working directory
+      The above should be easy to test for -- and I'll generate a list of everything that doesn't satisfy it,
+      and go from there.
+
+      - add command `bup_status` to the local `bup_server` process that gives status of the bup repo versus working
+             {'modified_files':[number=modified files in working directory not in repo],
+              'newest_snapshot':'2014-04-10-025139' or 'none' if not bup repo}
+      - add command to global client that calls the above in parallel on all hosts of a project and puts together into one object
+      - then run through all projects and get above data; when running not true and files and latest don't match, add to a list.
+
+
+
+- [x] BACKUPS -- something that has a single point of failure but is *really easy for now*
+
+     - regularly rsync all the cassandras and bups from dc1 to cloud3 -- running in a tmux on cloud3 right now; keep that also on disk.math, as is, via regular rsync -- this provides a fast(er) recovery in case of disaster.
+
+         every 30 ~/salvus/salvus/scripts/bup/get_dc1_bups
+         every 1800 ~/salvus/salvus/scripts/cassandra/cassandra_backup_dc1
+
+         cd ~vm/images/
+         every 7200 rsync --bwlimit=10000 -axvH bups/ disk.math.washington.edu:bups/
+         every 7200 rsync --bwlimit=10000 -axvH cassandra/ disk.math.washington.edu:cassandra/
+
+     - make a single huge bup repo that contains all the cassandra backups *and* all the bup repos:
+
+        salvus@cloud3:~/vm/images$ export BUP_DIR=~/vm/images/bup-backup-all/
+        salvus@cloud3:~/vm/images$ bup init
+        Initialized empty Git repository in /home/salvus/vm/images/bup-backup-all/
+        salvus@cloud3:~/vm/images$ time bup index cassandra
+        Indexing: 74142, done (5436 paths/s).
+
+        real    0m14.305s
+        user    0m12.253s
+        sys     0m1.648s
+        salvus@cloud3:~/vm/images$ time bup save cassandra -n cassandra
+        Reading index: 74142, done.
+        bloom: creating from 1 file (200000 objects).
+        bloom: adding 1 file (139635 objects).
+        Saving: 1.56% (3557438/227509412k, 1720/74142 files) 3h2m 20000k/s
+
+       It will be hard to restore efficiently from the above, though if we have several copies of it around we can restore in parallel.
+       And we can restore files from each bup repo inside, via fuse.
+       However, the above will be (1) very efficient space-wise, and (2) provides incremental read-only backups, which won't get wrecked in case of attack.
+
 
 BEFORE SWITCH:
 
@@ -238,7 +475,7 @@ and also push out the correct consistent hashing file
         - progress: if there is a way to give how far along with doing something (e.g., rsyncing out to replicas)
     could do this by creating a conf file that is *NOT* rsync'd that stores stuff:   conf/state.json
 
-- [ ] port forward for testing server: "salvus@cloud15:~$ sudo ssh -L cloud1.math.washington.edu:443:10.1.15.7:443 10.1.15.7
+- [ ] port forward for testing server: "salvus@cloud15:~$ sudo ssh -L cloud15.math.washington.edu:443:10.1.15.7:443 10.1.15.7
 "
 
 - [ ] migration -- no way to finish without some painful actions
@@ -289,4 +526,45 @@ for x in os.popen("apparmor_status").readlines():
        - [x] update code
        - [x] firewall is wrong -- it would ban all internode traffic which isn't what we want due to .5 instead of .4
        - [x] system-wide: open up permissions so that octave, etc., works: chmod a+rwx /usr/local/sage/sage-6.2/local/share/sage/ext/*
+
+ - [x] write a post explaining what is new and awesome, and what the architecture is.
+key points:
+   - direct tcp connections instead of ssh tunnels (limits of sshd)
+   - fix uid issue
+   - project states
+   - move/rename/copy file buttons
+   - faster file listing
+   - live files, with zfs snapshots every few minutes, which are not consistent across dc's, and will vanish if a project were moved in a dc
+       - dedup'd across projects on a given host
+       - compressed
+       - quota
+   - set bup repo of snapshots that are consistent across dc's -- highly deduped and compressed; easy to sync around; git-based so branches are possible; dynamic fuse mounting
+   - /scratch
+   - sync to other dc's is done via rsync
+   - daemon that runs on compute vm's and starts/stops projects, sets quotas, replicates, etc., but knows nothing global (e.g., no database).
+
+- [x] sshfs code: permissions on other end are wrong.  Oh man.
+      change it so that:
+
+         (1) we ensure that we have mounted the entire remote /projects directory as /projects-target, when a given remote mount is needed.  This could be done *either* using sshfs or using nfs.  We make this only visible/usable by root.  Using straight 'sshfs 10.1.13.5:/projects /projects-10.1.13.5' makes /projects-10.1.13.5 readable/visible *only* by root, which is good.
+
+         (2) then we do "bindfs --create-for-user=275991804 --create-for-group=275991804 -u 1959631043 -g 1959631043 /projects-10.1.13.5/project_id/path0 /projects/project_id/path1
+
+         This fully works as we want.
+         And bindfs (http://bindfs.org/) is pretty awesome; it lets you mount things read only, etc.
+         It's fully FUSE, so no issues of kernel locking, etc.
+
+- [] fix this for GOOD!  (line 113 bs)
+        salvus@web10:~/salvus/salvus$ vi /home/salvus/salvus/salvus/node_modules/http-proxy/lib/http-proxy/passes/ws-incoming.js
+      - I reported this upstream at https://github.com/nodejitsu/node-http-proxy/issues/626
+
+- [x] new base vm:
+       -- [x] need to make the local_hub_template! (and put on gce and other machine) -- copy both data and node_modules
+	       -- pty.js issues!
+		   -- raw http server doesn't work with new modules.
+       -- [x] ubuntu 14.04
+       -- [x] sage 6.2.x
+       -- [x] updating haproxy, nginx, node.js, cassandra, etc.
+	   -- [x] ENSURE: chmod a+rwx -R /usr/local/sage/sage-6.2/local/share/sage/ext
+
 

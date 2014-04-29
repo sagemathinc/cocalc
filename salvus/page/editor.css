@@ -289,6 +289,10 @@ Editor for files in a project
 
 .salvus-editor-chat-new-chats {
     color:orange;
+    padding-right: 1ex;
+}
+.salvus-editor-chat-no-new-chats {
+    padding-right: 1ex;
 }
 
 
@@ -391,7 +395,7 @@ Editor for files in a project
 }
 
 .salvus-ipython-notebook-status-messages {
-    font-size: 10px;
+    font-size: 10pt;
 }
 
 .salvus-ipython-notebook-danger {

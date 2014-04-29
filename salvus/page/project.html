@@ -63,9 +63,9 @@
 
             <a class="btn btn-large btn-success" href="#download-file"><i class="fa fa-cloud-download"> </i> Download</a>
 
-            <a class="btn btn-large" href="#copy-file"><i class="fa fa-copy"> </i> Copy</a>
+            <a class="btn btn-large btn-primary" href="#copy-file"><i class="fa fa-copy"> </i> Copy</a>
 
-            <a class="btn btn-danger btn-large" href="#delete-file"><i class="fa fa-trash-o"> </i> Delete</a>
+            <a class="btn btn-danger btn-large" href="#delete-file"><i class="fa fa-trash-o"> </i> Trash</a>
         </span>
     </div>
     <div class="modal-footer">
@@ -185,7 +185,7 @@
         <input type="text" style="width:100%" class="copy-file-dest" value="">
         <br><hr>
         <span class="lighten">
-            <b>Note:</b> The copy is done using <pre>rsync -axH --backup --backup-dir=.trash/ source dest</pre> so
+            <b>Note:</b> The copy is done using <pre class="salvus-rsync-command">rsync -rltgoDvxH --backup --backup-dir=.trash/ source dest</pre> so
             destination files that would be overwritten are instead copied to the trash.
         </span>
     </div>
@@ -371,7 +371,7 @@
                                     </span><br>
                                     <span class="btn-group">
                                         <a class="btn  btn-large" style="margin-top:1ex" href="#new-file" data-toggle="tooltip" data-placement="top" title="Create a new file of any type you want (determined by the extension)"><i class="fa fa-file"></i> Create File</a>
-                                        <a class="btn  btn-large"  style="margin-top:1ex"  href="#new-folder" data-toggle="tooltip" data-placement="top" title="Create a new folder"><i class="fa fa-folder"></i> Create Folder</a>
+                                        <a class="btn  btn-large"  style="margin-top:1ex"  href="#new-folder" data-toggle="tooltip" data-placement="top" title="Create a new folder"><i class="fa fa-folder-o"></i> Create Folder</a>
                                         <a class="btn  btn-large"  style="margin-top:1ex"  href="#new-download" data-toggle="tooltip" data-placement="top" title="Copy a file or directory from the web into your project"><i class="fa fa-cloud"></i> Copy from Internet Link</a>
                                     </span>
                                     <!--<a class="btn btn-small" href="#old-worksheet"><i class="fa fa-file-o"> </i> (Old Worksheet)</a>-->
@@ -549,30 +549,30 @@
 
                             <div class="span6 well project-settings-well">
                                 <h4><i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Quota</h4>
-                                <span class="project-disk_usage hide">
+                                <span class="project-disk_usage">
                                     <ul>
-                                        <li class="salvus-zfs-quotas"> Home directory: used
-                                            <b><span class="salvus-userused-projects"></span></b> of <b><span class="salvus-userquota-projects"></span></b>
+                                        <li class="salvus-zfs-quotas"> Disk usage:
+                                            <b><span class="salvus-userused-projects">(loading...)</span></b> of <b><span class="salvus-userquota-projects"></span></b>
                                         </li>
 
-                                        <li class="salvus-zfs-quotas"> /scratch: used
+                                        <li class="salvus-zfs-quotas"> <tt>/scratch</tt> disk usage:
 
-                                            <b><span class="salvus-userused-scratch"></span></b> of <b><span class="salvus-userquota-scratch"></span></b>
+                                            <b><span class="salvus-userused-scratch">(loading...)</span></b> of <b><span class="salvus-userquota-scratch"></span></b>
                                         </li>
                                         <li>
-                                            Can use up to <b><span class="salvus-project-settings-cores"></span> CPU cores</b>
-                                        </li>
-
-                                        <li>
-                                            Can use up to <b><span class="salvus-project-settings-memory"></span> RAM</b>
+                                            CPU cores: <b><span class="salvus-project-settings-cores">(loading...)</span></b> (shared)
                                         </li>
 
                                         <li>
-                                            Stops after <b><span class="salvus-project-settings-mintime"></span> hours</b> of inactivity
+                                            RAM: <b><span class="salvus-project-settings-memory">(loading...)</span></b> (shared)
                                         </li>
 
                                         <li>
-                                            Gets <b><span class="salvus-project-settings-cpu_shares"></span> relative CPU share</b> (1 is fair sharing with other projects).
+                                            Timeout: <b><span class="salvus-project-settings-mintime">(loading...)</span> hours</b> of inactivity
+                                        </li>
+
+                                        <li>
+                                            CPU share: <b><span class="salvus-project-settings-cpu_shares">(loading...)</span></b>
                                         </li>
 
                                     </ul>
@@ -775,17 +775,20 @@
                 <i class="fa fa-trash-o"> </i>
             </a>
         </div>
-        <div class="span5">
+
+        <div class="span1">
             <a> <i class="fa project-file-icon fa-file" style="padding-right:1em"> </i></a>
+        </div>
+        <div class="span4">
             <a  href="#open-file" class="project-file-name"></a><span class="project-file-name-extension"></span>
         </div>
 
         <div class="span3">
-            <span class="project-file-last-mod-date">
+            <span class="project-file-last-mod-date lighten">
             </span>
         </div>
         <div class="span2">
-            <span class="project-file-size">
+            <span class="project-file-size lighten">
             </span>
         </div>
 

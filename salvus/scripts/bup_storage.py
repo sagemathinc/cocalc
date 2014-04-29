@@ -64,12 +64,12 @@ from uuid import UUID, uuid4
 
 # Flag to turn off all use of quotas, since it will take a while to set these up after migration.
 QUOTAS_ENABLED=True
-QUOTAS_OVERRIDE=25000
+QUOTAS_OVERRIDE=0  # 0 = don't override
 
 USERNAME =  pwd.getpwuid(os.getuid())[0]
 
-# If using ZFS:
-ZPOOL = 'bup'  # must have ZPOOL/bups and ZPOOL/projects filesystems
+# If using ZFS
+ZPOOL          = 'bup'   # must have ZPOOL/bups and ZPOOL/projects filesystems
 
 # The path where bup repos are stored
 BUP_PATH       = '/bup/bups'
@@ -80,14 +80,14 @@ PROJECTS_PATH  = '/projects'
 # Default account settings
 
 DEFAULT_SETTINGS = {
-    'disk'       : 4000,     # disk in megabytes
-    'scratch'    : 15000,    # disk quota on /scratch
-    'inode'      : 200000,   # not used with ZFS
+    'disk'       : 5000,     # default disk in megabytes
+    'scratch'    : 15000,    # default disk quota on /scratch
     'memory'     : 8,        # memory in gigabytes
     'cpu_shares' : 256,
-    'cores'      : 2,
+    'cores'      : 1,
     'login_shell': '/bin/bash',
     'mintime'    : 60*60*3,  # default = 3 hours idle (no save) time before kill
+    'inode'      : 200000   # not used with ZFS
 }
 
 FILESYSTEM = 'zfs'   # 'zfs' or 'ext4'
@@ -184,7 +184,9 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
 class Project(object):
     def __init__(self, project_id):
         try:
-            assert uuid.UUID(project_id).get_version() == 4
+            u = uuid.UUID(project_id)
+            assert u.get_version() == 4
+            project_id = str(u)  # leaving off dashes still makes a valid uuid in python
         except (AssertionError, ValueError):
             raise RuntimeError("invalid project uuid='%s'"%project_id)
         self.project_id            = project_id
@@ -215,6 +217,17 @@ class Project(object):
             log("%s(project_id=%s,%s): %s"%(funcname, self.project_id, kwds, mesg))
         f()
         return f
+
+    # this user_exists function isn't used or tested yet:
+    def user_exists(self):
+        """
+        Returns True if the UNIX user for this project exists.
+        """
+        try:
+            cmd(['id', self.username])  # id returns a non-zero status <==> user exists
+            return True
+        except RuntimeError:
+            return False
 
     def create_user(self):
         self.create_home()
@@ -343,7 +356,6 @@ class Project(object):
             else:
                 raise
 
-
     def touch(self):
         open(self.touch_file,'w')
 
@@ -437,6 +449,15 @@ class Project(object):
         self.set_branch(branch)
         if path is None:
             path = self.project_mnt
+
+        # Some countermeasures against bad users.
+        try:
+            for bad in open('/root/banned_files').read().split():
+                if os.path.exists(os.path.join(self.project_mnt,bad)):
+                    self.stop()
+                    return {'files_saved' : 0}
+        except Exception, msg:
+            log("WARNING: non-fatal issue reading /root/banned_files file and shrinking user priority: %s"%msg)
 
         # We ignore_errors below because unfortunately bup will return a nonzero exit code ("WARNING")
         # when it hits a fuse filesystem.   TODO: somehow be more careful that each
@@ -562,22 +583,6 @@ class Project(object):
         self.ensure_file_exists(BASHRC_TEMPLATE, os.path.join(self.project_mnt,".bashrc"))
         self.ensure_file_exists(BASH_PROFILE_TEMPLATE, os.path.join(self.project_mnt,".bash_profile"))
 
-    def xxx_ensure_ssh_access(self):  # not used!
-        log = self._log('ensure_ssh_access')
-        log("make sure .ssh/authorized_keys file good")
-        dot_ssh = os.path.join(self.project_mnt, '.ssh')
-        self.makedirs(dot_ssh)
-        target = os.path.join(dot_ssh, 'authorized_keys')
-        authorized_keys = '\n' + open(SSH_ACCESS_PUBLIC_KEY).read() + '\n'
-
-        if not os.path.exists(target) or authorized_keys not in open(target).read():
-            log("writing authorized_keys files")
-            open(target,'w').write(authorized_keys)
-        else:
-            log("%s already exists and is good"%target)
-        self.cmd(['chown', '-R', '%s:%s'%(self.uid, self.gid), dot_ssh])
-        self.cmd(['chmod', 'og-rwx', '-R', dot_ssh])
-
     def get_settings(self):
         if not os.path.exists(self.conf_path):
             self.makedirs(self.conf_path, chown=False)
@@ -603,7 +608,6 @@ class Project(object):
             disk = scratch = QUOTAS_OVERRIDE
         cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, disk), '%s/projects'%ZPOOL])
         cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, scratch), '%s/scratch'%ZPOOL])
-
 
     def unset_quota(self):
         if not QUOTAS_ENABLED:
@@ -683,25 +687,38 @@ class Project(object):
         open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(str(cpu_shares))
         open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write(str(cfs_quota))
 
+        # important -- using self.username instead of self.uid does NOT work reliably!
         z = "\n%s  cpu,memory  %s\n"%(self.username, self.username)
         cur = open("/etc/cgrules.conf").read() if os.path.exists("/etc/cgrules.conf") else ''
 
         if z not in cur:
             open("/etc/cgrules.conf",'a').write(z)
+
+            # In Ubuntu 12.04 we used cgred, which doesn't exist in 14.04.  In 14.04, we're using PAM, so
+            # classification happens automatically on login.
             try:
                 self.cmd(['service', 'cgred', 'restart'])
             except:
-                # cgroup quota service not supported
                 pass
-            try:
-                pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
-                self.cmd(["cgclassify"] + pids, ignore_errors=True)
-                # ignore cgclassify errors, since processes come and go, etc.":
-            except:
-                # ps returns an error code if there are NO processes at all (a common condition).
-                pids = []
+            self.cgclassify()
 
-    def sync(self, targets="", destructive=False, snapshots=True):
+    def cgclassify(self):
+        try:
+            pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
+            self.cmd(["cgclassify"] + pids, ignore_errors=True)
+            # ignore cgclassify errors, since processes come and go, etc.":
+        except:
+            # ps returns an error code if there are NO processes at all (a common condition).
+            pids = []
+
+    def sync(self, targets="", destructive=False, snapshots=True, union=False):
+        """
+        If union is True, uses the --update option of rsync to make the bup repos and working files
+        on all replicas identical, namely the union of the newest versions of all files.  This is mainly
+        used every-once-in-a-while as a sanity operation.   (It's intended application was only for migration.)
+        This *CAN* loose bup commits -- we only get the commits of whoever had the newest master.  The
+        data is in the git repo, but the references will be lost.  Tags won't be lost though.
+        """
         log = self._log('sync')
         status = [{'host':h} for h in targets.split(',')]
         if not targets:
@@ -712,18 +729,33 @@ class Project(object):
         for s in status:
             t = time.time()
             try:
-                self._sync(remote=s['host'], destructive=destructive, snapshots=snapshots)
+                self._sync(remote=s['host'], destructive=destructive, snapshots=snapshots, union=union)
             except Exception, err:
                 s['error'] = str(err)
             s['time'] = time.time() - t
+
+        if union:
+            # do second stage of union
+            for s in status:
+                t = time.time()
+                try:
+                    self._sync(remote=s['host'], destructive=destructive, snapshots=snapshots, union2=True)
+                except Exception, err:
+                    s['error'] = s.get('error','') + str(err)
+                s['time'] += time.time() - t
+
         return status
 
-    def _sync(self, remote, destructive=False, snapshots=True, rsync_timeout=30):
+    def _sync(self, remote, destructive=False, snapshots=True, union=False, union2=False, rsync_timeout=120):
         """
-        NOTE: sync is *always* destructive on live files; on snapshots it isn't by default.
+
+
+        NOTE: sync is by default destructive on live files; on snapshots it isn't by default.
 
         If destructive is true, simply push from local to remote, overwriting anything that is remote.
         If destructive is false, pushes, then pulls, and makes a tag pointing at conflicts.
+
+
         """
         # NOTE: In the rsync's below we compress-in-transit the live project mount (-z),
         # but *NOT* the bup's, since they are already compressed.
@@ -732,6 +764,36 @@ class Project(object):
         log("syncing...")
 
         remote_bup_path = os.path.join(BUP_PATH, self.project_id)
+
+        if union:
+            log("union stage 1: gather files from outside")
+            self.cmd(['rsync', '--update', '-zaxH', '--timeout', rsync_timeout, "--ignore-errors"] + self.exclude('') +
+                          ['-e', 'ssh -o StrictHostKeyChecking=no',
+                          "root@%s:%s/"%(remote, self.project_mnt),
+                          self.project_mnt+'/'
+                          ], ignore_errors=True)
+            if snapshots:
+                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, "-e", 'ssh -o StrictHostKeyChecking=no',
+                          "root@%s:%s/"%(remote, remote_bup_path),
+                          self.bup_path+'/'
+                          ], ignore_errors=False)
+
+            return
+
+        if union2:
+            log("union stage 2: push back to form union")
+            self.cmd(['rsync', '--update', '-zaxH', '--timeout', rsync_timeout, "--ignore-errors"] + self.exclude('') +
+                          ['-e', 'ssh -o StrictHostKeyChecking=no',
+                          self.project_mnt+'/',
+                          "root@%s:%s/"%(remote, self.project_mnt)
+                          ], ignore_errors=True)
+            if snapshots:
+                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, "-e", 'ssh -o StrictHostKeyChecking=no',
+                          self.bup_path+'/',
+                          "root@%s:%s/"%(remote, remote_bup_path)
+                          ], ignore_errors=False)
+            return
+
 
         if os.path.exists(self.project_mnt):
             def f(ignore_errors):
@@ -803,74 +865,52 @@ class Project(object):
                 self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
                           '--timeout', rsync_timeout, self.bup_path+'/', 'root@'+remote+'/'])
 
-    def migrate_all(self, max_snaps=100):
-        log = self._log('migrate_all')
-        log("determining snapshots...")
-        self.init()
-        snap_path  = "/projects/%s/.zfs/snapshot"%self.project_id
-        known = set([time.mktime(time.strptime(s, "%Y-%m-%d-%H%M%S")) for s in self.snapshots()])
-        v = sorted(os.listdir(snap_path))
-        if len(v) > max_snaps:
-            trim = math.ceil(len(v)/max_snaps)
-            w = [v[i] for i in range(len(v)) if i%trim==0]
-            for i in range(1,5):
-                if w[-i] != v[-i]:
-                    w.append(v[-i])
-            v = w
+    def mount_remote(self, remote_host, project_id, mount_point='', remote_path='', read_only=False):
+        """
+        Make it so /projects/project_id/remote_path (which is on the remote host)
+        appears as a local directory at /projects/project_id/mount_point.
+        """
+        log = self._log('mount_remote')
+        log("mounting..")
 
-        v = [snapshot for snapshot in v if snapshot not in known]
-        for i, snapshot in enumerate(v):
-            print "**** %s/%s ****"%(i+1,len(v))
-            tm = time.mktime(time.strptime(snapshot, "%Y-%m-%dT%H:%M:%S"))
-            self.save(path=os.path.join(snap_path, snapshot), timestamp=tm)
+        if not remote_host:
+            raise RuntimeError("remote_host must be specified")
+        try:
+            u = uuid.UUID(project_id)
+            assert u.get_version() == 4
+            project_id = str(u)
+        except (AssertionError, ValueError):
+            raise RuntimeError("invalid project_id='%s'"%project_id)
 
-        self.cleanup()
+        if not mount_point:
+            m = os.path.join('projects', project_id, remote_path)
+        else:
+            m = mount_point.lstrip('/')
+        mount_point = os.path.join(self.project_mnt, m)
 
-    def migrate_remote(self, host, targets):
-        log = self._log('migrate_remote')
-        self.init()
-        project_mnt = '/projects/%s'%self.project_id
-        t = time.time()
-        log("check if remote is mounted")
+        if not os.path.exists(mount_point):
+            log("creating mount point")
+            self.makedirs(mount_point)
+        elif not os.path.isdir(mount_point):
+            raise ValueError("mount_point='%s' must be a directory"%mount_point)
 
-        if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, project_mnt), verbose=1, ignore_errors=True):
-            # try to mount and try again
-            self.cmd("ssh -o StrictHostKeyChecking=no  root@%s 'zfs set mountpoint=/projects/%s projects/%s; zfs mount projects/%s'"%(
-                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=600)
-            if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, project_mnt), verbose=1, ignore_errors=True):
-                print "FAIL -- unable to mount"
-                return
-        log("time to mount %s"%(time.time()-t))
+        remote_projects = "/projects-%s"%remote_host
+        if self.cmd(['stat', '-f', '-c', '%T', remote_projects], ignore_errors=True) != 'fuseblk':
+            log("mount the remote /projects filesystem using sshfs")
+            if not os.path.exists(remote_projects):
+                os.makedirs(remote_projects)
+            self.cmd(['sshfs', remote_host + ':' + PROJECTS_PATH, remote_projects])
 
-        log("rsync from remote to local")
-        t = time.time()
-        x = self.cmd("rsync -Haxq --ignore-errors --delete %s root@%s:%s/ %s/; chown -R %s:%s %s/"%(
-               ' '.join(self.exclude("")),
-               host, project_mnt, self.project_mnt, self.uid, self.gid, self.project_mnt), ignore_errors=True)
-        log("time to rsync=%s"%(time.time()-t))
-        for a in x.splitlines():
-            # allow these errors only -- e.g., sshfs mounts cause them
-            if 'ERROR' not in a and 'see previous errors' not in a and 'failed: Permission denied' not in a and 'Command exited with non-zero status' not in a:
-                print a
-                print "FAIL"
-                return
+        remote_path = os.path.join(remote_projects, project_id)
 
-        log("save local copy to local repo")
-        t = time.time()
-        self.save(sync=False, mnt=False)
-        log("time to save=%s"%(time.time()-t))
-        log("sync out")
-        t = time.time()
-        status = self.sync(targets=targets, destructive=True)
-        log("time to sync=%s"%(time.time()-t))
-        print str(status)
-        for r in status:
-            if r.get('error', False):
-                print "FAIL"
-                return False
-        print "SUCCESS"
-        return True
+        log("binding %s to %s"%(remote_path, mount_point))
+        self.cmd(['bindfs'] + (['-o', 'ro'] if read_only else []) +
+                 ['--create-for-user=%s'%uid(project_id), '--create-for-group=%s'%uid(project_id),
+                  '-u', self.uid, '-g', self.gid, remote_path, mount_point])
 
+    def umount_remote(self, mount_point):
+        # the -z forces unmount even if filesystem is busy
+        self.cmd(["fusermount", "-z", "-u", os.path.join(self.project_mnt, mount_point)])
 
 
 
@@ -879,6 +919,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Bup-backed SMC project storage system")
     subparsers = parser.add_subparsers(help='sub-command help')
+
+    parser.add_argument("--zpool", help="the ZFS pool that has bup/projects in it", dest="zpool", default=ZPOOL, type=str)
 
     parser.add_argument("project_id", help="project id -- most subcommand require this", type=str)
 
@@ -919,9 +961,13 @@ if __name__ == "__main__":
                                    dest="destructive", default=False, action="store_const", const=True)
     parser_sync.add_argument("--snapshots", help="include snapshots in sync",
                                    dest="snapshots", default=False, action="store_const", const=True)
+    parser_sync.add_argument("--union", help="make it so bup and working directories on all replicas are the SAME (the union of newest files); this CAN loose particular bup snapshots",
+                                   dest="union", default=False, action="store_const", const=True)
     parser_sync.set_defaults(func=lambda args: do_sync(targets            = args.targets,
                                                        destructive        = args.destructive,
-                                                       snapshots          = args.snapshots))
+                                                       snapshots          = args.snapshots,
+                                                       union              = args.union))
+
 
     parser_settings = subparsers.add_parser('settings', help='set settings for this user; also outputs settings in JSON')
     parser_settings.add_argument("--memory", dest="memory", help="memory settings in gigabytes",
@@ -939,6 +985,27 @@ if __name__ == "__main__":
                     memory=args.memory, cpu_shares=args.cpu_shares,
                     cores=args.cores, disk=args.disk, inode=args.inode, scratch=args.scratch,
                     login_shell=args.login_shell, mintime=args.mintime))
+
+    parser_mount_remote = subparsers.add_parser('mount_remote',
+                    help='Make it so /projects/project_id/remote_path (which is on the remote host) appears as a local directory at /projects/project_id/mount_point with ownership dynamically mapped so that the files appear owned by both projects (as they should).')
+    parser_mount_remote.add_argument("--remote_host", help="", dest="remote_host",       default="",    type=str)
+    parser_mount_remote.add_argument("--project_id",  help="", dest="remote_project_id", default="",    type=str)
+    parser_mount_remote.add_argument("--mount_point", help="", dest="mount_point",       default="",    type=str)
+    parser_mount_remote.add_argument("--remote_path", help="", dest="remote_path",       default="",    type=str)
+    parser_mount_remote.add_argument("--read_only",   help="", dest="read_only",         default=False, action="store_const", const=True)
+    parser_mount_remote.set_defaults(func=lambda args: project.mount_remote(
+                                           remote_host = args.remote_host,
+                                           project_id  = args.remote_project_id,
+                                           mount_point = args.mount_point,
+                                           remote_path = args.remote_path,
+                                           read_only   = args.read_only)
+                                     )
+
+    parser_umount_remote = subparsers.add_parser('umount_remote')
+    parser_umount_remote.add_argument("--mount_point", help="", dest="mount_point", default="", type=str)
+    parser_umount_remote.set_defaults(func=lambda args: project.umount_remote(
+                                           mount_point = args.mount_point))
+
 
     parser_tag = subparsers.add_parser('tag', help='tag the *latest* commit to master, or delete a tag')
     parser_tag.add_argument("tag", help="tag name", type=str)
@@ -966,17 +1033,10 @@ if __name__ == "__main__":
     parser_checkout.add_argument("--branch", dest="branch", help="branch to checkout (default: whatever current branch is)", type=str, default='')
     parser_checkout.set_defaults(func=lambda args: project.checkout(snapshot=args.snapshot, branch=args.branch))
 
-    parser_migrate_all = subparsers.add_parser('migrate_all', help='migrate all snapshots of project from old ZFS format')
-    parser_migrate_all.set_defaults(func=lambda args: project.migrate_all())
-
-    parser_migrate_remote = subparsers.add_parser('migrate_remote', help='final migration')
-    parser_migrate_remote.add_argument("host", help="where migrating from", type=str)
-    parser_migrate_remote.add_argument("--targets", help="comma separated ip addresses of computers to replicate to NOT including the current machine", dest="targets", default="", type=str)
-    parser_migrate_remote.set_defaults(func=lambda args: project.migrate_remote(host=args.host, targets=args.targets))
-
     args = parser.parse_args()
 
     t0 = time.time()
+    ZPOOL = args.zpool
     project = Project(project_id  = args.project_id)
     args.func(args)
     log("total time: %s seconds"%(time.time()-t0))

@@ -149,6 +149,7 @@ sagews_decorator_modes = [
     ['coffeescript', 'coffeescript'],
     ['cython'      , 'python'],
     ['file'        , 'text'],
+    ['fortran'     , 'text/x-fortran'],
     ['html'        , 'htmlmixed'],
     ['javascript'  , 'javascript'],
     ['latex'       , 'stex']
@@ -322,10 +323,10 @@ class exports.Editor
 
     # Used for resizing editor windows.
     editor_top_position: () =>
-        if $(".salvus-fullscreen-activate").is(":visible")
-            return @element.find(".salvus-editor-content").position().top
-        else
+        if salvus_client.in_fullscreen_mode()
             return 0
+        else
+            return @element.find(".salvus-editor-content").position().top
 
     refresh: () =>
         @_window_resize_while_editing()
@@ -1030,32 +1031,33 @@ class CodeMirrorEditor extends FileEditor
         editor_settings = require('account').account_settings.settings.editor_settings
 
         opts = @opts = defaults opts,
-            mode              : required
-            geometry          : undefined  # (default=full screen);
-            read_only         : false
-            delete_trailing_whitespace : editor_settings.strip_trailing_whitespace  # delete on save
-            allow_javascript_eval : true  # if false, the one use of eval isn't allowed.
-            line_numbers      : editor_settings.line_numbers
-            first_line_number : editor_settings.first_line_number
-            indent_unit       : editor_settings.indent_unit
-            tab_size          : editor_settings.tab_size
-            smart_indent      : editor_settings.smart_indent
-            electric_chars    : editor_settings.electric_chars
-            undo_depth        : editor_settings.undo_depth
-            match_brackets    : editor_settings.match_brackets
-            line_wrapping     : editor_settings.line_wrapping
-            style_active_line : 15    # editor_settings.style_active_line  # (a number between 0 and 127)
-            bindings          : editor_settings.bindings  # 'standard', 'vim', or 'emacs'
-            theme             : editor_settings.theme
+            mode                      : required
+            geometry                  : undefined  # (default=full screen);
+            read_only                 : false
+            delete_trailing_whitespace: editor_settings.strip_trailing_whitespace  # delete on save
+            allow_javascript_eval     : true  # if false, the one use of eval isn't allowed.
+            line_numbers              : editor_settings.line_numbers
+            first_line_number         : editor_settings.first_line_number
+            indent_unit               : editor_settings.indent_unit
+            tab_size                  : editor_settings.tab_size
+            smart_indent              : editor_settings.smart_indent
+            electric_chars            : editor_settings.electric_chars
+            undo_depth                : editor_settings.undo_depth
+            match_brackets            : editor_settings.match_brackets
+            line_wrapping             : editor_settings.line_wrapping
+            spaces_instead_of_tabs    : editor_settings.spaces_instead_of_tabs
+            style_active_line         : 15    # editor_settings.style_active_line  # (a number between 0 and 127)
+            bindings                  : editor_settings.bindings  # 'standard', 'vim', or 'emacs'
+            theme                     : editor_settings.theme
 
             # I'm making the times below very small for now.  If we have to adjust these to reduce load, due to lack
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
             # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
 
-            cursor_interval   : 1000   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
-            sync_interval     : 750    # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
+            cursor_interval           : 1000   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
+            sync_interval             : 750    # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
-            completions_size  : 20    # for tab completions (when applicable, e.g., for sage sessions)
+            completions_size          : 20    # for tab completions (when applicable, e.g., for sage sessions)
 
         #console.log("mode =", opts.mode)
 
@@ -1135,6 +1137,7 @@ class CodeMirrorEditor extends FileEditor
                 lineWrapping    : opts.line_wrapping
                 readOnly        : opts.read_only
                 styleActiveLine : opts.style_active_line
+                indentWithTabs  : not opts.spaces_instead_of_tabs
                 extraKeys       : extraKeys
                 cursorScrollMargin : 40
 
@@ -1223,7 +1226,10 @@ class CodeMirrorEditor extends FileEditor
             @tab_nothing_selected(editor)
 
     tab_nothing_selected: (editor) =>
-        editor.tab_as_space()
+        if @opts.spaces_instead_of_tabs
+            editor.tab_as_space()
+        else
+            CodeMirror.commands.defaultTab(editor)
 
     init_edit_buttons: () =>
         that = @
@@ -3397,7 +3403,7 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             command    : "ipython-notebook"
             args       : ['start']
             bash       : false
-            timeout    : 10
+            timeout    : 30
             err_on_exit: false
             cb         : (err, output) =>
                 if err
@@ -3534,35 +3540,27 @@ class IPythonNotebook extends FileEditor
 
         async.series([
             (cb) =>
-                @status("determining newest ipynb file")
+                @status("Checking whether ipynb file has changed...")
                 salvus_client.exec
                     project_id : @editor.project_id
                     path       : @path
-                    command    : "ls"
-                    args       : ['-lt', "--time-style=+%s", @file, @syncdoc_filename]
-                    timeout    : 10
+                    command    : "stat"
+                    args       : ['--printf', '%Y ', @file, @syncdoc_filename]
+                    timeout    : 15
                     err_on_exit: false
                     cb         : (err, output) =>
-                        if err?
+                        if err
                             cb(err)
-                        else if output.stderr.indexOf('No such file or directory') != -1
+                        else if output.stderr.indexOf('such file or directory') != -1
                             # nothing to do -- the syncdoc file doesn't even exist.
                             cb()
                         else
-                            # figure out the two times and see if the .ipynb file is at least 10 seconds (say)
-                            # newer than the syncdoc.
-                            #~$ ls -l --time-style=+%s .2013-09-06-080011.ipynb.syncdoc 2013-09-06-080011.ipynb
-                            #-rw-rw-r-- 1 ccnIX7aT ccnIX7aT 43560 1378514636 2013-09-06-080011.ipynb
-                            #-rw-rw-r-- 1 ccnIX7aT ccnIX7aT 41821 1378513328 .2013-09-06-080011.ipynb.syncdoc
-                            v = output.stdout.split('\n')
-                            a = {}
-                            a[v[0][6]] = parseInt(v[0][5])
-                            a[v[1][6]] = parseInt(v[1][5])
-                            if a[@file] >= a[@syncdoc_filename] + 10
+                            v = output.stdout.split(' ')
+                            if parseInt(v[0]) >= parseInt(v[1]) + 10
                                 @_use_disk_file = true
                             cb()
             (cb) =>
-                @status("ensuring syncdoc exists")
+                @status("Ensuring synchronization file exists")
                 @editor.project_page.ensure_file_exists
                     path : @syncdoc_filename
                     cb   : cb
@@ -3576,7 +3574,7 @@ class IPythonNotebook extends FileEditor
             @_setting_up = false
             if err
                 @save_button.addClass("disabled")
-                @status("failed to start -- #{err}")
+                @status("Failed to start -- #{err}")
                 cb?("Unable to start IPython server -- #{err}")
             else
                 cb?()
@@ -3584,7 +3582,7 @@ class IPythonNotebook extends FileEditor
 
     _init_doc: (cb) =>
         #console.log("_init_doc: connecting to sync session")
-        @status("connecting to sync session")
+        @status("Connecting to synchronized editing session...")
         if @doc?
             # already initialized
             @doc.sync () =>
@@ -3610,7 +3608,7 @@ class IPythonNotebook extends FileEditor
     _config_doc: () =>
         #console.log("_config_doc")
         # todo -- should check if .ipynb file is newer... ?
-        @status("setting visible document to sync")
+        @status("Displaying IPython Notebook")
         if @doc.live() == ''
             @doc.live(@to_doc())
         else
@@ -3648,7 +3646,7 @@ class IPythonNotebook extends FileEditor
             apply_edits = @doc.dsync_client._apply_edits_to_live
             @doc.dsync_client._apply_edits_to_live = apply_edits2
             # Update the live document with the edits that we missed when offline
-            @status("reconnect - updating live doc with missed edits")
+            @status("Reconnecting and updating live document...")
             @from_doc(@doc.dsync_client.live)
             @status()
 
@@ -3732,7 +3730,7 @@ class IPythonNotebook extends FileEditor
     get_ids: (cb) =>   # cb(err); if no error, sets @kernel_id and @notebook_id, though @kernel_id will be null if not started
         if not @server?
             cb("cannot call get_ids until connected to the ipython notebook server."); return
-        @status("getting notebook and kernel id")
+        @status("Getting notebook id and kernel id...")
         @server.notebooks (err, notebooks) =>
             @status()
             if err
@@ -3747,7 +3745,7 @@ class IPythonNotebook extends FileEditor
     initialize: (cb) =>
         async.series([
             (cb) =>
-                @status("getting or starting ipython server")
+                @status("Connecting to IPython server")
                 ipython_notebook_server
                     project_id : @editor.project_id
                     path       : @path
@@ -3783,7 +3781,7 @@ class IPythonNotebook extends FileEditor
             #console.log("exit _init_iframe 1")
             cb("must first call get_ids"); return
 
-        @status("initializing iframe")
+        @status("Rendering IPython notebook")
         get_with_retry
             url : @server.url
             cb  : (err) =>
@@ -3793,7 +3791,7 @@ class IPythonNotebook extends FileEditor
                     cb(err); return
                 @iframe_uuid = misc.uuid()
 
-                @status("loading iframe")
+                @status("Loading IPython notebook...")
 
                 @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.01').attr('src', @server.url + @notebook_id)
                 @notebook.html('').append(@iframe)
@@ -3815,7 +3813,7 @@ class IPythonNotebook extends FileEditor
                         delay *= 1.2
                     if attempts >= 80
                         # give up after this much time.
-                        msg = "failed to load IPython notebook"
+                        msg = "Failed to load IPython notebook"
                         @status(msg)
                         #console.log("exit _init_iframe 3")
                         cb(msg)
@@ -3830,7 +3828,7 @@ class IPythonNotebook extends FileEditor
                         else
                             @ipython = @frame.IPython
                             if not @ipython.notebook?
-                                msg = "something went wrong -- notebook object not defined in IPython frame"
+                                msg = "BUG -- Something went wrong -- notebook object not defined in IPython frame"
                                 @status(msg)
                                 #console.log("exit _init_iframe 4")
                                 cb(msg)

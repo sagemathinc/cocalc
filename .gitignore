@@ -29,9 +29,13 @@ salvus/static/mercury/src/build
 
 salvus/static/codemirror-3.1/*
 
+salvus/static/*.min.js
+
 salvus/scripts/skel/.sagemathcloud
 
 salvus/src/*cassandra*
+salvus/src/*.tar.gz
+salvus/src/*.tgz
 .*backup
 .*swp
 

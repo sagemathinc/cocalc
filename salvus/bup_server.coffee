@@ -38,6 +38,8 @@ STORAGE_SERVERS_UPDATE_INTERVAL_S = 180  # How frequently (in seconds)  to query
 
 IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds.
 
+ZPOOL = if process.env.BUP_POOL? then process.env.BUP_POOL else 'bup'
+
 CONF = "/bup/conf"
 fs.exists CONF, (exists) ->
     if exists
@@ -59,7 +61,7 @@ bup_storage = (opts) =>
     winston.debug("bup_storage: running #{misc.to_json(opts.args)}")
     misc_node.execute_code
         command : "sudo"
-        args    : ["/usr/local/bin/bup_storage.py"].concat(opts.args)
+        args    : ["/usr/local/bin/bup_storage.py", "--zpool", ZPOOL].concat(opts.args)
         timeout : opts.timeout
         path    : process.cwd()
         cb      : (err, output) =>
@@ -126,9 +128,14 @@ class Project
                     cb : (err, s) =>
                         state = s; cb(err)
             (cb) =>
+                if opts.param == 'force'
+                    force = true
+                    delete opts.param
+                else
+                    force = false
                 switch opts.action
                     when 'start'
-                        if state in ['stopped', 'error'] or opts.param=='force'
+                        if state in ['stopped', 'error'] or force
                             @state = 'starting'
                             @_action
                                 action  : 'start'
@@ -147,7 +154,7 @@ class Project
                             cb()
 
                     when 'restart'
-                        if state in ['running', 'error'] or opts.param=='force'
+                        if state in ['running', 'error'] or force
                             @state = 'restarting'
                             @_action
                                 action  : 'restart'
@@ -166,7 +173,7 @@ class Project
                             cb()
 
                     when 'stop'
-                        if state in ['running', 'error'] or opts.param=='force'
+                        if state in ['running', 'error'] or force
                             @state = 'stopping'
                             @_action
                                 action  : 'stop'
@@ -186,7 +193,7 @@ class Project
 
 
                     when 'save'
-                        if state in ['running'] or opts.param=='force'
+                        if state in ['running'] or force
                             if not @_last_save? or misc.walltime() - @_last_save >= MIN_SAVE_INTERVAL_S
                                 @state = 'saving'
                                 @_last_save = misc.walltime()
@@ -734,6 +741,17 @@ class GlobalProject
             (cb) =>
                 if not server_id?  # already running
                     cb(); return
+                dbg("get current non-default settings from the database and set before starting project")
+                @get_settings
+                    cb : (err, settings) =>
+                        if err
+                            cb(err)
+                        else
+                            settings.cb = cb
+                            project.settings(settings)
+            (cb) =>
+                if not server_id?  # already running
+                    cb(); return
                 dbg("start project on #{server_id}")
                 project.start
                     cb : (err) =>
@@ -745,7 +763,7 @@ class GlobalProject
 
 
     restart: (opts) =>
-        dbg = (m) -> winston.debug("GlobalProject.restart(#{@project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.restart(#{@project_id}): #{m}")
         dbg()
         @running_project
             cb : (err, project) =>
@@ -771,7 +789,7 @@ class GlobalProject
         # put this here -- we don't even want to *try* more frequently than MIN_SAVE_INTERVAL_S, in case of save bup repo being broken (?)
         @_last_save = misc.walltime()
 
-        dbg = (m) -> winston.debug("GlobalProject.save(#{@project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.save(#{@project_id}): #{m}")
 
         need_to_save = false
         project      = undefined
@@ -851,6 +869,88 @@ class GlobalProject
                 opts.cb?()
         )
 
+
+    sync: (opts) =>
+        opts = defaults opts,
+            destructive : false
+            snapshots   : true   # whether to sync snapshots -- if false, only syncs live files
+            union       : false  # if true, sync's by making the files and bup repo the union of that on all replicas -- this is for *REPAIR*
+            timeout     : TIMEOUT
+            cb          : undefined
+
+        dbg = (m) => winston.debug("GlobalProject.sync(#{@project_id}): #{m}")
+
+        project   = undefined
+        targets   = undefined
+        server_id = undefined
+        result    = undefined
+        errors    = []
+        async.series([
+            (cb) =>
+                dbg("figure out master if there is one")
+                @get_location_pref (err,s) =>
+                        server_id = s
+                        dbg("got master=#{server_id}")
+                        cb(err)
+            (cb) =>
+                dbg("lookup the servers that host this project")
+                @get_hosts
+                    cb : (err, hosts) =>
+                        if err
+                            cb(err)
+                        else
+                            targets = hosts
+                            dbg("servers=#{misc.to_json(targets)}")
+                            if not server_id? # no master (project never used), so choose one at random
+                                server_id = misc.random_choice(targets)
+                            targets = (@global_client.servers.by_id[x].host for x in targets when x!= server_id)
+                            cb()
+            (cb) =>
+                dbg("get the project itself")
+                @project
+                    server_id : server_id
+                    cb        : (err, p) =>
+                        project = p; cb(err)
+            (cb) =>
+                dbg("do the sync")
+                tm = cassandra.now()
+                project.sync
+                    targets     : targets
+                    union       : opts.union
+                    destructive : opts.destructive
+                    snapshots   : opts.snapshots
+                    timeout     : opts.timeout
+                    cb          : (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            r = x.result
+                            if not r?
+                                cb()
+                                return
+                            dbg("record info about syncing in database")
+                            last_save = {}
+                            last_save[server_id] = tm
+                            for x in r
+                                if x.host == '' # special case - the server hosting the project
+                                    s = server_id
+                                else
+                                    s = @global_client.servers.by_host[x.host].server_id
+                                if not x.error?
+                                    last_save[s] = tm
+                                else
+                                    errors.push(x.error)
+                            @set_last_save
+                                last_save : last_save
+                                cb        : cb
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else if errors.length > 0
+                opts.cb?(errors)
+            else
+                opts.cb?(undefined, result)
+        )
 
     # if some project is actually running, return it; otherwise undefined
     running_project: (opts) =>
@@ -970,17 +1070,31 @@ class GlobalProject
     # get local copy of project on a specific host
     project: (opts) =>
         opts = defaults opts,
-            server_id : required
+            server_id : undefined  # if server_id is not given uses the preferred location
             cb        : required
-        @global_client.storage_server
-            server_id : opts.server_id
-            cb        : (err, s) =>
-                if err
-                    opts.cb(err)
+        project = undefined
+        async.series([
+            (cb) =>
+                if not opts.server_id?
+                    @get_location_pref (err, server_id) =>
+                        opts.server_id = server_id
+                        cb(err)
                 else
-                    s.project   # this is cached
-                        project_id : @project_id
-                        cb         : opts.cb
+                    cb()
+            (cb) =>
+                @global_client.storage_server
+                    server_id : opts.server_id
+                    cb        : (err, s) =>
+                        if err
+                            cb(err)
+                        else
+                            s.project   # this is cached
+                                project_id : @project_id
+                                cb         : (err, p) =>
+                                    project = p
+                                    cb(err)
+        ], (err) =>
+            opts.cb(err, project))
 
     set_last_save: (opts) =>
         opts = defaults opts,
@@ -1110,8 +1224,9 @@ class GlobalProject
     get_state: (opts) =>
         opts = defaults opts,
             timeout : 15
+            id      : true     # if false, instead give hostnames as keys instead of server_id's  (useful for interactive work)
             cb      : required
-        dbg = (m) -> winston.info("get_state: #{m}")
+        dbg = (m) => winston.info("get_state: #{m}")
         dbg()
         servers = undefined
         @state = {}
@@ -1147,7 +1262,11 @@ class GlobalProject
                                     if err
                                         dbg("error getting state on #{server_id} -- #{err}")
                                         s = 'error'
-                                    @state[server_id] = s
+                                    if opts.id
+                                        key = server_id
+                                    else
+                                        key = @global_client.servers.by_id[server_id].host
+                                    @state[key] = s
                                     cb()
                     ], cb)
 
@@ -1155,6 +1274,160 @@ class GlobalProject
 
         ], (err) => opts.cb?(err, @state)
         )
+
+    # mount a remote project (or directory in one) so that it is accessible in this project
+    # NOTE: Neither project has to be running; however, both must have a defined master "bup_location".
+
+    # WARNING: This is valid at the time when mounted.  However, if the remote project moves
+    # *and* the client is restarted, it will loose the interval timer state
+    # below, and the mount will become invalid.   Thus use with extreme caution until
+    # this state is better tracked (e.g., via a local database whose state survives restart, or
+    # via the database, or some other approach).
+    mount_remote: (opts) =>
+        opts = defaults opts,
+            project_id  : required    # id of the remote project
+            remote_path : ''          # path to mount in the remote project (relative to $HOME of that project)
+            mount_point : required    # local mount point, relative to $HOME
+            cb          : undefined
+
+        dbg = (m) => winston.info("mount_remote(#{misc.to_json(opts)}): #{m}")
+        dbg()
+
+        remote_host = undefined
+        project     = undefined
+        interval    = 30000
+
+        # This client will query the database every interval seconds to see if the remote
+        # project has moved -- if so, it will change the mount accordingly.    I'm putting
+        # this code in specifically for limited testing use to get a feel for this feature
+        # before planning something more robust!
+        if not @_mount_remote_interval?
+            @_mount_remote_interval = {}
+
+        async.series([
+            (cb) =>
+                dbg("get current location of remote project")
+                @global_client.get_project(opts.project_id).get_location_pref (err, server_id) =>
+                    if err
+                        cb(err)
+                    else
+                        remote_host = @global_client.servers.by_id[server_id].host
+                        dbg("remote_host=#{remote_host}")
+                        cb()
+            (cb) =>
+                dbg("get this project on prefered host")
+                @project
+                    cb : (err, p) =>
+                        project = p; cb(err)
+            (cb) =>
+                dbg("execute mount command")
+                project.mount_remote
+                    remote_host : remote_host
+                    project_id  : opts.project_id
+                    mount_point : opts.mount_point
+                    remote_path : opts.remote_path
+                    cb          : cb
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else
+                key = opts.mount_point  # if something else was already mounted here, above code would have failed.
+                if not @_mount_remote_interval[key]?
+                    dbg("setup interval check to see if remote project moves, and if so remount it")
+                    # see comments above -- this is just for testing purposes
+                    f = () =>
+                        @global_client.get_project(opts.project_id).get_location_pref (err, server_id) =>
+                            if err
+                                # database error -- try again later
+                                return
+                            if remote_host != @global_client.servers.by_id[server_id].host
+                                @umount_remote
+                                    mount_point : opts.mount_point
+                                    cb          : (err) =>
+                                        @mount_remote(opts)
+                    @_mount_remote_interval[key] = setInterval(f, interval)
+                opts.cb?()
+        )
+
+    umount_remote: (opts) =>
+        opts = defaults opts,
+            mount_point : required
+            cb          : undefined
+        winston.info("umount_remote: #{opts.mount_points}")
+        @project
+            cb : (err, project) =>
+                if err
+                    opts.cb?(err)
+                else
+                    project.umount_remote
+                        mount_point : opts.mount_point
+                        cb          : (err) =>
+                            if @_mount_remote_interval[opts.mount_point]?
+                                clearInterval(@_mount_remote_interval[opts.mount_point])
+                                delete @_mount_remote_interval[opts.mount_point]
+                            opts.cb?(err)
+
+    set_settings: (opts) =>
+        # For the options see the settings method of ClientProject.
+        # This method changes settings in the database; also, if the project is currently running
+        # somewhere, it updates the settings on that running instance.
+        dbg = (m) => winston.info("set_settings(#{misc.to_json(opts)}): #{m}")
+        dbg()
+
+        cb0     = opts.cb
+        timeout = opts.timeout
+        delete opts.cb
+        delete opts.timeout
+        async.series([
+            (cb) =>
+                dbg("change settings in the database")
+                f = (key, c) =>
+                    if opts[key]?
+                        @database.cql("UPDATE projects SET settings[?]=? WHERE project_id=?", [key, "#{opts[key]}", @project_id], c)
+                    else
+                        c()
+                async.map(misc.keys(opts), f, (err) => cb(err))
+            (cb) =>
+                dbg("checking if project is running, and if so set settings locally there.")
+                @get_host_where_running
+                    cb : (err, server_id) =>
+                        if err or not server_id?
+                            dbg("project not running")
+                            cb(err)
+                        else
+                            dbg("project running at #{server_id}, so changing settings there")
+                            @project
+                                server_id : server_id
+                                cb        : (err, project) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        opts.cb = cb
+                                        opts.timeout = timeout
+                                        project.settings(opts)
+        ], (err) => cb0?(err))
+
+    get_settings: (opts) =>
+        opts = defaults opts,
+            cb          : undefined
+        # Get project settings from the database; these are only the settings that
+        # over-ride defaults.
+        @database.select_one
+            table     : 'projects'
+            columns   : ['settings']
+            objectify : false
+            where     : {project_id : @project_id}
+            cb        : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    if result[0]?
+                        opts.cb(undefined, result[0])
+                    else
+                        opts.cb(undefined, {})
+
+
+
 
 
 
@@ -1234,7 +1507,7 @@ class GlobalClient
         #dbg("updating list of available storage servers...")
         @database.select
             table     : 'storage_servers'
-            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret', 'vnodes']
+            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret']
             objectify : true
             where     : {dummy:true}
             cb        : (err, results) =>
@@ -1270,10 +1543,10 @@ class GlobalClient
                 @_update(cb)
             (cb) =>
                 dbg("writing file")
-                # @servers = {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
+                # @servers = {server_id:{host:'ip address', dc:2}, ...}
                 servers_conf = {}
                 for server_id, x of @servers.by_id
-                    servers_conf[server_id] = {host:x.host, vnodes:x.vnodes, dc:x.dc}
+                    servers_conf[server_id] = {host:x.host, dc:x.dc}
                 fs.writeFile(file, misc.to_json(servers_conf), cb)
             (cb) =>
                 f = (server_id, c) =>
@@ -1306,10 +1579,9 @@ class GlobalClient
         opts = defaults opts,
             host   : required
             dc     : 0           # 0, 1, 2, .etc.
-            vnodes : 128
             timeout: 30
             cb     : undefined
-        dbg = (m) -> winston.debug("GlobalClient.add_storage_server(#{opts.host}, #{opts.dc},#{opts.vnodes}): #{m}")
+        dbg = (m) -> winston.debug("GlobalClient.add_storage_server(#{opts.host}, #{opts.dc}): #{m}")
         dbg("adding storage server to the database by grabbing server_id files, etc.")
         get_file = (path, cb) =>
             dbg("get_file: #{path}")
@@ -1326,7 +1598,7 @@ class GlobalClient
                     else
                         cb(undefined, output.stdout)
 
-        set = {host:opts.host, dc:opts.dc, vnodes:opts.vnodes, port:undefined, secret:undefined}
+        set = {host:opts.host, dc:opts.dc, port:undefined, secret:undefined}
         where = {server_id:undefined, dummy:true}
 
         async.series([
@@ -1777,6 +2049,127 @@ class GlobalClient
 
 
 
+    sync_union: (opts) =>
+        opts = defaults opts,
+            limit       : 5           # number to do in parallel
+            qlimit      : 10000000    # limit on number of projects to pull from database
+            timeout     : TIMEOUT
+            dryrun      : false       # if true, just return the projects that need sync; don't actually sync
+            status      : []
+            projects     : undefined   # if given, do sync on exactly these projects and no others
+            cb          : required    # cb(err, errors)
+        dbg = (m) => winston.debug("GlobalClient.sync_union: #{m}")
+        dbg()
+        projects = []
+        errors = {}
+        async.series([
+            (cb) =>
+                if opts.projects?
+                    projects = opts.projects
+                    cb()
+                    return
+                dbg("querying database for all projects with any data")
+                @database.select
+                    table     : 'projects'
+                    columns   : ['project_id', 'bup_last_save']
+                    objectify : true
+                    limit     : opts.qlimit # TODO: change to use paging...
+                    consistency : 1
+                    cb        : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("got #{r.length} records")
+                            r.sort (a,b) ->
+                                if a.project_id < b.project_id
+                                    return -1
+                                else if a.project_id > b.project_id
+                                    return 1
+                                else
+                                    return 0
+                            projects = (x.project_id for x in r when x.bup_last_save? and misc.len(x.bup_last_save) > 0)
+                            cb()
+            (cb) =>
+                if opts.dryrun
+                    cb(); return
+                i = 0
+                j = 0
+                f = (project_id, cb) =>
+                    i += 1
+                    dbg("*** syncing project #{i}/#{projects.length} ***: #{project_id}")
+                    s = {'status':'running...', project_id:project_id}
+                    opts.status.push(s)
+                    @get_project(project_id).sync
+                        union : true
+                        cb    : (err) =>
+                            j += 1
+                            dbg("*** got result #{j}/#{projects.length} for #{project_id}: #{err}")
+                            s['status'] = 'done'
+                            if err
+                                errors[project_id] = err
+                                s['error'] = err
+                            cb()
+                dbg("#{projects.length} projects need to be sync'd")
+                async.mapLimit(projects, opts.limit, f, (err) => cb())
+
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else if misc.len(errors) > 0
+                opts.cb?(errors)
+            else
+                if opts.dryrun
+                    opts.cb?(undefined, projects)
+                else
+                    opts.cb?()
+        )
+
+    # one-time throw-away code... but keep since could be useful to adapt!
+    set_quotas: (opts) =>
+        opts = defaults opts,
+            limit    : 5           # number to do in parallel
+            errors   : required    # map where errors are stored as they happen
+            stop     : 99999999    # stop a
+            dryrun   : true
+            cb       : required    # cb(err, quotas)
+        dbg = (m) => winston.debug("GlobalClient.set_quotas: #{m}")
+        dbg()
+        errors = {}
+        quotas = {}
+        async.series([
+            (cb) =>
+                fs.readFile "use-bups", (err, data) =>
+                    if err
+                        cb(err)
+                    else
+                        for x in data.toString().split('\n')
+                            v = x.split('\t')
+                            if v.length >= 2
+                                a = v[0]
+                                a.slice(0, a.length-2)
+                                usage = parseInt(a)
+                                project_id = v[1].trim()
+                                quotas[project_id] = Math.min(20000, Math.max(3*Math.round(usage), 5000))
+                        cb()
+            (cb) =>
+                if opts.dryrun
+                    cb(); return
+                i = 0
+                f = (project_id, cb) =>
+                    i += 1
+                    dbg("setting quota for project #{project_id} -- #{i}/#{misc.len(quotas)}")
+                    @get_project(project_id).set_settings
+                        disk : quotas[project_id]
+                        cb   : (err) =>
+                            if err
+                                opts.errors[project_id] = err
+                            cb(err)
+                async.mapLimit(misc.keys(quotas).slice(0,opts.stop), opts.limit, f, (err) => cb())
+        ], (err) =>
+            opts.cb?(err, quotas)
+        )
+
+
 ###########################
 ## Client -- code below mainly sets up a connection to a given storage server
 ###########################
@@ -2038,8 +2431,8 @@ class ClientProject
             cb         : undefined
         opts.action = 'stop'
         if opts.force
-            opts.param = '--force'
-        delete opts.force        
+            opts.param = 'force'
+        delete opts.force
         @action(opts)
 
 
@@ -2082,7 +2475,7 @@ class ClientProject
         opts = defaults opts,
             timeout    : TIMEOUT
             memory     : undefined
-            cpu_shares : undefined
+            cpu_shares : undefined   # fair is 256, not 1 !!!!
             cores      : undefined
             disk       : undefined
             scratch    : undefined
@@ -2107,7 +2500,8 @@ class ClientProject
             targets     : required   # array of hostnames (not server id's!) to sync to
             timeout     : TIMEOUT
             destructive : false
-            snapshots   : true   # whether to sync snapshots -- if not given, only syncs live files
+            snapshots   : true   # whether to sync snapshots -- if false, only syncs live files
+            union       : false  # if true, sync's by making the files and bup repo the union of that on all replicas -- this is for *REPAIR*
             cb          : undefined
         if opts.targets.length == 0  # trivial special case
             opts.cb?()
@@ -2118,11 +2512,44 @@ class ClientProject
             params.push('--snapshots')
         if opts.destructive
             params.push('--destructive')
+        if opts.union
+            params.push('--union')
         @action
             action  : 'sync'
             param   : params
-            timeout : TIMEOUT
+            timeout : opts.timeout
             cb      : opts.cb
+
+
+    mount_remote: (opts) =>
+        opts = defaults opts,
+            remote_host : required
+            project_id  : required
+            mount_point : required
+            remote_path : required
+            timeout     : TIMEOUT
+            cb          : undefined
+        params = ["--remote_host", opts.remote_host,
+                  "--project_id",  opts.project_id,
+                  "--mount_point", opts.mount_point,
+                  "--remote_path", opts.remote_path]
+        @action
+            action  : 'mount_remote'
+            param   : params
+            timeout : opts.timeout
+            cb      : opts.cb
+
+    umount_remote: (opts) =>
+        opts = defaults opts,
+            mount_point : required
+            timeout     : TIMEOUT
+            cb          : undefined
+        @action
+            action  : 'umount_remote'
+            param   : ["--mount_point", opts.mount_point]
+            timeout : opts.timeout
+            cb      : opts.cb
+
 
 
 client_project_cache = {}
@@ -2159,7 +2586,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--replication [string]', 'replication factor (default: 2)', String, '2')
 
     .option('--port [integer]', "port to listen on (default: assigned by OS)", String, 0)
-    .option('--address [string]', 'address to listen on (default: the tinc network or 127.0.0.1 if no tinc)', String, '')
+    .option('--address [string]', 'address to listen on (default: the tinc network if there, or eth1 if there, or 127.0.0.1)', String, '')
 
     .parse(process.argv)
 
@@ -2183,6 +2610,6 @@ main = () ->
         winston.error("Uncaught exception: #{err}")
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
-if program._name == 'bup_server.js'
+if program._name.split('.')[0] == 'bup_server'
     main()
 

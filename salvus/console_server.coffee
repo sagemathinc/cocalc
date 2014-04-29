@@ -168,7 +168,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--host [string]', 'bind to this interface (default: 127.0.0.1)', String, "127.0.0.1")
     .parse(process.argv)
 
-if program._name == 'console_server.js'
+if program._name.split('.')[0] == 'console_server'
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
         winston.error "Uncaught exception: " + err

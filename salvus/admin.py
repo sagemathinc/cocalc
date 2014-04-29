@@ -1300,7 +1300,7 @@ class Monitor(object):
     def compute(self):
         hosts = self._hosts['cassandra']
         ans = []
-        for k, v in self._hosts('compute', 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l', wait=True, parallel=True).iteritems():
+        for k, v in self._hosts('compute-2', 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l', wait=True, parallel=True).iteritems():
             d = {'host':k[0], 'service':'compute'}
             m = v.get('stdout','').splitlines()
             if v.get('exit_status',1) != 0 or len(m) < 7:
@@ -1468,7 +1468,7 @@ class Monitor(object):
                         down.append(x)
         return down
 
-    def print_status(self, all=None, n=5):
+    def print_status(self, all=None, n=9):
         if all is None:
             all = self.all( )
 

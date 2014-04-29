@@ -1,4 +1,5 @@
 * I had to patch codemirror/keymap/vim.js by deleting all reference to Ctrl-C because
   we can't break system-wide copy!
 
- 
+
+* The theme/solarized.css file looks like *CRAP* -- I had to remove the weird background image and shadow text.  Come on. 
