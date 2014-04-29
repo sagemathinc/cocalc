@@ -34,7 +34,7 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
     #################################
     t = time.time()
     img_path = os.path.join(os.environ['HOME'], 'vm', 'images')
-    base_img_path = os.path.join(img_path, 'base')
+    base_img_path = os.path.join(img_path, 'base3')
     if not os.path.exists(base_img_path):
         os.makedirs(base_img_path)
     persistent_img_path = os.path.join(img_path, 'persistent')
@@ -184,7 +184,7 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
     #################################
     try:
         cmd = ['virt-install',
-               ',
+               '--connect', 'qemu:///system',
                '--cpu', 'host',
                '--network', 'network:default,model=virtio',
                '--name', hostname,
@@ -247,7 +247,7 @@ if __name__ == "__main__":
                         help="persistent disks: '--disk=cassandra:64:ext4:qcow2,backup:10:xfs:qcow2,/dev/sdd1::none,/dev/sdd2:foo:ext4' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, one formated ext4 the other xfs, and mounted as /mnt/cassandra and /mnt/backup, also makes /dev/sdd1 available in the vm, and makes /dev/sdd2 available and mount as /mnt/foo; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.  More precisely, the format is --disk=[name]:[size]:[ext4|xfs|zfs|none]:[raw|qcow2].  If format is none, then the disk is not mounted in fstab.  If name is a device the format is --disk=[devicename]:[mountpoint]:[format]")
     parser.add_argument("--fstab", dest="fstab", type=str, default="", help="custom string to add to the end of /etc/fstab; each mountpoint in that string will be created if necessary")
     parser.add_argument('--base', dest='base', type=str, default='salvus',
-                        help="template image in ~/vm/images/base on which to base this machine; must *not* be running (default: salvus).")
+                        help="template image in ~/vm/images/base3 on which to base this machine; must *not* be running (default: salvus).")
 
     args = parser.parse_args()
 

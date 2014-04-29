@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse, os, sys, time
-VM_PATH = os.path.join(os.environ['HOME'], 'vm/images/base/')
+VM_PATH = os.path.join(os.environ['HOME'], 'vm/images/base3/')
 
 def cmd(s):
     print s
@@ -20,7 +20,7 @@ next = args.next
 
 if prev == "":
    # make it the most recent image
-   prev = os.popen("ls -1t ~/vm/images/base/*.img|head -1").read().strip().rstrip('.img')
+   prev = os.popen("ls -1t %s/*.img|head -1"%VM_PATH).read().strip().rstrip('.img')
 
 if next == "":
    # make image name salvus-date
