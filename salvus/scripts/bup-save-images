@@ -1,0 +1,4 @@
+export BUP_DIR=$HOME/vm/images/base3-bup
+bup init
+bup index $HOME/vm/images/base3
+time bup save $HOME/vm/images/base3 -n master
