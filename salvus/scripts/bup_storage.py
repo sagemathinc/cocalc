@@ -899,7 +899,7 @@ class Project(object):
             log("mount the remote /projects filesystem using sshfs")
             if not os.path.exists(remote_projects):
                 os.makedirs(remote_projects)
-            self.cmd(['sshfs', '-o ssh_command="ssh -o StrictHostKeyChecking=no", '-o ssh_command="ssh -o StrictHostKeyChecking=no", remote_host + ':' + PROJECTS_PATH, remote_projects])
+            self.cmd(['sshfs', '-o', 'ssh_command="ssh -o StrictHostKeyChecking=no"', remote_host + ':' + PROJECTS_PATH, remote_projects])
 
         remote_path = os.path.join(remote_projects, project_id)
 
