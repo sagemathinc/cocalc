@@ -345,7 +345,7 @@ class Project(object):
         log = self._log('mount_snapshots')
         self.umount_snapshots()
         if os.path.exists(self.snap_mnt):
-            os.rmdir(self.snap_mnt)
+            shutil.rmtree(self.snap_mnt, ignore_errors=True)
         try:
             self.makedirs(self.snap_mnt)
             self.cmd(['bup', 'fuse', '-o', '--uid', self.uid, '--gid', self.gid, self.snap_mnt])
