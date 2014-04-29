@@ -1,4 +1,10 @@
+set -e
+
 export BUP_DIR=$HOME/vm/images/base3-bup
+du -sch $BUP_DIR
 bup init
 bup index $HOME/vm/images/base3
 time bup save $HOME/vm/images/base3 -n master
+du -sch $BUP_DIR
+time bup ls master/latest/$HOME/vm/images/base3
+
