@@ -1014,7 +1014,7 @@ class GlobalProject
         async.series([
             (cb) =>
                 if opts.target?
-                    dbg("set next open location preference -- #{err}")
+                    dbg("set next open location preference -- target=#{opts.target}")
                     @set_location_pref(opts.target, cb)
                 else
                     cb()
