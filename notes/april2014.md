@@ -37,8 +37,26 @@
 ---
 
 
+- [ ] automate control of gce vm's:
+      - create script `vm_gce.py` with options like `vm.py`
+      - start will
+         - create the requested machine
+         - generate the tinc keys
+         - copy them out to all (enough) hosts
+         - scp them to the gce machine when it boots
+         - start tinc on the gce machine
+         - run the salvus start script on the gce machine (get rid of my /mnt/conf crap)
+      - stop will destroy the gce machine
+      - create a class in admin.py that is VmGCE, which uses `vm_gce.py` and works like `vm.py`.
+      - move all the conf stuff for gce to my services file
+      - update the conf for the `bup_servers` -- new ip addresses (ending in .5)
 
 
+
+
+----
+
+- [ ] change default browser font to Monospace (browser default); makes the most sense!
 
 - [ ] rewrite sync to remove the differential sync doc from the hub -- just forward everything back and forth between browser client and local hub.  This should speed things up, avoid a lot of state issues, and lay a good foundation for further optimizations and fixes.
 

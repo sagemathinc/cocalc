@@ -345,7 +345,7 @@ class Project(object):
         log = self._log('mount_snapshots')
         self.umount_snapshots()
         if os.path.exists(self.snap_mnt):
-            os.rmdir(self.snap_mnt)
+            shutil.rmtree(self.snap_mnt, ignore_errors=True)
         try:
             self.makedirs(self.snap_mnt)
             self.cmd(['bup', 'fuse', '-o', '--uid', self.uid, '--gid', self.gid, self.snap_mnt])
@@ -899,7 +899,7 @@ class Project(object):
             log("mount the remote /projects filesystem using sshfs")
             if not os.path.exists(remote_projects):
                 os.makedirs(remote_projects)
-            self.cmd(['sshfs', remote_host + ':' + PROJECTS_PATH, remote_projects])
+            self.cmd(['sshfs', '-o', 'ssh_command="ssh -o StrictHostKeyChecking=no"', remote_host + ':' + PROJECTS_PATH, remote_projects])
 
         remote_path = os.path.join(remote_projects, project_id)
 
