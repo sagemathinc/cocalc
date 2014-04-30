@@ -2,14 +2,13 @@
 """
 vm.py -- create and run a virtual machine based on the standard
          salvus_base template with the given memory and vcpus, and add
-         the vm to our tinc VPN.  When this script terminates, the vm
-         is destroyed, undefined, and the image file associated with
-         it is deleted.
+         the vm to our tinc VPN.  Also, there is a stop option that destroys
+         the vm, removes the tinc auth, etc. and the temporary
+         image file associated with it is deleted.
 """
 
 #######################################################################
-# Copyright (c) William Stein, 2012.  Not open source or free. Will be
-# assigned to University of Washington.
+# Copyright (c) William Stein, 2012, 2013, 2014.  Not open source or free.
 #######################################################################
 
 import logging, os, shutil, socket, tempfile, time
