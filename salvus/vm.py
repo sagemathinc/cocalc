@@ -221,7 +221,7 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="vm.py starts virtual machine with given IP address and type on this computer")
+    parser = argparse.ArgumentParser(description="vm.py -- starts and stops virtual machine with given IP address and type on this computer")
 
     parser.add_argument("-d", dest="daemon", default=False, action="store_const", const=True,
                         help="daemon mode (default: False)")
