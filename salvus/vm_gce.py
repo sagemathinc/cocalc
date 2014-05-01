@@ -62,12 +62,17 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
 def print_json(s):
     print json.dumps(s, separators=(',',':'))
 
-def gcutil(command, args=[], verbose=2, ignore_errors=False):
+def gcutil(command, args=[], verbose=2, ignore_errors=False, interactive=False):
     # gcutil [--global_flags] <command> [--command_flags] [args]
     v = (['gcutil', '--service_version', 'v1', '--project', 'sagemathcloud', '--format', 'json'] +
          [command] +
          args)
-    return cmd(v, verbose=True, timeout=600, ignore_errors=ignore_errors)
+    if interactive:
+        s = ' '.join([x if len(x.split()) <=1  else "'%s'"%x for x in v])
+        log.info(s)
+        os.system(s)
+    else:
+        return cmd(v, verbose=True, timeout=600, ignore_errors=ignore_errors)
 
 class Instance(object):
     def __init__(self, hostname, zone):
@@ -77,10 +82,13 @@ class Instance(object):
     def log(self, s, *args):
         log.info("Instance(hostname=%s, zone=%s).%s", self.hostname, self.zone, s%args)
 
+    def gcutil(self, command, *args, **kwds):
+        return gcutil(command, [self.hostname, '--zone', self.zone] + list(args), **kwds)
+
     def status(self):
         self.log("status()")
         s = {'hostname':self.hostname}
-        v = gcutil("getinstance", [self.hostname, '--zone', self.zone], verbose=False, ignore_errors=True)
+        v = self.gcutil("getinstance", verbose=False, ignore_errors=True)
         if 'ERROR' in v:
             if 'was not found' in v:
                 s['status'] = 'stopped'
@@ -93,6 +101,9 @@ class Instance(object):
         s['type']   = v['machineType'].split('/')[-1]
         s['disks']  = [{'name':a['deviceName']} for a in v['disks']]
         return s
+
+    def ssh(self):
+        gcutil("ssh", [self.hostname], interactive=True)
 
     def stop(self):
         self.log("stop()")
@@ -160,6 +171,9 @@ if __name__ == "__main__":
 
     parser_status = subparsers.add_parser('status', help='get status of the given instance')
     parser_status.set_defaults(func=lambda args: print_json(instance.status()))
+
+    parser_ssh = subparsers.add_parser('ssh', help='ssh into this instance')
+    parser_ssh.set_defaults(func=lambda args: print_json(instance.ssh()))
 
     parser_delete_disk = subparsers.add_parser('delete_disk', help='delete a disk from an instance')
     parser_delete_disk.add_argument("name", help="name of the disk", type=str)
