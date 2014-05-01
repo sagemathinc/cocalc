@@ -34,7 +34,11 @@ High priority
 
 
 
+- [ ] test using swap on vm test using zfs (on compute1dc1 now):
 
+        sudo zfs create pool/swap -V 32G -b 4K
+        sudo mkswap -f /dev/pool/swap
+        sudo swapon /dev/pool/swap
 
 ---
 
