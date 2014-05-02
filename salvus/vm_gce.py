@@ -40,19 +40,22 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
         signal.signal(signal.SIGALRM, handle)
         signal.alarm(timeout)
     try:
-        out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
-        x = (out.stdout.read() + out.stderr.read()).strip()
-        e = out.wait()  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
+        p = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
+        out = p.stdout.read()
+        err = p.stderr.read()
+        e = p.wait()  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
         if e:
             if ignore_errors:
-                return (x + "ERROR").strip()
+                return (out+err + "ERROR").strip()
             else:
-                raise RuntimeError(x)
+                raise RuntimeError(out+err)
+        else:
+            x = ((out if stdout else '') + (err if stderr else '')).strip()
         if verbose>=2:
             log.info("(%s seconds): %s"%(time.time()-t, x))
         elif verbose >= 1:
             log.info("(%s seconds)"%(time.time()-t))
-        return x.strip()
+        return x
     except IOError:
         return mesg
     finally:
@@ -72,7 +75,16 @@ def gcutil(command, args=[], verbose=2, ignore_errors=False, interactive=False):
         log.info(s)
         os.system(s)
     else:
-        return cmd(v, verbose=True, timeout=600, ignore_errors=ignore_errors)
+        return cmd(v, verbose=True, timeout=600, ignore_errors=ignore_errors, stderr=False)
+
+def disk_exists(name, zone):
+    v = gcutil("getdisk", [name, '--zone', zone], ignore_errors=True)
+    if 'ERROR' in v:
+        if 'was not found' in v: # disk doesn't exist
+            return False
+        else:
+            raise RuntimeError(v) # some other error -- give up.
+    return True
 
 class Instance(object):
     def __init__(self, hostname, zone):
@@ -91,55 +103,64 @@ class Instance(object):
         v = self.gcutil("getinstance", verbose=False, ignore_errors=True)
         if 'ERROR' in v:
             if 'was not found' in v:
-                s['status'] = 'stopped'
+                s['state'] = 'stopped'
                 return s
             else:
                 raise RuntimeError(v)
         v = json.loads(v)
-        s['status'] = v['status'].lower()
+        s['state']  = v['status'].lower()
         s['zone']   = v['zone'].split('/')[-1]
         s['type']   = v['machineType'].split('/')[-1]
         s['disks']  = [{'name':a['deviceName']} for a in v['disks']]
+        for k in v['networkInterfaces']:
+            for a in k['accessConfigs']:
+                if a['name'] == 'External NAT':
+                    s['external_ip'] = a['natIP']
         return s
+
+    def external_ip(self):
+        return self.status()['external_ip']
 
     def ssh(self):
         gcutil("ssh", [self.hostname], interactive=True)
 
+    def reset(self): # hard reboot
+        self.gcutil("resetinstance")
+
     def stop(self):
         self.log("stop()")
-        raise NotImplementedError
+        self.delete_instance()
 
     def _disk_name(self, name):
         return "%s-%s"%(self.hostname, name)
 
-    def start(self, ip_address, disks, base, instance_type, zone):
-        self.log("start(ip_address=%s, disks=%s, base=%s, instance_type=%s, zone=%s)", ip_address, disks, base, instance_type, zone)
+    def start(self, ip_address, disks, base, instance_type):
+        self.log("start(ip_address=%s, disks=%s, base=%s, instance_type=%s)", ip_address, disks, base, instance_type)
         assert ip_address.startswith('10.'), "ip address must belong to the class A network 10."
 
-        # check if machine exists (is running, stopping, etc.), in which case start can't be done.
-        status = self.status()['status']
-        if  status != 'stopped':
-            raise RuntimeError("can't start because instance state is %s"%status)
+        self.log("start: check if machine exists (is running, stopping, etc.), in which case start can't be done.")
+        state = self.status()['state']
+        if state != 'running':
 
-        # create any disks that don't already exist
-        for name, size_gb in disks:  # list of pairs, name:size (in GB as string)
-            if not self.disk_exists(name):
-                self.create_disk(name, int(size_gb))
+            self.log("start: create any disks that don't already exist")
+            disk_names = []
+            for name, size_gb in disks:  # list of pairs, (name, size)
+                if not self.disk_exists(name):
+                    self.create_disk(name, int(size_gb))
+                disk_names.append(name)
 
-        # create the machine
+            self.log("start: create the instance itself")
+            self.create_instance(disk_names=disk_names, base=base, instance_type=instance_type)
 
-        raise NotImplementedError
+        self.log("start: initialize the base ZFS pool")
+        self.init_base_pool()
+
+        self.log("start: add the machine to the vpn")
+        self.configure_tinc(ip_address)
 
     def disk_exists(self, name):
         self.log("disk_exists(%s)",name)
-        gce_name = self._disk_name(name)
-        v = gcutil("getdisk", [gce_name, '--zone', self.zone], ignore_errors=True)
-        if 'ERROR' in v:
-            if 'was not found' in v: # disk doesn't exist
-                return False
-            else:
-                raise RuntimeError(v) # some other error -- give up.
-        return True
+        return disk_exists(name=self._disk_name(name), zone=self.zone)
 
     def create_disk(self, name, size_gb):
         self.log("create_disk(name=%s, size_gb=%s)", name, size_gb)
@@ -148,6 +169,51 @@ class Instance(object):
     def delete_disk(self, name):
         self.log("delete_disk(name=%s)", name)
         gcutil("deletedisk", ['--force', '--zone', self.zone, self._disk_name(name)])
+
+    def create_instance(self, disk_names, base, instance_type):
+        self.log("create_instance(disk_names=%s, base=%s, instance_type=%s)", disk_names, base, instance_type)
+
+        if not disk_exists(name=self.hostname, zone=self.zone):
+            self.log("create_instance -- creating boot disk")
+            gcutil("adddisk", ['--zone', self.zone, '--source_snapshot', base, '--wait_until_complete', self.hostname])
+
+        self.log("create_instance -- creating instance")
+
+        args = ['--auto_delete_boot_disk',
+                '--automatic_restart',
+                '--wait_until_running',
+                '--machine_type', instance_type,
+                '--disk', "%s,mode=rw,boot"%self.hostname]
+
+        for name in disk_names:
+            args.append("--disk")
+            args.append("%s,mode=rw"%self._disk_name(name))
+
+        self.gcutil("addinstance", *args)
+
+    def init_base_pool(self):
+        self.log("init_base_pool: export and import the pool, and make sure mounted")
+        c = 'ssh -o StrictHostKeyChecking=no root@%s "zpool export pool && zpool import -f pool && df -h |grep pool"'%self.external_ip()
+        tries = 0
+        MAX_TRIES = 10
+        while tries < MAX_TRIES:
+            try:
+                cmd(c, verbose=2)
+                return
+            except RuntimeError, msg:
+                log.info("FAIL: %s", msg)
+                tries += 1
+                log.info("trying again in 3 seconds...")
+                time.sleep(3)
+        raise RuntimeError("unable to import pool")
+
+
+    def delete_instance(self):
+        self.log("delete_instance()")
+        self.gcutil("deleteinstance", '-f', '--delete_boot_pd')
+
+    def configure_tinc(self, ip_address):
+        self.log("configure_tinc(ip_address=%s)", ip_address)
 
 
 if __name__ == "__main__":
@@ -173,7 +239,11 @@ if __name__ == "__main__":
     parser_status.set_defaults(func=lambda args: print_json(instance.status()))
 
     parser_ssh = subparsers.add_parser('ssh', help='ssh into this instance')
-    parser_ssh.set_defaults(func=lambda args: print_json(instance.ssh()))
+    parser_ssh.set_defaults(func=lambda args: instance.ssh())
+
+    parser_reset = subparsers.add_parser('reset', help='hard reboot machine')
+    parser_reset.set_defaults(func=lambda args: print_json(instance.reset()))
+
 
     parser_delete_disk = subparsers.add_parser('delete_disk', help='delete a disk from an instance')
     parser_delete_disk.add_argument("name", help="name of the disk", type=str)
@@ -196,10 +266,9 @@ if __name__ == "__main__":
 
     parser_start.set_defaults(func=lambda args: instance.start(
                                ip_address    = args.ip_address,
-                               disks         = [a.split(':') for a in args.disks.split(',')],
+                               disks         = [a.split(':') for a in args.disks.split(',')] if args.disks else [],
                                base          = args.base,
-                               instance_type = args.type,
-                               zone          = args.zone))
+                               instance_type = args.type))
 
 
     args = parser.parse_args()
