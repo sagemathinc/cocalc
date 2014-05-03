@@ -17,6 +17,19 @@ compute_cpu   = 10   # DO *NOT* change compute_cpu willy-nilly; if you change it
                      # sage: %timeit b=numpy.linalg.inv(a)
                      # 1 loops, best of 3: 183 ms per loop
 
+# Google Compute Engine
+[vmgce]
+localhost    {'hostname':'compute1dc2', 'disk':'bup:500'}
+localhost    {'hostname':'compute2dc2', 'disk':'bup:500'}
+localhost    {'hostname':'compute3dc2', 'disk':'bup:500'}
+localhost    {'hostname':'compute4dc2', 'disk':'bup:500'}
+localhost    {'hostname':'compute5dc2', 'disk':'bup:500'}
+localhost    {'hostname':'compute6dc2', 'disk':'bup:500'}
+localhost    {'hostname':'compute7dc2', 'disk':'bup:500'}
+localhost    {'hostname':'compute8dc2', 'disk':'bup:500'}
+
+
+# UW KVM Virtual Machine Cluster(s)
 [vm]
 
 # database nodes

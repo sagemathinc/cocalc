@@ -4,6 +4,7 @@
 #  quare brackets refer to groups of hosts
 # The rightmost hostname (when there are multiple names) is the canonical one.
 
+127.0.0.1   localhost  # for running things on whatever hosts admin.py is running on.
 
 # DC1:RAC0   128.95.242.135 cloud1   # 06salvus
 10.1.1.1 dc1     kvm-host   admin edge  cloud1    cassandra-2
@@ -127,25 +128,24 @@
 #10.3.1.2 gce1 cassandra1gce1
 #10.3.2.2 gce1 cassandra2gce1
 
-10.3.1.4 gce1 compute1dc2 compute compute-2
-10.3.2.4 gce1 compute2dc2 compute compute-2
-10.3.3.4 gce1 compute3dc2 compute compute-2
-10.3.4.4 gce1 compute4dc2 compute compute-2
-10.3.5.4 gce1 compute5dc2 compute compute-2
-10.3.6.4 gce1 compute6dc2 compute compute-2
-10.3.7.4 gce1 compute7dc2 compute compute-2
-10.3.8.4 gce1 compute8dc2 compute compute-2
+10.3.1.5 gce1 compute1dc2 compute compute-2
+10.3.2.5 gce1 compute2dc2 compute compute-2
+10.3.3.5 gce1 compute3dc2 compute compute-2
+10.3.4.5 gce1 compute4dc2 compute compute-2
+10.3.5.5 gce1 compute5dc2 compute compute-2
+10.3.6.5 gce1 compute6dc2 compute compute-2
+10.3.7.5 gce1 compute7dc2 compute compute-2
+10.3.8.5 gce1 compute8dc2 compute compute-2
 
 #10.3.1.1 dc2 cassandra1dc2   cassandra-2
 #10.3.2.1 dc2 cassandra2dc2   cassandra-2
 #10.3.3.1 dc2 cassandra3dc2   cassandra-2
 #10.3.4.1 dc2 cassandra4dc2   cassandra-2
 
-# Backup
-#10.9.1.1 backup1  backup
-#10.9.1.2 backup2  backup
 
 # Sage Cell Server  -- no vm, just ip
 10.10.1.1 cellserver1 cellserver
+
+
 
 
