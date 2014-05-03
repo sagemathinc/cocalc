@@ -101,6 +101,7 @@ class Instance(object):
     def __init__(self, hostname, zone):
         self.hostname = hostname
         self.instance_name = 'smc-' + hostname
+        self.tinc_name = "smc_gce_" + hostname.replace('-','_')
         self.zone     = zone
 
     def log(self, s, *args):
@@ -237,10 +238,10 @@ class Instance(object):
     def configure_tinc(self, ip_address):
         self.log("configure_tinc(ip_address=%s)", ip_address)
         self.delete_tinc_public_keys()
-        s = self.ssh("cd salvus/salvus && . salvus-env && configure_tinc.py %s %s"%(self.external_ip(), ip_address), user='salvus')
+        s = self.ssh("cd salvus/salvus && . salvus-env && configure_tinc.py %s %s %s"%(self.external_ip(), ip_address, self.tinc_name), user='salvus')
         v = json.loads(s)
         tinc_hosts = "/home/salvus/salvus/salvus/conf/tinc_hosts"
-        host_filename = os.path.join(tinc_hosts, v['tincname'])
+        host_filename = os.path.join(tinc_hosts, self.tinc_name)
         open(host_filename,'w').write(v['host_file'])
         hostname = socket.gethostname()
         def f(host):
@@ -257,7 +258,7 @@ class Instance(object):
 
     def delete_tinc_public_keys(self):
         self.log("delete_tinc_public_keys() -- deleting the tinc public key files on the UW hosts")
-        host_filename = os.path.join("/home/salvus/salvus/salvus/conf/tinc_hosts", self.hostname.replace('-','_'))
+        host_filename = os.path.join("/home/salvus/salvus/salvus/conf/tinc_hosts", self.tinc_name)
         print 'ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s "rm -f %s"'%('host', host_filename)
         def f(host):
             try:
