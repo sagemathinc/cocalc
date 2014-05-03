@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+### DEPRECATED ##
+
 # This script is run by /etc/rc.local when booting up gce machines.  It does special configuration
 # depending on what devices are available, etc.
 

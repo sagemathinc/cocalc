@@ -23,9 +23,13 @@ GCE
 
 - [ ] snapshot gce base image
 - [ ] fix the gce first-boot not running appropriate scripts issue
+
+
 - [ ] send out email that compute vm's are all upgraded
 
+- [ ] bug in first login and cookies -- don't autologin on account creation; instead require login/password (with john sylvester)
 
+- [ ] control+v to paste issue: https://mail.google.com/mail/u/0/?shva=1#inbox/145bebfd87489cf8
 
 High priority
 
@@ -33,12 +37,16 @@ High priority
 
 
 
-
-- [ ] test using swap on vm test using zfs (on compute1dc1 now):
-
+- [x] test using swap on vm test using zfs (on compute1dc1 now):
         sudo zfs create pool/swap -V 32G -b 4K
         sudo mkswap -f /dev/pool/swap
         sudo swapon /dev/pool/swap
+      Conclusion: CRAZY!  Bad idea.  Disable this crap.   Swap only needed due to massive bup memory leaks, anways.
+
+- [ ] bug reported by "Martin J. Mohlenkamp" -- when building Sage, it's critical that the R in Sage has the right capabilities, namely PNG.   Type capabilities() in R to see.  To get this, it's critical to "apt-get install" everything in the full list of packages for a host machine before starting the sage build!
+
+  umask 022 && cd /usr/local/sage/current/local/bin && mv pkg-config pkg-config.orig && ln -s /usr/bin/pkg-config . && sage -f r
+  cd /usr/local/sage/current  && chmod a+r -R .; find . -perm /u+x -execdir chmod a+x {} \;
 
 ---
 

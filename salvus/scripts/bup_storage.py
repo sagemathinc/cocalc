@@ -32,7 +32,9 @@ Install script:
 
 Setup Pool:
 
-zpool create -f bup XXXXX /dev/vdb
+#zpool create -f bup XXXXX /dev/vdb
+
+zpool create -f bup /dev/sdb   # on gce
 zfs create bup/projects
 zfs set mountpoint=/projects bup/projects
 zfs set dedup=on bup/projects

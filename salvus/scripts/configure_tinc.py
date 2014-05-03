@@ -6,8 +6,7 @@ import json, os, socket, sys
 
 external_address = sys.argv[1]
 tinc_address     = sys.argv[2]
-hostname         = socket.gethostname()
-tincname         = hostname.replace('-','_')
+tincname         = sys.argv[3]
 connect_to       = "\n".join(["ConnectTo = cloud%s"%i for i in range(1,8) + range(10, 22)])
 tinc_path        = '/home/salvus/salvus/salvus/data/local/etc/tinc/'
 

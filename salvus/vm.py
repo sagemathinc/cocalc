@@ -315,7 +315,13 @@ if __name__ == "__main__":
         if args.daemon:
             import daemon
             daemon.daemonize(args.pidfile)
-            main()
+            try:
+                main()
+            except Exception, err:
+                import traceback
+                log.error("Traceback: %s", traceback.format_exc())
+                log.error("Exception running daemon script -- %s", err)
+                raise
         else:
             main()
     finally:

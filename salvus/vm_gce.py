@@ -16,6 +16,11 @@ and provides a vastly simpler interface than gcutil.
 import json, logging, os, shutil, signal, socket, tempfile, time
 from subprocess import Popen, PIPE
 
+import misc
+
+GCUTIL = '/home/salvus/google-cloud-sdk/bin/gcutil'
+
+UW_TINC_HOSTS = ['cloud%s'%n for n in range(1,8) + range(10,22)]
 
 def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
     if isinstance(s, list):
@@ -67,7 +72,7 @@ def print_json(s):
 
 def gcutil(command, args=[], verbose=2, ignore_errors=False, interactive=False):
     # gcutil [--global_flags] <command> [--command_flags] [args]
-    v = (['gcutil', '--service_version', 'v1', '--project', 'sagemathcloud', '--format', 'json'] +
+    v = ([GCUTIL, '--service_version', 'v1', '--project', 'sagemathcloud', '--format', 'json'] +
          [command] +
          args)
     if interactive:
@@ -78,6 +83,7 @@ def gcutil(command, args=[], verbose=2, ignore_errors=False, interactive=False):
         return cmd(v, verbose=True, timeout=600, ignore_errors=ignore_errors, stderr=False)
 
 def disk_exists(name, zone):
+    log.info("disk_exists(%s,%s)", name, zone)
     v = gcutil("getdisk", [name, '--zone', zone], ignore_errors=True)
     if 'ERROR' in v:
         if 'was not found' in v: # disk doesn't exist
@@ -86,20 +92,27 @@ def disk_exists(name, zone):
             raise RuntimeError(v) # some other error -- give up.
     return True
 
+def get_snapshots(zone, prefix=''):
+    log.info("get_snapshots(zone=%s)"%zone)
+    v = json.loads(gcutil("listsnapshots", ['--filter', 'name eq %s.*'%prefix, '--sort_by', 'name']))['items']
+    return [{'name':x['name'], 'size_gb':x["diskSizeGb"]} for x in v]
+
 class Instance(object):
     def __init__(self, hostname, zone):
         self.hostname = hostname
+        self.instance_name = 'smc-' + hostname
+        self.tinc_name = "smc_gce_" + hostname.replace('-','_')
         self.zone     = zone
 
     def log(self, s, *args):
         log.info("Instance(hostname=%s, zone=%s).%s", self.hostname, self.zone, s%args)
 
     def gcutil(self, command, *args, **kwds):
-        return gcutil(command, [self.hostname, '--zone', self.zone] + list(args), **kwds)
+        return gcutil(command, [self.instance_name, '--zone', self.zone] + list(args), **kwds)
 
     def status(self):
         self.log("status()")
-        s = {'hostname':self.hostname}
+        s = {'hostname':self.hostname, 'instance_name':self.instance_name}
         v = self.gcutil("getinstance", verbose=False, ignore_errors=True)
         if 'ERROR' in v:
             if 'was not found' in v:
@@ -121,8 +134,8 @@ class Instance(object):
     def external_ip(self):
         return self.status()['external_ip']
 
-    def ssh(self):
-        gcutil("ssh", [self.hostname], interactive=True)
+    def interactive_ssh(self):
+        gcutil("ssh", [self.instance_name], interactive=True)
 
     def reset(self): # hard reboot
         self.gcutil("resetinstance")
@@ -132,7 +145,7 @@ class Instance(object):
         self.delete_instance()
 
     def _disk_name(self, name):
-        return "%s-%s"%(self.hostname, name)
+        return "%s-%s"%(self.instance_name, name)
 
     def start(self, ip_address, disks, base, instance_type):
         self.log("start(ip_address=%s, disks=%s, base=%s, instance_type=%s)", ip_address, disks, base, instance_type)
@@ -155,6 +168,9 @@ class Instance(object):
         self.log("start: initialize the base ZFS pool")
         self.init_base_pool()
 
+        self.log("start: set the hostname of the machine")
+        self.init_hostname()
+
         self.log("start: add the machine to the vpn")
         self.configure_tinc(ip_address)
 
@@ -173,9 +189,14 @@ class Instance(object):
     def create_instance(self, disk_names, base, instance_type):
         self.log("create_instance(disk_names=%s, base=%s, instance_type=%s)", disk_names, base, instance_type)
 
-        if not disk_exists(name=self.hostname, zone=self.zone):
-            self.log("create_instance -- creating boot disk")
-            gcutil("adddisk", ['--zone', self.zone, '--source_snapshot', base, '--wait_until_complete', self.hostname])
+        if not base:
+            self.log("start: determining optimal base image")
+            base = get_snapshots(zone=self.zone, prefix='salvus-')[-1]['name']
+            self.log("start: using base='%s'"%base)
+
+        if not disk_exists(name=self.instance_name, zone=self.zone):
+            self.log("create_instance -- creating boot disk based on '%s' (this takes about 2 minutes!)"%base)
+            gcutil("adddisk", ['--zone', self.zone, '--source_snapshot', base, '--wait_until_complete', self.instance_name])
 
         self.log("create_instance -- creating instance")
 
@@ -183,7 +204,7 @@ class Instance(object):
                 '--automatic_restart',
                 '--wait_until_running',
                 '--machine_type', instance_type,
-                '--disk', "%s,mode=rw,boot"%self.hostname]
+                '--disk', "%s,mode=rw,boot"%self.instance_name]
 
         for name in disk_names:
             args.append("--disk")
@@ -191,29 +212,68 @@ class Instance(object):
 
         self.gcutil("addinstance", *args)
 
-    def init_base_pool(self):
-        self.log("init_base_pool: export and import the pool, and make sure mounted")
-        c = 'ssh -o StrictHostKeyChecking=no root@%s "zpool export pool && zpool import -f pool && df -h |grep pool"'%self.external_ip()
+    def ssh(self, c, max_tries=1, user='salvus'):
+        if '"' in c:
+            raise NotImplementedError
+        s = 'ssh -o StrictHostKeyChecking=no %s@%s "%s"'%(user, self.external_ip(), c)
         tries = 0
-        MAX_TRIES = 10
-        while tries < MAX_TRIES:
+        while tries < max_tries:
             try:
-                cmd(c, verbose=2)
-                return
+                return cmd(s, verbose=2, stderr=False)
             except RuntimeError, msg:
-                log.info("FAIL: %s", msg)
                 tries += 1
+                log.info("FAIL (%s/%s): %s", tries, max_tries, msg)
                 log.info("trying again in 3 seconds...")
                 time.sleep(3)
-        raise RuntimeError("unable to import pool")
+        raise RuntimeError("failed too many times: %s"%s)
 
 
-    def delete_instance(self):
-        self.log("delete_instance()")
-        self.gcutil("deleteinstance", '-f', '--delete_boot_pd')
+    def init_base_pool(self):
+        self.log("init_base_pool: export and import the pool, and make sure mounted")
+        self.ssh("zpool export pool && zpool import -f pool && df -h |grep pool", max_tries=10, user='root')
+
+    def init_hostname(self):
+        self.ssh("echo '%s' > /etc/hostname && hostname %s && echo '127.0.1.1  %s' >> /etc/hosts"%(self.hostname, self.hostname, self.hostname), user='root')
 
     def configure_tinc(self, ip_address):
         self.log("configure_tinc(ip_address=%s)", ip_address)
+        self.delete_tinc_public_keys()
+        s = self.ssh("cd salvus/salvus && . salvus-env && configure_tinc.py %s %s %s"%(self.external_ip(), ip_address, self.tinc_name), user='salvus')
+        v = json.loads(s)
+        tinc_hosts = "/home/salvus/salvus/salvus/conf/tinc_hosts"
+        host_filename = os.path.join(tinc_hosts, self.tinc_name)
+        open(host_filename,'w').write(v['host_file'])
+        hostname = socket.gethostname()
+        def f(host):
+            try:
+                os.popen("scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s %s:%s"%(host_filename, host, host_filename))
+            except Exception, msg:
+                # We only *really* need the file locally for everything to work; copying it around just makes things more durable.
+                log.info("WARNING: unable to copy tinc key to %s -- %s", host, msg)
+        misc.thread_map(f, [((host,),{}) for host in UW_TINC_HOSTS if host != hostname])
+
+        log.info("Start tinc running...")
+        self.ssh("killall -9 tincd; sleep 3; nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd", user='root')
+
+
+    def delete_tinc_public_keys(self):
+        self.log("delete_tinc_public_keys() -- deleting the tinc public key files on the UW hosts")
+        host_filename = os.path.join("/home/salvus/salvus/salvus/conf/tinc_hosts", self.tinc_name)
+        print 'ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s "rm -f %s"'%('host', host_filename)
+        def f(host):
+            try:
+                os.popen('ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s "rm -f %s"'%(host, host_filename))
+            except Exception, msg:
+                # There is no real *need* to remove these public keys...
+                log.info("WARNING: unable to remove tinc key from %s -- %s", host, msg)
+        misc.thread_map(f, [((host,),{}) for host in UW_TINC_HOSTS])
+
+    def delete_instance(self):
+        self.log("delete_instance()")
+
+        self.log("deleting the instance from GCE")
+        self.gcutil("deleteinstance", '-f', '--delete_boot_pd')
+
 
 
 if __name__ == "__main__":
@@ -224,7 +284,7 @@ if __name__ == "__main__":
     parser.add_argument("--zone", dest="zone", type=str, default="us-central1-a",
                         help="the region in which to spin up the machine (default: us-central1-a); base snapshot must be there.  options: us-central1-a, us-central1-b, europe-west-1-a, europe-west1-b, asia-east1-a, asia-east1-b")
 
-    parser.add_argument("--deamon", dest="daemon", default=False, action="store_const", const=True,
+    parser.add_argument("--daemon", dest="daemon", default=False, action="store_const", const=True,
                         help="daemon mode (default: False)")
     parser.add_argument("--loglevel", dest='loglevel', type=str, default='INFO',
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
@@ -239,7 +299,7 @@ if __name__ == "__main__":
     parser_status.set_defaults(func=lambda args: print_json(instance.status()))
 
     parser_ssh = subparsers.add_parser('ssh', help='ssh into this instance')
-    parser_ssh.set_defaults(func=lambda args: instance.ssh())
+    parser_ssh.set_defaults(func=lambda args: instance.interactive_ssh())
 
     parser_reset = subparsers.add_parser('reset', help='hard reboot machine')
     parser_reset.set_defaults(func=lambda args: print_json(instance.reset()))
@@ -252,6 +312,11 @@ if __name__ == "__main__":
     parser_stop = subparsers.add_parser('stop', help='completely DESTROY the instance, but *not* the persistent disks')
     parser_stop.set_defaults(func=lambda args: instance.stop())
 
+    parser_config_tinc = subparsers.add_parser('config_tinc', help="configure tinc")
+    parser_config_tinc.add_argument("--ip_address", dest="ip_address", type=str, required=True,
+                        help="ip address of the virtual machine on the tinc VPN")
+    parser_config_tinc.set_defaults(func=lambda args: instance.configure_tinc(args.ip_address))
+
     parser_start = subparsers.add_parser('start', help="create the instance and any persistent disks that don't exist")
     parser_start.add_argument("--ip_address", dest="ip_address", type=str, required=True,
                         help="ip address of the virtual machine on the tinc VPN")
@@ -259,19 +324,21 @@ if __name__ == "__main__":
     parser_start.add_argument("--disks", dest="disks", type=str, default="",
                         help="persistent disks, e.g., '--disks=cassandra:64,logger:128' makes two images of size 64GB and 128GB if they don't exist; they will appear as /dev/sdb, /dev/sdc, etc., in order; their names will actually be hostname-cassandra, hostname-logger")
 
-    parser_start.add_argument('--base', dest='base', type=str, default='salvus',
-                        help="snapshot to use for the base disk for this machine")
+    parser_start.add_argument('--base', dest='base', type=str, default='',
+                        help="snapshot to use for the base disk for this machine (default: newest with name that starts salvus-)")
     parser_start.add_argument("--type", dest="type", type=str, default="n1-standard-1",
                         help="instance type from https://cloud.google.com/products/compute-engine/#pricing")
 
-    parser_start.set_defaults(func=lambda args: instance.start(
+    parser_start.set_defaults( func          = lambda args: instance.start(
                                ip_address    = args.ip_address,
                                disks         = [a.split(':') for a in args.disks.split(',')] if args.disks else [],
                                base          = args.base,
                                instance_type = args.type))
 
-
     args = parser.parse_args()
+
+    if args.daemon and (not args.logfile or not args.pidfile):
+        raise RuntimeError("in deamon mode you must specify the logfile and pidfile")
 
     def main():
         global log, instance
@@ -302,7 +369,13 @@ if __name__ == "__main__":
         if args.daemon:
             import daemon
             daemon.daemonize(args.pidfile)
-            main()
+            try:
+                main()
+            except Exception, err:
+                import traceback
+                log.error("Traceback: %s", traceback.format_exc())
+                log.error("Exception running daemon script -- %s", err)
+                raise
         else:
             main()
     finally:
