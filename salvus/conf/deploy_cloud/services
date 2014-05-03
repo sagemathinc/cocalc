@@ -19,14 +19,29 @@ compute_cpu   = 10   # DO *NOT* change compute_cpu willy-nilly; if you change it
 
 # Google Compute Engine
 [vmgce]
-localhost    {'hostname':'compute1dc2', 'disk':'bup:500'}
-localhost    {'hostname':'compute2dc2', 'disk':'bup:500'}
-localhost    {'hostname':'compute3dc2', 'disk':'bup:500'}
-localhost    {'hostname':'compute4dc2', 'disk':'bup:500'}
-localhost    {'hostname':'compute5dc2', 'disk':'bup:500'}
-localhost    {'hostname':'compute6dc2', 'disk':'bup:500'}
-localhost    {'hostname':'compute7dc2', 'disk':'bup:500'}
-localhost    {'hostname':'compute8dc2', 'disk':'bup:500'}
+
+# compute/storage nodes:
+
+localhost    {'hostname':'compute1dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute2dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute3dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute4dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute5dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute6dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute7dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+
+# cassandra cluster
+localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra:100', 'instance_type':'n1-highmem-2'}
+localhost    {'hostname':'cassandra2dc2', 'disk':'cassandra:100', 'instance_type':'n1-highmem-2'}
+localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra:100', 'instance_type':'n1-highmem-2'}
+localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra:100', 'instance_type':'n1-highmem-2'}
+
+# web servers/hubs
+localhost    {'hostname':'web1dc2', 'instance_type':'n1-standard-1'}
+localhost    {'hostname':'web2dc2', 'instance_type':'n1-standard-1'}
+localhost    {'hostname':'web3dc2', 'instance_type':'n1-standard-1'}
+localhost    {'hostname':'web4dc2', 'instance_type':'n1-standard-1'}
 
 
 # UW KVM Virtual Machine Cluster(s)

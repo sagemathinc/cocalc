@@ -128,14 +128,28 @@
 #10.3.1.2 gce1 cassandra1gce1
 #10.3.2.2 gce1 cassandra2gce1
 
-10.3.1.5 gce1 compute1dc2 compute compute-2
-10.3.2.5 gce1 compute2dc2 compute compute-2
-10.3.3.5 gce1 compute3dc2 compute compute-2
-10.3.4.5 gce1 compute4dc2 compute compute-2
-10.3.5.5 gce1 compute5dc2 compute compute-2
-10.3.6.5 gce1 compute6dc2 compute compute-2
-10.3.7.5 gce1 compute7dc2 compute compute-2
-10.3.8.5 gce1 compute8dc2 compute compute-2
+
+10.3.1.5 compute1dc2 compute-2
+10.3.2.5 compute2dc2 compute-2
+10.3.3.5 compute3dc2 compute-2
+10.3.4.5 compute4dc2 compute-2
+10.3.5.5 compute5dc2 compute-2
+10.3.6.5 compute6dc2 compute-2
+10.3.7.5 compute7dc2 compute-2
+10.3.8.5 compute8dc2 compute-2
+
+# GCE cassandra cluster
+10.3.1.2 cassandra1dc2
+10.3.2.2 cassandra2dc2
+10.3.3.2 cassandra3dc2
+10.3.4.2 cassandra4dc2
+
+# HUB, Nginx, stunnel, etc., servers
+10.3.1.3 web1dc2
+10.3.2.3 web2dc2
+10.3.3.3 web3dc2
+10.3.4.3 web4dc2
+
 
 #10.3.1.1 dc2 cassandra1dc2   cassandra-2
 #10.3.2.1 dc2 cassandra2dc2   cassandra-2
