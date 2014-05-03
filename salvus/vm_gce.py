@@ -78,6 +78,7 @@ def gcutil(command, args=[], verbose=2, ignore_errors=False, interactive=False):
         return cmd(v, verbose=True, timeout=600, ignore_errors=ignore_errors, stderr=False)
 
 def disk_exists(name, zone):
+    log.info("disk_exists(%s,%s)", name, zone)
     v = gcutil("getdisk", [name, '--zone', zone], ignore_errors=True)
     if 'ERROR' in v:
         if 'was not found' in v: # disk doesn't exist
@@ -85,6 +86,11 @@ def disk_exists(name, zone):
         else:
             raise RuntimeError(v) # some other error -- give up.
     return True
+
+def get_snapshots(zone, prefix=''):
+    log.info("get_snapshots(zone=%s)"%zone)
+    v = json.loads(gcutil("listsnapshots", ['--filter', 'name eq %s.*'%prefix, '--sort_by', 'name']))['items']
+    return [{'name':x['name'], 'size_gb':x["diskSizeGb"]} for x in v]
 
 class Instance(object):
     def __init__(self, hostname, zone):
@@ -121,7 +127,7 @@ class Instance(object):
     def external_ip(self):
         return self.status()['external_ip']
 
-    def ssh(self):
+    def interactive_ssh(self):
         gcutil("ssh", [self.hostname], interactive=True)
 
     def reset(self): # hard reboot
@@ -173,8 +179,13 @@ class Instance(object):
     def create_instance(self, disk_names, base, instance_type):
         self.log("create_instance(disk_names=%s, base=%s, instance_type=%s)", disk_names, base, instance_type)
 
+        if not base:
+            self.log("start: determining optimal base image")
+            base = get_snapshots(zone=self.zone, prefix='salvus-')[-1]['name']
+            self.log("start: using base='%s'"%base)
+
         if not disk_exists(name=self.hostname, zone=self.zone):
-            self.log("create_instance -- creating boot disk")
+            self.log("create_instance -- creating boot disk based on '%s'"%base)
             gcutil("adddisk", ['--zone', self.zone, '--source_snapshot', base, '--wait_until_complete', self.hostname])
 
         self.log("create_instance -- creating instance")
@@ -191,29 +202,33 @@ class Instance(object):
 
         self.gcutil("addinstance", *args)
 
-    def init_base_pool(self):
-        self.log("init_base_pool: export and import the pool, and make sure mounted")
-        c = 'ssh -o StrictHostKeyChecking=no root@%s "zpool export pool && zpool import -f pool && df -h |grep pool"'%self.external_ip()
+    def ssh(self, c, max_tries=1):
+        if '"' in c:
+            raise NotImplementedError
+        s = 'ssh -o StrictHostKeyChecking=no root@%s "%s"'%(self.external_ip(), c)
         tries = 0
-        MAX_TRIES = 10
-        while tries < MAX_TRIES:
+        while tries < max_tries:
             try:
-                cmd(c, verbose=2)
-                return
+                return cmd(c, verbose=2)
             except RuntimeError, msg:
-                log.info("FAIL: %s", msg)
                 tries += 1
+                log.info("FAIL (%s/%s): %s", tries, max_tries, msg)
                 log.info("trying again in 3 seconds...")
                 time.sleep(3)
-        raise RuntimeError("unable to import pool")
+        raise RuntimeError("failed too many times: %s"%s)
+
+
+    def init_base_pool(self):
+        self.log("init_base_pool: export and import the pool, and make sure mounted")
+        self.ssh("zpool export pool && zpool import -f pool && df -h |grep pool", max_tries=10)
+
+    def configure_tinc(self, ip_address):
+        self.log("configure_tinc(ip_address=%s)", ip_address)
 
 
     def delete_instance(self):
         self.log("delete_instance()")
         self.gcutil("deleteinstance", '-f', '--delete_boot_pd')
-
-    def configure_tinc(self, ip_address):
-        self.log("configure_tinc(ip_address=%s)", ip_address)
 
 
 if __name__ == "__main__":
@@ -239,7 +254,7 @@ if __name__ == "__main__":
     parser_status.set_defaults(func=lambda args: print_json(instance.status()))
 
     parser_ssh = subparsers.add_parser('ssh', help='ssh into this instance')
-    parser_ssh.set_defaults(func=lambda args: instance.ssh())
+    parser_ssh.set_defaults(func=lambda args: instance.interactive_ssh())
 
     parser_reset = subparsers.add_parser('reset', help='hard reboot machine')
     parser_reset.set_defaults(func=lambda args: print_json(instance.reset()))
@@ -259,8 +274,8 @@ if __name__ == "__main__":
     parser_start.add_argument("--disks", dest="disks", type=str, default="",
                         help="persistent disks, e.g., '--disks=cassandra:64,logger:128' makes two images of size 64GB and 128GB if they don't exist; they will appear as /dev/sdb, /dev/sdc, etc., in order; their names will actually be hostname-cassandra, hostname-logger")
 
-    parser_start.add_argument('--base', dest='base', type=str, default='salvus',
-                        help="snapshot to use for the base disk for this machine")
+    parser_start.add_argument('--base', dest='base', type=str, default='',
+                        help="snapshot to use for the base disk for this machine (default: newest with name that starts salvus-)")
     parser_start.add_argument("--type", dest="type", type=str, default="n1-standard-1",
                         help="instance type from https://cloud.google.com/products/compute-engine/#pricing")
 
