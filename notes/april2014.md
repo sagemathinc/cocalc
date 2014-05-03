@@ -29,7 +29,7 @@ GCE
 
 - [ ] bug in first login and cookies -- don't autologin on account creation; instead require login/password (with john sylvester)
 
-
+- [ ] control+v to paste issue: https://mail.google.com/mail/u/0/?shva=1#inbox/145bebfd87489cf8
 
 High priority
 

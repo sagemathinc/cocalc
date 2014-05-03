@@ -18,6 +18,8 @@ from subprocess import Popen, PIPE
 
 import misc
 
+GCUTIL = '/home/salvus/google-cloud-sdk/bin/gcutil'
+
 UW_TINC_HOSTS = ['cloud%s'%n for n in range(1,8) + range(10,22)]
 
 def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
@@ -70,7 +72,7 @@ def print_json(s):
 
 def gcutil(command, args=[], verbose=2, ignore_errors=False, interactive=False):
     # gcutil [--global_flags] <command> [--command_flags] [args]
-    v = (['gcutil', '--service_version', 'v1', '--project', 'sagemathcloud', '--format', 'json'] +
+    v = ([GCUTIL, '--service_version', 'v1', '--project', 'sagemathcloud', '--format', 'json'] +
          [command] +
          args)
     if interactive:
@@ -98,17 +100,18 @@ def get_snapshots(zone, prefix=''):
 class Instance(object):
     def __init__(self, hostname, zone):
         self.hostname = hostname
+        self.instance_name = 'smc-' + hostname
         self.zone     = zone
 
     def log(self, s, *args):
         log.info("Instance(hostname=%s, zone=%s).%s", self.hostname, self.zone, s%args)
 
     def gcutil(self, command, *args, **kwds):
-        return gcutil(command, [self.hostname, '--zone', self.zone] + list(args), **kwds)
+        return gcutil(command, [self.instance_name, '--zone', self.zone] + list(args), **kwds)
 
     def status(self):
         self.log("status()")
-        s = {'hostname':self.hostname}
+        s = {'hostname':self.hostname, 'instance_name':self.instance_name}
         v = self.gcutil("getinstance", verbose=False, ignore_errors=True)
         if 'ERROR' in v:
             if 'was not found' in v:
@@ -131,7 +134,7 @@ class Instance(object):
         return self.status()['external_ip']
 
     def interactive_ssh(self):
-        gcutil("ssh", [self.hostname], interactive=True)
+        gcutil("ssh", [self.instance_name], interactive=True)
 
     def reset(self): # hard reboot
         self.gcutil("resetinstance")
@@ -141,7 +144,7 @@ class Instance(object):
         self.delete_instance()
 
     def _disk_name(self, name):
-        return "%s-%s"%(self.hostname, name)
+        return "%s-%s"%(self.instance_name, name)
 
     def start(self, ip_address, disks, base, instance_type):
         self.log("start(ip_address=%s, disks=%s, base=%s, instance_type=%s)", ip_address, disks, base, instance_type)
@@ -190,9 +193,9 @@ class Instance(object):
             base = get_snapshots(zone=self.zone, prefix='salvus-')[-1]['name']
             self.log("start: using base='%s'"%base)
 
-        if not disk_exists(name=self.hostname, zone=self.zone):
+        if not disk_exists(name=self.instance_name, zone=self.zone):
             self.log("create_instance -- creating boot disk based on '%s' (this takes about 2 minutes!)"%base)
-            gcutil("adddisk", ['--zone', self.zone, '--source_snapshot', base, '--wait_until_complete', self.hostname])
+            gcutil("adddisk", ['--zone', self.zone, '--source_snapshot', base, '--wait_until_complete', self.instance_name])
 
         self.log("create_instance -- creating instance")
 
@@ -200,7 +203,7 @@ class Instance(object):
                 '--automatic_restart',
                 '--wait_until_running',
                 '--machine_type', instance_type,
-                '--disk', "%s,mode=rw,boot"%self.hostname]
+                '--disk', "%s,mode=rw,boot"%self.instance_name]
 
         for name in disk_names:
             args.append("--disk")
@@ -253,7 +256,7 @@ class Instance(object):
 
 
     def delete_tinc_public_keys(self):
-        self.log("delete_tinc_public_keys() -- deleting the tinc public key files")
+        self.log("delete_tinc_public_keys() -- deleting the tinc public key files on the UW hosts")
         host_filename = os.path.join("/home/salvus/salvus/salvus/conf/tinc_hosts", self.hostname.replace('-','_'))
         print 'ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s "rm -f %s"'%('host', host_filename)
         def f(host):
@@ -280,7 +283,7 @@ if __name__ == "__main__":
     parser.add_argument("--zone", dest="zone", type=str, default="us-central1-a",
                         help="the region in which to spin up the machine (default: us-central1-a); base snapshot must be there.  options: us-central1-a, us-central1-b, europe-west-1-a, europe-west1-b, asia-east1-a, asia-east1-b")
 
-    parser.add_argument("--deamon", dest="daemon", default=False, action="store_const", const=True,
+    parser.add_argument("--daemon", dest="daemon", default=False, action="store_const", const=True,
                         help="daemon mode (default: False)")
     parser.add_argument("--loglevel", dest='loglevel', type=str, default='INFO',
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
@@ -333,6 +336,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    if args.daemon and (not args.logfile or not args.pidfile):
+        raise RuntimeError("in deamon mode you must specify the logfile and pidfile")
+
     def main():
         global log, instance
 
@@ -362,7 +368,13 @@ if __name__ == "__main__":
         if args.daemon:
             import daemon
             daemon.daemonize(args.pidfile)
-            main()
+            try:
+                main()
+            except Exception, err:
+                import traceback
+                log.error("Traceback: %s", traceback.format_exc())
+                log.error("Exception running daemon script -- %s", err)
+                raise
         else:
             main()
     finally:

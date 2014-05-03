@@ -756,7 +756,7 @@ class Cassandra(Process):
 
 
 ##############################################
-# A Virtual Machine
+# A Virtual Machine running at UW
 ##############################################
 class Vm(Process):
     def __init__(self, ip_address, hostname=None, vcpus=2, ram=4, vnc=0, disk='', base='salvus', id=0, monitor_database=None, name='virtual_machine', fstab=''):
@@ -795,6 +795,56 @@ class Vm(Process):
                      (['--hostname', self._hostname] if self._hostname else [])
 
         stop_cmd = [PYTHON, 'vm.py', '--stop',  '--ip_address', ip_address] + (['--hostname', self._hostname] if self._hostname else [])
+
+        Process.__init__(self, id=id, name=name, port=0,
+                         pidfile = pidfile, logfile = logfile,
+                         start_cmd = start_cmd,
+                         stop_cmd = stop_cmd,
+                         monitor_database=monitor_database,
+                         term_signal = 2   # must use 2 (=SIGINT) instead of 15 or 9 for proper cleanup!
+                         )
+
+    def stop(self):
+        Process.stop(self, force=True)
+
+##############################################
+# A Virtual Machine instance running on Google Compute Engine
+##############################################
+class Vmgce(Process):
+    def __init__(self, ip_address='', hostname='', instance_type='n1-standard-1', base='', disk='', id=0, monitor_database=None, name='gce_virtual_machine'):
+        """
+        INPUT:
+
+            - ip_address -- ip_address machine gets on the VPN
+            - hostname -- hostname to set on the machine itself
+            - instance_type -- see https://cloud.google.com/products/compute-engine/#pricing
+            - disk -- string 'name1:size1,name2:size2,...' with size in gigabytes
+            - base -- string (default: use newest); name of base snapshot
+            - id -- optional, defaulta:0 (basically ignored)
+            - monitor_database -- default: None
+            - name -- default: "gce_virtual_machine"
+        """
+        if not ip_address:
+            raise RuntimeError("you must specify the ip_address")
+        if not hostname:
+            raise RuntimeError("you must specify the hostname")
+        self._ip_address = ip_address
+        self._hostname = hostname
+        self._instance_type = instance_type
+        self._base = base
+        self._disk = disk
+        pidfile = os.path.join(PIDS, 'vm_gce-%s.pid'%ip_address)
+        logfile = os.path.join(LOGS, 'vm_gce-%s.log'%ip_address)
+
+        start_cmd = ([PYTHON, 'vm_gce.py',
+                     '--daemon', '--pidfile', pidfile, '--logfile', logfile,
+                     'start',
+                     '--ip_address', ip_address,
+                     '--type', instance_type] +
+                     (['--base', base] if base else []) +
+                     (['--disk', disk] if disk else []) + [self._hostname])
+
+        stop_cmd = [PYTHON, 'vm_gce.py', 'stop', self._hostname]
 
         Process.__init__(self, id=id, name=name, port=0,
                          pidfile = pidfile, logfile = logfile,
@@ -1666,7 +1716,7 @@ class Services(object):
         if 'compute' in self._options:
             for host, o in self._options['compute']:
                 # Very, very important: set to listen only on our VPN!
-                # There is rumored to be an attack where a local user
+                # There is an attack where a local user
                 # can bind to a more specific host and same port on a
                 # machine, and intercept all trafic.  This would mean
                 # they could effectively man-in-the-middle take over a
@@ -1680,15 +1730,16 @@ class Services(object):
                 o['address'] = address
 
         # VM options
-        if 'vm' in self._options:
-            for address, o in self._options['vm']:
-                # very, very important: set to listen only on our VPN!  There is an attack where a local user
-                # can bind to a more specific address and same port on a machine, and intercept all trafic.
-                if 'ip_address' not in o:
-                    addresses = self._hosts[o['hostname']]
-                    if len(addresses) != 1:
-                        raise RuntimeError("Error configuring a VM: hostname %s doesn't uniquely determine one ip address"%o['hostname'])
-                    o['ip_address'] = addresses[0]
+        for t in ['vm','vmgce']:
+            if t in self._options:
+                for address, o in self._options[t]:
+                    # very, very important: set to listen only on our VPN!  There is an attack where a local user
+                    # can bind to a more specific address and same port on a machine, and intercept all trafic.
+                    if 'ip_address' not in o:
+                        addresses = self._hosts[o['hostname']]
+                        if len(addresses) != 1:
+                            raise RuntimeError("Error configuring a VM: hostname %s doesn't uniquely determine one ip address"%o['hostname'])
+                        o['ip_address'] = addresses[0]
 
 
     def _hostopts(self, service, hostname, opts):
