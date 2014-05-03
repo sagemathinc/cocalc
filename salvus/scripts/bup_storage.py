@@ -888,6 +888,13 @@ class Project(object):
             m = mount_point.lstrip('/')
         mount_point = os.path.join(self.project_mnt, m)
 
+        # If the point is already fuse or otherwise mounted but broken, then the os.path.exists(mount_point)
+        # below returns false, etc.  So we always first unmount it, to start cleanly.
+        try:
+            self.umount_remote(mount_point)
+        except RuntimeError:
+            pass
+
         if not os.path.exists(mount_point):
             log("creating mount point")
             self.makedirs(mount_point)
@@ -895,11 +902,14 @@ class Project(object):
             raise ValueError("mount_point='%s' must be a directory"%mount_point)
 
         remote_projects = "/projects-%s"%remote_host
-        if self.cmd(['stat', '-f', '-c', '%T', remote_projects], ignore_errors=True) != 'fuseblk':
+        e = self.cmd(['stat', '-f', '-c', '%T', remote_projects], ignore_errors=True)
+        if e != 'fuseblk':
+            if 'endpoint is not connected' in e:
+                self.cmd(["fusermount", "-z", "-u", remote_projects])
             log("mount the remote /projects filesystem using sshfs")
             if not os.path.exists(remote_projects):
                 os.makedirs(remote_projects)
-            self.cmd(['sshfs', '-o', 'ssh_command="ssh -o StrictHostKeyChecking=no"', remote_host + ':' + PROJECTS_PATH, remote_projects])
+            self.cmd(['sshfs', remote_host + ':' + PROJECTS_PATH, remote_projects])
 
         remote_path = os.path.join(remote_projects, project_id)
 
