@@ -191,7 +191,7 @@ class Instance(object):
             self.log("start: using base='%s'"%base)
 
         if not disk_exists(name=self.hostname, zone=self.zone):
-            self.log("create_instance -- creating boot disk based on '%s'"%base)
+            self.log("create_instance -- creating boot disk based on '%s' (this takes about 2 minutes!)"%base)
             gcutil("adddisk", ['--zone', self.zone, '--source_snapshot', base, '--wait_until_complete', self.hostname])
 
         self.log("create_instance -- creating instance")
@@ -229,7 +229,7 @@ class Instance(object):
         self.ssh("zpool export pool && zpool import -f pool && df -h |grep pool", max_tries=10, user='root')
 
     def init_hostname(self):
-        self.ssh("echo '%s' > /etc/hostname && hostname %s && echo '127.0.1.1  %s' >> /etc/hosts"%(self.hostname, self.hostname, self.hostname))
+        self.ssh("echo '%s' > /etc/hostname && hostname %s && echo '127.0.1.1  %s' >> /etc/hosts"%(self.hostname, self.hostname, self.hostname), user='root')
 
     def configure_tinc(self, ip_address):
         self.log("configure_tinc(ip_address=%s)", ip_address)
@@ -247,6 +247,10 @@ class Instance(object):
                 # We only *really* need the file locally for everything to work; copying it around just makes things more durable.
                 log.info("WARNING: unable to copy tinc key to %s -- %s", host, msg)
         misc.thread_map(f, [((host,),{}) for host in UW_TINC_HOSTS if host != hostname])
+
+        log.info("Start tinc running...")
+        self.ssh("killall -9 tincd; sleep 3; nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd", user='root')
+
 
     def delete_tinc_public_keys(self):
         self.log("delete_tinc_public_keys() -- deleting the tinc public key files")
@@ -321,12 +325,11 @@ if __name__ == "__main__":
     parser_start.add_argument("--type", dest="type", type=str, default="n1-standard-1",
                         help="instance type from https://cloud.google.com/products/compute-engine/#pricing")
 
-    parser_start.set_defaults(func=lambda args: instance.start(
+    parser_start.set_defaults( func          = lambda args: instance.start(
                                ip_address    = args.ip_address,
                                disks         = [a.split(':') for a in args.disks.split(',')] if args.disks else [],
                                base          = args.base,
                                instance_type = args.type))
-
 
     args = parser.parse_args()
 
