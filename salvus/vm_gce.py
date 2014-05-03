@@ -16,6 +16,9 @@ and provides a vastly simpler interface than gcutil.
 import json, logging, os, shutil, signal, socket, tempfile, time
 from subprocess import Popen, PIPE
 
+import misc
+
+UW_TINC_HOSTS = ['cloud%s'%n for n in range(1,8) + range(10,22)]
 
 def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
     if isinstance(s, list):
@@ -161,6 +164,9 @@ class Instance(object):
         self.log("start: initialize the base ZFS pool")
         self.init_base_pool()
 
+        self.log("start: set the hostname of the machine")
+        self.init_hostname()
+
         self.log("start: add the machine to the vpn")
         self.configure_tinc(ip_address)
 
@@ -202,14 +208,14 @@ class Instance(object):
 
         self.gcutil("addinstance", *args)
 
-    def ssh(self, c, max_tries=1):
+    def ssh(self, c, max_tries=1, user='salvus'):
         if '"' in c:
             raise NotImplementedError
-        s = 'ssh -o StrictHostKeyChecking=no root@%s "%s"'%(self.external_ip(), c)
+        s = 'ssh -o StrictHostKeyChecking=no %s@%s "%s"'%(user, self.external_ip(), c)
         tries = 0
         while tries < max_tries:
             try:
-                return cmd(c, verbose=2)
+                return cmd(s, verbose=2, stderr=False)
             except RuntimeError, msg:
                 tries += 1
                 log.info("FAIL (%s/%s): %s", tries, max_tries, msg)
@@ -220,15 +226,46 @@ class Instance(object):
 
     def init_base_pool(self):
         self.log("init_base_pool: export and import the pool, and make sure mounted")
-        self.ssh("zpool export pool && zpool import -f pool && df -h |grep pool", max_tries=10)
+        self.ssh("zpool export pool && zpool import -f pool && df -h |grep pool", max_tries=10, user='root')
+
+    def init_hostname(self):
+        self.ssh("echo '%s' > /etc/hostname && hostname %s && echo '127.0.1.1  %s' >> /etc/hosts"%(self.hostname, self.hostname, self.hostname))
 
     def configure_tinc(self, ip_address):
         self.log("configure_tinc(ip_address=%s)", ip_address)
+        self.delete_tinc_public_keys()
+        s = self.ssh("cd salvus/salvus && . salvus-env && configure_tinc.py %s %s"%(self.external_ip(), ip_address), user='salvus')
+        v = json.loads(s)
+        tinc_hosts = "/home/salvus/salvus/salvus/conf/tinc_hosts"
+        host_filename = os.path.join(tinc_hosts, v['tincname'])
+        open(host_filename,'w').write(v['host_file'])
+        hostname = socket.gethostname()
+        def f(host):
+            try:
+                os.popen("scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s %s:%s"%(host_filename, host, host_filename))
+            except Exception, msg:
+                # We only *really* need the file locally for everything to work; copying it around just makes things more durable.
+                log.info("WARNING: unable to copy tinc key to %s -- %s", host, msg)
+        misc.thread_map(f, [((host,),{}) for host in UW_TINC_HOSTS if host != hostname])
 
+    def delete_tinc_public_keys(self):
+        self.log("delete_tinc_public_keys() -- deleting the tinc public key files")
+        host_filename = os.path.join("/home/salvus/salvus/salvus/conf/tinc_hosts", self.hostname.replace('-','_'))
+        print 'ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s "rm -f %s"'%('host', host_filename)
+        def f(host):
+            try:
+                os.popen('ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s "rm -f %s"'%(host, host_filename))
+            except Exception, msg:
+                # There is no real *need* to remove these public keys...
+                log.info("WARNING: unable to remove tinc key from %s -- %s", host, msg)
+        misc.thread_map(f, [((host,),{}) for host in UW_TINC_HOSTS])
 
     def delete_instance(self):
         self.log("delete_instance()")
+
+        self.log("deleting the instance from GCE")
         self.gcutil("deleteinstance", '-f', '--delete_boot_pd')
+
 
 
 if __name__ == "__main__":
@@ -266,6 +303,11 @@ if __name__ == "__main__":
 
     parser_stop = subparsers.add_parser('stop', help='completely DESTROY the instance, but *not* the persistent disks')
     parser_stop.set_defaults(func=lambda args: instance.stop())
+
+    parser_config_tinc = subparsers.add_parser('config_tinc', help="configure tinc")
+    parser_config_tinc.add_argument("--ip_address", dest="ip_address", type=str, required=True,
+                        help="ip address of the virtual machine on the tinc VPN")
+    parser_config_tinc.set_defaults(func=lambda args: instance.configure_tinc(args.ip_address))
 
     parser_start = subparsers.add_parser('start', help="create the instance and any persistent disks that don't exist")
     parser_start.add_argument("--ip_address", dest="ip_address", type=str, required=True,

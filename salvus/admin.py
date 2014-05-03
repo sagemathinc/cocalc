@@ -1574,7 +1574,7 @@ class Monitor(object):
                             self._go()
                         except Exception, msg:
                             print "ERROR -- %s"%msg
-                       
+
             time.sleep(20)
 
 class Services(object):
