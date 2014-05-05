@@ -1,5 +1,5 @@
 # services
-base='salvus-2014-04-30-0313'
+base='salvus-2014-05-02-1644'
 
 cassandra_ram = 8
 cassandra_cpu = 2
@@ -17,6 +17,82 @@ compute_cpu   = 10   # DO *NOT* change compute_cpu willy-nilly; if you change it
                      # sage: %timeit b=numpy.linalg.inv(a)
                      # 1 loops, best of 3: 183 ms per loop
 
+# Google Compute Engine
+[vmgce]
+#####################
+## us-central1-a
+#####################
+# compute/storage nodes:
+localhost    {'hostname':'compute1dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute2dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute3dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute4dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute5dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute6dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute7dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+
+# cassandra cluster
+#localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra:100', 'instance_type':'n1-highmem-2'}
+#localhost    {'hostname':'cassandra2dc2', 'disk':'cassandra:100', 'instance_type':'n1-highmem-2'}
+#localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra:100', 'instance_type':'n1-highmem-2'}
+#localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra:100', 'instance_type':'n1-highmem-2'}
+
+# web servers/hubs
+localhost    {'hostname':'web1dc2', 'instance_type':'n1-standard-1'}
+localhost    {'hostname':'web2dc2', 'instance_type':'n1-standard-1'}
+localhost    {'hostname':'web3dc2', 'instance_type':'n1-standard-1'}
+localhost    {'hostname':'web4dc2', 'instance_type':'n1-standard-1'}
+
+
+#####################
+## europe-west1-b
+#####################
+# compute/storage nodes:
+
+#localhost    {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
+#localhost    {'hostname':'compute2dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
+#localhost    {'hostname':'compute3dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
+#localhost    {'hostname':'compute4dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
+
+# cassandra cluster
+#localhost    {'hostname':'cassandra1dc3', 'disk':'cassandra:100', 'instance_type':'n1-highmem-1', 'zone':'europe-west1-b'}
+#localhost    {'hostname':'cassandra2dc3', 'disk':'cassandra:100', 'instance_type':'n1-highmem-1', 'zone':'europe-west1-b'}
+#localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra:100', 'instance_type':'n1-highmem-1', 'zone':'europe-west1-b'}
+#localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra:100', 'instance_type':'n1-highmem-1', 'zone':'europe-west1-b'}
+
+# web servers/hubs
+#localhost    {'hostname':'web1dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+#localhost    {'hostname':'web2dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+#localhost    {'hostname':'web3dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+#localhost    {'hostname':'web4dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+
+#####################
+## asia-east1-a
+#####################
+# compute/storage nodes:
+#localhost    {'hostname':'compute1dc4', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'asia-east1-a'}
+#localhost    {'hostname':'compute2dc4', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'asia-east1-a'}
+#localhost    {'hostname':'compute3dc4', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'asia-east1-a'}
+#localhost    {'hostname':'compute4dc4', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'asia-east1-a'}
+
+# cassandra cluster
+#localhost    {'hostname':'cassandra1dc4', 'disk':'cassandra:100', 'instance_type':'n1-highmem-1', 'zone':'asia-east1-a'}
+#localhost    {'hostname':'cassandra2dc4', 'disk':'cassandra:100', 'instance_type':'n1-highmem-1', 'zone':'asia-east1-a'}
+#localhost    {'hostname':'cassandra3dc4', 'disk':'cassandra:100', 'instance_type':'n1-highmem-1', 'zone':'asia-east1-a'}
+#localhost    {'hostname':'cassandra4dc4', 'disk':'cassandra:100', 'instance_type':'n1-highmem-1', 'zone':'asia-east1-a'}
+
+# web servers/hubs
+#localhost    {'hostname':'web1dc4', 'instance_type':'n1-standard-1', 'zone':'asia-east1-a'}
+#localhost    {'hostname':'web2dc4', 'instance_type':'n1-standard-1', 'zone':'asia-east1-a'}
+#localhost    {'hostname':'web3dc4', 'instance_type':'n1-standard-1', 'zone':'asia-east1-a'}
+#localhost    {'hostname':'web4dc4', 'instance_type':'n1-standard-1', 'zone':'asia-east1-a'}
+
+
+
+##########################################
+
+# UW KVM Virtual Machine Cluster(s)
 [vm]
 
 # database nodes

@@ -1,38 +1,65 @@
 ## Upgrading things
 
 - [x] change scripts so google machines are smaller.
-
 - [x] figure out how to do cgroups with 14.04  (cgred stuff, etc.,) -- it seems to just work if we use usernames (not uid!)  There is no cgred daemon to restart.
-
 - [x] write script to automate installing everything into new clean sage build and run on both
       make to include code to fix permissions.
-
 - [x] /projects and /home directory permission suggestions.
-
 - [x] delete sage-6.2.beta8 thing on both vm's
+- [x] upgrade 1 compute vm at UW and test
+- [x] WOAH - the cassandra7 VM is completely bizarre - the persistent disk is a broken link; linux must just be waiting for the process to stop before destroying the underlying file handle.  I need to make another machine and replicate this over.  scary.  Fixable 100% though.  NO WAIT, it's the thing on /
+- [x] restart rest of UW compute vm's and test
+- [x] set one of my projects to use a specific google vm and restart it using the new 14.04 ubuntu, and TEST.
+- [x] restart one of the web machines using new vm image; restart nginx, hub, etc., and test
+- [x] upgrade and restart stunnel on one HOST machine, then on the rest
+- [x] upgrade and restart haproxy on one HOST machine, then on the rest
+- [x] once that works, restart rest of web machines and services
 
-- [ ] snapshot gce base image
-
-- [ ] fix the gce first-boot not running appropriate scripts issue
-
-- [ ] set one of my projects to use a specific google vm and restart it using the new 14.04 ubuntu, and TEST.
-
-- [ ] upgrade 1 compute vm at UW and test
-
-- [ ] restart rest of UW compute vm's and test
-
-- [ ] send out email that compute vm's are all upgraded
-
-- [ ] restart one of the web machines using new vm image; restart nginx, hub, etc., and test
-
-- [ ] once that works, restart rest of web machines and services
-
-- [ ] upgrade and restart stunnel on one HOST machine, then on the rest
-
-- [ ] upgrade and restart haproxy on one HOST machine, then on the rest
 
 - [ ] make a clone vm and test out what upgrading to cassandra2 requires.
 
+
+GCE
+
+- [ ] snapshot gce base image
+- [ ] fix the gce first-boot not running appropriate scripts issue
+
+
+- [ ] send out email that compute vm's are all upgraded
+
+- [ ] bug in first login and cookies -- don't autologin on account creation; instead require login/password (with john sylvester)
+
+- [ ] control+v to paste issue: https://mail.google.com/mail/u/0/?shva=1#inbox/145bebfd87489cf8
+
+High priority
+
+- [ ] temporary band-aide for replication in face failure: write something that, for each project touched in the last week (say), does an rsync out from it's master location to the two slaves.
+
+
+
+- [x] test using swap on vm test using zfs (on compute1dc1 now):
+        sudo zfs create pool/swap -V 32G -b 4K
+        sudo mkswap -f /dev/pool/swap
+        sudo swapon /dev/pool/swap
+      Conclusion: CRAZY!  Bad idea.  Disable this crap.   Swap only needed due to massive bup memory leaks, anways.
+
+- [ ] bug reported by "Martin J. Mohlenkamp" -- when building Sage, it's critical that the R in Sage has the right capabilities, namely PNG.   Type capabilities() in R to see.  To get this, it's critical to "apt-get install" everything in the full list of packages for a host machine before starting the sage build!
+
+  umask 022 && cd /usr/local/sage/current/local/bin && mv pkg-config pkg-config.orig && ln -s /usr/bin/pkg-config . && sage -f r
+  cd /usr/local/sage/current  && chmod a+r -R .; find . -perm /u+x -execdir chmod a+x {} \;
+
+---
+
+
+- [ ] sometimes having old cookies can make connecting impossible..., e.g., my laptop firefox before apr 29
+
+- [ ] fix the add collaborator search to not display results randomly
+
+- [ ] Check out how much memory this fuse mount is using -- which was just hosing my system -- 17.4GB:
+
+    10357 root      20   0 17.466g 0.017t   1944 D  54.2 44.3  33:23.94
+    bup-fuse -o --uid 1959631043 --gid 1959631043
+    /projects/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/.snapshots
 
 ---
 
@@ -91,6 +118,10 @@
         x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
         p=x.c.get_project('4255de6e-adc9-4a1e-ad9c-78493da07e64')
         p.set_settings(cb:console.log, cores:12, cpu_shares:4*256, memory:12, mintime:24*60*60)   # mintime is in units of seconds.
+
+        x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
+        p=x.c.get_project('3bdfd30d-7c9d-424e-9902-cf13ce925821')
+        p.set_settings(cb:console.log, cores:2, cpu_shares:256, memory:16, mintime:9999999999999999)   # mintime is in units of seconds.
 
 - [ ] project folder connections (?)
 
