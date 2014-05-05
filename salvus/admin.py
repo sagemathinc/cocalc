@@ -811,7 +811,7 @@ class Vm(Process):
 # A Virtual Machine instance running on Google Compute Engine
 ##############################################
 class Vmgce(Process):
-    def __init__(self, ip_address='', hostname='', instance_type='n1-standard-1', base='', disk='', id=0, monitor_database=None, name='gce_virtual_machine'):
+    def __init__(self, ip_address='', hostname='', instance_type='n1-standard-1', base='', disk='', zone='', id=0, monitor_database=None, name='gce_virtual_machine'):
         """
         INPUT:
 
@@ -833,18 +833,20 @@ class Vmgce(Process):
         self._instance_type = instance_type
         self._base = base
         self._disk = disk
+        self._zone = zone
         pidfile = os.path.join(PIDS, 'vm_gce-%s.pid'%ip_address)
         logfile = os.path.join(LOGS, 'vm_gce-%s.log'%ip_address)
 
         start_cmd = ([PYTHON, 'vm_gce.py',
-                     '--daemon', '--pidfile', pidfile, '--logfile', logfile,
-                     'start',
+                     '--daemon', '--pidfile', pidfile, '--logfile', logfile] +
+                     (['--zone', zone] if zone else []) +
+                     ['start',
                      '--ip_address', ip_address,
                      '--type', instance_type] +
                      (['--base', base] if base else []) +
                      (['--disk', disk] if disk else []) + [self._hostname])
 
-        stop_cmd = [PYTHON, 'vm_gce.py', 'stop', self._hostname]
+        stop_cmd = [PYTHON, 'vm_gce.py'] + (['--zone', zone] if zone else []) + ['stop', self._hostname]
 
         Process.__init__(self, id=id, name=name, port=0,
                          pidfile = pidfile, logfile = logfile,
@@ -1399,7 +1401,7 @@ class Monitor(object):
         """
         cmd = '&&'.join(["host -v google.com > /dev/null"]*rounds) + "; echo $?"
         ans = []
-        exclude = set(self._hosts['cellserver'] + [x for x in self._hosts['compute'] if x.startswith('10.1')] + self._hosts['webdev'])
+        exclude = set(self._hosts['cellserver'] + self._hosts['webdev'])
         h = ' '.join([host for host in self._hosts[hosts] if host not in exclude])
         if not h:
             return []
