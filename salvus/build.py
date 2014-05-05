@@ -360,11 +360,11 @@ SAGE_PIP_PACKAGES = [
     'munkres',
     'oct2py',
     'psutil',
+    'requests', # Python HTTP for Humans. (NOTE: plotly depends on requests)
     'plotly',
     'mahotas',
     'rpy2',     # We have to upgrade rpy2, since the one in sage is so old, and it breaks IPython Notebook's R interface.
     'clawpack',
-    'requests', # Python HTTP for Humans.
     'psycopg2', # Python-PostgreSQL Database Adapter
     'nose',     # nose extends unittest to make testing easier
     'redis',    # Python client for Redis key-value store
