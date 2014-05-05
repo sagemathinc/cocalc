@@ -15,17 +15,36 @@
 - [x] upgrade and restart haproxy on one HOST machine, then on the rest
 - [x] once that works, restart rest of web machines and services
 
-
-- [ ] make a clone vm and test out what upgrading to cassandra2 requires.
-
-
 GCE
 
-- [ ] snapshot gce base image
-- [ ] fix the gce first-boot not running appropriate scripts issue
+
+Choose VM and:
+
+- [ ] double check that we got the sync right
+- [ ] change address in database to .5
+- [ ] shutdown down bup server on .4 vm
+- [ ] do sync with update
+- [ ] start bup server on .5 vm
+- [ ] kill all local hubs on .4
+
+
+
+
+
 
 
 - [ ] send out email that compute vm's are all upgraded
+
+
+
+----
+
+
+- [ ] add a way to specify static ip address (created if not exist) to vm_gce.py and admin.py
+
+
+- [ ] make a clone vm and test out what upgrading to cassandra2 requires.
+
 
 - [ ] bug in first login and cookies -- don't autologin on account creation; instead require login/password (with john sylvester)
 
