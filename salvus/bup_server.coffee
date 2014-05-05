@@ -1223,7 +1223,7 @@ class GlobalProject
     # guaranteed to return length > 0
     get_state: (opts) =>
         opts = defaults opts,
-            timeout : 15
+            timeout : 30
             id      : true     # if false, instead give hostnames as keys instead of server_id's  (useful for interactive work)
             cb      : required
         dbg = (m) => winston.info("get_state: #{m}")
@@ -2608,7 +2608,7 @@ main = () ->
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
         winston.error("Uncaught exception: #{err}")
-    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+    daemon({max:999999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
 if program._name.split('.')[0] == 'bup_server'
     main()
