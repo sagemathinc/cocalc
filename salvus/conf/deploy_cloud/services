@@ -39,10 +39,10 @@ localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-hi
 #localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra:100', 'instance_type':'n1-highmem-2'}
 
 # web servers/hubs
-localhost    {'hostname':'web1dc2', 'instance_type':'n1-standard-1'}
-localhost    {'hostname':'web2dc2', 'instance_type':'n1-standard-1'}
-localhost    {'hostname':'web3dc2', 'instance_type':'n1-standard-1'}
-localhost    {'hostname':'web4dc2', 'instance_type':'n1-standard-1'}
+#localhost    {'hostname':'web1dc2', 'instance_type':'n1-standard-1'}
+#localhost    {'hostname':'web2dc2', 'instance_type':'n1-standard-1'}
+#localhost    {'hostname':'web3dc2', 'instance_type':'n1-standard-1'}
+#localhost    {'hostname':'web4dc2', 'instance_type':'n1-standard-1'}
 
 
 #####################
