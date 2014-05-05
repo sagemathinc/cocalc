@@ -3581,6 +3581,13 @@ create_account = (client, mesg) ->
                 hub           : program.host + ':' + program.port
             client.signed_in(mesg)
             client.push_to_client(mesg)
+            # Set remember_me cookie so that proxy server will allow user to connect and
+            # download images, etc., the very first time right after they make a new account.
+            client.remember_me
+                account_id    : account_id
+                first_name    : mesg.first_name
+                last_name     : mesg.last_name
+                email_address : mesg.email_address
             cb()
     ])
 

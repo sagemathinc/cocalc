@@ -142,6 +142,12 @@ class Instance(object):
 
     def stop(self):
         self.log("stop()")
+        try:
+            # at least make an attempt at a proper shutdown; ZFS and other things might like this.
+            self.ssh("shutdown -h now", user='root', timeout=30)
+        except Exception, err:
+            # normal -- we would typically get an error when kicked out during shutdown; and often run stop because machine is hung.
+            self.log("stop(): WARNING: err=%s", err)
         self.delete_instance()
 
     def _disk_name(self, name):
@@ -212,10 +218,10 @@ class Instance(object):
 
         self.gcutil("addinstance", *args)
 
-    def ssh(self, c, max_tries=1, user='salvus'):
+    def ssh(self, c, max_tries=1, user='salvus', timeout=120):
         if '"' in c:
             raise NotImplementedError
-        s = 'ssh -o StrictHostKeyChecking=no %s@%s "%s"'%(user, self.external_ip(), c)
+        s = 'ssh -o StrictHostKeyChecking=no  -o ConnectTimeout=%s %s@%s "%s"'%(timeout, user, self.external_ip(), c)
         tries = 0
         while tries < max_tries:
             try:
@@ -230,7 +236,7 @@ class Instance(object):
 
     def init_base_pool(self):
         self.log("init_base_pool: export and import the pool, and make sure mounted")
-        self.ssh("zpool export pool && zpool import -f pool && df -h |grep pool", max_tries=10, user='root')
+        self.ssh("zpool export pool; zpool import -f pool; df -h |grep pool", max_tries=10, user='root')
 
     def init_hostname(self):
         self.ssh("echo '%s' > /etc/hostname && hostname %s && echo '127.0.1.1  %s' >> /etc/hosts"%(self.hostname, self.hostname, self.hostname), user='root')
