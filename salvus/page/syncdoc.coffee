@@ -315,15 +315,17 @@ class AbstractSynchronizedDoc extends EventEmitter
 
     call: (opts) =>
         opts = defaults opts,
-            message     : required
-            timeout     : 30
-            cb          : undefined
+            message        : required
+            timeout        : 30
+            multi_response : false
+            cb             : undefined
         opts.message.session_uuid = @session_uuid
         salvus_client.call_local_hub
-            message    : opts.message
-            timeout    : opts.timeout
-            project_id : @project_id
-            cb         : (err, resp) =>
+            multi_response : opts.multi_response
+            message        : opts.message
+            timeout        : opts.timeout
+            project_id     : @project_id
+            cb             : (err, resp) =>
                 #console.log("call: #{err}, #{misc.to_json(resp)}")
                 opts.cb?(err, resp)
 
@@ -586,12 +588,14 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         else
             @_execute_callbacks = [uuid]
         @call
-            message : message.codemirror_execute_code
+            multi_response : true
+            message        : message.codemirror_execute_code
                 id           : uuid
                 code         : opts.code
                 data         : opts.data
                 preparse     : opts.preparse
                 session_uuid : @session_uuid
+            cb : opts.cb
 
         if opts.cb?
             salvus_client.execute_callbacks[uuid] = opts.cb
@@ -1214,7 +1218,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
             salvus_client.execute_callbacks[uuid] = opts.cb
 
         @call
-            message : message.codemirror_execute_code
+            multi_response : true
+            message        : message.codemirror_execute_code
                 session_uuid : @session_uuid
                 id           : uuid
                 code         : opts.code

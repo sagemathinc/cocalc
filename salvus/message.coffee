@@ -1196,11 +1196,12 @@ message
 #
 ###########################################################
 message
-    event      : 'local_hub'
-    project_id : required
-    timeout    : undefined
-    id         : undefined
-    message    : required   # arbitrary message
+    event          : 'local_hub'
+    project_id     : required
+    timeout        : undefined
+    id             : undefined
+    multi_response : false
+    message        : required   # arbitrary message
 
 
 

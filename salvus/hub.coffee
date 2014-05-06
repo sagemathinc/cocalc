@@ -1604,14 +1604,16 @@ class Client extends EventEmitter
 
             # Make the actual call
             project.call
-                mesg    : mesg.message
-                timeout : mesg.timeout
-                cb      : (err, resp) =>
+                mesg           : mesg.message
+                timeout        : mesg.timeout
+                multi_response : mesg.multi_response
+                cb             : (err, resp) =>
                     if err
                         winston.debug("Error #{err} calling message #{to_json(mesg.message)}")
                         @error_to_client(id:mesg.id, error:err)
                     else
-                        resp.id = mesg.id
+                        if not mesg.multi_response
+                            resp.id = mesg.id
                         @push_to_client(resp)
 
     ## -- user search
@@ -2050,7 +2052,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # handle incoming JSON messages from the local_hub that do *NOT* have an id tag,
     # except those in @_multi_response.
     handle_mesg: (mesg) =>
-        #@dbg("local_hub --> global_hub: received a mesg: #{to_json(mesg)}")
+        #@dbg("local_hub --> hub: received mesg: #{to_json(mesg)}")
         if mesg.id?
             @_multi_response[mesg.id]?(false, mesg)
             return
@@ -2163,7 +2165,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         ], (err) =>
             cb(err, socket)
         )
-
 
     remove_multi_response_listener: (id) =>
         delete @_multi_response[id]
@@ -2541,6 +2542,7 @@ class Project
     call: (opts) =>
         opts = defaults opts,
             mesg    : required
+            multi_response : false
             timeout : 15
             cb      : undefined
         @_fixpath(opts.mesg)

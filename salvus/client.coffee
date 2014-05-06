@@ -563,8 +563,11 @@ class exports.Connection extends EventEmitter
         if not opts.cb?
             @send(opts.message)
             return
-        id = misc.uuid()
-        opts.message.id = id
+        if not opts.message.id?
+            id = misc.uuid()
+            opts.message.id = id
+        else
+            id = opts.message.id
         @call_callbacks[id] = opts.cb
         @send(opts.message)
         if opts.timeout
@@ -581,9 +584,11 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required    # determines the destination local hub
             message    : required
+            multi_response : false
             timeout    : undefined
             cb         : undefined
         m = message.local_hub
+                multi_response : opts.multi_response
                 project_id : opts.project_id
                 message    : opts.message
                 timeout    : opts.timeout
@@ -593,10 +598,19 @@ class exports.Connection extends EventEmitter
                 opts.cb?(err, resp)
         else
             f = undefined
-        @call
-            message : m
-            timeout : opts.timeout
-            cb      : f
+
+        if opts.multi_response
+            m.id = misc.uuid()
+            #console.log("setting up execute callback on id #{m.id}")
+            @execute_callbacks[m.id] = (resp) =>
+                #console.log("execute_callback: ", resp)
+                opts.cb?(undefined, resp)
+            @send(m)
+        else
+            @call
+                message : m
+                timeout : opts.timeout
+                cb      : f
 
 
     #################################################

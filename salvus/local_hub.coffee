@@ -944,7 +944,9 @@ class CodeMirrorSession
     # Execute code in the Sage session associated to this sync'd editor session
     sage_execute_code: (client_socket, mesg) =>
         #winston.debug("sage_execute_code '#{misc.to_json(mesg)}")
+        client_id = mesg.client_id
         @_sage_output_cb[mesg.id] = (resp) =>
+            resp.client_id = client_id
             #winston.debug("sage_execute_code -- got output: #{misc.to_json(resp)}")
             client_socket.write_mesg('json', resp)
         @sage_socket (err, socket) =>
