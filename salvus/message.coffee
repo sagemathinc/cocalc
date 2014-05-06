@@ -560,7 +560,7 @@ exports.account_settings_defaults =
     connect_Github     : ''
     connect_Google     : ''
     connect_Dropbox    : ''
-    autosave           : 180
+    autosave           : 45
     other_settings     :
         confirm_close : false
     editor_settings    :
@@ -576,11 +576,11 @@ exports.account_settings_defaults =
         tab_size                  : 4
         bindings                  : "standard"
         theme                     : "standard"
-        undo_depth                : 200
+        undo_depth                : 300
     terminal           :
         font_size    : 14
-        color_scheme : 'solarized-light'
-        font         : 'droid-sans-mono'
+        color_scheme : 'default'
+        font         : 'monospace'
 
 # client <--> hub
 message(
