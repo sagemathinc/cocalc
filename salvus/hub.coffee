@@ -1600,7 +1600,10 @@ class Client extends EventEmitter
             if mesg.message.event == 'codemirror_write_to_disk'
                 # Record that a client is actively doing something with this session, but
                 # use a timeout to give local hub a chance to actually do the above save...
-                setTimeout((() => database.touch_project(project_id : project.project_id)), 5000)
+                f = () =>
+                    database.touch_project(project_id : project.project_id)
+                    project.local_hub?.project.save()
+                setTimeout(f, 5000)
 
             # Make the actual call
             project.call
