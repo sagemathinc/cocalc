@@ -332,7 +332,7 @@ message
 message
     event        : 'codemirror_disconnect'
     id           : undefined
-    session_uuid : required
+    session_uuid : undefined  # gets filled in
 
 # Broadcast mesg to all clients connected to this session.
 # This is used for cursors, updating session id's, etc.
@@ -1185,5 +1185,22 @@ message
     project_id : undefined
     param      : undefined
     id         : undefined
+
+
+
+
+###########################################################
+#
+# Direct messaging between browser client and local_hub,
+# forwarded on by global hub after ensuring write access.
+#
+###########################################################
+message
+    event      : 'local_hub'
+    project_id : required
+    timeout    : undefined
+    id         : undefined
+    message    : required   # arbitrary message
+
 
 

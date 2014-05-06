@@ -716,13 +716,15 @@ class DiffSyncFile_client extends diffsync.DiffSync
 # clients a local hub can have.  The local hub has no upstream server,
 # except the on-disk file itself.
 class CodeMirrorDiffSyncHub
-    constructor : (@socket, @session_uuid) ->
+    constructor : (@socket, @session_uuid, @client_id) ->
 
     write_mesg: (event, obj) =>
         if not obj?
             obj = {}
         obj.session_uuid = @session_uuid
-        @socket.write_mesg 'json', message['codemirror_' + event](obj)
+        mesg = message['codemirror_' + event](obj)
+        mesg.client_id = @client_id
+        @socket.write_mesg 'json', mesg
 
     recv_edits : (edit_stack, last_version_ack, cb) =>
         @write_mesg 'diffsync',
@@ -742,7 +744,7 @@ class CodeMirrorSession
         @_sage_output_cb = {}
         @_sage_output_to_input_id = {}
 
-        # The downstream clients of this local hub -- these are global hubs
+        # The downstream clients of this local hub -- these are global hubs that proxy requests on to browser clients
         @diffsync_clients = {}
 
         async.series([
@@ -844,7 +846,8 @@ class CodeMirrorSession
                             else
                                 winston.debug("codemirror session: got blob from sage session -- forwarding to a random hub")
                                 hub = misc.random_choice_from_obj(@diffsync_clients)
-                                id = hub[0]; ds_client = hub[1]
+                                client_id = hub[0]; ds_client = hub[1]
+                                mesg.client_id = client_id
                                 ds_client.remote.socket.write_mesg('blob', mesg)
 
                                 receive_save_blob_message
@@ -1244,8 +1247,10 @@ class CodeMirrorSession
 
         # Forward this message on to all global hubs except the
         # one that just sent it to us...
+        client_id = mesg.client_id
         for id, ds_client of @diffsync_clients
-            if socket?.id != id
+            if client_id != id
+                mesg.client_id = id
                 #winston.debug("BROADCAST: sending message from hub with socket.id=#{socket?.id} to hub with socket.id = #{id}")
                 ds_client.remote.socket.write_mesg('json', mesg)
 
@@ -1259,9 +1264,9 @@ class CodeMirrorSession
             socket.write_mesg 'json', message[event](obj)
 
         # Message from some client reporting new edits, thus initiating a sync.
-        ds_client = @diffsync_clients[socket.id]
+        ds_client = @diffsync_clients[mesg.client_id]
         if not ds_client?
-            write_mesg('error', {error:"client #{socket.id} not registered for synchronization."})
+            write_mesg('error', {error:"client #{mesg.client_id} not registered for synchronization"})
             return
 
         if @_client_sync_lock # or Math.random() <= .5 # (for testing)
@@ -1283,11 +1288,11 @@ class CodeMirrorSession
                     changed = (before != @content)
                     if changed
                         # We also suggest to other clients to update their state.
-                        @tell_clients_to_update(socket)
+                        @tell_clients_to_update(mesg.client_id)
 
     tell_clients_to_update: (exclude) =>
         for id, ds_client of @diffsync_clients
-            if not exclude? or exclude.id != id
+            if exclude != id
                 ds_client.remote.sync_ready()
 
     sync_filesystem: (cb) =>
@@ -1318,21 +1323,23 @@ class CodeMirrorSession
 
             if @diffsync_fileclient.live != @content
                 @set_content(@diffsync_fileclient.live)
-                # recommend all global hubs sync
+                # recommend all clients sync
                 for id, ds_client of @diffsync_clients
                     ds_client.remote.sync_ready()
             cb?()
 
-    add_client: (socket) =>
+    add_client: (socket, client_id) =>
         @is_active = true
         ds_client = new diffsync.DiffSync(doc:@content)
-        ds_client.connect(new CodeMirrorDiffSyncHub(socket, @session_uuid))
-        @diffsync_clients[socket.id] = ds_client
+        ds_client.connect(new CodeMirrorDiffSyncHub(socket, @session_uuid, client_id))
+        @diffsync_clients[client_id] = ds_client
+
+        winston.debug("CodeMirrorSession(#{@path}).add_client(client_id=#{client_id}) -- now we have #{misc.len(@diffsync_clients)} clients.")
 
         # Ensure we do not broadcast to a hub if it has already disconnected.
         socket.on 'end', () =>
             winston.debug("DISCONNECT: socket connection #{socket.id} from global hub disconected.")
-            delete @diffsync_clients[socket.id]
+            delete @diffsync_clients[client_id]
 
     write_to_disk: (socket, mesg) =>
         @is_active = true
@@ -1372,7 +1379,7 @@ class CodeMirrorSessions
 
     connect: (client_socket, mesg) =>
         finish = (session) ->
-            session.add_client(client_socket)
+            session.add_client(client_socket, mesg.client_id)
             client_socket.write_mesg 'json', message.codemirror_session
                 id           : mesg.id,
                 session_uuid : session.session_uuid
@@ -1448,7 +1455,7 @@ class CodeMirrorSessions
         return obj
 
     handle_mesg: (client_socket, mesg) =>
-        winston.debug("codemirror.handle_mesg: '#{json(mesg)}'")
+        winston.debug("CodeMirrorSessions.handle_mesg: '#{json(mesg)}'")
         if mesg.event == 'codemirror_get_session'
             @connect(client_socket, mesg)
             return
@@ -1814,7 +1821,7 @@ start_raw_server = (cb) ->
     raw_server_domain.run () ->
         winston.info("starting raw server...")
         info = INFO
-        winston.debug("info = #{info}")
+        winston.debug("info = #{misc.to_json(info)}")
 
         express = require('express')
         raw_server = express()

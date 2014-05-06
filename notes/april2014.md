@@ -1,44 +1,3 @@
-## Upgrading things
-
-- [x] change scripts so google machines are smaller.
-- [x] figure out how to do cgroups with 14.04  (cgred stuff, etc.,) -- it seems to just work if we use usernames (not uid!)  There is no cgred daemon to restart.
-- [x] write script to automate installing everything into new clean sage build and run on both
-      make to include code to fix permissions.
-- [x] /projects and /home directory permission suggestions.
-- [x] delete sage-6.2.beta8 thing on both vm's
-- [x] upgrade 1 compute vm at UW and test
-- [x] WOAH - the cassandra7 VM is completely bizarre - the persistent disk is a broken link; linux must just be waiting for the process to stop before destroying the underlying file handle.  I need to make another machine and replicate this over.  scary.  Fixable 100% though.  NO WAIT, it's the thing on /
-- [x] restart rest of UW compute vm's and test
-- [x] set one of my projects to use a specific google vm and restart it using the new 14.04 ubuntu, and TEST.
-- [x] restart one of the web machines using new vm image; restart nginx, hub, etc., and test
-- [x] upgrade and restart stunnel on one HOST machine, then on the rest
-- [x] upgrade and restart haproxy on one HOST machine, then on the rest
-- [x] once that works, restart rest of web machines and services
-
-GCE
-
-
-Choose VM and:
-
-- [ ] double check that we got the sync right
-- [ ] change address in database to .5
-- [ ] shutdown down bup server on .4 vm
-- [ ] do sync with update
-- [ ] start bup server on .5 vm
-- [ ] kill all local hubs on .4
-
-
-
-
-
-
-
-- [ ] send out email that compute vm's are all upgraded
-
-
-
-----
-
 
 - [ ] add a way to specify static ip address (created if not exist) to vm_gce.py and admin.py
 
@@ -115,7 +74,6 @@ High priority
 
 - [ ] suggested security improvements: https://mail.google.com/mail/u/0/?shva=1#inbox/14585eafa47360e4
 
-- [ ] when user "control-d" a console session (?) this maybe results in node using 100% of cpu -- I saw this once; test
 
 
 - [ ] publishing with constraints
@@ -141,6 +99,19 @@ High priority
         x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
         p=x.c.get_project('3bdfd30d-7c9d-424e-9902-cf13ce925821')
         p.set_settings(cb:console.log, cores:2, cpu_shares:256, memory:16, mintime:9999999999999999)   # mintime is in units of seconds.
+=======
+- [ ] new base vm:
+       -- ubuntu 14.04
+       -- sage 6.2.x
+
+
+- [ ] upgrade to codemirror 4.1
+
+- [ ] increasing quota -- I should make an admin interface for this...
+
+        x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
+        p=x.c.get_project('0069cdc2-3baa-4561-9c9e-17cb08e9b849')
+        p.set_settings(cb:console.log, cores:12, cpu_shares:4*256, memory:20000, mintime:999999999999999)
 
 - [ ] project folder connections (?)
 
@@ -634,5 +605,72 @@ key points:
        -- [x] sage 6.2.x
        -- [x] updating haproxy, nginx, node.js, cassandra, etc.
 	   -- [x] ENSURE: chmod a+rwx -R /usr/local/sage/sage-6.2/local/share/sage/ext
+
+
+- [x] need to write the uid instead of username in the control groups rules file
+
+- [x] upgrade to nginx 1.6.0 stable
+
+
+- [x] rewrite sync to completely remove the differential sync doc from the hub -- just forward everything back and forth between browser client and local hub.  This should speed things up, avoid a lot of state issues, and lay a good foundation for further optimizations and fixes.
+
+         # this now works in the javascript console:
+         s=require('salvus_client').salvus_client
+         s.call({message:{event:'local_hub', project_id:'224ed24d-16c2-402e-b206-46738eaf9fb8', message:{event:'codemirror_get_session', path:'a.py'}}, cb:function(e,r){console.log(e,r)}})
+
+    - [x] sync2: add clientid to messages so localhub can distinguish clients
+
+    - [x] sync2: get the cursors to work
+
+    - [x] sync2: project touch activity needs to be based on something new since codemirror objects are going away in hub.
+
+    - [x] sync2: address this remark in hub.coffee, and comment out the code right below it:
+            # TODO: we must ensure that message from this local hub are allowed to
+            # send messages to this client!!
+
+    - [x] delete all the codemirror-related code (and imports) from the hub
+
+    - [x] sync2: test on windows, bad network, slow filesystem, etc.
+## Upgrading things
+
+- [x] change scripts so google machines are smaller.
+- [x] figure out how to do cgroups with 14.04  (cgred stuff, etc.,) -- it seems to just work if we use usernames (not uid!)  There is no cgred daemon to restart.
+- [x] write script to automate installing everything into new clean sage build and run on both
+      make to include code to fix permissions.
+- [x] /projects and /home directory permission suggestions.
+- [x] delete sage-6.2.beta8 thing on both vm's
+- [x] upgrade 1 compute vm at UW and test
+- [x] WOAH - the cassandra7 VM is completely bizarre - the persistent disk is a broken link; linux must just be waiting for the process to stop before destroying the underlying file handle.  I need to make another machine and replicate this over.  scary.  Fixable 100% though.  NO WAIT, it's the thing on /
+- [x] restart rest of UW compute vm's and test
+- [x] set one of my projects to use a specific google vm and restart it using the new 14.04 ubuntu, and TEST.
+- [x] restart one of the web machines using new vm image; restart nginx, hub, etc., and test
+- [x] upgrade and restart stunnel on one HOST machine, then on the rest
+- [x] upgrade and restart haproxy on one HOST machine, then on the rest
+- [x] once that works, restart rest of web machines and services
+
+GCE
+
+
+Choose VM and:
+
+- [ ] double check that we got the sync right
+- [ ] change address in database to .5
+- [ ] shutdown down bup server on .4 vm
+- [ ] do sync with update
+- [ ] start bup server on .5 vm
+- [ ] kill all local hubs on .4
+
+
+
+
+
+
+
+- [ ] send out email that compute vm's are all upgraded
+
+
+
+----
+
 
 
