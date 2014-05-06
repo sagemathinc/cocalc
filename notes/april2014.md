@@ -11,16 +11,15 @@
 
     - [x] sync2: get the cursors to work
 
-    - [x] sync2: project touch activity needs to be based on something new since codemirror objects are going away in hub. 
+    - [x] sync2: project touch activity needs to be based on something new since codemirror objects are going away in hub.
 
-    - [ ] sync2: address this remark in hub.coffee, and comment out the code right below it:
+    - [x] sync2: address this remark in hub.coffee, and comment out the code right below it:
             # TODO: we must ensure that message from this local hub are allowed to
             # send messages to this client!!
 
-    - [ ] sync2: test on windows, etc.
+    - [x] delete all the codemirror-related code (and imports) from the hub
 
-
-- [ ] when user "control-d" a console session (?) this maybe results in node using 100% of cpu -- I saw this once; test
+    - [ ] sync2: test on windows, bad network, slow filesystem, etc.
 
 
 
