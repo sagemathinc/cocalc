@@ -1597,6 +1597,11 @@ class Client extends EventEmitter
                         # TODO: this could be done client side in a way that respects their color scheme...?
                         mesg.message.color = @id.slice(0,6)
 
+            if mesg.message.event == 'codemirror_write_to_disk'
+                # Record that a client is actively doing something with this session, but
+                # use a timeout to give local hub a chance to actually do the above save...
+                setTimeout((() => database.touch_project(project_id : project.project_id)), 5000)
+
             # Make the actual call
             project.call
                 mesg    : mesg.message
