@@ -1,5 +1,5 @@
 # services
-base='salvus-2014-05-02-1644'
+base='salvus-2014-05-05-1655'
 
 cassandra_ram = 8
 cassandra_cpu = 2
@@ -31,6 +31,9 @@ localhost    {'hostname':'compute5dc2', 'disk':'bup:500', 'instance_type':'n1-hi
 localhost    {'hostname':'compute6dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
 localhost    {'hostname':'compute7dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
 localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+
+# backup
+localhost    {'hostname':'backup1dc2', 'disk':'backup1:1000,backup2:500', 'instance_type':'n1-standard-1'}
 
 # cassandra cluster
 #localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra:100', 'instance_type':'n1-highmem-2'}

@@ -141,6 +141,8 @@
 10.3.7.5 compute7dc2 compute-2
 10.3.8.5 compute8dc2 compute-2
 
+10.3.1.1 backup1dc2
+
 # GCE cassandra cluster
 #10.3.1.2 cassandra1dc2
 #10.3.2.2 cassandra2dc2
