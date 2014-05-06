@@ -1587,6 +1587,16 @@ class Client extends EventEmitter
             # being proxied through the same hub.
             mesg.message.client_id = @id
 
+            # Tag broadcast messages with identifying info.
+            if mesg.message.event == 'codemirror_bcast'
+                if @signed_in_mesg?
+                    if not mesg.message.name?
+                        mesg.message.name = @fullname()
+                    if not mesg.message.color?
+                        # Use first 6 digits of uuid... one color per session, NOT per username.
+                        # TODO: this could be done client side in a way that respects their color scheme...?
+                        mesg.message.color = @id.slice(0,6)
+
             # Make the actual call
             project.call
                 mesg    : mesg.message
@@ -2556,7 +2566,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         if mesg.client_id?
             # TODO: we must ensure that message from this local hub are allowed to
             # send messages to this client!!
-            clients[mesg.client_id].push_to_client(mesg)
+            clients[mesg.client_id]?.push_to_client(mesg)
         ###
         switch mesg.event
             when 'codemirror_diffsync_ready'

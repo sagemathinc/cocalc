@@ -589,7 +589,7 @@ class exports.Connection extends EventEmitter
                 timeout    : opts.timeout
         if opts.cb?
             f = (err, resp) =>
-                console.log("call_local_hub:#{misc.to_json(opts.message)} got back #{misc.to_json(err:err,resp:resp)}")
+                #console.log("call_local_hub:#{misc.to_json(opts.message)} got back #{misc.to_json(err:err,resp:resp)}")
                 opts.cb?(err, resp)
         else
             f = undefined

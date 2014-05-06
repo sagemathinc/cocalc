@@ -7,7 +7,9 @@
          s=require('salvus_client').salvus_client
          s.call({message:{event:'local_hub', project_id:'224ed24d-16c2-402e-b206-46738eaf9fb8', message:{event:'codemirror_get_session', path:'a.py'}}, cb:function(e,r){console.log(e,r)}})
 
-   --> - [ ] sync2: add clientid to messages so localhub can distinguish clients
+    - [x] sync2: add clientid to messages so localhub can distinguish clients
+
+    - [x] sync2: get the cursors to work
 
     - [ ] sync2: project touch activity needs to be based on something new since codemirror objects are going away in hub.  WHAT?
 
