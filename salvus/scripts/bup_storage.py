@@ -259,8 +259,18 @@ class Project(object):
         self.start_daemons()
         self.umount_snapshots()
         # TODO: remove this chown once (1) uid defn stabilizes -- after migration will go through all projects and properly chown.
-        #self.cmd(["chown", "-R", "%s:%s"%(self.username, self.groupname), self.project_mnt])  # chown on all takes WAY too long now ...
+        #self.chown_all()
         self.mount_snapshots()
+
+    def chown_all(self):
+        log = self._log("chown_all")
+        for P in os.listdir(self.project_mnt):
+            target = os.path.join(self.project_mnt, P)
+            if target != self.snap_mnt:
+                try:
+                    self.chown(target)
+                except Exception, err:
+                    log("WARNING: %s"%err)
 
     def get_zfs_status(self):
         q = {}
@@ -1012,6 +1022,9 @@ if __name__ == "__main__":
                                            remote_path = args.remote_path,
                                            read_only   = args.read_only)
                                      )
+
+    parser_chown = subparsers.add_parser('chown', help="Ensure all files in the project have the correct owner and group.")
+    parser_chown.set_defaults(func=lambda args: project.chown_all())
 
     parser_umount_remote = subparsers.add_parser('umount_remote')
     parser_umount_remote.add_argument("--mount_point", help="", dest="mount_point", default="", type=str)
