@@ -1163,10 +1163,18 @@ class GlobalProject
                             cb()
             (cb) =>
                 servers = @global_client.servers
-                dbg("hosts=#{misc.to_json(hosts)}; ensure that we have (at least) one host from each of the #{misc.keys(servers.by_dc).length} data center")
+                dbg("hosts=#{misc.to_json(hosts)}; ensure that we have (at least) one host from each of the #{misc.keys(servers.by_dc).length} data centers (excluding dc's with no non-experimental hosts)")
                 last_save = {}
                 now = cassandra.now()
-                for dc, servers_in_dc of servers.by_dc
+                for dc, s of servers.by_dc
+                    # get just the non-experimental servers in this data center
+                    servers_in_dc = {}
+                    for id, r of s
+                        if not r.experimental
+                            servers_in_dc[id] = r
+                    if misc.len(servers_in_dc) == 0
+                        # skip this dc; there are no servers at all to use.
+                        continue
                     have_one = false
                     for h in hosts
                         if servers_in_dc[h]?
@@ -1507,7 +1515,7 @@ class GlobalClient
         #dbg("updating list of available storage servers...")
         @database.select
             table     : 'storage_servers'
-            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret']
+            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret', 'experimental']
             objectify : true
             where     : {dummy:true}
             cb        : (err, results) =>
