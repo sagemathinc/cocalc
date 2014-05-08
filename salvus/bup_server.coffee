@@ -34,7 +34,7 @@ TIMEOUT = 60*60
 # ignored until this much time elapses *and* an interesting file changes.
 MIN_SAVE_INTERVAL_S = 90
 
-STORAGE_SERVERS_UPDATE_INTERVAL_S = 180  # How frequently (in seconds)  to query the database for the list of storage servers
+STORAGE_SERVERS_UPDATE_INTERVAL_S = 60*3  # How frequently (in seconds)  to query the database for the list of storage servers
 
 IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds.
 
@@ -718,8 +718,13 @@ class GlobalProject
                                         v = (server_id for server_id in v when Math.abs(last_save[server_id] - newest) < 10*1000)
                                     dbg("choosing randomly from #{v.length} choices with optimal save time")
                                     server_id = misc.random_choice(v)
-                                    dbg("our choice is #{server_id}")
-                                    cb()
+                                    if not server_id?
+                                        e = "no host available on which to open project"
+                                        dbg(e)
+                                        cb(e)
+                                    else
+                                        dbg("our choice is #{server_id}")
+                                        cb()
 
                 else if running_on.length == 1
                     dbg("done -- nothing further to do -- project already running on one host")
@@ -1501,7 +1506,12 @@ class GlobalClient
                 @_update(cb)
         ], (err) =>
             if not err
-                setInterval(@_update, 1000*STORAGE_SERVERS_UPDATE_INTERVAL_S)  # update regularly
+                f = () =>
+                    setInterval(@_update, 1000*STORAGE_SERVERS_UPDATE_INTERVAL_S)  # update regularly
+                # wait a random amount of time before starting the update interval, so that the database
+                # doesn't get hit all at once over few minutes, when we start a large number of hubs at once.
+                setTimeout(f, Math.random()*1000*STORAGE_SERVERS_UPDATE_INTERVAL_S)
+
                 opts.cb(undefined, @)
             else
                 opts.cb(err, @)
