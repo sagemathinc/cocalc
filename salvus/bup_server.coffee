@@ -1110,7 +1110,10 @@ class GlobalProject
                         winston.debug("refusing to delete last_save entry! -- #{@project_id}, #{server_id}")
                         cb()
                     else
-                        @database.cql(s, [server_id, opts.last_save[server_id], @project_id], cql.types.consistencies.eachQuorum, cb)
+                        args = [server_id, opts.last_save[server_id], @project_id]
+                        winston.debug("#{s} -- #{misc.to_json(args)}")
+                        @database.cql(s, args, cql.types.consistencies.eachQuorum, cb)
+                winston.debug("#{misc.keys(opts.last_save)}")
                 async.map(misc.keys(opts.last_save), f, cb)
             (cb) =>
                 if opts.bup_repo_size_kb?
@@ -1585,9 +1588,10 @@ class GlobalClient
 
     register_server: (opts) =>
         opts = defaults opts,
-            host   : required
-            dc     : 0           # 0, 1, 2, .etc.
-            timeout: 30
+            host         : required
+            dc           : 0             # 0, 1, 2, .etc.
+            experimental : false   # if true, don't allocate new projects here
+            timeout      : 30
             cb     : undefined
         dbg = (m) -> winston.debug("GlobalClient.add_storage_server(#{opts.host}, #{opts.dc}): #{m}")
         dbg("adding storage server to the database by grabbing server_id files, etc.")
@@ -1606,8 +1610,16 @@ class GlobalClient
                     else
                         cb(undefined, output.stdout)
 
-        set = {host:opts.host, dc:opts.dc, port:undefined, secret:undefined}
-        where = {server_id:undefined, dummy:true}
+        set =
+            host         : opts.host
+            dc           : opts.dc
+            port         : undefined
+            secret       : undefined
+            experimental : opts.experimental
+
+        where =
+            server_id : undefined
+            dummy     : true
 
         async.series([
             (cb) =>
