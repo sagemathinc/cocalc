@@ -260,13 +260,13 @@ In /etc/sysctl.conf, put:
 """
 
 TINC_VERSION       = '1.0.23'    # options here -- http://tinc-vpn.org/packages/
-CASSANDRA_VERSION  = '2.0.6'     # options here -- http://downloads.datastax.com/community/
-NODE_VERSION       = '0.10.26'   # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
+CASSANDRA_VERSION  = '2.0.7'     # options here -- http://downloads.datastax.com/community/
+NODE_VERSION       = '0.10.28'   # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
 PYTHON_VERSION     = '2.7.6'     # options here -- https://www.python.org/ftp/python/
 SETUPTOOLS_VERSION = '3.4.4'     # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
-NGINX_VERSION      = '1.6.0'     # options here -- http://nginx.org/download/
-HAPROXY_VERSION    = '1.5-dev22' # options here -- http://haproxy.1wt.eu/download/1.5/src/devel/
-STUNNEL_VERSION    = '5.01'     # options here -- https://www.stunnel.org/downloads.html
+NGINX_VERSION      = '1.7.0'     # options here -- http://nginx.org/download/
+HAPROXY_VERSION    = '1.5-dev24' # options here -- http://haproxy.1wt.eu/download/1.5/src/devel/
+STUNNEL_VERSION    = '5.01'      # options here -- https://www.stunnel.org/downloads.html
 
 import logging, os, shutil, subprocess, sys, time, urllib2
 
