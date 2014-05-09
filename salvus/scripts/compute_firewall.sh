@@ -20,8 +20,9 @@ do
     iptables -A INPUT -p tcp --dport 1024: --source 10.1.$N.3 -j ACCEPT
 done
 
-# staging/testing machine
-iptables -A INPUT -p tcp --dport 1024: --source 10.1.15.7 -j ACCEPT
+# europe data center web host
+iptables -A INPUT -p tcp --dport 1024: --source 10.4.1.3 -j ACCEPT
+
 # admin machines
 iptables -A INPUT -p tcp --dport 1024: --source 10.1.3.1 -j ACCEPT
 iptables -A INPUT -p tcp --dport 1024: --source 10.1.10.1 -j ACCEPT

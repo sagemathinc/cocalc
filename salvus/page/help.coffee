@@ -18,7 +18,7 @@ update_stats = () ->
             X.find(".salvus-stats-active_projects").text(stats.active_projects)
             X.find(".salvus-stats-last_day_projects").text(stats.last_day_projects)
             X.find(".salvus-stats-last_week_projects").text(stats.last_week_projects)
-            X.find(".salvus-stats-last_month_projects").text(stats.last_month_projects)
+            #X.find(".salvus-stats-last_month_projects").text(stats.last_month_projects)
 
             if stats.hub_servers.length == 0
                 n = 0
