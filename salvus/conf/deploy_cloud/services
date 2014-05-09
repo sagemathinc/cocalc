@@ -1,5 +1,5 @@
 # services
-base='salvus-2014-05-09-1355'
+base=os.path.splitext(list(sorted(os.listdir('/home/salvus/vm/images/base3')))[-1])[0]
 
 cassandra_ram = 8
 cassandra_cpu = 2

@@ -996,11 +996,14 @@ def parse_groupfile(filename):
     group_opts = []
     ordered_group_names = []
     namespace = {}
+    namespace['os'] = os
+    namespace['os'] = os
+    namespace['os'] = os
     for r in open(filename).xreadlines():
         line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
         if line: # ignore blank lines
             if line.startswith('import ') or '=' in line:
-                # import modules for use in assignments below below
+                # import modules for use in assignments below 
                 print "exec ", line
                 exec line in namespace
                 continue
@@ -1401,7 +1404,7 @@ class Monitor(object):
         """
         cmd = '&&'.join(["host -v google.com > /dev/null"]*rounds) + "; echo $?"
         ans = []
-        exclude = set(self._hosts['cellserver'] + self._hosts['webdev'])
+        exclude = set(self._hosts['cellserver'])  # + self._hosts['webdev'])
         h = ' '.join([host for host in self._hosts[hosts] if host not in exclude])
         if not h:
             return []
