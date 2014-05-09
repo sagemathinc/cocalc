@@ -1,5 +1,5 @@
 # services
-base='salvus-2014-05-05-1655'
+base='salvus-2014-05-09-1355'
 
 cassandra_ram = 8
 cassandra_cpu = 2
@@ -53,7 +53,7 @@ localhost    {'hostname':'backup1dc2', 'disk':'backup1:1000,backup2:500', 'insta
 #####################
 # compute/storage nodes:
 
-#localhost    {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
+localhost    {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
 #localhost    {'hostname':'compute2dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
 #localhost    {'hostname':'compute3dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
 #localhost    {'hostname':'compute4dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
@@ -65,7 +65,7 @@ localhost    {'hostname':'backup1dc2', 'disk':'backup1:1000,backup2:500', 'insta
 #localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra:100', 'instance_type':'n1-highmem-1', 'zone':'europe-west1-b'}
 
 # web servers/hubs
-#localhost    {'hostname':'web1dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+localhost    {'hostname':'web1dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
 #localhost    {'hostname':'web2dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
 #localhost    {'hostname':'web3dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
 #localhost    {'hostname':'web4dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
@@ -100,7 +100,7 @@ localhost    {'hostname':'backup1dc2', 'disk':'backup1:1000,backup2:500', 'insta
 
 # database nodes
 cloud1    {'hostname':'cassandra1', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256:none:qcow2'}
-cloud2    {'hostname':'cassandra2', 'vcpus':cassandra_cpu, 'ram':6, 'base':base, 'disk':'/dev/mapper/cassandra2-cassandra::none'}
+cloud2    {'hostname':'cassandra2', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/mapper/cassandra2-cassandra::none'}
 cloud3    {'hostname':'cassandra3', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
 cloud4    {'hostname':'cassandra4', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
 cloud5    {'hostname':'cassandra5', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
@@ -141,7 +141,7 @@ cloud20  {'hostname':'web20',      'vcpus':web_cpu,       'ram':web_ram,       '
 cloud21  {'hostname':'web21',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
 
 # testing/dev
-cloud15  {'hostname':'webdev',     'vcpus':2,       'ram':4,       'base':base, 'disk':'storage:64:none:qcow2', 'vnc':13003}
+#cloud15  {'hostname':'webdev',     'vcpus':2,       'ram':4,       'base':base, 'disk':'storage:64:none:qcow2', 'vnc':13003}
 
 # new compute vm's
 cloud1   {'hostname':'compute1dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
@@ -195,25 +195,24 @@ cassandra21    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
 
 [stunnel] {'sudo':True}
 edge
-webdev
+web1dc3
 
 [haproxy] {'sudo':True, 'insecure_redirect_port':80, 'sitename':'cloud.sagemath.com'}
 edge
-#web1gce1 {'hub_servers':[{'ip':'10.3.1.3','maxconn':100,'port':'5000'}], 'nginx_servers':[{'ip':'10.3.1.3','maxconn':10000, 'port':8080}], 'proxy_servers':[{'ip':'10.3.1.3','maxconn':100,'proxy_port':'5001'}]}
-webdev {'hub_servers':[{'ip':'10.1.15.7','maxconn':100,'port':'5000'}], 'nginx_servers':[{'ip':'10.1.15.7','maxconn':10000, 'port':8080}], 'proxy_servers':[{'ip':'10.1.15.7','maxconn':100,'proxy_port':'5001'}]}
+web1dc3 {'hub_servers':[{'ip':'10.4.1.3','maxconn':100,'port':'5000'}], 'nginx_servers':[{'ip':'10.4.1.3','maxconn':10000, 'port':8080}], 'proxy_servers':[{'ip':'10.4.1.3','maxconn':100,'proxy_port':'5001'}]}
+
 
 [nginx]
 nginx
-webdev
-#web1gce1
+web1dc3
 
 [hub]
 hub {'id':'0', 'port':'5000', 'proxy_port':'5001'}
 hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
 hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
 hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
-#web1gce1 {'id':'0', 'port':'5000', 'proxy_port':'5001','monitor_database':'10.1.3.2:9042'}
-webdev {'id':'0', 'port':'5000', 'proxy_port':'5001', 'monitor_database':'10.1.15.2:9042'}
+
+web1dc3 {'id':'0', 'port':'5000', 'proxy_port':'5001','monitor_database':'10.1.10.2:9042'}
 
 
 
