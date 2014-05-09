@@ -9,6 +9,4 @@ def cmd(s):
 hosts = ['10.1.%s.2'%i for i in range(1,8) + range(10,22)]          #+ ['10.3.%s.1'%i for i in range(1,5)]
 
 for h in hosts:
-   cmd("time ssh %s 'cd salvus/salvus; . salvus-env; nodetool repair -pr salvus'"%h)
-
-   #cmd("time ssh %s 'nodetool repair -pr -par storage'"%h)  # cassandra 2
+   cmd("time ssh %s 'cd salvus/salvus; . salvus-env && nodetool repair -pr -par salvus'"%h)  # cassandra 2
