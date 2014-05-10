@@ -1008,7 +1008,7 @@ def parse_groupfile(filename):
         line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
         if line: # ignore blank lines
             if line.startswith('import ') or '=' in line:
-                # import modules for use in assignments below 
+                # import modules for use in assignments below
                 print "exec ", line
                 exec line in namespace
                 continue
@@ -1402,6 +1402,21 @@ class Monitor(object):
         w = [(-d['load1'], d) for d in ans]
         w.sort()
         return [y for x,y in w]
+
+    def pingall(self, hosts='all', on=None):
+        v = []
+        for x in hosts.split():
+            try:
+                v += self._hosts[x]
+            except ValueError:
+                v.append(x)
+        c = 'pingall ' + ' '.join(v)
+        if on is not None:
+            c = 'ssh %s "cd salvus/salvus && . salvus-env && %s"'%(on, c)
+        print c
+        s = os.popen(c).read()
+        print s
+        return json.loads(s)
 
     def dns(self, hosts='all', rounds=1):
         """
