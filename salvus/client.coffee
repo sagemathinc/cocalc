@@ -1666,9 +1666,10 @@ class exports.Connection extends EventEmitter
     edit_task_list: (opts) =>
         opts = defaults opts,
             task_list_id : required
+            project_id   : undefined    # give this if task list usage is authenticated via project_id
             title        : undefined
             description  : undefined
-            project_id   : undefined    # give this if task list usage is authenticated via project_id
+            deleted      : undefined    # use for deleting a task list
             cb           : undefined
         @call
             message :
@@ -1677,6 +1678,7 @@ class exports.Connection extends EventEmitter
                     project_id   : opts.project_id
                     title        : opts.title
                     description  : opts.description
+                    deleted      : opts.deleted
             cb : (err, resp) =>
                 if err
                     opts.cb(err)
@@ -1685,17 +1687,20 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined)
 
-
     get_task_list: (opts) =>
         opts = defaults opts,
             task_list_id : required
             project_id   : undefined    # give this if task list usage is authenticated via project_id
+            columns      : undefined
+            include_deleted : false
             cb           : required
         @call
             message :
                 message.get_task_list
-                    task_list_id : opts.task_list_id
-                    project_id   : opts.project_id
+                    task_list_id    : opts.task_list_id
+                    project_id      : opts.project_id
+                    include_deleted : opts.include_deleted
+                    columns         : opts.columns
             cb : (err, resp) =>
                 if err
                     opts.cb(err)
@@ -1737,16 +1742,21 @@ class exports.Connection extends EventEmitter
             done         : undefined
             data         : undefined
             deleted      : undefined
+            sub_task_list_id : undefined
             cb           : undefined
 
         @call
             message :
                 message.edit_task
                     task_list_id : opts.task_list_id
+                    task_id      : opts.task_id
                     project_id   : opts.project_id
                     title        : opts.title
                     position     : opts.position
                     deleted      : opts.deleted
+                    sub_task_list_id : opts.sub_task_list_id
+                    data         : opts.data
+                    done         : opts.done
             cb : (err, resp) =>
                 if err
                     opts.cb(err)

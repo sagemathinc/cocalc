@@ -838,6 +838,7 @@ class Client extends EventEmitter
         catch error
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
+        #winston.debug("got message: #{data}")
         if mesg.event.slice(0,4) != 'ping' and mesg.event != 'codemirror_bcast'
             winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 600)}")
         handler = @["mesg_#{mesg.event}"]
@@ -1841,6 +1842,8 @@ class Client extends EventEmitter
         # TODO: add verification that this client can view the given task list
         database.get_task_list
             task_list_id : mesg.task_list_id
+            columns      : mesg.columns
+            include_deleted : mesg.include_deleted
             cb           : (err, task_list) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
@@ -1868,6 +1871,7 @@ class Client extends EventEmitter
 
 
     mesg_edit_task: (mesg) =>
+        #winston.debug("edit_task: mesg=#{misc.to_json(mesg)}")
         # TODO: add verification that this client can edit the given task
         database.edit_task
             task_list_id : mesg.task_list_id
@@ -1877,6 +1881,7 @@ class Client extends EventEmitter
             data         : mesg.data
             done         : mesg.done
             deleted      : mesg.deleted
+            sub_task_list_id : mesg.sub_task_list_id
             cb           : (err) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)

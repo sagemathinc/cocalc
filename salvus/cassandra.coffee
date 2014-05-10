@@ -12,8 +12,10 @@
 # (c) 2013 William Stein, University of Washington
 #
 # fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.1.1.2:9160'], username:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
+#
 # fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['localhost:8403'], username:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
-
+#
+# fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['localhost'], cb:console.log)
 #
 #########################################################################
 
@@ -2213,7 +2215,7 @@ class exports.Salvus extends exports.Cassandra
         if opts.columns?
             columns = opts.columns
         else
-            columns = ['task_id', 'position', 'subtasks', 'last_edited', 'done', 'title', 'data', 'deleted']
+            columns = ['task_id', 'position', 'last_edited', 'done', 'title', 'data', 'deleted', 'sub_task_list_id']
         @select
             table     : 'tasks'
             where     : {task_list_id : opts.task_list_id}
@@ -2223,10 +2225,13 @@ class exports.Salvus extends exports.Cassandra
                 if err
                     opts.cb(err)
                 else
-                    if include_deleted or 'deleted' not in columns
-                        opts.cb(undefined, resp)
-                    else
-                        opts.cb(undefined, (x for x in resp if not x.deleted))
+                    if not opts.include_deleted and 'deleted' in columns
+                        resp = (x for x in resp when not x.deleted)
+                    for x in resp
+                        if x.data?
+                            for k, v of x.data
+                                x.data[k] = from_json(v)
+                    opts.cb(undefined, resp)
 
     edit_task_list : (opts) =>
         opts = defaults opts,
@@ -2235,35 +2240,38 @@ class exports.Salvus extends exports.Cassandra
             description  : undefined
             deleted      : undefined
             cb           : required
+        #dbg = (m) -> winston.debug("edit_task_list: #{m}")
         if opts.deleted
-            # delete the entire task list and all the tasks in it
+            #dbg("delete the entire task list and all the tasks in it")
             tasks = undefined
             already_deleted = false
             async.series([
                 (cb) =>
-                    # is task list already deleted?  if so, do nothing to avoid potential recurssion due to nested subtasks.
-                    @select
-                        table : 'task_lists'
+                    #dbg("is task list already deleted?  if so, do nothing to avoid potential recursion due to nested sub-tasks.")
+                    @select_one
+                        table   : 'task_lists'
                         columns : ['deleted']
-                        where : {task_list_id : opts.task_list_id}
-                        cb    : (err, deleted) =>
+                        where   : {task_list_id : opts.task_list_id}
+                        cb      : (err, resp) =>
                             if err
                                 cb(err)
                             else
-                                already_deleted = deleted
+                                already_deleted = resp[0]
                                 cb(already_deleted)
                 (cb) =>
-                    # get list of tasks
+                    #dbg("get list of tasks")
                     @get_task_list
                         task_list_id    : opts.task_list_id
                         columns         : ['task_id', 'deleted']
                         include_deleted : false
                         cb              : (err, _tasks) =>
-                            tasks = (x.task_id for x in _tasks)
-                            cb(err)
-
+                            if err
+                                cb(err)
+                            else
+                                tasks = (x.task_id for x in _tasks)
+                                cb()
                 (cb) =>
-                    # delete them all
+                    #dbg("delete them all")
                     f = (task_id, cb) =>
                         @edit_task
                             task_list_id : opts.task_list_id
@@ -2272,7 +2280,7 @@ class exports.Salvus extends exports.Cassandra
                             cb           : cb
                     async.map(tasks, f, (err) => cb(err))
                 (cb) =>
-                    # delete the task list itself
+                    #dbg("delete the task list itself")
                     @update
                         table : 'task_lists'
                         set   : {'deleted': true, 'last_edited':now()}
@@ -2285,12 +2293,14 @@ class exports.Salvus extends exports.Cassandra
                     opts.cb(err)
             )
         else
-            # other case -- just edit something in the task list
+            #dbg("other case -- just edit something in the task list")
             set = {}
             if opts.title?
                 set.title = opts.title
             if opts.description?
                 set.description = opts.description
+            if opts.deleted?
+                set.deleted = opts.deleted
             if misc.len(set) == 0
                 opts.cb()
                 return
@@ -2311,12 +2321,40 @@ class exports.Salvus extends exports.Cassandra
             done         : undefined
             data         : undefined
             deleted      : undefined
+            sub_task_list_id : undefined
             cb           : undefined
+
+        winston.debug("cass edit_task: opts=#{misc.to_json(opts)}")
+
+        where =
+            task_list_id : opts.task_list_id
+            task_id      : opts.task_id
+
+        last_edited = now()
 
         async.series([
             (cb) =>
+                if not opts.deleted
+                    cb(); return
+                # deleting -- so delete the subtask list if there is one
+                @select_one
+                    table   : 'tasks'
+                    columns : ['sub_task_list_id']
+                    where   : where
+                    cb      : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            if r[0]
+                                @edit_task_list
+                                    task_list_id : r[0]
+                                    deleted      : true
+                                    cb           : cb
+                            else
+                                cb()
+            (cb) =>
                 # set the easy properties
-                set = {}
+                set = {last_edited: now()}
                 if opts.title?
                     set.title = opts.title
                 if opts.position?
@@ -2325,18 +2363,21 @@ class exports.Salvus extends exports.Cassandra
                     set.done = opts.done
                 if opts.deleted?
                     set.deleted = opts.deleted
+                set.last_edited = last_edited
                 @update
                     table : 'tasks'
-                    where :
-                        task_list_id : opts.task_list_id
-                        task_id      : task_id
+                    where : where
                     set   : set
                     cb    : cb
             (cb) =>
                 # set any data properties
                 f = (key, cb) =>
                     query = "UPDATE tasks SET data[?]=? WHERE task_list_id=? AND task_id=?"
-                    @cql(query, [key, opts.data[key], opts.task_list_id, opts.task_id], (err) => cb(err))
+                    if opts.data[key] != null
+                        val = to_json(opts.data[key])
+                    else
+                        val = undefined
+                    @cql(query, [key, val, opts.task_list_id, opts.task_id], (err) => cb(err))
                 async.map(misc.keys(opts.data), f, (err) => cb(err))
             (cb) =>
                 # record that something about the task list itself changed
@@ -2347,6 +2388,66 @@ class exports.Salvus extends exports.Cassandra
                     cb    : cb
         ], (err) => opts.cb?(err))
 
+
+
+    # Remove all deleted tasks and task lists from the database, so long as their
+    # last edit time is at least min_age_s seconds ago.
+    purge_deleted_tasks : (opts) =>
+        opts = defaults opts,
+            min_age_s : 3600*24*30  # one month  -- min age in seconds
+            cb        : undefined
+        results = undefined
+        async.series([
+            (cb) =>
+                # TODO: implement paging through list of tasks -- this will only work for a few months, then die.
+                console.log("dumping tasks table...")
+                @select
+                    table   : 'tasks'
+                    columns : ['deleted', 'task_list_id', 'task_id', 'last_edited']
+                    cb      : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            console.log("got #{r.length} tasks")
+                            results = r
+                            cb()
+            (cb) =>
+                n = (new Date()) - 0
+                x = ([r[1],r[2]] for r in results when r[0] and (n - r[3]) >= opts.min_age_s)
+                console.log("deleting #{x.length} deleted tasks")
+                f = (z, cb) =>
+                    console.log("deleting #{misc.to_json(z)}")
+                    @delete
+                        table : 'tasks'
+                        where : {task_list_id:z[0], task_id:z[1]}
+                        cb    : cb
+                async.mapLimit(x, 10, f, (err) => cb(err))
+            (cb) =>
+                # TODO: implement paging through list of tasks -- this will only work for a few months, then die.
+                console.log("dumping task_lists table...")
+                @select
+                    table   : 'task_lists'
+                    columns : ['deleted', 'task_list_id', 'last_edited']
+                    cb      : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            console.log("got #{r.length} task_lists")
+                            results = r
+                            cb()
+            (cb) =>
+                n = (new Date()) - 0
+                console.log("results=", results)
+                x = (r[1] for r in results when r[0] and (n - r[2]) >= opts.min_age_s)
+                console.log("deleting #{x.length} deleted task_lists")
+                f = (z, cb) =>
+                    console.log("deleting task_list #{z}")
+                    @delete
+                        table : 'task_lists'
+                        where : {task_list_id:z}
+                        cb    : cb
+                async.mapLimit(x, 10, f, (err) => cb(err))
+        ], (err) => opts.cb?(err))
 
 
 ############################################################################

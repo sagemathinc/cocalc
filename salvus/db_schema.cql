@@ -576,7 +576,7 @@ CREATE TABLE tasks (
                              /* to the user (without special sort); this makes it possible to asynchronously */
                              /* locally manually sort tasks. */
 
-    subtasks     uuid,       /* optional task_list of subtasks */
+    sub_task_list_id uuid,       /* optional task_list of subtasks */
 
     last_edited  timestamp,  /* last time the task was changed */
     done         boolean,    /* whether or not the task has been completed */

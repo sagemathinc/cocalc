@@ -1228,13 +1228,14 @@ message
 message
     event        : 'edit_task'
     task_list_id : required
+    task_id      : required
     project_id   : undefined    # give this if task list usage is authenticated via project_id
     id           : undefined
     title        : undefined
     position     : undefined
     done         : undefined
     data         : undefined
-    sub_task_list_id : undefined   # a
+    sub_task_list_id : undefined   # a list of subtasks
     deleted          : undefined
 
 message
@@ -1261,6 +1262,8 @@ message
 message
     event        : 'get_task_list'
     task_list_id : required
+    columns      : undefined
+    include_deleted : false
     project_id   : undefined    # give this if task list usage is authenticated via project_id
     id           : undefined
 
