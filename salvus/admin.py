@@ -108,7 +108,7 @@ def zfs_size(s):
 ####################
 # Running a subprocess
 ####################
-def run(args, maxtime=30, verbose=True):
+def run(args, maxtime=60, verbose=True):
     """
     Run the command line specified by args (using subprocess.Popen)
     and return the stdout and stderr, killing the subprocess if it
@@ -143,7 +143,7 @@ def run(args, maxtime=30, verbose=True):
 #      sh['list', 'of', ..., 'arguments'] to run a shell command
 
 class SH(object):
-    def __init__(self, maxtime=30):
+    def __init__(self, maxtime=60):
         self.maxtime = maxtime
     def __getitem__(self, args):
         return run([args] if isinstance(args, str) else list(args), maxtime=self.maxtime)
@@ -1205,13 +1205,13 @@ class Hosts(object):
     def public_ssh_keys(self, hostname, timeout=5):
         return '\n'.join([x['stdout'] for x in self.exec_command(hostname, 'cat .ssh/id_rsa.pub', timeout=timeout).values()])
 
-    def git_pull(self, hostname, repo=GIT_REPO, timeout=30):
+    def git_pull(self, hostname, repo=GIT_REPO, timeout=60):
         return self(hostname, 'cd salvus && git pull %s'%repo, timeout=timeout)
 
     def build(self, hostname, pkg_name, timeout=250):
         return self(hostname, 'cd $HOME/salvus/salvus && . ./salvus-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
 
-    def python_c(self, hostname, cmd, timeout=30, sudo=False, wait=True):
+    def python_c(self, hostname, cmd, timeout=60, sudo=False, wait=True):
         command = 'cd \"$HOME/salvus/salvus\" && . ./salvus-env && python -c "%s"'%cmd
         log.info("python_c: %s", command)
         return self(hostname, command, sudo=sudo, timeout=timeout, wait=wait)
@@ -1435,7 +1435,7 @@ class Monitor(object):
         cmd = "ps ax |grep zfs | grep -v flush | wc -l; cat zpool.list"
         ans = []
         # zpool list can take a while when host is loaded, but still work fine.
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=30, username='storage').iteritems():
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=60, username='storage').iteritems():
             x = v['stdout'].split()
             try:
                 nproc = int(x[0]) - 2
@@ -1772,7 +1772,7 @@ class Services(object):
             timeout = options['timeout']
             del options['timeout']
         else:
-            timeout = 30
+            timeout = 60
 
 
         if 'id' not in options:
@@ -2064,7 +2064,7 @@ class Services(object):
         update version number.  Also, restart nginx.  Use this for pushing out HTML/Javascript/CSS
         changes that aren't at all critical for users to see immediately.
         """
-        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $((($RANDOM%5))); ./pull_from_dev_project; ./make_coffee --all', parallel=True, timeout=30)
+        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $((($RANDOM%5))); ./pull_from_dev_project; ./make_coffee --all', parallel=True, timeout=60)
 
     def update_nginx_from_dev_repo(self):
         """
@@ -2081,7 +2081,7 @@ class Services(object):
         across all machines, then restart all nginx and hub servers, in serial.
         """
         import time; ver = int(time.time())
-        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $((($RANDOM%%5))); ./pull_from_dev_project; echo "exports.version=%s" > node_modules/salvus_version.js; ./make_coffee --all'%ver, parallel=True, timeout=30)
+        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $((($RANDOM%%5))); ./pull_from_dev_project; echo "exports.version=%s" > node_modules/salvus_version.js; ./make_coffee --all'%ver, parallel=True, timeout=60)
         self.restart('nginx')
         self.restart('hub')
 

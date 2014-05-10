@@ -150,8 +150,8 @@
 10.3.4.2 cassandra4dc2 cassandra
 
 # HUB, Nginx, stunnel, etc., servers
-10.3.1.3 web1dc2
-10.3.2.3 web2dc2
+10.3.1.3 web1dc2 hub
+10.3.2.3 web2dc2 hub
 
 
 ###
@@ -169,8 +169,8 @@
 10.4.3.2 cassandra3dc3 cassandra
 10.4.4.2 cassandra4dc3 cassandra
 
-10.4.1.3 web1dc3
-10.4.2.3 web2dc3
+10.4.1.3 web1dc3 hub
+10.4.2.3 web2dc3 hub
 
 
 
