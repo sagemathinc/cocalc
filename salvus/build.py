@@ -322,7 +322,8 @@ NODE_MODULES = [
     'underscore',
     'read',
     'hashring',
-    'rimraf'
+    'rimraf',
+    'net-ping'
     ]
 
 PYTHON_PACKAGES = [
