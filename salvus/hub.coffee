@@ -1810,6 +1810,7 @@ class Client extends EventEmitter
 
     mesg_create_task_list: (mesg) =>
         # TODO: add verification that owners is valid
+        # TODO: error if user (or project) already has too many task lists (?)
         database.create_task_list
             owners      : mesg.owners    # list of project or account id's that are allowed to edit this task list.
             title       : mesg.title
@@ -1824,13 +1825,63 @@ class Client extends EventEmitter
                     @push_to_client(mesg)
 
     mesg_edit_task_list: (mesg) =>
+        # TODO: add verification that this client can edit the given task list
+        database.edit_task_list
+            task_list_id : mesg.task_list_id
+            title        : mesg.title
+            description  : mesg.description
+            deleted      : mesg.deleted
+            cb           : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
 
     mesg_get_task_list: (mesg) =>
+        # TODO: add verification that this client can view the given task list
+        database.get_task_list
+            task_list_id : mesg.task_list_id
+            cb           : (err, task_list) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    mesg = message.task_list_resp
+                        id        : mesg.id
+                        task_list : task_list
+                    @push_to_client(mesg)
 
     mesg_create_task: (mesg) =>
+        # TODO: add verification that this client can edit the given task list
+        # TODO: error if title is too long
+        database.create_task
+            task_list_id : mesg.task_list_id
+            title        : mesg.title
+            position     : mesg.position
+            cb          : (err, task_id) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    mesg = message.task_created
+                        id      : mesg.id
+                        task_id : task_id
+                    @push_to_client(mesg)
+
 
     mesg_edit_task: (mesg) =>
-
+        # TODO: add verification that this client can edit the given task
+        database.edit_task
+            task_list_id : mesg.task_list_id
+            task_id      : mesg.task_id
+            title        : mesg.title
+            position     : mesg.position
+            data         : mesg.data
+            done         : mesg.done
+            deleted      : mesg.deleted
+            cb           : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
 
 
 

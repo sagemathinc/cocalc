@@ -1657,27 +1657,52 @@ class exports.Connection extends EventEmitter
                     description  : opts.description
             cb      : (err, resp) =>
                 if err
-                    opts.cb?(err)
+                    opts.cb(err)
                 else if resp.event == 'error'
-                    opts.cb?(resp.error)
+                    opts.cb(resp.error)
                 else
-                    opts.cb?(undefined, resp.task_list_id)
+                    opts.cb(undefined, resp.task_list_id)
 
     edit_task_list: (opts) =>
         opts = defaults opts,
+            task_list_id : required
             title        : undefined
             description  : undefined
             project_id   : undefined    # give this if task list usage is authenticated via project_id
-            account_id   : undefined    # ... or via account_id
             cb           : undefined
+        @call
+            message :
+                message.edit_task_list
+                    task_list_id : opts.task_list_id
+                    project_id   : opts.project_id
+                    title        : opts.title
+                    description  : opts.description
+            cb : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(undefined)
 
 
     get_task_list: (opts) =>
         opts = defaults opts,
+            task_list_id : required
             project_id   : undefined    # give this if task list usage is authenticated via project_id
-            account_id   : undefined    # ... or via account_id
-            cb           : undefined
-
+            cb           : required
+        @call
+            message :
+                message.get_task_list
+                    task_list_id : opts.task_list_id
+                    project_id   : opts.project_id
+            cb : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(undefined, resp.task_list)
 
     create_task: (opts) =>
         opts = defaults opts,
@@ -1685,22 +1710,50 @@ class exports.Connection extends EventEmitter
             title        : "No title"
             position     : 0
             project_id   : undefined    # give this if task list usage is authenticated via project_id
-            account_id   : undefined    # ... or via account_id
-            cb           : undefined
-
+            cb           : required
+        @call
+            message :
+                message.create_task
+                    task_list_id : opts.task_list_id
+                    title        : opts.title
+                    position     : opts.position
+                    project_id   : opts.project_id
+            cb : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(undefined, resp.task_id)
 
     edit_task: (opts) =>
         opts = defaults opts,
             task_list_id : required
+            task_id      : required
             project_id   : undefined    # give this if task list usage is authenticated via project_id
-            account_id   : undefined    # ... or via account_id
             id           : undefined
             title        : undefined
             position     : undefined
             done         : undefined
+            data         : undefined
+            deleted      : undefined
             cb           : undefined
 
-
+        @call
+            message :
+                message.edit_task
+                    task_list_id : opts.task_list_id
+                    project_id   : opts.project_id
+                    title        : opts.title
+                    position     : opts.position
+                    deleted      : opts.deleted
+            cb : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(undefined, resp.task_id)
 
 
 #################################################

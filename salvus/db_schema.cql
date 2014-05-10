@@ -563,11 +563,13 @@ CREATE TABLE task_lists (
     task_list_id uuid PRIMARY KEY,       /* uuid of this task list */
     owners       set<uuid>,              /* account_id, project_id, or task_id that owns this task list */
     title        varchar,
-    description  varchar
+    description  varchar,
+    deleted      boolean,    /* whether this task list has been deleted */
+    last_edited  timestamp,  /* last time the task list was changed (i.e., description, title, deleted, owners,  editing tasks) */
 );
 
 CREATE TABLE tasks (
-    list_id      uuid,       /* id of a task list -- ensures all tasks for a given list in the same place storage wise for speed */
+    task_list_id uuid,       /* id of a task list -- ensures all tasks for a given list in the same place storage wise for speed */
     task_id      uuid,       /* id for this task */
 
     position     float,      /* floating point that determines the *position* of this item in the list when displayed */
@@ -578,13 +580,12 @@ CREATE TABLE tasks (
 
     last_edited  timestamp,  /* last time the task was changed */
     done         boolean,    /* whether or not the task has been completed */
+    deleted      boolean,    /* whether this task has been deleted */
     title        varchar,
     data         map<text,text>,
 
-    PRIMARY KEY (list_id, task_id)
+    PRIMARY KEY (task_list_id, task_id)
 );
-
-CREATE INDEX on tasks(done);
 
 
 

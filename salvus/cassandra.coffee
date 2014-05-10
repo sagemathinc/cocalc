@@ -2159,26 +2159,194 @@ class exports.Salvus extends exports.Cassandra
         task_list_id = uuid.v4()
 
         q = ('?' for i in [0...opts.owners.length]).join(',')
-        query = "UPDATE task_lists SET owners={#{q}}, title=?, description=? WHERE task_list_id=?"
+        query = "UPDATE task_lists SET owners={#{q}}, title=?, description=?, last_edited=? WHERE task_list_id=?"
         args = (x for x in opts.owners)
         args.push(opts.title)
         args.push(opts.description)
+        args.push(now())
         args.push(task_list_id)
-
         @cql(query, args, (err) => opts.cb(err, task_list_id))
 
-        ###
-        # if collections were supported by my cql generation code (they aren't)
-        @update
-            table : 'task_lists'
-            where : {task_list_id : task_list_id}
-            set   :
-                owners      : opts.owners
-                title       : opts.title
-                description : opts.description
-            cb    : (err) =>
-                opts.cb(err, task_list_id)
-        ###
+
+    create_task: (opts) =>
+        opts = defaults opts,
+            task_list_id : required
+            title        : required
+            position     : 0
+            cb           : required
+
+        task_id = uuid.v4()
+        last_edited = now()
+        async.series([
+            (cb) =>
+                @update
+                    table : 'tasks'
+                    where :
+                        task_list_id : opts.task_list_id
+                        task_id      : task_id
+                    set   :
+                        title       : opts.title
+                        position    : opts.position
+                        done        : false   # tasks start out not done
+                        last_edited : last_edited
+                    cb    : cb
+            (cb) =>
+                # record that something about the task list itself changed
+                @update
+                    table : 'task_lists'
+                    where : {task_list_id : opts.task_list_id}
+                    set   : {last_edited  : last_edited}
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, task_id)
+        )
+
+    get_task_list : (opts) =>
+        opts = defaults opts,
+            task_list_id    : required
+            include_deleted : false
+            columns         : undefined
+            cb              : required
+
+        if opts.columns?
+            columns = opts.columns
+        else
+            columns = ['task_id', 'position', 'subtasks', 'last_edited', 'done', 'title', 'data', 'deleted']
+        @select
+            table     : 'tasks'
+            where     : {task_list_id : opts.task_list_id}
+            columns   : columns
+            objectify : true
+            cb        : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    if include_deleted or 'deleted' not in columns
+                        opts.cb(undefined, resp)
+                    else
+                        opts.cb(undefined, (x for x in resp if not x.deleted))
+
+    edit_task_list : (opts) =>
+        opts = defaults opts,
+            task_list_id : required
+            title        : undefined
+            description  : undefined
+            deleted      : undefined
+            cb           : required
+        if opts.deleted
+            # delete the entire task list and all the tasks in it
+            tasks = undefined
+            already_deleted = false
+            async.series([
+                (cb) =>
+                    # is task list already deleted?  if so, do nothing to avoid potential recurssion due to nested subtasks.
+                    @select
+                        table : 'task_lists'
+                        columns : ['deleted']
+                        where : {task_list_id : opts.task_list_id}
+                        cb    : (err, deleted) =>
+                            if err
+                                cb(err)
+                            else
+                                already_deleted = deleted
+                                cb(already_deleted)
+                (cb) =>
+                    # get list of tasks
+                    @get_task_list
+                        task_list_id    : opts.task_list_id
+                        columns         : ['task_id', 'deleted']
+                        include_deleted : false
+                        cb              : (err, _tasks) =>
+                            tasks = (x.task_id for x in _tasks)
+                            cb(err)
+
+                (cb) =>
+                    # delete them all
+                    f = (task_id, cb) =>
+                        @edit_task
+                            task_list_id : opts.task_list_id
+                            task_id      : task_id
+                            deleted      : true
+                            cb           : cb
+                    async.map(tasks, f, (err) => cb(err))
+                (cb) =>
+                    # delete the task list itself
+                    @update
+                        table : 'task_lists'
+                        set   : {'deleted': true, 'last_edited':now()}
+                        where : {task_list_id : opts.task_list_id}
+                        cb    : cb
+            ], (err) =>
+                if already_deleted
+                    opts.cb()
+                else
+                    opts.cb(err)
+            )
+        else
+            # other case -- just edit something in the task list
+            set = {}
+            if opts.title?
+                set.title = opts.title
+            if opts.description?
+                set.description = opts.description
+            if misc.len(set) == 0
+                opts.cb()
+                return
+            set.last_edited = now()
+            @update
+                table : 'task_lists'
+                where : {task_list_id : opts.task_list_id}
+                set   : set
+                cb    : opts.cb
+
+
+    edit_task : (opts) =>
+        opts = defaults opts,
+            task_list_id : required
+            task_id      : required
+            title        : undefined
+            position     : undefined
+            done         : undefined
+            data         : undefined
+            deleted      : undefined
+            cb           : undefined
+
+        async.series([
+            (cb) =>
+                # set the easy properties
+                set = {}
+                if opts.title?
+                    set.title = opts.title
+                if opts.position?
+                    set.position = opts.position
+                if opts.done?
+                    set.done = opts.done
+                if opts.deleted?
+                    set.deleted = opts.deleted
+                @update
+                    table : 'tasks'
+                    where :
+                        task_list_id : opts.task_list_id
+                        task_id      : task_id
+                    set   : set
+                    cb    : cb
+            (cb) =>
+                # set any data properties
+                f = (key, cb) =>
+                    query = "UPDATE tasks SET data[?]=? WHERE task_list_id=? AND task_id=?"
+                    @cql(query, [key, opts.data[key], opts.task_list_id, opts.task_id], (err) => cb(err))
+                async.map(misc.keys(opts.data), f, (err) => cb(err))
+            (cb) =>
+                # record that something about the task list itself changed
+                @update
+                    table : 'task_lists'
+                    where : {task_list_id : opts.task_list_id}
+                    set   : {last_edited  : last_edited}
+                    cb    : cb
+        ], (err) => opts.cb?(err))
+
 
 
 ############################################################################

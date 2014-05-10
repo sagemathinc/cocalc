@@ -1217,8 +1217,7 @@ message
     task_list_id : required
     title        : "No title"
     position     : 0
-    project_id   : undefined    # give this if task list usage is authenticated via project_id
-    account_id   : undefined    # ... or via account_id
+    project_id   : undefined    # give this if task list usage is authenticated via project_id (otherwise account_id used)
     id           : undefined
 
 message
@@ -1230,15 +1229,17 @@ message
     event        : 'edit_task'
     task_list_id : required
     project_id   : undefined    # give this if task list usage is authenticated via project_id
-    account_id   : undefined    # ... or via account_id
     id           : undefined
     title        : undefined
     position     : undefined
     done         : undefined
+    data         : undefined
+    sub_task_list_id : undefined   # a
+    deleted          : undefined
 
 message
     event        : 'create_task_list'
-    owners       : required    # list of project or account id's that are allowed to edit this task list.
+    owners       : required    # list of project_id's or account_id's that are allowed to edit this task list.
     title        : "No title"
     description  : "No description"
     id           : undefined
@@ -1250,22 +1251,26 @@ message
 
 message
     event        : 'edit_task_list'
+    task_list_id : required
     title        : undefined
     description  : undefined
     project_id   : undefined    # give this if task list usage is authenticated via project_id
-    account_id   : undefined    # ... or via account_id
+    deleted      : undefined
     id           : undefined
 
 message
     event        : 'get_task_list'
+    task_list_id : required
     project_id   : undefined    # give this if task list usage is authenticated via project_id
-    account_id   : undefined    # ... or via account_id
     id           : undefined
 
 message
     event        : 'task_list_resp'
     id           : undefined
     task_list    : required     # list of all tasks
+
+
+
 
 # hub --> connected clients who would care -- implementing this will require a message queue (like nanomsg)
 message
