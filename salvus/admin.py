@@ -726,9 +726,14 @@ class Cassandra(Process):
 
             if name == 'cassandra.yaml':
                 for k,v in kwds.iteritems():
+                    if isinstance(v, bool):
+                        v = str(v).lower()
                     i = r.find('%s:'%k)
                     if i == -1:
-                        raise ValueError("no configuration option '%s'"%k)
+                        #raise ValueError("no configuration option '%s'"%k)
+                        # put it at the end -- some VALID options, e.g. auto_bootstrap, aren't even in the file
+                        r += "\n\n%s: %s\n"%(k,v)
+                        continue
                     if r[i-2] == "#":
                         i = i - 2
 
