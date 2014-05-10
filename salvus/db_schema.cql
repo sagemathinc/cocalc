@@ -560,12 +560,11 @@ GRANT MODIFY ON table project_new TO storage_server;
 */
 
 CREATE TABLE task_lists (
-    list_id      uuid PRIMARY KEY,       /* uuid of this task list */
+    task_list_id uuid PRIMARY KEY,       /* uuid of this task list */
     owners       set<uuid>,              /* account_id, project_id, or task_id that owns this task list */
     title        varchar,
     description  varchar
 );
-
 
 CREATE TABLE tasks (
     list_id      uuid,       /* id of a task list -- ensures all tasks for a given list in the same place storage wise for speed */

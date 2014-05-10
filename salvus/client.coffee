@@ -1644,14 +1644,61 @@ class exports.Connection extends EventEmitter
     # Tasks
     #################################################
     create_task_list: (opts) =>
+        opts = defaults opts,
+            owners       : required
+            title        : "No title"
+            description  : "No description"
+            cb           : required
+        @call
+            message :
+                message.create_task_list
+                    owners       : opts.owners
+                    title        : opts.title
+                    description  : opts.description
+            cb      : (err, resp) =>
+                if err
+                    opts.cb?(err)
+                else if resp.event == 'error'
+                    opts.cb?(resp.error)
+                else
+                    opts.cb?(undefined, resp.task_list_id)
 
     edit_task_list: (opts) =>
+        opts = defaults opts,
+            title        : undefined
+            description  : undefined
+            project_id   : undefined    # give this if task list usage is authenticated via project_id
+            account_id   : undefined    # ... or via account_id
+            cb           : undefined
+
 
     get_task_list: (opts) =>
+        opts = defaults opts,
+            project_id   : undefined    # give this if task list usage is authenticated via project_id
+            account_id   : undefined    # ... or via account_id
+            cb           : undefined
+
 
     create_task: (opts) =>
+        opts = defaults opts,
+            task_list_id : required
+            title        : "No title"
+            position     : 0
+            project_id   : undefined    # give this if task list usage is authenticated via project_id
+            account_id   : undefined    # ... or via account_id
+            cb           : undefined
+
 
     edit_task: (opts) =>
+        opts = defaults opts,
+            task_list_id : required
+            project_id   : undefined    # give this if task list usage is authenticated via project_id
+            account_id   : undefined    # ... or via account_id
+            id           : undefined
+            title        : undefined
+            position     : undefined
+            done         : undefined
+            cb           : undefined
 
 
 

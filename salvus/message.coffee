@@ -1238,7 +1238,6 @@ message
 
 message
     event        : 'create_task_list'
-    task         : required
     owners       : required    # list of project or account id's that are allowed to edit this task list.
     title        : "No title"
     description  : "No description"

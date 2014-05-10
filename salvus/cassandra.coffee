@@ -2146,6 +2146,41 @@ class exports.Salvus extends exports.Cassandra
                 opts.cb(err, stats)
         )
 
+
+    #####################################
+    # Tasks
+    #####################################
+    create_task_list: (opts) =>
+        opts = defaults opts,
+            owners      : required
+            title       : required
+            description : required
+            cb          : required
+        task_list_id = uuid.v4()
+
+        q = ('?' for i in [0...opts.owners.length]).join(',')
+        query = "UPDATE task_lists SET owners={#{q}}, title=?, description=? WHERE task_list_id=?"
+        args = (x for x in opts.owners)
+        args.push(opts.title)
+        args.push(opts.description)
+        args.push(task_list_id)
+
+        @cql(query, args, (err) => opts.cb(err, task_list_id))
+
+        ###
+        # if collections were supported by my cql generation code (they aren't)
+        @update
+            table : 'task_lists'
+            where : {task_list_id : task_list_id}
+            set   :
+                owners      : opts.owners
+                title       : opts.title
+                description : opts.description
+            cb    : (err) =>
+                opts.cb(err, task_list_id)
+        ###
+
+
 ############################################################################
 # Chunked storage for each project (or user, or whatever is indexed by a uuid).
 # Store arbitrarily large blob data associated to each project here.

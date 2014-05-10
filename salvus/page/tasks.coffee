@@ -25,13 +25,13 @@ class exports.Tasks
         @element.append(task)
         ###
 
-    create_new_task: (opts) =>
+    create_task: (opts) =>
         opts = defaults opts,
             task : required
             cb   : undefined
         @tasks.unshift(opts.task)
         @render_task(opts.task)
-        salvus_client.create_new_task
+        salvus_client.create_task
             owner : @project_id
             task  : opts.task
             cb    : (err, task_id) =>
@@ -50,7 +50,7 @@ class exports.Tasks
         new_task_input = @element.find(".salvus-project-tasks-new")
         new_task_input.keydown (evt) =>
             if misc_page.is_enter(evt)
-                @create_new_task
+                @create_task
                     task : {title:new_task_input.val()}
                 new_task_input.val('')
                 return false

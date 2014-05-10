@@ -1809,6 +1809,19 @@ class Client extends EventEmitter
     ################################################
 
     mesg_create_task_list: (mesg) =>
+        # TODO: add verification that owners is valid
+        database.create_task_list
+            owners      : mesg.owners    # list of project or account id's that are allowed to edit this task list.
+            title       : mesg.title
+            description : mesg.description
+            cb          : (err, task_list_id) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    mesg = message.task_list_created
+                        id           : mesg.id
+                        task_list_id : task_list_id
+                    @push_to_client(mesg)
 
     mesg_edit_task_list: (mesg) =>
 
