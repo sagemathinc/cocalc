@@ -271,17 +271,13 @@ class UUIDValueStore extends UUIDStore
         @_from_db = from_json
 
 class UUIDBlobStore extends UUIDStore
-    # c = new (require("cassandra").Salvus)(keyspace:'test'); s = c.uuid_blob_store(name:'test')
+    # c = new (require("cassandra").Salvus)(keyspace:'salvus'); s = c.uuid_blob_store(name:'test')
     # b = new Buffer("hi\u0000there"); uuid = s.set(value:b, ttl:300, cb:console.log)
     # s.get(uuid: uuid, cb:(e,r) -> console.log(r))
     constructor: (@cassandra, opts={}) ->
         @opts     = defaults(opts, name:required)
         @_table   = 'uuid_blob'
-        @_to_db   = (x) ->
-            winston.debug("converting object of length #{x.length} to hex")
-            s = x.toString('hex')
-            winston.debug('converted, now storing')
-            return s
+        @_to_db   = (x) -> x
         @_from_db = (x) -> new Buffer(x, 'hex')
 
 class KeyValueStore
