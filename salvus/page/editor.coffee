@@ -3932,7 +3932,7 @@ class IPythonNotebook extends FileEditor
         t += "You are editing this document using the IPython Notebook enhanced with realtime synchronization."
         if @kernel_id?
             t += "<h4>Sage mode by pasting this into a cell</h4>"
-            t += "<pre>%load_ext sage.misc.sage_extension</pre>"
+            t += "<pre>%load_ext sage</pre>"
         if @kernel_id?
             t += "<h4>Connect to this IPython kernel in a terminal</h4>"
             t += "<pre>ipython console --existing #{@kernel_id}</pre>"

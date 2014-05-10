@@ -34,7 +34,7 @@ TIMEOUT = 60*60
 # ignored until this much time elapses *and* an interesting file changes.
 MIN_SAVE_INTERVAL_S = 90
 
-STORAGE_SERVERS_UPDATE_INTERVAL_S = 180  # How frequently (in seconds)  to query the database for the list of storage servers
+STORAGE_SERVERS_UPDATE_INTERVAL_S = 60*3  # How frequently (in seconds)  to query the database for the list of storage servers
 
 IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds.
 
@@ -718,8 +718,13 @@ class GlobalProject
                                         v = (server_id for server_id in v when Math.abs(last_save[server_id] - newest) < 10*1000)
                                     dbg("choosing randomly from #{v.length} choices with optimal save time")
                                     server_id = misc.random_choice(v)
-                                    dbg("our choice is #{server_id}")
-                                    cb()
+                                    if not server_id?
+                                        e = "no host available on which to open project"
+                                        dbg(e)
+                                        cb(e)
+                                    else
+                                        dbg("our choice is #{server_id}")
+                                        cb()
 
                 else if running_on.length == 1
                     dbg("done -- nothing further to do -- project already running on one host")
@@ -1014,7 +1019,7 @@ class GlobalProject
         async.series([
             (cb) =>
                 if opts.target?
-                    dbg("set next open location preference -- #{err}")
+                    dbg("set next open location preference -- target=#{opts.target}")
                     @set_location_pref(opts.target, cb)
                 else
                     cb()
@@ -1110,7 +1115,10 @@ class GlobalProject
                         winston.debug("refusing to delete last_save entry! -- #{@project_id}, #{server_id}")
                         cb()
                     else
-                        @database.cql(s, [server_id, opts.last_save[server_id], @project_id], cql.types.consistencies.eachQuorum, cb)
+                        args = [server_id, opts.last_save[server_id], @project_id]
+                        winston.debug("#{s} -- #{misc.to_json(args)}")
+                        @database.cql(s, args, cql.types.consistencies.eachQuorum, cb)
+                winston.debug("#{misc.keys(opts.last_save)}")
                 async.map(misc.keys(opts.last_save), f, cb)
             (cb) =>
                 if opts.bup_repo_size_kb?
@@ -1163,10 +1171,18 @@ class GlobalProject
                             cb()
             (cb) =>
                 servers = @global_client.servers
-                dbg("hosts=#{misc.to_json(hosts)}; ensure that we have (at least) one host from each of the #{misc.keys(servers.by_dc).length} data center")
+                dbg("hosts=#{misc.to_json(hosts)}; ensure that we have (at least) one host from each of the #{misc.keys(servers.by_dc).length} data centers (excluding dc's with no non-experimental hosts)")
                 last_save = {}
                 now = cassandra.now()
-                for dc, servers_in_dc of servers.by_dc
+                for dc, s of servers.by_dc
+                    # get just the non-experimental servers in this data center
+                    servers_in_dc = {}
+                    for id, r of s
+                        if not r.experimental
+                            servers_in_dc[id] = r
+                    if misc.len(servers_in_dc) == 0
+                        # skip this dc; there are no servers at all to use.
+                        continue
                     have_one = false
                     for h in hosts
                         if servers_in_dc[h]?
@@ -1223,7 +1239,7 @@ class GlobalProject
     # guaranteed to return length > 0
     get_state: (opts) =>
         opts = defaults opts,
-            timeout : 15
+            timeout : 30
             id      : true     # if false, instead give hostnames as keys instead of server_id's  (useful for interactive work)
             cb      : required
         dbg = (m) => winston.info("get_state: #{m}")
@@ -1490,7 +1506,12 @@ class GlobalClient
                 @_update(cb)
         ], (err) =>
             if not err
-                setInterval(@_update, 1000*STORAGE_SERVERS_UPDATE_INTERVAL_S)  # update regularly
+                f = () =>
+                    setInterval(@_update, 1000*STORAGE_SERVERS_UPDATE_INTERVAL_S)  # update regularly
+                # wait a random amount of time before starting the update interval, so that the database
+                # doesn't get hit all at once over few minutes, when we start a large number of hubs at once.
+                setTimeout(f, Math.random()*1000*STORAGE_SERVERS_UPDATE_INTERVAL_S)
+
                 opts.cb(undefined, @)
             else
                 opts.cb(err, @)
@@ -1507,7 +1528,7 @@ class GlobalClient
         #dbg("updating list of available storage servers...")
         @database.select
             table     : 'storage_servers'
-            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret']
+            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret', 'experimental']
             objectify : true
             where     : {dummy:true}
             cb        : (err, results) =>
@@ -1577,9 +1598,10 @@ class GlobalClient
 
     register_server: (opts) =>
         opts = defaults opts,
-            host   : required
-            dc     : 0           # 0, 1, 2, .etc.
-            timeout: 30
+            host         : required
+            dc           : 0             # 0, 1, 2, .etc.
+            experimental : false   # if true, don't allocate new projects here
+            timeout      : 30
             cb     : undefined
         dbg = (m) -> winston.debug("GlobalClient.add_storage_server(#{opts.host}, #{opts.dc}): #{m}")
         dbg("adding storage server to the database by grabbing server_id files, etc.")
@@ -1598,8 +1620,16 @@ class GlobalClient
                     else
                         cb(undefined, output.stdout)
 
-        set = {host:opts.host, dc:opts.dc, port:undefined, secret:undefined}
-        where = {server_id:undefined, dummy:true}
+        set =
+            host         : opts.host
+            dc           : opts.dc
+            port         : undefined
+            secret       : undefined
+            experimental : opts.experimental
+
+        where =
+            server_id : undefined
+            dummy     : true
 
         async.series([
             (cb) =>
@@ -2608,7 +2638,7 @@ main = () ->
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
         winston.error("Uncaught exception: #{err}")
-    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+    daemon({max:999999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
 if program._name.split('.')[0] == 'bup_server'
     main()

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+## DEPRECATED -- not used at all
+
 import os
 
 def cmd(s):

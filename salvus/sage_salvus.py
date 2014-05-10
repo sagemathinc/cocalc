@@ -1530,8 +1530,6 @@ def cython(code=None, **kwds):
     You can pass options to cython by typing "%cython(... var=value...)" instead.
 
     This is a wrapper around Sage's cython function, whose docstring is:
-
-
     """
     if code is None:
         return lambda code: cython(code, **kwds)
@@ -1559,12 +1557,12 @@ def cython(code=None, **kwds):
     files = os.listdir(path)
     html_filename = None
     for n in files:
-        ext = os.path.splitext(n)[1]
-        if ext.startswith('.html'):
+        base, ext = os.path.splitext(n)
+        if ext.startswith('.html') and '_pyx_' in base:
             html_filename = os.path.join(path, n)
     if html_filename is not None:
-        html_url = salvus.file(html_filename, show=False)
-        salvus.html("<a href='%s' target='_new' class='btn btn-small '>Show auto-generated code &nbsp;<i class='fa fa-external-link'></i></a>"%html_url)
+        html_url = salvus.file(html_filename, raw=True, show=False)
+        salvus.html("<a href='%s' target='_new' class='btn btn-small' style='margin-top: 1ex'>Auto-generated code... &nbsp;<i class='fa fa-external-link'></i></a>"%html_url)
 
 cython.__doc__ += sage.misc.cython.cython.__doc__
 

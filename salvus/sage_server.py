@@ -625,7 +625,7 @@ class Salvus(object):
                     break
 
         if 'error' in mesg:
-            raise RuntimeError("error saving blob -- " + mesg['error'])
+            raise RuntimeError("error saving blob -- %s"%mesg['error'])
 
         self._flush_stdio()
         self._send_output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}, events=events)

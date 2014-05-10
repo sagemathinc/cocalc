@@ -4,55 +4,48 @@
 #  quare brackets refer to groups of hosts
 # The rightmost hostname (when there are multiple names) is the canonical one.
 
+127.0.0.1   localhost  # for running things on whatever hosts admin.py is running on.
 
 # DC1:RAC0   128.95.242.135 cloud1   # 06salvus
 10.1.1.1 dc1     kvm-host   admin edge  cloud1    cassandra-2
 10.1.1.2 dc1     kvm        cassandra1  cassandra
 10.1.1.3 dc1     kvm        web1  hub  nginx
-10.1.1.4 dc1     kvm        compute     compute1a
 10.1.1.5 dc1     kvm        compute-2     compute1dc1
 
 # DC1:RAC0   128.95.242.137 cloud2   # 07salvus
 10.1.2.1 dc1     kvm-host   edge        cloud2    cassandra-2
 10.1.2.2 dc1     kvm        cassandra2  cassandra
 10.1.2.3 dc1     kvm        web2  hub nginx
-10.1.2.4 dc1     kvm        compute     compute2a
 10.1.2.5 dc1     kvm        compute-2     compute2dc1
 
 # DC1:RAC0   128.95.224.237 cloud3   # 03salvus
 10.1.3.1 dc1 kvm-host   admin edge  cloud3    cassandra-2
 10.1.3.2 dc1 kvm        cassandra3 cassandra
 10.1.3.3 dc1 kvm        hub nginx   web3
-10.1.3.4 dc1 kvm        compute     compute3a
 10.1.3.5 dc1     kvm        compute-2     compute3dc1
-10.1.3.6 dc1 kvm        compute-2     compute3testdc1
 
 # DC1:RAC0   128.95.224.230 cloud4
 10.1.4.1 dc1 kvm-host   edge        cloud4    cassandra-2
 10.1.4.2 dc1 kvm        cassandra4  cassandra
 10.1.4.3 dc1 kvm        hub nginx   web4
-10.1.4.4 dc1 kvm        compute     compute4a
 10.1.4.5 dc1     kvm        compute-2     compute4dc1
 
 # DC1:RAC0   cloud5
 10.1.5.1 kvm-host  edge            cloud5    cassandra-2
 10.1.5.2 kvm          cassandra    cassandra5
 10.1.5.3 kvm       hub nginx web5
-10.1.5.4 kvm       compute         compute5a
 10.1.5.5 dc1     kvm        compute-2     compute5dc1
 
 # DC1:RAC0   cloud6
 10.1.6.1 kvm-host  edge            cloud6    cassandra-2
 10.1.6.2 kvm              cassandra6   cassandra
 10.1.6.3 kvm       hub nginx web6
-10.1.6.4 kvm       compute         compute6a
 10.1.6.5 dc1     kvm        compute-2     compute6dc1
 
 # DC1:RAC0   cloud7
 10.1.7.1 kvm-host  edge            cloud7    cassandra-2
 10.1.7.2 kvm              cassandra7    cassandra
 10.1.7.3 kvm       hub nginx   web7
-10.1.7.4 kvm       compute         compute7a
 10.1.7.5 dc1     kvm        compute-2     compute7dc1
 
 
@@ -60,85 +53,73 @@
 10.1.10.1 kvm-host  edge     admin       cloud10    cassandra-2
 10.1.10.2 kvm           cassandra10    cassandra
 10.1.10.3 kvm       hub nginx   web10
-10.1.10.4 kvm       compute         compute10a
 10.1.10.5  kvm        compute-2 compute10dc0
 
 # DC0:RAC0   cloud11
 10.1.11.1 kvm-host  edge            cloud11    cassandra-2
 10.1.11.2 kvm           cassandra11    cassandra
 10.1.11.3 kvm       hub nginx   web11
-10.1.11.4 kvm       compute         compute11a
 10.1.11.5  kvm        compute-2     compute11dc0
 
 # DC0:RAC0   cloud12
 10.1.12.1 kvm-host  edge            cloud12     cassandra-2
 10.1.12.2 kvm           cassandra12   cassandra
 10.1.12.3 kvm       hub nginx   web12
-10.1.12.4 kvm       compute         compute12a
 10.1.12.5  kvm        compute-2     compute12dc0
 
 # DC0:RAC0   cloud13
 10.1.13.1 kvm-host  edge            cloud13     cassandra-2
 10.1.13.2 kvm           cassandra13    cassandra
 10.1.13.3 kvm       hub nginx   web13
-10.1.13.4 kvm       compute         compute13a
 10.1.13.5  kvm        compute-2     compute13dc0
 
 # DC0:RAC0   cloud14
 10.1.14.1 kvm-host  edge            cloud14    cassandra-2
 10.1.14.2 kvm           cassandra14    cassandra
 10.1.14.3 kvm       hub nginx   web14
-10.1.14.4 kvm       compute         compute14a
 10.1.14.5  kvm        compute-2     compute14dc0
 
 # DC0:RAC0   cloud15
 10.1.15.1 kvm-host  edge            cloud15    cassandra-2
 10.1.15.2 kvm           cassandra15    cassandra
 10.1.15.3 kvm       hub nginx   web15
-10.1.15.4 kvm       compute         compute15a
 10.1.15.5  kvm        compute-2     compute15dc0
-10.1.15.7 kvm       webdev
+#10.1.15.7 kvm       webdev
 
 # DC0:RAC0   cloud16
 10.1.16.1 kvm-host  edge            cloud16    cassandra-2
 10.1.16.2 kvm           cassandra16    cassandra
 10.1.16.3 kvm       hub nginx   web16
-10.1.16.4 kvm       compute         compute16a
 10.1.16.5  kvm        compute-2     compute16dc0
 
 # DC0:RAC0   cloud17
 10.1.17.1 kvm-host  edge            cloud17    cassandra-2
 10.1.17.2 kvm           cassandra17    cassandra
 10.1.17.3 kvm       hub nginx   web17
-10.1.17.4 kvm       compute         compute17a
 10.1.17.5  kvm        compute-2     compute17dc0
 
 # DC0:RAC0   cloud18
 10.1.18.1 kvm-host  edge            cloud18    cassandra-2
 10.1.18.2 kvm           cassandra18    cassandra
 10.1.18.3 kvm       hub nginx   web18
-10.1.18.4 kvm       compute         compute18a
 10.1.18.5  kvm        compute-2     compute18dc0
 
 # DC0:RAC0   cloud19
 10.1.19.1 kvm-host  edge            cloud19    cassandra-2
 10.1.19.2 kvm           cassandra19   cassandra
 10.1.19.3 kvm       hub nginx   web19
-10.1.19.4 kvm       compute         compute19a
 10.1.19.5  kvm        compute-2     compute19dc0
 
 # DC0:RAC0   cloud20
 10.1.20.1 kvm-host  edge            cloud20    cassandra-2
 10.1.20.2 kvm           cassandra20    cassandra
 10.1.20.3 kvm       hub nginx   web20
-10.1.20.4 kvm       compute         compute20a
 10.1.20.5  kvm        compute-2     compute20dc0
 
 # DC0:RAC0   cloud21
 10.1.21.1 kvm-host  edge            cloud21    cassandra-2
 10.1.21.2 kvm           cassandra21    cassandra
 10.1.21.3 kvm       hub nginx   web21
-10.1.21.4 kvm       compute         compute21a
 10.1.21.5  kvm        compute-2     compute21dc0
 
 # DC2:RAC0 -- Google Compute Engine us-central-1
@@ -147,25 +128,78 @@
 #10.3.1.2 gce1 cassandra1gce1
 #10.3.2.2 gce1 cassandra2gce1
 
-10.3.1.4 gce1 compute1dc2 compute compute-2
-10.3.2.4 gce1 compute2dc2 compute compute-2
-10.3.3.4 gce1 compute3dc2 compute compute-2
-10.3.4.4 gce1 compute4dc2 compute compute-2
-10.3.5.4 gce1 compute5dc2 compute compute-2
-10.3.6.4 gce1 compute6dc2 compute compute-2
-10.3.7.4 gce1 compute7dc2 compute compute-2
-10.3.8.4 gce1 compute8dc2 compute compute-2
+###
+## GCE dc2
+###
 
-#10.3.1.1 dc2 cassandra1dc2   cassandra-2
-#10.3.2.1 dc2 cassandra2dc2   cassandra-2
-#10.3.3.1 dc2 cassandra3dc2   cassandra-2
-#10.3.4.1 dc2 cassandra4dc2   cassandra-2
+10.3.1.5 compute1dc2 compute-2
+10.3.2.5 compute2dc2 compute-2
+10.3.3.5 compute3dc2 compute-2
+10.3.4.5 compute4dc2 compute-2
+10.3.5.5 compute5dc2 compute-2
+10.3.6.5 compute6dc2 compute-2
+10.3.7.5 compute7dc2 compute-2
+10.3.8.5 compute8dc2 compute-2
 
-# Backup
-#10.9.1.1 backup1  backup
-#10.9.1.2 backup2  backup
+10.3.1.1 backup1dc2
+
+# GCE cassandra cluster
+10.3.1.2 cassandra1dc2 cassandra
+10.3.2.2 cassandra2dc2 cassandra
+10.3.3.2 cassandra3dc2 cassandra
+10.3.4.2 cassandra4dc2 cassandra
+
+# HUB, Nginx, stunnel, etc., servers
+10.3.1.3 web1dc2
+10.3.2.3 web2dc2
+
+
+###
+## GCE dc3 -- europe
+###
+
+10.4.1.5 compute1dc3 compute-2
+
+#10.4.2.5 compute1dc3 compute-2
+#10.4.3.5 compute1dc3 compute-2
+#10.4.4.5 compute1dc3 compute-2
+
+10.4.1.2 cassandra1dc3 cassandra
+10.4.2.2 cassandra2dc3 cassandra
+10.4.3.2 cassandra3dc3 cassandra
+10.4.4.2 cassandra4dc3 cassandra
+
+10.4.1.3 web1dc3
+10.4.2.3 web2dc3
+
+
+
+###
+## GCE dc4 -- asia
+###
+
+#10.5.1.5 compute1dc4 compute-2
+#10.5.2.5 compute1dc4 compute-2
+#10.5.3.5 compute1dc4 compute-2
+#10.5.4.5 compute1dc4 compute-2
+
+#10.5.1.2 cassandra1dc4
+#10.5.2.2 cassandra2dc4
+#10.5.3.2 cassandra3dc4
+#10.5.4.2 cassandra4dc4
+
+#10.5.1.3 web1dc4
+#10.5.2.3 web2dc4
+#10.5.3.3 web3dc4
+#10.5.4.3 web4dc4
+
+
+
+############
 
 # Sage Cell Server  -- no vm, just ip
 10.10.1.1 cellserver1 cellserver
+
+
 
 

@@ -548,7 +548,7 @@ class exports.Connection extends EventEmitter
             timeout : opts.timeout
             cb      : opts.cb
 
-    call: (opts={}) ->
+    call: (opts={}) =>
         # This function:
         #    * Modifies the message by adding an id attribute with a random uuid value
         #    * Sends the message to the hub
@@ -558,16 +558,19 @@ class exports.Connection extends EventEmitter
         #      However, if the message later arrives it may still be handled by @handle_message.
         opts = defaults opts,
             message : required
-            timeout : null
+            timeout : undefined
             cb      : undefined
         if not opts.cb?
             @send(opts.message)
             return
-        id = misc.uuid()
-        opts.message.id = id
+        if not opts.message.id?
+            id = misc.uuid()
+            opts.message.id = id
+        else
+            id = opts.message.id
         @call_callbacks[id] = opts.cb
         @send(opts.message)
-        if opts.timeout?
+        if opts.timeout
             setTimeout(
                 (() =>
                     if @call_callbacks[id]?
@@ -576,6 +579,38 @@ class exports.Connection extends EventEmitter
                         @call_callbacks[id] = null
                 ), opts.timeout*1000
             )
+
+    call_local_hub: (opts) =>
+        opts = defaults opts,
+            project_id : required    # determines the destination local hub
+            message    : required
+            multi_response : false
+            timeout    : undefined
+            cb         : undefined
+        m = message.local_hub
+                multi_response : opts.multi_response
+                project_id : opts.project_id
+                message    : opts.message
+                timeout    : opts.timeout
+        if opts.cb?
+            f = (err, resp) =>
+                #console.log("call_local_hub:#{misc.to_json(opts.message)} got back #{misc.to_json(err:err,resp:resp)}")
+                opts.cb?(err, resp)
+        else
+            f = undefined
+
+        if opts.multi_response
+            m.id = misc.uuid()
+            #console.log("setting up execute callback on id #{m.id}")
+            @execute_callbacks[m.id] = (resp) =>
+                #console.log("execute_callback: ", resp)
+                opts.cb?(undefined, resp)
+            @send(m)
+        else
+            @call
+                message : m
+                timeout : opts.timeout
+                cb      : f
 
 
     #################################################

@@ -595,7 +595,7 @@ class Client extends EventEmitter
     # Pushing messages to this particular connected client
     #######################################################
     push_to_client: (mesg) =>
-        winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}") if mesg.event != 'pong'
+        winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),600)}") if mesg.event != 'pong'
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
 
     push_data_to_client: (channel, data) ->
@@ -839,7 +839,7 @@ class Client extends EventEmitter
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
         if mesg.event.slice(0,4) != 'ping' and mesg.event != 'codemirror_bcast'
-            winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 300)}")
+            winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 600)}")
         handler = @["mesg_#{mesg.event}"]
         if handler?
             handler(mesg)
@@ -1569,111 +1569,55 @@ class Client extends EventEmitter
 
 
     ################################################
-    # CodeMirror Sessions
+    # Directly communicate with the local hub.  If the
+    # client has write access to the local hub, there's no
+    # reason they shouldn't be allowed to send arbitrary
+    # messages directly (they could anyways from the terminal).
     ################################################
-    mesg_codemirror_get_session: (mesg) =>
+    mesg_local_hub: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
+            if not mesg.message?
+                # in case the message itself is invalid -- is possible
+                @error_to_client(id:mesg.id, error:"message must be defined")
+                return
 
-            project.get_codemirror_session
-                path         : mesg.path
-                project_id   : mesg.project_id
-                session_uuid : mesg.session_uuid
-                cb           : (err, session) =>
-                    #winston.debug("in mesg_codemirror_get_session: project.get_codemirror_session (project_id=#{mesg.project_id}, path=#{mesg.path}) -- returned (err=#{err})")
-                    if err
-                        @error_to_client(id:mesg.id, error:"Problem getting file editing session -- #{misc.to_json(err)}")
-                    else
-                        if not @_file_access?
-                            @_file_access = {}
-                        key = mesg.project_id + @account_id + mesg.path
-                        if not @_file_access[key]?
-                            database.log_file_access
-                                project_id : mesg.project_id
-                                account_id : @account_id
-                                filename   : mesg.path
-                            @_file_access[key] = true
-                            f = () =>
-                                delete @_file_access[key]
-                            setTimeout(f, 5*60000)  # record particular file open by a user at most once every 5 minutes
+            # It's extremely useful if the local hub has a way to distinguish between different clients who are
+            # being proxied through the same hub.
+            mesg.message.client_id = @id
 
-                        # It is critical that we initialize the
-                        # diffsync objects on both sides with exactly
-                        # the same document.
-                        session.get_snapshot (err, snapshot) =>
-                            # We add the client, so it will gets messages
-                            # about changes to the document.
-                            session.add_client(@, snapshot)
-                            # Send parameters of session to client
-                            mesg = message.codemirror_session
-                                id           : mesg.id
-                                session_uuid : session.session_uuid
-                                path         : session.path
-                                content      : snapshot
-                                readonly     : session.readonly
-                            @push_to_client(mesg)
+            # Tag broadcast messages with identifying info.
+            if mesg.message.event == 'codemirror_bcast'
+                if @signed_in_mesg?
+                    if not mesg.message.name?
+                        mesg.message.name = @fullname()
+                    if not mesg.message.color?
+                        # Use first 6 digits of uuid... one color per session, NOT per username.
+                        # TODO: this could be done client side in a way that respects their color scheme...?
+                        mesg.message.color = @id.slice(0,6)
 
-
-    get_codemirror_session: (mesg, cb) =>
-        session = codemirror_sessions.by_uuid[mesg.session_uuid]
-        if not session?
-            @push_to_client(message.reconnect(id:mesg.id, reason:"Global hub does not know about a codemirror session with session_uuid='#{mesg.session_uuid}'"))
-            cb("CodeMirror session got lost / dropped / or is known to client but not this hub")
-        else
-            cb(false, session)
-
-    mesg_codemirror_disconnect: (mesg) =>
-        @get_codemirror_session mesg, (err, session) =>
-            if not err
-                session.client_disconnect(@, mesg)
-
-    mesg_codemirror_diffsync: (mesg) =>
-        @get_codemirror_session mesg, (err, session) =>
-            if not err
-                session.client_diffsync(@, mesg)
-
-    mesg_codemirror_bcast: (mesg) =>
-        @get_codemirror_session mesg, (err, session) =>
-            if not err
-                session.client_broadcast(@, mesg)
-
-    mesg_codemirror_write_to_disk: (mesg) =>
-        @get_codemirror_session mesg, (err, session) =>
-            if not err
-                session.write_to_disk(@, mesg)
-
+            if mesg.message.event == 'codemirror_write_to_disk'
+                # Record that a client is actively doing something with this session, but
+                # use a timeout to give local hub a chance to actually do the above save...
                 f = () =>
-                    # Record that a client is actively doing something with this session.
-                    database.touch_project(project_id:session.project_id)
-                    # Send a save request message to the bup server -- user just saved file, so that is a good time to save.
-                    session.local_hub.project.save()
-                setTimeout(f, 3000)  # give local hub a chance to actually do the above save...
+                    database.touch_project(project_id : project.project_id)
+                    project.local_hub?.project.save()
+                setTimeout(f, 5000)
 
-    mesg_codemirror_read_from_disk: (mesg) =>
-        @get_codemirror_session mesg, (err, session) =>
-            if not err
-                session.read_from_disk(@, mesg)
-
-    mesg_codemirror_get_content: (mesg) =>
-        @get_codemirror_session mesg, (err, session) =>
-            if not err
-                session.get_content(@, mesg)
-
-    mesg_codemirror_execute_code: (mesg) =>
-        @get_codemirror_session mesg, (err, session) =>
-            if not err
-                session.execute_code(@, mesg)
-
-    mesg_codemirror_introspect: (mesg) =>
-        @get_codemirror_session mesg, (err, session) =>
-            if not err
-                session.client_call(@, mesg)
-
-    mesg_codemirror_send_signal: (mesg) =>
-        @get_codemirror_session mesg, (err, session) =>
-            if not err
-                session.client_call(@, mesg)
+            # Make the actual call
+            project.call
+                mesg           : mesg.message
+                timeout        : mesg.timeout
+                multi_response : mesg.multi_response
+                cb             : (err, resp) =>
+                    if err
+                        winston.debug("Error #{err} calling message #{to_json(mesg.message)}")
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        if not mesg.multi_response
+                            resp.id = mesg.id
+                        @push_to_client(resp)
 
     ## -- user search
     mesg_user_search: (mesg) =>
@@ -2014,415 +1958,7 @@ push_to_clients = (opts) ->
 
     ])
 
-################################################
-# DiffSync-based CodeMirror sessions
-#
-#   [client]s.. ---> [hub] ---> [local hub] <--- [hub] <--- [client]s...
-#
-################################################
 
-
-# The CodeMirrorDiffSyncLocalHub class represents a local hub viewed
-# as a remote server for this hub.
-#
-# TODO later: refactor code, since it seems like all these
-# DiffSync[Hub/Client] etc. things are defined by a write_mesg function.
-#
-
-
-codemirror_sessions = {by_path:{}, by_uuid:{}}
-
-class CodeMirrorDiffSyncLocalHub
-    constructor: (@cm_session) ->
-
-    write_mesg: (event, obj, cb) =>
-        if not obj?
-            obj = {}
-        obj.session_uuid = @cm_session.session_uuid
-        @cm_session.local_hub.call
-            timeout : 10  # ???  TODO: what is a good timeout here?
-            cb      : cb
-            mesg    : message['codemirror_' + event](obj)
-
-    recv_edits : (edit_stack, last_version_ack, cb) =>
-        @write_mesg  'diffsync', {edit_stack: edit_stack, last_version_ack: last_version_ack}, (err, mesg) =>
-            if err
-                if mesg? and mesg
-                    cb(mesg)  # due to the diffsync protocol, mesg could be "retry" or a real message.
-                else
-                    cb(err)
-            else
-                @cm_session.diffsync_server.recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
-                    @cm_session.set_content(@cm_session.diffsync_server.live)
-                    cb(err)
-
-    sync_ready: () =>
-        @write_mesg('diffsync_ready')
-
-# The CodeMirrorDiffSyncClient class represents a browser client viewed as a
-# remote client for this global hub.
-class CodeMirrorDiffSyncClient
-    constructor: (@client, @cm_session) ->
-
-    recv_edits: (edit_stack, last_version_ack, cb) =>
-        @client.push_to_client(
-            message.codemirror_diffsync
-                id               : @current_mesg_id
-                edit_stack       : edit_stack
-                last_version_ack : last_version_ack
-                session_uuid     : @cm_session.session_uuid
-        )
-        cb()  # no way to detect failure
-
-    send_mesg: (mesg) =>
-        @client.push_to_client(mesg)
-
-    # Suggest to the connected client that there is stuff ready to be synced
-    sync_ready: () =>
-        @send_mesg(message.codemirror_diffsync_ready(session_uuid: @cm_session.session_uuid))
-
-_new_codemirror_session_creation = {}
-new_codemirror_session = (opts) ->
-    key = opts.project_id + opts.path
-    c = _new_codemirror_session_creation[key]
-    if not c?
-        _new_codemirror_session_creation[key] = [opts.cb]
-        opts.cb = (err, obj) ->
-            for cb in _new_codemirror_session_creation[key]
-                cb(err, obj)
-            delete _new_codemirror_session_creation[key]
-        new CodeMirrorSession(opts)
-    else
-        c.push(opts.cb)
-
-class CodeMirrorSession  # call new_codemirror_session above instead of using new CodeMirrorSession
-    constructor: (opts) ->
-        opts = defaults opts,
-            local_hub    : required
-            project_id   : required
-            path         : required
-            cb           : required
-
-        console.log("creating a CodeMirrorSession: #{opts.project_id}, #{opts.path}")
-
-        @local_hub    = opts.local_hub
-        @project_id   = opts.project_id
-        @path         = opts.path
-
-        @connect      = misc.retry_until_success_wrapper(f:@_connect,  max_tries:11, min_interval:1000, exp_factor:1.2)  # 26 seconds
-        # min_interval: to avoid possibly DOS's a local hub -- not sure what best choice is here.
-        @sync         = misc.retry_until_success_wrapper(f:@_sync, min_interval:200,   max_tries:10)
-
-        # The downstream (web browser) clients of this hub
-        @diffsync_clients = {}
-
-        winston.debug("CodeMirrorSession (path=#{@path}) -- connect")
-        t = misc.walltime()
-        @connect (err) =>
-            if err
-                winston.debug("CodeMirrorSession (path=#{@path}) -- connect -- FAIL (time=#{misc.walltime(t)} seconds) -- #{err}")
-                @remove_from_cache()
-                opts.cb(err)
-            else
-                winston.debug("CodeMirrorSession (path=#{@path}) -- connect -- success (time=#{misc.walltime(t)} seconds)")
-                opts.cb(false, @)
-
-    remove_from_cache: () =>
-        delete codemirror_sessions.by_path[@project_id + @path]
-        if @session_uuid?
-            delete codemirror_sessions.by_uuid[@session_uuid]
-
-    destroy: () =>
-        @remove_from_cache()
-        # TODO: make more destructive.
-
-    _connect: (cb) =>
-        winston.debug("CodeMirrorSession: _connect to file '#{@path}' on a local hub (time=#{misc.walltime()})")
-        @local_hub.call
-            mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
-            cb   : (err, resp) =>
-                if err
-                    winston.debug("local_hub --> hub: (connect) error -- #{to_json(err)}, #{to_json(resp)}, trying to connect to '#{@path}' in #{@project_id}.")
-                    if resp?.path? and resp?.path.indexOf("sage_server.port") != -1
-                        err = "The Sage Worksheet server is not running.  The system may be very heavily loaded, you may have messed up a custom install of Sage, or caused problems by customizing your packages.  Make this work in the terminal: <pre> cd ~/.sagemathcloud\necho 'import sage_server, sage_salvus' | sage</pre> then restart the Sage Worksheet server.<br>Or contact <a href='mailto:wstein@uw.edu' target='_blank'>wstein@uw.edu</a> for help."
-                    cb?(err)
-                else if resp.event == 'error'
-                    cb?(resp.error)
-                else
-                    if @session_uuid?
-                        # Send a broadcast message to all connected
-                        # clients informing them of the new session id.
-                        mesg = message.codemirror_bcast
-                            session_uuid : @session_uuid
-                            mesg         :
-                                event            : 'update_session_uuid'
-                                new_session_uuid : resp.session_uuid
-                        @broadcast_mesg_to_clients(mesg)
-
-                    @session_uuid = resp.session_uuid
-                    @readonly = resp.readonly
-
-                    codemirror_sessions.by_uuid[@session_uuid] = @
-                    codemirror_sessions.by_path[@project_id + @path] = @
-
-                    if @_last_sync?
-                        # We have sync'd before.
-                        patch = @diffsync_server._compute_edits(@_last_sync, @diffsync_server.live)
-
-                    # Reconnect to the upstream (local_hub) server
-                    @diffsync_server = new diffsync.DiffSync(doc:resp.content)
-                    @set_content(resp.content)
-
-                    if @_last_sync?
-                        # applying missed patches to the new upstream version that we just got from the hub.
-                        @_apply_patch_to_live(patch)
-                    else
-                        # This initialiation is the first.
-                        @_last_sync   = resp.content
-
-                    @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
-                    @sync(cb)
-
-    _apply_patch_to_live: (patch) =>
-        @diffsync_server._apply_edits_to_live(patch)
-        for id, ds of @diffsync_clients
-            ds.live = @diffsync_server.live
-
-    set_content: (content) =>
-        @diffsync_server.live = content
-        for id, ds of @diffsync_clients
-            ds.live = content
-
-    client_broadcast: (client, mesg) =>
-        # Broadcast message from some client reporting something (e.g., cursor position, etc.)
-        ds_client = @diffsync_clients[client.id]
-        if not ds_client?
-            return # something wrong -- just drop the message
-
-        #winston.debug("client_broadcast: #{misc.to_json(mesg)}")
-
-        # We tag the broadcast message, in order to make it more useful to recipients (but do not
-        # go so far as to advertise the account_id or email)..
-
-        # 1. Fill in the user's name
-        if client.signed_in_mesg?
-            mesg.name = client.fullname()
-            # Use first 6 digits of uuid... one color per session, NOT per username.
-            # TODO: this could be done client side in a way that respects their color scheme...?
-            mesg.color = client.id.slice(0,6)
-
-        # 2. Send fire-and-forget message on to the local_hub, which will forward this message
-        # on to all the other hubs.
-        @local_hub.local_hub_socket (err, socket) ->
-            if not err
-                socket.write_mesg 'json', mesg
-
-        # 3. Send message to other clients connected to this hub.
-        include_self = mesg.self? and mesg.self
-        for id, ds of @diffsync_clients
-            if include_self or id != client.id
-                ds.remote.send_mesg(mesg)
-
-    client_disconnect: (client, mesg) =>
-        # Explicitly disconnect the given client from this session.
-        delete @diffsync_clients[client.id]
-        client.push_to_client(message.success(id:mesg?.id))
-        winston.debug("Disconnected a client from session #{@session_uuid}; there are now #{misc.len(@diffsync_clients)} clients.")
-
-    client_diffsync: (client, mesg) =>
-        # Message from some client reporting new edits; we apply them,
-        # generate new edits, and send those out so that the client
-        # can complete the sync cycle.
-        MAX_LOCK_TIME_S = 30
-
-        if @_sync_lock
-            if misc.walltime(@_sync_lock) > MAX_LOCK_TIME_S
-                 # something is very suspicious -- if we can't sync for this long give up.
-                 @destroy()
-            client.push_to_client(message.codemirror_diffsync_retry_later(id:mesg.id))
-            return
-
-        winston.debug("client_diffsync; the clients are #{misc.keys(@diffsync_clients)}")
-        ds_client = @diffsync_clients[client.id]
-        if not ds_client?
-            f = () =>
-                r = message.reconnect(id:mesg.id, reason:"Client with id #{client.id} is not registered with this hub for editing #{@path} in some project.")
-                client.push_to_client(r)
-            # We wait a bit before sending the reconnect message, since this is often the
-            # result of resetting the local_hub connection (which takes 5 seconds), and
-            # the client will instantly try to reconnect again, which will fail and lead to
-            # this again, which ends up slowing everything down.
-            setTimeout(f, 1000)
-            return
-
-        @_sync_lock = misc.walltime()
-        before = @diffsync_server.live
-        ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
-            if err
-                @_sync_lock = false
-                client.error_to_client(id:mesg.id, error:"CodeMirrorSession -- unable to push diffsync changes from client (id=#{client.id}) -- #{err}")
-                return
-
-            # Update master live document with result.
-            @set_content(ds_client.live)
-            @_sync_lock = false
-
-            # Send back our own edits to this client.
-            ds_client.remote.current_mesg_id = mesg.id  # used to tag the return message
-            ds_client.push_edits (err) =>
-                if err
-                    winston.debug("CodeMirrorSession -- push_edits returned -- #{err}")
-
-            if before != @diffsync_server.live
-                # Sync new state with upstream local_hub.
-                @sync () =>
-                    # View of the document changed and we're done syncing with upstream, so suggest other clients sync with us.
-                    for id, ds of @diffsync_clients
-                        if client.id != id
-                            ds.remote.sync_ready()
-
-    get_snapshot: (cb) =>
-        if @diffsync_server?
-            cb(false, @diffsync_server.live)
-        else
-            @connect (err) =>
-                if err
-                    cb(err)
-                else
-                    cb(false, @diffsync_server.live)
-
-    broadcast_mesg_to_clients: (mesg, exclude_id) =>
-        for id, ds of @diffsync_clients
-            if id != exclude_id
-                ds.remote.send_mesg(mesg)
-
-    _sync: (cb) =>    # cb(err)
-        winston.debug("codemirror session -- syncing with local hub")
-        @_sync_lock = misc.walltime()
-        before = @diffsync_server.live
-        @diffsync_server.push_edits (err) =>
-            after = @diffsync_server.live
-            if err
-                @set_content(before)
-                # We do *NOT* remove the sync_lock in this branch; only do that after a successful sync, since
-                # otherwise clients think they have successfully sync'd with the hub, but when the hub resets,
-                # the clients end up doing the wrong thing.
-                winston.debug("codemirror session local hub sync error -- #{err}; #{before != after}")
-                if typeof(err) == 'string'
-                    err = err.toLowerCase()
-                    if err.indexOf('retry') != -1
-                        winston.debug("sync: retrying...")
-                        # This is normal -- it's because the diffsync algorithm only allows sync with
-                        # one client (and upstream) at a time.
-                        cb(err); return
-                    else if err.indexOf("unknown") != -1 or err.indexOf('not registered') != -1
-                        winston.debug("sync: reconnecting...")
-                        @connect () =>
-                            cb(err); return # still an error even if connect works.
-                    #else if err.indexOf("timed out") != -1
-                    #    @local_hub.restart () =>
-                    #        cb(err); return
-                cb(err)
-            else
-                @set_content(after)
-                winston.debug("codemirror session local hub sync -- pushed edits, thus completing cycle")
-                @_sync_lock = false
-                @_last_sync = after # what was the last successful sync with upstream.
-                if before != after
-                    @_tell_clients_to_sync()
-                cb()
-
-    _tell_clients_to_sync: () =>
-        winston.debug("codemirror session local hub sync -- there were changes; informing clients.")
-        # Tell the clients that content has changed due to an upstream sync, so they may want to sync again.
-        for id, ds of @diffsync_clients
-            ds.remote.sync_ready()
-
-    # Add a new diffsync browser client.
-    add_client: (client, snapshot) =>  # snapshot = a snapshot of the document that client and server start with -- MUST BE THE SAME!
-        # Create object that represents this side of the diffsync connection with client
-        ds_client = new diffsync.DiffSync(doc:snapshot)
-        # Connected it to object that represents the client side
-        ds_client.connect(new CodeMirrorDiffSyncClient(client, @))
-        # Remember the client object
-        @diffsync_clients[client.id] = ds_client
-        # Make sure to remove the client object when the client's WebSocket disconnects.
-        # This avoid broadcasting messages willy-nilly (and illegally).
-        client.on 'close', () =>
-            delete @diffsync_clients[client.id]
-
-    write_to_disk: (client, mesg, cb) =>
-        async.series([
-            (cb) =>
-                @sync(cb)
-
-            (cb) =>
-                @local_hub.call
-                    mesg : message.codemirror_write_to_disk(session_uuid : @session_uuid)
-                    cb   : (err, resp) =>
-                        if err
-                            resp = message.reconnect(id:mesg.id, reason:"Error writing to disk -- #{err}")
-                            client.push_to_client(resp)
-                            @sync() # will cause a reconnect
-                        else
-                            winston.debug("wrote '#{@path}' to disk")
-                            resp.id = mesg.id
-                            if misc.filename_extension(@path) == "sagews"
-                                make_blobs_permanent
-                                    blob_ids   : diffsync.uuids_of_linked_files(@diffsync_server.live)
-                                    cb         : (err) =>
-                                        if err
-                                            client.error_to_client(id:mesg.id, error:err)
-                                        else
-                                            client.push_to_client(resp)
-                            else
-                                 client.push_to_client(resp)
-                        cb(err)
-        ], (err) => cb?(err))
-
-
-    read_from_disk: (client, mesg) =>
-        @local_hub.call
-            mesg : message.codemirror_read_from_disk(session_uuid : @session_uuid)
-            cb   : (err, resp) =>
-                if err
-                    winston.debug("Error reading from disk -- #{err} -- reconnecting")
-                    @connect () =>
-                        resp = message.reconnect(id:mesg.id, reason:"error reading from disk -- #{err}")
-                        client.push_to_client(resp)
-                else
-                    resp.id = mesg.id
-                    client.push_to_client(resp)
-
-    get_content: (client, mesg) =>
-        client.push_to_client( message.codemirror_content(id:mesg.id, content:@diffsync_server.live) )
-
-    execute_code: (client, mesg) =>
-        @local_hub.call
-            multi_response : true
-            mesg : mesg
-            cb   : (err, resp) =>   # cb can be called multiple times due to multi_response=True
-                if err
-                    winston.debug("Server error executing code in local codemirror session -- #{err} -- reconnecting")
-                    @connect () =>
-                        resp = message.reconnect(id:mesg.id, reason:"error executing code-- #{err}")
-                        client.push_to_client(resp)
-                else
-                    if resp.done
-                        @local_hub.remove_multi_response_listener(resp.id)
-                    client.push_to_client(resp)
-
-    client_call: (client, mesg) =>
-        @local_hub.call
-            mesg : mesg
-            cb   : (err, resp) =>
-                if err
-                    winston.debug("client_call: error -- #err -- reconnecting")
-                    @connect () =>
-                        resp = message.reconnect(id:mesg.id, reason:"error -- #{err}")
-                        client.push_to_client(resp)
-                else
-                    client.push_to_client(resp)
 
 ##############################
 # LocalHub
@@ -2519,24 +2055,17 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # handle incoming JSON messages from the local_hub that do *NOT* have an id tag,
     # except those in @_multi_response.
     handle_mesg: (mesg) =>
-        #@dbg("local_hub --> global_hub: received a mesg: #{to_json(mesg)}")
+        #@dbg("local_hub --> hub: received mesg: #{to_json(mesg)}")
         if mesg.id?
             @_multi_response[mesg.id]?(false, mesg)
             return
-        switch mesg.event
-            when 'codemirror_diffsync_ready'
-                @get_codemirror_session
-                    session_uuid : mesg.session_uuid
-                    cb           : (err, session) =>
-                        if not err
-                            session.sync()
-
-            when 'codemirror_bcast'
-                @get_codemirror_session
-                    session_uuid : mesg.session_uuid
-                    cb           : (err, session) =>
-                        if not err
-                            session.broadcast_mesg_to_clients(mesg)
+        if mesg.client_id?
+            # Should we worry about ensuring that message from this local hub are allowed to
+            # send messages to this client?  NO.  For them to send a message, they would have to
+            # know the client's id, which is a random uuid, assigned each time the user connects.
+            # It obviously is known to the local hub -- but if the user has connected to the local
+            # hub then they should be allowed to receive messages.
+            clients[mesg.client_id]?.push_to_client(mesg)
 
     handle_blob: (opts) =>
         opts = defaults opts,
@@ -2640,28 +2169,28 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb(err, socket)
         )
 
-
     remove_multi_response_listener: (id) =>
         delete @_multi_response[id]
 
     call: (opts) =>
         opts = defaults opts,
             mesg           : required
-            timeout        : 10
+            timeout        : undefined  # NOTE: a nonzero timeout MUST be specified, or we will not even listen for a response from the local hub!  (Ensures leaking listeners won't happen.)
             multi_response : false   # if true, timeout ignored; call @remove_multi_response_listener(mesg.id) to remove
             cb             : undefined
 
         if not opts.mesg.id?
-            opts.mesg.id = uuid.v4()
+            if opts.timeout or opts.multi_response   # opts.timeout being undefined or 0 both mean "don't do it"
+                opts.mesg.id = uuid.v4()
 
         @local_hub_socket (err, socket) =>
             if err
                 opts.cb?(err)
                 return
-            socket.write_mesg 'json', opts.mesg
+            socket.write_mesg('json', opts.mesg)
             if opts.multi_response
                 @_multi_response[opts.mesg.id] = opts.cb
-            else
+            else if opts.timeout
                 socket.recv_mesg
                     type    : 'json'
                     id      : opts.mesg.id
@@ -2814,39 +2343,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         data = "[...]" + data.slice(data.length-20000)
                     opts.client.push_data_to_client(channel, data)
 
-    #########################################
-    # CodeMirror sessions
-    #########################################
-    # Return a CodeMirrorSession object corresponding to the given session_uuid or path.
-    get_codemirror_session: (opts) =>
-        opts = defaults opts,
-            session_uuid : undefined   # give at least one of the session uuid or path
-            project_id   : undefined
-            path         : undefined
-            cb           : required    # cb(err, session)
-        if opts.session_uuid?
-            session = codemirror_sessions.by_uuid[opts.session_uuid]
-            if session?
-                #@dbg("local_hub get_codemirror_session: got session #{opts.session_uuid} from cache")
-                opts.cb(false, session)
-                return
-        if opts.path? and opts.project_id?
-            session = codemirror_sessions.by_path[opts.project_id + opts.path]
-            if session?
-                #@dbg("local_hub get_codemirror_session: got session '#{opts.path}' from cache")
-                opts.cb(false, session)
-                return
-        if not (opts.path? or opts.project_id?)
-            @dbg("get_codemirror_session: reconnect error -- we need the path or project_id")
-            opts.cb("reconnect")  # caller should  send path when it tries next.
-            return
-
-        # Create a new session object.
-        new_codemirror_session
-            local_hub   : @
-            project_id  : opts.project_id
-            path        : opts.path
-            cb          : opts.cb
 
     terminate_session: (opts) =>
         opts = defaults opts,
@@ -3049,7 +2545,8 @@ class Project
     call: (opts) =>
         opts = defaults opts,
             mesg    : required
-            timeout : 10
+            multi_response : false
+            timeout : 15
             cb      : undefined
         @_fixpath(opts.mesg)
         opts.mesg.project_id = @project_id
@@ -3098,17 +2595,6 @@ class Project
         @_fixpath(opts.params)
         opts.project_id = @project_id
         @local_hub.console_session(opts)
-
-    # Return a CodeMirrorSession object corresponding to the given session_uuid
-    # (if such a thing exists somewhere), or with the given path.
-    get_codemirror_session: (opts) =>
-        opts = defaults opts,
-            session_uuid : undefined   # give at least one of the session uuid or path
-            path         : undefined
-            project_id   : undefined
-            cb           : required
-        @_fixpath(opts)
-        @local_hub.get_codemirror_session(opts)
 
     terminate_session: (opts) =>
         opts = defaults opts,
@@ -3581,6 +3067,13 @@ create_account = (client, mesg) ->
                 hub           : program.host + ':' + program.port
             client.signed_in(mesg)
             client.push_to_client(mesg)
+            # Set remember_me cookie so that proxy server will allow user to connect and
+            # download images, etc., the very first time right after they make a new account.
+            client.remember_me
+                account_id    : account_id
+                first_name    : mesg.first_name
+                last_name     : mesg.last_name
+                email_address : mesg.email_address
             cb()
     ])
 
@@ -4356,7 +3849,7 @@ class SageSession
         @conn = undefined
 
     send_json: (client, mesg) ->
-        winston.debug("hub --> sage_server: #{misc.trunc(to_safe_str(mesg),300)}")
+        winston.debug("hub --> sage_server: #{misc.trunc(to_safe_str(mesg),600)}")
         async.series([
             (cb) =>
                 if @conn?

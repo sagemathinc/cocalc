@@ -145,12 +145,15 @@ class DiffSync
                 console.log("Simulating loss!"); cb(true); return
 
             # Push any remaining edits from the stack, *AND* report the last version we have received so far.
+            #console.log("DiffSync.push_edits: push any remaining edits from the stack, *AND* report the last version (=#{@last_version_received}) we have received so far.")
             @remote.recv_edits(@edit_stack, @last_version_received, cb)
 
     # Receive and process the edits from the other end of the sync connection.
     recv_edits: (edit_stack, last_version_ack, cb) =>
         if SIMULATE_LOSS and Math.random() < .5           # Simulate packet loss
             console.log("Simulating loss!"); cb(true); return
+
+        #console.log("DiffSync.recv_edits: receive and process the edits from the other end of the sync connection", last_version_ack, edit_stack)
 
         # Keep only edits that we still need to send.
         @edit_stack = (edits for edits in @edit_stack when edits.shadow_version > last_version_ack)

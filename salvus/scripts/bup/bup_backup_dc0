@@ -1,0 +1,21 @@
+#!/usr/bin/env python
+
+import os
+
+os.environ['BUP_DIR']="%s/vm/images/bups-bup"%os.environ["HOME"]
+
+def cmd(s):
+    print s
+    os.system(s)
+
+cmd("bup init")
+
+v = ['dad2a46d-2a57-401a-bfe2-ac4fc7d50ec1', '9e43d924-684d-479b-b601-994e17b7fd86', 'eec826ad-f395-4a1d-bfb1-20f5a19d4bb0', 'e676bb5a-c46c-4b72-8d87-0ef62e4a5c88', 'e682408b-c165-4635-abef-d0c5809fee26', 'b9cd6c52-059d-44e1-ace0-be0a26568713', '0985aa3e-c5e9-400e-8faa-32e7d5399dab', '2d7f86ce-14a3-41cc-955c-af5211f4a85e', '767693df-fb0d-41a0-bb49-a614d7fbf20d', '3056288c-a78d-4f64-af21-633214e845ad', '801019d9-008a-45d4-a7ce-b72f6e99a74d', '795a90e2-92e0-4028-afb0-0c3316c48192']
+
+for i, server_id in enumerate(v):
+    j = 10 + i 
+    cmd("time bup on root@10.1.%s.5 init"%j)
+    cmd("time bup on root@10.1.%s.5 index /bup/bups"%j)
+    cmd("time bup on root@10.1.%s.5 save /bup/bups -n %s"%(j, server_id))
+
+

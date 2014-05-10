@@ -32,7 +32,9 @@ Install script:
 
 Setup Pool:
 
-zpool create -f bup XXXXX /dev/vdb
+#zpool create -f bup XXXXX /dev/vdb
+
+zpool create -f bup /dev/sdb   # on gce
 zfs create bup/projects
 zfs set mountpoint=/projects bup/projects
 zfs set dedup=on bup/projects
@@ -257,8 +259,18 @@ class Project(object):
         self.start_daemons()
         self.umount_snapshots()
         # TODO: remove this chown once (1) uid defn stabilizes -- after migration will go through all projects and properly chown.
-        self.cmd(["chown", "-R", "%s:%s"%(self.username, self.groupname), self.project_mnt])
+        #self.chown_all()
         self.mount_snapshots()
+
+    def chown_all(self):
+        log = self._log("chown_all")
+        for P in os.listdir(self.project_mnt):
+            target = os.path.join(self.project_mnt, P)
+            if target != self.snap_mnt:
+                try:
+                    self.chown(target)
+                except Exception, err:
+                    log("WARNING: %s"%err)
 
     def get_zfs_status(self):
         q = {}
@@ -888,6 +900,13 @@ class Project(object):
             m = mount_point.lstrip('/')
         mount_point = os.path.join(self.project_mnt, m)
 
+        # If the point is already fuse or otherwise mounted but broken, then the os.path.exists(mount_point)
+        # below returns false, etc.  So we always first unmount it, to start cleanly.
+        try:
+            self.umount_remote(mount_point)
+        except RuntimeError:
+            pass
+
         if not os.path.exists(mount_point):
             log("creating mount point")
             self.makedirs(mount_point)
@@ -895,11 +914,14 @@ class Project(object):
             raise ValueError("mount_point='%s' must be a directory"%mount_point)
 
         remote_projects = "/projects-%s"%remote_host
-        if self.cmd(['stat', '-f', '-c', '%T', remote_projects], ignore_errors=True) != 'fuseblk':
+        e = self.cmd(['stat', '-f', '-c', '%T', remote_projects], ignore_errors=True)
+        if e != 'fuseblk':
+            if 'endpoint is not connected' in e:
+                self.cmd(["fusermount", "-z", "-u", remote_projects])
             log("mount the remote /projects filesystem using sshfs")
             if not os.path.exists(remote_projects):
                 os.makedirs(remote_projects)
-            self.cmd(['sshfs', '-o', 'ssh_command="ssh -o StrictHostKeyChecking=no"', remote_host + ':' + PROJECTS_PATH, remote_projects])
+            self.cmd(['sshfs', remote_host + ':' + PROJECTS_PATH, remote_projects])
 
         remote_path = os.path.join(remote_projects, project_id)
 
@@ -1000,6 +1022,9 @@ if __name__ == "__main__":
                                            remote_path = args.remote_path,
                                            read_only   = args.read_only)
                                      )
+
+    parser_chown = subparsers.add_parser('chown', help="Ensure all files in the project have the correct owner and group.")
+    parser_chown.set_defaults(func=lambda args: project.chown_all())
 
     parser_umount_remote = subparsers.add_parser('umount_remote')
     parser_umount_remote.add_argument("--mount_point", help="", dest="mount_point", default="", type=str)

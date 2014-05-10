@@ -1,5 +1,0 @@
-set -v
-
-gcutil --service_version="v1" --project="sagemathcloud" adddisk  --zone="us-central1-a" --source_snapshot=`cat BASE`  --wait_until_complete cassandra$1dc2
-
-gcutil --service_version="v1" --project="sagemathcloud" addinstance --auto_delete_boot_disk --automatic_restart --disk=cassandra$1dc2,mode=rw,boot --disk=cassandra$1dc2-data,mode=rw  --wait_until_running  --machine_type=n1-standard-1 --zone="us-central1-a"  cassandra$1dc2
