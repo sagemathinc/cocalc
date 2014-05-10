@@ -167,7 +167,7 @@ cloud21  {'hostname':'compute21dc0',  'vcpus':compute_cpu,   'ram':compute_ram, 
 
 
 # Cassandra nodes
-[cassandra] {'auto_bootstrap':False, 'timeout':60, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer'}
+[cassandra] {'auto_bootstrap':True, 'timeout':60, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer'}
 
 # DC1: padelford
 cassandra1    {'seed':True,  'topology':'DC1:RAC0', 'num_tokens':256}
