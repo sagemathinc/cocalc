@@ -3,6 +3,8 @@ CREATE KEYSPACE salvus WITH replication = {
   'class': 'NetworkTopologyStrategy',
   'DC0': '3',
   'DC1': '3'
+  'DC2': '3'
+  'DC3': '3'
 };
 
 CREATE KEYSPACE salvus WITH replication = {
@@ -250,7 +252,9 @@ CREATE TABLE projects (
      viewer               set<uuid>,   // accounts who are viewers
      invited_viewer       set<uuid>,    // accounts who have been invited to view.
 
-     abuser varchar
+     abuser varchar,
+
+     task_list_id     uuid,  /* top-level task list for this project */
 
 );
 
