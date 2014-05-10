@@ -1804,6 +1804,24 @@ class Client extends EventEmitter
             else
                 @push_to_client(mesg)
 
+    ################################################
+    # Task list messages..
+    ################################################
+
+    mesg_create_task_list: (mesg) =>
+
+    mesg_edit_task_list: (mesg) =>
+
+    mesg_get_task_list: (mesg) =>
+
+    mesg_create_task: (mesg) =>
+
+    mesg_edit_task: (mesg) =>
+
+
+
+
+
 _server_stats_cache = undefined
 server_stats = (cb) ->
     if _server_stats_cache?

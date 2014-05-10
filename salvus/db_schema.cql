@@ -550,25 +550,42 @@ GRANT MODIFY ON table project_new TO storage_server;
 
 
 
-/* Task list functionality */
+/*
+   Task list functionality:
+
+      - a task list that is account wide for a given user or collection of users
+      - a task list that is project wide
+      - subtask lists of any task
+      - a homework assignment -- this is also a list of tasks, possibly with subtasks (we could have a document with links to the uuid's of tasks... to give it structure).
+*/
+
+CREATE TABLE task_lists (
+    list_id      uuid PRIMARY KEY,       /* uuid of this task list */
+    owners       set<uuid>,              /* account_id, project_id, or task_id that owns this task list */
+    title        varchar,
+    description  varchar
+);
+
 
 CREATE TABLE tasks (
-    owner_id     uuid,       /* so far -- an account_id or project_id */
-    task_id      uuid,       /* unique id for each tasks */
+    list_id      uuid,       /* id of a task list -- ensures all tasks for a given list in the same place storage wise for speed */
+    task_id      uuid,       /* id for this task */
+
+    position     float,      /* floating point that determines the *position* of this item in the list when displayed */
+                             /* to the user (without special sort); this makes it possible to asynchronously */
+                             /* locally manually sort tasks. */
+
+    subtasks     uuid,       /* optional task_list of subtasks */
 
     last_edited  timestamp,  /* last time the task was changed */
     done         boolean,    /* whether or not the task has been completed */
     title        varchar,
-    description  varchar,
-    path         varchar,    /* tasks can be attached to a folder or file in a project */
+    data         map<text,text>,
 
-    PRIMARY KEY (owner_id, task_id)
+    PRIMARY KEY (list_id, task_id)
 );
 
-CREATE INDEX ON tasks(done);
-
-
-
+CREATE INDEX on tasks(done);
 
 
 

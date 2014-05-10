@@ -1640,6 +1640,19 @@ class exports.Connection extends EventEmitter
             @_fullscreen_mode = state
         return $(window).width() <=979 or @_fullscreen_mode
 
+    #################################################
+    # Tasks
+    #################################################
+    create_task_list: (opts) =>
+
+    edit_task_list: (opts) =>
+
+    get_task_list: (opts) =>
+
+    create_task: (opts) =>
+
+    edit_task: (opts) =>
+
 
 
 
