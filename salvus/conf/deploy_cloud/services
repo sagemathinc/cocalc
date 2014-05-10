@@ -23,29 +23,27 @@ compute_cpu   = 10   # DO *NOT* change compute_cpu willy-nilly; if you change it
 ## us-central1-a
 #####################
 # compute/storage nodes:
-localhost    {'hostname':'compute1dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
-localhost    {'hostname':'compute2dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
-localhost    {'hostname':'compute3dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
-localhost    {'hostname':'compute4dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
-localhost    {'hostname':'compute5dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
-localhost    {'hostname':'compute6dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
-localhost    {'hostname':'compute7dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
-localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4'}
+localhost    {'hostname':'compute1dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute2dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute3dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute4dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute5dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute6dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute7dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
 
 # backup
-localhost    {'hostname':'backup1dc2', 'disk':'backup1:1000,backup2:500', 'instance_type':'n1-standard-1'}
+localhost    {'hostname':'backup1dc2', 'disk':'backup1:1000,backup2:500', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
 
 # cassandra cluster
-#localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra:100', 'instance_type':'n1-highmem-2'}
-#localhost    {'hostname':'cassandra2dc2', 'disk':'cassandra:100', 'instance_type':'n1-highmem-2'}
-#localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra:100', 'instance_type':'n1-highmem-2'}
-#localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra:100', 'instance_type':'n1-highmem-2'}
+localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra2dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
 
 # web servers/hubs
-#localhost    {'hostname':'web1dc2', 'instance_type':'n1-standard-1'}
-#localhost    {'hostname':'web2dc2', 'instance_type':'n1-standard-1'}
-#localhost    {'hostname':'web3dc2', 'instance_type':'n1-standard-1'}
-#localhost    {'hostname':'web4dc2', 'instance_type':'n1-standard-1'}
+localhost    {'hostname':'web1dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
+localhost    {'hostname':'web2dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
 
 
 #####################
@@ -53,22 +51,21 @@ localhost    {'hostname':'backup1dc2', 'disk':'backup1:1000,backup2:500', 'insta
 #####################
 # compute/storage nodes:
 
-localhost    {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
+localhost     {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
 #localhost    {'hostname':'compute2dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
 #localhost    {'hostname':'compute3dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
 #localhost    {'hostname':'compute4dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
 
 # cassandra cluster
-#localhost    {'hostname':'cassandra1dc3', 'disk':'cassandra:100', 'instance_type':'n1-highmem-1', 'zone':'europe-west1-b'}
-#localhost    {'hostname':'cassandra2dc3', 'disk':'cassandra:100', 'instance_type':'n1-highmem-1', 'zone':'europe-west1-b'}
-#localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra:100', 'instance_type':'n1-highmem-1', 'zone':'europe-west1-b'}
-#localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra:100', 'instance_type':'n1-highmem-1', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra1dc3', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra2dc3', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
 
 # web servers/hubs
-localhost    {'hostname':'web1dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
-#localhost    {'hostname':'web2dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
-#localhost    {'hostname':'web3dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
-#localhost    {'hostname':'web4dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+localhost    {'hostname':'web1dc3', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
+localhost    {'hostname':'web2dc3', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
+
 
 #####################
 ## asia-east1-a
@@ -170,8 +167,9 @@ cloud21  {'hostname':'compute21dc0',  'vcpus':compute_cpu,   'ram':compute_ram, 
 
 
 # Cassandra nodes
-[cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer'}
+[cassandra] {'auto_bootstrap':False, 'timeout':60, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer'}
 
+# DC1: padelford
 cassandra1    {'seed':True,  'topology':'DC1:RAC0', 'num_tokens':256}
 cassandra2    {'seed':False,  'topology':'DC1:RAC0', 'num_tokens':256}
 cassandra3    {'seed':True,  'topology':'DC1:RAC0', 'num_tokens':256}
@@ -180,6 +178,7 @@ cassandra5    {'seed':False,  'topology':'DC1:RAC1', 'num_tokens':256}
 cassandra6    {'seed':False,  'topology':'DC1:RAC1', 'num_tokens':256}
 cassandra7    {'seed':False,  'topology':'DC1:RAC1', 'num_tokens':256}
 
+# DC0: 4545 datacenter
 cassandra10    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
 cassandra11    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
 cassandra12    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
@@ -192,6 +191,19 @@ cassandra18    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
 cassandra19    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
 cassandra20    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
 cassandra21    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
+
+# DC2: Google US
+cassandra1dc2  {'seed':True,   'topology':'DC2:RAC0', 'num_tokens':256}
+cassandra2dc2  {'seed':False,  'topology':'DC2:RAC0', 'num_tokens':256}
+cassandra3dc2  {'seed':False,  'topology':'DC2:RAC0', 'num_tokens':256}
+cassandra4dc2  {'seed':True,   'topology':'DC2:RAC0', 'num_tokens':256}
+
+# DC3: Google Europe
+cassandra1dc3  {'seed':True,   'topology':'DC3:RAC0', 'num_tokens':256}
+cassandra2dc3  {'seed':False,  'topology':'DC3:RAC0', 'num_tokens':256}
+cassandra3dc3  {'seed':False,  'topology':'DC3:RAC0', 'num_tokens':256}
+cassandra4dc3  {'seed':True,   'topology':'DC3:RAC0', 'num_tokens':256}
+
 
 [stunnel] {'sudo':True}
 edge
