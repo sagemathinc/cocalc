@@ -15,6 +15,9 @@ diffsync        = require('diffsync')
 account         = require('account')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage} = require('editor')
+
+{Tasks} = require('tasks')
+
 {scroll_top, human_readable_size, download_file} = require('misc_page')
 
 MAX_TITLE_LENGTH = 15
@@ -163,6 +166,8 @@ class ProjectPage
         @update_topbar()
 
         @create_editor()
+
+        @create_tasks()
 
         @init_file_search()
 
@@ -733,6 +738,10 @@ class ProjectPage
             if name == "project-file-listing"
                 tab.onshow = () ->
                     that.update_file_list_tab()
+            else if name == "project-tasks"
+                tab.onshow = () ->
+                    that.push_state('tasks')
+                    that.tasks.onshow()
             else if name == "project-editor"
                 tab.onshow = () ->
                     that.editor.onshow()
@@ -770,6 +779,10 @@ class ProjectPage
             counter       : @container.find(".project-editor-file-count")
             initial_files : initial_files
         @container.find(".project-editor").append(@editor.element)
+
+    create_tasks: () =>
+        @tasks = new Tasks(project_page : @)
+        @container.find(".project-tasks").append(@tasks.element)
 
     display_tab: (name) =>
         @container.find(".project-pages").children().removeClass('active')

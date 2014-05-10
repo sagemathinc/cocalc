@@ -546,3 +546,41 @@ GRANT MODIFY ON table compute_hosts TO storage_server;
 GRANT SELECT ON table project_new TO storage_server;
 GRANT MODIFY ON table project_new TO storage_server;
 
+
+
+
+
+/* Task list functionality */
+
+CREATE TABLE tasks (
+    owner_id     uuid,       /* so far -- an account_id or project_id */
+    task_id      uuid,       /* unique id for each tasks */
+
+    last_edited  timestamp,  /* last time the task was changed */
+    done         boolean,    /* whether or not the task has been completed */
+    title        varchar,
+    description  varchar,
+    path         varchar,    /* tasks can be attached to a folder or file in a project */
+
+    PRIMARY KEY (owner_id, task_id)
+);
+
+CREATE INDEX ON tasks(done);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
