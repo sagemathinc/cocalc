@@ -1,2 +1,0 @@
-set -v
-gcutil --service_version="v1" --project="sagemathcloud" deleteinstance --delete_boot_pd "$1"

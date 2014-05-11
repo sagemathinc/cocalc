@@ -420,13 +420,14 @@ CREATE TABLE banned_email_addresses (
 );
 
 CREATE TABLE storage_servers (
-    dummy     boolean,
-    server_id uuid,
-    host      inet,
-    port      int,
-    dc        int,
-    health    float,
-    secret    varchar,
+    dummy         boolean,
+    server_id     uuid,
+    host          inet,
+    port          int,
+    dc            int,
+    health        float,
+    secret        varchar,
+    experimental  boolean,      /* if true ignored this host when assigning hosts for a new project */
     PRIMARY KEY(dummy, server_id)
 );
 

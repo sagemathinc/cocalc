@@ -1,5 +1,0 @@
-set -v
-
-gcutil --service_version="v1" --project="sagemathcloud" adddisk  --zone="us-central1-a" --source_snapshot=`cat BASE`  --wait_until_complete compute3dc2
-
-gcutil --service_version="v1" --project="sagemathcloud" addinstance --auto_delete_boot_disk --automatic_restart --disk=compute3dc2,mode=rw,boot --disk=compute3dc2-conf,mode=rw  --disk=compute3-storage,mode=rw  --wait_until_running  --machine_type=n1-highmem-4 --zone="us-central1-a"  compute3dc2

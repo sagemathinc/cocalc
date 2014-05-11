@@ -1,122 +1,26 @@
-## Upgrading things
-
-- [x] change scripts so google machines are smaller.
-- [x] figure out how to do cgroups with 14.04  (cgred stuff, etc.,) -- it seems to just work if we use usernames (not uid!)  There is no cgred daemon to restart.
-- [x] write script to automate installing everything into new clean sage build and run on both
-      make to include code to fix permissions.
-- [x] /projects and /home directory permission suggestions.
-- [x] delete sage-6.2.beta8 thing on both vm's
-- [x] upgrade 1 compute vm at UW and test
-- [x] WOAH - the cassandra7 VM is completely bizarre - the persistent disk is a broken link; linux must just be waiting for the process to stop before destroying the underlying file handle.  I need to make another machine and replicate this over.  scary.  Fixable 100% though.  NO WAIT, it's the thing on /
-- [x] restart rest of UW compute vm's and test
-- [x] set one of my projects to use a specific google vm and restart it using the new 14.04 ubuntu, and TEST.
-- [x] restart one of the web machines using new vm image; restart nginx, hub, etc., and test
-- [x] upgrade and restart stunnel on one HOST machine, then on the rest
-- [x] upgrade and restart haproxy on one HOST machine, then on the rest
-- [x] once that works, restart rest of web machines and services
-
-GCE
-
-
-Choose VM and:
-
-- [ ] double check that we got the sync right
-- [ ] change address in database to .5
-- [ ] shutdown down bup server on .4 vm
-- [ ] do sync with update
-- [ ] start bup server on .5 vm
-- [ ] kill all local hubs on .4
-
-
-
-
-
-
-
-- [ ] send out email that compute vm's are all upgraded
-
-
-
-----
-
 
 - [ ] add a way to specify static ip address (created if not exist) to vm_gce.py and admin.py
-
 
 - [ ] make a clone vm and test out what upgrading to cassandra2 requires.
 
 
-- [ ] bug in first login and cookies -- don't autologin on account creation; instead require login/password (with john sylvester)
-
 - [ ] control+v to paste issue: https://mail.google.com/mail/u/0/?shva=1#inbox/145bebfd87489cf8
-
-High priority
 
 - [ ] temporary band-aide for replication in face failure: write something that, for each project touched in the last week (say), does an rsync out from it's master location to the two slaves.
 
-
-
-- [x] test using swap on vm test using zfs (on compute1dc1 now):
-        sudo zfs create pool/swap -V 32G -b 4K
-        sudo mkswap -f /dev/pool/swap
-        sudo swapon /dev/pool/swap
-      Conclusion: CRAZY!  Bad idea.  Disable this crap.   Swap only needed due to massive bup memory leaks, anways.
-
-- [ ] bug reported by "Martin J. Mohlenkamp" -- when building Sage, it's critical that the R in Sage has the right capabilities, namely PNG.   Type capabilities() in R to see.  To get this, it's critical to "apt-get install" everything in the full list of packages for a host machine before starting the sage build!
-
-  umask 022 && cd /usr/local/sage/current/local/bin && mv pkg-config pkg-config.orig && ln -s /usr/bin/pkg-config . && sage -f r
-  cd /usr/local/sage/current  && chmod a+r -R .; find . -perm /u+x -execdir chmod a+x {} \;
-
----
 
 
 - [ ] sometimes having old cookies can make connecting impossible..., e.g., my laptop firefox before apr 29
 
 - [ ] fix the add collaborator search to not display results randomly
 
-- [ ] Check out how much memory this fuse mount is using -- which was just hosing my system -- 17.4GB:
-
-    10357 root      20   0 17.466g 0.017t   1944 D  54.2 44.3  33:23.94
-    bup-fuse -o --uid 1959631043 --gid 1959631043
-    /projects/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/.snapshots
-
----
-
-
-- [ ] automate control of gce vm's:
-      - create script `vm_gce.py` with options like `vm.py`
-      - start will
-         - create the requested machine
-         - generate the tinc keys
-         - copy them out to all (enough) hosts
-         - scp them to the gce machine when it boots
-         - start tinc on the gce machine
-         - run the salvus start script on the gce machine (get rid of my /mnt/conf crap)
-      - stop will destroy the gce machine
-      - create a class in admin.py that is VmGCE, which uses `vm_gce.py` and works like `vm.py`.
-      - move all the conf stuff for gce to my services file
-      - update the conf for the `bup_servers` -- new ip addresses (ending in .5)
-
-
-
-
-----
 
 - [ ] change default browser font to Monospace (browser default); makes the most sense!
 
 - [ ] rewrite sync to remove the differential sync doc from the hub -- just forward everything back and forth between browser client and local hub.  This should speed things up, avoid a lot of state issues, and lay a good foundation for further optimizations and fixes.
 
 
-
-----
-
 - [ ] upgrade to codemirror 4.x: https://mail.google.com/mail/u/0/?shva=1#inbox/145896f4d974137d
-
-
-- [ ] suggested security improvements: https://mail.google.com/mail/u/0/?shva=1#inbox/14585eafa47360e4
-
-- [ ] when user "control-d" a console session (?) this maybe results in node using 100% of cpu -- I saw this once; test
-
 
 - [ ] publishing with constraints
 
@@ -141,6 +45,14 @@ High priority
         x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
         p=x.c.get_project('3bdfd30d-7c9d-424e-9902-cf13ce925821')
         p.set_settings(cb:console.log, cores:2, cpu_shares:256, memory:16, mintime:9999999999999999)   # mintime is in units of seconds.
+
+- [ ] upgrade to codemirror 4.1
+
+- [ ] increasing quota -- I should make an admin interface for this...
+
+        x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
+        p=x.c.get_project('0069cdc2-3baa-4561-9c9e-17cb08e9b849')
+        p.set_settings(cb:console.log, cores:12, cpu_shares:4*256, memory:20000, mintime:999999999999999)
 
 - [ ] project folder connections (?)
 
@@ -232,17 +144,6 @@ High priority
 
  - [ ] run through and do "bup ls master" on every repo in an offline archive, and investigate/fix ones that don't work, if any.
 
- - [ ] i observe two bup saves happening at once -- that should be *impossible*, and could result in corruption.
- root@compute8dc2:/bup/bups/4cff8798-41d0-4d9b-b516-ba106ba89c57/objects# ps ax |grep 4cff8798-41d0-4d9b-b516-ba106ba89c57|grep bup
- 8792 ?        S      0:00 sudo /usr/local/bin/bup_storage.py save --targets=10.1.17.5,10.1.1.5 4cff8798-41d0-4d9b-b516-ba106ba89c57
- 8793 ?        S      0:00 python /usr/local/bin/bup_storage.py save --targets=10.1.17.5,10.1.1.5 4cff8798-41d0-4d9b-b516-ba106ba89c57
-10309 ?        S      2:27 bup-save --strip -n master -d 1397161051 /projects/4cff8798-41d0-4d9b-b516-ba106ba89c57
-11668 ?        Ss     0:20 bup-fuse -o --uid 632382271 --gid 632382271 /projects/4cff8798-41d0-4d9b-b516-ba106ba89c57/.snapshots
-12748 ?        S      0:00 sudo /usr/local/bin/bup_storage.py save --targets=10.1.17.5,10.1.1.5 4cff8798-41d0-4d9b-b516-ba106ba89c57
-12749 ?        S      0:00 python /usr/local/bin/bup_storage.py save --targets=10.1.17.5,10.1.1.5 4cff8798-41d0-4d9b-b516-ba106ba89c57
-13104 ?        S      2:16 bup-save --strip -n master -d 1397161256 /projects/4cff8798-41d0-4d9b-b516-ba106ba89c57
-ALSO, when a file vanishes between index and save, we get an error, but still there is a new commit -- we should always remount the snapshots.
-
  - [ ] fix gce boot -- right now it boots up but doesn't mount the zfs pool -- or rather it starts getting rsync'd too before finishing the mount (?).  This is very bad.  Maybe don't go on VPN until /projects is mounted to avoid potential data loss.
 
  - [ ] setup so that cqlsh doesnt' need env variable but uses .cqlshrc
@@ -274,13 +175,17 @@ ALSO, when a file vanishes between index and save, we get an error, but still th
 
 - [ ] make it so move is never automatic but prompted?
 
-- [ ] automated rolloing snapshots of bup/projects
+- [ ] automated rolling snapshots of bup/projects
 
 - [ ] add bup quota as a standard part of settings, and refuse to make further snapshots if bup usage exceeds 3 times user disk quota.  This will avoid a horrible edge case.   Critical that this produces an error that the user learns about.  This will happen for some users.  Alternatively, I could periodically rebuild those bup repos with many snapshots deleted - that would be much nicer and is totally do-able.
 
 - [ ] script to cleanup bup repos, e.g., delete tmp files, maybe recompact, etc.
 
 - [ ] manual project move system -- bring it back...
+
+
+
+
 
 
 ======
@@ -634,5 +539,88 @@ key points:
        -- [x] sage 6.2.x
        -- [x] updating haproxy, nginx, node.js, cassandra, etc.
 	   -- [x] ENSURE: chmod a+rwx -R /usr/local/sage/sage-6.2/local/share/sage/ext
+
+
+- [x] need to write the uid instead of username in the control groups rules file
+
+- [x] upgrade to nginx 1.6.0 stable
+
+
+- [x] rewrite sync to completely remove the differential sync doc from the hub -- just forward everything back and forth between browser client and local hub.  This should speed things up, avoid a lot of state issues, and lay a good foundation for further optimizations and fixes.
+
+         # this now works in the javascript console:
+         s=require('salvus_client').salvus_client
+         s.call({message:{event:'local_hub', project_id:'224ed24d-16c2-402e-b206-46738eaf9fb8', message:{event:'codemirror_get_session', path:'a.py'}}, cb:function(e,r){console.log(e,r)}})
+
+    - [x] sync2: add clientid to messages so localhub can distinguish clients
+
+    - [x] sync2: get the cursors to work
+
+    - [x] sync2: project touch activity needs to be based on something new since codemirror objects are going away in hub.
+
+    - [x] sync2: address this remark in hub.coffee, and comment out the code right below it:
+            # TODO: we must ensure that message from this local hub are allowed to
+            # send messages to this client!!
+
+    - [x] delete all the codemirror-related code (and imports) from the hub
+
+    - [x] sync2: test on windows, bad network, slow filesystem, etc.
+## Upgrading things
+
+- [x] change scripts so google machines are smaller.
+- [x] figure out how to do cgroups with 14.04  (cgred stuff, etc.,) -- it seems to just work if we use usernames (not uid!)  There is no cgred daemon to restart.
+- [x] write script to automate installing everything into new clean sage build and run on both
+      make to include code to fix permissions.
+- [x] /projects and /home directory permission suggestions.
+- [x] delete sage-6.2.beta8 thing on both vm's
+- [x] upgrade 1 compute vm at UW and test
+- [x] WOAH - the cassandra7 VM is completely bizarre - the persistent disk is a broken link; linux must just be waiting for the process to stop before destroying the underlying file handle.  I need to make another machine and replicate this over.  scary.  Fixable 100% though.  NO WAIT, it's the thing on /
+- [x] restart rest of UW compute vm's and test
+- [x] set one of my projects to use a specific google vm and restart it using the new 14.04 ubuntu, and TEST.
+- [x] restart one of the web machines using new vm image; restart nginx, hub, etc., and test
+- [x] upgrade and restart stunnel on one HOST machine, then on the rest
+- [x] upgrade and restart haproxy on one HOST machine, then on the rest
+- [x] once that works, restart rest of web machines and services
+
+GCE
+
+
+Choose VM and:
+
+- [ ] double check that we got the sync right
+- [ ] change address in database to .5
+- [ ] shutdown down bup server on .4 vm
+- [ ] do sync with update
+- [ ] start bup server on .5 vm
+- [ ] kill all local hubs on .4
+
+
+
+
+
+
+
+- [ ] send out email that compute vm's are all upgraded
+
+
+- [x] test using swap on vm test using zfs (on compute1dc1 now):
+        sudo zfs create pool/swap -V 32G -b 4K
+        sudo mkswap -f /dev/pool/swap
+        sudo swapon /dev/pool/swap
+      Conclusion: CRAZY!  Bad idea.  Disable this crap.   Swap only needed due to massive bup memory leaks, anways.
+
+- [ ] bug reported by "Martin J. Mohlenkamp" -- when building Sage, it's critical that the R in Sage has the right capabilities, namely PNG.   Type capabilities() in R to see.  To get this, it's critical to "apt-get install" everything in the full list of packages for a host machine before starting the sage build!
+
+  umask 022 && cd /usr/local/sage/current/local/bin && mv pkg-config pkg-config.orig && ln -s /usr/bin/pkg-config . && sage -f r
+  cd /usr/local/sage/current  && chmod a+r -R .; find . -perm /u+x -execdir chmod a+x {} \;
+
+---
+
+- [ ] suggested security improvements: https://mail.google.com/mail/u/0/?shva=1#inbox/14585eafa47360e4
+
+
+
+----
+
 
 

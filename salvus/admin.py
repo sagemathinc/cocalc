@@ -108,7 +108,7 @@ def zfs_size(s):
 ####################
 # Running a subprocess
 ####################
-def run(args, maxtime=30, verbose=True):
+def run(args, maxtime=60, verbose=True):
     """
     Run the command line specified by args (using subprocess.Popen)
     and return the stdout and stderr, killing the subprocess if it
@@ -143,7 +143,7 @@ def run(args, maxtime=30, verbose=True):
 #      sh['list', 'of', ..., 'arguments'] to run a shell command
 
 class SH(object):
-    def __init__(self, maxtime=30):
+    def __init__(self, maxtime=60):
         self.maxtime = maxtime
     def __getitem__(self, args):
         return run([args] if isinstance(args, str) else list(args), maxtime=self.maxtime)
@@ -726,9 +726,14 @@ class Cassandra(Process):
 
             if name == 'cassandra.yaml':
                 for k,v in kwds.iteritems():
+                    if isinstance(v, bool):
+                        v = str(v).lower()
                     i = r.find('%s:'%k)
                     if i == -1:
-                        raise ValueError("no configuration option '%s'"%k)
+                        #raise ValueError("no configuration option '%s'"%k)
+                        # put it at the end -- some VALID options, e.g. auto_bootstrap, aren't even in the file
+                        r += "\n\n%s: %s\n"%(k,v)
+                        continue
                     if r[i-2] == "#":
                         i = i - 2
 
@@ -996,11 +1001,14 @@ def parse_groupfile(filename):
     group_opts = []
     ordered_group_names = []
     namespace = {}
+    namespace['os'] = os
+    namespace['os'] = os
+    namespace['os'] = os
     for r in open(filename).xreadlines():
         line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
         if line: # ignore blank lines
             if line.startswith('import ') or '=' in line:
-                # import modules for use in assignments below below
+                # import modules for use in assignments below
                 print "exec ", line
                 exec line in namespace
                 continue
@@ -1197,13 +1205,13 @@ class Hosts(object):
     def public_ssh_keys(self, hostname, timeout=5):
         return '\n'.join([x['stdout'] for x in self.exec_command(hostname, 'cat .ssh/id_rsa.pub', timeout=timeout).values()])
 
-    def git_pull(self, hostname, repo=GIT_REPO, timeout=30):
+    def git_pull(self, hostname, repo=GIT_REPO, timeout=60):
         return self(hostname, 'cd salvus && git pull %s'%repo, timeout=timeout)
 
     def build(self, hostname, pkg_name, timeout=250):
         return self(hostname, 'cd $HOME/salvus/salvus && . ./salvus-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
 
-    def python_c(self, hostname, cmd, timeout=30, sudo=False, wait=True):
+    def python_c(self, hostname, cmd, timeout=60, sudo=False, wait=True):
         command = 'cd \"$HOME/salvus/salvus\" && . ./salvus-env && python -c "%s"'%cmd
         log.info("python_c: %s", command)
         return self(hostname, command, sudo=sudo, timeout=timeout, wait=wait)
@@ -1395,13 +1403,28 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
+    def pingall(self, hosts='all', on=None):
+        v = []
+        for x in hosts.split():
+            try:
+                v += self._hosts[x]
+            except ValueError:
+                v.append(x)
+        c = 'pingall ' + ' '.join(v)
+        if on is not None:
+            c = 'ssh %s "cd salvus/salvus && . salvus-env && %s"'%(on, c)
+        print c
+        s = os.popen(c).read()
+        print s
+        return json.loads(s)
+
     def dns(self, hosts='all', rounds=1):
         """
         Verify that DNS is working well on all machines.
         """
         cmd = '&&'.join(["host -v google.com > /dev/null"]*rounds) + "; echo $?"
         ans = []
-        exclude = set(self._hosts['cellserver'] + self._hosts['webdev'])
+        exclude = set(self._hosts['cellserver'])  # + self._hosts['webdev'])
         h = ' '.join([host for host in self._hosts[hosts] if host not in exclude])
         if not h:
             return []
@@ -1427,7 +1450,7 @@ class Monitor(object):
         cmd = "ps ax |grep zfs | grep -v flush | wc -l; cat zpool.list"
         ans = []
         # zpool list can take a while when host is loaded, but still work fine.
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=30, username='storage').iteritems():
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=60, username='storage').iteritems():
             x = v['stdout'].split()
             try:
                 nproc = int(x[0]) - 2
@@ -1764,7 +1787,7 @@ class Services(object):
             timeout = options['timeout']
             del options['timeout']
         else:
-            timeout = 30
+            timeout = 60
 
 
         if 'id' not in options:
@@ -2056,7 +2079,7 @@ class Services(object):
         update version number.  Also, restart nginx.  Use this for pushing out HTML/Javascript/CSS
         changes that aren't at all critical for users to see immediately.
         """
-        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $((($RANDOM%5))); ./pull_from_dev_project; ./make_coffee --all', parallel=True, timeout=30)
+        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $((($RANDOM%5))); ./pull_from_dev_project; ./make_coffee --all', parallel=True, timeout=60)
 
     def update_nginx_from_dev_repo(self):
         """
@@ -2073,7 +2096,7 @@ class Services(object):
         across all machines, then restart all nginx and hub servers, in serial.
         """
         import time; ver = int(time.time())
-        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $((($RANDOM%%5))); ./pull_from_dev_project; echo "exports.version=%s" > node_modules/salvus_version.js; ./make_coffee --all'%ver, parallel=True, timeout=30)
+        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $((($RANDOM%%5))); ./pull_from_dev_project; echo "exports.version=%s" > node_modules/salvus_version.js; ./make_coffee --all'%ver, parallel=True, timeout=60)
         self.restart('nginx')
         self.restart('hub')
 
