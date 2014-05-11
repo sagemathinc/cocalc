@@ -32,13 +32,13 @@ exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 
 # Default timeout for many operations -- a user will get an error in many cases
 # if there is no response to an operation after this amount of time.
-DEFAULT_TIMEOUT = 20  # in seconds
+DEFAULT_TIMEOUT = 30  # in seconds
 
 # Default minimum ping time (see below) -- if don't get response this quickly, then will reconnect automatically
 # Making this shorter can easily lead to false positives and lots of reconnects for no reason, which means that
 # many messages, etc., get dropped.  Making this too long means it can take longer for the client to realize that
 # it needs to reconnect.  Making this too short also limits the maximum message time.
-PING_CHECK_INTERVAL = 30  # in seconds
+PING_CHECK_INTERVAL = 45  # in seconds
 
 
 # change these soon
@@ -532,8 +532,8 @@ class exports.Connection extends EventEmitter
     # introspection
     introspect: (opts) ->
         opts = defaults opts,
-            line          : required
-            timeout       :  10         # max time to wait in seconds before error
+            line          :  required
+            timeout       :  DEFAULT_TIMEOUT          # max time to wait in seconds before error
             session_uuid  :  required
             preparse      :  true
             cb            :  required  # pointless without a callback
