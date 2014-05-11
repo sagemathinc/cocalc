@@ -224,7 +224,7 @@ hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
 hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
 hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
 
-web1dc3 {'id':'0', 'port':'5000', 'proxy_port':'5001','monitor_database':'10.1.10.2:9042'}
+web1dc3 {'id':'0', 'port':'5000', 'proxy_port':'5001','monitor_database':'10.4.1.2:9042'}
 
 
 
