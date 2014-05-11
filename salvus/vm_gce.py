@@ -240,28 +240,38 @@ class Instance(object):
         self.ssh("echo '%s' > /etc/hostname && hostname %s && echo '127.0.1.1  %s' >> /etc/hosts"%(self.hostname, self.hostname, self.hostname), user='root')
 
     def tinc_servers(self):
+        """
+        Return list of pairs [(tinc address, tinc name) ...] for each "server" node with an address= line.
+        If "not server" is in the host conf file (say as a comment), then it is ignored.
+        """
         tinc_hosts = "/home/salvus/salvus/salvus/conf/tinc_hosts"
         v = []
         for x in os.listdir(tinc_hosts):
             r = open(os.path.join(tinc_hosts,x)).read().lower()
             if 'not server' in r:
                 continue
-            i = r.find('address')
-            if i != -1:
-                r = r[i:]
-                j = r.find("\n")
-                v.append( (r[:j].split('=')[1].strip(), x) )
+            if 'address' in r:
+                i = r.find('subnet')
+                if i != -1:
+                    r = r[i:]
+                    j = r.find("\n")
+                    addr = r[:j].split('=')[1].split('/')[0].strip()
+                    v.append( (addr, x) )
+        v.sort(lambda a,b: cmp(a[1], b[1]))
         return v
 
     def configure_tinc(self, ip_address):
         self.log("configure_tinc(ip_address=%s)", ip_address)
         self.delete_tinc_public_keys()
-        s = self.ssh("cd salvus/salvus && . salvus-env && configure_tinc.py init %s %s %s"%(self.external_ip(), ip_address, self.tinc_name), user='salvus')
+        external_ip = self.external_ip()
+        s = self.ssh("cd salvus/salvus && . salvus-env && configure_tinc.py init %s %s %s"%(external_ip, ip_address, self.tinc_name), user='salvus')
         v = json.loads(s)
         tinc_hosts = "/home/salvus/salvus/salvus/conf/tinc_hosts"
         host_filename = os.path.join(tinc_hosts, self.tinc_name)
         open(host_filename,'w').write(v['host_file'])
         hostname = socket.gethostname()
+
+        log.info("configure_tinc -- copy out public key to the servers our new host will connect to")
         connect_to = []
         def f(host):
             try:
@@ -270,11 +280,15 @@ class Instance(object):
                 connect_to.append(host[1])
             except Exception, msg:
                 self.log("configure_tinc -- WARNING: unable to copy tinc key to %s -- %s", host, msg)
-        log.info("configure_tinc -- copying out public key")
+        # We do the copy in parallel, to save an enormous amount of time.
         misc.thread_map(f, [((host,),{}) for host in self.tinc_servers() if host[1] != hostname])
 
-        log.info("configure_tinc -- appending ConnectTo information")
+        log.info("configure_tinc -- appending ConnectTo information to configuration")
         self.ssh("cd salvus/salvus && . salvus-env && configure_tinc.py connect_to %s"%(' '.join(connect_to)), user='salvus')
+
+        log.info("configure_tinc -- copy over the public key conf files of servers we will connect to")
+        s = "cd %s && scp %s salvus@%s:salvus/salvus/conf/tinc_hosts/"%(tinc_hosts, ' '.join(connect_to), external_ip)
+        cmd(s, timeout=60)
 
         log.info("Start tinc running...")
         self.ssh("killall -9 tincd; sleep 3; nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd", user='root')

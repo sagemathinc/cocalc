@@ -4,11 +4,16 @@
 
 import json, os, socket, sys
 
+sys.path.append(os.environ['SALVUS_ROOT'])
+import misc
+
 tinc_path = '/home/salvus/salvus/salvus/data/local/etc/tinc/'
 tinc_conf = os.path.join(tinc_path, 'tinc.conf')
 
+
 def init():
     external_address = sys.argv[2]
+    internal_address = misc.local_ip_address()
     tinc_address     = sys.argv[3]
     tincname         = sys.argv[4]
 
@@ -26,7 +31,7 @@ def init():
 
     os.popen("chmod a+rx %s"%tinc_up)
 
-    open(tinc_conf,'w').write("Name = %s\nKeyExpire = 2592000\n"%tincname)
+    open(tinc_conf,'w').write("Name = %s\nKeyExpire = 2592000\nProcessPriority = high\n"%tincname)
 
     rsa_key_priv = os.path.join(tinc_path, 'rsa_key.priv')
     rsa_key_pub  = os.path.join(tinc_path, 'hosts', tincname)
@@ -39,7 +44,10 @@ def init():
     host_file  = os.path.join(tinc_path, 'hosts', tincname)
     public_key = open(rsa_key_pub).read().strip()
 
-    open(host_file,'w').write("Address = %s\nTCPonly=yes\nCompression=10\nCipher = aes-128-cbc\nSubnet = %s\n%s"%(external_address, tinc_address, public_key))
+    # We give the internal address for Address= since only other GCE nodes will connect to these nodes, and
+    # though using the external address would work, it would incur significant additional *charges* from Google.
+    open(host_file,'w').write("Address = %s\nTCPonly=yes\nCompression=10\nCipher = aes-128-cbc\nSubnet = %s\n%s"%(
+                      internal_address, tinc_address, public_key))
 
     print json.dumps({"tincname":tincname, "host_file":open(host_file).read()}, separators=(',',':'))
 
