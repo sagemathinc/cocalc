@@ -2,7 +2,7 @@
 
 import os
 
-os.environ['BUP_DIR']="/backup/bups-bup"
+os.environ['BUP_DIR']="/backup/dc2/bups-bup"
 
 def cmd(s):
     print s
