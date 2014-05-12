@@ -505,14 +505,18 @@ class Project(object):
             if sync:
                 result['sync'] = self.sync(targets=targets)
 
-            r = dict(result)
-            n = len(self.project_mnt)+1
-            r['files'] = [x[n:] for x in what_changed if len(x) > n]
-            try:
-                codecs.open(self.save_log,'a',"utf-8-sig").write(json.dumps(r)+'\n')
-            except Exception, msg:
-                # the save log is only a convenience -- not critical.
-                log("WARNING: unable to write to save log -- %s"%msg)
+            # The save log turns out to be a really bad idea, at least implemented this way.
+            # The problem is we quickly end up with one MASSIVE file; this is particularly painful
+            # due to how replication works -- a single file saved here, and we have to copy gigabytes around!
+            # We will find another way... e.g., one file for each save.
+            #r = dict(result)
+            #n = len(self.project_mnt)+1
+            #r['files'] = [x[n:] for x in what_changed if len(x) > n]
+            #try:
+            #    codecs.open(self.save_log,'a',"utf-8-sig").write(json.dumps(r)+'\n')
+            #except Exception, msg:
+            #   # the save log is only a convenience -- not critical.
+            #    log("WARNING: unable to write to save log -- %s"%msg)
         return result
 
     def tag(self, tag, delete=False):
@@ -758,7 +762,7 @@ class Project(object):
 
         return status
 
-    def _sync(self, remote, destructive=False, snapshots=True, union=False, union2=False, rsync_timeout=120):
+    def _sync(self, remote, destructive=False, snapshots=True, union=False, union2=False, rsync_timeout=120, bwlimit=5000):
         """
 
 
@@ -779,13 +783,13 @@ class Project(object):
 
         if union:
             log("union stage 1: gather files from outside")
-            self.cmd(['rsync', '--update', '-zaxH', '--timeout', rsync_timeout, "--ignore-errors"] + self.exclude('') +
+            self.cmd(['rsync', '--update', '-zaxH', '--timeout', rsync_timeout, '--bwlimit', bwlimit, "--ignore-errors"] + self.exclude('') +
                           ['-e', 'ssh -o StrictHostKeyChecking=no',
                           "root@%s:%s/"%(remote, self.project_mnt),
                           self.project_mnt+'/'
                           ], ignore_errors=True)
             if snapshots:
-                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, "-e", 'ssh -o StrictHostKeyChecking=no',
+                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no',
                           "root@%s:%s/"%(remote, remote_bup_path),
                           self.bup_path+'/'
                           ], ignore_errors=False)
@@ -794,13 +798,13 @@ class Project(object):
 
         if union2:
             log("union stage 2: push back to form union")
-            self.cmd(['rsync', '--update', '-zaxH', '--timeout', rsync_timeout, "--ignore-errors"] + self.exclude('') +
+            self.cmd(['rsync', '--update', '-zaxH', '--timeout', rsync_timeout, '--bwlimit', bwlimit, "--ignore-errors"] + self.exclude('') +
                           ['-e', 'ssh -o StrictHostKeyChecking=no',
                           self.project_mnt+'/',
                           "root@%s:%s/"%(remote, self.project_mnt)
                           ], ignore_errors=True)
             if snapshots:
-                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, "-e", 'ssh -o StrictHostKeyChecking=no',
+                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no',
                           self.bup_path+'/',
                           "root@%s:%s/"%(remote, remote_bup_path)
                           ], ignore_errors=False)
@@ -809,7 +813,7 @@ class Project(object):
 
         if os.path.exists(self.project_mnt):
             def f(ignore_errors):
-                o = self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, "--delete", "--ignore-errors"] + self.exclude('') +
+                o = self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "--delete", "--ignore-errors"] + self.exclude('') +
                           ['-e', 'ssh -o StrictHostKeyChecking=no',
                           self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=True)
                 # include only lines that don't contain any of the following errors, since permission denied errors are standard with
@@ -837,7 +841,7 @@ class Project(object):
 
         if destructive:
             log("push so that remote=local: easier; have to do this after a recompact (say)")
-            self.cmd(["rsync", "-axH", "--delete", '--timeout', rsync_timeout, "-e", 'ssh -o StrictHostKeyChecking=no',
+            self.cmd(["rsync", "-axH", "--delete", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no',
                       self.bup_path+'/', "root@%s:%s/"%(remote, remote_bup_path)])
             return
 
@@ -854,11 +858,11 @@ class Project(object):
                 a, b = x.split(':')[-2:]
                 remote_heads.append((os.path.split(a)[-1], b))
         log("sync from local to remote")
-        self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout,
+        self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout, '--bwlimit', bwlimit,
                   self.bup_path + '/', "root@%s:%s/"%(remote, remote_bup_path)])
         log("sync from remote back to local")
         # the -v is important below!
-        back = self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout,
+        back = self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout, '--bwlimit', bwlimit,
                          "root@%s:%s/"%(remote, remote_bup_path), self.bup_path + "/"]).splitlines()
         if remote_heads and len([x for x in back if x.endswith('.pack')]) > 0:
             log("there were remote packs possibly not available locally, so make tags that points to them")
@@ -875,7 +879,7 @@ class Project(object):
             if tag is not None:
                 log("sync back any tags")
                 self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
-                          '--timeout', rsync_timeout, self.bup_path+'/', 'root@'+remote+'/'])
+                          '--timeout', rsync_timeout, '--bwlimit', bwlimit, self.bup_path+'/', 'root@'+remote+'/'])
 
     def mount_remote(self, remote_host, project_id, mount_point='', remote_path='', read_only=False):
         """

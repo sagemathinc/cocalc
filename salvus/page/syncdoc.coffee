@@ -28,6 +28,8 @@ their 900 clients in parallel.
 # hasn't been opened in a while, it can take a while.
 CONNECT_TIMEOUT_S = 45
 
+DEFAULT_TIMEOUT   = 35
+
 log = (s) -> console.log(s)
 
 diffsync = require('diffsync')
@@ -168,7 +170,7 @@ class DiffSyncHub
     recv_edits: (edit_stack, last_version_ack, cb) =>
         @cm_session.call
             message : message.codemirror_diffsync(edit_stack:edit_stack, last_version_ack:last_version_ack)
-            timeout : 30
+            timeout : DEFAULT_TIMEOUT
             cb      : (err, mesg) =>
                 if err
                     cb(err)
@@ -304,7 +306,7 @@ class AbstractSynchronizedDoc extends EventEmitter
                 cb(err); return
             @call
                 message : message.codemirror_write_to_disk()
-                timeout : 10
+                timeout : DEFAULT_TIMEOUT
                 cb      : (err, resp) ->
                     if err
                         cb(err)
@@ -316,7 +318,7 @@ class AbstractSynchronizedDoc extends EventEmitter
     call: (opts) =>
         opts = defaults opts,
             message        : required
-            timeout        : 30
+            timeout        : DEFAULT_TIMEOUT
             multi_response : false
             cb             : undefined
         opts.message.session_uuid = @session_uuid
@@ -403,7 +405,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
         @_remove_listeners()
         if @session_uuid? # no need to re-disconnect if not connected (and would cause serious error!)
             @call
-                timeout : 10
+                timeout : DEFAULT_TIMEOUT
                 message : message.codemirror_disconnect(session_uuid : @session_uuid)
                 cb      : cb
 
@@ -568,7 +570,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         if @session_uuid?
             # no need to re-disconnect (and would cause serious error!)
             @call
-                timeout : 10
+                timeout : DEFAULT_TIMEOUT
                 message : message.codemirror_disconnect()
                 cb      : cb
 
