@@ -1646,15 +1646,11 @@ class exports.Connection extends EventEmitter
     create_task_list: (opts) =>
         opts = defaults opts,
             owners       : required
-            title        : "No title"
-            description  : "No description"
             cb           : required
         @call
             message :
                 message.create_task_list
                     owners       : opts.owners
-                    title        : opts.title
-                    description  : opts.description
             cb      : (err, resp) =>
                 if err
                     opts.cb(err)
@@ -1667,8 +1663,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             task_list_id : required
             project_id   : undefined    # give this if task list usage is authenticated via project_id
-            title        : undefined
-            description  : undefined
+            data         : undefined
             deleted      : undefined    # use for deleting a task list
             cb           : undefined
         @call
@@ -1676,8 +1671,7 @@ class exports.Connection extends EventEmitter
                 message.edit_task_list
                     task_list_id : opts.task_list_id
                     project_id   : opts.project_id
-                    title        : opts.title
-                    description  : opts.description
+                    data         : opts.data
                     deleted      : opts.deleted
             cb : (err, resp) =>
                 if err
@@ -1686,6 +1680,25 @@ class exports.Connection extends EventEmitter
                     opts.cb(resp.error)
                 else
                     opts.cb(undefined)
+
+    get_task_list_last_edited: (opts) =>
+        opts = defaults opts,
+            task_list_id : required
+            project_id   : undefined    # give this if task list usage is authenticated via project_id
+            cb           : required
+        @call
+            message :
+                message.get_task_list_last_edited
+                    task_list_id    : opts.task_list_id
+                    project_id      : opts.project_id
+            cb : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(undefined, resp.last_edited)
+
 
     get_task_list: (opts) =>
         opts = defaults opts,
@@ -1708,6 +1721,24 @@ class exports.Connection extends EventEmitter
                     opts.cb(resp.error)
                 else
                     opts.cb(undefined, resp.task_list)
+
+    set_project_task_list: (opts) =>
+        opts = defaults opts,
+            task_list_id : required
+            project_id   : undefined    # give this if task list usage is authenticated via project_id
+            cb           : undefined
+        @call
+            message :
+                message.set_project_task_list
+                    task_list_id    : opts.task_list_id
+                    project_id      : opts.project_id
+            cb : (err, resp) =>
+                if err
+                    opts.cb?(err)
+                else if resp.event == 'error'
+                    opts.cb?(resp.error)
+                else
+                    opts.cb()
 
     create_task: (opts) =>
         opts = defaults opts,

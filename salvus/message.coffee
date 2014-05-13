@@ -1241,8 +1241,6 @@ message
 message
     event        : 'create_task_list'
     owners       : required    # list of project_id's or account_id's that are allowed to edit this task list.
-    title        : "No title"
-    description  : "No description"
     id           : undefined
 
 message
@@ -1253,8 +1251,7 @@ message
 message
     event        : 'edit_task_list'
     task_list_id : required
-    title        : undefined
-    description  : undefined
+    data         : undefined
     project_id   : undefined    # give this if task list usage is authenticated via project_id
     deleted      : undefined
     id           : undefined
@@ -1272,6 +1269,17 @@ message
     id           : undefined
     task_list    : required     # list of all tasks
 
+message
+    event        : 'get_task_list_last_edited'
+    task_list_id : required
+    project_id   : undefined    # give this if task list usage is authenticated via project_id
+    id           : undefined
+
+message
+    event        : 'set_project_task_list'
+    task_list_id : required
+    project_id   : required
+    id           : undefined
 
 
 

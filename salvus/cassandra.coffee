@@ -90,7 +90,7 @@ exports.inet_to_str = (r) -> [r[0], r[1], r[2], r[3]].join('.')
 
 #########################################################################
 
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted'].concat(PROJECT_GROUPS)
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'task_list_id'].concat(PROJECT_GROUPS)
 
 exports.create_schema = (conn, cb) ->
     t = misc.walltime()
@@ -2155,20 +2155,15 @@ class exports.Salvus extends exports.Cassandra
     create_task_list: (opts) =>
         opts = defaults opts,
             owners      : required
-            title       : required
-            description : required
             cb          : required
         task_list_id = uuid.v4()
 
         q = ('?' for i in [0...opts.owners.length]).join(',')
-        query = "UPDATE task_lists SET owners={#{q}}, title=?, description=?, last_edited=? WHERE task_list_id=?"
+        query = "UPDATE task_lists SET owners={#{q}}, last_edited=? WHERE task_list_id=?"
         args = (x for x in opts.owners)
-        args.push(opts.title)
-        args.push(opts.description)
         args.push(now())
         args.push(task_list_id)
         @cql(query, args, (err) => opts.cb(err, task_list_id))
-
 
     create_task: (opts) =>
         opts = defaults opts,
@@ -2216,28 +2211,77 @@ class exports.Salvus extends exports.Cassandra
             columns = opts.columns
         else
             columns = ['task_id', 'position', 'last_edited', 'done', 'title', 'data', 'deleted', 'sub_task_list_id']
-        @select
-            table     : 'tasks'
-            where     : {task_list_id : opts.task_list_id}
-            columns   : columns
-            objectify : true
-            cb        : (err, resp) =>
+
+        t = {}
+        async.parallel([
+            (cb) =>
+                @select
+                    table     : 'tasks'
+                    where     : {task_list_id : opts.task_list_id}
+                    columns   : columns
+                    objectify : true
+                    cb        : (err, resp) =>
+                        if err
+                            cb(err)
+                        else
+                            if not opts.include_deleted and 'deleted' in columns
+                                resp = (x for x in resp when not x.deleted)
+                            for x in resp
+                                if x.data?
+                                    for k, v of x.data
+                                        x.data[k] = from_json(v)
+                            t.tasks = resp
+                            cb()
+            (cb) =>
+                @select_one
+                    table   : 'task_lists'
+                    where   : {task_list_id : opts.task_list_id}
+                    columns : ['data']
+                    cb      : (err, resp) =>
+                        if err
+                            cb(err)
+                        else
+                            data = resp[0]
+                            if data?
+                                for k, v of data
+                                    t[k] = from_json(v)
+                            cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, t)
+        )
+
+    get_task_list_last_edited : (opts) =>
+        opts = defaults opts,
+            task_list_id    : required
+            cb              : required
+        @select_one
+            table   : 'task_lists'
+            columns : ['last_edited']
+            cb      : (err, r) =>
                 if err
                     opts.cb(err)
                 else
-                    if not opts.include_deleted and 'deleted' in columns
-                        resp = (x for x in resp when not x.deleted)
-                    for x in resp
-                        if x.data?
-                            for k, v of x.data
-                                x.data[k] = from_json(v)
-                    opts.cb(undefined, resp)
+                    opts.cb(undefined, r[0])
+
+    set_project_task_list: (opts) =>
+        opts = defaults opts,
+            task_list_id    : required
+            project_id      : required
+            cb              : required
+        @update
+            table : 'projects'
+            set   : {task_list_id : opts.task_list_id, last_edited : now()}
+            where : {project_id : opts.project_id}
+            cb    : opts.cb
+
 
     edit_task_list : (opts) =>
         opts = defaults opts,
             task_list_id : required
-            title        : undefined
-            description  : undefined
+            data         : undefined
             deleted      : undefined
             cb           : required
         #dbg = (m) -> winston.debug("edit_task_list: #{m}")
@@ -2293,24 +2337,20 @@ class exports.Salvus extends exports.Cassandra
                     opts.cb(err)
             )
         else
-            #dbg("other case -- just edit something in the task list")
-            set = {}
-            if opts.title?
-                set.title = opts.title
-            if opts.description?
-                set.description = opts.description
-            if opts.deleted?
-                set.deleted = opts.deleted
-            if misc.len(set) == 0
-                opts.cb()
-                return
-            set.last_edited = now()
-            @update
-                table : 'task_lists'
-                where : {task_list_id : opts.task_list_id}
-                set   : set
-                cb    : opts.cb
-
+            #dbg("other case -- just edit data properties of the task_list")
+            if not opts.data?
+                opts.cb(); return
+            f = (key, cb) =>
+                if key == 'tasks'
+                    cb("you may not use 'tasks' as a custom task_lists field")
+                    return
+                query = "UPDATE task_lists SET data[?]=?, last_edited=? WHERE task_list_id=?"
+                if opts.data[key] != null
+                    val = to_json(opts.data[key])
+                else
+                    val = undefined
+                @cql(query, [key, val, now(), opts.task_list_id], (err) => cb(err))
+            async.map(misc.keys(opts.data), f, (err) => opts.cb(err))
 
     edit_task : (opts) =>
         opts = defaults opts,
