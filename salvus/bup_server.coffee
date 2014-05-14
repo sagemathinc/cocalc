@@ -1491,9 +1491,8 @@ class GlobalClient
                                     hosts = ("10.1.#{i}.2" for i in [1..7])
                                 else if a == 1 and b>=10 and b<=21
                                     hosts = ("10.1.#{i}.2" for i in [10..21])
-                                else if a == 3
-                                    # TODO -- change this as soon as we get a DB spun up at Google...
-                                    hosts = ("10.1.#{i}.1" for i in [10..21])
+                                else if a == 3 or a == 4
+                                    hosts = ("10.#{a}.#{i}.2" for i in [1..4])
                             winston.debug("database hosts=#{misc.to_json(hosts)}")
                             @database = new cassandra.Salvus
                                 hosts       : hosts

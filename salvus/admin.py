@@ -1643,12 +1643,12 @@ class Monitor(object):
                     last_time = now
                     try:
                         self._go()
-                    except Exception, msg:
-                        print "ERROR -- %s"%msg
+                    except:
+                        print "ERROR"
                         try:
                             self._go()
-                        except Exception, msg:
-                            print "ERROR -- %s"%msg
+                        except:
+                            print "ERROR"
 
             time.sleep(20)
 

@@ -295,7 +295,7 @@ class Instance(object):
 
 
     def delete_tinc_public_keys(self):
-        self.log("delete_tinc_public_keys() -- deleting the tinc public key files on the UW hosts")
+        self.log("delete_tinc_public_keys() -- deleting the tinc public key files on the tinc servers")
         host_filename = os.path.join("/home/salvus/salvus/salvus/conf/tinc_hosts", self.tinc_name)
         print 'ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s "rm -f %s"'%('host', host_filename)
         def f(host):
