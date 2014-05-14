@@ -2174,7 +2174,7 @@ class exports.Salvus extends exports.Cassandra
 
         task_id = uuid.v4()
         last_edited = now()
-        async.series([
+        async.parallel([
             (cb) =>
                 @update
                     table : 'tasks'
@@ -2193,6 +2193,7 @@ class exports.Salvus extends exports.Cassandra
                     table : 'task_lists'
                     where : {task_list_id : opts.task_list_id}
                     set   : {last_edited  : last_edited}
+                    cb    : cb
         ], (err) =>
             if err
                 opts.cb(err)

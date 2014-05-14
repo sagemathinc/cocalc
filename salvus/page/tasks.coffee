@@ -1,4 +1,6 @@
-{defaults, required} = require('misc')
+async = require('async')
+
+{defaults, required, to_json} = require('misc')
 
 {salvus_client} = require('salvus_client')
 
@@ -9,6 +11,7 @@ misc_page = require('misc_page')
 
 templates = $(".salvus-tasks-templates")
 task_template = templates.find(".salvus-project-task")
+task_editor_template = templates.find(".salvus-project-task-editor")
 
 class exports.Tasks
     constructor: (opts) ->
@@ -26,7 +29,7 @@ class exports.Tasks
     onshow: () =>
         @update_task_list (err, need_to_update) =>
             if err
-                alert_message(type:"error", message:"error updating task list -- #{err}")
+                alert_message(type:"error", message:"error updating task list -- #{to_json(err)}")
             else
                 if need_to_update
                     @render_task_list()
@@ -61,9 +64,10 @@ class exports.Tasks
                             cb("BUG: no err but task_list_id not true")
                         else
                             # tell project about our new task list
-                            opts.project_page.project.task_list_id = task_list_id
+                            @project_page.project.task_list_id = task_list_id
                             @task_list_id = task_list_id
                             salvus_client.set_project_task_list
+                                project_id : @project_id
                                 task_list_id : task_list_id
                                 cb           : cb
             (cb) =>
@@ -88,7 +92,7 @@ class exports.Tasks
                 salvus_client.get_task_list
                     task_list_id : @task_list_id
                     project_id   : @project_id
-                    included_deleted : false
+                    include_deleted : false
                     cb           : (err, task_list) =>
                         if err
                             cb(err)
@@ -108,7 +112,7 @@ class exports.Tasks
             cb    : required
         salvus_client.create_task
             task_list_id : @task_list_id
-            owner        : @project_id
+            project_id   : @project_id
             title        : opts.title
             position     : opts.position
             cb           : opts.cb
@@ -120,10 +124,48 @@ class exports.Tasks
 
     render_task: (task) =>
         t = task_template.clone()
-        t.find(".salvus-project-task-title").text(task.title)
+        title = t.find(".salvus-project-task-title")
+        title.text(task.title)
         # TODO -- instead of append, should put in correct position, according to task.position
         @elt_task_list.append(t)
+        task.element = t
+        t.find(".salvus-project-task-viewer").click(() => @edit_task(task))
         return t
+
+    edit_task: (task) =>
+        e = task.element
+        e.find(".salvus-project-task-viewer").hide()
+        elt = task_editor_template.clone()
+        e.append(elt)
+        edit_title = elt.find(".salvus-project-tasks-title-edit")
+        edit_title.val(task.title)
+        edit_title.focus()
+        edit_title.focusout () =>
+            save_title()
+        edit_title.keydown (evt) =>
+            if evt.which is 13
+                save_title()
+                return false
+            else if evt.which is 27
+                stop_editing()
+                return false
+        stop_editing = () =>
+            e.find(".salvus-project-task-viewer").show()
+            elt.remove()
+        save_title = () =>
+            task.title = title = edit_title.val()
+            e.find(".salvus-project-task-title").text(title)
+            stop_editing()
+            if title != task.title
+                salvus_client.edit_task
+                    task_list_id : @task_list_id
+                    task_id      : task.task_id
+                    project_id   : @project_id
+                    title        : title
+                    cb           : (err) =>
+                        if err
+                            alert_message(type:"error", message:"Error saving task change -- #{to_json(err)}")
+
 
     init_create_task: () =>
         create_task_input = @element.find(".salvus-project-tasks-new")
@@ -132,8 +174,8 @@ class exports.Tasks
                 title = create_task_input.val()
                 create_task_input.val('')
                 position = 0  # TODO
-                task = {task_id:task_id, title:title, position:position}
-                @task_list.tasks.append(task)
+                task = {title:title, position:position}
+                @task_list.tasks.push(task)
                 t = @render_task(task)
                 t.icon_spin(start:true, delay:500)
                 @create_task
@@ -143,6 +185,8 @@ class exports.Tasks
                         if err
                             alert_message(type:"error", message:"error creating task -- #{err}")
                             # TODO: have to retry or remove task from list.
+                        else
+                            task.task_id = task_id
                 return false
             else if misc_page.is_escape(evt)
                 create_task_input.val('')

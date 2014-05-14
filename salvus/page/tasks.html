@@ -16,7 +16,7 @@
                         <textarea rows=1 placeholder="Create a new task..." class="salvus-project-tasks-new" style="width:98%"></textarea>
                     </div>
                 </div>
-                <div class="row-fluid">
+                <div class="row-fluid hide">
                     <div class='btn-group'>
                         <a class="btn salvus-project-tasks-newer disabled"> <i class="fa fa-angle-double-left"> </i> </a>
                         <a class="btn salvus-project-tasks-older"> <i class="fa fa-angle-double-right"> </i></a>
@@ -27,7 +27,7 @@
                     <div class="well salvus-project-tasks-list">
                     </div>
                 </div>
-                <div class="row-fluid">
+                <div class="row-fluid hide">
                     <div class='btn-group'>
                         <a class="btn salvus-project-tasks-newer disabled"> <i class="fa fa-angle-double-left"> </i> </a>
                         <a class="btn salvus-project-tasks-older">  <i class="fa fa-angle-double-right"> </i></a>
@@ -38,8 +38,21 @@
 
     </div>
 
-    <div class="salvus-project-task row-fluid">
-        <span class="salvus-project-task-title"></span>
+    <div class="salvus-project-task">
+        <div class="row-fluid salvus-project-task-viewer">
+            <div class="span1">
+                <i class="fa fa-reorder salvus-project-task-viewer-move" style="padding-right: 1em;"> </i>
+                <i class="fa fa-square-o salvus-project-task-viewer-not-done"> </i>
+                <i class="fa fa-check-square-o salvus-project-task-viewer-done hide"> </i>
+            </div>
+            <div class="span11">
+                <span class="salvus-project-task-title"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="salvus-project-task-editor">
+        <textarea rows=1 class="salvus-project-tasks-title-edit"></textarea>
     </div>
 
 </div>

@@ -567,7 +567,7 @@ CREATE TABLE task_lists (
     task_list_id uuid PRIMARY KEY,       /* uuid of this task list */
     owners       set<uuid>,              /* account_id, project_id, or task_id that owns this task list */
     title        varchar,
-    description  varchar,
+    data         map<text,text>,
     deleted      boolean,    /* whether this task list has been deleted */
     last_edited  timestamp,  /* last time the task list was changed (i.e., description, title, deleted, owners,  editing tasks) */
 );
