@@ -416,7 +416,6 @@ synchronized_string = (opts) ->
 
 exports.synchronized_string = synchronized_string
 
-
 class SynchronizedDocument extends AbstractSynchronizedDoc
     constructor: (@editor, opts, cb) ->  # if given, cb will be called when done initializing.
         @opts = defaults opts,

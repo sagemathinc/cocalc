@@ -118,6 +118,10 @@ class exports.Tasks
     sort_task_list: () =>
         # TODO: define f in terms of various sort crition based on UI
         f = (task1, task2) =>
+            if task1.done and not task2.done
+                return 1
+            if task2.done and not task1.done
+                return -1
             if task1.position < task2.position
                 return -1
             else if  task1.position > task2.position
@@ -232,6 +236,7 @@ class exports.Tasks
 
     edit_title: (task) =>
         e = task.element
+        e.css('max-height','400em')
         elt_title = e.find(".salvus-task-title")
         elt = edit_title_template.clone()
         elt_title.after(elt)
@@ -241,11 +246,8 @@ class exports.Tasks
         elt.focusout () =>
             save_title()
         elt.keydown (evt) =>
-            if evt.which is 13
+            if misc_page.is_shift_enter(evt) or misc_page.is_escape(evt)
                 save_title()
-                return false
-            else if evt.which is 27
-                stop_editing()
                 return false
         stop_editing = () =>
             elt_title.show()
