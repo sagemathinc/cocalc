@@ -4222,10 +4222,12 @@ class IPythonNotebook extends FileEditor
 ###
 # Todo list
 ###
+tasks = require('tasks')
 class TaskList extends FileEditor
     constructor: (@editor, @filename) ->
-        @element = $("<div>task  list</div>")
-        @element.hide()
+        console.log("Make TaskListEditor: editor=",@editor," filename=",@filename)
+        @element = tasks.task_list(@editor.project_id, @filename)
+        @task_list = @element.data('task_list')
 
     _get: () =>
         # TODO
@@ -4240,9 +4242,11 @@ class TaskList extends FileEditor
 
     remove: () =>
         @element.remove()
+        @task_list.destroy()
 
     show: () =>
         @element.show()
+
 
 
 #**************************************************

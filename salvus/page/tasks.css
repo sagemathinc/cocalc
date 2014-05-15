@@ -49,4 +49,10 @@
     padding-bottom: 1em;
 }
 
+.salvus-new-task-cm-editor {
+    margin-bottom: 1em;
+    border : 2px solid #ccc;
+    height : 4em;
+}
+
 

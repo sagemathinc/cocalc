@@ -269,7 +269,7 @@ exports.deep_copy = (obj) ->
     newInstance = new obj.constructor()
 
     for key of obj
-        newInstance[key] = exports.clone obj[key]
+        newInstance[key] = exports.deep_copy(obj[key])
 
     return newInstance
 

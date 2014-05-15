@@ -2,118 +2,54 @@ async = require('async')
 
 marked = require('marked')
 
-{defaults, required, to_json} = require('misc')
+{defaults, required, to_json, uuid} = require('misc')
 
 {salvus_client} = require('salvus_client')
 
 {alert_message} = require('alerts')
 
+{synchronized_db} = require('syncdb')
+
 
 misc_page = require('misc_page')
 
 templates = $(".salvus-tasks-templates")
+
 task_template = templates.find(".salvus-task")
 edit_title_template = templates.find(".salvus-tasks-title-edit")
 
-class exports.Tasks
-    constructor: (opts) ->
-        opts = defaults opts,
-            project_page   : required            
-        @project_page  = opts.project_page
-        @project_id    = opts.project_page.project.project_id
-        @task_list_id  = opts.project_page.project.task_list_id
-        @element       = templates.find(".salvus-tasks").clone().show()
+exports.task_list = (project_id, filename) ->
+    element = templates.find(".salvus-tasks-editor").clone()
+    new TaskList(project_id, filename, element)
+    return element
+
+class TaskList
+    constructor : (@project_id, @filename, @element) ->
+        @element.data('task_list', @)
         @elt_task_list = @element.find(".salvus-tasks-list")
+        @tasks = []
         @init_create_task()
-        @last_edited = 0
         @init_showing_done()
-        @update_task_list()
         @init_search()
-
-    onshow: () =>
-        @update_task_list (err, need_to_update) =>
-            if err
-                alert_message(type:"error", message:"error updating task list -- #{to_json(err)}")
-            else
-                if need_to_update
+        synchronized_db
+            project_id : @project_id
+            filename   : @filename
+            cb         : (err, db) =>
+                if err
+                    # TODO -- so what? -- need to close window, etc.... Also this should be a modal dialog
+                    alert_message(type:"error", message:"unable to open #{@filename}")
+                else
+                    @db = db
+                    @tasks = @db.select()
                     @render_task_list()
-
-    update_task_list: (cb) =>  # cb(error, need_to_update)  -- if need_to_update is true that means the task list changed since last time updated
-        # check to see if the task list has changed on the server side, and if so download and re-render it.
-        # TODO: this will go away when the hub has a message queue and can send events when task list changes.
-
-        if @_update_lock
-            cb('already updating'); return
-
-        @_update_lock = true
-        need_to_update = undefined
-        async.series([
-            (cb) =>
-                # create new task list if it doesn't exit
-                if @task_list_id
-                    cb(); return
-                # create a new task list
-                salvus_client.create_task_list
-                    owners : [@project_id]
-                    cb     : (err, task_list_id) =>
-                        if err
-                            cb(err)
-                        else if not task_list_id
-                            cb("BUG: no err but task_list_id not true")
-                        else
-                            # tell project about our new task list
-                            @project_page.project.task_list_id = task_list_id
-                            @task_list_id = task_list_id
-                            salvus_client.set_project_task_list
-                                project_id : @project_id
-                                task_list_id : task_list_id
-                                cb           : cb
-            (cb) =>
-                # check to see if the backend task list is newer than what is in the browser
-                if @last_edited == 0
-                    need_to_update = true
-                    cb()
-                    return
-                salvus_client.get_task_list_last_edited
-                    task_list_id : @task_list_id
-                    project_id   : @project_id
-                    cb           : (err, last_edited) =>
-                        if err
-                            cb(err)
-                        else
-                            need_to_update = (last_edited > @last_edited)
-                            cb()
-            (cb) =>
-                # update if necessary
-                if not need_to_update
-                    cb(); return
-                salvus_client.get_task_list
-                    task_list_id : @task_list_id
-                    project_id   : @project_id
-                    include_deleted : false
-                    cb           : (err, task_list) =>
-                        if err
-                            cb(err)
-                        else
-                            @task_list = task_list
-                            cb()
-        ], (err) =>
-            @_update_lock = false
-            cb?(err, need_to_update)
-        )
+                    @db.on 'change', () =>
+                        # TODO: slow stupid way - could be much more precise
+                        @tasks = @db.select()
+                        @render_task_list()
 
 
-    create_task: (opts) =>
-        opts = defaults opts,
-            title : required
-            position : 0
-            cb    : required
-        salvus_client.create_task
-            task_list_id : @task_list_id
-            project_id   : @project_id
-            title        : opts.title
-            position     : opts.position
-            cb           : opts.cb
+    destroy: () =>
+        @element.removeData()
 
     sort_task_list: () =>
         # TODO: define f in terms of various sort crition based on UI
@@ -128,7 +64,7 @@ class exports.Tasks
                 return 1
             else
                 return 0
-        @task_list.tasks.sort(f)
+        @tasks.sort(f)
 
     render_task_list: () =>
         search = []
@@ -144,7 +80,7 @@ class exports.Tasks
         @elt_task_list.empty()
         @sort_task_list()
         first_task = undefined
-        for task in @task_list.tasks
+        for task in @tasks
             if not @showing_done and task.done
                 continue
             skip = false
@@ -183,8 +119,8 @@ class exports.Tasks
                 else if  prev.data('task').position == next.data('task').position
                     i = 0
                     @sort_task_list()
-                    for i in [0...@task_list.tasks.length]
-                        @save_task_position(@task_list.tasks[i], i)
+                    for i in [0...@tasks.length]
+                        @save_task_position(@tasks[i], i)
                     @save_task_position(task, (prev.data('task').position + next.data('task').position)/2)
                 # now they are different: set our position to the average of adjacent positions.
                 else
@@ -192,14 +128,9 @@ class exports.Tasks
 
     save_task_position: (task, position) =>
         task.position = position
-        salvus_client.edit_task
-            task_list_id : @task_list_id
-            task_id      : task.task_id
-            project_id   : @project_id
-            position     : position
-            cb           : (err) =>
-                if err
-                    alert_message(type:"warning", message:"Problem saving new task position -- #{to_json(err)}")
+        @db.update
+            set   : {position : position}
+            where : {task_id : task.task_id}
 
     render_task: (task, top) =>
         t = task_template.clone()
@@ -262,17 +193,9 @@ class exports.Tasks
                 orig_title = task.title
                 task.title = title
                 @display_title(task)
-                salvus_client.edit_task
-                    task_list_id : @task_list_id
-                    task_id      : task.task_id
-                    project_id   : @project_id
-                    title        : title
-                    cb           : (err) =>
-                        if err
-                            # TODO -- on error, change it back (?) or keep retrying?
-                            task.title = orig_title
-                            @display_title(task)
-                            alert_message(type:"error", message:"Error changing title -- #{to_json(err)}")
+                @db.update
+                    set   : {title  : title}
+                    where : {task_id : task.task_id}
 
     set_done: (task, done) =>
         if done
@@ -289,48 +212,54 @@ class exports.Tasks
             return
         @set_done(task, done)
         task.done = done
-        salvus_client.edit_task
-            task_list_id : @task_list_id
-            task_id      : task.task_id
-            project_id   : @project_id
-            done         : done
-            cb           : (err) =>
-                if err
-                    task.done = not done
-                    alert_message(type:"error", message:"Error marking task done=#{done} -- #{to_json(err)}")
-                    @set_done(task, not done)
-                else
-                    if done and not @showing_done
-                        task.element.fadeOut(1000, task.element.remove)
+        @db.update
+            set   : {done : done}
+            where : {task_id : task.task_id}
+        if done and not @showing_done
+            task.element.fadeOut(1000, task.element.remove)
+
+    clear_create_task: () =>
+        @create_task_editor.setValue('')
+        @element.find(".salvus-tasks-create-button").addClass('disabled')
+
+    create_task: () =>
+        title = @create_task_editor.getValue()
+        @clear_create_task()
+        if @tasks.length == 0
+            position = 0
+        else
+            position = @tasks[0].position - 1
+
+        task =
+            title       : title
+            position    : position
+            last_edited : new Date() - 0
+
+        @tasks.unshift(task)
+        task_id = uuid()
+        @db.update(set:task, where:{task_id : task_id})
+        task.task_id = task_id
+        @render_task(task, true)
 
     init_create_task: () =>
         create_task_input = @element.find(".salvus-tasks-new")
-        create_task_input.keydown (evt) =>
-            if misc_page.is_enter(evt)
-                title = create_task_input.val()
-                create_task_input.val('')
-                if @task_list.tasks.length == 0
-                    position = 0
-                else
-                    position = @task_list.tasks[0].position - 1
-                task = {title:title, position:position, last_edited:new Date() - 0}
-                @task_list.tasks.unshift(task)
-                t = @render_task(task, true)
-                t.icon_spin(start:true, delay:500)
-                @create_task
-                    title : title
-                    cb    : (err, task_id) =>
-                        t.icon_spin(false)
-                        if err
-                            alert_message(type:"error", message:"error creating task -- #{err}")
-                            # TODO: have to retry or remove task from list.
-                        else
-                            task.task_id = task_id
-                return false
-            else if misc_page.is_escape(evt)
-                create_task_input.val('')
-                return false
-            return true
+
+        opts =
+            mode        : 'markdown',
+            lineNumbers : false,
+            theme       : "default",
+            extraKeys   :
+                "Enter": "newlineAndIndentContinueMarkdownList"
+                "Shift-Enter" : @create_task
+
+        @create_task_editor = CodeMirror.fromTextArea(create_task_input[0], opts)
+        $(@create_task_editor.getWrapperElement()).addClass('salvus-new-task-cm-editor')
+        @task_create_buttons = @element.find(".salvus-tasks-create-button")
+        @create_task_editor.on 'change', () =>
+            @task_create_buttons.removeClass('disabled')
+
+        @element.find(".salvus-tasks-create-doit-button").click(@create_task)
+        @element.find(".salvus-tasks-cancel-button").click(@clear_create_task)
 
     init_showing_done: () =>
         @showing_done = false
@@ -345,8 +274,10 @@ class exports.Tasks
             @element.find(".salvus-task-search-not-done").show()
             @render_task_list()
 
-
-
     init_search: () =>
         @element.find(".salvus-tasks-search").keyup () =>
             @render_task_list()
+
+
+
+

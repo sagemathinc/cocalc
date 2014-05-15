@@ -167,8 +167,6 @@ class ProjectPage
 
         @create_editor()
 
-        @create_tasks()
-
         @init_file_search()
 
         @init_new_file_tab()
@@ -738,10 +736,6 @@ class ProjectPage
             if name == "project-file-listing"
                 tab.onshow = () ->
                     that.update_file_list_tab()
-            else if name == "project-tasks"
-                tab.onshow = () ->
-                    that.push_state('tasks')
-                    that.tasks.onshow()
             else if name == "project-editor"
                 tab.onshow = () ->
                     that.editor.onshow()
@@ -779,10 +773,6 @@ class ProjectPage
             counter       : @container.find(".project-editor-file-count")
             initial_files : initial_files
         @container.find(".project-editor").append(@editor.element)
-
-    create_tasks: () =>
-        @tasks = new Tasks(project_page : @)
-        @container.find(".project-tasks").append(@tasks.element)
 
     display_tab: (name) =>
         @container.find(".project-pages").children().removeClass('active')

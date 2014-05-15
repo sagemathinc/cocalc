@@ -1,16 +1,24 @@
 <div class="salvus-tasks-templates hide">
 
-    <div class="salvus-tasks" >
+    <div class="salvus-tasks-editor" >
         <h1  class="big-only" style="margin-left:1em;">
-            Tasks
+            Task Editor
         </h1>
 
         <div class="row" style="margin-left:3em; margin-right:3em;">
             <div class="row-fluid">
-                <div class="span6">
-                    <textarea rows=1 placeholder="Create a new task..." class="salvus-tasks-new" style="width:98%"></textarea>
+                <div class="span12">
+                    <textarea rows=4 placeholder="Create a new task..." class="salvus-tasks-new" style="width:98%"></textarea>
                 </div>
-                <div class="span4">
+            </div>
+            <div class="row-fluid" style="margin-bottom:1em">
+                <div class="span2">
+                    <a class="btn btn-success salvus-tasks-create-button salvus-tasks-create-doit-button disabled">Create Task</a>
+                </div>
+                <div class="span2">
+                    <a class="btn btn-danger salvus-tasks-create-button salvus-tasks-cancel-button disabled">Cancel</a>
+                </div>
+                <div class="span6">
                     <input class="salvus-tasks-search search-query" style="width:85%" type="search" placeholder="Search...">
                     <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
                 </div>
@@ -42,6 +50,7 @@
 
     </div>
 
+
     <div class="salvus-task">
         <div class="row-fluid salvus-task-viewer">
             <div class="span1">
@@ -63,3 +72,5 @@
     </div>
 
 </div>
+
+

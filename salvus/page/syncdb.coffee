@@ -1,6 +1,15 @@
-{defaults, required, from_json, to_json, hash_string, len} = require('misc')
+{defaults, required, from_json, hash_string, len} = require('misc')
 syncdoc = require('syncdoc')
 {EventEmitter} = require('events')
+
+misc = require('misc')
+
+to_json = (s) ->
+    try
+        return misc.to_json(s)
+    catch e
+        console.log("UNABLE to convert this object to json", s)
+        throw e
 
 class SynchronizedDB extends EventEmitter
     constructor: (@project_id, @filename, cb) ->
@@ -29,7 +38,11 @@ class SynchronizedDB extends EventEmitter
                 h = hash_string(x)
                 hashes[h] = true
                 if not @_data[h]?
-                    data = from_json(x)
+                    try
+                        data = from_json(x)
+                    catch
+                        # invalid/corrupted json
+                        data = {'corrupt':x}
                     @_data[h] = {data:data, line:i}
                     changes.push({insert:data})
             i += 1
@@ -104,7 +117,7 @@ class SynchronizedDB extends EventEmitter
                     break
             if match
                 result.push(x)
-        return result
+        return misc.deep_copy(result)
 
     # return first database objects that match given condition or undefined if there are no matches
     select_one: (where={}) =>
@@ -117,7 +130,7 @@ class SynchronizedDB extends EventEmitter
                     match = false
                     break
             if match
-                return x
+                return misc.deep_copy(x)
 
     # delete everything that matches the given criterion
     delete: (where, one=false) =>
