@@ -115,20 +115,34 @@ class exports.Tasks
             position     : opts.position
             cb           : opts.cb
 
+    sort_task_list: () =>
+        # TODO: define f in terms of various sort crition based on UI
+        f = (task1, task2) =>
+            if task1.position < task2.position
+                return -1
+            else if  task1.position > task2.position
+                return 1
+            else
+                return 0
+        @task_list.tasks.sort(f)
+
     render_task_list: () =>
         search = []
         for x in @element.find(".salvus-tasks-search").val().toLowerCase().split()
             x = $.trim(x)
             if x.length > 0
                 search.push(x)
-        console.log(search.length)
         if search.length == 0
             @element.find(".salvus-tasks-search-describe").hide()
         else
             @element.find(".salvus-tasks-search-describe").show().find("span").text(search.join(' '))
 
         @elt_task_list.empty()
+        @sort_task_list()
+        first_task = undefined
         for task in @task_list.tasks
+            if not @showing_done and task.done
+                continue
             skip = false
             t = task.title.toLowerCase()
             for s in search
@@ -137,15 +151,58 @@ class exports.Tasks
                     continue
             if not skip
                 @render_task(task)
-        if not @current_task and @task_list.tasks.length > 0
-            @set_current_task(@task_list.tasks[0])
-        @elt_task_list.sortable()
+                if not first_task?
+                    first_task = task
 
-    render_task: (task) =>
-        if not @showing_done and task.done
-            return # nothing to do
+        if not @current_task? and first_task?
+            @set_current_task(first_task)
+
+        @elt_task_list.sortable
+            containment : @element
+            update      : (event, ui) =>
+                e    = ui.item
+                task = e.data('task')
+                # determine the previous and next tasks and their position numbers.
+                prev = e.prev()
+                next = e.next()
+                # if no next or previous, this shouldn't get called (but definitely nothing to do)
+                if prev.length == 0 and next.length == 0
+                    return # nothing to do
+                # if no previous, make our position the next position -1
+                if prev.length == 0
+                    @save_task_position(task, next.data('task').position - 1)
+                # if no next, make our position the previous + 1
+                else if next.length == 0
+                    @save_task_position(task, prev.data('task').position + 1)
+                # if they are the same pos (due to very rare conflict during async add, which can happen),
+                # recompute and save all task positions
+                else if  prev.data('task').position == next.data('task').position
+                    i = 0
+                    @sort_task_list()
+                    for i in [0...@task_list.tasks.length]
+                        @save_task_position(@task_list.tasks[i], i)
+                    @save_task_position(task, (prev.data('task').position + next.data('task').position)/2)
+                # now they are different: set our position to the average of adjacent positions.
+                else
+                    @save_task_position(task, (prev.data('task').position + next.data('task').position)/2)
+
+    save_task_position: (task, position) =>
+        task.position = position
+        salvus_client.edit_task
+            task_list_id : @task_list_id
+            task_id      : task.task_id
+            project_id   : @project_id
+            position     : position
+            cb           : (err) =>
+                if err
+                    alert_message(type:"warning", message:"Problem saving new task position -- #{to_json(err)}")
+
+    render_task: (task, top) =>
         t = task_template.clone()
-        @elt_task_list.append(t)
+        if top
+            @elt_task_list.prepend(t)
+        else
+            @elt_task_list.append(t)
         task.element = t
         t.click () => @set_current_task(task)
         t.find(".salvus-task-title").click () => @edit_title(task)
@@ -156,6 +213,7 @@ class exports.Tasks
             t.find(".salvus-task-viewer-not-done").hide()
         if @current_task? and task.task_id == @current_task.task_id
             @set_current_task(task)
+        t.data('task',task)
         @display_last_edited(task)
         @display_title(task)
 
@@ -241,7 +299,7 @@ class exports.Tasks
                     @set_done(task, not done)
                 else
                     if done and not @showing_done
-                        task.element.fadeOut(3000, task.element.remove)
+                        task.element.fadeOut(1000, task.element.remove)
 
     init_create_task: () =>
         create_task_input = @element.find(".salvus-tasks-new")
@@ -249,10 +307,13 @@ class exports.Tasks
             if misc_page.is_enter(evt)
                 title = create_task_input.val()
                 create_task_input.val('')
-                position = 0  # TODO
+                if @task_list.tasks.length == 0
+                    position = 0
+                else
+                    position = @task_list.tasks[0].position - 1
                 task = {title:title, position:position, last_edited:new Date() - 0}
-                @task_list.tasks.push(task)
-                t = @render_task(task)
+                @task_list.tasks.unshift(task)
+                t = @render_task(task, true)
                 t.icon_spin(start:true, delay:500)
                 @create_task
                     title : title
