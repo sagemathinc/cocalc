@@ -143,6 +143,7 @@ class exports.Tasks
             t.find(".salvus-task-viewer-not-done").hide()
         if @current_task? and task.task_id == @current_task.task_id
             @set_current_task(task)
+        t.draggable(handle:t.find(".fa-reorder"))
 
     set_current_task: (task) =>
         if @current_task?
