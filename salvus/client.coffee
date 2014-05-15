@@ -1,6 +1,10 @@
 {EventEmitter} = require('events')
 
-async = require('async')  # don't delete even if not used below, since this needs to be available to page/
+# don't delete the following -- even if not used below, since this needs to be available to page/
+async = require('async')
+marked = require('marked')
+# end "don't delete"
+
 _     = require('underscore')
 
 salvus_version = require('salvus_version')

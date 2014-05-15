@@ -1,5 +1,7 @@
 async = require('async')
 
+marked = require('marked')
+
 {defaults, required, to_json} = require('misc')
 
 {salvus_client} = require('salvus_client')
@@ -26,6 +28,7 @@ class exports.Tasks
         @last_edited = 0
         @init_showing_done()
         @update_task_list()
+        @init_search()
 
     onshow: () =>
         @update_task_list (err, need_to_update) =>
@@ -34,12 +37,6 @@ class exports.Tasks
             else
                 if need_to_update
                     @render_task_list()
-
-        # to do
-        ###
-        task = task_template.clone().find(".salvus-task-title").text("sample task")
-        @element.append(task)
-        ###
 
     update_task_list: (cb) =>  # cb(error, need_to_update)  -- if need_to_update is true that means the task list changed since last time updated
         # check to see if the task list has changed on the server side, and if so download and re-render it.
@@ -119,23 +116,39 @@ class exports.Tasks
             cb           : opts.cb
 
     render_task_list: () =>
+        search = []
+        for x in @element.find(".salvus-tasks-search").val().toLowerCase().split()
+            x = $.trim(x)
+            if x.length > 0
+                search.push(x)
+        console.log(search.length)
+        if search.length == 0
+            @element.find(".salvus-tasks-search-describe").hide()
+        else
+            @element.find(".salvus-tasks-search-describe").show().find("span").text(search.join(' '))
+
         @elt_task_list.empty()
         for task in @task_list.tasks
-            @render_task(task)
+            skip = false
+            t = task.title.toLowerCase()
+            for s in search
+                if t.indexOf(s) == -1
+                    skip = true
+                    continue
+            if not skip
+                @render_task(task)
         if not @current_task and @task_list.tasks.length > 0
             @set_current_task(@task_list.tasks[0])
+        @elt_task_list.sortable()
 
     render_task: (task) =>
         if not @showing_done and task.done
             return # nothing to do
         t = task_template.clone()
-        title = t.find(".salvus-task-title")
-        title.text(task.title)
-        # TODO -- instead of append, should put in correct position, according to task.position
         @elt_task_list.append(t)
         task.element = t
         t.click () => @set_current_task(task)
-        title.click () => @edit_title(task)
+        t.find(".salvus-task-title").click () => @edit_title(task)
         t.find(".salvus-task-viewer-not-done").click () => @mark_task_done(task, true)
         t.find(".salvus-task-viewer-done").click () => @mark_task_done(task, false)
         if task.done
@@ -143,7 +156,15 @@ class exports.Tasks
             t.find(".salvus-task-viewer-not-done").hide()
         if @current_task? and task.task_id == @current_task.task_id
             @set_current_task(task)
-        t.draggable(handle:t.find(".fa-reorder"))
+        @display_last_edited(task)
+        @display_title(task)
+
+    display_last_edited : (task) =>
+        if task.last_edited
+            task.element.find(".salvus-task-last-edited").attr('title',(new Date(task.last_edited)).toISOString()).timeago()
+
+    display_title: (task) =>
+        task.element.find(".salvus-task-title").html(marked(task.title)).mathjax().find('a').attr("target","_blank")
 
     set_current_task: (task) =>
         if @current_task?
@@ -171,13 +192,16 @@ class exports.Tasks
         stop_editing = () =>
             elt_title.show()
             elt.remove()
+            task.last_edited = (new Date()) - 0
+            @display_last_edited(task)
+
         save_title = () =>
             title = elt.val()
             stop_editing()
             if title != task.title
                 orig_title = task.title
                 task.title = title
-                elt_title.text(title)
+                @display_title(task)
                 salvus_client.edit_task
                     task_list_id : @task_list_id
                     task_id      : task.task_id
@@ -187,10 +211,10 @@ class exports.Tasks
                         if err
                             # TODO -- on error, change it back (?) or keep retrying?
                             task.title = orig_title
-                            e.val(orig_title)
+                            @display_title(task)
                             alert_message(type:"error", message:"Error changing title -- #{to_json(err)}")
 
-    set_done_view: (task, done) =>
+    set_done: (task, done) =>
         if done
             task.element.find(".salvus-task-viewer-not-done").hide()
             task.element.find(".salvus-task-viewer-done").show()
@@ -203,7 +227,7 @@ class exports.Tasks
         if task.done == done
             # nothing to do
             return
-        @set_done_view(task, done)
+        @set_done(task, done)
         task.done = done
         salvus_client.edit_task
             task_list_id : @task_list_id
@@ -214,7 +238,10 @@ class exports.Tasks
                 if err
                     task.done = not done
                     alert_message(type:"error", message:"Error marking task done=#{done} -- #{to_json(err)}")
-                    @set_done_view(task, not done)
+                    @set_done(task, not done)
+                else
+                    if done and not @showing_done
+                        task.element.fadeOut(3000, task.element.remove)
 
     init_create_task: () =>
         create_task_input = @element.find(".salvus-tasks-new")
@@ -223,7 +250,7 @@ class exports.Tasks
                 title = create_task_input.val()
                 create_task_input.val('')
                 position = 0  # TODO
-                task = {title:title, position:position}
+                task = {title:title, position:position, last_edited:new Date() - 0}
                 @task_list.tasks.push(task)
                 t = @render_task(task)
                 t.icon_spin(start:true, delay:500)
@@ -258,4 +285,5 @@ class exports.Tasks
 
 
     init_search: () =>
-
+        @element.find(".salvus-tasks-search").keyup () =>
+            @render_task_list()

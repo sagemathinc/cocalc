@@ -1,42 +1,41 @@
 <div class="salvus-tasks-templates hide">
 
-    <div class="salvus-tasks"  style="margin-left:3em;">
+    <div class="salvus-tasks" >
         <h1  class="big-only" style="margin-left:1em;">
             Tasks
         </h1>
 
-        <div class="row">
-            <div class="well" style="margin-left:3em; margin-right:3em;">
-                <div class="row-fluid">
-                    <div class="span6">
-                        <textarea rows=1 placeholder="Create a new task..." class="salvus-tasks-new" style="width:98%"></textarea>
-                    </div>
-                    <div class="span4">
-                        <input class="salvus-tasks-search search-query" style="width:85%" type="search" placeholder="Search...">
-                        <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
-                    </div>
-                    <div class="span2" style="padding-left: 2em;">
-                        <i class="fa fa-square-o salvus-task-icon salvus-task-search-not-done"> </i>
-                        <i class="fa fa-check-square-o salvus-task-icon salvus-task-search-done hide"> </i>
-                        Show completed
-                    </div>
+        <div class="row" style="margin-left:3em; margin-right:3em;">
+            <div class="row-fluid">
+                <div class="span6">
+                    <textarea rows=1 placeholder="Create a new task..." class="salvus-tasks-new" style="width:98%"></textarea>
                 </div>
-                <div class="row-fluid hide">
-                    <div class='btn-group'>
-                        <a class="btn salvus-tasks-newer disabled"> <i class="fa fa-angle-double-left"> </i> </a>
-                        <a class="btn salvus-tasks-older"> <i class="fa fa-angle-double-right"> </i></a>
-                    </div>
-                    <br><br>
+                <div class="span4">
+                    <input class="salvus-tasks-search search-query" style="width:85%" type="search" placeholder="Search...">
+                    <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
                 </div>
-                <div class="row-fluid">
-                    <div class="well salvus-tasks-list">
-                    </div>
+                <div class="span2" style="padding-left: 2em;">
+                    <i class="fa fa-square-o salvus-task-icon salvus-task-search-not-done"> </i>
+                    <i class="fa fa-check-square-o salvus-task-icon salvus-task-search-done hide"> </i>
+                    Show completed
                 </div>
-                <div class="row-fluid hide">
-                    <div class='btn-group'>
-                        <a class="btn salvus-tasks-newer disabled"> <i class="fa fa-angle-double-left"> </i> </a>
-                        <a class="btn salvus-tasks-older">  <i class="fa fa-angle-double-right"> </i></a>
-                    </div>
+            </div>
+            <div class="hide lighten salvus-tasks-search-describe">Showing <b><i>only</i></b> tasks that contain '<span></span>'.</div>
+            <div class="row-fluid hide">
+                <div class='btn-group'>
+                    <a class="btn salvus-tasks-newer disabled"> <i class="fa fa-angle-double-left"> </i> </a>
+                    <a class="btn salvus-tasks-older"> <i class="fa fa-angle-double-right"> </i></a>
+                </div>
+                <br><br>
+            </div>
+            <div class="row-fluid">
+                <div class="well salvus-tasks-list">
+                </div>
+            </div>
+            <div class="row-fluid hide">
+                <div class='btn-group'>
+                    <a class="btn salvus-tasks-newer disabled"> <i class="fa fa-angle-double-left"> </i> </a>
+                    <a class="btn salvus-tasks-older">  <i class="fa fa-angle-double-right"> </i></a>
                 </div>
             </div>
         </div>
@@ -46,16 +45,14 @@
     <div class="salvus-task">
         <div class="row-fluid salvus-task-viewer">
             <div class="span1">
-                <i class="fa fa-reorder salvus-task-icon salvus-task-viewer-move"> </i>
                 <i class="fa fa-square-o salvus-task-icon salvus-task-viewer-not-done"> </i>
                 <i class="fa fa-check-square-o salvus-task-icon salvus-task-viewer-done hide"> </i>
-                <!--
-                <i class="fa fa-star-o salvus-task-icon salvus-task-viewer-nostar"> </i>
-                <i class="fa fa-star salvus-task-icon salvus-task-viewer-star hide"> </i>
-                -->
             </div>
-            <div class="span11">
+            <div class="span9">
                 <span class="salvus-task-title"></span>
+            </div>
+            <div class="span2">
+                <span class="salvus-task-last-edited lighten"></span>
             </div>
         </div>
     </div>
