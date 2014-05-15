@@ -1,38 +1,62 @@
-{defaults, required, from_json, to_json} = require('misc')
+{defaults, required, from_json, to_json, hash_string, len} = require('misc')
 syncdoc = require('syncdoc')
 
 class SynchronizedDB
     constructor: (@project_id, @filename, cb) ->
         syncdoc.synchronized_string
             project_id : @project_id
-            filename   : @filename
+            filename   : @filename    # should end with .smcdb
             cb         : (err, doc) =>
                 if err
                     cb(err)
                 else
-                    @doc = doc
+                    @_doc = doc
+                    @_data = {}
                     @_set_data_from_doc()
-                    @doc.on 'sync', () =>
-                        console.log("got sync")
+                    @_doc.on 'sync', () =>
                         @_set_data_from_doc()
                     cb(undefined, @)
 
     # set the data object to equal what is defined in the syncdoc
     _set_data_from_doc: () =>
-        console.log("setting data from doc=",@doc.live())
-        @data = []
-        for x in @doc.live().split('\n')
+        # change/add anything that has changed or been added
+        i = 0
+        hashes = {}
+        for x in @_doc.live().split('\n')
             if x.length > 0
-                @data.push(from_json(x))
+                h = hash_string(x)
+                console.log(h, x)
+                hashes[h] = true
+                if not @_data[h]?
+                    @_data[h] = {data:from_json(x), line:i}
+            i += 1
+        # delete anything that was deleted
+        for h,v of @_data
+            if not hashes[h]?
+                delete @_data[h]
 
-    _set_doc_from_data: (line) =>
-        # TODO: possibly stupidly inefficient...
-        v = @doc.live().split('\n')
-        v[line] = to_json(@data[line])
-        @doc.live(v.join('\n'))
-        @doc.save()
+    _set_doc_from_data: (hash) =>
+        if hash?
+            # only one line changed
+            d = @_data[hash]
+            v = @_doc.live().split('\n')
+            v[d.line] = to_json(d.data)
+        else
+            # major change to doc (e.g., deleting records)
+            m = []
+            for hash, x of @_data
+                m[x.line] = {hash:hash, x:x}
+            m = (x for x in m if x?)
+            line = 0
+            v = []
+            for z in m
+                z.x.line = line
+                v.push(to_json(z.x.data))
+                line += 1
+        @_doc.live(v.join('\n'))
+        @_doc.save()
 
-    # change exactly one database entry that matches the given where criterion.
+    # change exactly *one* database entry that matches the given where criterion.
     update: (opts) =>
         opts = defaults opts,
             set   : required
@@ -40,8 +64,9 @@ class SynchronizedDB
         set = opts.set
         where = opts.where
         i = 0
-        for x in @data
+        for hash, val of @_data
             match = true
+            x = val.data
             for k, v of where
                 if x[k] != v
                     match = false
@@ -49,7 +74,7 @@ class SynchronizedDB
             if match
                 for k, v of set
                     x[k] = v
-                @_set_doc_from_data(i)
+                @_set_doc_from_data(hash)
                 return
             i += 1
         new_obj = {}
@@ -57,13 +82,15 @@ class SynchronizedDB
             new_obj[k] = v
         for k, v of where
             new_obj[k] = v
-        @data.push(new_obj)
-        @_set_doc_from_data(i)
+        hash = hash_string(to_json(new_obj))
+        @_data[hash] = {data:new_obj, line:len(@_data)}
+        @_set_doc_from_data(hash)
 
     # return list of all database objects that match given condition.
     select: (where={}) =>
         result = []
-        for x in @data
+        for hash, val of @_data
+            x = val.data
             match = true
             for k, v of where
                 if x[k] != v
@@ -72,6 +99,41 @@ class SynchronizedDB
             if match
                 result.push(x)
         return result
+
+    # return first database objects that match given condition or undefined if there are no matches
+    select_one: (where={}) =>
+        result = []
+        for hash, val of @_data
+            x = val.data
+            match = true
+            for k, v of where
+                if x[k] != v
+                    match = false
+                    break
+            if match
+                return x
+
+    # delete everything that matches the given criterion
+    delete: (where, one=false) =>
+        result = []
+        for hash, val of @_data
+            x = val.data
+            match = true
+            for k, v of where
+                if x[k] != v
+                    match = false
+                    break
+            if match
+                delete @_data[hash]
+                if one
+                    break
+        @_set_doc_from_data()
+
+    # delete first thing in db that matches the given criterion
+    delete_one: (where) =>
+        @delete(where, true)
+
+
 
 exports.synchronized_db = (opts) ->
     opts = defaults opts,

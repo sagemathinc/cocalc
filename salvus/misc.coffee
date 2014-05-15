@@ -561,3 +561,21 @@ exports.parse_bup_timestamp = (s) ->
 
 
 
+
+exports.hash_string = (s) ->
+    # see http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery
+    hash = 0
+    i = undefined
+    chr = undefined
+    len = undefined
+    return hash if s.length is 0
+    i = 0
+    len = s.length
+    while i < len
+        chr = s.charCodeAt(i)
+        hash = ((hash << 5) - hash) + chr
+        hash |= 0 # convert to 32-bit integer
+        i++
+    return hash
+
+
