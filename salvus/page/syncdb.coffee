@@ -1,7 +1,8 @@
 {defaults, required, from_json, to_json, hash_string, len} = require('misc')
 syncdoc = require('syncdoc')
+{EventEmitter} = require('events')
 
-class SynchronizedDB
+class SynchronizedDB extends EventEmitter
     constructor: (@project_id, @filename, cb) ->
         syncdoc.synchronized_string
             project_id : @project_id
@@ -22,18 +23,23 @@ class SynchronizedDB
         # change/add anything that has changed or been added
         i = 0
         hashes = {}
+        changes = []
         for x in @_doc.live().split('\n')
             if x.length > 0
                 h = hash_string(x)
-                console.log(h, x)
                 hashes[h] = true
                 if not @_data[h]?
-                    @_data[h] = {data:from_json(x), line:i}
+                    data = from_json(x)
+                    @_data[h] = {data:data, line:i}
+                    changes.push({insert:data})
             i += 1
         # delete anything that was deleted
         for h,v of @_data
             if not hashes[h]?
+                changes.push({remove:v.data})
                 delete @_data[h]
+        if changes.length > 0
+            @emit("change", changes)
 
     _set_doc_from_data: (hash) =>
         if hash?
