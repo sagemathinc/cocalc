@@ -10,8 +10,8 @@ async = require('async')
 misc_page = require('misc_page')
 
 templates = $(".salvus-tasks-templates")
-task_template = templates.find(".salvus-project-task")
-task_editor_template = templates.find(".salvus-project-task-editor")
+task_template = templates.find(".salvus-task")
+edit_title_template = templates.find(".salvus-tasks-title-edit")
 
 class exports.Tasks
     constructor: (opts) ->
@@ -20,10 +20,11 @@ class exports.Tasks
         @project_page  = opts.project_page
         @project_id    = opts.project_page.project.project_id
         @task_list_id  = opts.project_page.project.task_list_id
-        @element       = templates.find(".salvus-project-tasks").clone().show()
-        @elt_task_list = @element.find(".salvus-project-tasks-list")
+        @element       = templates.find(".salvus-tasks").clone().show()
+        @elt_task_list = @element.find(".salvus-tasks-list")
         @init_create_task()
         @last_edited = 0
+        @init_showing_done()
         @update_task_list()
 
     onshow: () =>
@@ -36,7 +37,7 @@ class exports.Tasks
 
         # to do
         ###
-        task = task_template.clone().find(".salvus-project-task-title").text("sample task")
+        task = task_template.clone().find(".salvus-task-title").text("sample task")
         @element.append(task)
         ###
 
@@ -121,28 +122,45 @@ class exports.Tasks
         @elt_task_list.empty()
         for task in @task_list.tasks
             @render_task(task)
+        if not @current_task and @task_list.tasks.length > 0
+            @set_current_task(@task_list.tasks[0])
 
     render_task: (task) =>
+        if not @showing_done and task.done
+            return # nothing to do
         t = task_template.clone()
-        title = t.find(".salvus-project-task-title")
+        title = t.find(".salvus-task-title")
         title.text(task.title)
         # TODO -- instead of append, should put in correct position, according to task.position
         @elt_task_list.append(t)
         task.element = t
-        t.find(".salvus-project-task-viewer").click(() => @edit_task(task))
-        return t
+        t.click () => @set_current_task(task)
+        title.click () => @edit_title(task)
+        t.find(".salvus-task-viewer-not-done").click () => @mark_task_done(task, true)
+        t.find(".salvus-task-viewer-done").click () => @mark_task_done(task, false)
+        if task.done
+            t.find(".salvus-task-viewer-done").show()
+            t.find(".salvus-task-viewer-not-done").hide()
+        if @current_task? and task.task_id == @current_task.task_id
+            @set_current_task(task)
 
-    edit_task: (task) =>
+    set_current_task: (task) =>
+        if @current_task?
+            @current_task.element.removeClass("salvus-current-task")
+        @current_task = task
+        task.element.addClass("salvus-current-task")
+
+    edit_title: (task) =>
         e = task.element
-        e.find(".salvus-project-task-viewer").hide()
-        elt = task_editor_template.clone()
-        e.append(elt)
-        edit_title = elt.find(".salvus-project-tasks-title-edit")
-        edit_title.val(task.title)
-        edit_title.focus()
-        edit_title.focusout () =>
+        elt_title = e.find(".salvus-task-title")
+        elt = edit_title_template.clone()
+        elt_title.after(elt)
+        elt_title.hide()
+        elt.val(task.title)
+        elt.focus()
+        elt.focusout () =>
             save_title()
-        edit_title.keydown (evt) =>
+        elt.keydown (evt) =>
             if evt.which is 13
                 save_title()
                 return false
@@ -150,13 +168,15 @@ class exports.Tasks
                 stop_editing()
                 return false
         stop_editing = () =>
-            e.find(".salvus-project-task-viewer").show()
+            elt_title.show()
             elt.remove()
         save_title = () =>
-            task.title = title = edit_title.val()
-            e.find(".salvus-project-task-title").text(title)
+            title = elt.val()
             stop_editing()
             if title != task.title
+                orig_title = task.title
+                task.title = title
+                elt_title.text(title)
                 salvus_client.edit_task
                     task_list_id : @task_list_id
                     task_id      : task.task_id
@@ -164,11 +184,39 @@ class exports.Tasks
                     title        : title
                     cb           : (err) =>
                         if err
-                            alert_message(type:"error", message:"Error saving task change -- #{to_json(err)}")
+                            # TODO -- on error, change it back (?) or keep retrying?
+                            task.title = orig_title
+                            e.val(orig_title)
+                            alert_message(type:"error", message:"Error changing title -- #{to_json(err)}")
 
+    set_done_view: (task, done) =>
+        if done
+            task.element.find(".salvus-task-viewer-not-done").hide()
+            task.element.find(".salvus-task-viewer-done").show()
+        else
+            task.element.find(".salvus-task-viewer-not-done").show()
+            task.element.find(".salvus-task-viewer-done").hide()
+
+
+    mark_task_done: (task, done) =>
+        if task.done == done
+            # nothing to do
+            return
+        @set_done_view(task, done)
+        task.done = done
+        salvus_client.edit_task
+            task_list_id : @task_list_id
+            task_id      : task.task_id
+            project_id   : @project_id
+            done         : done
+            cb           : (err) =>
+                if err
+                    task.done = not done
+                    alert_message(type:"error", message:"Error marking task done=#{done} -- #{to_json(err)}")
+                    @set_done_view(task, not done)
 
     init_create_task: () =>
-        create_task_input = @element.find(".salvus-project-tasks-new")
+        create_task_input = @element.find(".salvus-tasks-new")
         create_task_input.keydown (evt) =>
             if misc_page.is_enter(evt)
                 title = create_task_input.val()
@@ -192,4 +240,21 @@ class exports.Tasks
                 create_task_input.val('')
                 return false
             return true
+
+    init_showing_done: () =>
+        @showing_done = false
+        @element.find(".salvus-task-search-not-done").click () =>
+            @showing_done = true
+            @element.find(".salvus-task-search-done").show()
+            @element.find(".salvus-task-search-not-done").hide()
+            @render_task_list()
+        @element.find(".salvus-task-search-done").click () =>
+            @showing_done = false
+            @element.find(".salvus-task-search-done").hide()
+            @element.find(".salvus-task-search-not-done").show()
+            @render_task_list()
+
+
+
+    init_search: () =>
 

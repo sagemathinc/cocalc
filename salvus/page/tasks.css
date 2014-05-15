@@ -1,8 +1,8 @@
-.salvus-project-tasks-new {
+.salvus-tasks-new {
     background-color:white;
 }
 
-.salvus-project-task {
+.salvus-task {
     background-color: white;
     padding-left: 1ex;
     padding-bottom: 1ex;
@@ -10,14 +10,35 @@
     padding-top: 2ex;
     cursor : pointer;
     border-top: 1px solid #ccc;
+    border-left: 2px solid #fff;
 }
 
 
-.salvus-project-task:hover {
+.salvus-task:hover {
     background-color:#efe;
 }
 
-.salvus-project-tasks-title-edit {
+.salvus-task-title:hover {
+    cursor : text;
+    color : #000;
+}
+
+.salvus-tasks-title-edit {
     width: 98%
+}
+
+.salvus-task-icon {
+}
+
+.salvus-task-icon:hover {
+    color:#08c
+}
+
+.salvus-task-viewer {
+    color: #444;
+}
+
+.salvus-current-task {
+    border-left: 2px solid #08c;
 }
 
