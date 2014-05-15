@@ -46,13 +46,23 @@
 .salvus-tasks-search-describe {
     margin-top: 4px;
     font-size: 14pt;
-    padding-bottom: 1em;
+    padding-bottom: 1ex;
 }
 
 .salvus-new-task-cm-editor {
     margin-bottom: 1em;
     border : 2px solid #ccc;
-    height : 4em;
+    min-height : 2em;
+    height: auto;
 }
 
+.salvus-new-task-cm-scroll {
+    overflow-y: hidden;
+    overflow-x: auto;
+}
+
+.salvus-tasks-list {
+    overflow-y:auto;
+    margin-bottom:2em;
+}
 

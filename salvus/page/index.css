@@ -89,6 +89,9 @@ body { padding-top:41px; }
         top: 0px !important;
     }
 
+    .project-pages {
+        margin-top: 10px;
+    }
 }
 
 /* so on iOS scroll-into-view modals work */

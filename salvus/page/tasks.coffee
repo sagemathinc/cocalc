@@ -223,8 +223,11 @@ class TaskList
         @element.find(".salvus-tasks-create-button").addClass('disabled')
 
     create_task: () =>
-        title = @create_task_editor.getValue()
+        title = $.trim(@create_task_editor.getValue())
         @clear_create_task()
+        if title.length == 0
+            return
+
         if @tasks.length == 0
             position = 0
         else
@@ -248,18 +251,19 @@ class TaskList
             mode        : 'markdown',
             lineNumbers : false,
             theme       : "default",
+            viewportMargin: Infinity
             extraKeys   :
                 "Enter": "newlineAndIndentContinueMarkdownList"
                 "Shift-Enter" : @create_task
 
         @create_task_editor = CodeMirror.fromTextArea(create_task_input[0], opts)
         $(@create_task_editor.getWrapperElement()).addClass('salvus-new-task-cm-editor')
+        $(@create_task_editor.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
         @task_create_buttons = @element.find(".salvus-tasks-create-button")
         @create_task_editor.on 'change', () =>
             @task_create_buttons.removeClass('disabled')
 
-        @element.find(".salvus-tasks-create-doit-button").click(@create_task)
-        @element.find(".salvus-tasks-cancel-button").click(@clear_create_task)
+        @element.find(".salvus-tasks-create-button").click(@create_task)
 
     init_showing_done: () =>
         @showing_done = false
@@ -278,6 +282,8 @@ class TaskList
         @element.find(".salvus-tasks-search").keyup () =>
             @render_task_list()
 
+    show: () =>
+        @elt_task_list.maxheight(offset:50)
 
 
 

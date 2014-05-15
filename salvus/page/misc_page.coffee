@@ -157,9 +157,11 @@ $.fn.extend
 
 # Expand element to be vertically maximal in height, keeping its current top position.
 $.fn.maxheight = (opts) ->
+    if not opts.offset?
+        opts.offset = 0
     @each ->
         elt = $(this)
-        elt.height($(window).height() - elt.offset().top)
+        elt.height($(window).height() - elt.offset().top - opts.offset)
     this
 
 
