@@ -18,7 +18,7 @@ edit_title_template = templates.find(".salvus-tasks-title-edit")
 class exports.Tasks
     constructor: (opts) ->
         opts = defaults opts,
-            project_page   : required
+            project_page   : required            
         @project_page  = opts.project_page
         @project_id    = opts.project_page.project.project_id
         @task_list_id  = opts.project_page.project.task_list_id

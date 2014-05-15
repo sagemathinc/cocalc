@@ -139,6 +139,10 @@ file_associations['pdf'] =
     editor : 'pdf'
     opts   : {}
 
+file_associations['tasks'] =
+    editor : 'tasks'
+    icon   : 'fa-tasks'
+    opts   : {}
 
 # Multiplex'd worksheet mode
 
@@ -589,7 +593,6 @@ class exports.Editor
             typ = editor_name
         @project_page.project_activity({event:'open', filename:filename, type:typ})
 
-
         # Some of the editors below might get the content later and will call @file_options again then.
         switch editor_name
             # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
@@ -609,6 +612,8 @@ class exports.Editor
                 editor = new LatexEditor(@, filename, content, extra_opts)
             when 'pdf'
                 editor = new PDF_PreviewEmbed(@, filename, content, extra_opts)
+            when 'tasks'
+                editor = new TaskList(@, filename, content, extra_opts)
             when 'ipynb'
                 editor = new IPythonNotebook(@, filename, content, extra_opts)
             else
@@ -4213,6 +4218,32 @@ class IPythonNotebook extends FileEditor
             @element.css('position':'fixed')
         w = $(window).width()
         @iframe?.attr('width',w).maxheight()
+
+###
+# Todo list
+###
+class TaskList extends FileEditor
+    constructor: (@editor, @filename) ->
+        @element = $("<div>task  list</div>")
+        @element.hide()
+
+    _get: () =>
+        # TODO
+        return 'history saving not yet implemented'
+
+    _set: (content) =>
+        # TODO
+
+    focus: () =>
+
+    terminate_session: () =>
+
+    remove: () =>
+        @element.remove()
+
+    show: () =>
+        @element.show()
+
 
 #**************************************************
 # other...

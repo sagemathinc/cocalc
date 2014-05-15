@@ -1026,6 +1026,10 @@ class ProjectPage
             create_file('ipynb')
             return false
 
+        @new_file_tab.find("a[href=#new-tasks]").click () =>
+            create_file('tasks')
+            return false
+
         BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws']
 
         create_file = (ext) =>
