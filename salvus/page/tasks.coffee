@@ -94,7 +94,7 @@ class TaskList
             @set_current_task(first_task)
 
         @elt_task_list.sortable
-            containment : @element
+            containment : @elt_task_list
             update      : (event, ui) =>
                 e    = ui.item
                 task = e.data('task')
@@ -171,7 +171,10 @@ class TaskList
             task.element.find(".salvus-task-last-edited").attr('title',(new Date(task.last_edited)).toISOString()).timeago()
 
     display_title: (task) =>
-        task.element.find(".salvus-task-title").html(marked(task.title)).mathjax().find('a').attr("target","_blank")
+        title = $.trim(task.title)
+        if title.length == 0
+            title = "No title" # so it is possible to edit        
+        task.element.find(".salvus-task-title").html(marked(title)).mathjax().find('a').attr("target","_blank")
 
     set_current_task: (task) =>
         if @current_task?
