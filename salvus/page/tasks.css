@@ -78,20 +78,20 @@
     margin-bottom:2em;
 }
 
-.salvus-task-current {
+.salvus-task-active-icon {
     margin-left: 1ex;
     color: #bbb;
 }
 
-.salvus-task-current:hover {
-    color: #3d3;
+.salvus-task-active-icon:hover {
+    color: green;
 }
 
-.salvus-task-current-active {
-    color: #3d3;
+.salvus-task-active-icon-active {
+    color: green;
 }
 
-.salvus-task-current-active:hover {
+.salvus-task-active-icon-active:hover {
     color: #bbb;
 }
 

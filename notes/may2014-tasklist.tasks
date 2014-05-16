@@ -8,7 +8,7 @@
 {"title":"**sort** tasks\n- add column headings\n- click to by natural order, title, when due, last edited","position":-7,"last_edited":1400200195452,"task_id":"2cb7f0b1-9324-41b8-b7a9-fcb9a6cf931a"}
 {"title":"use **keyboard** to move between current task, start/stop editing, mark done, etc.\n- up/down and also vim j/k\n- enter or i to start editing\n- escape or shift-enter to exit","position":-10.125,"last_edited":1400200231362,"task_id":"10981424-1984-404e-bf1f-1676d3db0d63"}
 {"title":"","position":-9,"last_edited":1400200893589,"task_id":"f9f7b3a1-1a42-4766-a94a-e2284feb78ca","done":true}
-{"title":"**empty task** -- no way to start editing it\n - make it so there is no way to create an empty task","position":-30,"last_edited":1400200910366,"task_id":"f723fd7f-f6cf-46b0-941e-1c2532b1d102","active":true}
+{"title":"**empty task** -- no way to start editing it\n - make it so there is no way to create an empty task","position":-30,"last_edited":1400200910366,"task_id":"f723fd7f-f6cf-46b0-941e-1c2532b1d102","active":false,"done":true}
 {"title":"no way to **scroll page** down to see moe tasks -- need to change position","position":-11,"last_edited":1400201015890,"task_id":"512bdeb0-55d2-4222-b76f-6a5cc6e75da7","done":true,"active":false}
 {"title":"bug: **last edited** time is broken.","position":-27.5,"last_edited":1400202264055,"task_id":"a24db834-d642-46d3-8ffb-8be16d253c3c"}
 {"title":"**markdown parser** -- add marked to `NODE_PACKAGE_LIST`\n - also, consider using a different one?","position":-13,"last_edited":1400202276623,"task_id":"96a0dfd0-9cc9-4a40-81bb-f9fb03f1c590"}
@@ -19,8 +19,8 @@
 {"title":"(trivial) implement cancel search button","position":-18,"last_edited":1400206081184,"task_id":"ce8ada09-e6bf-4776-9cb0-6bad873fe59f","active":false,"done":true}
 {"title":"(trivial) tooltip over \"Create Task\" that says \"shift+enter\"","position":-22,"last_edited":1400206097078,"task_id":"86aa3fa8-8ccc-45ce-8e3c-ba5ca89f45ec","done":true}
 {"title":"**copy and paste** tasks from one task list to another","position":-3,"last_edited":1400206548094,"task_id":"a2522295-941a-46dd-bcc0-e585eddbeb3e"}
-{"title":"whether or not to \"show done\" should be persisted in **local storage**","position":-28.5,"last_edited":1400257718258,"task_id":"72651b93-8b24-4419-80f8-60b1a63e0d83"}
-{"title":"currently selected task should be persisted in **local storage**","position":-28.25,"last_edited":1400257735089,"task_id":"bb755feb-f9e7-4c84-b5b2-93b5aafb52a4","active":false,"done":false}
+{"title":"whether or not to \"show done\" should be persisted in **local storage**","position":-30,"last_edited":1400257718258,"task_id":"72651b93-8b24-4419-80f8-60b1a63e0d83","active":true,"done":true}
+{"title":"currently selected task should be persisted in **local storage**","position":-29.5,"last_edited":1400257735089,"task_id":"bb755feb-f9e7-4c84-b5b2-93b5aafb52a4","active":true,"done":false}
 {"title":"make task disappear more slowly; also, don't sort completed tasks differently","position":-24,"last_edited":1400270025510,"task_id":"2863f756-8c94-410e-89a8-821e0bfda753","done":true}
 {"title":"make the task input/edit box have a **blue border** on focus","position":-22.5,"last_edited":1400271518249,"task_id":"a05d1391-caee-496b-b612-7066f6b520e2","done":true}
 {"title":"upgrade to newest <b><span style=\"color:green\">font awesome</span></b>, so more icon options :-)","position":-25,"last_edited":1400273703601,"task_id":"c83c9a6d-159a-48dc-93f2-dc08c7a8011c","done":true}

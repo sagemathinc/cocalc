@@ -4,10 +4,8 @@ marked = require('marked')
 
 {defaults, required, to_json, uuid} = require('misc')
 
-{salvus_client} = require('salvus_client')
-
-{alert_message} = require('alerts')
-
+{salvus_client}   = require('salvus_client')
+{alert_message}   = require('alerts')
 {synchronized_db} = require('syncdb')
 
 misc_page = require('misc_page')
@@ -51,6 +49,10 @@ class TaskList
     destroy: () =>
         @element.removeData()
 
+    local_storage: (key, value) =>
+        {local_storage}   = require('editor')
+        return local_storage(@project_id, @filename, key, value)
+
     sort_task_list: () =>
         # TODO: define f in terms of various sort crition based on UI
         f = (task1, task2) =>
@@ -91,7 +93,12 @@ class TaskList
                     first_task = task
 
         if not @current_task? and first_task?
-            @set_current_task(first_task)
+            task_id = @local_storage("current_task")
+            if task_id?
+                current_task = @get_task_by_id(task_id)
+            if not current_task?
+                current_task = first_task
+            @set_current_task(current_task)
 
         @elt_task_list.sortable
             containment : @elt_task_list
@@ -128,6 +135,11 @@ class TaskList
             set   : {position : position}
             where : {task_id : task.task_id}
 
+    get_task_by_id: (task_id) =>
+        for t in @tasks
+            if t.task_id == task_id
+                return t
+
     render_task: (task, top) =>
         t = task_template.clone()
         if top
@@ -145,22 +157,22 @@ class TaskList
             t.addClass("salvus-task-done")
         if @current_task? and task.task_id == @current_task.task_id
             @set_current_task(task)
-        active = t.find(".salvus-task-current").click(() =>@toggle_actively_working_on_task(task))
+        active = t.find(".salvus-task-active-icon").click(() =>@toggle_actively_working_on_task(task))
         if task.active
-            active.addClass("salvus-task-current-active")
+            active.addClass("salvus-task-active-icon-active")
         t.data('task',task)
         @display_last_edited(task)
         @display_title(task)
 
     toggle_actively_working_on_task: (task, active) =>
-        e = task.element.find(".salvus-task-current")
+        e = task.element.find(".salvus-task-active-icon")
         if not active?
             # toggle
-            active = not e.hasClass("salvus-task-current-active")
+            active = not e.hasClass("salvus-task-active-icon-active")
         if active
-            e.addClass("salvus-task-current-active")
+            e.addClass("salvus-task-active-icon-active")
         else
-            e.removeClass("salvus-task-current-active")
+            e.removeClass("salvus-task-active-icon-active")
         task.active = active
         @db.update
             set   : {active  : active}
@@ -173,7 +185,7 @@ class TaskList
     display_title: (task) =>
         title = $.trim(task.title)
         if title.length == 0
-            title = "No title" # so it is possible to edit        
+            title = "No title" # so it is possible to edit
         task.element.find(".salvus-task-title").html(marked(title)).mathjax().find('a').attr("target","_blank")
 
     set_current_task: (task) =>
@@ -181,6 +193,7 @@ class TaskList
             @current_task.element.removeClass("salvus-current-task")
         @current_task = task
         task.element.addClass("salvus-current-task")
+        @local_storage("current_task", task.task_id)
 
     edit_title: (task) =>
         e = task.element
@@ -297,18 +310,19 @@ class TaskList
 
         @element.find(".salvus-tasks-create-button").click(@create_task)
 
+    set_showing_done: (showing) =>
+        @showing_done = showing
+        @local_storage("showing_done", @showing_done)
+        is_showing = @element.find(".salvus-task-search-not-done").hasClass('hide')
+        if is_showing != showing
+            @element.find(".salvus-task-search-done-icon").toggleClass('hide')
+            @render_task_list()
+
     init_showing_done: () =>
-        @showing_done = false
-        @element.find(".salvus-task-search-not-done").click () =>
-            @showing_done = true
-            @element.find(".salvus-task-search-done").show()
-            @element.find(".salvus-task-search-not-done").hide()
-            @render_task_list()
-        @element.find(".salvus-task-search-done").click () =>
-            @showing_done = false
-            @element.find(".salvus-task-search-done").hide()
-            @element.find(".salvus-task-search-not-done").show()
-            @render_task_list()
+        @showing_done = @local_storage("showing_done")
+        @set_showing_done(@showing_done)
+        @element.find(".salvus-task-search-not-done").click(=> @set_showing_done(true))
+        @element.find(".salvus-task-search-done").click(=> @set_showing_done(false))
 
     init_search: () =>
         @element.find(".salvus-tasks-search").keyup () =>
