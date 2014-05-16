@@ -145,9 +145,26 @@ class TaskList
             t.addClass("salvus-task-done")
         if @current_task? and task.task_id == @current_task.task_id
             @set_current_task(task)
+        active = t.find(".salvus-task-current").click(() =>@toggle_actively_working_on_task(task))
+        if task.active
+            active.addClass("salvus-task-current-active")
         t.data('task',task)
         @display_last_edited(task)
         @display_title(task)
+
+    toggle_actively_working_on_task: (task, active) =>
+        e = task.element.find(".salvus-task-current")
+        if not active?
+            # toggle
+            active = not e.hasClass("salvus-task-current-active")
+        if active
+            e.addClass("salvus-task-current-active")
+        else
+            e.removeClass("salvus-task-current-active")
+        task.active = active
+        @db.update
+            set   : {active  : active}
+            where : {task_id : task.task_id}
 
     display_last_edited : (task) =>
         if task.last_edited
@@ -213,6 +230,7 @@ class TaskList
             @db.update
                 set   : {done : done}
                 where : {task_id : task.task_id}
+            @toggle_actively_working_on_task(task, false)
         if done and not @showing_done
             task.element.fadeOut 10000, () =>
                 if task.done  # they could have canceled the action by clicking again
