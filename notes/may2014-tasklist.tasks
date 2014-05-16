@@ -1,7 +1,7 @@
 {"title":"Add **due** date field","position":-15,"last_edited":1400200049045,"task_id":"9935b462-c9de-44a7-9589-b51d246d9f06"}
 {"title":"(invalid) **import/export** a set of tasks","position":-1,"last_edited":1400200054140,"task_id":"86c7c95f-709c-4c68-9a18-1c0a480ea93e","done":true,"active":false}
 {"title":"Ability to **link** to files in project","position":-2,"last_edited":1400200061348,"task_id":"340b9bac-6662-41ba-9b4e-cbc95565e202"}
-{"title":"**Subtask** list\n - might require some UI refactoring (?)\n - maybe something else?\n - critical that existing tasks can be dragged to be subtasks of other tasks, i.e., ability to organize\n","position":-5.5,"last_edited":1400200068867,"task_id":"8387fdea-bf53-4bef-a642-a58cc2ef455b"}
+{"title":"**Subtasks**\n - maybe something else?\n - critical that existing tasks can be dragged to be subtasks of other tasks, i.e., ability to organize\n","position":-30,"last_edited":1400200068867,"task_id":"8387fdea-bf53-4bef-a642-a58cc2ef455b"}
 {"title":"**delete** tasks\n- in edit mode, make a red button \"Delete\" with  a trashcan on right replacing the time\n- when clicked, delete task\n- add way to show recently deleted tasks\n- add way to purge deleted tasks forever","position":-29,"last_edited":1400200094042,"task_id":"ddf315ea-62a2-49c6-935e-efe565474146","active":false}
 {"title":"should we -- have **actions** use the checkboxes to select a task or range of tasks, then have actions\n- mark done, delete, export (all in range sent to json)","position":-5,"last_edited":1400200119136,"task_id":"6b036c1d-eba9-4520-ae7b-0a943c00f5cc"}
 {"title":"some good way to indicate currently **active task(s)**, i.e., tasks we are working on.","position":-21.5,"last_edited":1400200175957,"task_id":"b0f2fdba-9dc3-4e3e-b42b-47d5e420f262","active":false,"done":true}
@@ -12,15 +12,15 @@
 {"title":"no way to **scroll page** down to see moe tasks -- need to change position","position":-11,"last_edited":1400201015890,"task_id":"512bdeb0-55d2-4222-b76f-6a5cc6e75da7","done":true,"active":false}
 {"title":"bug: **last edited** time is broken.","position":-27.5,"last_edited":1400202264055,"task_id":"a24db834-d642-46d3-8ffb-8be16d253c3c"}
 {"title":"**markdown parser** -- add marked to `NODE_PACKAGE_LIST`\n - also, consider using a different one?","position":-13,"last_edited":1400202276623,"task_id":"96a0dfd0-9cc9-4a40-81bb-f9fb03f1c590"}
-{"title":"use **codemirror** with md syntax highlighting when editing tasks","position":-27,"last_edited":1400202332692,"task_id":"785c4a82-c5ca-4497-ab9c-8d4a8e530244","active":false}
+{"title":"use **codemirror** with md syntax highlighting when editing task title\n","position":-32,"last_edited":1400202332692,"task_id":"785c4a82-c5ca-4497-ab9c-8d4a8e530244","active":true}
 {"title":"Task list top does *not* properly switch in **responsive mode**...\n","position":-16,"last_edited":1400202708980,"task_id":"41e70636-7115-4d38-81ef-2e71ba1c54c0","done":true}
 {"title":"**Latex editor** is suddenly completely broken.","position":-9,"last_edited":1400205909981,"task_id":"c1ddfe48-2700-4894-bc41-2424c29d0c51"}
 {"title":"(trivial) Get rid of **cancel button**.","position":-23,"last_edited":1400205921151,"task_id":"92532e40-0d9b-4035-a77f-653f787e3b40","done":true}
 {"title":"(trivial) implement cancel search button","position":-18,"last_edited":1400206081184,"task_id":"ce8ada09-e6bf-4776-9cb0-6bad873fe59f","active":false,"done":true}
 {"title":"(trivial) tooltip over \"Create Task\" that says \"shift+enter\"","position":-22,"last_edited":1400206097078,"task_id":"86aa3fa8-8ccc-45ce-8e3c-ba5ca89f45ec","done":true}
 {"title":"**copy and paste** tasks from one task list to another","position":-3,"last_edited":1400206548094,"task_id":"a2522295-941a-46dd-bcc0-e585eddbeb3e"}
-{"title":"whether or not to \"show done\" should be persisted in **local storage**","position":-30,"last_edited":1400257718258,"task_id":"72651b93-8b24-4419-80f8-60b1a63e0d83","active":true,"done":true}
-{"title":"currently selected task should be persisted in **local storage**","position":-29.5,"last_edited":1400257735089,"task_id":"bb755feb-f9e7-4c84-b5b2-93b5aafb52a4","active":true,"done":false}
+{"title":"whether or not to \"show done\" should be persisted in **local storage**","position":-30,"last_edited":1400257718258,"task_id":"72651b93-8b24-4419-80f8-60b1a63e0d83","active":false,"done":true}
+{"title":"currently selected task should be persisted in **local storage**","position":-29.5,"last_edited":1400257735089,"task_id":"bb755feb-f9e7-4c84-b5b2-93b5aafb52a4","active":false,"done":true}
 {"title":"make task disappear more slowly; also, don't sort completed tasks differently","position":-24,"last_edited":1400270025510,"task_id":"2863f756-8c94-410e-89a8-821e0bfda753","done":true}
 {"title":"make the task input/edit box have a **blue border** on focus","position":-22.5,"last_edited":1400271518249,"task_id":"a05d1391-caee-496b-b612-7066f6b520e2","done":true}
 {"title":"upgrade to newest <b><span style=\"color:green\">font awesome</span></b>, so more icon options :-)","position":-25,"last_edited":1400273703601,"task_id":"c83c9a6d-159a-48dc-93f2-dc08c7a8011c","done":true}
@@ -28,7 +28,10 @@
 {"title":"BUG: When task is **fading out** if you click checkbox again, should cancel the fade effect","position":-27.75,"last_edited":1400276459388,"task_id":"818127c5-7055-406c-9d89-09343917303f"}
 {"title":"comment out all the code from hub and client for task lists via Cassandra -- security risk.","position":-8.5,"last_edited":1400277271300,"task_id":"6fe63edd-a53b-471e-96a6-c4428a9897d4"}
 {"title":"when **editing a task**, other viewers should get the update every 2-3 seconds in realtime, even before save","position":-16.5,"last_edited":1400277376628,"task_id":"ec6451ed-cdcc-4caa-b08f-bd2c977aacda"}
-{"title":"add a *note* field... or maybe just make the first line the title...\n\n- We could put a toggle that shows only first line, but when clicked, expands to show everything.\n- And only show toggle button if there is more to show.","position":-28,"last_edited":1400277411602,"task_id":"8ff33d98-6f51-4b3c-8402-eba6a95be0be","active":false}
+{"title":"add a *note* field... or maybe just make the first line the title...\n\n- We could put a toggle that shows only first line, but when clicked, expands to show everything.\n- And only show toggle button if there is more to show.","position":-31,"last_edited":1400277411602,"task_id":"8ff33d98-6f51-4b3c-8402-eba6a95be0be","active":false}
 {"title":"Add a clear bold **filename**","position":-10.4375,"last_edited":1400277583169,"task_id":"2a769f7a-d49b-4115-af88-cbd4119eb29e"}
 {"title":"should it be saving to disk every time? no \n -  it should just **sync** and there should be a button to **save to disk**\n -  impacted by auto-save","position":-10.46875,"last_edited":1400277605904,"task_id":"74151303-06a6-4fff-8ad4-6a8eb6ab2cfe"}
 {"title":"way to export whole list to the following formats:\n  - markdown\n  - pdf (generate using pandoc and markdown)","position":-9.5,"last_edited":1400285939479,"task_id":"8e9c3db3-1595-49cf-85d6-acf8cfbd8a80"}
+{"title":"make use of *codemirror* respect users wishes regarding theme, keybindings, etc.","position":-14,"last_edited":1400290972650,"task_id":"f915f3f8-a535-405e-b5f9-7a16a02082a9"}
+{"title":"disable draggable when editing task so can select text","position":-22,"last_edited":1400292770622,"task_id":"52628ecd-e022-41c7-bc04-c7b0291b32a4"}
+{"title":"when searching, if not hits, add button to create new task from search","position":-15.75,"last_edited":1400292780437,"task_id":"6bf6979d-e140-452c-8fc2-4701a83fff54"}

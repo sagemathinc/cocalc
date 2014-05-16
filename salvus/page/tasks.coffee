@@ -45,7 +45,6 @@ class TaskList
                         @tasks = @db.select()
                         @render_task_list()
 
-
     destroy: () =>
         @element.removeData()
 
@@ -196,6 +195,48 @@ class TaskList
         @local_storage("current_task", task.task_id)
 
     edit_title: (task) =>
+
+        e = task.element
+        elt_title = e.find(".salvus-task-title")
+        elt = edit_title_template.clone()
+        elt_title.after(elt)
+        elt_title.hide()
+
+        stop_editing = () =>
+            elt_title.show()
+            cm.toTextArea()
+            elt.remove()
+            task.last_edited = (new Date()) - 0
+            @display_last_edited(task)
+
+        save_title = () =>
+            title = cm.getValue()
+            stop_editing()
+            if title != task.title
+                orig_title = task.title
+                task.title = title
+                @display_title(task)
+                @db.update
+                    set   : {title  : title}
+                    where : {task_id : task.task_id}
+
+        opts =
+            mode           : 'markdown',
+            lineNumbers    : false,
+            theme          : "default",
+            viewportMargin : Infinity
+            extraKeys      :
+                "Enter"       : "newlineAndIndentContinueMarkdownList"
+                "Shift-Enter" : save_title
+
+        cm = CodeMirror.fromTextArea(elt[0], opts)
+        cm.setValue(task.title)
+        $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor').addClass('salvus-new-task-cm-editor-focus')
+        $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
+        cm.on 'blur', save_title
+        cm.focus()
+
+    xxx_edit_title: (task) =>
         e = task.element
         e.css('max-height','400em')
         elt_title = e.find(".salvus-task-title")
@@ -235,7 +276,6 @@ class TaskList
             task.element.find(".salvus-task-viewer-not-done").show()
             task.element.find(".salvus-task-viewer-done").hide()
 
-
     mark_task_done: (task, done) =>
         if task.done == done
             # nothing to do
@@ -254,7 +294,6 @@ class TaskList
                     f()
         else
             f()
-
 
     clear_create_task: () =>
         @create_task_editor.setValue('')
