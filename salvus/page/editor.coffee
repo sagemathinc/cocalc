@@ -85,31 +85,32 @@ file_associations = exports.file_associations = {}
 for ext, mode of codemirror_associations
     file_associations[ext] =
         editor : 'codemirror'
+        icon   : 'fa-file-code-o'
         opts   : {mode:mode}
 
 file_associations['tex'] =
     editor : 'latex'
-    icon   : 'fa-edit'
+    icon   : 'fa-file-excel-o'
     opts   : {mode:'stex', indent_unit:4, tab_size:4}
 
 file_associations['html'] =
     editor : 'codemirror'
-    icon   : 'fa-edit'
+    icon   : 'fa-file-code-o'
     opts   : {mode:'htmlmixed', indent_unit:4, tab_size:4}
 
 file_associations['css'] =
     editor : 'codemirror'
-    icon   : 'fa-edit'
+    icon   : 'fa-file-code-o'
     opts   : {mode:'css', indent_unit:4, tab_size:4}
 
 file_associations['sage-terminal'] =
     editor : 'terminal'
-    icon   : 'fa-credit-card'
+    icon   : 'fa-terminal'
     opts   : {}
 
 file_associations['term'] =
     editor : 'terminal'
-    icon   : 'fa-credit-card'
+    icon   : 'fa-terminal'
     opts   : {}
 
 file_associations['ipynb'] =
@@ -133,10 +134,12 @@ file_associations['sage-slideshow'] =
 for ext in ['png', 'jpg', 'gif', 'svg']
     file_associations[ext] =
         editor : 'image'
+        icon   : 'fa-file-image-o'
         opts   : {}
 
 file_associations['pdf'] =
     editor : 'pdf'
+    icon   : 'fa-file-pdf-o'
     opts   : {}
 
 file_associations['tasks'] =
