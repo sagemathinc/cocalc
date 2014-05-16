@@ -310,6 +310,12 @@ class TaskList
     init_search: () =>
         @element.find(".salvus-tasks-search").keyup () =>
             @render_task_list()
+        @element.find(".salvus-tasks-search-clear").click () =>
+            e = @element.find(".salvus-tasks-search")
+            a = $.trim(e.val())
+            if a.length > 0
+                e.val("")
+                @render_task_list()
 
     show: () =>
         @elt_task_list.maxheight(offset:50)
