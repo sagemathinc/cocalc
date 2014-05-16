@@ -10,7 +10,6 @@ marked = require('marked')
 
 {synchronized_db} = require('syncdb')
 
-
 misc_page = require('misc_page')
 
 templates = $(".salvus-tasks-templates")
@@ -26,6 +25,7 @@ exports.task_list = (project_id, filename) ->
 class TaskList
     constructor : (@project_id, @filename, @element) ->
         @element.data('task_list', @)
+        @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @elt_task_list = @element.find(".salvus-tasks-list")
         @tasks = []
         @init_create_task()
@@ -54,10 +54,6 @@ class TaskList
     sort_task_list: () =>
         # TODO: define f in terms of various sort crition based on UI
         f = (task1, task2) =>
-            if task1.done and not task2.done
-                return 1
-            if task2.done and not task1.done
-                return -1
             if task1.position < task2.position
                 return -1
             else if  task1.position > task2.position
@@ -146,6 +142,7 @@ class TaskList
         if task.done
             t.find(".salvus-task-viewer-done").show()
             t.find(".salvus-task-viewer-not-done").hide()
+            t.addClass("salvus-task-done")
         if @current_task? and task.task_id == @current_task.task_id
             @set_current_task(task)
         t.data('task',task)
@@ -212,11 +209,18 @@ class TaskList
             return
         @set_done(task, done)
         task.done = done
-        @db.update
-            set   : {done : done}
-            where : {task_id : task.task_id}
+        f = () =>
+            @db.update
+                set   : {done : done}
+                where : {task_id : task.task_id}
         if done and not @showing_done
-            task.element.fadeOut(1000, task.element.remove)
+            task.element.fadeOut 10000, () =>
+                if task.done  # they could have canceled the action by clicking again
+                    task.element.remove()
+                    f()
+        else
+            f()
+
 
     clear_create_task: () =>
         @create_task_editor.setValue('')
@@ -261,7 +265,14 @@ class TaskList
         $(@create_task_editor.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
         @task_create_buttons = @element.find(".salvus-tasks-create-button")
         @create_task_editor.on 'change', () =>
-            @task_create_buttons.removeClass('disabled')
+            if $.trim(@create_task_editor.getValue()).length > 0
+                @task_create_buttons.removeClass('disabled')
+            else
+                @task_create_buttons.addClass('disabled')
+        @create_task_editor.on 'focus', () =>
+            $(@create_task_editor.getWrapperElement()).addClass('salvus-new-task-cm-editor-focus')
+        @create_task_editor.on 'blur', () =>
+            $(@create_task_editor.getWrapperElement()).removeClass('salvus-new-task-cm-editor-focus')
 
         @element.find(".salvus-tasks-create-button").click(@create_task)
 
