@@ -268,13 +268,15 @@ class TaskList
         task.element.find(".salvus-task-title").html(marked(title)).mathjax().find('a').attr("target","_blank")
 
     set_current_task: (task) =>
-        if @current_task?
+        if @current_task?.element?
             @current_task.element.removeClass("salvus-current-task")
         @current_task = task
-        task.element.addClass("salvus-current-task")
         @local_storage("current_task", task.task_id)
+        if task.element?  # if it is actually being displayed
+            task.element.addClass("salvus-current-task")
 
     edit_task: (task) =>
+        console.log("edit ", task)
         e = task.element
         elt_title = e.find(".salvus-task-title")
         elt = edit_task_template.clone()
@@ -363,18 +365,12 @@ class TaskList
         @element.find(".salvus-tasks-create-button").addClass('disabled')
 
     create_task: () =>
-        title = $.trim(@create_task_editor.getValue())
-        @clear_create_task()
-        if title.length == 0
-            return
-
         if @tasks.length == 0
             position = 0
         else
             position = @tasks[0].position - 1
-
         task =
-            title       : title
+            title       : $.trim(@element.find(".salvus-tasks-search").val())
             position    : position
             last_edited : new Date() - 0
 
@@ -383,37 +379,12 @@ class TaskList
         @db.update(set:task, where:{task_id : task_id})
         task.task_id = task_id
         @render_task(task, true)
+        @edit_task(task)
 
     init_create_task: () =>
-        create_task_input = @element.find(".salvus-tasks-new")
-
-        editor_settings = require('account').account_settings.settings.editor_settings
-        opts =
-            mode        : 'markdown'
-            lineNumbers : false
-            theme       : editor_settings.theme
-            viewportMargin: Infinity
-            extraKeys   :
-                "Enter": "newlineAndIndentContinueMarkdownList"
-                "Shift-Enter" : @create_task
-        if editor_settings.bindings != "standard"
-            opts.keyMap = editor_settings.bindings
-
-        @create_task_editor = CodeMirror.fromTextArea(create_task_input[0], opts)
-        $(@create_task_editor.getWrapperElement()).addClass('salvus-new-task-cm-editor')
-        $(@create_task_editor.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
-        @task_create_buttons = @element.find(".salvus-tasks-create-button")
-        @create_task_editor.on 'change', () =>
-            if $.trim(@create_task_editor.getValue()).length > 0
-                @task_create_buttons.removeClass('disabled')
-            else
-                @task_create_buttons.addClass('disabled')
-        @create_task_editor.on 'focus', () =>
-            $(@create_task_editor.getWrapperElement()).addClass('salvus-new-task-cm-editor-focus')
-        @create_task_editor.on 'blur', () =>
-            $(@create_task_editor.getWrapperElement()).removeClass('salvus-new-task-cm-editor-focus')
-
-        @element.find(".salvus-tasks-create-button").click(@create_task)
+        @element.find("a[href=#create-task]").click (event) =>
+            @create_task()
+            event.preventDefault()
 
     set_showing_done: (showing) =>
         @showing_done = showing
@@ -430,8 +401,6 @@ class TaskList
         @set_showing_done(@showing_done)
         @element.find(".salvus-task-search-not-done").click(=> @set_showing_done(true))
         @element.find(".salvus-task-search-done").click(=> @set_showing_done(false))
-
-
 
     set_showing_deleted: (showing) =>
         @showing_deleted = showing

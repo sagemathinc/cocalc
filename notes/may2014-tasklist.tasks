@@ -1,4 +1,4 @@
-{"title":"Add **due** date field","position":-38,"last_edited":1400200049045,"task_id":"9935b462-c9de-44a7-9589-b51d246d9f06","active":false}
+{"title":"Add **due** date field","position":-45,"last_edited":1400200049045,"task_id":"9935b462-c9de-44a7-9589-b51d246d9f06","active":false}
 {"title":"(invalid) **import/export** a set of tasks","position":-1,"last_edited":1400200054140,"task_id":"86c7c95f-709c-4c68-9a18-1c0a480ea93e","done":true,"active":false,"deleted":true}
 {"title":"Ability to **link** to files in project","position":-35,"last_edited":1400200061348,"task_id":"340b9bac-6662-41ba-9b4e-cbc95565e202","active":false}
 {"title":"**Subtasks**\n - critical that existing tasks can be dragged to be subtasks of other tasks, i.e., ability to organize\n","position":-0.125,"last_edited":1400200068867,"task_id":"8387fdea-bf53-4bef-a642-a58cc2ef455b","done":false,"active":false}
@@ -34,10 +34,10 @@
 {"title":"way to export whole list to the following formats:\n  - markdown\n  - pdf (generate using pandoc and markdown)","position":-0.015625,"last_edited":1400285939479,"task_id":"8e9c3db3-1595-49cf-85d6-acf8cfbd8a80"}
 {"title":"make use of *codemirror* respect users wishes regarding theme, keybindings, etc.","position":4,"last_edited":1400290972650,"task_id":"f915f3f8-a535-405e-b5f9-7a16a02082a9","active":false,"done":true}
 {"title":"disable draggable when editing task so can select text","position":14,"last_edited":1400292770622,"task_id":"52628ecd-e022-41c7-bc04-c7b0291b32a4","done":true,"active":false}
-{"title":"when searching, if not hits, add button to create new task from search","position":-15.75,"last_edited":1400292780437,"task_id":"6bf6979d-e140-452c-8fc2-4701a83fff54"}
+{"title":"when searching, if not hits, add button to create new task from search","position":-46,"last_edited":1400292780437,"task_id":"6bf6979d-e140-452c-8fc2-4701a83fff54","active":true}
 {"title":"deal with todo in source code when removing codemirror editor (see that try/catch)","position":-2.5,"last_edited":1400301248694,"task_id":"a23526ee-450f-42a3-9023-74fe78c31cc1"}
 {"title":"codemirror editor -- respect *all* settings, e.g., line wrapping, etc.","position":-14,"last_edited":1400301463259,"task_id":"e8636922-e095-409a-ae4f-53f4a69621b4"}
-{"title":"the toggle-able extended title has the potential to leak a bit of localStorage -- need to clean that up when deleting a task.","position":-36,"last_edited":1400303043591,"task_id":"a5021dbd-b077-4542-9240-e5e8dc121cdf","active":false}
+{"title":"the toggle-able extended title has the potential to leak a bit of localStorage -- need to clean that up when deleting a task.","position":-0.00000762939453125,"last_edited":1400303043591,"task_id":"a5021dbd-b077-4542-9240-e5e8dc121cdf","active":false}
 {"title":"make the full task description toggle nicer -- i.e., set max-height to really only get one line.","position":-10.359375,"last_edited":1400303398845,"task_id":"a268db81-bfb9-4da2-9c42-64854d06dce8","deleted":true}
 {"title":"fix stupid syntax highlighting of bold in markdown mode with solarized light","position":-0.03125,"last_edited":1400303421003,"task_id":"4390446f-2280-4aa8-b602-70f79f4cc0ef"}
 {"title":"when searching and rendering todo list, all the search terms should be highlighted in the rendered todo item","position":-34,"last_edited":1400355157057,"task_id":"8d22ee3d-ccdd-4ebb-b5d3-29c3eae2725b","active":false}
@@ -50,8 +50,8 @@
 {"title":"change bolt to play/stop -- makes more sense","position":-37,"last_edited":1400382228872,"task_id":"7e1b70d4-5715-4e6f-b50b-6c73e4a536a1","active":false,"done":true}
 {"title":"make searching, etc., better and faster via this note: `TODO: should have a simple ascii field in task object with markdown and case removed.`","position":-0.1875,"last_edited":1400390101739,"task_id":"7b773807-e93d-4edd-b7a6-6befe2b92747"}
 {"title":"If there are no tasks, add some text in the middle explaining how to add your first task (just like with empty directory)","position":-0.00048828125,"last_edited":1400433220182,"task_id":"5e1ad39d-b542-4600-8bf2-710fa67b18aa"}
-{"title":"Change back to calling it \"Tasks\" in the new file thing, etc. -- we'll make other editors based on same idea for other things -- this should clearly be for tasks!","position":-0.000244140625,"last_edited":1400433559604,"task_id":"3f47a6d5-fbb8-40f8-9392-0356fc933735"}
-{"title":"add between the \"to-top/to-bottom\" buttons a \"to-middle\" button.","position":-39,"last_edited":1400433584610,"task_id":"b9eb64f1-dd46-4d8e-98e9-e5fb461c98ed"}
-{"title":"Add a description for the task list itself; it would be useful to just have that clearly labeled at the top","position":-40,"last_edited":1400433654606,"task_id":"4621b141-3efe-4feb-95b9-184dbaa12bce"}
-{"title":"change the column labeled \"custom\" to \"priority\" and put all relevent icons there.","position":-41,"last_edited":1400433678237,"task_id":"65d78e20-c6e7-4554-ab1d-fb9374c431c1","active":false}
-{"title":"show done and show deleted shouldn't be selected by default on new task lists, but maybe they are.","position":-42,"last_edited":1400433763777,"task_id":"14e1869e-e3a4-4c02-a869-17ecd64aedb0","active":false,"done":true}
+{"title":"Change back to calling it \"Tasks\" in the new file thing, etc. -- we'll make other editors based on same idea for other things -- this should clearly be for tasks!","position":-0.000030517578125,"last_edited":1400433559604,"task_id":"3f47a6d5-fbb8-40f8-9392-0356fc933735"}
+{"title":"add between the \"to-top/to-bottom\" buttons a \"to-middle\" button.","position":-0.0000152587890625,"last_edited":1400433584610,"task_id":"b9eb64f1-dd46-4d8e-98e9-e5fb461c98ed"}
+{"title":"Add a description for the task list itself; it would be useful to just have that clearly labeled at the top","position":-0.00006103515625,"last_edited":1400433654606,"task_id":"4621b141-3efe-4feb-95b9-184dbaa12bce"}
+{"title":"change the column labeled \"custom\" to \"priority\" and put all relevent icons there.","position":-43,"last_edited":1400433678237,"task_id":"65d78e20-c6e7-4554-ab1d-fb9374c431c1","active":false,"done":true}
+{"title":"show done and show deleted shouldn't be selected by default on new task lists, but maybe they are.","position":-44,"last_edited":1400433763777,"task_id":"14e1869e-e3a4-4c02-a869-17ecd64aedb0","active":false,"done":true}
