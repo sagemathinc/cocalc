@@ -33,17 +33,17 @@
             <div class="well salvus-tasks-list">
                 <div class="row-fluid  salvus-tasks-list-heading">
                     <div class="span2 lighten salvus-tasks-header salvus-task-sort-custom">
-                        Custom <i class="fa fa-sort-desc pull-right"> </i><i class="fa fa-sort-asc pull-right hide"> </i>
+                        Priority <i class="fa fa-sort-desc pull-right"> </i><i class="fa fa-sort-asc pull-right hide"> </i>
                     </div>
                     <div class="span7 lighten salvus-tasks-header  salvus-task-sort-description">
-                        Description <i class="fa fa-sort-desc pull-right hide"> </i><i class="fa fa-sort-asc pull-right hide"> </i>
+                        Title <i class="fa fa-sort-desc pull-right hide"> </i><i class="fa fa-sort-asc pull-right hide"> </i>
 
                     </div>
                     <div class="span1 lighten salvus-tasks-header  salvus-task-sort-due">
                         Due <i class="fa fa-sort-desc pull-right hide"> </i><i class="fa fa-sort-asc pull-right hide"> </i>
                     </div>
-                    <div class="span2 lighten salvus-tasks-header  salvus-task-sort-last-edited">
-                        Last edit <i class="fa fa-sort-desc pull-right hide"> </i><i class="fa fa-sort-asc pull-right hide"> </i>
+                    <div class="span1 lighten salvus-tasks-header  salvus-task-sort-last-edited">
+                        Last <i class="fa fa-sort-desc pull-right hide"> </i><i class="fa fa-sort-asc pull-right hide"> </i>
                     </div>
                 </div>
                 <div class="salvus-tasks-listing">
@@ -54,16 +54,22 @@
 
     <div class="row-fluid salvus-task">
         <div class="span2" style="font-size: 13pt;">
-            <i class="fa fa-reorder salvus-task-reorder-handle"> </i>
-            <i class="fa fa-square-o salvus-task-icon salvus-task-viewer-not-done"> </i>
-            <i class="fa fa-check-square-o salvus-task-icon salvus-task-viewer-done hide"> </i>
-            <i class="fa fa-play salvus-task-icon salvus-task-active-toggle salvus-task-active-inactive-icon"> </i>
-            <i class="fa fa-stop salvus-task-icon salvus-task-active-toggle hide" style="color:#3f3"> </i>
+            <i class="fa fa-reorder salvus-task-icon salvus-task-reorder-handle"> </i>
+            <i class="fa fa-fast-backward fa-rotate-90 salvus-task-icon salvus-task-to-top-icon"> </i>
+            <i class="fa fa-fast-forward fa-rotate-90  salvus-task-icon salvus-task-to-bottom-icon"> </i>
 
-            <i class="fa fa-chevron-right salvus-task-toggle-icon pull-right"> </i>
-            <i class="fa fa-chevron-down salvus-task-toggle-icon  pull-right hide"> </i>
+
+            <a class="salvus-task-active-toggle btn btn-small lighten">
+                <i class="fa fa-play salvus-task-icon salvus-task-active-inactive-icon"> </i> Start
+            </a>
+            <a class="salvus-task-active-toggle btn btn-small hide lighten">
+                <i class="fa fa-stop salvus-task-icon" style="color:#3f3"> </i> Stop
+            </a>
+
         </div>
         <div class="span7">
+            <i class="fa fa-chevron-left salvus-task-toggle-icon pull-right"> </i>
+            <i class="fa fa-chevron-down salvus-task-toggle-icon  pull-right hide"> </i>
             <span class="salvus-task-title"></span>
         </div>
         <div class="span1">
@@ -73,8 +79,8 @@
             <span class="salvus-task-last-edited"></span>
         </div>
         <div class="span1">
-            <i class="fa fa-fast-backward fa-rotate-90 salvus-task-icon salvus-task-to-top-icon"> </i>
-            <i class="fa fa-fast-forward fa-rotate-90  salvus-task-icon salvus-task-to-bottom-icon"> </i>
+            <i class="fa fa-square-o salvus-task-icon salvus-task-viewer-not-done"> </i>
+            <i class="fa fa-check-square-o salvus-task-icon salvus-task-viewer-done hide"> </i>
             <i class="fa fa-trash-o  salvus-task-icon salvus-task-delete"> </i>
 
         </div>

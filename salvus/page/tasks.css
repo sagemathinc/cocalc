@@ -32,7 +32,10 @@
 }
 
 .salvus-task-icon {
-    color:#555;
+    color:#666;
+    padding-top:0;
+    padding-bottom:0;
+    font-size:12pt;
 }
 
 .salvus-task-icon:hover {
@@ -112,7 +115,9 @@
 
 
 .salvus-task-toggle-icon {
-    color: #888;
+    color: #666;
+    font-size: 12pt;
+    margin-right: 1em;
 }
 
 .salvus-task-active-icon:hover {
@@ -129,15 +134,10 @@
     font-size:8pt;
 }
 
-.salvus-task-to-top-icon {
-    font-size: 9pt;
-}
-
-
-.salvus-task-to-bottom-icon {
-   font-size: 9pt;
-}
-
 .salvus-task-deleted {
     color : red;
+}
+
+.salvus-task-delete {
+    margin-left: 1em;
 }

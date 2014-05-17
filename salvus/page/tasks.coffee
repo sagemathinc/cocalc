@@ -262,7 +262,7 @@ class TaskList
             else
                 @local_storage("toggle-#{task.task_id}",true)
         else
-            task.element.find(".fa-chevron-right").hide()
+            task.element.find(".fa-chevron-left").hide()
         if title.length == 0
             title = "No title" # so it is possible to edit
         task.element.find(".salvus-task-title").html(marked(title)).mathjax().find('a').attr("target","_blank")

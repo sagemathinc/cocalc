@@ -53,5 +53,5 @@
 {"title":"Change back to calling it \"Tasks\" in the new file thing, etc. -- we'll make other editors based on same idea for other things -- this should clearly be for tasks!","position":-0.000244140625,"last_edited":1400433559604,"task_id":"3f47a6d5-fbb8-40f8-9392-0356fc933735"}
 {"title":"add between the \"to-top/to-bottom\" buttons a \"to-middle\" button.","position":-39,"last_edited":1400433584610,"task_id":"b9eb64f1-dd46-4d8e-98e9-e5fb461c98ed"}
 {"title":"Add a description for the task list itself; it would be useful to just have that clearly labeled at the top","position":-40,"last_edited":1400433654606,"task_id":"4621b141-3efe-4feb-95b9-184dbaa12bce"}
-{"title":"change the column labeled \"custom\" to \"priority\" and put all relevent icons there.","position":-41,"last_edited":1400433678237,"task_id":"65d78e20-c6e7-4554-ab1d-fb9374c431c1","active":true}
+{"title":"change the column labeled \"custom\" to \"priority\" and put all relevent icons there.","position":-41,"last_edited":1400433678237,"task_id":"65d78e20-c6e7-4554-ab1d-fb9374c431c1","active":false}
 {"title":"show done and show deleted shouldn't be selected by default on new task lists, but maybe they are.","position":-42,"last_edited":1400433763777,"task_id":"14e1869e-e3a4-4c02-a869-17ecd64aedb0","active":false,"done":true}
