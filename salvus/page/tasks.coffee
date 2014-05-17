@@ -256,13 +256,13 @@ class TaskList
         title = $.trim(task.title)
         i = title.indexOf('\n')
         if i != -1
-            if task.element.find(".fa-chevron-down").hasClass("hide")
-                @local_storage("toggle-#{task.task_id}",false)
+            if task.element.find(".fa-caret-down").hasClass("hide")
+                @local_storage("toggle-#{task.task_id}",true)
                 title = title.slice(0,i)
             else
-                @local_storage("toggle-#{task.task_id}",true)
+                @local_storage("toggle-#{task.task_id}",false)
         else
-            task.element.find(".fa-chevron-left").hide()
+            task.element.find(".fa-caret-down").hide()
         if title.length == 0
             title = "No title" # so it is possible to edit
         task.element.find(".salvus-task-title").html(marked(title)).mathjax().find('a').attr("target","_blank")
