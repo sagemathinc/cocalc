@@ -32,6 +32,7 @@
 }
 
 .salvus-task-icon {
+    color:#555;
 }
 
 .salvus-task-icon:hover {
@@ -100,7 +101,7 @@
 
 
 .salvus-task-toggle-icon {
-    color: #aaa;
+    color: #888;
 }
 
 .salvus-task-active-icon:hover {
@@ -110,4 +111,17 @@
 .salvus-task-last-edited {
     color:#888;
     font-size:9pt;
+}
+
+.salvus-task-to-top-icon {
+    font-size: 9pt;
+}
+
+
+.salvus-task-to-bottom-icon {
+   font-size: 9pt;
+}
+
+.salvus-task-deleted {
+    color : red;
 }

@@ -21,6 +21,12 @@
                     <i class="fa fa-check-square-o salvus-task-icon salvus-task-search-done-icon salvus-task-search-done hide"> </i>
                     Show done
                 </div>
+                <div class="span2" style="padding-left: 2em;">
+                    <i class="fa fa-square-o salvus-task-icon salvus-task-search-deleted-icon salvus-task-search-not-deleted"> </i>
+                    <i class="fa fa-check-square-o salvus-task-icon salvus-task-search-deleted-icon salvus-task-search-deleted hide"> </i>
+                    Show deleted<br>
+                    <a class='btn btn-danger btn-small salvus-task-empty-trash'>Empty Trash</a>
+                </div>
             </div>
             <div class="hide lighten salvus-tasks-search-describe">Showing <b><i>only</i></b> tasks that contain <span></span>.</div>
             <div class="row-fluid">
@@ -41,20 +47,23 @@
 
                 <i class="fa fa-chevron-right salvus-task-toggle-icon"> </i>
                 <i class="fa fa-chevron-down salvus-task-toggle-icon hide"> </i>
-
             </div>
-            <div class="span8">
+            <div class="span7">
                 <span class="salvus-task-title"></span>
             </div>
             <div class="span2">
                 <span class="salvus-task-last-edited"></span>
+            </div>
+            <div class="span1">
+                <i class="fa fa-fast-backward fa-rotate-90 salvus-task-icon salvus-task-to-top-icon"> </i>
+                <i class="fa fa-fast-forward fa-rotate-90  salvus-task-icon salvus-task-to-bottom-icon"> </i>
+                <i class="fa fa-trash-o  salvus-task-icon salvus-task-delete"> </i>
             </div>
         </div>
     </div>
 
     <div class="salvus-task-editor">
         <textarea rows=4 class="salvus-tasks-title-edit"></textarea>
-        <textarea rows=6 class="salvus-tasks-notes-edit"></textarea>
     </div>
 
 

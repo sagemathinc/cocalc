@@ -15,7 +15,7 @@ misc_page = require('misc_page')
 templates = $(".salvus-tasks-templates")
 
 task_template = templates.find(".salvus-task")
-edit_title_template = templates.find(".salvus-tasks-title-edit")
+edit_task_template = templates.find(".salvus-task-editor")
 
 exports.task_list = (project_id, filename) ->
     element = templates.find(".salvus-tasks-editor").clone()
@@ -27,9 +27,11 @@ class TaskList
         @element.data('task_list', @)
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @elt_task_list = @element.find(".salvus-tasks-list")
+        @showing_deleted = false
         @tasks = []
         @init_create_task()
         @init_showing_done()
+        @init_showing_deleted()
         @init_search()
         synchronized_db
             project_id : @project_id
@@ -81,6 +83,8 @@ class TaskList
         first_task = undefined
         for task in @tasks
             if not @showing_done and task.done
+                continue
+            if not @showing_deleted and task.deleted
                 continue
             skip = false
             t = task.title.toLowerCase()
@@ -151,9 +155,11 @@ class TaskList
             @elt_task_list.append(t)
         task.element = t
         t.click () => @set_current_task(task)
-        t.find(".salvus-task-title").click () => @edit_title(task)
-        t.find(".salvus-task-viewer-not-done").click () => @mark_task_done(task, true)
-        t.find(".salvus-task-viewer-done").click () => @mark_task_done(task, false)
+        t.find(".salvus-task-title").click () => @edit_task(task)
+        t.find(".salvus-task-viewer-not-done").click () =>
+            @mark_task_done(task, true)
+        t.find(".salvus-task-viewer-done").click () =>
+            @mark_task_done(task, false)
         if task.done
             t.find(".salvus-task-viewer-done").show()
             t.find(".salvus-task-viewer-not-done").hide()
@@ -163,12 +169,26 @@ class TaskList
         active = t.find(".salvus-task-active-icon").click(() =>@toggle_actively_working_on_task(task))
         if task.active
             active.addClass("salvus-task-active-icon-active")
+
         t.find(".salvus-task-toggle-icon").click () =>
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
             @display_title(task)
 
         if @local_storage("toggle-#{task.task_id}")
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
+
+        t.find(".salvus-task-to-top-icon").click () =>
+            @save_task_position(task, @tasks[0].position-1)
+            @display_title(task)
+
+        t.find(".salvus-task-to-bottom-icon").click () =>
+            @save_task_position(task, @tasks[@tasks.length-1].position+1)
+            @display_title(task)
+
+        d = t.find(".salvus-task-delete").click () =>
+            @delete_task(task, not d.hasClass('salvus-task-deleted'))
+        if task.deleted
+            d.addClass('salvus-task-deleted')
 
         t.data('task',task)
         @display_last_edited(task)
@@ -214,10 +234,10 @@ class TaskList
         task.element.addClass("salvus-current-task")
         @local_storage("current_task", task.task_id)
 
-    edit_title: (task) =>
+    edit_task: (task) =>
         e = task.element
         elt_title = e.find(".salvus-task-title")
-        elt = edit_title_template.clone()
+        elt = edit_task_template.clone()
         elt_title.after(elt)
         elt_title.hide()
 
@@ -231,7 +251,7 @@ class TaskList
             elt.remove()
             elt_title.show()
 
-        save_title = () =>
+        save_task = () =>
             title = cm.getValue()
             stop_editing()
             if title != task.title
@@ -250,17 +270,17 @@ class TaskList
             viewportMargin : Infinity
             extraKeys      :
                 "Enter"       : "newlineAndIndentContinueMarkdownList"
-                "Shift-Enter" : save_title
+                "Shift-Enter" : save_task
         if editor_settings.bindings != "standard"
             opts.keyMap = editor_settings.bindings
 
-        cm = CodeMirror.fromTextArea(elt[0], opts)
+        cm = CodeMirror.fromTextArea(elt.find(".salvus-tasks-title-edit")[0], opts)
         cm.setValue(task.title)
         $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor').addClass('salvus-new-task-cm-editor-focus')
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
-        cm.on 'blur', save_title
+        cm.on 'blur', save_task
         cm.focus()
-        cm.save = save_title
+        cm.save = save_task
 
     set_done: (task, done) =>
         if done
@@ -269,6 +289,14 @@ class TaskList
         else
             task.element.find(".salvus-task-viewer-not-done").show()
             task.element.find(".salvus-task-viewer-done").hide()
+
+    delete_task: (task, deleted) =>
+        @db.update
+            set   : {deleted : deleted}
+            where : {task_id : task.task_id}
+        task.deleted = deleted
+        if deleted and not @showing_deleted
+            task.element.remove()
 
     mark_task_done: (task, done) =>
         task.element.stop().animate(opacity:'100')
@@ -283,7 +311,7 @@ class TaskList
                 where : {task_id : task.task_id}
             @toggle_actively_working_on_task(task, false)
         if done and not @showing_done
-            task.element.fadeOut 5000, () =>
+            task.element.fadeOut 3000, () =>
                 if task.done  # they could have canceled the action by clicking again
                     task.element.remove()
                     f()
@@ -360,6 +388,36 @@ class TaskList
         @set_showing_done(@showing_done)
         @element.find(".salvus-task-search-not-done").click(=> @set_showing_done(true))
         @element.find(".salvus-task-search-done").click(=> @set_showing_done(false))
+
+
+
+    set_showing_deleted: (showing) =>
+        @showing_deleted = showing
+        @local_storage("showing_deleted", @showing_deleted)
+        is_showing = @element.find(".salvus-task-search-not-deleted").hasClass('hide')
+        if is_showing != showing
+            @element.find(".salvus-task-search-deleted-icon").toggleClass('hide')
+            @render_task_list()
+        if showing
+            @element.find(".salvus-task-empty-trash").show()
+        else
+            @element.find(".salvus-task-empty-trash").hide()
+
+
+    init_showing_deleted: () =>
+        @showing_deleted = @local_storage("showing_deleted")
+        @set_showing_deleted(@showing_deleted)
+        @element.find(".salvus-task-search-not-deleted").click(=> @set_showing_deleted(true))
+        @element.find(".salvus-task-search-deleted").click(=> @set_showing_deleted(false))
+        @element.find(".salvus-task-empty-trash").click(@empty_trash)
+
+    empty_trash: () =>
+        bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h4>Permanently erase the deleted items?</h4><br> <span class='lighten'>Old versions of this list are available as snapshots.</span>  ", (result) =>
+            if result == true
+                @db.delete
+                    where : {deleted : true}
+                @tasks = (x for x in @tasks when not x.deleted)
+                @render_task_list()
 
     init_search: () =>
         @element.find(".salvus-tasks-search").keyup () =>

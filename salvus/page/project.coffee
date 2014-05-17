@@ -2740,7 +2740,7 @@ class ProjectPage
             return false
 
         @container.find("a[href=#empty-trash]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
-            bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>Old versions of files, including the trash, are stored as snapshots.</span>  ", (result) =>
+            bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h4>Permanently erase the items in the Trash?</h4><br> <span class='lighten'>Old versions of files, including the trash, are stored as snapshots.</span>  ", (result) =>
                 if result == true
                     salvus_client.exec
                         project_id : @project.project_id
