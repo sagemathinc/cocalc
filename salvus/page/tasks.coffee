@@ -184,9 +184,11 @@ class TaskList
         if @current_task? and task.task_id == @current_task.task_id
             @set_current_task(task)
 
-        active = t.find(".salvus-task-active-toggle").click(() =>@toggle_actively_working_on_task(task))
+        #active = t.find(".salvus-task-active-toggle").click(() =>@toggle_actively_working_on_task(task))
+        active = t.find(".salvus-task-icon-active").click(() =>@toggle_actively_working_on_task(task))
         if task.active
-            active.toggleClass("hide")
+            active.addClass('salvus-task-icon-active-is_active')
+            #active.toggleClass("hide")
 
         t.find(".salvus-task-toggle-icon").click () =>
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
@@ -228,7 +230,7 @@ class TaskList
         @display_last_edited(task)
         @display_title(task)
 
-    toggle_actively_working_on_task: (task, active) =>
+    xxx_toggle_actively_working_on_task: (task, active) =>
         inactive_icon = task.element.find(".salvus-task-active-inactive-icon")
         is_active = inactive_icon.is(":hidden")
 
@@ -243,6 +245,21 @@ class TaskList
         @db.update
             set   : {active  : active}
             where : {task_id : task.task_id}
+
+    toggle_actively_working_on_task: (task, active) =>
+        icon = task.element.find(".salvus-task-icon-active")
+        is_active = icon.hasClass("salvus-task-icon-active-is_active")
+
+        if not active?
+            # toggle whatever it is
+            active = not is_active
+
+        if active != is_active
+            icon.toggleClass('salvus-task-icon-active-is_active')
+            task.active = active
+            @db.update
+                set   : {active  : active}
+                where : {task_id : task.task_id}
 
     display_last_edited : (task) =>
         if task.last_edited
@@ -333,12 +350,25 @@ class TaskList
             task.element.find(".salvus-task-viewer-done").hide()
 
     delete_task: (task, deleted) =>
-        @db.update
-            set   : {deleted : deleted}
-            where : {task_id : task.task_id}
-        task.deleted = deleted
+        task.element.stop().animate(opacity:'100')
+        f = () =>
+            @db.update
+                set   : {deleted : deleted}
+                where : {task_id : task.task_id}
+            task.deleted = deleted
+
+        e = task.element.find(".salvus-task-delete")
+        if deleted
+            e.addClass('salvus-task-deleted')
+        else
+            e.removeClass('salvus-task-deleted')
         if deleted and not @showing_deleted
-            task.element.remove()
+            task.element.fadeOut 4000, () =>
+                if e.hasClass('salvus-task-deleted')  # they could have canceled the action by clicking again
+                    task.element?.remove()
+                    f()
+        else
+            f()
 
     mark_task_done: (task, done) =>
         task.element.stop().animate(opacity:'100')

@@ -93,24 +93,16 @@
     margin-bottom:2em;
 }
 
-.salvus-task-active-icon {
-    color: #bbb;
-}
-
-.salvus-task-active-icon:hover {
-    color: #3f3;
-}
-
 .salvus-task-reorder-handle:hover {
     color: #51a7e8
 }
 
-.salvus-task-active-icon-active {
-    color: #3f3;
+.salvus-task-icon-active {
+    font-size:13pt;
 }
 
-.salvus-task-active-icon-active:hover {
-    color: #bbb;
+.salvus-task-icon-active-is_active {
+    color: orange;
 }
 
 
@@ -138,6 +130,3 @@
     color : red;
 }
 
-.salvus-task-delete {
-    margin-left: 1em;
-}
