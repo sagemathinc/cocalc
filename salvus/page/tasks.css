@@ -74,6 +74,17 @@
     overflow-x: auto;
 }
 
+.salvus-tasks-list-heading {
+    padding-left: .8ex;
+    font-size: 11pt;
+    cursor: pointer;
+}
+
+.salvus-tasks-header {
+    border-right: 1px solid grey;
+    padding-right: 10px;
+}
+
 .salvus-tasks-list {
     overflow-y:auto;
     margin-bottom:2em;
@@ -110,7 +121,12 @@
 
 .salvus-task-last-edited {
     color:#888;
-    font-size:9pt;
+    font-size:8pt;
+}
+
+.salvus-task-due {
+    color:#888;
+    font-size:8pt;
 }
 
 .salvus-task-to-top-icon {

@@ -1,3 +1,7 @@
+
+# tasks makes use of future timestamps (for due date)
+jQuery.timeago.settings.allowFuture = true
+
 async = require('async')
 
 marked = require('marked')
@@ -22,17 +26,22 @@ exports.task_list = (project_id, filename) ->
     new TaskList(project_id, filename, element)
     return element
 
+HEADINGS = ['custom', 'description', 'due', 'last-edited']
+HEADING_MAP = {custom:'position', description:'title', due:'due_date', 'last-edited':'last_edited'}
+
 class TaskList
     constructor : (@project_id, @filename, @element) ->
         @element.data('task_list', @)
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
-        @elt_task_list = @element.find(".salvus-tasks-list")
+        @elt_task_list = @element.find(".salvus-tasks-listing")
         @showing_deleted = false
         @tasks = []
+        @sort_order = {heading:'custom', dir:'desc'}  # asc or desc
         @init_create_task()
         @init_showing_done()
         @init_showing_deleted()
         @init_search()
+        @init_sort()
         synchronized_db
             project_id : @project_id
             filename   : @filename
@@ -57,15 +66,22 @@ class TaskList
         return local_storage(@project_id, @filename, key, value)
 
     sort_task_list: () =>
-        # TODO: define f in terms of various sort crition based on UI
+        field = HEADING_MAP[@sort_order.heading]
         f = (task1, task2) =>
-            if task1.position < task2.position
+            t1 = task1[field]
+            t2 = task2[field]
+            if typeof t1 == "string"
+                t1 = t1.toLowerCase()
+                t2 = t2.toLowerCase()
+            if t1 < t2
                 return -1
-            else if  task1.position > task2.position
+            else if t1 > t2
                 return 1
             else
                 return 0
         @tasks.sort(f)
+        if @sort_order.dir == 'asc'
+            @tasks.reverse()
 
     render_task_list: () =>
         search = []
@@ -111,6 +127,7 @@ class TaskList
             update      : (event, ui) =>
                 e    = ui.item
                 task = e.data('task')
+                @custom_sort_order()
                 @set_current_task(task)
                 # determine the previous and next tasks and their position numbers.
                 prev = e.prev()
@@ -179,10 +196,12 @@ class TaskList
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
 
         t.find(".salvus-task-to-top-icon").click () =>
+            @custom_sort_order()
             @save_task_position(task, @tasks[0].position-1)
             @display_title(task)
 
         t.find(".salvus-task-to-bottom-icon").click () =>
+            @custom_sort_order()
             if task.done
                 # put at very bottom
                 p = @tasks[@tasks.length-1].position + 1
@@ -228,6 +247,10 @@ class TaskList
     display_last_edited : (task) =>
         if task.last_edited
             task.element.find(".salvus-task-last-edited").attr('title',(new Date(task.last_edited)).toISOString()).timeago()
+
+    display_due_date: (task) =>
+        if task.due_date
+            task.element.find(".salvus-task-due").attr('title',(new Date(task.due_date)).toISOString()).timeago()
 
     display_title: (task) =>
         title = $.trim(task.title)
@@ -446,8 +469,39 @@ class TaskList
                 e.val("")
                 @render_task_list()
 
+    init_sort: () =>
+        for s in HEADINGS
+            @element.find(".salvus-task-sort-#{s}").on 'click', {s:s}, (event) =>
+                @click_sort_by(event.data.s)
+                event.preventDefault()
+        @update_sort_order_display()
+
+    update_sort_order_display: () =>
+        heading = @element.find(".salvus-tasks-list-heading")
+        # hide all icons
+        heading.find("i").hide()
+        # show ours
+        heading.find(".salvus-task-sort-#{@sort_order.heading}").find(".fa-sort-#{@sort_order.dir}").show()
+
+    click_sort_by: (column) =>
+        if @sort_order.heading == column
+            if @sort_order.dir == 'asc'
+                @sort_order.dir = 'desc'
+            else
+                @sort_order.dir = 'asc'
+        else
+            @sort_order.heading = column
+            @sort_order.dir = 'desc'
+        @update_sort_order_display()
+        @render_task_list()
+
+    custom_sort_order: () =>
+        @sort_order = {heading:'custom', dir:'desc'}
+        @update_sort_order_display()
+        @sort_task_list()
+        
     show: () =>
-        @elt_task_list.maxheight(offset:50)
+        @element.find(".salvus-tasks-list").maxheight(offset:50)
 
 
 
