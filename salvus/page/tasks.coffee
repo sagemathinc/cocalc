@@ -210,16 +210,16 @@ class TaskList
         @display_title(task)
 
     toggle_actively_working_on_task: (task, active) =>
-        e = task.element.find(".salvus-task-active-toggle")
-        play = e.find("fa-play")
-        is_active = play.hasClass('hide')
+        inactive_icon = task.element.find(".salvus-task-active-inactive-icon")
+        is_active = inactive_icon.is(":hidden")
 
         if not active?
             # toggle whatever it is
             active = not is_active
 
         if active != is_active
-            e.toggle('hide')
+            task.element.find(".salvus-task-active-toggle").toggle('hide')
+
         task.active = active
         @db.update
             set   : {active  : active}
