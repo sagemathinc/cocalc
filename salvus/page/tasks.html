@@ -2,25 +2,20 @@
 
     <div class="salvus-tasks-editor" >
 
-        <div class="row" style="margin-left:3em; margin-right:3em; margin-top:1em;">
+        <div class="row" style="margin:1em;">
             <div class="row-fluid" style="margin-bottom:1em">
-                <div class="span2">
-                    <a class="btn btn-success" href="#create-task"><i class="fa fa-plus-circle"> </i> New Task</a>
+                <div class="span3">
+                    <span class="btn-group">
+                        <a class="btn" href="#create-task"><i class="fa fa-plus-circle"> </i> New task</a>
+                        <a class="btn btn-success disabled" href="#save"><i class="fa fa-save"> </i> Save</a>
+                    </span>
                 </div>
-                <div class="span6">
-                    <input class="salvus-tasks-search search-query" style="width:85%" type="search" placeholder="Search...">
+                <div class="span5">
+                    <input class="salvus-tasks-search search-query" style="width:88%" type="search" placeholder="Search...">
                     <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
                 </div>
-                <div class="span2" style="padding-left: 2em;">
-                    <i class="fa fa-square-o salvus-task-icon salvus-task-search-done-icon salvus-task-search-not-done"> </i>
-                    <i class="fa fa-check-square-o salvus-task-icon salvus-task-search-done-icon salvus-task-search-done hide"> </i>
-                    Show done
-                </div>
-                <div class="span2" style="padding-left: 2em;">
-                    <i class="fa fa-square-o salvus-task-icon salvus-task-search-deleted-icon salvus-task-search-not-deleted"> </i>
-                    <i class="fa fa-check-square-o salvus-task-icon salvus-task-search-deleted-icon salvus-task-search-deleted hide"> </i>
-                    Show deleted<br>
-                    <a class='btn btn-danger btn-small salvus-task-empty-trash'>Empty Trash</a>
+                <div class="span4">
+                    <span class="salvus-tasks-filename"></span>
                 </div>
             </div>
             <div class="hide lighten salvus-tasks-search-describe">Showing <b><i>only</i></b> tasks that contain <span></span>.</div>
@@ -39,6 +34,16 @@
                     </div>
                     <div class="span1 lighten salvus-tasks-header  salvus-task-sort-last-edited">
                         Edited <i class="fa fa-sort-desc pull-right hide"> </i><i class="fa fa-sort-asc pull-right hide"> </i>
+                    </div>
+                    <div class="span1 lighten">
+                            <i class="fa fa-square-o salvus-task-icon salvus-task-search-done-icon salvus-task-search-not-done"> </i>
+                            <i class="fa fa-check-square-o salvus-task-icon salvus-task-search-done-icon salvus-task-search-done hide"> </i>
+                            done
+                        <br>
+                            <i class="fa fa-square-o salvus-task-icon salvus-task-search-deleted-icon salvus-task-search-not-deleted"> </i>
+                            <i class="fa fa-check-square-o salvus-task-icon salvus-task-search-deleted-icon salvus-task-search-deleted hide"> </i>
+                            trash<br>
+                            <a class='btn btn-danger btn-small salvus-task-empty-trash'>empty</a>
                     </div>
                 </div>
                 <div class="salvus-tasks-listing">
@@ -79,7 +84,7 @@
         <div class="span1">
             <i class="fa fa-square-o salvus-task-icon salvus-task-viewer-not-done"> </i>
             <i class="fa fa-check-square-o salvus-task-icon salvus-task-viewer-done hide"> </i> done<br>
-            <i class="fa fa-trash-o  salvus-task-icon salvus-task-delete"> </i> 
+            <i class="fa fa-trash-o  salvus-task-icon salvus-task-delete"> </i>
 
         </div>
     </div>

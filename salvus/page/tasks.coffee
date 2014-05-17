@@ -32,7 +32,8 @@ HEADING_MAP = {custom:'position', description:'title', due:'due_date', 'last-edi
 class TaskList
     constructor : (@project_id, @filename, @element) ->
         @element.data('task_list', @)
-        @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
+        #@element.find("a").tooltip(delay:{ show: 500, hide: 100 })
+        @element.find(".salvus-tasks-filename").text(misc.path_split(@filename).tail)
         @elt_task_list = @element.find(".salvus-tasks-listing")
         @showing_deleted = false
         @tasks = []
@@ -42,6 +43,7 @@ class TaskList
         @init_showing_deleted()
         @init_search()
         @init_sort()
+        @init_save()
         synchronized_db
             project_id : @project_id
             filename   : @filename
@@ -53,7 +55,9 @@ class TaskList
                     @db = db
                     @tasks = @db.select()
                     @render_task_list()
+                    @set_clean()
                     @db.on 'change', () =>
+                        @set_dirty()
                         # TODO: slow stupid way - could be much more precise
                         @tasks = @db.select()
                         @render_task_list()
@@ -66,7 +70,8 @@ class TaskList
         return local_storage(@project_id, @filename, key, value)
 
     sort_task_list: () =>
-        field = HEADING_MAP[@sort_order.heading]
+        h = @sort_order.heading
+        field = HEADING_MAP[h]
         f = (task1, task2) =>
             t1 = task1[field]
             t2 = task2[field]
@@ -78,8 +83,17 @@ class TaskList
             else if t1 > t2
                 return 1
             else
+                if h != 'custom'
+                    if task1.position < task2.position
+                        return -1
+                    else if task1.position > task2.position
+                        return 1
+                    else
+                        return 0
                 return 0
         @tasks.sort(f)
+        if h == 'last-edited'
+            @tasks.reverse()
         if @sort_order.dir == 'asc'
             @tasks.reverse()
 
@@ -158,6 +172,7 @@ class TaskList
         @db.update
             set   : {position : position}
             where : {task_id : task.task_id}
+        @set_dirty()
 
     get_task_by_id: (task_id) =>
         for t in @tasks
@@ -245,6 +260,7 @@ class TaskList
         @db.update
             set   : {active  : active}
             where : {task_id : task.task_id}
+        @set_dirty()
 
     toggle_actively_working_on_task: (task, active) =>
         icon = task.element.find(".salvus-task-icon-active")
@@ -260,6 +276,7 @@ class TaskList
             @db.update
                 set   : {active  : active}
                 where : {task_id : task.task_id}
+            @set_dirty()
 
     display_last_edited : (task) =>
         if task.last_edited
@@ -293,7 +310,7 @@ class TaskList
             task.element.addClass("salvus-current-task")
 
     edit_task: (task) =>
-        console.log("edit ", task)
+        @set_current_task(task)
         e = task.element
         elt_title = e.find(".salvus-task-title")
         elt = edit_task_template.clone()
@@ -320,6 +337,7 @@ class TaskList
                 @db.update
                     set   : {title  : title}
                     where : {task_id : task.task_id}
+                @set_dirty()
 
         editor_settings = require('account').account_settings.settings.editor_settings
         opts =
@@ -356,6 +374,7 @@ class TaskList
                 set   : {deleted : deleted}
                 where : {task_id : task.task_id}
             task.deleted = deleted
+            @set_dirty()
 
         e = task.element.find(".salvus-task-delete")
         if deleted
@@ -382,6 +401,7 @@ class TaskList
                 set   : {done : done}
                 where : {task_id : task.task_id}
             @toggle_actively_working_on_task(task, false)
+            @set_dirty()
         if done and not @showing_done
             task.element.fadeOut 3000, () =>
                 if task.done  # they could have canceled the action by clicking again
@@ -410,6 +430,7 @@ class TaskList
         task.task_id = task_id
         @render_task(task, true)
         @edit_task(task)
+        @set_dirty()
 
     init_create_task: () =>
         @element.find("a[href=#create-task]").click (event) =>
@@ -460,6 +481,7 @@ class TaskList
                 @db.delete
                     where : {deleted : true}
                 @tasks = (x for x in @tasks when not x.deleted)
+                @set_dirty()
                 @render_task_list()
 
     init_search: () =>
@@ -481,8 +503,9 @@ class TaskList
 
     update_sort_order_display: () =>
         heading = @element.find(".salvus-tasks-list-heading")
-        # hide all icons
-        heading.find("i").hide()
+        # hide all sorting icons
+        heading.find(".fa-sort-asc").hide()
+        heading.find(".fa-sort-desc").hide()
         # show ours
         heading.find(".salvus-task-sort-#{@sort_order.heading}").find(".fa-sort-#{@sort_order.dir}").show()
 
@@ -502,6 +525,33 @@ class TaskList
         @sort_order = {heading:'custom', dir:'desc'}
         @update_sort_order_display()
         @sort_task_list()
+
+    init_save: () =>
+        @save_button = @element.find("a[href=#save]").click (event) =>
+            @save()
+            event.preventDefault()
+
+    set_dirty: () =>
+        @_new_changes = true
+        @save_button.removeClass('disabled')
+
+    set_clean: () =>
+        @save_button.addClass('disabled')
+
+    has_unsaved_changes: () =>
+        return not @save_button.hasClass('disabled')
+
+    save: () =>
+        if not @has_unsaved_changes() or @_saving
+            return
+        @_saving = true
+        @_new_changes = false
+        @db.save (err) =>
+            @_saving = false
+            if not err and not @_new_changes
+                @set_clean()
+            else
+                alert_message(type:"error", message:"unable to save #{@filename} -- #{to_json(err)}")
 
     show: () =>
         @element.find(".salvus-tasks-list").maxheight(offset:50)

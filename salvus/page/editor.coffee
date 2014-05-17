@@ -4230,6 +4230,13 @@ class TaskList extends FileEditor
     constructor: (@editor, @filename) ->
         @element = tasks.task_list(@editor.project_id, @filename)
         @task_list = @element.data('task_list')
+        @init_autosave()
+
+    save: () =>
+        @task_list.save()
+
+    has_unsaved_changes: () =>
+        @task_list.has_unsaved_changes()
 
     _get: () =>
         # TODO

@@ -73,7 +73,10 @@ class SynchronizedDB extends EventEmitter
                 v.push(to_json(z.x.data))
                 line += 1
         @_doc.live(v.join('\n'))
-        @_doc.save()
+        @_doc.sync()
+
+    save: (cb) =>
+        @_doc.save(cb)
 
     # change exactly *one* database entry that matches the given where criterion.
     update: (opts) =>
