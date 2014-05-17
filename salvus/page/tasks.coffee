@@ -107,7 +107,6 @@ class TaskList
             update      : (event, ui) =>
                 e    = ui.item
                 task = e.data('task')
-                console.log('making moved task current')
                 @set_current_task(task)
                 # determine the previous and next tasks and their position numbers.
                 prev = e.prev()
@@ -272,6 +271,7 @@ class TaskList
             task.element.find(".salvus-task-viewer-done").hide()
 
     mark_task_done: (task, done) =>
+        task.element.stop().animate(opacity:'100')
         if task.done == done
             # nothing to do
             return
@@ -283,7 +283,7 @@ class TaskList
                 where : {task_id : task.task_id}
             @toggle_actively_working_on_task(task, false)
         if done and not @showing_done
-            task.element.fadeOut 10000, () =>
+            task.element.fadeOut 5000, () =>
                 if task.done  # they could have canceled the action by clicking again
                     task.element.remove()
                     f()
