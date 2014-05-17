@@ -166,9 +166,10 @@ class TaskList
             t.addClass("salvus-task-done")
         if @current_task? and task.task_id == @current_task.task_id
             @set_current_task(task)
-        active = t.find(".salvus-task-active-icon").click(() =>@toggle_actively_working_on_task(task))
+
+        active = t.find(".salvus-task-active-toggle").click(() =>@toggle_actively_working_on_task(task))
         if task.active
-            active.addClass("salvus-task-active-icon-active")
+            active.toggleClass("hide")
 
         t.find(".salvus-task-toggle-icon").click () =>
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
@@ -209,14 +210,16 @@ class TaskList
         @display_title(task)
 
     toggle_actively_working_on_task: (task, active) =>
-        e = task.element.find(".salvus-task-active-icon")
+        e = task.element.find(".salvus-task-active-toggle")
+        play = e.find("fa-play")
+        is_active = play.hasClass('hide')
+
         if not active?
-            # toggle
-            active = not e.hasClass("salvus-task-active-icon-active")
-        if active
-            e.addClass("salvus-task-active-icon-active")
-        else
-            e.removeClass("salvus-task-active-icon-active")
+            # toggle whatever it is
+            active = not is_active
+
+        if active != is_active
+            e.toggle('hide')
         task.active = active
         @db.update
             set   : {active  : active}
