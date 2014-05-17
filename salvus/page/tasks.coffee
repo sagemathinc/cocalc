@@ -182,7 +182,21 @@ class TaskList
             @display_title(task)
 
         t.find(".salvus-task-to-bottom-icon").click () =>
-            @save_task_position(task, @tasks[@tasks.length-1].position+1)
+            if task.done
+                # put at very bottom
+                p = @tasks[@tasks.length-1].position + 1
+            else
+                # put after last not done task
+                i = @tasks.length - 1
+                while i >= 0
+                    if not @tasks[i].done
+                        if i == @tasks.length - 1
+                            p = @tasks[i].position + 1
+                        else
+                            p = (@tasks[i].position + @tasks[i+1].position)/2
+                        break
+                    i -= 1
+            @save_task_position(task, p)
             @display_title(task)
 
         d = t.find(".salvus-task-delete").click () =>
