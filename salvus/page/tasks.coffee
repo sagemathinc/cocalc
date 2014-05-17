@@ -337,6 +337,11 @@ class TaskList
             mode           : 'markdown'
             lineNumbers    : false
             theme          : editor_settings.theme
+            lineWrapping   : editor_settings.line_wrapping
+            matchBrackets  : editor_settings.match_brackets
+            indentUnit     : editor_settings.indent_unit
+            styleActiveLine: 15
+            tabSize        : editor_settings.tab_size
             viewportMargin : Infinity
             extraKeys      :
                 "Enter"       : "newlineAndIndentContinueMarkdownList"
