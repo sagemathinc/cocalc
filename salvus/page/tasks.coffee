@@ -159,6 +159,13 @@ class TaskList
         active = t.find(".salvus-task-active-icon").click(() =>@toggle_actively_working_on_task(task))
         if task.active
             active.addClass("salvus-task-active-icon-active")
+        t.find(".salvus-task-toggle-icon").click () =>
+            t.find(".salvus-task-toggle-icon").toggleClass('hide')
+            @display_title(task)
+
+        if @local_storage("toggle-#{task.task_id}")
+            t.find(".salvus-task-toggle-icon").toggleClass('hide')
+
         t.data('task',task)
         @display_last_edited(task)
         @display_title(task)
@@ -183,6 +190,15 @@ class TaskList
 
     display_title: (task) =>
         title = $.trim(task.title)
+        i = title.indexOf('\n')
+        if i != -1
+            if task.element.find(".fa-chevron-down").hasClass("hide")
+                @local_storage("toggle-#{task.task_id}",false)
+                title = title.slice(0,i)
+            else
+                @local_storage("toggle-#{task.task_id}",true)
+        else
+            task.element.find(".fa-chevron-right").hide()
         if title.length == 0
             title = "No title" # so it is possible to edit
         task.element.find(".salvus-task-title").html(marked(title)).mathjax().find('a').attr("target","_blank")
@@ -195,7 +211,6 @@ class TaskList
         @local_storage("current_task", task.task_id)
 
     edit_title: (task) =>
-
         e = task.element
         elt_title = e.find(".salvus-task-title")
         elt = edit_title_template.clone()

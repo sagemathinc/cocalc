@@ -95,3 +95,12 @@
     color: #bbb;
 }
 
+
+.salvus-task-toggle-icon {
+    margin-left: 1ex;
+    color: #aaa;
+}
+
+.salvus-task-active-icon:hover {
+    color: #222;
+}
