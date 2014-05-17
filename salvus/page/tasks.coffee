@@ -203,11 +203,14 @@ class TaskList
         elt_title.hide()
 
         stop_editing = () =>
-            elt_title.show()
-            cm.toTextArea()
-            elt.remove()
+            try
+                cm.toTextArea()
+            catch
+                # TODO: this raises an exception...
             task.last_edited = (new Date()) - 0
             @display_last_edited(task)
+            elt.remove()
+            elt_title.show()
 
         save_title = () =>
             title = cm.getValue()
@@ -220,14 +223,17 @@ class TaskList
                     set   : {title  : title}
                     where : {task_id : task.task_id}
 
+        editor_settings = require('account').account_settings.settings.editor_settings
         opts =
-            mode           : 'markdown',
-            lineNumbers    : false,
-            theme          : "default",
+            mode           : 'markdown'
+            lineNumbers    : false
+            theme          : editor_settings.theme
             viewportMargin : Infinity
             extraKeys      :
                 "Enter"       : "newlineAndIndentContinueMarkdownList"
                 "Shift-Enter" : save_title
+        if editor_settings.bindings != "standard"
+            opts.keyMap = editor_settings.bindings
 
         cm = CodeMirror.fromTextArea(elt[0], opts)
         cm.setValue(task.title)
@@ -235,38 +241,7 @@ class TaskList
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
         cm.on 'blur', save_title
         cm.focus()
-
-    xxx_edit_title: (task) =>
-        e = task.element
-        e.css('max-height','400em')
-        elt_title = e.find(".salvus-task-title")
-        elt = edit_title_template.clone()
-        elt_title.after(elt)
-        elt_title.hide()
-        elt.val(task.title)
-        elt.focus()
-        elt.focusout () =>
-            save_title()
-        elt.keydown (evt) =>
-            if misc_page.is_shift_enter(evt) or misc_page.is_escape(evt)
-                save_title()
-                return false
-        stop_editing = () =>
-            elt_title.show()
-            elt.remove()
-            task.last_edited = (new Date()) - 0
-            @display_last_edited(task)
-
-        save_title = () =>
-            title = elt.val()
-            stop_editing()
-            if title != task.title
-                orig_title = task.title
-                task.title = title
-                @display_title(task)
-                @db.update
-                    set   : {title  : title}
-                    where : {task_id : task.task_id}
+        cm.save = save_title
 
     set_done: (task, done) =>
         if done
@@ -324,14 +299,17 @@ class TaskList
     init_create_task: () =>
         create_task_input = @element.find(".salvus-tasks-new")
 
+        editor_settings = require('account').account_settings.settings.editor_settings
         opts =
-            mode        : 'markdown',
-            lineNumbers : false,
-            theme       : "default",
+            mode        : 'markdown'
+            lineNumbers : false
+            theme       : editor_settings.theme
             viewportMargin: Infinity
             extraKeys   :
                 "Enter": "newlineAndIndentContinueMarkdownList"
                 "Shift-Enter" : @create_task
+        if editor_settings.bindings != "standard"
+            opts.keyMap = editor_settings.bindings
 
         @create_task_editor = CodeMirror.fromTextArea(create_task_input[0], opts)
         $(@create_task_editor.getWrapperElement()).addClass('salvus-new-task-cm-editor')
