@@ -18,7 +18,12 @@
                     <span class="salvus-tasks-filename"></span>
                 </div>
             </div>
-            <div class="hide lighten salvus-tasks-search-describe">Showing <b><i>only</i></b> tasks that contain <span></span>.</div>
+            <div class="lighten salvus-tasks-search-describe">
+
+                <span class="salvus-tasks-search-contain">Only showing tasks that contain <b><i><span class="salvus-tasks-search-query"></span></i></b>.<br></span>
+                <span class="salvus-tasks-search-showing-deleted">Only showing <b><i>deleted tasks</i></b>.<br></span>
+                <span class="salvus-tasks-search-showing-done">Only showing <b><i>done tasks</i></b>.</span>
+            </div>
 
             <div class="well salvus-tasks-list">
                 <div class="row-fluid  salvus-tasks-list-heading">
@@ -81,7 +86,7 @@
         <div class="span1">
             <span class="salvus-task-last-edited"></span>
         </div>
-        <div class="span1">
+        <div class="span1 lighten">
             <i class="fa fa-square-o salvus-task-icon salvus-task-viewer-not-done"> </i>
             <i class="fa fa-check-square-o salvus-task-icon salvus-task-viewer-done hide"> </i> done<br>
             <i class="fa fa-trash-o  salvus-task-icon salvus-task-delete"> </i>

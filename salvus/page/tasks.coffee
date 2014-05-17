@@ -103,18 +103,24 @@ class TaskList
             x = $.trim(x)
             if x.length > 0
                 search.push(x)
-        if search.length == 0
-            @element.find(".salvus-tasks-search-describe").hide()
-        else
-            @element.find(".salvus-tasks-search-describe").show().find("span").text(search.join(' '))
+        search_describe = @element.find(".salvus-tasks-search-describe")
+        search_describe.find("span").hide()
+        if search.length > 0
+            search_describe.find(".salvus-tasks-search-contain").show()
+            search_describe.find(".salvus-tasks-search-query").show().text(search.join(' '))
+        if @showing_done
+            search_describe.find(".salvus-tasks-search-showing-done").show()
+        if @showing_deleted
+            search_describe.find(".salvus-tasks-search-showing-deleted").show()
+
 
         @elt_task_list.empty()
         @sort_task_list()
         first_task = undefined
         for task in @tasks
-            if not @showing_done and task.done
+            if !!task.done != @showing_done
                 continue
-            if not @showing_deleted and task.deleted
+            if !!task.deleted != @showing_deleted
                 continue
             skip = false
             t = task.title.toLowerCase()
