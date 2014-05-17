@@ -36,7 +36,7 @@
 {"title":"disable draggable when editing task so can select text","position":14,"last_edited":1400292770622,"task_id":"52628ecd-e022-41c7-bc04-c7b0291b32a4","done":true,"active":false}
 {"title":"when searching, if not hits, add button to create new task from search","position":24,"last_edited":1400292780437,"task_id":"6bf6979d-e140-452c-8fc2-4701a83fff54","active":false,"done":true}
 {"title":"deal with todo in source code when removing codemirror editor (see that try/catch)","position":-9.5367431640625e-7,"last_edited":1400301248694,"task_id":"a23526ee-450f-42a3-9023-74fe78c31cc1"}
-{"title":"codemirror editor -- **respect** *all* settings, e.g., line wrapping, etc.","position":-56,"last_edited":1400301463259,"task_id":"e8636922-e095-409a-ae4f-53f4a69621b4","active":false}
+{"title":"codemirror editor -- **respect** settings, e.g., line wrapping, etc.","position":-56,"last_edited":1400301463259,"task_id":"e8636922-e095-409a-ae4f-53f4a69621b4","active":false}
 {"title":"the toggle-able extended title has the potential to leak a bit of localStorage -- need to clean that up when deleting a task.","position":-0.00000762939453125,"last_edited":1400303043591,"task_id":"a5021dbd-b077-4542-9240-e5e8dc121cdf","active":false}
 {"title":"make the full task description toggle nicer -- i.e., set max-height to really only get one line.","position":-10.359375,"last_edited":1400303398845,"task_id":"a268db81-bfb9-4da2-9c42-64854d06dce8","deleted":true}
 {"title":"fix stupid syntax highlighting of bold in markdown mode with solarized light","position":-5.960464477539063e-8,"last_edited":1400303421003,"task_id":"4390446f-2280-4aa8-b602-70f79f4cc0ef"}
@@ -57,4 +57,4 @@
 {"title":"show done and show deleted shouldn't be selected by default on new task lists, but maybe they are.","position":21,"last_edited":1400433763777,"task_id":"14e1869e-e3a4-4c02-a869-17ecd64aedb0","active":false,"done":true}
 {"title":"active project link -- way to link into specific place in file (via search)\n\n  - would use this to link to a point in file defined by a comment attached to a todo\n  - would also be used by the current search functionality","position":-46,"last_edited":1400449025781,"task_id":"80b54c20-4ac5-4336-bc9f-6feb4849949a"}
 {"title":"make the default when creating tasks to show rather than hide all (the toggle)","position":-47,"last_edited":1400449065136,"task_id":"3dd6c205-7758-4b05-85c9-8684d460a6dd","active":false,"done":true}
-{"title":"when click \"show done\" *only* show the done tasks; similar with deleted (?) -- and include remark about this in search header","position":-59,"last_edited":1400460540576,"task_id":"0be9e446-5a3a-4195-8daa-31bec3c17282","active":true}
+{"title":"when click \"show done\" *only* show the done tasks; similar with deleted (?) -- and include remark about this in search header","position":-59,"last_edited":1400460540576,"task_id":"0be9e446-5a3a-4195-8daa-31bec3c17282","active":false,"done":true}

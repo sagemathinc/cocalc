@@ -42,6 +42,11 @@
     color:#08c
 }
 
+.salvus-task-icon-done-box {
+    font-size:12pt;
+}
+
+
 .salvus-task-viewer {
     color: #444;
 }
@@ -105,6 +110,9 @@
     color: orange;
 }
 
+.salvus-task-active {
+    color: orange;
+}
 
 .salvus-task-toggle-icon {
     color: #666;
@@ -126,6 +134,10 @@
     font-size:8pt;
 }
 
+.salvus-task-delete {
+    font-size:13pt;
+}
+
 .salvus-task-deleted {
     color : red;
 }
@@ -135,3 +147,5 @@
     font-size:11pt;
     color:#666;
 }
+
+

@@ -104,14 +104,16 @@ class TaskList
             if x.length > 0
                 search.push(x)
         search_describe = @element.find(".salvus-tasks-search-describe")
-        search_describe.find("span").hide()
-        if search.length > 0
-            search_describe.find(".salvus-tasks-search-contain").show()
-            search_describe.find(".salvus-tasks-search-query").show().text(search.join(' '))
-        if @showing_done
-            search_describe.find(".salvus-tasks-search-showing-done").show()
-        if @showing_deleted
-            search_describe.find(".salvus-tasks-search-showing-deleted").show()
+        if search.length > 0 or @showing_done or @showing_deleted
+            search_describe.show()
+            search_describe.find("span").hide()
+            if search.length > 0
+                search_describe.find(".salvus-tasks-search-contain").show()
+                search_describe.find(".salvus-tasks-search-query").show().text(search.join(' '))
+            if @showing_done
+                search_describe.find(".salvus-tasks-search-showing-done").show()
+            if @showing_deleted
+                search_describe.find(".salvus-tasks-search-showing-deleted").show()
 
 
         @elt_task_list.empty()
@@ -205,11 +207,12 @@ class TaskList
         if @current_task? and task.task_id == @current_task.task_id
             @set_current_task(task)
 
-        #active = t.find(".salvus-task-active-toggle").click(() =>@toggle_actively_working_on_task(task))
-        active = t.find(".salvus-task-icon-active").click(() =>@toggle_actively_working_on_task(task))
+        t.find(".salvus-task-active-button").click (event) =>
+            @toggle_actively_working_on_task(task)
+            event.preventDefault()
         if task.active
-            active.addClass('salvus-task-icon-active-is_active')
-            #active.toggleClass("hide")
+            t.find(".salvus-task-icon-active").addClass('salvus-task-icon-active-is_active')
+            t.find(".salvus-task-active").show()
 
         t.find(".salvus-task-toggle-icon").click () =>
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
@@ -251,23 +254,6 @@ class TaskList
         @display_last_edited(task)
         @display_title(task)
 
-    xxx_toggle_actively_working_on_task: (task, active) =>
-        inactive_icon = task.element.find(".salvus-task-active-inactive-icon")
-        is_active = inactive_icon.is(":hidden")
-
-        if not active?
-            # toggle whatever it is
-            active = not is_active
-
-        if active != is_active
-            task.element.find(".salvus-task-active-toggle").toggle('hide')
-
-        task.active = active
-        @db.update
-            set   : {active  : active}
-            where : {task_id : task.task_id}
-        @set_dirty()
-
     toggle_actively_working_on_task: (task, active) =>
         icon = task.element.find(".salvus-task-icon-active")
         is_active = icon.hasClass("salvus-task-icon-active-is_active")
@@ -278,6 +264,7 @@ class TaskList
 
         if active != is_active
             icon.toggleClass('salvus-task-icon-active-is_active')
+            task.element.find(".salvus-task-active").toggleClass('hide')
             task.active = active
             @db.update
                 set   : {active  : active}
