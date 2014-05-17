@@ -70,7 +70,7 @@ class TaskList
         f = (task1, task2) =>
             t1 = task1[field]
             t2 = task2[field]
-            if typeof t1 == "string"
+            if typeof t1 == "string"  # TODO: should have a simple ascii field in task object with markdown and case removed.
                 t1 = t1.toLowerCase()
                 t2 = t2.toLowerCase()
             if t1 < t2
@@ -425,6 +425,8 @@ class TaskList
 
     init_showing_done: () =>
         @showing_done = @local_storage("showing_done")
+        if not @showing_done?
+            @showing_done = false
         @set_showing_done(@showing_done)
         @element.find(".salvus-task-search-not-done").click(=> @set_showing_done(true))
         @element.find(".salvus-task-search-done").click(=> @set_showing_done(false))
@@ -446,6 +448,8 @@ class TaskList
 
     init_showing_deleted: () =>
         @showing_deleted = @local_storage("showing_deleted")
+        if not @showing_deleted?
+            @showing_deleted = false
         @set_showing_deleted(@showing_deleted)
         @element.find(".salvus-task-search-not-deleted").click(=> @set_showing_deleted(true))
         @element.find(".salvus-task-search-deleted").click(=> @set_showing_deleted(false))
@@ -499,7 +503,7 @@ class TaskList
         @sort_order = {heading:'custom', dir:'desc'}
         @update_sort_order_display()
         @sort_task_list()
-        
+
     show: () =>
         @element.find(".salvus-tasks-list").maxheight(offset:50)
 

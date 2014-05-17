@@ -1,4 +1,4 @@
-{"title":"Add **due** date field","position":-38,"last_edited":1400200049045,"task_id":"9935b462-c9de-44a7-9589-b51d246d9f06","active":true}
+{"title":"Add **due** date field","position":-38,"last_edited":1400200049045,"task_id":"9935b462-c9de-44a7-9589-b51d246d9f06","active":false}
 {"title":"(invalid) **import/export** a set of tasks","position":-1,"last_edited":1400200054140,"task_id":"86c7c95f-709c-4c68-9a18-1c0a480ea93e","done":true,"active":false,"deleted":true}
 {"title":"Ability to **link** to files in project","position":-35,"last_edited":1400200061348,"task_id":"340b9bac-6662-41ba-9b4e-cbc95565e202","active":false}
 {"title":"**Subtasks**\n - critical that existing tasks can be dragged to be subtasks of other tasks, i.e., ability to organize\n","position":-0.125,"last_edited":1400200068867,"task_id":"8387fdea-bf53-4bef-a642-a58cc2ef455b","done":false,"active":false}
@@ -48,3 +48,10 @@
 {"title":"way to move task to top/bottom of task list","position":0,"last_edited":1400371619882,"task_id":"6224e3b8-4ad8-44fa-b4b8-93b4ef438f5b","active":false,"done":true}
 {"title":"read-only view of list, when document is read only (e.g., when browsing snapshots)","position":-10.453125,"last_edited":1400381075436,"task_id":"dbcc1491-fe89-4f65-b2ce-615f01cd5be1"}
 {"title":"change bolt to play/stop -- makes more sense","position":-37,"last_edited":1400382228872,"task_id":"7e1b70d4-5715-4e6f-b50b-6c73e4a536a1","active":false,"done":true}
+{"title":"make searching, etc., better and faster via this note: `TODO: should have a simple ascii field in task object with markdown and case removed.`","position":-0.1875,"last_edited":1400390101739,"task_id":"7b773807-e93d-4edd-b7a6-6befe2b92747"}
+{"title":"If there are no tasks, add some text in the middle explaining how to add your first task (just like with empty directory)","position":-0.00048828125,"last_edited":1400433220182,"task_id":"5e1ad39d-b542-4600-8bf2-710fa67b18aa"}
+{"title":"Change back to calling it \"Tasks\" in the new file thing, etc. -- we'll make other editors based on same idea for other things -- this should clearly be for tasks!","position":-0.000244140625,"last_edited":1400433559604,"task_id":"3f47a6d5-fbb8-40f8-9392-0356fc933735"}
+{"title":"add between the \"to-top/to-bottom\" buttons a \"to-middle\" button.","position":-39,"last_edited":1400433584610,"task_id":"b9eb64f1-dd46-4d8e-98e9-e5fb461c98ed"}
+{"title":"Add a description for the task list itself; it would be useful to just have that clearly labeled at the top","position":-40,"last_edited":1400433654606,"task_id":"4621b141-3efe-4feb-95b9-184dbaa12bce"}
+{"title":"change the column labeled \"custom\" to \"priority\" and put all relevent icons there.","position":-41,"last_edited":1400433678237,"task_id":"65d78e20-c6e7-4554-ab1d-fb9374c431c1","active":true}
+{"title":"show done and show deleted shouldn't be selected by default on new task lists, but maybe they are.","position":-42,"last_edited":1400433763777,"task_id":"14e1869e-e3a4-4c02-a869-17ecd64aedb0","active":false,"done":true}
