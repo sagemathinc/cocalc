@@ -8,7 +8,7 @@
                     <textarea rows=4 placeholder="Create a new task..." class="salvus-tasks-new" style="width:98%"></textarea>
                 </div>
                 <div class="span2">
-                    <a class="btn btn-success salvus-tasks-create-button disabled" data-toggle="tooltip" data-placement="bottom" title="Enter task then press Shift+Enter or click">Create new task</a>
+                    <a class="btn btn-success salvus-tasks-create-button disabled" data-toggle="tooltip" data-placement="bottom" title="Enter task then press Shift+Enter or click">Create Item</a>
                 </div>
             </div>
             <div class="row-fluid" style="margin-bottom:1em">
@@ -33,20 +33,21 @@
 
     <div class="salvus-task">
         <div class="row-fluid salvus-task-viewer">
-            <div class="span1" style="font-size: 13pt;">
+            <div class="span2" style="font-size: 13pt;">
+                <i class="fa fa-reorder salvus-task-reorder-handle"> </i>
                 <i class="fa fa-square-o salvus-task-icon salvus-task-viewer-not-done"> </i>
                 <i class="fa fa-check-square-o salvus-task-icon salvus-task-viewer-done hide"> </i>
-                <i class="fa fa-bolt salvus-task-active-icon"  data-toggle="tooltip" data-placement="right" title="Indicate that you're actively working on this task"> </i>
+                <i class="fa fa-bolt salvus-task-active-icon"  data-toggle="tooltip" data-placement="right" title="Indicate that this is active"> </i>
 
                 <i class="fa fa-chevron-right salvus-task-toggle-icon"> </i>
                 <i class="fa fa-chevron-down salvus-task-toggle-icon hide"> </i>
 
             </div>
-            <div class="span9">
+            <div class="span8">
                 <span class="salvus-task-title"></span>
             </div>
             <div class="span2">
-                <span class="salvus-task-last-edited lighten"></span>
+                <span class="salvus-task-last-edited"></span>
             </div>
         </div>
     </div>

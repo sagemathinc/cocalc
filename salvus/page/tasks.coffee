@@ -101,6 +101,7 @@ class TaskList
 
         @elt_task_list.sortable
             containment : @elt_task_list
+            handle      : ".salvus-task-reorder-handle"
             update      : (event, ui) =>
                 e    = ui.item
                 task = e.data('task')

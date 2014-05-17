@@ -79,12 +79,15 @@
 }
 
 .salvus-task-active-icon {
-    margin-left: 1ex;
     color: #bbb;
 }
 
 .salvus-task-active-icon:hover {
     color: #3f3;
+}
+
+.salvus-task-reorder-handle:hover {
+    color: #51a7e8
 }
 
 .salvus-task-active-icon-active {
@@ -97,10 +100,14 @@
 
 
 .salvus-task-toggle-icon {
-    margin-left: 1ex;
     color: #aaa;
 }
 
 .salvus-task-active-icon:hover {
     color: #222;
+}
+
+.salvus-task-last-edited {
+    color:#888;
+    font-size:9pt;
 }
