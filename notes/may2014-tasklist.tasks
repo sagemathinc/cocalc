@@ -1,8 +1,8 @@
 {"title":"Add **due** date field","position":-15,"last_edited":1400200049045,"task_id":"9935b462-c9de-44a7-9589-b51d246d9f06"}
 {"title":"(invalid) **import/export** a set of tasks","position":-1,"last_edited":1400200054140,"task_id":"86c7c95f-709c-4c68-9a18-1c0a480ea93e","done":true,"active":false}
 {"title":"Ability to **link** to files in project","position":-2,"last_edited":1400200061348,"task_id":"340b9bac-6662-41ba-9b4e-cbc95565e202"}
-{"title":"**Subtasks**\n - maybe something else?\n - critical that existing tasks can be dragged to be subtasks of other tasks, i.e., ability to organize\n","position":-30,"last_edited":1400200068867,"task_id":"8387fdea-bf53-4bef-a642-a58cc2ef455b"}
-{"title":"delete tasks\n- in edit mode, make a red button \"Delete\" with  a trashcan on right replacing the time\n- when clicked, delete task\n- add way to show recently deleted tasks\n- add way to purge deleted tasks forever","position":-30.5,"last_edited":1400200094042,"task_id":"ddf315ea-62a2-49c6-935e-efe565474146","active":false}
+{"title":"**Subtasks**\n - maybe something else?\n - critical that existing tasks can be dragged to be subtasks of other tasks, i.e., ability to organize\n","position":-30,"last_edited":1400200068867,"task_id":"8387fdea-bf53-4bef-a642-a58cc2ef455b","done":false}
+{"title":"delete tasks\n- in edit mode, make a red button \"Delete\" with  a trashcan on right replacing the time\n- when clicked, delete task\n- add way to show recently deleted tasks\n- add way to purge deleted tasks forever","position":-27.5625,"last_edited":1400200094042,"task_id":"ddf315ea-62a2-49c6-935e-efe565474146","active":false}
 {"title":"should we -- have **actions** use the checkboxes to select a task or range of tasks, then have actions\n- mark done, delete, export (all in range sent to json)","position":-5,"last_edited":1400200119136,"task_id":"6b036c1d-eba9-4520-ae7b-0a943c00f5cc"}
 {"title":"some good way to indicate currently **active task(s)**, i.e., tasks we are working on.","position":-21.5,"last_edited":1400200175957,"task_id":"b0f2fdba-9dc3-4e3e-b42b-47d5e420f262","active":false,"done":true}
 {"title":"**sort** tasks\n- add column headings\n- click to by natural order, title, when due, last edited","position":-7,"last_edited":1400200195452,"task_id":"2cb7f0b1-9324-41b8-b7a9-fcb9a6cf931a"}
@@ -33,7 +33,7 @@
 {"title":"should it be saving to disk every time? no \n -  it should just **sync** and there should be a button to **save to disk**\n -  impacted by auto-save","position":-10.46875,"last_edited":1400277605904,"task_id":"74151303-06a6-4fff-8ad4-6a8eb6ab2cfe"}
 {"title":"way to export whole list to the following formats:\n  - markdown\n  - pdf (generate using pandoc and markdown)","position":-9.5,"last_edited":1400285939479,"task_id":"8e9c3db3-1595-49cf-85d6-acf8cfbd8a80"}
 {"title":"make use of *codemirror* respect users wishes regarding theme, keybindings, etc.","position":-32,"last_edited":1400290972650,"task_id":"f915f3f8-a535-405e-b5f9-7a16a02082a9","active":false,"done":true}
-{"title":"disable draggable when editing task so can select text","position":-22,"last_edited":1400292770622,"task_id":"52628ecd-e022-41c7-bc04-c7b0291b32a4","done":true}
+{"title":"disable draggable when editing task so can select text","position":-22,"last_edited":1400292770622,"task_id":"52628ecd-e022-41c7-bc04-c7b0291b32a4","done":true,"active":false}
 {"title":"when searching, if not hits, add button to create new task from search","position":-15.75,"last_edited":1400292780437,"task_id":"6bf6979d-e140-452c-8fc2-4701a83fff54"}
 {"title":"deal with todo when removing codemirror editor","position":-2.5,"last_edited":1400301248694,"task_id":"a23526ee-450f-42a3-9023-74fe78c31cc1"}
 {"title":"codemirror editor -- respect *all* settings, e.g., line wrapping, etc.","position":-14,"last_edited":1400301463259,"task_id":"e8636922-e095-409a-ae4f-53f4a69621b4"}
@@ -41,3 +41,7 @@
 {"title":"make the full task description toggle nicer -- i.e., set max-height to really only get one line.","position":-10.359375,"last_edited":1400303398845,"task_id":"a268db81-bfb9-4da2-9c42-64854d06dce8"}
 {"title":"fix stupid syntax highlighting of bold in markdown mode with solarized light","position":-10.28125,"last_edited":1400303421003,"task_id":"4390446f-2280-4aa8-b602-70f79f4cc0ef"}
 {"title":"when searching and rendering todo list, all the search terms should be highlighted in the rendered todo item","position":-7.75,"last_edited":1400355157057,"task_id":"8d22ee3d-ccdd-4ebb-b5d3-29c3eae2725b"}
+{"title":"consider combining search and create new task (?)\n   - every few seconds when typing in the \"create task\" box, update the search to be the result of that search","position":-8.75,"last_edited":1400356513161,"task_id":"1afd52ad-98e2-4b89-9410-796644e1afe1"}
+{"title":"clicking on a task to move it should make it current","position":-34,"last_edited":1400361672396,"task_id":"625d115c-279b-45b6-9fec-9e4ae4ffcf91","active":false,"done":true}
+{"title":"labels like in github would be nice; there implementation is pretty usable and fun\n\nHowever, maybe hashtags and getting rid of them from markdown would be better/easier/cleaner.\n","position":-13.5,"last_edited":1400361932678,"task_id":"1d11af52-fda6-4f00-b80b-12896199cc07"}
+{"title":"**undo/redo history** -- there should be a global undo, so hitting \"control (or command)-z\" undoes history of todo list...\n   - could implement by undoing edit history of underlying document","position":-13.75,"last_edited":1400370423260,"task_id":"d8941dbd-10a4-430c-be95-93df9fad1efb"}

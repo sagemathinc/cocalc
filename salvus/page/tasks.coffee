@@ -2,7 +2,9 @@ async = require('async')
 
 marked = require('marked')
 
-{defaults, required, to_json, uuid} = require('misc')
+misc = require('misc')
+{defaults, required, to_json, uuid} = misc
+
 
 {salvus_client}   = require('salvus_client')
 {alert_message}   = require('alerts')
@@ -65,7 +67,7 @@ class TaskList
 
     render_task_list: () =>
         search = []
-        for x in @element.find(".salvus-tasks-search").val().toLowerCase().split()
+        for x in misc.split(@element.find(".salvus-tasks-search").val().toLowerCase())
             x = $.trim(x)
             if x.length > 0
                 search.push(x)
@@ -105,6 +107,8 @@ class TaskList
             update      : (event, ui) =>
                 e    = ui.item
                 task = e.data('task')
+                console.log('making moved task current')
+                @set_current_task(task)
                 # determine the previous and next tasks and their position numbers.
                 prev = e.prev()
                 next = e.next()
