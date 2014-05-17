@@ -104,21 +104,19 @@ class TaskList
             if x.length > 0
                 search.push(x)
         search_describe = @element.find(".salvus-tasks-search-describe")
-        if search.length > 0 or @showing_done or @showing_deleted
-            search_describe.show()
-            search_describe.find("span").hide()
-            if search.length > 0
-                search_describe.find(".salvus-tasks-search-contain").show()
-                search_describe.find(".salvus-tasks-search-query").show().text(search.join(' '))
-            if @showing_done
-                search_describe.find(".salvus-tasks-search-showing-done").show()
-            if @showing_deleted
-                search_describe.find(".salvus-tasks-search-showing-deleted").show()
-
+        search_describe.find("span").hide()
+        if search.length > 0
+            search_describe.find(".salvus-tasks-search-contain").show()
+            search_describe.find(".salvus-tasks-search-query").show().text(search.join(' '))
+        if @showing_done
+            search_describe.find(".salvus-tasks-search-showing-done").show()
+        if @showing_deleted
+            search_describe.find(".salvus-tasks-search-showing-deleted").show()
 
         @elt_task_list.empty()
         @sort_task_list()
         first_task = undefined
+        count = 0
         for task in @tasks
             if !!task.done != @showing_done
                 continue
@@ -132,8 +130,15 @@ class TaskList
                     continue
             if not skip
                 @render_task(task)
+                count += 1
                 if not first_task?
                     first_task = task
+
+        if count != 1
+            count = "#{count} tasks"
+        else
+            count = "#{count} task"
+        search_describe.find(".salvus-tasks-count").text(count).show()
 
         if not @current_task? and first_task?
             task_id = @local_storage("current_task")
@@ -380,7 +385,7 @@ class TaskList
         else
             e.removeClass('salvus-task-deleted')
         if deleted and not @showing_deleted
-            task.element.fadeOut 4000, () =>
+            task.element.fadeOut 10000, () =>
                 if e.hasClass('salvus-task-deleted')  # they could have canceled the action by clicking again
                     task.element?.remove()
                     f()
@@ -401,9 +406,9 @@ class TaskList
             @toggle_actively_working_on_task(task, false)
             @set_dirty()
         if done and not @showing_done
-            task.element.fadeOut 3000, () =>
+            task.element.fadeOut 10000, () =>
                 if task.done  # they could have canceled the action by clicking again
-                    task.element.remove()
+                    task.element?.remove()
                     f()
         else
             f()
