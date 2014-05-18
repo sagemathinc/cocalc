@@ -1,4 +1,4 @@
-{"title":"Implement editing of **due** date field","position":-66,"last_edited":1400200049045,"task_id":"9935b462-c9de-44a7-9589-b51d246d9f06","active":false}
+{"title":"Implement editing of **due** date field","position":-69,"last_edited":1400200049045,"task_id":"9935b462-c9de-44a7-9589-b51d246d9f06","active":false}
 {"title":"(invalid) **import/export** a set of tasks","position":-1,"last_edited":1400200054140,"task_id":"86c7c95f-709c-4c68-9a18-1c0a480ea93e","done":true,"active":false,"deleted":true}
 {"title":"Ability to **link** to files in project","position":-47,"last_edited":1400200061348,"task_id":"340b9bac-6662-41ba-9b4e-cbc95565e202","active":false}
 {"title":"**Subtasks**\n - critical that existing tasks can be dragged to be subtasks of other tasks, i.e., ability to organize\n","position":-0.125,"last_edited":1400200068867,"task_id":"8387fdea-bf53-4bef-a642-a58cc2ef455b","done":false,"active":false}
@@ -62,4 +62,4 @@
 {"title":"add a save button when editing task, with \"shift-enter\" hover text","position":-62,"last_edited":1400463530704,"task_id":"d5a7d1b9-4674-4a60-b986-846bbeb6c043"}
 {"title":"creating a new task should have highest priority no matter what sort order is, etc.","position":-63,"last_edited":1400463579626,"task_id":"984dd99f-ed3b-4c6b-8b31-7532655d7705"}
 {"title":"add a message about using markdown or html (for now).","position":-64,"last_edited":1400463598132,"task_id":"b77b4dd9-8fd8-49c7-b41a-6c3eca33ca31"}
-{"title":"show a counter of the number of visible tasks","position":-68,"last_edited":1400463706439,"task_id":"114dd73a-7af9-4c0e-b923-bb40bc3ec51c","active":true}
+{"title":"show a counter of the number of visible tasks","position":-68,"last_edited":1400463706439,"task_id":"114dd73a-7af9-4c0e-b923-bb40bc3ec51c","active":false,"done":true}

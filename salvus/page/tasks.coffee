@@ -75,6 +75,11 @@ class TaskList
         f = (task1, task2) =>
             t1 = task1[field]
             t2 = task2[field]
+            if field == 'due_date'
+                if not t1?
+                    t1 = 99999999999999999999
+                if not t2?
+                    t2 = 99999999999999999999
             if typeof t1 == "string"  # TODO: should have a simple ascii field in task object with markdown and case removed.
                 t1 = t1.toLowerCase()
                 t2 = t2.toLowerCase()
@@ -200,7 +205,7 @@ class TaskList
             @elt_task_list.append(t)
         task.element = t
         t.click () => @set_current_task(task)
-        t.find(".salvus-task-title").click () => @edit_task(task)
+        t.find(".salvus-task-title").click () => @edit_title(task)
         t.find(".salvus-task-viewer-not-done").click () =>
             @mark_task_done(task, true)
         t.find(".salvus-task-viewer-done").click () =>
@@ -230,6 +235,11 @@ class TaskList
             @custom_sort_order()
             @save_task_position(task, @tasks[0].position-1)
             @display_title(task)
+
+        t.find(".salvus-task-due").click (event) =>
+            @edit_due_date(task)
+            event.preventDefault()
+        @display_due_date(task)
 
         t.find(".salvus-task-to-bottom-icon").click () =>
             @custom_sort_order()
@@ -271,8 +281,10 @@ class TaskList
             icon.toggleClass('salvus-task-icon-active-is_active')
             task.element.find(".salvus-task-active").toggleClass('hide')
             task.active = active
+            task.last_edited = (new Date()) - 0
+            @display_last_edited(task)
             @db.update
-                set   : {active  : active}
+                set   : {active  : active, last_edited : task.last_edited}
                 where : {task_id : task.task_id}
             @set_dirty()
 
@@ -282,7 +294,14 @@ class TaskList
 
     display_due_date: (task) =>
         if task.due_date
-            task.element.find(".salvus-task-due").attr('title',(new Date(task.due_date)).toISOString()).timeago()
+            d = new Date(0)   # see http://stackoverflow.com/questions/4631928/convert-utc-epoch-to-local-date-with-javascript
+            d.setUTCMilliseconds(task.due_date)
+            e = task.element.find(".salvus-task-due")
+            e.attr('title',d.toISOString()).timeago()
+            if d < new Date()
+                console.log('adding red')
+                e.addClass("salvus-task-overdue")
+
 
     display_title: (task) =>
         title = $.trim(task.title)
@@ -307,11 +326,11 @@ class TaskList
         if task.element?  # if it is actually being displayed
             task.element.addClass("salvus-current-task")
 
-    edit_task: (task) =>
+    edit_title: (task) =>
         @set_current_task(task)
         e = task.element
         elt_title = e.find(".salvus-task-title")
-        elt = edit_task_template.clone()
+        elt = edit_task_template.find(".salvus-tasks-title-edit").clone()
         elt_title.after(elt)
         elt_title.hide()
 
@@ -320,8 +339,6 @@ class TaskList
                 cm.toTextArea()
             catch
                 # TODO: this raises an exception...
-            task.last_edited = (new Date()) - 0
-            @display_last_edited(task)
             elt.remove()
             elt_title.show()
 
@@ -331,9 +348,11 @@ class TaskList
             if title != task.title
                 orig_title = task.title
                 task.title = title
+                task.last_edited = (new Date()) - 0
+                @display_last_edited(task)
                 @display_title(task)
                 @db.update
-                    set   : {title  : title}
+                    set   : {title  : title, last_edited : task.last_edited}
                     where : {task_id : task.task_id}
                 @set_dirty()
 
@@ -354,13 +373,60 @@ class TaskList
         if editor_settings.bindings != "standard"
             opts.keyMap = editor_settings.bindings
 
-        cm = CodeMirror.fromTextArea(elt.find(".salvus-tasks-title-edit")[0], opts)
+        cm = CodeMirror.fromTextArea(elt[0], opts)
         cm.setValue(task.title)
         $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor').addClass('salvus-new-task-cm-editor-focus')
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
         cm.on 'blur', save_task
         cm.focus()
         cm.save = save_task
+
+    edit_due_date: (task) =>
+        @set_current_task(task)
+        e = task.element
+        elt_due = e.find(".salvus-task-due")
+        elt = edit_task_template.find(".salvus-tasks-due-edit").clone()
+        e.find(".salvus-task-title").before(elt)
+        # TODO: this should somehow adjust to use locale, right?!
+        elt.datetimepicker
+            language         : 'en'
+            pick12HourFormat : true
+            pickSeconds      : false
+            startDate        : new Date()
+        # some hacks to make it look right for us:
+        # make calendar pop up
+        elt.find(".icon-calendar").click()
+        # get rid of text input
+        elt.hide()
+        # get rid of ugly little icon
+        $(".bootstrap-datetimepicker-widget:visible").find(".icon-time").addClass('fa').addClass('fa-clock-o').css
+            'font-size' : '16pt'
+            'background': 'white'
+
+        picker = elt.data('datetimepicker')
+        if task.due_date?
+            picker.setLocalDate(new Date(task.due_date))
+        else
+            picker.setLocalDate(new Date())
+        elt.on 'changeDate', (e) =>
+            task.due_date = e.localDate - 0
+            @display_due_date(task)
+        # This is truly horrendous - but I just wanted to get this particular
+        # date picker to work.  This can easily be slotted out with something better later.
+        f = () =>
+            if $("div.bootstrap-datetimepicker-widget:visible").length == 0
+                clearInterval(interval)
+                picker.destroy()
+                elt.remove()
+                @set_due_date(task, task.due_date)
+        interval = setInterval(f, 300)
+
+    set_due_date: (task, due_date) =>
+        task.due_date = due_date
+        @db.update
+            set   : {due_date : due_date}
+            where : {task_id : task.task_id}
+        @set_dirty()
 
     set_done: (task, done) =>
         if done
@@ -432,7 +498,7 @@ class TaskList
         @db.update(set:task, where:{task_id : task_id})
         task.task_id = task_id
         @render_task(task, true)
-        @edit_task(task)
+        @edit_title(task)
         @set_dirty()
 
     init_create_task: () =>
@@ -554,7 +620,8 @@ class TaskList
             if not err and not @_new_changes
                 @set_clean()
             else
-                alert_message(type:"error", message:"unable to save #{@filename} -- #{to_json(err)}")
+                if err
+                    alert_message(type:"error", message:"unable to save #{@filename} -- #{to_json(err)}")
 
     show: () =>
         @element.find(".salvus-tasks-list").maxheight(offset:50)

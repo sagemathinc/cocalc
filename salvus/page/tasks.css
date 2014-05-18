@@ -114,6 +114,10 @@
     color: orange;
 }
 
+.salvus-task-active-button {
+    padding-left: 1em;
+}
+
 .salvus-task-toggle-icon {
     color: #666;
     font-size: 12pt;
@@ -131,7 +135,16 @@
 
 .salvus-task-due {
     color:#888;
-    font-size:8pt;
+    font-size:10pt;
+}
+
+.salvus-task-due:hover {
+    color:#08c;
+}
+
+.salvus-task-overdue {
+    background: red;
+    color: white;
 }
 
 .salvus-task-delete {
