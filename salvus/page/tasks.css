@@ -9,9 +9,8 @@
     padding-right: 0em;
     padding-top: 1ex;
     cursor : pointer;
-    border-left: 2px solid #fff;
-    border-top: 1px solid #ddd;
-    border-bottom: 1px solid #ddd;
+    border-left: 3px solid #fff;
+    border-top: 1px solid #eee;
 }
 
 
@@ -35,7 +34,7 @@
     color:#888;
     padding-top:0;
     padding-bottom:0;
-    font-size:8pt;
+    font-size:9pt;
 }
 
 .salvus-task-icon:hover {
@@ -52,7 +51,7 @@
 }
 
 .salvus-current-task {
-    border-left: 2px solid #08c;
+    border-left: 3px solid #08c;
 }
 
 .salvus-tasks-search-describe {
