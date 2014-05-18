@@ -114,6 +114,10 @@
     color: orange;
 }
 
+.salvus-task-is_active {
+    background: lightyellow;
+}
+
 .salvus-task-active-button {
     padding-left: 1em;
 }

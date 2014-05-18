@@ -218,11 +218,11 @@ class TaskList
             @set_current_task(task)
 
         t.find(".salvus-task-active-button").click (event) =>
-            @toggle_actively_working_on_task(task)
+            @set_actively_working_on_task(task)
             event.preventDefault()
+
         if task.active
-            t.find(".salvus-task-icon-active").addClass('salvus-task-icon-active-is_active')
-            t.find(".salvus-task-active").show()
+            @set_actively_working_on_task(task, task.active)
 
         t.find(".salvus-task-toggle-icon").click () =>
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
@@ -269,7 +269,7 @@ class TaskList
         @display_last_edited(task)
         @display_title(task)
 
-    toggle_actively_working_on_task: (task, active) =>
+    set_actively_working_on_task: (task, active) =>
         icon = task.element.find(".salvus-task-icon-active")
         is_active = icon.hasClass("salvus-task-icon-active-is_active")
 
@@ -278,6 +278,11 @@ class TaskList
             active = not is_active
 
         if active != is_active
+            # change state in UI and database.
+            if active
+                task.element.addClass('salvus-task-is_active')
+            else
+                task.element.removeClass('salvus-task-is_active')
             icon.toggleClass('salvus-task-icon-active-is_active')
             task.element.find(".salvus-task-active").toggleClass('hide')
             task.active = active
@@ -469,7 +474,7 @@ class TaskList
             @db.update
                 set   : {done : done}
                 where : {task_id : task.task_id}
-            @toggle_actively_working_on_task(task, false)
+            @set_actively_working_on_task(task, false)
             @set_dirty()
         if done and not @showing_done
             task.element.fadeOut 10000, () =>
