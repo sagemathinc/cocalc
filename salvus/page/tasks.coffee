@@ -208,12 +208,14 @@ class TaskList
         t.find(".salvus-task-title").click () => @edit_title(task)
         t.find(".salvus-task-viewer-not-done").click () =>
             @mark_task_done(task, true)
+
         t.find(".salvus-task-viewer-done").click () =>
             @mark_task_done(task, false)
         if task.done
             t.find(".salvus-task-viewer-done").show()
             t.find(".salvus-task-viewer-not-done").hide()
             t.addClass("salvus-task-done")
+
         if @current_task? and task.task_id == @current_task.task_id
             @set_current_task(task)
 
