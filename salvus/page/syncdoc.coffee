@@ -1603,10 +1603,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         if opts.execute
             @set_cell_flag(marker, FLAGS.execute)
-            @sync()
-            setTimeout( (() => @sync()), 50 )
-            setTimeout( (() => @sync()), 200 )
-
+            # sync (up to a certain number of times) until either computation happens or is acknowledged.
+            # Just successfully calling sync could return and mean that a sync started before this computation
+            # started had completed.
+            wait = 50
+            f = () =>
+                if FLAGS.execute in @get_cell_flagstring(marker)
+                    @sync () =>
+                        wait = wait*1.2
+                        if wait < 15000
+                            setTimeout(f, wait)
+            @sync () =>
+                setTimeout(f, 50)
 
     split_cell_at: (pos) =>
         # Split the cell at the given pos.
