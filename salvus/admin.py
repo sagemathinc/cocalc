@@ -1616,7 +1616,7 @@ class Monitor(object):
         if len(down) > 0:
                 m += "The following are down: %s"%down
         for x in all['load']:
-            if x['load15'] > 20:
+            if x['load15'] > 100:
                 m += "A machine is going *crazy* with load!: %s"%x
         #for x in all['zfs']:
         #    if x['nproc'] > 10000:
@@ -1643,12 +1643,12 @@ class Monitor(object):
                     last_time = now
                     try:
                         self._go()
-                    except Exception, msg:
-                        print "ERROR -- %s"%msg
+                    except:
+                        print "ERROR"
                         try:
                             self._go()
-                        except Exception, msg:
-                            print "ERROR -- %s"%msg
+                        except:
+                            print "ERROR"
 
             time.sleep(20)
 

@@ -762,10 +762,8 @@ class Project(object):
 
         return status
 
-    def _sync(self, remote, destructive=False, snapshots=True, union=False, union2=False, rsync_timeout=120, bwlimit=5000):
+    def _sync(self, remote, destructive=False, snapshots=True, union=False, union2=False, rsync_timeout=120, bwlimit=1000):
         """
-
-
         NOTE: sync is by default destructive on live files; on snapshots it isn't by default.
 
         If destructive is true, simply push from local to remote, overwriting anything that is remote.
