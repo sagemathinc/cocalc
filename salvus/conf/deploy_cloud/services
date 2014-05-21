@@ -33,7 +33,7 @@ localhost    {'hostname':'compute7dc2', 'disk':'bup:500', 'instance_type':'n1-hi
 localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
 
 # backup
-localhost    {'hostname':'backup1dc2', 'disk':'backup1:1000,backup2:500', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+localhost    {'hostname':'backup1dc2', 'disk':'backup1:1000,backup2:500,backup2:500', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
 
 # cassandra cluster
 localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
