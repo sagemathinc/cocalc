@@ -1808,7 +1808,11 @@ class Client extends EventEmitter
     ################################################
     # Task list messages..
     ################################################
-
+    # The code below all work(ed) when written, but I had not
+    # implemented limitations and authentication.  Also, I don't
+    # plan now to use this code.  So I'm disabling handling any
+    # of these messages, as a security precaution.   
+    ###
     mesg_create_task_list: (mesg) =>
         # TODO: add verification that owners is valid
         # TODO: error if user (or project) already has too many task lists (?)
@@ -1908,7 +1912,7 @@ class Client extends EventEmitter
                     @error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.success(id:mesg.id))
-
+    ###
 
 
 

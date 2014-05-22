@@ -1647,6 +1647,7 @@ class exports.Connection extends EventEmitter
     #################################################
     # Tasks
     #################################################
+    ### -- commented out here and in hub, since not used and security not implemented anyways.
     create_task_list: (opts) =>
         opts = defaults opts,
             owners       : required
@@ -1799,6 +1800,7 @@ class exports.Connection extends EventEmitter
                     opts.cb(resp.error)
                 else
                     opts.cb(undefined, resp.task_id)
+    ###
 
 
 #################################################
