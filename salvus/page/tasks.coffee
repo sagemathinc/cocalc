@@ -53,6 +53,9 @@ class TaskList
                     alert_message(type:"error", message:"unable to open #{@filename}")
                 else
                     @db = db
+                    @readonly = @db.readonly
+                    if @readonly
+                        @save_button.text("Readonly")
                     @tasks = @db.select()
                     @render_task_list()
                     @set_clean()
@@ -149,6 +152,9 @@ class TaskList
             count = "#{count} task"
         search_describe.find(".salvus-tasks-count").text(count).show()
 
+        if @readonly
+            return
+
         if not @current_task? and first_task?
             task_id = @local_storage("current_task")
             if task_id?
@@ -209,13 +215,7 @@ class TaskList
         else
             @elt_task_list.append(t)
         task.element = t
-        t.click () => @set_current_task(task)
-        t.find(".salvus-task-title").click () => @edit_title(task)
-        t.find(".salvus-task-viewer-not-done").click () =>
-            @mark_task_done(task, true)
 
-        t.find(".salvus-task-viewer-done").click () =>
-            @mark_task_done(task, false)
         if task.done
             t.find(".salvus-task-viewer-done").show()
             t.find(".salvus-task-viewer-not-done").hide()
@@ -224,30 +224,47 @@ class TaskList
         if @current_task? and task.task_id == @current_task.task_id
             @set_current_task(task)
 
-        t.find(".salvus-task-active-button").click (event) =>
-            @set_actively_working_on_task(task, not task.active)
-            event.preventDefault()
-
         if task.active?
             @display_actively_working_on_task(task, task.active)
-
-        t.find(".salvus-task-toggle-icon").click () =>
-            t.find(".salvus-task-toggle-icon").toggleClass('hide')
-            @display_title(task)
 
         if @local_storage("toggle-#{task.task_id}")
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
 
+        @display_due_date(task)
+
+        if task.deleted
+            t.find(".salvus-task-delete").addClass('salvus-task-deleted')
+
+        t.data('task',task)
+        @display_last_edited(task)
+        @display_title(task)
+
+        if @readonly
+            return
+
+        # Install all click handlers -- TODO: we will
+        # redo this with a single more intelligent handler, for much greater
+        # efficiency, like with file listing.
+        t.click () => @set_current_task(task)
+        t.find(".salvus-task-title").click () =>
+            @edit_title(task)
+        t.find(".salvus-task-viewer-not-done").click () =>
+            @mark_task_done(task, true)
+        t.find(".salvus-task-viewer-done").click () =>
+            @mark_task_done(task, false)
+        t.find(".salvus-task-active-button").click (event) =>
+            @set_actively_working_on_task(task, not task.active)
+            event.preventDefault()
+        t.find(".salvus-task-toggle-icon").click () =>
+            t.find(".salvus-task-toggle-icon").toggleClass('hide')
+            @display_title(task)
         t.find(".salvus-task-to-top-icon").click () =>
             @custom_sort_order()
             @save_task_position(task, @tasks[0].position-1)
             @display_title(task)
-
         t.find(".salvus-task-due").click (event) =>
             @edit_due_date(task)
             event.preventDefault()
-        @display_due_date(task)
-
         t.find(".salvus-task-to-bottom-icon").click () =>
             @custom_sort_order()
             if task.done
@@ -266,15 +283,8 @@ class TaskList
                     i -= 1
             @save_task_position(task, p)
             @display_title(task)
-
-        d = t.find(".salvus-task-delete").click () =>
+        t.find(".salvus-task-delete").click () =>
             @delete_task(task, not d.hasClass('salvus-task-deleted'))
-        if task.deleted
-            d.addClass('salvus-task-deleted')
-
-        t.data('task',task)
-        @display_last_edited(task)
-        @display_title(task)
 
     set_actively_working_on_task: (task, active) =>
         active = !!active
@@ -616,12 +626,15 @@ class TaskList
 
     set_dirty: () =>
         @_new_changes = true
-        @save_button.removeClass('disabled')
+        if not @readonly
+            @save_button.removeClass('disabled')
 
     set_clean: () =>
         @save_button.addClass('disabled')
 
-    has_unsaved_changes: () =>
+    has_unsaved_changes: (val) =>
+        if val
+            @set_dirty()
         return not @save_button.hasClass('disabled')
 
     save: () =>

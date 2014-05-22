@@ -4235,8 +4235,8 @@ class TaskList extends FileEditor
     save: () =>
         @task_list.save()
 
-    has_unsaved_changes: () =>
-        @task_list.has_unsaved_changes()
+    has_unsaved_changes: (val) =>
+        return @task_list.has_unsaved_changes(val)
 
     _get: () =>
         # TODO

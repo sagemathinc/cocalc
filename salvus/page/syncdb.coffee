@@ -21,6 +21,7 @@ class SynchronizedDB extends EventEmitter
                     cb(err)
                 else
                     @_doc = doc
+                    @readonly = doc.readonly
                     @_data = {}
                     @_set_data_from_doc()
                     @_doc._presync = () =>
