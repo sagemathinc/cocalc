@@ -465,7 +465,7 @@ class TaskList
         else
             e.removeClass('salvus-task-deleted')
         if deleted and not @showing_deleted
-            task.element.fadeOut 10000, () =>
+            task.element.fadeOut 500, () =>
                 if e.hasClass('salvus-task-deleted')  # they could have canceled the action by clicking again
                     task.element?.remove()
                     f()
@@ -486,7 +486,7 @@ class TaskList
             @set_actively_working_on_task(task, false)
             @set_dirty()
         if done and not @showing_done
-            task.element.fadeOut 10000, () =>
+            task.element.fadeOut 500, () =>
                 if task.done  # they could have canceled the action by clicking again
                     task.element?.remove()
                     f()

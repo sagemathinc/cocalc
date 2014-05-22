@@ -86,9 +86,9 @@
 {"title":"","position":-78,"last_edited":1400626079622,"task_id":"d3ebe7ef-1d11-4c31-91cc-76b265f280d4","deleted":true}
 {"title":"","position":-79,"last_edited":1400626079801,"task_id":"e60a89ca-4320-4e68-81dd-6c1d91825472","deleted":true}
 {"title":"ipad: the UI is completely BROKEN.  Basically nothing works.\n  - can't edit task description\n  - buttons can't be clicked on\n  - can't reorder\n  - timestamps sometimes totally wrong (?)","position":-80,"last_edited":1400691363172,"task_id":"46978c87-33c6-4381-b2fc-adb6739d967d"}
-{"title":"sync between devices feels pretty broken overall","position":-81,"last_edited":1400691314951,"task_id":"3e590b66-166a-4675-89bf-01dd8ca71fd4"}
-{"title":"the UI for delete feels aweful in practice.","position":-82,"last_edited":1400691328014,"task_id":"9d4e8a02-8e78-44e8-b7d1-f742b2c74195"}
-{"title":"should try hard to fix json if sync breaks it.  Usually it is just a missing quote or something.  Really have to do something clever here, analyzing before and after patch, etc.   Never let this just slide... or tasks vanish!","position":-83,"last_edited":1400691414681,"task_id":"207a677c-809b-400f-bd7c-39af17951972"}
+{"title":"sync between devices feels pretty broken overall","position":-81,"last_edited":1400691314951,"task_id":"3e590b66-166a-4675-89bf-01dd8ca71fd4","done":true}
+{"title":"the UI for delete feels aweful in practice.","position":-82,"last_edited":1400772461131,"task_id":"9d4e8a02-8e78-44e8-b7d1-f742b2c74195","active":true}
+{"title":"should try hard to fix json if sync breaks it.  Usually it is just a missing quote or something.  Really have to do something clever here, analyzing before and after patch, etc.   Never let this just slide... or tasks vanish!","position":-83,"last_edited":1400691414681,"task_id":"207a677c-809b-400f-bd7c-39af17951972","done":true}
 {"title":"idea: have a log for tasks, which is timestamped\n - this could like toggling the \"start/stop\". \n - but one could also just log little progress toward the task, e.g., \"I sent an email\".","position":19.999984741210938,"last_edited":1400710204134,"task_id":"37a8cb8a-328e-416e-b0a5-47a0b9b90ed3"}
 {"title":"idea: when typing in search, if no hits and press return, create new task.","position":19.999969482421875,"last_edited":1400710169480,"task_id":"c0e51084-b7df-46b3-af89-ea27fa451073"}
 {"title":"due date: could make it as either a hard or soft deadline","position":-80,"last_edited":1400715097993,"task_id":"278a1876-1071-431a-a054-e13a7564552b"}
