@@ -56,6 +56,7 @@ class TaskList
                     @readonly = @db.readonly
                     if @readonly
                         @save_button.text("Readonly")
+                        @element.find("a[href=#create-task]").remove()
                     @tasks = @db.select()
                     @render_task_list()
                     @set_clean()
@@ -508,6 +509,8 @@ class TaskList
         @element.find(".salvus-tasks-create-button").addClass('disabled')
 
     create_task: () =>
+        if @readonly
+            return
         if @tasks.length == 0
             position = 0
         else
@@ -566,9 +569,13 @@ class TaskList
         @set_showing_deleted(@showing_deleted)
         @element.find(".salvus-task-search-not-deleted").click(=> @set_showing_deleted(true))
         @element.find(".salvus-task-search-deleted").click(=> @set_showing_deleted(false))
+        if @readonly
+            return
         @element.find(".salvus-task-empty-trash").click(@empty_trash)
 
     empty_trash: () =>
+        if @readonly
+            return
         bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h4>Permanently erase the deleted items?</h4><br> <span class='lighten'>Old versions of this list are available as snapshots.</span>  ", (result) =>
             if result == true
                 @db.delete
