@@ -358,6 +358,13 @@ class SynchronizedString extends AbstractSynchronizedDoc
     # "connect(cb)": Connect to the given server; will retry until it succeeds.
     # _connect(cb): Try once to connect and on any error, cb(err).
     _connect: (cb) =>
+
+        if @_connect_lock  # this lock is purely defense programming; it should be impossible for it to be hit.
+            m = "bug -- connect_lock bug in SynchronizedString; this should never happen -- PLEASE REPORT!"
+            alert_message(type:"error", message:m)
+            cb(m)
+        @_connect_lock = true
+
         @_remove_listeners()
         delete @session_uuid
         #console.log("_connect -- '#{@filename}'")
@@ -370,23 +377,23 @@ class SynchronizedString extends AbstractSynchronizedDoc
                 if resp.event == 'error'
                     err = resp.error
                 if err
+                    delete @_connect_lock
                     cb?(err); return
 
                 @session_uuid = resp.session_uuid
                 @readonly = resp.readonly
 
+                patch = undefined
+                synced_before = false
                 if @_last_sync?
                     # We have sync'd before.
                     @_presync?() # give syncstring chance to be updated by true live.
                     patch = @dsync_client._compute_edits(@_last_sync, @live())
+                    synced_before = true
 
                 @dsync_client = new diffsync.DiffSync(doc:resp.content)
 
-                if @_last_sync?
-                    # applying missed patches to the new upstream version that we just got from the hub.
-                    @_apply_patch_to_live(patch)
-                    reconnect = true
-                else
+                if not synced_before
                     # This initialiation is the first.
                     @_last_sync   = resp.content
                     reconnect = false
@@ -399,7 +406,16 @@ class SynchronizedString extends AbstractSynchronizedDoc
                 if reconnect
                     @emit('reconnect')
 
+                delete @_connect_lock
                 cb?()
+
+                # This patch application below must happen *AFTER* everything above, including
+                # the callback, since that fully initializes the document and sync mechanisms.
+                if synced_before
+                    # applying missed patches to the new upstream version that we just got from the hub.
+                    #console.log("now applying missed patches to the new upstream version that we just got from the hub: ", patch)
+                    @_apply_patch_to_live(patch)
+                    reconnect = true
 
     disconnect_from_session: (cb) =>
         @_remove_listeners()
@@ -486,6 +502,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         super(cb)
 
     _connect: (cb) =>
+        if @_connect_lock  # this lock is purely defense programming; it should be impossible for it to be hit.
+            m = "bug -- connect_lock bug in SynchronizedDocument; this should never happen -- PLEASE REPORT!"
+            alert_message(type:"error", message:m)
+            cb(m)
+
         @_remove_listeners()
         @other_cursors = {}
         delete @session_uuid
@@ -500,6 +521,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 if resp.event == 'error'
                     err = resp.error
                 if err
+                    delete @_connect_lock
                     cb?(err); return
 
                 @session_uuid = resp.session_uuid
@@ -528,12 +550,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     setTimeout( ( () => @codemirror.clearHistory(); @editor.codemirror1.clearHistory() ), 1000)
 
                 @dsync_client = codemirror_diffsync_client(@, resp.content)
-
-                if synced_before
-                    # applying missed patches to the new upstream version that we just got from the hub.
-                    @_apply_patch_to_live(patch)
-                    @emit 'sync'
-
                 @dsync_server = new DiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
@@ -542,7 +558,16 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
                 @emit 'connect'    # successful connection
 
+                delete @_connect_lock
                 cb?()
+
+                # This patch application below must happen *AFTER* everything above, including
+                # the callback, since that fully initializes the document and sync mechanisms.
+                if synced_before
+                    # applying missed patches to the new upstream version that we just got from the hub.
+                    #console.log("now applying missed patches to the new upstream version that we just got from the hub: ", patch)
+                    @_apply_patch_to_live(patch)
+                    @emit 'sync'
 
     ui_loading: () =>
         @element.find(".salvus-editor-codemirror-loading").show()
