@@ -60,9 +60,8 @@ class TaskList
                     @tasks = @db.select()
                     @render_task_list()
                     @set_clean()
-                    @db.on 'change', () =>
+                    @db.on 'change', (changes) =>
                         @set_dirty()
-                        # TODO: slow stupid way - could be much more precise
                         @tasks = @db.select()
                         @render_task_list()
 
@@ -127,6 +126,7 @@ class TaskList
 
         @elt_task_list.empty()
         @sort_task_list()
+
         first_task = undefined
         count = 0
         for task in @tasks
@@ -231,7 +231,8 @@ class TaskList
         if @local_storage("toggle-#{task.task_id}")
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
 
-        @display_due_date(task)
+        if task.due_date?
+            @display_due_date(task)
 
         if task.deleted
             t.find(".salvus-task-delete").addClass('salvus-task-deleted')
@@ -263,8 +264,11 @@ class TaskList
             @custom_sort_order()
             @save_task_position(task, @tasks[0].position-1)
             @display_title(task)
-        t.find(".salvus-task-due-div").click (event) =>
+        t.find(".salvus-task-due").click (event) =>
             @edit_due_date(task)
+            event.preventDefault()
+        t.find(".salvus-task-due-clear").click (event) =>
+            @remove_due_date(task)
             event.preventDefault()
         t.find(".salvus-task-to-bottom-icon").click () =>
             @custom_sort_order()
@@ -317,14 +321,15 @@ class TaskList
             task.element.find(".salvus-task-last-edited").attr('title',(new Date(task.last_edited)).toISOString()).timeago()
 
     display_due_date: (task) =>
+        e = task.element.find(".salvus-task-due")
         if task.due_date
             d = new Date(0)   # see http://stackoverflow.com/questions/4631928/convert-utc-epoch-to-local-date-with-javascript
             d.setUTCMilliseconds(task.due_date)
-            e = task.element.find(".salvus-task-due")
             e.attr('title',d.toISOString()).timeago()
             if d < new Date()
                 e.addClass("salvus-task-overdue")
-
+        else
+            e.timeago('dispose').text("no deadline")
 
     display_title: (task) =>
         title = $.trim(task.title)
@@ -445,6 +450,10 @@ class TaskList
                 elt.remove()
                 @set_due_date(task, task.due_date)
         interval = setInterval(f, 300)
+
+    remove_due_date: (task) =>
+        @set_due_date(task, undefined)
+        @display_due_date(task)
 
     set_due_date: (task, due_date) =>
         task.due_date = due_date

@@ -164,4 +164,6 @@
     color:#666;
 }
 
-
+.salvus-task-due-clear:hover {
+    color:#f00;
+}
