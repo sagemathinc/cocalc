@@ -23,16 +23,25 @@ class SynchronizedDB extends EventEmitter
                     @_doc = doc
                     @_data = {}
                     @_set_data_from_doc()
+                    @_doc._presync = () =>
+                        @_live_before_sync = @_doc.live()
                     @_doc.on 'sync', () =>
-                        @_set_data_from_doc()
+                        #console.log("syncdb -- syncing")
+                        if not @_set_data_from_doc() and @_live_before_sync?
+                            #console.log("DEBUG: invalid/corrupt sync request; revert it")
+                            @_doc.live(@_live_before_sync)
+                            @_set_data_from_doc()
+                            @_doc.sync()
                     cb(undefined, @)
 
     # set the data object to equal what is defined in the syncdoc
+    #
     _set_data_from_doc: () =>
         # change/add anything that has changed or been added
         i = 0
         hashes = {}
         changes = []
+        is_valid = true
         for x in @_doc.live().split('\n')
             if x.length > 0
                 h = hash_string(x)
@@ -41,8 +50,10 @@ class SynchronizedDB extends EventEmitter
                     try
                         data = from_json(x)
                     catch
-                        # invalid/corrupted json
+                        # invalid/corrupted json -- still, we try out best
+                        # WE will revert this, unless it is on the initial load.
                         data = {'corrupt':x}
+                        is_valid = false
                     @_data[h] = {data:data, line:i}
                     changes.push({insert:data})
             i += 1
@@ -52,7 +63,9 @@ class SynchronizedDB extends EventEmitter
                 changes.push({remove:v.data})
                 delete @_data[h]
         if changes.length > 0
+            #console.log('change', to_json(changes))
             @emit("change", changes)
+        return is_valid
 
     _set_doc_from_data: (hash) =>
         if hash?

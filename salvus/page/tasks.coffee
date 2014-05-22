@@ -80,7 +80,7 @@ class TaskList
                     t1 = 99999999999999999999
                 if not t2?
                     t2 = 99999999999999999999
-            if typeof t1 == "string"  # TODO: should have a simple ascii field in task object with markdown and case removed.
+            if typeof t1 == "string" and typeof t2 == "string"  # TODO: should have a simple ascii field in task object with markdown and case removed.
                 t1 = t1.toLowerCase()
                 t2 = t2.toLowerCase()
             if t1 < t2
@@ -93,9 +93,12 @@ class TaskList
                         return -1
                     else if task1.position > task2.position
                         return 1
-                    else
-                        return 0
-                return 0
+                if task1.uuid < task2.uuid
+                    return -1
+                else if task1.uuid > task2.uuid
+                    return 1
+                else
+                    return 0
         @tasks.sort(f)
         if h == 'last-edited'
             @tasks.reverse()
@@ -128,11 +131,12 @@ class TaskList
             if !!task.deleted != @showing_deleted
                 continue
             skip = false
-            t = task.title.toLowerCase()
-            for s in search
-                if t.indexOf(s) == -1
-                    skip = true
-                    continue
+            if task.title?
+                t = task.title.toLowerCase()
+                for s in search
+                    if t.indexOf(s) == -1
+                        skip = true
+                        continue
             if not skip
                 @render_task(task)
                 count += 1
@@ -198,6 +202,7 @@ class TaskList
                 return t
 
     render_task: (task, top) =>
+
         t = task_template.clone()
         if top
             @elt_task_list.prepend(t)
@@ -220,11 +225,11 @@ class TaskList
             @set_current_task(task)
 
         t.find(".salvus-task-active-button").click (event) =>
-            @set_actively_working_on_task(task)
+            @set_actively_working_on_task(task, not task.active)
             event.preventDefault()
 
-        if task.active
-            @set_actively_working_on_task(task, task.active)
+        if task.active?
+            @display_actively_working_on_task(task, task.active)
 
         t.find(".salvus-task-toggle-icon").click () =>
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
@@ -272,28 +277,29 @@ class TaskList
         @display_title(task)
 
     set_actively_working_on_task: (task, active) =>
-        icon = task.element.find(".salvus-task-icon-active")
-        is_active = icon.hasClass("salvus-task-icon-active-is_active")
-
-        if not active?
-            # toggle whatever it is
-            active = not is_active
-
-        if active != is_active
-            # change state in UI and database.
-            if active
-                task.element.addClass('salvus-task-is_active')
-            else
-                task.element.removeClass('salvus-task-is_active')
-            icon.toggleClass('salvus-task-icon-active-is_active')
-            task.element.find(".salvus-task-active").toggleClass('hide')
-            task.active = active
+        active = !!active
+        if task.active != active
+            @display_actively_working_on_task(task, active)
             task.last_edited = (new Date()) - 0
             @display_last_edited(task)
             @db.update
                 set   : {active  : active, last_edited : task.last_edited}
                 where : {task_id : task.task_id}
             @set_dirty()
+
+    display_actively_working_on_task: (task, active) =>
+        active = !!active
+        icon = task.element.find(".salvus-task-icon-active")
+        is_active = icon.hasClass("salvus-task-icon-active-is_active")
+
+        if active != is_active
+            # change state in UI.
+            if active
+                task.element.addClass('salvus-task-is_active')
+            else
+                task.element.removeClass('salvus-task-is_active')
+            icon.toggleClass('salvus-task-icon-active-is_active')
+            task.element.find(".salvus-task-active").toggleClass('hide')
 
     display_last_edited : (task) =>
         if task.last_edited
@@ -306,7 +312,6 @@ class TaskList
             e = task.element.find(".salvus-task-due")
             e.attr('title',d.toISOString()).timeago()
             if d < new Date()
-                console.log('adding red')
                 e.addClass("salvus-task-overdue")
 
 
@@ -381,6 +386,8 @@ class TaskList
             opts.keyMap = editor_settings.bindings
 
         cm = CodeMirror.fromTextArea(elt[0], opts)
+        if not task.title?
+            task.title = ''
         cm.setValue(task.title)
         $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor').addClass('salvus-new-task-cm-editor-focus')
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
