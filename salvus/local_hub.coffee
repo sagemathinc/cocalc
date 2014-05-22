@@ -710,11 +710,13 @@ class DiffSyncFile_client extends diffsync.DiffSync
         @connect(@server)
         @server.connect(@)
 
-# The CodeMirrorDiffSyncHub class represents a global hub viewed as a
-# remote client for this local hub.  There may be dozens of global
-# hubs connected to this single local hub, and these are the only
-# clients a local hub can have.  The local hub has no upstream server,
-# except the on-disk file itself.
+# The CodeMirrorDiffSyncHub class represents a
+# downstream remote client for this local hub.  There may be dozens of thes.
+# The local hub has no upstream server, except the on-disk file itself.
+#
+# NOTE: These have *nothing* a priori to do with CodeMirror -- the name is
+# historical and should be changed. TODO.
+#
 class CodeMirrorDiffSyncHub
     constructor : (@socket, @session_uuid, @client_id) ->
 
@@ -737,6 +739,7 @@ class CodeMirrorDiffSyncHub
         @write_mesg('diffsync_ready')
 
 
+# TODO:
 class CodeMirrorSession
     constructor: (mesg, cb) ->
         @path = mesg.path
@@ -1271,7 +1274,7 @@ class CodeMirrorSession
             write_mesg('error', {error:"client #{mesg.client_id} not registered for synchronization"})
             return
 
-        if @_client_sync_lock # or Math.random() <= .5 # (for testing)
+        if @_client_sync_lock or @_filesystem_sync_lock # or Math.random() <= .5 # (for testing)
             winston.debug("client_diffsync hit a sync lock -- send retry message back")
             write_mesg('error', {error:"retry"})
 
@@ -1299,10 +1302,23 @@ class CodeMirrorSession
 
     sync_filesystem: (cb) =>
         @is_active = true
+
+        if @_client_sync_lock # or Math.random() <= .5 # (for testing)
+            winston.debug("sync_filesystem -- hit client sync lock")
+            cb?("cannot sync with filesystem while syncing with clients")
+            return
+        if @_filesystem_sync_lock
+            winston.debug("sync_filesystem -- hit filesystem sync lock")
+            cb?("cannot sync with filesystem; already syncing")
+            return
+
+
         before = @content
         if not @diffsync_fileclient?
             cb?("filesystem sync object (@diffsync_fileclient) no longer defined")
             return
+
+        @_filesystem_sync_lock = true
         @diffsync_fileclient.sync (err) =>
             if err
                 # Example error: 'reset -- checksum mismatch (29089 != 28959)'
@@ -1312,14 +1328,17 @@ class CodeMirrorSession
                 @diffsync_fileserver = new DiffSyncFile_server @, (err, ignore_content) =>
                     if err
                         winston.debug("@diffsync_fileclient.sync -- making new server failed: #{err}")
-                        cb(err); return
+                        @_filesystem_sync_lock = false
+                        cb?(err); return
                     @diffsync_fileclient = new DiffSyncFile_client(@diffsync_fileserver)
                     @diffsync_fileclient.live = @content
                     @diffsync_fileclient.sync (err) =>
                         if err
                             winston.debug("@diffsync_fileclient.sync -- making server worked but re-sync failed -- #{err}")
+                            @_filesystem_sync_lock = false
                             cb?("codemirror fileclient sync error -- '#{err}'")
                         else
+                            @_filesystem_sync_lock = false
                             cb?()
                 return
 
@@ -1328,6 +1347,7 @@ class CodeMirrorSession
                 # recommend all clients sync
                 for id, ds_client of @diffsync_clients
                     ds_client.remote.sync_ready()
+            @_filesystem_sync_lock = false
             cb?()
 
     add_client: (socket, client_id) =>
@@ -1352,7 +1372,6 @@ class CodeMirrorSession
             else
                 resp = message.success(id:mesg.id)
             socket.write_mesg('json', resp)
-
 
     read_from_disk: (socket, mesg) =>
         fs.readFile @path, (err, data) =>
