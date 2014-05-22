@@ -263,7 +263,7 @@ class TaskList
             @custom_sort_order()
             @save_task_position(task, @tasks[0].position-1)
             @display_title(task)
-        t.find(".salvus-task-due").click (event) =>
+        t.find(".salvus-task-due-div").click (event) =>
             @edit_due_date(task)
             event.preventDefault()
         t.find(".salvus-task-to-bottom-icon").click () =>
