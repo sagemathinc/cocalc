@@ -511,10 +511,12 @@ class TaskList
     create_task: () =>
         if @readonly
             return
-        if @tasks.length == 0
-            position = 0
-        else
-            position = @tasks[0].position - 1
+        p = 0
+        for t in @tasks
+            if t.position < p
+                p = t.position
+        position = p - 1
+
         task =
             title       : $.trim(@element.find(".salvus-tasks-search").val())
             position    : position

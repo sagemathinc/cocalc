@@ -60,7 +60,7 @@
 {"title":"when click \"show done\" *only* show the done tasks; similar with deleted (?) -- and include remark about this in search header","position":-59,"last_edited":1400460540576,"task_id":"0be9e446-5a3a-4195-8daa-31bec3c17282","active":false,"done":true}
 {"title":"make control/command-s save the task list to disk.","position":19,"last_edited":1400463505422,"task_id":"f15256fd-406e-4f17-a5c4-6f5d5a8ea564"}
 {"title":"add a save button when editing task, with \"shift-enter\" hover text","position":-62,"last_edited":1400776198525,"task_id":"d5a7d1b9-4674-4a60-b986-846bbeb6c043","active":false}
-{"title":"creating a new task should have highest priority no matter what sort order is, etc.","position":-63,"last_edited":1400776197608,"task_id":"984dd99f-ed3b-4c6b-8b31-7532655d7705","active":false}
+{"title":"creating a new task should have highest priority no matter what sort order is, etc.","position":-63,"last_edited":1400781253821,"task_id":"984dd99f-ed3b-4c6b-8b31-7532655d7705","active":true}
 {"title":"add a message about using markdown or html (for now).","position":19.99999999627471,"last_edited":1400776203050,"task_id":"b77b4dd9-8fd8-49c7-b41a-6c3eca33ca31","active":false}
 {"title":"show a counter of the number of visible tasks","position":-68,"last_edited":1400463706439,"task_id":"114dd73a-7af9-4c0e-b923-bb40bc3ec51c","active":false,"done":true}
 {"title":"Instead of \"Task List\" button next to ipython, make a new row.  \n+New in projects.\n\nWill have other list-ish PIM-ish stuff there later, e.g.,\n    - list\n    - homework assignment\n    - outline\n    - survey\n    - hierarchical tree-ish diagram?","position":19.5,"last_edited":1400511106188,"task_id":"745b8361-005a-4949-8bbf-b4e36471aa22"}
@@ -79,7 +79,7 @@
 {"title":"kfjljrlq","position":-73,"last_edited":1400557174767,"task_id":"f1ff826f-b2a3-4869-a655-c731092965e6","deleted":true}
 {"title":"emptying the trash does not work?","position":19.999755859375,"last_edited":1400776011137,"task_id":"ae29439b-cef3-4829-8080-07b09678b4b2"}
 {"title":"a view that aggregates all task lists in a project -- it could just be a todo list, but maybe with headings for each... and a unified search. I don't know.   Having things be separate is also kind of relaxing.","position":19.99993896484375,"last_edited":1400590356584,"task_id":"a6e07c9b-add1-4962-902f-4827c1b825c6"}
-{"title":"to edit due, make clicking anywhere in the div pop up the editor","position":-63.25,"last_edited":1400779378013,"task_id":"b8c5d514-4577-4b04-b6c0-e6b012c2cf7c","active":true}
+{"title":"to edit due, make clicking anywhere in the div pop up the editor","position":-63.25,"last_edited":1400781251177,"task_id":"b8c5d514-4577-4b04-b6c0-e6b012c2cf7c","active":false,"done":true}
 {"title":"","position":-63.25,"last_edited":1400601697518,"task_id":"1b96e259-8775-4959-9f06-06afcb7beb8b","deleted":true}
 {"title":"","position":-76,"last_edited":1400613066728,"task_id":"019453dc-a614-4445-a219-2806ff87d4a3","deleted":true}
 {"title":"","position":-77,"last_edited":1400626079009,"task_id":"dd907798-2a1a-4296-b0d2-74880b0ef762","deleted":true}
