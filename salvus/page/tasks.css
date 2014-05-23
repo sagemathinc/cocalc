@@ -9,9 +9,10 @@
     padding-right: 0em;
     padding-top: 1ex;
     cursor : pointer;
-    border: 1px solid lightgrey;
+    border: 1px solid #fff;
     border-radius: 1ex;
     width: 98%;
+    margin-top: 3px;
 }
 
 
@@ -128,7 +129,7 @@
 
 
 .salvus-task-toggle-icon {
-    color: #666;
+    color: #888;
     font-size: 18pt;
     margin-right: 1em;
 }
@@ -181,3 +182,10 @@
     padding: 3px;
     border-radius: 3px;
 }
+
+
+.salvus-tasks-first {
+    cursor : pointer;
+}
+
+

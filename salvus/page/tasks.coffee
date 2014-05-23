@@ -199,6 +199,12 @@ class TaskList
                     first_task = task
 
         @render_hashtag_bar()
+        ###
+        if @_visible_tasks.length == 0
+            @element.find(".salvus-tasks-first").show()
+        else
+            @element.find(".salvus-tasks-first").hide()
+        ###
 
         if search.length > 0
             @elt_task_list.highlight(search)
@@ -625,6 +631,10 @@ class TaskList
 
     init_create_task: () =>
         @element.find("a[href=#create-task]").click (event) =>
+            @create_task()
+            event.preventDefault()
+
+        @element.find(".salvus-tasks-first").click (event) =>
             @create_task()
             event.preventDefault()
 
