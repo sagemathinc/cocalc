@@ -434,7 +434,9 @@ class TaskList
         elt_title.after(elt)
         elt_title.hide()
 
+        finished = false
         stop_editing = () =>
+            finished = true
             try
                 cm.toTextArea()
             catch
@@ -443,6 +445,8 @@ class TaskList
             elt_title.show()
 
         save_task = () =>
+            if finished
+                return
             title = cm.getValue()
             stop_editing()
             if title != task.title
@@ -470,18 +474,25 @@ class TaskList
             extraKeys      :
                 "Enter"       : "newlineAndIndentContinueMarkdownList"
                 "Shift-Enter" : save_task
+                "Esc"         : stop_editing
         if editor_settings.bindings != "standard"
             opts.keyMap = editor_settings.bindings
 
-        cm = CodeMirror.fromTextArea(elt[0], opts)
+        cm = CodeMirror.fromTextArea(elt.find("textarea")[0], opts)
         if not task.title?
             task.title = ''
         cm.setValue(task.title)
         $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor').addClass('salvus-new-task-cm-editor-focus')
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
-        cm.on 'blur', save_task
+        #cm.on 'blur', save_task
         cm.focus()
         cm.save = save_task
+        elt.find("a[href=#save]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
+            save_task()
+            event.preventDefault()
+        elt.find("a[href=#cancel]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
+            stop_editing()
+            event.preventDefault()
 
     edit_due_date: (task) =>
         @set_current_task(task)

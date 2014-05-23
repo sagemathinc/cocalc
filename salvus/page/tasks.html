@@ -4,7 +4,7 @@
 
         <div class="row" style="margin:1em;">
             <div class="row-fluid" style="margin-bottom:1em">
-                <div class="span5">
+                <div class="span5" style="margin-bottom: 1ex;" >
                     <div>
                         <input class="salvus-tasks-search search-query" style="width:88%" type="search" placeholder="Search...">
                         <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
@@ -13,17 +13,16 @@
                 <div class="span2">
                     <a class="btn btn-success disabled" href="#save"><i class="fa fa-save"> </i> Save</a>
                 </div>
-                <div class="span1">
+                <div class="span2 lighten">
                     <i class="fa fa-square-o salvus-task-icon salvus-task-search-done-icon salvus-task-search-not-done"> </i>
                     <i class="fa fa-check-square-o salvus-task-icon salvus-task-search-done-icon salvus-task-search-done hide"> </i>
-                    Done
-                    <br>
+                    Done&nbsp;&nbsp;&nbsp;
                     <i class="fa fa-square-o salvus-task-icon salvus-task-search-deleted-icon salvus-task-search-not-deleted"> </i>
                     <i class="fa fa-check-square-o salvus-task-icon salvus-task-search-deleted-icon salvus-task-search-deleted hide"> </i>
                     Deleted<br>
                     <a class='btn btn-danger btn-small salvus-task-empty-trash'><i class="fa fa-trash-o"> </i> Empty Trash</a>
                 </div>
-                <div class="span3">
+                <div class="span2">
                     <span class="salvus-tasks-filename pull-right"></span>
                 </div>
             </div>
@@ -89,7 +88,18 @@
 
     <div class="salvus-task-editor">
 
-        <textarea rows=4 class="salvus-tasks-title-edit"></textarea>
+        <div class="salvus-tasks-title-edit">
+            <textarea></textarea>
+            <div class="row-fluid">
+                <div class="span4">
+                    <a class="btn btn-success" href="#save"  data-toggle="tooltip" data-placement="bottom" title="or press shift+enter"><i class="fa fa-save"> </i> Save</a>
+                    <a class="btn" href="#cancel"  data-toggle="tooltip" data-placement="bottom" title="or press esc"> Cancel</a>
+                </div>
+                <div class="span8">
+                    <span style="color:#999">Write using <a href="http://daringfireball.net/projects/markdown/basics" target="_blank">markdown</a> and use <tt>#label</tt> to create hashtag labels.</span>
+                </div>
+            </div>
+        </div>
 
         <div class="input-append salvus-tasks-due-edit pull-right">
             <input data-format="MM/dd/yyyy HH:mm:ss PP" type="text" value=''>
