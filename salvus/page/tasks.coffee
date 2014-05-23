@@ -84,10 +84,12 @@ class TaskList
     sort_task_list: () =>
         h = @sort_order.heading
         field = HEADING_MAP[h]
+        if @showing_done and field == 'due_date'
+            field = 'done'
         f = (task1, task2) =>
             t1 = task1[field]
             t2 = task2[field]
-            if field == 'due_date'
+            if field in ['due_date', 'done']
                 if not t1?
                     t1 = 99999999999999999999
                 if not t2?
@@ -112,7 +114,7 @@ class TaskList
                 else
                     return 0
         @tasks.sort(f)
-        if h == 'last-edited'
+        if field in ['last-edited', 'done']
             @tasks.reverse()
         if @sort_order.dir == 'asc'
             @tasks.reverse()
@@ -288,9 +290,7 @@ class TaskList
         task.element = t
 
         if task.done
-            t.find(".salvus-task-viewer-done").show()
-            t.find(".salvus-task-viewer-not-done").hide()
-            t.addClass("salvus-task-done")
+            @display_done(task)
 
         if @current_task? and task.task_id == @current_task.task_id
             @set_current_task(task)
@@ -325,9 +325,9 @@ class TaskList
         t.find(".salvus-task-title").click () =>
             @edit_title(task)
         t.find(".salvus-task-viewer-not-done").click () =>
-            @mark_task_done(task, true)
+            @set_task_done(task, true)
         t.find(".salvus-task-viewer-done").click () =>
-            @mark_task_done(task, false)
+            @set_task_done(task, false)
         t.find(".salvus-task-active-button").click (event) =>
             @set_actively_working_on_task(task, not task.active)
             event.preventDefault()
@@ -566,13 +566,17 @@ class TaskList
             where : {task_id : task.task_id}
         @set_dirty()
 
-    set_done: (task, done) =>
-        if done
+    display_done: (task) =>
+        if task.done
             task.element.find(".salvus-task-viewer-not-done").hide()
             task.element.find(".salvus-task-viewer-done").show()
+            if typeof(task.done) == 'number'
+                task.element.find(".salvus-task-done").show().find(
+                    'span').attr('title',(new Date(task.done)).toISOString()).timeago()
         else
             task.element.find(".salvus-task-viewer-not-done").show()
             task.element.find(".salvus-task-viewer-done").hide()
+            task.element.find(".salvus-task-done").hide()
 
     delete_task: (task, deleted) =>
         task.element.stop().animate(opacity:'100')
@@ -596,16 +600,19 @@ class TaskList
         else
             f()
 
-    mark_task_done: (task, done) =>
+    set_task_done: (task, done) =>
         task.element.stop().animate(opacity:'100')
-        if task.done == done
+        if not task.done and not done
             # nothing to do
             return
-        @set_done(task, done)
-        task.done = done
+        if done
+            task.done = (new Date()) - 0
+        else
+            task.done = 0
+        @display_done(task)
         f = () =>
             @db.update
-                set   : {done : done}
+                set   : {done : task.done}
                 where : {task_id : task.task_id}
             @set_actively_working_on_task(task, false)
             @set_dirty()
@@ -659,6 +666,7 @@ class TaskList
         is_showing = @element.find(".salvus-task-search-not-done").hasClass('hide')
         if is_showing != showing
             @element.find(".salvus-task-search-done-icon").toggleClass('hide')
+            @element.find(".salvus-tasks-show-done").toggle('hide')
             @render_task_list()
 
     init_showing_done: () =>

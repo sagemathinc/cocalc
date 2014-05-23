@@ -156,6 +156,12 @@
     color:#08c;
 }
 
+.salvus-task-done {
+    color:#888;
+    font-size:10pt;
+}
+
+
 .salvus-task-overdue {
     background: red;
     color: white;
