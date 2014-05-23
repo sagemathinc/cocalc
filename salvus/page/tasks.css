@@ -167,3 +167,11 @@
 .salvus-task-due-clear:hover {
     color:#f00;
 }
+
+
+.salvus-tasks-hash {
+    background-color: #2f96b4;
+    color: white;
+    padding: 3px;
+    border-radius: 3px;
+}

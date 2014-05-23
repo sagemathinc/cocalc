@@ -153,35 +153,8 @@ class TaskList
                 continue
             if task.deleted and not @showing_deleted
                 continue
-            t = task.title
-            if not t?
-                continue
-            while true
-                i = t.indexOf('#')
-                if i == -1 or i == t.length-1 or t[i+1] == '#'
-                    break
-                if not (i == 0 or t[i-1].match(/\s/))
-                    t = t.slice(i+1)
-                    continue
-                t = t.slice(i+1)
-                # find next whitespace
-                i = t.match(/\s/)
-                if i
-                    i = i.index
-                else
-                    i = -1
-                if i == 0
-                    # hash followed immediately by whitespace -- markdown title
-                    t = t.slice(i+1)
-                else
-                    # a hash tag
-                    if i == -1
-                        # to the end
-                        @hashtags[t.toLowerCase()] = true
-                        break
-                    else
-                        @hashtags[t.slice(0, i).toLowerCase()] = true
-                        t = t.slice(i+1)
+            for x in parse_hashtags(task.title)
+                @hashtags[task.title.slice(x[0]+1, x[1]).toLowerCase()] = true
 
     render_task_list: () =>
         search = @selected_hashtags()
@@ -423,6 +396,16 @@ class TaskList
             task.element.find(".fa-caret-down").hide()
         if title.length == 0
             title = "No title" # so it is possible to edit
+        v = parse_hashtags(title)
+        if v.length > 0
+            # replace hashtags by something that renders nicely in markdown (instead of as titles)
+            x0 = [0,0]
+            title0 = ''
+            for x in v
+                title0 += title.slice(x0[1], x[0]) + '<span class="salvus-tasks-hash">' + title.slice(x[0], x[1]) + '</span>'
+                x0 = x
+            title = title0 + title.slice(x0[1])
+
         task.element.find(".salvus-task-title").html(marked(title)).mathjax().find('a').attr("target","_blank")
 
     set_current_task: (task) =>
@@ -749,6 +732,46 @@ class TaskList
 
     show: () =>
         @element.find(".salvus-tasks-list").maxheight(offset:50)
+
+
+parse_hashtags = (t0) ->
+    # return list of pairs (i,j) such that t.slice(i,j) is a hashtag (starting with #).
+    t = t0
+    v = []
+    if not t?
+        return v
+    base = 0
+    while true
+        i = t.indexOf('#')
+        if i == -1 or i == t.length-1 or t[i+1] == '#'
+            return v
+
+        base += i+1
+        if not (i == 0 or t[i-1].match(/\s/))
+            t = t.slice(i+1)
+            continue
+        t = t.slice(i+1)
+        # find next whitespace
+        i = t.match(/\s/)
+        if i
+            i = i.index
+        else
+            i = -1
+        if i == 0
+            # hash followed immediately by whitespace -- markdown title
+            base += i+1
+            t = t.slice(i+1)
+        else
+            # a hash tag
+            if i == -1
+                # to the end
+                v.push([base-1, base+t.length])
+                return v
+            else
+                v.push([base-1, base+i])
+                base += i+1
+                t = t.slice(i+1)
+
 
 
 
