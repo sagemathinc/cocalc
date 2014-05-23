@@ -200,6 +200,9 @@ class TaskList
 
         @render_hashtag_bar()
 
+        if search.length > 0
+            @elt_task_list.highlight(search)
+
         if count != 1
             count = "#{count} tasks"
         else
@@ -666,8 +669,31 @@ class TaskList
                 @render_task_list()
 
     init_search: () =>
+        ###
+        @element.find(".salvus-tasks-search").keydown (evt) =>
+            if evt.which == 13
+                @render_task_list()
+                return false
+            else if evt.which == 27 # escape
+                @element.find(".salvus-tasks-search").val("")
+                @render_task_list()
+                return false
+        ###
+
+        @_last_search = misc.walltime()
         @element.find(".salvus-tasks-search").keyup () =>
-            @render_task_list()
+            t = misc.walltime()
+            if t - @_last_search >= 1000
+                @_last_search = t
+                @render_task_list()
+            else
+                t0 = @_last_search
+                f = () =>
+                    if t0 == @_last_search
+                        @_last_search = t
+                        @render_task_list()
+                setTimeout(f, 1000)
+
         @element.find(".salvus-tasks-search-clear").click () =>
             e = @element.find(".salvus-tasks-search")
             a = $.trim(e.val())
