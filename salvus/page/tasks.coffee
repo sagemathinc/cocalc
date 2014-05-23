@@ -346,7 +346,7 @@ class TaskList
             @save_task_position(task, p)
             @display_title(task)
         t.find(".salvus-task-delete").click () =>
-            @delete_task(task, not d.hasClass('salvus-task-deleted'))
+            @delete_task(task, not t.find(".salvus-task-delete").hasClass('salvus-task-deleted'))
 
     set_actively_working_on_task: (task, active) =>
         active = !!active
