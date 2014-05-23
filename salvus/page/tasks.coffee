@@ -813,7 +813,7 @@ parse_hashtags = (t0) ->
             return v
 
         base += i+1
-        if not (i == 0 or t[i-1].match(/\s/))
+        if not (i == 0 or t[i-1].match(/\s\W/))
             t = t.slice(i+1)
             continue
         t = t.slice(i+1)
