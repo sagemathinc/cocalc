@@ -733,11 +733,13 @@ class TaskList
 
     update_sort_order_display: () =>
         heading = @element.find(".salvus-tasks-list-heading")
+        # remove bold
+        heading.find(".salvus-tasks-header").removeClass('salvus-task-header-current')
         # hide all sorting icons
         heading.find(".fa-sort-asc").hide()
         heading.find(".fa-sort-desc").hide()
         # show ours
-        heading.find(".salvus-task-sort-#{@sort_order.heading}").find(".fa-sort-#{@sort_order.dir}").show()
+        heading.find(".salvus-task-sort-#{@sort_order.heading}").addClass('salvus-task-header-current').find(".fa-sort-#{@sort_order.dir}").show()
 
     click_sort_by: (column) =>
         if @sort_order.heading == column
