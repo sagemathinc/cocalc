@@ -30,6 +30,13 @@ exports.task_list = (project_id, filename) ->
 HEADINGS = ['custom', 'description', 'due', 'last-edited']
 HEADING_MAP = {custom:'position', description:'title', due:'due_date', 'last-edited':'last_edited'}
 
+CodeMirror.defineMode "tasks", (config) ->
+    # This is annoying, but I can't find a better way to do it for now --
+    # basically it doesn't switch back until hitting a space, so is wrong if there is a newline at the end...
+    # It seems regexp's are not supported.  Doing something magic with autocompletion would be nicer, but v2.
+    options = [{open:'#', close:' ', mode:CodeMirror.getMode(config, 'text')}]
+    return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "markdown"), options...)
+
 class TaskList
     constructor : (@project_id, @filename, @element) ->
         @element.data('task_list', @)
@@ -468,7 +475,7 @@ class TaskList
 
         editor_settings = require('account').account_settings.settings.editor_settings
         opts =
-            mode           : 'markdown'
+            mode           : 'tasks'
             lineNumbers    : false
             theme          : editor_settings.theme
             lineWrapping   : editor_settings.line_wrapping

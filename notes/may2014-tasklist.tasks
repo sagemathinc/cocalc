@@ -77,7 +77,7 @@
 {"title":"due date -- make it possible to remove the due date","position":19.99999999254942,"last_edited":1400956875067,"task_id":"5c4d507b-6d05-4f67-8c6d-d6eac72bc1bd","active":false,"due_date":1400780597635,"done":true}
 {"title":"#feature #v2 \nestimate length of time that task will take","position":19.99951171875,"last_edited":1400956641999,"task_id":"aaef3c04-f483-4ba6-84af-7672cfe03fd1"}
 {"title":"kfjljrlq","position":-73,"last_edited":1400557174767,"task_id":"f1ff826f-b2a3-4869-a655-c731092965e6","deleted":true}
-{"title":"#bug #v1\nemptying the trash does not work?","position":19.999755859375,"last_edited":1400956648887,"task_id":"ae29439b-cef3-4829-8080-07b09678b4b2"}
+{"title":"#bug #v1\nemptying the trash does not work?","position":19.999755859375,"last_edited":1400995752840,"task_id":"ae29439b-cef3-4829-8080-07b09678b4b2","done":true,"active":false}
 {"title":"#v2\na view that aggregates all task lists in a project -- it could just be a todo list, but maybe with headings for each... and a unified search. I don't know.   Having things be separate is also kind of relaxing.","position":19.999999999992724,"last_edited":1400956673351,"task_id":"a6e07c9b-add1-4962-902f-4827c1b825c6"}
 {"title":"to edit due, make clicking anywhere in the div pop up the editor","position":-63.25,"last_edited":1400781251177,"task_id":"b8c5d514-4577-4b04-b6c0-e6b012c2cf7c","active":false,"done":true}
 {"title":"","position":-63.25,"last_edited":1400601697518,"task_id":"1b96e259-8775-4959-9f06-06afcb7beb8b","deleted":true}
@@ -96,7 +96,7 @@
 {"title":"#bug #v2 When task list readonly if we switch to another tab then back, it looses the disabled css for about 5 seconds. WEIRD.","position":19.999999998137355,"last_edited":1400956911455,"task_id":"74a01555-e251-4a93-9257-76fc0713c2e3"}
 {"title":"#ui #v2 \nwhen clicking to edit task description, it would be neat if I could somehow position the cursor near where the click happened -- less jarring.","position":19.999999999068677,"last_edited":1400956922832,"task_id":"242008cb-3297-407e-bdfe-2fd0e04a2ccb"}
 {"title":"#feature #v1 \nchange when marking a task done to store the timestamp of when done, rather than just that done.  Display when done using timeago it in the \"Done\"/trash column.   This will make it trivial to see all tasks when done sorted by when done.\n\nOr just list when done under \"Due\"... ?","position":-95,"last_edited":1400988571209,"task_id":"6994b1b1-0bd4-4514-a959-724486cfb96e"}
-{"title":"hashtag syntax highlighting mode switch with codemirror    #v1\n\n -- could likely easily do with mode switching and regexp, maybe.","position":-98,"last_edited":1400989773617,"task_id":"2f366b99-3bbe-4b20-b927-a035a0c5e561"}
+{"title":"hashtag syntax highlighting mode switch with codemirror    #v1\n\n -- could likely easily do with mode switching and regexp, maybe.","position":-98,"last_edited":1401033024156,"task_id":"2f366b99-3bbe-4b20-b927-a035a0c5e561","active":false,"done":true}
 {"title":"#v2  hashtags -- implement autocomplete hashtag'ing","position":19.999999999941792,"last_edited":1400956319199,"task_id":"e4cac2c1-1a5d-42aa-aa10-a3f335668d40"}
 {"title":"","position":-93,"last_edited":1400986572170,"task_id":"b3b38b26-e64d-4f71-98d7-092784bc4217","deleted":true}
-{"title":"#v1 #ui sorting -- make selected column bold","position":-99,"last_edited":1400995664001,"task_id":"4f2713fa-3e57-470c-aff4-61f9ab3971de","active":true}
+{"title":"#v1 #ui sorting -- make selected column bold","position":-99,"last_edited":1400995698876,"task_id":"4f2713fa-3e57-470c-aff4-61f9ab3971de","active":false,"done":true}
