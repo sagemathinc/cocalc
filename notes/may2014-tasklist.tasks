@@ -14,7 +14,7 @@
 {"title":"**markdown parser** -- add `marked` to `NODE_PACKAGE_LIST`\n - also, consider using a different one?","position":-87,"last_edited":1400784537351,"task_id":"96a0dfd0-9cc9-4a40-81bb-f9fb03f1c590","active":false,"done":true}
 {"title":"use **codemirror** with md syntax highlighting when editing task title\n","position":3,"last_edited":1400202332692,"task_id":"785c4a82-c5ca-4497-ab9c-8d4a8e530244","active":false,"done":true}
 {"title":"Task list top does *not* properly switch in **responsive mode**...\n","position":18,"last_edited":1400202708980,"task_id":"41e70636-7115-4d38-81ef-2e71ba1c54c0","done":true}
-{"title":"#bug #v1 **Latex editor** is suddenly completely broken?","position":-0.0078125,"last_edited":1400956401543,"task_id":"c1ddfe48-2700-4894-bc41-2424c29d0c51"}
+{"title":"#bug #v1 **Latex editor** is suddenly completely broken?","position":-92,"last_edited":1400956401543,"task_id":"c1ddfe48-2700-4894-bc41-2424c29d0c51"}
 {"title":"(trivial) Get rid of **cancel button**.","position":12,"last_edited":1400205921151,"task_id":"92532e40-0d9b-4035-a77f-653f787e3b40","done":true}
 {"title":"(trivial) implement cancel search button","position":17,"last_edited":1400206081184,"task_id":"ce8ada09-e6bf-4776-9cb0-6bad873fe59f","active":false,"done":true}
 {"title":"(trivial) tooltip over \"Create Task\" that says \"shift+enter\"","position":15,"last_edited":1400206097078,"task_id":"86aa3fa8-8ccc-45ce-8e3c-ba5ca89f45ec","done":true}
@@ -59,7 +59,7 @@
 {"title":"make the default when creating tasks to show rather than hide all (the toggle)","position":-47,"last_edited":1400449065136,"task_id":"3dd6c205-7758-4b05-85c9-8684d460a6dd","active":false,"done":true}
 {"title":"when click \"show done\" *only* show the done tasks; similar with deleted (?) -- and include remark about this in search header","position":-59,"last_edited":1400460540576,"task_id":"0be9e446-5a3a-4195-8daa-31bec3c17282","active":false,"done":true}
 {"title":"#v1 #ui\nmake control/command-s save the task list to disk.","position":19,"last_edited":1400956569567,"task_id":"f15256fd-406e-4f17-a5c4-6f5d5a8ea564"}
-{"title":"(7:32) #ui #?\nadd a save button when editing task, with \"shift-enter\" hover text\n","position":-91,"last_edited":1400984592623,"task_id":"d5a7d1b9-4674-4a60-b986-846bbeb6c043","active":true}
+{"title":"(7:32-7:54) #ui #?\nadd a save button when editing task, with \"shift-enter\" hover text\n","position":-91,"last_edited":1400986479107,"task_id":"d5a7d1b9-4674-4a60-b986-846bbeb6c043","active":false,"done":true}
 {"title":"creating a new task should have highest priority no matter what sort order is, etc.","position":-63,"last_edited":1400781806774,"task_id":"984dd99f-ed3b-4c6b-8b31-7532655d7705","active":false,"done":true}
 {"title":"#ui #v1 \nadd a message about using markdown or html (for now).","position":19.99999999627471,"last_edited":1400956893127,"task_id":"b77b4dd9-8fd8-49c7-b41a-6c3eca33ca31","active":false}
 {"title":"show a counter of the number of visible tasks","position":-68,"last_edited":1400463706439,"task_id":"114dd73a-7af9-4c0e-b923-bb40bc3ec51c","active":false,"done":true}
@@ -98,3 +98,4 @@
 {"title":"#feature #v1 \nchange when marking a task done to store the timestamp of when done, rather than just that done.  Display when done using timeago it in the \"Done\"/trash column.   This will make it trivial to see all tasks when done sorted by when done.","position":19.99999999976717,"last_edited":1400956936392,"task_id":"6994b1b1-0bd4-4514-a959-724486cfb96e"}
 {"title":"hashtag syntax highlighting mode switch with codemirror    #v2\n\n -- could likely easily do with mode switching and regexp, maybe.","position":19.999999999883585,"last_edited":1400956294416,"task_id":"2f366b99-3bbe-4b20-b927-a035a0c5e561"}
 {"title":"#v2  hashtags -- implement autocomplete hashtag'ing","position":19.999999999941792,"last_edited":1400956319199,"task_id":"e4cac2c1-1a5d-42aa-aa10-a3f335668d40"}
+{"title":"","position":-93,"last_edited":1400986572170,"task_id":"b3b38b26-e64d-4f71-98d7-092784bc4217","deleted":true}
