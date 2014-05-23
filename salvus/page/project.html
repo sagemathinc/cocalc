@@ -371,26 +371,32 @@
                                 <h4><i class="fa fa-plus"> </i>  Create a new file or directory</h4>
                             </div>
                             <div class="span8" style="padding-top: 4px;">
-                                <h4>Name your new file (or paste in a link)</h4>
+                                <h4>Name your file or paste in a web link</h4>
                                 <input class="project-new-file-path-input" type="text" placeholder="Name your new file, worksheet, terminal or directory..." style="width:100%">
                                 <br>
                                 <h4>Select the type of file</h4>
                                 <span style="width:100%">
-                                    <span class="btn-group">
-                                        <a class="btn btn-info  btn-large"  style="margin-top:1ex"  href="#new-worksheet" data-toggle="tooltip" data-placement="top" title="Create a new Sage worksheet"><i class="fa fa-file-code-o"> </i> Sage Worksheet</a>
-                                        <a class="btn btn-info  btn-large"  style="margin-top:1ex"  href="#new-ipython" data-toggle="tooltip" data-placement="top" title="Create a new IPython notebook"><i class="fa fa-file-code-o"></i> IPython Notebook</a>
-                                        <a class="btn btn-info  btn-large"  style="margin-top:1ex"  href="#new-tasks" data-toggle="tooltip" data-placement="top" title="Create a new task list"><i class="fa fa-tasks"></i> Task List</a>
-                                    </span><br>
-                                    <span class="btn-group">
-                                        <a class="btn btn-info  btn-large"  style="margin-top:1ex"  href="#new-latex" data-toggle="tooltip" data-placement="top" title="Create a new LaTeX document"><i class="fa fa-file-excel-o"></i> LaTeX Document</a>
-                                        <a class="btn btn-info btn-large"  style="margin-top:1ex"  href="#new-terminal" data-toggle="tooltip" data-placement="top" title="Create a new command line terminal"><i class="fa fa-terminal"></i> Command Line Terminal</a>
-                                    </span><br>
-                                    <span class="btn-group">
-                                        <a class="btn  btn-large" style="margin-top:1ex" href="#new-file" data-toggle="tooltip" data-placement="top" title="Create a new file of any type you want (determined by the extension)"><i class="fa fa-file"></i> Create File</a>
-                                        <a class="btn  btn-large"  style="margin-top:1ex"  href="#new-folder" data-toggle="tooltip" data-placement="top" title="Create a new folder"><i class="fa fa-folder-o"></i> Create Folder</a>
-                                        <a class="btn  btn-large"  style="margin-top:1ex"  href="#new-download" data-toggle="tooltip" data-placement="top" title="Copy a file or directory from the web into your project"><i class="fa fa-cloud"></i> Copy from Internet Link</a>
-                                    </span>
-                                    <!--<a class="btn btn-small" href="#old-worksheet"><i class="fa fa-file-o"> </i> (Old Worksheet)</a>-->
+                                    <div class="row-fluid">
+                                        <div class="span6">
+                                            <a class="btn "  style="margin-top:1ex"  href="#new-worksheet" data-toggle="tooltip" data-placement="top" title="A new Sage worksheet"><i class="fa fa-file-code-o"> </i> Sage Worksheet</a>
+                                            <a class="btn "  style="margin-top:1ex"  href="#new-ipython" data-toggle="tooltip" data-placement="top" title="An IPython notebook"><i class="fa fa-file-code-o"></i> IPython Notebook</a>
+                                        </div>
+                                        <div class="span6">
+                                            <a class="btn "  style="margin-top:1ex"  href="#new-latex" data-toggle="tooltip" data-placement="top" title="Full LaTeX document"><i class="fa fa-file-excel-o"></i> LaTeX Document</a>
+                                        </div>
+                                    </div>
+                                    <div class="row-fluid">
+                                        <div class="span6">
+                                            <a class="btn "  style="margin-top:1ex"  href="#new-tasks" data-toggle="tooltip" data-placement="top" title="List of tasks to complete"><i class="fa fa-tasks"></i> Task List</a>
+
+                                            <a class="btn "  style="margin-top:1ex"  href="#new-terminal" data-toggle="tooltip" data-placement="top" title="Command line terminal session"><i class="fa fa-terminal"></i> Terminal</a>
+                                        </div>
+                                        <div class="span6">
+                                            <a class="btn  " style="margin-top:1ex" href="#new-file" data-toggle="tooltip" data-placement="bottom" title="New file of any type"><i class="fa fa-file"></i> File</a>
+                                            <a class="btn  "  style="margin-top:1ex"  href="#new-folder" data-toggle="tooltip" data-placement="bottom" title="New folder"><i class="fa fa-folder-o"></i> Folder</a>
+                                            <a class="btn  "  style="margin-top:1ex"  href="#new-download" data-toggle="tooltip" data-placement="bottom" title="Copy file or directory from the web"><i class="fa fa-cloud"></i> From Internet</a>
+                                        </div>
+                                    </div>
                                 </span>
                             </div>
                         </div>

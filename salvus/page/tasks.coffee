@@ -235,7 +235,7 @@ class TaskList
             @set_current_task(current_task)
 
         @elt_task_list.sortable
-            containment : @elt_task_list
+            containment : @element
             handle      : ".salvus-task-reorder-handle"
             update      : (event, ui) =>
                 e    = ui.item
