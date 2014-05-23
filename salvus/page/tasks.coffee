@@ -59,6 +59,7 @@ class TaskList
                         @save_button.text("Readonly")
                         @element.find("a[href=#create-task]").remove()
                     @tasks = @db.select()
+                    @render_hashtag_bar()
                     @render_task_list()
                     @set_clean()
                     @db.on 'change', (changes) =>
@@ -293,8 +294,12 @@ class TaskList
         @display_last_edited(task)
         @display_title(task)
 
+        buttons = t.find(".salvus-task-buttons")
         if @readonly
+            buttons.hide()
             return
+
+        t.hover((()->buttons.show()), (()->buttons.hide()))
 
         # Install all click handlers -- TODO: we will
         # redo this with a single more intelligent handler, for much greater
@@ -375,13 +380,15 @@ class TaskList
     display_due_date: (task) =>
         e = task.element.find(".salvus-task-due")
         if task.due_date
+            task.element.find(".salvus-task-due-clear").show()
             d = new Date(0)   # see http://stackoverflow.com/questions/4631928/convert-utc-epoch-to-local-date-with-javascript
             d.setUTCMilliseconds(task.due_date)
             e.attr('title',d.toISOString()).timeago()
             if d < new Date()
                 e.addClass("salvus-task-overdue")
         else
-            e.timeago('dispose').text("no deadline")
+            e.timeago('dispose').text("none")
+            task.element.find(".salvus-task-due-clear").hide()
 
     display_title: (task) =>
         title = $.trim(task.title)
@@ -588,8 +595,9 @@ class TaskList
                 p = t.position
         position = p - 1
 
+        title = @selected_hashtags().join(' ') + @element.find(".salvus-tasks-search").val()
         task =
-            title       : $.trim(@element.find(".salvus-tasks-search").val())
+            title       : $.trim(title)
             position    : position
             last_edited : new Date() - 0
 
@@ -669,6 +677,8 @@ class TaskList
 
     init_sort: () =>
         for s in HEADINGS
+            if s == 'description'
+                continue
             @element.find(".salvus-task-sort-#{s}").on 'click', {s:s}, (event) =>
                 @click_sort_by(event.data.s)
                 event.preventDefault()

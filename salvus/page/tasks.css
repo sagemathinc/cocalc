@@ -10,7 +10,9 @@
     padding-top: 1ex;
     cursor : pointer;
     border-left: 3px solid #fff;
-    border-top: 1px solid #eee;
+    margin: 1ex;
+    border-radius: 1ex;
+    width: 98%;
 }
 
 
@@ -32,9 +34,10 @@
 
 .salvus-task-icon {
     color:#888;
-    padding-top:0;
+    padding-top: 4px;
     padding-bottom:0;
     font-size:9pt;
+    margin-right:4px;
 }
 
 .salvus-task-icon:hover {
@@ -97,6 +100,10 @@
     margin-bottom:2em;
 }
 
+.salvus-task-reorder-handle {
+    font-size: 13pt;
+}
+
 .salvus-task-reorder-handle:hover {
     color: #51a7e8
 }
@@ -117,13 +124,10 @@
     background: lightyellow;
 }
 
-.salvus-task-active-button {
-    padding-left: 1em;
-}
 
 .salvus-task-toggle-icon {
     color: #666;
-    font-size: 12pt;
+    font-size: 18pt;
     margin-right: 1em;
 }
 
@@ -133,12 +137,12 @@
 
 .salvus-task-last-edited {
     color:#888;
-    font-size:8pt;
+    font-size:9pt;
 }
 
 .salvus-task-due {
     color:#888;
-    font-size:10pt;
+    font-size:9pt;
 }
 
 .salvus-task-due:hover {
