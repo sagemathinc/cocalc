@@ -20,6 +20,7 @@ templates = $(".salvus-tasks-templates")
 
 task_template = templates.find(".salvus-task")
 edit_task_template = templates.find(".salvus-task-editor")
+hashtag_button_template = templates.find(".salvus-tasks-hashtag-button")
 
 exports.task_list = (project_id, filename) ->
     element = templates.find(".salvus-tasks-editor").clone()
@@ -108,8 +109,82 @@ class TaskList
         if @sort_order.dir == 'asc'
             @tasks.reverse()
 
+    selected_hashtags: () =>
+        return ($(b).text() for b in @element.find(".salvus-tasks-hashtag-bar").find('.btn-inverse'))
+
+    render_hashtag_bar: () =>
+        @parse_hashtags()
+        bar = @element.find(".salvus-tasks-hashtag-bar")
+        bar.empty()
+        if @hashtags.length == 0
+            bar.hide()
+            return
+
+        toggle_hashtag_button = (button) =>
+            tag = button.text()
+            if button.hasClass('btn-info')
+                button.removeClass('btn-info').addClass('btn-inverse')
+                @local_storage("hashtag-#{tag}", true)
+            else
+                button.removeClass('btn-inverse').addClass('btn-info')
+                @local_storage("hashtag-#{tag}", false)
+
+        click_hashtag = (event) =>
+            button = $(event.delegateTarget)
+            toggle_hashtag_button(button)
+            @render_task_list()
+            return false
+
+        tags = misc.keys(@hashtags)
+        tags.sort()
+        for tag in tags
+            button = hashtag_button_template.clone()
+            button.text("#"+tag)
+            button.click(click_hashtag)
+            bar.append(button)
+            if @local_storage("hashtag-##{tag}")
+                toggle_hashtag_button(button)
+        bar.show()
+
+    parse_hashtags: () =>
+        @hashtags = {}
+        for task in @tasks
+            if task.done and not @showing_done
+                continue
+            if task.deleted and not @showing_deleted
+                continue
+            t = task.title
+            if not t?
+                continue
+            while true
+                i = t.indexOf('#')
+                if i == -1 or i == t.length-1 or t[i+1] == '#'
+                    break
+                if not (i == 0 or t[i-1].match(/\s/))
+                    t = t.slice(i+1)
+                    continue
+                t = t.slice(i+1)
+                # find next whitespace
+                i = t.match(/\s/)
+                if i
+                    i = i.index
+                else
+                    i = -1
+                if i == 0
+                    # hash followed immediately by whitespace -- markdown title
+                    t = t.slice(i+1)
+                else
+                    # a hash tag
+                    if i == -1
+                        # to the end
+                        @hashtags[t.toLowerCase()] = true
+                        break
+                    else
+                        @hashtags[t.slice(0, i).toLowerCase()] = true
+                        t = t.slice(i+1)
+
     render_task_list: () =>
-        search = []
+        search = @selected_hashtags()
         for x in misc.split(@element.find(".salvus-tasks-search").val().toLowerCase())
             x = $.trim(x)
             if x.length > 0
@@ -129,6 +204,7 @@ class TaskList
 
         first_task = undefined
         count = 0
+        @_visible_tasks = []
         for task in @tasks
             if !!task.done != @showing_done
                 continue
@@ -142,10 +218,13 @@ class TaskList
                         skip = true
                         continue
             if not skip
+                @_visible_tasks.push(task)
                 @render_task(task)
                 count += 1
                 if not first_task?
                     first_task = task
+
+        @render_hashtag_bar()
 
         if count != 1
             count = "#{count} tasks"
