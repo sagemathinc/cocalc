@@ -120,6 +120,15 @@ class TaskList
     selected_hashtags: () =>
         return ($(b).text() for b in @element.find(".salvus-tasks-hashtag-bar").find('.btn-inverse'))
 
+    toggle_hashtag_button: (button) =>
+        tag = button.text()
+        if button.hasClass('btn-info')
+            button.removeClass('btn-info').addClass('btn-inverse')
+            @local_storage("hashtag-#{tag}", true)
+        else
+            button.removeClass('btn-inverse').addClass('btn-info')
+            @local_storage("hashtag-#{tag}", false)
+
     render_hashtag_bar: () =>
         @parse_hashtags()
         bar = @element.find(".salvus-tasks-hashtag-bar")
@@ -128,18 +137,9 @@ class TaskList
             bar.hide()
             return
 
-        toggle_hashtag_button = (button) =>
-            tag = button.text()
-            if button.hasClass('btn-info')
-                button.removeClass('btn-info').addClass('btn-inverse')
-                @local_storage("hashtag-#{tag}", true)
-            else
-                button.removeClass('btn-inverse').addClass('btn-info')
-                @local_storage("hashtag-#{tag}", false)
-
         click_hashtag = (event) =>
             button = $(event.delegateTarget)
-            toggle_hashtag_button(button)
+            @toggle_hashtag_button(button)
             @render_task_list()
             return false
 
@@ -147,11 +147,12 @@ class TaskList
         tags.sort()
         for tag in tags
             button = hashtag_button_template.clone()
+            button.addClass("salvus-hashtag-#{tag}")
             button.text("#"+tag)
             button.click(click_hashtag)
             bar.append(button)
             if @local_storage("hashtag-##{tag}")
-                toggle_hashtag_button(button)
+                @toggle_hashtag_button(button)
         bar.show()
 
     parse_hashtags: () =>
@@ -406,6 +407,12 @@ class TaskList
             e.timeago('dispose').text("none")
             task.element.find(".salvus-task-due-clear").hide()
 
+    click_hashtag_in_title: (event) =>
+        tag = $(event.delegateTarget).text().slice(1)
+        @toggle_hashtag_button(@element.find(".salvus-hashtag-#{tag}"))
+        @render_task_list()
+        return false
+
     display_title: (task) =>
         title = $.trim(task.title)
         i = title.indexOf('\n')
@@ -430,6 +437,7 @@ class TaskList
             title = title0 + title.slice(x0[1])
 
         task.element.find(".salvus-task-title").html(marked(title)).mathjax().find('a').attr("target","_blank")
+        task.element.find(".salvus-tasks-hash").click(@click_hashtag_in_title)
 
     set_current_task: (task) =>
         if @current_task?.element?
@@ -809,16 +817,15 @@ parse_hashtags = (t0) ->
     base = 0
     while true
         i = t.indexOf('#')
-        if i == -1 or i == t.length-1 or t[i+1] == '#'
+        if i == -1 or i == t.length-1
             return v
-
         base += i+1
-        if not (i == 0 or t[i-1].match(/\s\W/))
+        if t[i+1] == '#' or not (i == 0 or t[i-1].match(/\s/))
             t = t.slice(i+1)
             continue
         t = t.slice(i+1)
-        # find next whitespace
-        i = t.match(/\s/)
+        # find next whitespace or non-alphanumeric
+        i = t.match(/\s|\W/)
         if i
             i = i.index
         else

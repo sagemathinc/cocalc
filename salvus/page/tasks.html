@@ -44,11 +44,14 @@
 
             <div class="well salvus-tasks-list">
                 <div class="row-fluid  salvus-tasks-list-heading">
-                    <div class="span6 lighten salvus-tasks-header  salvus-task-sort-custom">
+                    <div class="span6 lighten salvus-tasks-header">
                         <span>Tasks</span>
-                        <i class="fa fa-sort-desc pull-right hide salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
                     </div>
-                    <div class="offset2 span2 lighten salvus-tasks-header  salvus-task-sort-due">
+                    <div class="span2 salvus-tasks-header  salvus-task-sort-custom">
+                        Priority
+                       <i class="fa fa-sort-desc pull-right hide salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
+                    </div>
+                    <div class="span2 lighten salvus-tasks-header  salvus-task-sort-due">
                         Due <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
                     </div>
                     <div class="span2 lighten salvus-tasks-header  salvus-task-sort-last-edited">
@@ -74,17 +77,17 @@
             <span class="salvus-task-title"></span>
         </div>
         <div class="span2">
-            <i class="fa fa-square-o salvus-task-icon salvus-task-viewer-not-done salvus-task-icon-done-box"> </i>
-            <i class="fa fa-check-square-o salvus-task-icon salvus-task-viewer-done  salvus-task-icon-done-box hide"> </i>
             <span class='salvus-task-buttons hide'>
+                <i class="fa fa-reorder salvus-task-icon salvus-task-reorder-handle"> </i>
+                <i class="fa fa-fast-backward fa-rotate-90 salvus-task-icon salvus-task-to-top-icon"> </i>
+                <i class="fa fa-fast-forward fa-rotate-90  salvus-task-icon salvus-task-to-bottom-icon"> </i>
                 <span class="salvus-task-active-button">
                     <i class="fa fa-clock-o salvus-task-icon salvus-task-icon-active"> </i>
                     <span class="salvus-task-active hide"></span>
                 </span>
-                <i class="fa fa-reorder salvus-task-icon salvus-task-reorder-handle"> </i>
-                <i class="fa fa-fast-backward fa-rotate-90 salvus-task-icon salvus-task-to-top-icon"> </i>
-                <i class="fa fa-fast-forward fa-rotate-90  salvus-task-icon salvus-task-to-bottom-icon"> </i>
-                <i class="fa fa-trash-o  salvus-task-icon salvus-task-delete"> </i>
+                <i class="fa fa-check-square-o salvus-task-icon salvus-task-viewer-done  salvus-task-icon-done-box hide"> </i>
+                <i class="fa fa-square-o salvus-task-icon salvus-task-viewer-not-done salvus-task-icon-done-box"> </i>
+                <i class="fa fa-trash-o  salvus-task-icon salvus-task-delete pull-right"> </i>
             </span>
         </div>
         <div class="span2 salvus-task-due-div">
