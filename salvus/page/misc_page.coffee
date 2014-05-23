@@ -156,7 +156,7 @@ $.fn.extend
 
 
 # Expand element to be vertically maximal in height, keeping its current top position.
-$.fn.maxheight = (opts) ->
+$.fn.maxheight = (opts={}) ->
     if not opts.offset?
         opts.offset = 0
     @each ->
