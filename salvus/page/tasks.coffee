@@ -711,6 +711,7 @@ class TaskList
             last_edited : new Date() - 0
 
         @tasks.unshift(task)
+        @_visible_tasks.unshift(task)
         task_id = uuid()
         @db.update(set:task, where:{task_id : task_id})
         task.task_id = task_id
@@ -897,44 +898,48 @@ set_key_handler = (task_list) ->
     current_task_list = task_list
 
 $(window).keydown (evt) =>
-    if current_task_list?
-        if help_dialog_open
-            close_help_dialog()
+    if not current_task_list?
+        #console.log("no task list")
+        return
+
+    if help_dialog_open
+        #console.log("help dialog open")
+        close_help_dialog()
+        return
+
+    if evt.shiftKey
+        return
+
+    if evt.ctrlKey or evt.metaKey
+        if evt.keyCode == 83 # s
+            current_task_list.save()
+            return false
+        else if evt.keyCode == 78 # n
+            current_task_list.create_task()
+            return false
+        else if evt.which == 74 or evt.which == 40  # j = down
+            current_task_list.move_current_task_down()
+            return false
+        else if evt.which == 75 or evt.which == 38  # k = down
+            current_task_list.move_current_task_up()
+            return false
+    else
+
+        if current_task_list.element?.find(".salvus-task-editing-title").length > 0
+            #console.log("currently editing some task")
             return
 
-        if evt.shiftKey
-            return
+        if evt.which == 13  # return
+            current_task_list.edit_title(current_task_list.current_task)
+            return false
 
-        if evt.ctrlKey or evt.metaKey
-            if evt.keyCode == 83 # s
-                current_task_list.save()
-                return false
-            else if evt.keyCode == 78 # n
-                current_task_list.create_task()
-                return false
-            else if evt.which == 74 or evt.which == 40  # j = down
-                current_task_list.move_current_task_down()
-                return false
-            else if evt.which == 75 or evt.which == 38  # k = down
-                current_task_list.move_current_task_up()
-                return false
-        else
+        else if evt.which == 74 or evt.which == 40  # j = down
+            current_task_list.set_current_task_next()
+            return false
 
-            if current_task_list.element?.find(".salvus-task-editing-title").length > 0
-                # currently editing some task
-                return
-
-            if evt.which == 13  # return
-                current_task_list.edit_title(current_task_list.current_task)
-                return false
-
-            else if evt.which == 74 or evt.which == 40  # j = down
-                current_task_list.set_current_task_next()
-                return false
-
-            else if evt.which == 75 or evt.which == 38  # k = down
-                current_task_list.set_current_task_prev()
-                return false
+        else if evt.which == 75 or evt.which == 38  # k = down
+            current_task_list.set_current_task_prev()
+            return false
 
 
 parse_hashtags = (t0) ->
