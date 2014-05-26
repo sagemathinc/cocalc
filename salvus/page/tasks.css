@@ -9,7 +9,7 @@
     padding-right: 0em;
     padding-top: 1ex;
     cursor : pointer;
-    border: 1px solid #fff;
+    border: 2px solid #fff;
     border-radius: 1ex;
     width: 98%;
     margin-top: 3px;
@@ -57,7 +57,7 @@
 }
 
 .salvus-current-task {
-    border: 1px solid #08c;
+    border: 2px solid #08c;
 }
 
 .salvus-tasks-search-describe {

@@ -189,6 +189,13 @@ class TaskList
         first_task = undefined
         count = 0
         @_visible_tasks = []
+        current_task_is_visible = false
+
+        if not @current_task?
+            task_id = @local_storage("current_task")
+            if task_id?
+                @current_task = @get_task_by_id(task_id)
+
         for task in @tasks
             if !!task.done != @showing_done
                 continue
@@ -203,6 +210,8 @@ class TaskList
                         continue
             if not skip
                 @_visible_tasks.push(task)
+                if @current_task?.task_id == task.task_id
+                    current_task_is_visible = true
                 @render_task(task)
                 count += 1
                 if not first_task?
@@ -228,13 +237,9 @@ class TaskList
         if @readonly
             return
 
-        if not @current_task? and first_task?
-            task_id = @local_storage("current_task")
-            if task_id?
-                current_task = @get_task_by_id(task_id)
-            if not current_task?
-                current_task = first_task
-            @set_current_task(current_task)
+        if not current_task_is_visible and first_task?
+            @current_task = first_task
+        @set_current_task(@current_task)
 
         @elt_task_list.sortable
             containment : @element
@@ -446,8 +451,54 @@ class TaskList
         @local_storage("current_task", task.task_id)
         if task.element?  # if it is actually being displayed
             task.element.addClass("salvus-current-task")
+            task.element.scrollintoview()
+
+    get_current_task_visible_index: () =>
+        if not @current_task?
+            return
+        for i in [0...@_visible_tasks.length]
+            if @_visible_tasks[i].task_id == @current_task.task_id
+                return i
+
+    set_current_task_prev: () =>
+        i = @get_current_task_visible_index()
+        if i?
+            i -= 1
+            if i < 0
+                i = @_visible_tasks.length - 1
+            @set_current_task(@_visible_tasks[i])
+
+    set_current_task_next: () =>
+        i = @get_current_task_visible_index()
+        if i?
+            i += 1
+            if i >= @_visible_tasks.length
+                i = 0
+            @set_current_task(@_visible_tasks[i])
+
+    move_current_task_down: () =>
+        i = @get_current_task_visible_index()
+        if i < @_visible_tasks.length-1
+            a = @_visible_tasks[i+1].position
+            b = @_visible_tasks[i+2]?.position
+            if not b?
+                b = a + 1
+            @current_task.position =  (a + b)/2
+            @render_task_list()
+
+    move_current_task_up: () =>
+        i = @get_current_task_visible_index()
+        if i > 0
+            a = @_visible_tasks[i-2]?.position
+            b = @_visible_tasks[i-1].position
+            if not a?
+                a = b - 1
+            @current_task.position =  (a + b)/2
+            @render_task_list()
 
     edit_title: (task) =>
+        if not task?
+            task = @_visible_tasks[0]
         @set_current_task(task)
         e = task.element
         elt_title = e.find(".salvus-task-title")
@@ -814,6 +865,47 @@ class TaskList
 
     show: () =>
         @element.find(".salvus-tasks-list").maxheight(offset:50)
+        set_key_handler(@)
+
+    hide: () =>
+        @element.hide()
+        set_key_handler()
+
+current_task_list = undefined
+set_key_handler = (task_list) ->
+    current_task_list = task_list
+
+$(window).keydown (evt) =>
+    if current_task_list?
+        console.log(current_task_list.filename, evt.which)
+        if evt.shiftKey
+            return
+        if evt.ctrlKey or evt.metaKey
+            if evt.keyCode == 83 # s
+                current_task_list.save()
+                return false
+            else if evt.keyCode == 78 # n
+                current_task_list.create_task()
+                return false
+            else if evt.which == 74 or evt.which == 40  # j = down
+                current_task_list.move_current_task_down()
+                return false
+            else if evt.which == 75 or evt.which == 38  # k = down
+                current_task_list.move_current_task_up()
+                return false
+        else
+            if evt.which == 13  # return
+                current_task_list.edit_title(current_task_list.current_task)
+                return false
+
+            else if evt.which == 74 or evt.which == 40  # j = down
+                current_task_list.set_current_task_next()
+                return false
+
+            else if evt.which == 75 or evt.which == 38  # k = down
+                current_task_list.set_current_task_prev()
+                return false
+
 
 
 parse_hashtags = (t0) ->

@@ -723,6 +723,12 @@ class exports.Editor
         for filename, tab of @tabs
             tab.close_editor()
 
+    hide: () =>
+        for filename, tab of @tabs
+            if tab?
+                if tab.editor_open()
+                    tab.editor().hide?()
+
     resize_open_file_tabs: () =>
         # Make a list of the tabs after the search tab.
         x = @open_file_tabs()
@@ -4257,6 +4263,9 @@ class TaskList extends FileEditor
         @element.show()
         @task_list.show()
 
+    hide: () =>
+        @element.hide()
+        @task_list.hide()
 
 
 #**************************************************

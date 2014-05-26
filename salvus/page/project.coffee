@@ -740,6 +740,7 @@ class ProjectPage
                 tab.onshow = () ->
                     that.editor.onshow()
                 t.find("a").click () ->
+                    that.editor.hide()
                     that.editor.show_recent()
                     return false
             else if name == "project-new-file"
@@ -786,6 +787,8 @@ class ProjectPage
                 @focus()
             else
                 tab.target.hide()
+        if name != 'project-editor'
+            @editor?.hide()
         @editor?.resize_open_file_tabs()
 
 
