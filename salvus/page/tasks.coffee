@@ -124,15 +124,15 @@ class TaskList
             @tasks.reverse()
 
     selected_hashtags: () =>
-        return ($(b).text() for b in @element.find(".salvus-tasks-hashtag-bar").find('.btn-inverse'))
+        return ($(b).text() for b in @element.find(".salvus-tasks-hashtag-bar").find('.btn-warning'))
 
     toggle_hashtag_button: (button) =>
         tag = button.text()
         if button.hasClass('btn-info')
-            button.removeClass('btn-info').addClass('btn-inverse')
+            button.removeClass('btn-info').addClass('btn-warning')
             @local_storage("hashtag-#{tag}", true)
         else
-            button.removeClass('btn-inverse').addClass('btn-info')
+            button.removeClass('btn-warning').addClass('btn-info')
             @local_storage("hashtag-#{tag}", false)
 
     render_hashtag_bar: () =>
@@ -152,12 +152,15 @@ class TaskList
         tags = misc.keys(@hashtags)
         tags.sort()
         for tag in tags
+            selected = @local_storage("hashtag-##{tag}")
+            if not selected and @_visible_titles? and @_visible_titles.indexOf('#'+tag) == -1
+                continue
             button = hashtag_button_template.clone()
             button.addClass("salvus-hashtag-#{tag}")
             button.text("#"+tag)
             button.click(click_hashtag)
             bar.append(button)
-            if @local_storage("hashtag-##{tag}")
+            if selected
                 @toggle_hashtag_button(button)
         bar.show()
 
@@ -193,6 +196,7 @@ class TaskList
         first_task = undefined
         count = 0
         @_visible_tasks = []
+        @_visible_titles = ''
         current_task_is_visible = false
 
         if not @current_task?
@@ -214,6 +218,7 @@ class TaskList
                         continue
             if not skip
                 @_visible_tasks.push(task)
+                @_visible_titles += ' ' + task.title.toLowerCase()
                 if @current_task?.task_id == task.task_id
                     current_task_is_visible = true
                 @render_task(task)
@@ -417,7 +422,7 @@ class TaskList
             task.element.find(".salvus-task-due-clear").hide()
 
     click_hashtag_in_title: (event) =>
-        tag = $(event.delegateTarget).text().slice(1)
+        tag = $(event.delegateTarget).text().slice(1).toLowerCase()
         @toggle_hashtag_button(@element.find(".salvus-hashtag-#{tag}"))
         @render_task_list()
         return false
@@ -917,10 +922,10 @@ $(window).keydown (evt) =>
         else if evt.keyCode == 78 # n
             current_task_list.create_task()
             return false
-        else if evt.which == 74 or evt.which == 40  # j = down
+        else if evt.which == 40  # j = down (evt.which == 74)
             current_task_list.move_current_task_down()
             return false
-        else if evt.which == 75 or evt.which == 38  # k = down
+        else if evt.which == 38  # k = down (evt.which == 75)
             current_task_list.move_current_task_up()
             return false
     else
@@ -933,11 +938,11 @@ $(window).keydown (evt) =>
             current_task_list.edit_title(current_task_list.current_task)
             return false
 
-        else if evt.which == 74 or evt.which == 40  # j = down
+        else if evt.which == 40  # j = down (evt.which == 74)
             current_task_list.set_current_task_next()
             return false
 
-        else if evt.which == 75 or evt.which == 38  # k = down
+        else if evt.which == 38  # k = down (evt.which == 75)
             current_task_list.set_current_task_prev()
             return false
 

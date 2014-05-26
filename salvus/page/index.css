@@ -153,6 +153,9 @@ body { padding-top:41px; }
 
 .highlight {
     background-color: orange;
+    padding: 3px;
+    margin: -3px;
+    border-radius: 3px;
 }
 
 
