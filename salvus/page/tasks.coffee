@@ -30,12 +30,15 @@ exports.task_list = (project_id, filename) ->
 HEADINGS = ['custom', 'description', 'due', 'last-edited']
 HEADING_MAP = {custom:'position', description:'title', due:'due_date', 'last-edited':'last_edited'}
 
+# disabled due to causing hangs -- I should just modify the gfm or markdown source code (?).
+###
 CodeMirror.defineMode "tasks", (config) ->
     # This is annoying, but I can't find a better way to do it for now --
     # basically it doesn't switch back until hitting a space, so is wrong if there is a newline at the end...
     # It seems regexp's are not supported.  Doing something magic with autocompletion would be nicer, but v2.
     options = [{open:'#', close:' ', mode:CodeMirror.getMode(config, 'text')}]
-    return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "markdown"), options...)
+    return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "gfm"), options...)
+###
 
 class TaskList
     constructor : (@project_id, @filename, @element) ->
@@ -52,6 +55,7 @@ class TaskList
         @init_search()
         @init_sort()
         @init_save()
+        @init_info()
         synchronized_db
             project_id : @project_id
             filename   : @filename
@@ -419,7 +423,7 @@ class TaskList
         return false
 
     display_title: (task) =>
-        title = $.trim(task.title)
+        title = task.title
         i = title.indexOf('\n')
         if i != -1
             if task.element.find(".fa-caret-down").hasClass("hide")
@@ -441,7 +445,9 @@ class TaskList
                 x0 = x
             title = title0 + title.slice(x0[1])
 
-        task.element.find(".salvus-task-title").html(marked(title)).mathjax().find('a').attr("target","_blank")
+        e = task.element.find(".salvus-task-title").html(marked(title)).mathjax()
+        e.find('a').attr("target","_blank")
+        e.find("table").addClass('table')  # makes bootstrap tables look MUCH nicer -- and gfm has nice tables
         task.element.find(".salvus-tasks-hash").click(@click_hashtag_in_title)
 
     set_current_task: (task) =>
@@ -500,9 +506,9 @@ class TaskList
         if not task?
             task = @_visible_tasks[0]
         e = task.element
-        if e.data('editing_title')
+        if e.hasClass('salvus-task-editing-title')
             return
-        e.data('editing_title', true)
+        e.addClass('salvus-task-editing-title')
         elt_title = e.find(".salvus-task-title")
         @set_current_task(task)
         elt = edit_task_template.find(".salvus-tasks-title-edit").clone()
@@ -512,7 +518,7 @@ class TaskList
         finished = false
         stop_editing = () =>
             finished = true
-            e.removeData('editing_title')            
+            e.removeClass('salvus-task-editing-title')
             try
                 cm.toTextArea()
             catch
@@ -537,8 +543,16 @@ class TaskList
                 @set_dirty()
 
         editor_settings = require('account').account_settings.settings.editor_settings
+        extraKeys =
+            "Enter"       : "newlineAndIndentContinueMarkdownList"
+            "Shift-Enter" : save_task
+            "Shift-Tab"    : (editor) -> editor.unindent_selection()
+
+        if editor_settings.bindings != 'vim'  # this escape binding below would be a major problem for vim!
+            extraKeys["Esc"] = stop_editing
+
         opts =
-            mode           : 'tasks'
+            mode           : 'gfm'
             lineNumbers    : false
             theme          : editor_settings.theme
             lineWrapping   : editor_settings.line_wrapping
@@ -547,10 +561,8 @@ class TaskList
             styleActiveLine: 15
             tabSize        : editor_settings.tab_size
             viewportMargin : Infinity
-            extraKeys      :
-                "Enter"       : "newlineAndIndentContinueMarkdownList"
-                "Shift-Enter" : save_task
-                "Esc"         : stop_editing
+            extraKeys      : extraKeys
+
         if editor_settings.bindings != "standard"
             opts.keyMap = editor_settings.bindings
 
@@ -566,9 +578,9 @@ class TaskList
         elt.find("a[href=#save]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
             save_task()
             event.preventDefault()
-        elt.find("a[href=#cancel]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
-            stop_editing()
-            event.preventDefault()
+        #elt.find("a[href=#cancel]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
+        #    stop_editing()
+        #    event.preventDefault()
 
     edit_due_date: (task) =>
         @set_current_task(task)
@@ -841,6 +853,11 @@ class TaskList
             @save()
             event.preventDefault()
 
+    init_info: () =>
+        @element.find(".salvus-tasks-info").click () =>
+            help_dialog()
+            return false
+
     set_dirty: () =>
         @_new_changes = true
         if not @readonly
@@ -881,8 +898,13 @@ set_key_handler = (task_list) ->
 
 $(window).keydown (evt) =>
     if current_task_list?
+        if help_dialog_open
+            close_help_dialog()
+            return
+
         if evt.shiftKey
             return
+
         if evt.ctrlKey or evt.metaKey
             if evt.keyCode == 83 # s
                 current_task_list.save()
@@ -897,6 +919,11 @@ $(window).keydown (evt) =>
                 current_task_list.move_current_task_up()
                 return false
         else
+
+            if current_task_list.element?.find(".salvus-task-editing-title").length > 0
+                # currently editing some task
+                return
+
             if evt.which == 13  # return
                 current_task_list.edit_title(current_task_list.current_task)
                 return false
@@ -908,7 +935,6 @@ $(window).keydown (evt) =>
             else if evt.which == 75 or evt.which == 38  # k = down
                 current_task_list.set_current_task_prev()
                 return false
-
 
 
 parse_hashtags = (t0) ->
@@ -947,6 +973,21 @@ parse_hashtags = (t0) ->
                 v.push([base-1, base+i])
                 base += i+1
                 t = t.slice(i+1)
+
+help_dialog_element = templates.find(".salvus-tasks-help-dialog")
+
+help_dialog_open = false
+
+help_dialog = () ->
+    help_dialog_open = true
+    help_dialog_element.modal()
+
+close_help_dialog = () ->
+    help_dialog_open = false
+    help_dialog_element.modal('hide')
+
+help_dialog_element.find(".btn-close").click(close_help_dialog)
+
 
 
 

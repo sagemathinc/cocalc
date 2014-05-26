@@ -135,7 +135,7 @@
 .salvus-task-toggle-icon {
     color: #888;
     font-size: 18pt;
-    margin-right: 1em;
+    margin-right: -1em;
 }
 
 .salvus-task-active-icon:hover {
@@ -191,19 +191,16 @@
     color: white;
     padding: 3px;
     border-radius: 3px;
-}
-
-
-.salvus-tasks-first {
     cursor : pointer;
 }
 
-.salvus-tasks-hash {
-    cursor : pointer;
-}
 
 .salvus-tasks-hash:hover {
     background-color: #2a85a0;
+}
+
+.salvus-tasks-first {
+    cursor : pointer;
 }
 
 .salvus-task-active-button {

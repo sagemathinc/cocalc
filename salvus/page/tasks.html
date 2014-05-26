@@ -25,6 +25,9 @@
                 <div class="span2">
                     <span class="salvus-tasks-filename pull-right"></span>
                 </div>
+                <div class="span1">
+                    <a class='btn btn-info btn-small salvus-tasks-info'><i class="fa fa-question-circle"> </i> Help</a>
+                </div>
             </div>
             <div class="row-fluid" style="margin-bottom:1em">
                 <div class="span2">
@@ -109,12 +112,12 @@
             <div class="row-fluid">
                 <div class="span4">
                     <span class='btn-group'>
-                        <a class="btn btn-success" style="margin-bottom:1ex" href="#save"  data-toggle="tooltip" data-placement="bottom" title="or press shift+enter"><i class="fa fa-save"> </i> Save</a>
-                        <a class="btn"  style="margin-bottom:1ex" href="#cancel"  data-toggle="tooltip" data-placement="bottom" title="or press esc"> Cancel</a>
+                        <a class="btn btn-success" style="margin-bottom:1ex" href="#save"  data-toggle="tooltip" data-placement="bottom" title="or press shift+enter"><i class="fa fa-save"> </i> Done</a>
+                        <!--<a class="btn"  style="margin-bottom:1ex" href="#cancel"  data-toggle="tooltip" data-placement="bottom" title="or press esc"> Cancel</a>-->
                     </span>
                 </div>
                 <div class="span8">
-                    <span style="color:#999">Write using <a href="http://daringfireball.net/projects/markdown/basics" target="_blank">markdown</a>, LaTeX and use <tt>#label</tt> to create hashtag labels.</span>
+                    <span style="color:#999">Write using <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>, LaTeX and use <tt>#tag</tt> to create hashtag labels, then press shift+enter.</span>
                 </div>
             </div>
         </div>
@@ -129,6 +132,62 @@
     </div>
 
     <button class="btn btn-info btn-small salvus-tasks-hashtag-button"></button>
+
+    <div class="modal salvus-tasks-help-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close btn-close">
+                <span style="font-size:20pt;">×</span>
+            </button>
+            <h3><i class="fa fa-question-circle"> </i>  Task List Help</h3>
+        </div>
+        <div class="modal-body">
+            Use task lists to help organize your work on a project. 
+
+            <h4>Editing</h4>
+            Click or use the cursor keys (and press enter) to edit a task, or create a new task by clicking the New Task button.
+            Use <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>
+            to describe your task, and LaTeX to enter mathematics.
+            The editor respects the color scheme and keybindings that you
+            select in account settings, and
+            external links open in another browser tab.
+            You can toggle showing the full description or only the first line of the description.
+
+            <h4>Actions</h4>
+            The column labeled "Custom Order" has buttons to move a task, mark it as done,
+            delete it, and indicate that you are working on it.
+            When viewing finished tasks by selecting the done box at the top, you can
+            see when tasks were completed.
+
+            <h4>Time</h4>
+            Each task has an optional due date and time, which you can set by clicking on the due date
+            (or none).  You can see when the task is due, when you last edited it, and
+            click either column to sort.
+
+            <h4>Hashtags</h4>
+            Put <span class="salvus-tasks-hash"><tt>#tag</tt></span> anywhere in the description of a task to create a hashtag, with
+            <i>no space</i> between the hash symbol and the tag identifier.  A hashtag button
+            will appear at the top of the screen. Click
+            on the hashtag in  a task to toggle showing only tasks with that hashtag.
+
+            <h4>Search</h4>
+            Enter terms in the search box in the upper left to show only tasks containing
+            all search terms.
+
+            <h4>File format</h4>
+            A task list is stored as a file with extension <tt>.tasks</tt> that contains one JSON line per task.
+            You can directly edit this file with other tools (e.g., vim on the command line)
+            and changes should appear in the task list within a few seconds.  You can
+            have many task lists, store them in revision control, create and modify
+            them using scripts, recover them from snapshots, etc.
+
+
+
+
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-close">Close</button>
+        </div>
+    </div>
 
 </div>
 
