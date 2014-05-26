@@ -429,8 +429,9 @@ class TaskList
 
     display_title: (task) =>
         title = task.title
-        i = title.indexOf('\n')
-        if i != -1
+        m = title.match(/^\s*[\r\n]/m)  # blank line
+        if m?.index?
+            i = m.index
             if task.element.find(".fa-caret-down").hasClass("hide")
                 @local_storage("toggle-#{task.task_id}",true)
                 title = title.slice(0,i)
@@ -667,7 +668,7 @@ class TaskList
         if deleted and not @showing_deleted
             task.element.fadeOut () =>
                 if e.hasClass('salvus-task-deleted')  # they could have canceled the action by clicking again
-                    @set_current_task_next()                    
+                    @set_current_task_next()
                     task.element?.remove()
                     f()
         else
