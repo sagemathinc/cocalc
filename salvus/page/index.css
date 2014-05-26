@@ -154,3 +154,8 @@ body { padding-top:41px; }
 .highlight {
     background-color: orange;
 }
+
+
+code  {
+    color: #444;
+}
