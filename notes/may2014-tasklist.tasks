@@ -6,7 +6,7 @@
 {"title":"should we -- have **actions** use the checkboxes to select a task or range of tasks, then have actions\n- mark done, delete, export (all in range sent to json)","position":-5,"last_edited":1400200119136,"task_id":"6b036c1d-eba9-4520-ae7b-0a943c00f5cc","deleted":true}
 {"title":"some good way to indicate currently **active task(s)**, i.e., tasks we are working on.","position":16,"last_edited":1400200175957,"task_id":"b0f2fdba-9dc3-4e3e-b42b-47d5e420f262","active":false,"done":true}
 {"title":"**sort** tasks\n- add column headings\n- click to by natural order, title, when due, last edited","position":25,"last_edited":1400200195452,"task_id":"2cb7f0b1-9324-41b8-b7a9-fcb9a6cf931a","done":true}
-{"title":"#ui #keyboard \nuse **keyboard** to move between current task, start/stop editing, mark done, etc.\n- up/down and also vim j/k\n- enter or i to start editing\n- escape or shift-enter to exit\n- shift arrow could select a range of tasks... (?)","position":19.99999976158142,"last_edited":1400956821215,"task_id":"10981424-1984-404e-bf1f-1676d3db0d63","active":false}
+{"title":"#ui #keyboard \nuse **keyboard** to move between current task, start/stop editing, mark done, etc.\n- up/down and also vim j/k\n- enter or i to start editing\n- escape or shift-enter to exit\n- shift arrow could select a range of tasks... (?)","position":19.99999976158142,"last_edited":1400956821215,"task_id":"10981424-1984-404e-bf1f-1676d3db0d63","active":false,"done":1401064282514}
 {"title":"","position":20,"last_edited":1400200893589,"task_id":"f9f7b3a1-1a42-4766-a94a-e2284feb78ca","done":true}
 {"title":"**empty task** -- no way to start editing it\n - make it so there is no way to create an empty task","position":7,"last_edited":1400200910366,"task_id":"f723fd7f-f6cf-46b0-941e-1c2532b1d102","active":false,"done":true}
 {"title":"no way to **scroll page** down to see moe tasks -- need to change position","position":19,"last_edited":1400201015890,"task_id":"512bdeb0-55d2-4222-b76f-6a5cc6e75da7","done":true,"active":false}
@@ -18,7 +18,7 @@
 {"title":"(trivial) Get rid of **cancel button**.","position":12,"last_edited":1400205921151,"task_id":"92532e40-0d9b-4035-a77f-653f787e3b40","done":true}
 {"title":"(trivial) implement cancel search button","position":17,"last_edited":1400206081184,"task_id":"ce8ada09-e6bf-4776-9cb0-6bad873fe59f","active":false,"done":true}
 {"title":"(trivial) tooltip over \"Create Task\" that says \"shift+enter\"","position":15,"last_edited":1400206097078,"task_id":"86aa3fa8-8ccc-45ce-8e3c-ba5ca89f45ec","done":true}
-{"title":"#v2\n**copy and paste** tasks from one task list to another\n\n","position":-1.4901161193847656e-8,"last_edited":1400956556567,"task_id":"a2522295-941a-46dd-bcc0-e585eddbeb3e"}
+{"title":"#v2 \n**copy and paste** tasks from one task list to another\n\nshift arrow could select a range of tasks","position":-1.4901161193847656e-8,"last_edited":1401064346472,"task_id":"a2522295-941a-46dd-bcc0-e585eddbeb3e"}
 {"title":"whether or not to \"show done\" should be persisted in **local storage**","position":8,"last_edited":1400257718258,"task_id":"72651b93-8b24-4419-80f8-60b1a63e0d83","active":false,"done":true}
 {"title":"currently selected task should be persisted in **local storage**","position":9,"last_edited":1400257735089,"task_id":"bb755feb-f9e7-4c84-b5b2-93b5aafb52a4","active":false,"done":true}
 {"title":"make task disappear more slowly; also, don't sort completed tasks differently","position":11,"last_edited":1400270025510,"task_id":"2863f756-8c94-410e-89a8-821e0bfda753","done":true}
@@ -58,7 +58,7 @@
 {"title":"#feature #link #ui\nactive project link -- way to link into specific place in file (via search)\n\n  - would use this to link to a point in file defined by a comment attached to a todo\n  - would also be used by the current search functionality","position":19.999999523162842,"last_edited":1400956798895,"task_id":"80b54c20-4ac5-4336-bc9f-6feb4849949a"}
 {"title":"make the default when creating tasks to show rather than hide all (the toggle)","position":-47,"last_edited":1400449065136,"task_id":"3dd6c205-7758-4b05-85c9-8684d460a6dd","active":false,"done":true}
 {"title":"when click \"show done\" *only* show the done tasks; similar with deleted (?) -- and include remark about this in search header","position":-59,"last_edited":1400460540576,"task_id":"0be9e446-5a3a-4195-8daa-31bec3c17282","active":false,"done":true}
-{"title":"#v1 #ui\nmake control/command-s save the task list to disk.","position":-109,"last_edited":1400956569567,"task_id":"f15256fd-406e-4f17-a5c4-6f5d5a8ea564","due_date":1401120360691}
+{"title":"#v1 #ui\nmake control/command-s save the task list to disk.","position":-109,"last_edited":1401064181659,"task_id":"f15256fd-406e-4f17-a5c4-6f5d5a8ea564","due_date":1401120360691,"done":1401064180729,"active":false}
 {"title":"(7:32-7:54) #ui #?\nadd a save button when editing task, with \"shift-enter\" hover text\n","position":-91,"last_edited":1400986479107,"task_id":"d5a7d1b9-4674-4a60-b986-846bbeb6c043","active":false,"done":true}
 {"title":"creating a new task should have highest priority no matter what sort order is, etc.","position":-63,"last_edited":1400781806774,"task_id":"984dd99f-ed3b-4c6b-8b31-7532655d7705","active":false,"done":true}
 {"title":"#ui #v1 \nadd a message about using markdown or html (for now).","position":19.99999999627471,"last_edited":1400956893127,"task_id":"b77b4dd9-8fd8-49c7-b41a-6c3eca33ca31","active":false,"done":true}
@@ -106,3 +106,4 @@
 {"title":"#v1 #hashtag #bug - multiple hashtags on a line not all getting parsed.","position":-104,"last_edited":1401036719207,"task_id":"d7e9efbd-6514-4b9e-a551-1d236790dcff","done":true,"active":false}
 {"title":"#v1 #refactor #unclear `title` -> `description` everywhere ?","position":19.99999999999818,"last_edited":1401045097282,"task_id":"da991668-7a45-4295-98e0-67357b0cc742"}
 {"title":"#feature #v2 #ui -- global search and replace","position":-106,"last_edited":1401036701579,"task_id":"436d1d85-4e69-44ee-b169-230498a20a3b"}
+{"title":"","position":-110,"last_edited":1401064287000,"task_id":"c0c1929c-26e8-4646-8e6c-847828ac4241","deleted":true}

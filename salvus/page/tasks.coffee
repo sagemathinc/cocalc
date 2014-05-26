@@ -499,9 +499,12 @@ class TaskList
     edit_title: (task) =>
         if not task?
             task = @_visible_tasks[0]
-        @set_current_task(task)
         e = task.element
+        if e.data('editing_title')
+            return
+        e.data('editing_title', true)
         elt_title = e.find(".salvus-task-title")
+        @set_current_task(task)
         elt = edit_task_template.find(".salvus-tasks-title-edit").clone()
         elt_title.after(elt)
         elt_title.hide()
@@ -509,6 +512,7 @@ class TaskList
         finished = false
         stop_editing = () =>
             finished = true
+            e.removeData('editing_title')            
             try
                 cm.toTextArea()
             catch
@@ -877,7 +881,6 @@ set_key_handler = (task_list) ->
 
 $(window).keydown (evt) =>
     if current_task_list?
-        console.log(current_task_list.filename, evt.which)
         if evt.shiftKey
             return
         if evt.ctrlKey or evt.metaKey
