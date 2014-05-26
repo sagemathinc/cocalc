@@ -712,7 +712,10 @@ class TaskList
                 p = t.position
         position = p - 1
 
-        title = @selected_hashtags().join(' ') + @element.find(".salvus-tasks-search").val()
+        title = @selected_hashtags().join(' ')
+        if title.length > 0
+            title += "\n"
+        title += @element.find(".salvus-tasks-search").val()
         task =
             title       : $.trim(title)
             position    : position
@@ -922,6 +925,11 @@ $(window).keydown (evt) =>
         if evt.keyCode == 83 # s
             current_task_list.save()
             return false
+        else if evt.keyCode == 70 # f
+            if current_task_list.element?.find(".salvus-task-editing-title").length == 0
+                # not editing any tasks, so global find
+                current_task_list.element.find(".salvus-tasks-search").focus()
+                return false
         else if evt.keyCode == 78 # n
             current_task_list.create_task()
             return false
