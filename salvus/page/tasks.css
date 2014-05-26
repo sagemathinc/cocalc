@@ -17,7 +17,7 @@
 
 
 .salvus-task:hover {
-    background-color:#efe;
+    background-color:#e8f2ff;
 }
 
 .salvus-task-done {
@@ -58,6 +58,7 @@
 
 .salvus-current-task {
     border: 2px solid #08c;
+    background-color:#e8f2ff;
 }
 
 .salvus-tasks-search-describe {
