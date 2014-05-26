@@ -23,12 +23,12 @@
 .salvus-task-done {
 }
 
-.salvus-task-title:hover {
+.salvus-task-desc:hover {
     cursor : text;
     color : #000;
 }
 
-.salvus-tasks-title-edit {
+.salvus-tasks-desc-edit {
     width: 98%
 }
 

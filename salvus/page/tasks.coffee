@@ -28,7 +28,7 @@ exports.task_list = (project_id, filename) ->
     return element
 
 HEADINGS = ['custom', 'description', 'due', 'last-edited']
-HEADING_MAP = {custom:'position', description:'title', due:'due_date', 'last-edited':'last_edited'}
+HEADING_MAP = {custom:'position', description:'desc', due:'due_date', 'last-edited':'last_edited'}
 
 # disabled due to causing hangs -- I should just modify the gfm or markdown source code (?).
 ###
@@ -153,7 +153,7 @@ class TaskList
         tags.sort()
         for tag in tags
             selected = @local_storage("hashtag-##{tag}")
-            if not selected and @_visible_titles? and @_visible_titles.indexOf('#'+tag) == -1
+            if not selected and @_visible_descs? and @_visible_descs.indexOf('#'+tag) == -1
                 continue
             button = hashtag_button_template.clone()
             button.addClass("salvus-hashtag-#{tag}")
@@ -171,8 +171,8 @@ class TaskList
                 continue
             if task.deleted and not @showing_deleted
                 continue
-            for x in parse_hashtags(task.title)
-                @hashtags[task.title.slice(x[0]+1, x[1]).toLowerCase()] = true
+            for x in parse_hashtags(task.desc)
+                @hashtags[task.desc.slice(x[0]+1, x[1]).toLowerCase()] = true
 
     render_task_list: () =>
         search = @selected_hashtags()
@@ -196,7 +196,7 @@ class TaskList
         first_task = undefined
         count = 0
         @_visible_tasks = []
-        @_visible_titles = ''
+        @_visible_descs = ''
         current_task_is_visible = false
 
         if not @current_task?
@@ -210,15 +210,15 @@ class TaskList
             if !!task.deleted != @showing_deleted
                 continue
             skip = false
-            if task.title?
-                t = task.title.toLowerCase()
+            if task.desc?
+                t = task.desc.toLowerCase()
                 for s in search
                     if t.indexOf(s) == -1
                         skip = true
                         continue
             if not skip
                 @_visible_tasks.push(task)
-                @_visible_titles += ' ' + task.title.toLowerCase()
+                @_visible_descs += ' ' + task.desc.toLowerCase()
                 if @current_task?.task_id == task.task_id
                     current_task_is_visible = true
                 @render_task(task)
@@ -323,7 +323,7 @@ class TaskList
 
         t.data('task',task)
         @display_last_edited(task)
-        @display_title(task)
+        @display_desc(task)
 
         buttons = t.find(".salvus-task-buttons")
         if @readonly
@@ -336,8 +336,8 @@ class TaskList
         # redo this with a single more intelligent handler, for much greater
         # efficiency, like with file listing.
         t.click () => @set_current_task(task)
-        t.find(".salvus-task-title").click () =>
-            @edit_title(task)
+        t.find(".salvus-task-desc").click () =>
+            @edit_desc(task)
         t.find(".salvus-task-viewer-not-done").click () =>
             @set_task_done(task, true)
         t.find(".salvus-task-viewer-done").click () =>
@@ -347,11 +347,11 @@ class TaskList
             event.preventDefault()
         t.find(".salvus-task-toggle-icon").click () =>
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
-            @display_title(task)
+            @display_desc(task)
         t.find(".salvus-task-to-top-icon").click () =>
             @custom_sort_order()
             @save_task_position(task, @tasks[0].position-1)
-            @display_title(task)
+            @display_desc(task)
         t.find(".salvus-task-due").click (event) =>
             @edit_due_date(task)
             event.preventDefault()
@@ -375,7 +375,7 @@ class TaskList
                         break
                     i -= 1
             @save_task_position(task, p)
-            @display_title(task)
+            @display_desc(task)
         t.find(".salvus-task-delete").click () =>
             @delete_task(task, not t.find(".salvus-task-delete").hasClass('salvus-task-deleted'))
 
@@ -421,40 +421,40 @@ class TaskList
             e.timeago('dispose').text("none")
             task.element.find(".salvus-task-due-clear").hide()
 
-    click_hashtag_in_title: (event) =>
+    click_hashtag_in_desc: (event) =>
         tag = $(event.delegateTarget).text().slice(1).toLowerCase()
         @toggle_hashtag_button(@element.find(".salvus-hashtag-#{tag}"))
         @render_task_list()
         return false
 
-    display_title: (task) =>
-        title = task.title
-        m = title.match(/^\s*[\r\n]/m)  # blank line
+    display_desc: (task) =>
+        desc = task.desc
+        m = desc.match(/^\s*[\r\n]/m)  # blank line
         if m?.index?
             i = m.index
             if task.element.find(".fa-caret-down").hasClass("hide")
                 @local_storage("toggle-#{task.task_id}",true)
-                title = title.slice(0,i)
+                desc = desc.slice(0,i)
             else
                 @local_storage("toggle-#{task.task_id}",false)
         else
             task.element.find(".fa-caret-down").hide()
-        if title.length == 0
-            title = "No title" # so it is possible to edit
-        v = parse_hashtags(title)
+        if desc.length == 0
+            desc = "No desc" # so it is possible to edit
+        v = parse_hashtags(desc)
         if v.length > 0
-            # replace hashtags by something that renders nicely in markdown (instead of as titles)
+            # replace hashtags by something that renders nicely in markdown (instead of as descs)
             x0 = [0,0]
-            title0 = ''
+            desc0 = ''
             for x in v
-                title0 += title.slice(x0[1], x[0]) + '<span class="salvus-tasks-hash">' + title.slice(x[0], x[1]) + '</span>'
+                desc0 += desc.slice(x0[1], x[0]) + '<span class="salvus-tasks-hash">' + desc.slice(x[0], x[1]) + '</span>'
                 x0 = x
-            title = title0 + title.slice(x0[1])
+            desc = desc0 + desc.slice(x0[1])
 
-        e = task.element.find(".salvus-task-title").html(marked(title)).mathjax()
+        e = task.element.find(".salvus-task-desc").html(marked(desc)).mathjax()
         e.find('a').attr("target","_blank")
         e.find("table").addClass('table')  # makes bootstrap tables look MUCH nicer -- and gfm has nice tables
-        task.element.find(".salvus-tasks-hash").click(@click_hashtag_in_title)
+        task.element.find(".salvus-tasks-hash").click(@click_hashtag_in_desc)
 
     set_current_task: (task) =>
         if @current_task?.element?
@@ -508,43 +508,43 @@ class TaskList
             @current_task.position =  (a + b)/2
             @render_task_list()
 
-    edit_title: (task) =>
+    edit_desc: (task) =>
         if not task?
             task = @_visible_tasks[0]
         e = task.element
-        if e.hasClass('salvus-task-editing-title')
+        if e.hasClass('salvus-task-editing-desc')
             return
-        e.addClass('salvus-task-editing-title')
-        elt_title = e.find(".salvus-task-title")
+        e.addClass('salvus-task-editing-desc')
+        elt_desc = e.find(".salvus-task-desc")
         @set_current_task(task)
-        elt = edit_task_template.find(".salvus-tasks-title-edit").clone()
-        elt_title.after(elt)
-        elt_title.hide()
+        elt = edit_task_template.find(".salvus-tasks-desc-edit").clone()
+        elt_desc.after(elt)
+        elt_desc.hide()
 
         finished = false
         stop_editing = () =>
             finished = true
-            e.removeClass('salvus-task-editing-title')
+            e.removeClass('salvus-task-editing-desc')
             try
                 cm.toTextArea()
             catch
                 # TODO: this raises an exception...
             elt.remove()
-            elt_title.show()
+            elt_desc.show()
 
         save_task = () =>
             if finished
                 return
-            title = cm.getValue()
+            desc = cm.getValue()
             stop_editing()
-            if title != task.title
-                orig_title = task.title
-                task.title = title
+            if desc != task.desc
+                orig_desc = task.desc
+                task.desc = desc
                 task.last_edited = (new Date()) - 0
                 @display_last_edited(task)
-                @display_title(task)
+                @display_desc(task)
                 @db.update
-                    set   : {title  : title, last_edited : task.last_edited}
+                    set   : {desc  : desc, last_edited : task.last_edited}
                     where : {task_id : task.task_id}
                 @set_dirty()
 
@@ -573,9 +573,9 @@ class TaskList
             opts.keyMap = editor_settings.bindings
 
         cm = CodeMirror.fromTextArea(elt.find("textarea")[0], opts)
-        if not task.title?
-            task.title = ''
-        cm.setValue(task.title)
+        if not task.desc?
+            task.desc = ''
+        cm.setValue(task.desc)
         $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor').addClass('salvus-new-task-cm-editor-focus')
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
         #cm.on 'blur', save_task
@@ -593,7 +593,7 @@ class TaskList
         e = task.element
         elt_due = e.find(".salvus-task-due")
         elt = edit_task_template.find(".salvus-tasks-due-edit").clone()
-        e.find(".salvus-task-title").before(elt)
+        e.find(".salvus-task-desc").before(elt)
         # TODO: this should somehow adjust to use locale, right?!
         elt.datetimepicker
             language         : 'en'
@@ -712,12 +712,12 @@ class TaskList
                 p = t.position
         position = p - 1
 
-        title = @selected_hashtags().join(' ')
-        if title.length > 0
-            title += "\n"
-        title += @element.find(".salvus-tasks-search").val()
+        desc = @selected_hashtags().join(' ')
+        if desc.length > 0
+            desc += "\n"
+        desc += @element.find(".salvus-tasks-search").val()
         task =
-            title       : $.trim(title)
+            desc       : $.trim(desc)
             position    : position
             last_edited : new Date() - 0
 
@@ -727,7 +727,7 @@ class TaskList
         @db.update(set:task, where:{task_id : task_id})
         task.task_id = task_id
         @render_task(task, true)
-        @edit_title(task)
+        @edit_desc(task)
         @set_dirty()
 
     init_create_task: () =>
@@ -926,7 +926,7 @@ $(window).keydown (evt) =>
             current_task_list.save()
             return false
         else if evt.keyCode == 70 # f
-            if current_task_list.element?.find(".salvus-task-editing-title").length == 0
+            if current_task_list.element?.find(".salvus-task-editing-desc").length == 0
                 # not editing any tasks, so global find
                 current_task_list.element.find(".salvus-tasks-search").focus()
                 return false
@@ -941,12 +941,12 @@ $(window).keydown (evt) =>
             return false
     else
 
-        if current_task_list.element?.find(".salvus-task-editing-title").length > 0
+        if current_task_list.element?.find(".salvus-task-editing-desc").length > 0
             #console.log("currently editing some task")
             return
 
         if evt.which == 13  # return
-            current_task_list.edit_title(current_task_list.current_task)
+            current_task_list.edit_desc(current_task_list.current_task)
             return false
 
         else if evt.which == 40  # j = down (evt.which == 74)
@@ -981,7 +981,7 @@ parse_hashtags = (t0) ->
         else
             i = -1
         if i == 0
-            # hash followed immediately by whitespace -- markdown title
+            # hash followed immediately by whitespace -- markdown desc
             base += i+1
             t = t.slice(i+1)
         else
