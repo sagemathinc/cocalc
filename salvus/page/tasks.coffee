@@ -334,6 +334,9 @@ class TaskList
 
         t.hover((()->buttons.show()), (()->buttons.hide()))
 
+        if task.done
+            t.addClass("salvus-task-overall-done")
+
         # Install all click handlers -- TODO: we will
         # redo this with a single more intelligent handler, for much greater
         # efficiency, like with file listing.

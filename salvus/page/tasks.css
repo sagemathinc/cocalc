@@ -20,9 +20,6 @@
     background-color:#efe;
 }
 
-.salvus-task-done {
-}
-
 .salvus-task-desc:hover {
     cursor : text;
     color : #000;
@@ -210,4 +207,11 @@
 
 .salvus-task-checkbox {
     cursor : pointer;
+}
+
+.salvus-task-overall-done {
+    opacity:.7;
+}
+.salvus-task-overall-done:hover {
+    opacity:1;
 }
