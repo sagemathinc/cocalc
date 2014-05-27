@@ -838,6 +838,7 @@ class Client extends EventEmitter
         catch error
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
+        #winston.debug("got message: #{data}")
         if mesg.event.slice(0,4) != 'ping' and mesg.event != 'codemirror_bcast'
             winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 600)}")
         handler = @["mesg_#{mesg.event}"]
@@ -1803,6 +1804,117 @@ class Client extends EventEmitter
                 @error_to_client(id:mesg.id, error:err)
             else
                 @push_to_client(mesg)
+
+    ################################################
+    # Task list messages..
+    ################################################
+    # The code below all work(ed) when written, but I had not
+    # implemented limitations and authentication.  Also, I don't
+    # plan now to use this code.  So I'm disabling handling any
+    # of these messages, as a security precaution.   
+    ###
+    mesg_create_task_list: (mesg) =>
+        # TODO: add verification that owners is valid
+        # TODO: error if user (or project) already has too many task lists (?)
+        database.create_task_list
+            owners      : mesg.owners    # list of project or account id's that are allowed to edit this task list.
+            cb          : (err, task_list_id) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    mesg = message.task_list_created
+                        id           : mesg.id
+                        task_list_id : task_list_id
+                    @push_to_client(mesg)
+
+    mesg_edit_task_list: (mesg) =>
+        # TODO: add verification that this client can edit the given task list
+        database.edit_task_list
+            task_list_id : mesg.task_list_id
+            data         : mesg.data
+            deleted      : mesg.deleted
+            cb           : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
+
+    mesg_get_task_list: (mesg) =>
+        # TODO: add verification that this client can view the given task list
+        database.get_task_list
+            task_list_id : mesg.task_list_id
+            columns      : mesg.columns
+            include_deleted : mesg.include_deleted
+            cb           : (err, task_list) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    mesg = message.task_list_resp
+                        id        : mesg.id
+                        task_list : task_list
+                    @push_to_client(mesg)
+
+    mesg_get_task_list_last_edited: (mesg) =>
+        # TODO: add verification that this client can view the given task list
+        database.get_task_list_last_edited
+            task_list_id : mesg.task_list_id
+            cb           : (err, last_edited) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    mesg = message.task_list_resp
+                        id        : mesg.id
+                        task_list : {last_edited : last_edited}
+                    @push_to_client(mesg)
+
+    mesg_set_project_task_list: (mesg) =>
+        # TODO: add verification ...
+        database.set_project_task_list
+            task_list_id : mesg.task_list_id
+            project_id   : mesg.project_id
+            cb           : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
+
+    mesg_create_task: (mesg) =>
+        # TODO: add verification that this client can edit the given task list
+        # TODO: error if title is too long
+        database.create_task
+            task_list_id : mesg.task_list_id
+            title        : mesg.title
+            position     : mesg.position
+            cb          : (err, task_id) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    mesg = message.task_created
+                        id      : mesg.id
+                        task_id : task_id
+                    @push_to_client(mesg)
+
+
+    mesg_edit_task: (mesg) =>
+        #winston.debug("edit_task: mesg=#{misc.to_json(mesg)}")
+        # TODO: add verification that this client can edit the given task
+        database.edit_task
+            task_list_id : mesg.task_list_id
+            task_id      : mesg.task_id
+            title        : mesg.title
+            position     : mesg.position
+            data         : mesg.data
+            done         : mesg.done
+            deleted      : mesg.deleted
+            sub_task_list_id : mesg.sub_task_list_id
+            cb           : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
+    ###
+
+
 
 _server_stats_cache = undefined
 server_stats = (cb) ->

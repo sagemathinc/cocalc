@@ -22,6 +22,9 @@ console.coffee
 
 account.coffee
 syncdoc.coffee
+syncdb.coffee
+tasks.coffee
+
 editor.coffee
 
 interact.coffee

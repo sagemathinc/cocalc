@@ -30,7 +30,15 @@ SIMULATE_LOSS = false
 async = require('async')
 
 diff_match_patch = require('googlediff')  # TODO: this greatly increases the size of browserify output (unless we compress it) -- watch out.
+
+# maximum time in seconds that diff_main will BLOCK optimizing the diff -- see https://code.google.com/p/google-diff-match-patch/wiki/API
+
 dmp = new diff_match_patch()
+dmp.Diff_Timeout = 0.2
+dmp.Match_Threshold = 0.3   # make matching more conservative
+dmp.Patch_DeleteThreshold = 0.3  # make deleting more conservative
+
+
 exports.dmp = dmp
 
 misc = require('misc')

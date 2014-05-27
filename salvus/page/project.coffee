@@ -15,6 +15,9 @@ diffsync        = require('diffsync')
 account         = require('account')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage} = require('editor')
+
+{Tasks} = require('tasks')
+
 {scroll_top, human_readable_size, download_file} = require('misc_page')
 
 MAX_TITLE_LENGTH = 15
@@ -737,6 +740,7 @@ class ProjectPage
                 tab.onshow = () ->
                     that.editor.onshow()
                 t.find("a").click () ->
+                    that.editor.hide()
                     that.editor.show_recent()
                     return false
             else if name == "project-new-file"
@@ -783,6 +787,8 @@ class ProjectPage
                 @focus()
             else
                 tab.target.hide()
+        if name != 'project-editor'
+            @editor?.hide()
         @editor?.resize_open_file_tabs()
 
 
@@ -1011,6 +1017,10 @@ class ProjectPage
 
         @new_file_tab.find("a[href=#new-ipython]").click () =>
             create_file('ipynb')
+            return false
+
+        @new_file_tab.find("a[href=#new-tasks]").click () =>
+            create_file('tasks')
             return false
 
         BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws']
@@ -2733,7 +2743,7 @@ class ProjectPage
             return false
 
         @container.find("a[href=#empty-trash]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
-            bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>Old versions of files, including the trash, are stored as snapshots.</span>  ", (result) =>
+            bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h4>Permanently erase the items in the Trash?</h4><br> <span class='lighten'>Old versions of files, including the trash, are stored as snapshots.</span>  ", (result) =>
                 if result == true
                     salvus_client.exec
                         project_id : @project.project_id
