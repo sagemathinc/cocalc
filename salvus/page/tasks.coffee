@@ -387,6 +387,7 @@ class TaskList
         t.find(".salvus-task-delete").click () =>
             @delete_task(task, not t.find(".salvus-task-delete").hasClass('salvus-task-deleted'))
         t.find(".salvus-task-undelete").click () =>
+            @set_current_task(task)
             @delete_task(task, false)
             return false
 

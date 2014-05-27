@@ -103,6 +103,7 @@
 
 .salvus-tasks-list {
     overflow-y:auto;
+    overflow-x:hidden;
     margin-bottom:2em;
 }
 
