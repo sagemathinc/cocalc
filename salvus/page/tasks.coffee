@@ -72,7 +72,7 @@ class TaskList
                     @tasks = @db.select()
                     @render_hashtag_bar()
                     @render_task_list()
-                    @element.find(".salvus-tasks-loading").remove()                    
+                    @element.find(".salvus-tasks-loading").remove()
                     @set_clean()
                     @db.on 'change', (changes) =>
                         @set_dirty()
@@ -119,7 +119,7 @@ class TaskList
                 else
                     return 0
         @tasks.sort(f)
-        if field in ['last-edited', 'done']
+        if field in ['done']
             @tasks.reverse()
         if @sort_order.dir == 'asc'
             @tasks.reverse()
