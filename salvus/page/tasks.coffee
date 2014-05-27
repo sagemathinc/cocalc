@@ -205,9 +205,9 @@ class TaskList
                 @current_task = @get_task_by_id(task_id)
 
         for task in @tasks
-            if !!task.done != @showing_done
+            if task.done and not @showing_done
                 continue
-            if !!task.deleted != @showing_deleted
+            if task.deleted and not @showing_deleted
                 continue
             skip = false
             if task.desc?
@@ -319,7 +319,7 @@ class TaskList
             @display_due_date(task)
 
         if task.deleted
-            t.find(".salvus-task-delete").addClass('salvus-task-deleted')
+            t.find(".salvus-task-undelete").show()
 
         t.data('task',task)
         @display_last_edited(task)
@@ -378,6 +378,8 @@ class TaskList
             @display_desc(task)
         t.find(".salvus-task-delete").click () =>
             @delete_task(task, not t.find(".salvus-task-delete").hasClass('salvus-task-deleted'))
+        t.find(".salvus-task-undelete").click () =>
+            @delete_task(task, false)
 
     set_actively_working_on_task: (task, active) =>
         active = !!active
@@ -440,23 +442,29 @@ class TaskList
         else
             task.element.find(".fa-caret-down").hide()
         if desc.length == 0
-            desc = "No desc" # so it is possible to edit
-        v = parse_hashtags(desc)
-        if v.length > 0
-            # replace hashtags by something that renders nicely in markdown (instead of as descs)
-            x0 = [0,0]
-            desc0 = ''
-            for x in v
-                desc0 += desc.slice(x0[1], x[0]) + '<span class="salvus-tasks-hash">' + desc.slice(x[0], x[1]) + '</span>'
-                x0 = x
-            desc = desc0 + desc.slice(x0[1])
-
-        e = task.element.find(".salvus-task-desc").html(marked(desc)).mathjax()
+            desc = "<span class='lighten'>Enter a description...</span>" # so it is possible to edit
+        else
+            v = parse_hashtags(desc)
+            if v.length > 0
+                # replace hashtags by something that renders nicely in markdown (instead of as descs)
+                x0 = [0,0]
+                desc0 = ''
+                for x in v
+                    desc0 += desc.slice(x0[1], x[0]) + '<span class="salvus-tasks-hash">' + desc.slice(x[0], x[1]) + '</span>'
+                    x0 = x
+                desc = desc0 + desc.slice(x0[1])
+            desc = marked(desc)
+        if task.deleted
+            desc = "<del>#{desc}</del>"
+        e = task.element.find(".salvus-task-desc")
+        e.html(desc).mathjax()
         e.find('a').attr("target","_blank")
         e.find("table").addClass('table')  # makes bootstrap tables look MUCH nicer -- and gfm has nice tables
         task.element.find(".salvus-tasks-hash").click(@click_hashtag_in_desc)
 
     set_current_task: (task) =>
+        if not task?
+            return
         if @current_task?.element?
             @current_task.element.removeClass("salvus-current-task")
         @current_task = task

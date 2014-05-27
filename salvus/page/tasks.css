@@ -17,7 +17,7 @@
 
 
 .salvus-task:hover {
-    background-color:#e8f2ff;
+    background-color:#efe;
 }
 
 .salvus-task-done {
@@ -48,7 +48,8 @@
 }
 
 .salvus-task-icon-done-box {
-   font-size:13pt;
+   font-size:16pt;
+   color:#888;
 }
 
 

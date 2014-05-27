@@ -4,7 +4,7 @@
 
         <div class="row" style="margin:1em;">
             <div class="row-fluid">
-                <div class="span5" style="margin-bottom: 1ex;" >
+                <div class="span7" style="margin-bottom: 1ex;" >
                     <div>
                         <input class="salvus-tasks-search search-query" style="width:88%" type="search" placeholder="Search...">
                         <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
@@ -12,15 +12,6 @@
                 </div>
                 <div class="span2">
                     <a class="btn btn-success disabled" href="#save"><i class="fa fa-save"> </i> Save</a>
-                </div>
-                <div class="span2 lighten">
-                    <i class="fa fa-square-o salvus-task-icon salvus-task-search-done-icon salvus-task-search-not-done"> </i>
-                    <i class="fa fa-check-square-o salvus-task-icon salvus-task-search-done-icon salvus-task-search-done hide"> </i>
-                    Done&nbsp;&nbsp;&nbsp;
-                    <i class="fa fa-square-o salvus-task-icon salvus-task-search-deleted-icon salvus-task-search-not-deleted"> </i>
-                    <i class="fa fa-check-square-o salvus-task-icon salvus-task-search-deleted-icon salvus-task-search-deleted hide"> </i>
-                    Deleted<br>
-                    <a class='btn btn-danger btn-small salvus-task-empty-trash'><i class="fa fa-trash-o"> </i> Empty Trash</a>
                 </div>
                 <div class="span2">
                     <span class="salvus-tasks-filename pull-right"></span>
@@ -35,16 +26,25 @@
                     <a class="btn" href="#create-task"><i class="fa fa-plus-circle"> </i> New Task</a>
                 </div>
                 -->
-                <div class="span12">
+                <div class="span10">
                     <span class='btn-group salvus-tasks-hashtag-bar'  style="white-space: normal">
                     </span>
+                </div>
+                <div class="span2 lighten">
+                    <i class="fa fa-square-o salvus-task-icon-done-box salvus-task-search-done-icon salvus-task-search-not-done"> </i>
+                    <i class="fa fa-check-square-o salvus-task-icon-done-box salvus-task-search-done-icon salvus-task-search-done hide"> </i>
+                    Done&nbsp;&nbsp;&nbsp;
+                    <i class="fa fa-square-o salvus-task-icon-done-box salvus-task-search-deleted-icon salvus-task-search-not-deleted"> </i>
+                    <i class="fa fa-check-square-o salvus-task-icon-done-box salvus-task-search-deleted-icon salvus-task-search-deleted hide"> </i>
+                    Deleted<br>
+                    <a class='btn btn-danger btn-small salvus-task-empty-trash'><i class="fa fa-trash-o"> </i> Empty Trash</a>
                 </div>
             </div>
             <div class="lighten salvus-tasks-search-describe">
                 Showing <span class="salvus-tasks-count">0 tasks</span>.
                 <span class="salvus-tasks-search-contain hide">Only showing tasks that contain <b><i><span class="salvus-tasks-search-query"></span></i></b>. </span>
-                <span class="salvus-tasks-search-showing-deleted hide">Only showing <b><i>deleted tasks</i></b>. </span>
-                <span class="salvus-tasks-search-showing-done hide">Only showing <b><i>completed tasks</i></b>.</span>
+                <span class="salvus-tasks-search-showing-deleted hide">Showing <b><i>deleted tasks</i></b>. </span>
+                <span class="salvus-tasks-search-showing-done hide">Showing <b><i>completed tasks</i></b>.</span>
             </div>
 
             <div class="well salvus-tasks-list">
@@ -76,6 +76,11 @@
 
     <div class="row-fluid salvus-task">
         <div class="span6">
+            <i class="pull-left fa fa-check-square-o salvus-task-viewer-done  salvus-task-icon-done-box hide"> </i>
+            <i class="pull-left fa fa-square-o salvus-task-viewer-not-done salvus-task-icon-done-box"> </i>
+            <a class='btn btn-danger salvus-task-undelete hide'><i class="fa fa-trash-o"> </i> Undelete</a>
+
+
             <i class="fa fa-caret-left salvus-task-toggle-icon pull-right hide"> </i>
             <i class="fa fa-caret-down salvus-task-toggle-icon  pull-right"> </i>
             <span class="salvus-task-desc"></span>
@@ -89,8 +94,6 @@
                     <i class="fa fa-clock-o salvus-task-icon salvus-task-icon-active"> </i>
                     <span class="salvus-task-active hide"></span>
                 </span>
-                <i class="fa fa-check-square-o salvus-task-icon salvus-task-viewer-done  salvus-task-icon-done-box hide"> </i>
-                <i class="fa fa-square-o salvus-task-icon salvus-task-viewer-not-done salvus-task-icon-done-box"> </i>
                 <i class="fa fa-trash-o  salvus-task-icon salvus-task-delete pull-right"> </i>
             </span>
         </div>
