@@ -216,6 +216,8 @@ class TaskList
                     if t.indexOf(s) == -1
                         skip = true
                         continue
+            else
+                task.desc = ''
             if not skip
                 @_visible_tasks.push(task)
                 @_visible_descs += ' ' + task.desc.toLowerCase()
@@ -348,16 +350,11 @@ class TaskList
         t.find(".salvus-task-toggle-icon").click () =>
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
             @display_desc(task)
+        ###
         t.find(".salvus-task-to-top-icon").click () =>
             @custom_sort_order()
             @save_task_position(task, @tasks[0].position-1)
             @display_desc(task)
-        t.find(".salvus-task-due").click (event) =>
-            @edit_due_date(task)
-            event.preventDefault()
-        t.find(".salvus-task-due-clear").click (event) =>
-            @remove_due_date(task)
-            event.preventDefault()
         t.find(".salvus-task-to-bottom-icon").click () =>
             @custom_sort_order()
             if task.done
@@ -376,10 +373,18 @@ class TaskList
                     i -= 1
             @save_task_position(task, p)
             @display_desc(task)
+        ###
+        t.find(".salvus-task-due").click (event) =>
+            @edit_due_date(task)
+            event.preventDefault()
+        t.find(".salvus-task-due-clear").click (event) =>
+            @remove_due_date(task)
+            event.preventDefault()
         t.find(".salvus-task-delete").click () =>
             @delete_task(task, not t.find(".salvus-task-delete").hasClass('salvus-task-deleted'))
         t.find(".salvus-task-undelete").click () =>
             @delete_task(task, false)
+            return false
 
     set_actively_working_on_task: (task, active) =>
         active = !!active
@@ -458,6 +463,45 @@ class TaskList
             desc = "<del>#{desc}</del>"
         e = task.element.find(".salvus-task-desc")
         e.html(desc).mathjax()
+
+        if desc.indexOf('[ ]') != -1 or desc.indexOf('[x]') != -1
+
+            # Make [ ] or [x]'s magically work, like on github.
+
+            e.highlight('[ ]', { className: 'salvus-task-checkbox-not-selected'})
+            e.highlight('[x]', { className: 'salvus-task-checkbox-selected'})
+
+            e.find(".salvus-task-checkbox-not-selected").replaceWith($('<i class="fa fa-square-o salvus-task-checkbox salvus-task-checkbox-not-selected"> </i>'))
+            e.find(".salvus-task-checkbox-selected").replaceWith($('<i class="fa fa-check-square-o salvus-task-checkbox salvus-task-checkbox-selected"> </i>'))
+
+            s = e.find(".salvus-task-checkbox-not-selected")
+            i = -1
+            for f in s
+                i = task.desc.indexOf('[ ]', i+1)
+                if i != -1
+                    $(f).data("index", i)
+            s = e.find(".salvus-task-checkbox-selected")
+            i = -1
+            for f in s
+                i = task.desc.indexOf('[x]', i+1)
+                if i != -1
+                    $(f).data("index", i)
+
+            e.find(".salvus-task-checkbox").click (event) =>
+                t = $(event.delegateTarget)
+                i = t.data('index')
+                if i?
+                    if t.hasClass('salvus-task-checkbox-selected')
+                        task.desc = task.desc.slice(0,i) + '[ ]' + task.desc.slice(i+3)
+                    else
+                        task.desc = task.desc.slice(0,i) + '[x]' + task.desc.slice(i+3)
+                    @db.update
+                        set   : {desc  : task.desc, last_edited : new Date() - 0}
+                        where : {task_id : task.task_id}
+                    @set_dirty()
+                @display_desc(task)
+                return false
+
         e.find('a').attr("target","_blank")
         e.find("table").addClass('table')  # makes bootstrap tables look MUCH nicer -- and gfm has nice tables
         task.element.find(".salvus-tasks-hash").click(@click_hashtag_in_desc)
@@ -667,12 +711,9 @@ class TaskList
                 where : {task_id : task.task_id}
             task.deleted = deleted
             @set_dirty()
+            @render_task(task)
 
         e = task.element.find(".salvus-task-delete")
-        if deleted
-            e.addClass('salvus-task-deleted')
-        else
-            e.removeClass('salvus-task-deleted')
         if deleted and not @showing_deleted
             task.element.fadeOut () =>
                 if e.hasClass('salvus-task-deleted')  # they could have canceled the action by clicking again
@@ -793,8 +834,7 @@ class TaskList
             return
         bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h4>Permanently erase the deleted items?</h4><br> <span class='lighten'>Old versions of this list are available as snapshots.</span>  ", (result) =>
             if result == true
-                @db.delete
-                    where : {deleted : true}
+                a = @db.delete({deleted : true}, false)
                 @tasks = (x for x in @tasks when not x.deleted)
                 @set_dirty()
                 @render_task_list()

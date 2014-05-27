@@ -37,7 +37,7 @@
                     <i class="fa fa-square-o salvus-task-icon-done-box salvus-task-search-deleted-icon salvus-task-search-not-deleted"> </i>
                     <i class="fa fa-check-square-o salvus-task-icon-done-box salvus-task-search-deleted-icon salvus-task-search-deleted hide"> </i>
                     Deleted<br>
-                    <a class='btn btn-danger btn-small salvus-task-empty-trash'><i class="fa fa-trash-o"> </i> Empty Trash</a>
+                    <a class='btn btn-danger salvus-task-empty-trash'><i class="fa fa-trash-o"> </i> Empty Trash</a>
                 </div>
             </div>
             <div class="lighten salvus-tasks-search-describe">
@@ -49,14 +49,14 @@
 
             <div class="well salvus-tasks-list">
                 <div class="row-fluid  salvus-tasks-list-heading">
-                    <div class="span6 lighten salvus-tasks-header">
+                    <div class="span7 lighten salvus-tasks-header">
                     <a href="#create-task" style="font-size: 14pt;">
                         <i class="fa fa-plus-circle"> </i> Create a new task...
                     </a>
 
                     </div>
-                    <div class="span2 lighten salvus-tasks-header  salvus-task-sort-custom">
-                        Custom Order
+                    <div class="span1 lighten salvus-tasks-header  salvus-task-sort-custom">
+                        Order
                        <i class="fa fa-sort-desc pull-right hide salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
                     </div>
                     <div class="span2 lighten salvus-tasks-header  salvus-task-sort-due">
@@ -75,9 +75,10 @@
     </div>
 
     <div class="row-fluid salvus-task">
-        <div class="span6">
-            <i class="pull-left fa fa-check-square-o salvus-task-viewer-done  salvus-task-icon-done-box hide"> </i>
-            <i class="pull-left fa fa-square-o salvus-task-viewer-not-done salvus-task-icon-done-box"> </i>
+        <div class="span7">
+            <i class="fa fa-reorder salvus-task-reorder-handle pull-left"> </i>
+            <i class="fa fa-check-square-o salvus-task-viewer-done  salvus-task-icon-done-box hide pull-left " style="margin-right: 1em !important;"> </i>
+            <i class="fa fa-square-o salvus-task-viewer-not-done salvus-task-icon-done-box pull-left " style="margin-right: 1em !important;"> </i>
             <a class='btn btn-danger salvus-task-undelete hide'><i class="fa fa-trash-o"> </i> Undelete</a>
 
 
@@ -85,11 +86,12 @@
             <i class="fa fa-caret-down salvus-task-toggle-icon  pull-right"> </i>
             <span class="salvus-task-desc"></span>
         </div>
-        <div class="span2">
+        <div class="span1">
             <span class='salvus-task-buttons hide'>
-                <i class="fa fa-reorder salvus-task-icon salvus-task-reorder-handle"> </i>
+                <!--
                 <i class="fa fa-fast-backward fa-rotate-90 salvus-task-icon salvus-task-to-top-icon"> </i>
                 <i class="fa fa-fast-forward fa-rotate-90  salvus-task-icon salvus-task-to-bottom-icon"> </i>
+                -->
                 <span class="salvus-task-active-button">
                     <i class="fa fa-clock-o salvus-task-icon salvus-task-icon-active"> </i>
                     <span class="salvus-task-active hide"></span>
@@ -120,7 +122,7 @@
                     </span>
                 </div>
                 <div class="span8">
-                    <span style="color:#999">Write using <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>, LaTeX and use <tt>#tag</tt> to create hashtag labels, then press shift+enter.</span>
+                    <span style="color:#999">Use <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>, LaTeX, <tt>#tag</tt> to create hashtag labels, and [ ] and [x] to create checklists, then press shift+enter.</span>
                 </div>
             </div>
         </div>
@@ -149,22 +151,21 @@
             <h4>Editing</h4>
             Click or use the cursor keys (and press enter) to edit a task, or create a new task.
             Use <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>
-            to describe your task, and LaTeX to enter mathematics.
+            to describe your task, use LaTeX to enter mathematics, and use [ ] and [x] to create checklists.
             The editor respects the color scheme and keybindings that you
             select in account settings, and
             external links open in another browser tab.
             You can toggle showing the full description or only everything up to the first blank line.
 
-            <h4>Actions</h4>
-            The column labeled "Custom Order" has buttons to move a task, mark it as done,
-            delete it, and indicate that you are working on it.
-            When viewing finished tasks by selecting the done box at the top, you can
-            see when tasks were completed.
-
             <h4>Time</h4>
             Each task has an optional due date and time, which you can set by clicking on the due date
             (or none).  You can see when the task is due, when you last edited it, and
-            click either column to sort.
+            click either column to sort.    View finished tasks by selecting the done box at the top to
+            see when tasks were completed.
+
+            <h4>Actions</h4>
+            The column labeled "Order" has buttons to indicate the task that you are working on a task and delete a task.
+
 
             <h4>Hashtags</h4>
             Put <span class="salvus-tasks-hash"><tt>#tag</tt></span> anywhere in the description of a task to create a hashtag, with

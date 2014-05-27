@@ -48,8 +48,8 @@
 }
 
 .salvus-task-icon-done-box {
-   font-size:16pt;
-   color:#888;
+    font-size:16pt;
+    color:#888;
 }
 
 
@@ -110,7 +110,8 @@
 }
 
 .salvus-task-reorder-handle {
-    font-size: 13pt;
+    font-size: 16pt;
+    color: #888;
 }
 
 .salvus-task-reorder-handle:hover {
@@ -205,6 +206,8 @@
 }
 
 .salvus-task-active-button {
-    margin-left: 1em;
 }
 
+.salvus-task-checkbox {
+    cursor : pointer;
+}

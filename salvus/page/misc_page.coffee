@@ -58,7 +58,7 @@ exports.human_readable_size = (bytes) ->
 
 
 #############################################
-# Plugins
+# JQuery Plugins
 #############################################
 {required, defaults} = require('misc')
 
@@ -163,7 +163,6 @@ $.fn.maxheight = (opts={}) ->
         elt = $(this)
         elt.height($(window).height() - elt.offset().top - opts.offset)
     this
-
 
 $.fn.icon_spin = (start) ->
     if typeof start == "object"

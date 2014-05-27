@@ -96,6 +96,8 @@ class SynchronizedDB extends EventEmitter
             line = 0
             v = []
             for z in m
+                if not z?
+                    continue
                 z.x.line = line
                 v.push(to_json(z.x.data))
                 line += 1
@@ -162,9 +164,10 @@ class SynchronizedDB extends EventEmitter
             if match
                 return misc.deep_copy(x)
 
-    # delete everything that matches the given criterion
+    # delete everything that matches the given criterion; returns number of deleted items
     delete: (where, one=false) =>
         result = []
+        i = 0
         for hash, val of @_data
             x = val.data
             match = true
@@ -173,10 +176,12 @@ class SynchronizedDB extends EventEmitter
                     match = false
                     break
             if match
+                i += 1
                 delete @_data[hash]
                 if one
                     break
         @_set_doc_from_data()
+        return i
 
     # delete first thing in db that matches the given criterion
     delete_one: (where) =>
