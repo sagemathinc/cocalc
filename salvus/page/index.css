@@ -14,6 +14,7 @@ account.css
 projects.css
 project.css
 editor.css
+tasks.css
 interact.css
 explore.css
 consoles.css
@@ -88,6 +89,9 @@ body { padding-top:41px; }
         top: 0px !important;
     }
 
+    .project-pages {
+        margin-top: 10px;
+    }
 }
 
 /* so on iOS scroll-into-view modals work */
@@ -144,4 +148,17 @@ body { padding-top:41px; }
     -webkit-box-sizing: border-box;
        -moz-box-sizing: border-box;
             box-sizing: border-box;
+}
+
+
+.highlight {
+    background-color: orange;
+    padding: 3px;
+    margin: -3px;
+    border-radius: 3px;
+}
+
+
+code  {
+    color: #444;
 }

@@ -12,8 +12,10 @@
 # (c) 2013 William Stein, University of Washington
 #
 # fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.1.1.2:9160'], username:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
+#
 # fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['localhost:8403'], username:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
-
+#
+# fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['localhost'], cb:console.log)
 #
 #########################################################################
 
@@ -88,7 +90,7 @@ exports.inet_to_str = (r) -> [r[0], r[1], r[2], r[3]].join('.')
 
 #########################################################################
 
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted'].concat(PROJECT_GROUPS)
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'task_list_id'].concat(PROJECT_GROUPS)
 
 exports.create_schema = (conn, cb) ->
     t = misc.walltime()
@@ -2145,6 +2147,349 @@ class exports.Salvus extends exports.Cassandra
             else
                 opts.cb(err, stats)
         )
+
+
+    #####################################
+    # Tasks
+    #####################################
+    create_task_list: (opts) =>
+        opts = defaults opts,
+            owners      : required
+            cb          : required
+        task_list_id = uuid.v4()
+
+        q = ('?' for i in [0...opts.owners.length]).join(',')
+        query = "UPDATE task_lists SET owners={#{q}}, last_edited=? WHERE task_list_id=?"
+        args = (x for x in opts.owners)
+        args.push(now())
+        args.push(task_list_id)
+        @cql(query, args, (err) => opts.cb(err, task_list_id))
+
+    create_task: (opts) =>
+        opts = defaults opts,
+            task_list_id : required
+            title        : required
+            position     : 0
+            cb           : required
+
+        task_id = uuid.v4()
+        last_edited = now()
+        async.parallel([
+            (cb) =>
+                @update
+                    table : 'tasks'
+                    where :
+                        task_list_id : opts.task_list_id
+                        task_id      : task_id
+                    set   :
+                        title       : opts.title
+                        position    : opts.position
+                        done        : false   # tasks start out not done
+                        last_edited : last_edited
+                    cb    : cb
+            (cb) =>
+                # record that something about the task list itself changed
+                @update
+                    table : 'task_lists'
+                    where : {task_list_id : opts.task_list_id}
+                    set   : {last_edited  : last_edited}
+                    cb    : cb
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, task_id)
+        )
+
+    get_task_list : (opts) =>
+        opts = defaults opts,
+            task_list_id    : required
+            include_deleted : false
+            columns         : undefined
+            cb              : required
+
+        if opts.columns?
+            columns = opts.columns
+        else
+            columns = ['task_id', 'position', 'last_edited', 'done', 'title', 'data', 'deleted', 'sub_task_list_id']
+
+        t = {}
+        async.parallel([
+            (cb) =>
+                @select
+                    table     : 'tasks'
+                    where     : {task_list_id : opts.task_list_id}
+                    columns   : columns
+                    objectify : true
+                    cb        : (err, resp) =>
+                        if err
+                            cb(err)
+                        else
+                            if not opts.include_deleted and 'deleted' in columns
+                                resp = (x for x in resp when not x.deleted)
+                            for x in resp
+                                if x.data?
+                                    for k, v of x.data
+                                        x.data[k] = from_json(v)
+                            t.tasks = resp
+                            cb()
+            (cb) =>
+                @select_one
+                    table   : 'task_lists'
+                    where   : {task_list_id : opts.task_list_id}
+                    columns : ['data']
+                    cb      : (err, resp) =>
+                        if err
+                            cb(err)
+                        else
+                            data = resp[0]
+                            if data?
+                                for k, v of data
+                                    t[k] = from_json(v)
+                            cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, t)
+        )
+
+    get_task_list_last_edited : (opts) =>
+        opts = defaults opts,
+            task_list_id    : required
+            cb              : required
+        @select_one
+            table   : 'task_lists'
+            columns : ['last_edited']
+            cb      : (err, r) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, r[0])
+
+    set_project_task_list: (opts) =>
+        opts = defaults opts,
+            task_list_id    : required
+            project_id      : required
+            cb              : required
+        @update
+            table : 'projects'
+            set   : {task_list_id : opts.task_list_id, last_edited : now()}
+            where : {project_id : opts.project_id}
+            cb    : opts.cb
+
+
+    edit_task_list : (opts) =>
+        opts = defaults opts,
+            task_list_id : required
+            data         : undefined
+            deleted      : undefined
+            cb           : required
+        #dbg = (m) -> winston.debug("edit_task_list: #{m}")
+        if opts.deleted
+            #dbg("delete the entire task list and all the tasks in it")
+            tasks = undefined
+            already_deleted = false
+            async.series([
+                (cb) =>
+                    #dbg("is task list already deleted?  if so, do nothing to avoid potential recursion due to nested sub-tasks.")
+                    @select_one
+                        table   : 'task_lists'
+                        columns : ['deleted']
+                        where   : {task_list_id : opts.task_list_id}
+                        cb      : (err, resp) =>
+                            if err
+                                cb(err)
+                            else
+                                already_deleted = resp[0]
+                                cb(already_deleted)
+                (cb) =>
+                    #dbg("get list of tasks")
+                    @get_task_list
+                        task_list_id    : opts.task_list_id
+                        columns         : ['task_id', 'deleted']
+                        include_deleted : false
+                        cb              : (err, _tasks) =>
+                            if err
+                                cb(err)
+                            else
+                                tasks = (x.task_id for x in _tasks)
+                                cb()
+                (cb) =>
+                    #dbg("delete them all")
+                    f = (task_id, cb) =>
+                        @edit_task
+                            task_list_id : opts.task_list_id
+                            task_id      : task_id
+                            deleted      : true
+                            cb           : cb
+                    async.map(tasks, f, (err) => cb(err))
+                (cb) =>
+                    #dbg("delete the task list itself")
+                    @update
+                        table : 'task_lists'
+                        set   : {'deleted': true, 'last_edited':now()}
+                        where : {task_list_id : opts.task_list_id}
+                        cb    : cb
+            ], (err) =>
+                if already_deleted
+                    opts.cb()
+                else
+                    opts.cb(err)
+            )
+        else
+            #dbg("other case -- just edit data properties of the task_list")
+            if not opts.data?
+                opts.cb(); return
+            f = (key, cb) =>
+                if key == 'tasks'
+                    cb("you may not use 'tasks' as a custom task_lists field")
+                    return
+                query = "UPDATE task_lists SET data[?]=?, last_edited=? WHERE task_list_id=?"
+                if opts.data[key] != null
+                    val = to_json(opts.data[key])
+                else
+                    val = undefined
+                @cql(query, [key, val, now(), opts.task_list_id], (err) => cb(err))
+            async.map(misc.keys(opts.data), f, (err) => opts.cb(err))
+
+    edit_task : (opts) =>
+        opts = defaults opts,
+            task_list_id : required
+            task_id      : required
+            title        : undefined
+            position     : undefined
+            done         : undefined
+            data         : undefined
+            deleted      : undefined
+            sub_task_list_id : undefined
+            cb           : undefined
+
+        winston.debug("cass edit_task: opts=#{misc.to_json(opts)}")
+
+        where =
+            task_list_id : opts.task_list_id
+            task_id      : opts.task_id
+
+        last_edited = now()
+
+        async.series([
+            (cb) =>
+                if not opts.deleted
+                    cb(); return
+                # deleting -- so delete the subtask list if there is one
+                @select_one
+                    table   : 'tasks'
+                    columns : ['sub_task_list_id']
+                    where   : where
+                    cb      : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            if r[0]
+                                @edit_task_list
+                                    task_list_id : r[0]
+                                    deleted      : true
+                                    cb           : cb
+                            else
+                                cb()
+            (cb) =>
+                # set the easy properties
+                set = {last_edited: now()}
+                if opts.title?
+                    set.title = opts.title
+                if opts.position?
+                    set.position = opts.position
+                if opts.done?
+                    set.done = opts.done
+                if opts.deleted?
+                    set.deleted = opts.deleted
+                set.last_edited = last_edited
+                @update
+                    table : 'tasks'
+                    where : where
+                    set   : set
+                    cb    : cb
+            (cb) =>
+                # set any data properties
+                f = (key, cb) =>
+                    query = "UPDATE tasks SET data[?]=? WHERE task_list_id=? AND task_id=?"
+                    if opts.data[key] != null
+                        val = to_json(opts.data[key])
+                    else
+                        val = undefined
+                    @cql(query, [key, val, opts.task_list_id, opts.task_id], (err) => cb(err))
+                async.map(misc.keys(opts.data), f, (err) => cb(err))
+            (cb) =>
+                # record that something about the task list itself changed
+                @update
+                    table : 'task_lists'
+                    where : {task_list_id : opts.task_list_id}
+                    set   : {last_edited  : last_edited}
+                    cb    : cb
+        ], (err) => opts.cb?(err))
+
+
+
+    # Remove all deleted tasks and task lists from the database, so long as their
+    # last edit time is at least min_age_s seconds ago.
+    purge_deleted_tasks : (opts) =>
+        opts = defaults opts,
+            min_age_s : 3600*24*30  # one month  -- min age in seconds
+            cb        : undefined
+        results = undefined
+        async.series([
+            (cb) =>
+                # TODO: implement paging through list of tasks -- this will only work for a few months, then die.
+                console.log("dumping tasks table...")
+                @select
+                    table   : 'tasks'
+                    columns : ['deleted', 'task_list_id', 'task_id', 'last_edited']
+                    cb      : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            console.log("got #{r.length} tasks")
+                            results = r
+                            cb()
+            (cb) =>
+                n = (new Date()) - 0
+                x = ([r[1],r[2]] for r in results when r[0] and (n - r[3]) >= opts.min_age_s)
+                console.log("deleting #{x.length} deleted tasks")
+                f = (z, cb) =>
+                    console.log("deleting #{misc.to_json(z)}")
+                    @delete
+                        table : 'tasks'
+                        where : {task_list_id:z[0], task_id:z[1]}
+                        cb    : cb
+                async.mapLimit(x, 10, f, (err) => cb(err))
+            (cb) =>
+                # TODO: implement paging through list of tasks -- this will only work for a few months, then die.
+                console.log("dumping task_lists table...")
+                @select
+                    table   : 'task_lists'
+                    columns : ['deleted', 'task_list_id', 'last_edited']
+                    cb      : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            console.log("got #{r.length} task_lists")
+                            results = r
+                            cb()
+            (cb) =>
+                n = (new Date()) - 0
+                console.log("results=", results)
+                x = (r[1] for r in results when r[0] and (n - r[2]) >= opts.min_age_s)
+                console.log("deleting #{x.length} deleted task_lists")
+                f = (z, cb) =>
+                    console.log("deleting task_list #{z}")
+                    @delete
+                        table : 'task_lists'
+                        where : {task_list_id:z}
+                        cb    : cb
+                async.mapLimit(x, 10, f, (err) => cb(err))
+        ], (err) => opts.cb?(err))
+
 
 ############################################################################
 # Chunked storage for each project (or user, or whatever is indexed by a uuid).

@@ -323,7 +323,8 @@ NODE_MODULES = [
     'read',
     'hashring',
     'rimraf',
-    'net-ping'
+    'net-ping',
+    'marked'
     ]
 
 PYTHON_PACKAGES = [

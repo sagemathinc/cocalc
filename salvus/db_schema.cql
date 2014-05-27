@@ -3,6 +3,8 @@ CREATE KEYSPACE salvus WITH replication = {
   'class': 'NetworkTopologyStrategy',
   'DC0': '3',
   'DC1': '3'
+  'DC2': '3'
+  'DC3': '3'
 };
 
 CREATE KEYSPACE salvus WITH replication = {
@@ -250,7 +252,9 @@ CREATE TABLE projects (
      viewer               set<uuid>,   // accounts who are viewers
      invited_viewer       set<uuid>,    // accounts who have been invited to view.
 
-     abuser varchar
+     abuser varchar,
+
+     task_list_id     uuid,  /* top-level task list for this project */
 
 );
 
@@ -545,4 +549,59 @@ GRANT SELECT ON table compute_hosts TO storage_server;
 GRANT MODIFY ON table compute_hosts TO storage_server;
 GRANT SELECT ON table project_new TO storage_server;
 GRANT MODIFY ON table project_new TO storage_server;
+
+
+
+
+
+/*
+   Task list functionality:
+
+      - a task list that is account wide for a given user or collection of users
+      - a task list that is project wide
+      - subtask lists of any task
+      - a homework assignment -- this is also a list of tasks, possibly with subtasks (we could have a document with links to the uuid's of tasks... to give it structure).
+*/
+
+CREATE TABLE task_lists (
+    task_list_id uuid PRIMARY KEY,       /* uuid of this task list */
+    owners       set<uuid>,              /* account_id, project_id, or task_id that owns this task list */
+    title        varchar,
+    data         map<text,text>,
+    deleted      boolean,    /* whether this task list has been deleted */
+    last_edited  timestamp,  /* last time the task list was changed (i.e., description, title, deleted, owners,  editing tasks) */
+);
+
+CREATE TABLE tasks (
+    task_list_id uuid,       /* id of a task list -- ensures all tasks for a given list in the same place storage wise for speed */
+    task_id      uuid,       /* id for this task */
+
+    position     float,      /* floating point that determines the *position* of this item in the list when displayed */
+                             /* to the user (without special sort); this makes it possible to asynchronously */
+                             /* locally manually sort tasks. */
+
+    sub_task_list_id uuid,       /* optional task_list of subtasks */
+
+    last_edited  timestamp,  /* last time the task was changed */
+    done         boolean,    /* whether or not the task has been completed */
+    deleted      boolean,    /* whether this task has been deleted */
+    title        varchar,
+    data         map<text,text>,
+
+    PRIMARY KEY (task_list_id, task_id)
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

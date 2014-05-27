@@ -269,7 +269,7 @@ exports.deep_copy = (obj) ->
     newInstance = new obj.constructor()
 
     for key of obj
-        newInstance[key] = exports.clone obj[key]
+        newInstance[key] = exports.deep_copy(obj[key])
 
     return newInstance
 
@@ -559,5 +559,23 @@ exports.parse_bup_timestamp = (s) ->
     return new Date("#{v[1]}/#{v[2]}/#{v[0]} #{v[3]}:#{v[4]}:#{v[5]} UTC")
 
 
+
+
+
+exports.hash_string = (s) ->
+    # see http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery
+    hash = 0
+    i = undefined
+    chr = undefined
+    len = undefined
+    return hash if s.length is 0
+    i = 0
+    len = s.length
+    while i < len
+        chr = s.charCodeAt(i)
+        hash = ((hash << 5) - hash) + chr
+        hash |= 0 # convert to 32-bit integer
+        i++
+    return hash
 
 

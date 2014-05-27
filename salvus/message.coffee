@@ -1205,3 +1205,92 @@ message
 
 
 
+
+##########################################################
+#
+# Tasks
+#
+##########################################################
+
+message
+    event        : 'create_task'
+    task_list_id : required
+    title        : "No title"
+    position     : 0
+    project_id   : undefined    # give this if task list usage is authenticated via project_id (otherwise account_id used)
+    id           : undefined
+
+message
+    event        : 'task_created'
+    task_id      : required
+    id           : undefined
+
+message
+    event        : 'edit_task'
+    task_list_id : required
+    task_id      : required
+    project_id   : undefined    # give this if task list usage is authenticated via project_id
+    id           : undefined
+    title        : undefined
+    position     : undefined
+    done         : undefined
+    data         : undefined
+    sub_task_list_id : undefined   # a list of subtasks
+    deleted          : undefined
+
+message
+    event        : 'create_task_list'
+    owners       : required    # list of project_id's or account_id's that are allowed to edit this task list.
+    id           : undefined
+
+message
+    event        : 'task_list_created'
+    task_list_id : required
+    id           : undefined
+
+message
+    event        : 'edit_task_list'
+    task_list_id : required
+    data         : undefined
+    project_id   : undefined    # give this if task list usage is authenticated via project_id
+    deleted      : undefined
+    id           : undefined
+
+message
+    event        : 'get_task_list'
+    task_list_id : required
+    columns      : undefined
+    include_deleted : false
+    project_id   : undefined    # give this if task list usage is authenticated via project_id
+    id           : undefined
+
+message
+    event        : 'task_list_resp'
+    id           : undefined
+    task_list    : required     # list of all tasks
+
+message
+    event        : 'get_task_list_last_edited'
+    task_list_id : required
+    project_id   : undefined    # give this if task list usage is authenticated via project_id
+    id           : undefined
+
+message
+    event        : 'set_project_task_list'
+    task_list_id : required
+    project_id   : required
+    id           : undefined
+
+
+
+# hub --> connected clients who would care -- implementing this will require a message queue (like nanomsg)
+message
+    event        : 'sync_task_list'
+    task_list_id : required
+    task_id      : required
+    task         : undefined    # if task is created or edited this is given with new version; if deleted this is undefined
+
+
+
+
+
