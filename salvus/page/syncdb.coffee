@@ -1,3 +1,16 @@
+###
+(c) William Stein, 2014
+
+Synchronized document-oriented database, based on differential synchronization.
+
+
+NOTE: The API is sort of like <http://hood.ie/#docs>, though I found that *after* I wrote this.
+The main difference is my syncdb doesn't use a database, instead using a file, and also it
+doesn't use localStorage.  HN discussion: <https://news.ycombinator.com/item?id=7767765>
+
+###
+
+
 {defaults, required, from_json, hash_string, len} = require('misc')
 syncdoc = require('syncdoc')
 {EventEmitter} = require('events')

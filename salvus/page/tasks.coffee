@@ -614,7 +614,7 @@ class TaskList
         # get rid of text input
         elt.hide()
         # get rid of ugly little icon
-        $(".bootstrap-datetimepicker-widget:visible").find(".icon-time").addClass('fa').addClass('fa-clock-o').css
+        $(".bootstrap-datetimepicker-widget:visible").draggable().find(".icon-time").addClass('fa').addClass('fa-clock-o').css
             'font-size' : '16pt'
             'background': 'white'
 
