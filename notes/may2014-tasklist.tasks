@@ -123,3 +123,5 @@
 {"desc":"#ui  #v2 #unclear\ndon't show due date when task is done (or show differently)","position":3,"last_edited":1401152201191,"task_id":"b54fbee7-9f0a-4211-9117-94e56e80a22e"}
 {"desc":"(0:15?) #today #ui #v1\n\nWhen initially loaded the task list syncdoc, put a \"loading...\" message.","position":0,"last_edited":1401165877818,"task_id":"27b9006c-da5c-4383-b74c-31f765e072f3","active":false,"done":1401165876993}
 {"desc":"#today #ui\nde-emphasize completed tasks","position":1.5,"last_edited":1401165216085,"task_id":"aa51b20a-bfe6-4dff-bad9-016fd07a6c4e","active":false,"done":1401165216082}
+{"desc":"#ui #v2\nprefered sort order/column should be saved in local storage","position":-1,"last_edited":1401166874820,"task_id":"5a680234-f5ba-40ae-a304-617135dd5a6f"}
+{"desc":"#ui #v2 #unclear\nspell check","position":-2,"last_edited":1401166886205,"task_id":"c274d941-ddbb-4337-8aa5-a196c527543f"}

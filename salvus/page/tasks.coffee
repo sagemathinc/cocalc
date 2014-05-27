@@ -119,7 +119,7 @@ class TaskList
                 else
                     return 0
         @tasks.sort(f)
-        if field in ['done']
+        if field in ['last_edited', 'done']
             @tasks.reverse()
         if @sort_order.dir == 'asc'
             @tasks.reverse()
