@@ -215,3 +215,7 @@
 .salvus-task-overall-done:hover {
     opacity:1;
 }
+
+.salvus-tasks-loading {
+    font-size: 16pt;
+}

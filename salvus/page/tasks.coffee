@@ -72,6 +72,7 @@ class TaskList
                     @tasks = @db.select()
                     @render_hashtag_bar()
                     @render_task_list()
+                    @element.find(".salvus-tasks-loading").remove()                    
                     @set_clean()
                     @db.on 'change', (changes) =>
                         @set_dirty()
