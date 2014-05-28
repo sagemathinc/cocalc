@@ -85,31 +85,32 @@ file_associations = exports.file_associations = {}
 for ext, mode of codemirror_associations
     file_associations[ext] =
         editor : 'codemirror'
+        icon   : 'fa-file-code-o'
         opts   : {mode:mode}
 
 file_associations['tex'] =
     editor : 'latex'
-    icon   : 'fa-edit'
+    icon   : 'fa-file-excel-o'
     opts   : {mode:'stex', indent_unit:4, tab_size:4}
 
 file_associations['html'] =
     editor : 'codemirror'
-    icon   : 'fa-edit'
+    icon   : 'fa-file-code-o'
     opts   : {mode:'htmlmixed', indent_unit:4, tab_size:4}
 
 file_associations['css'] =
     editor : 'codemirror'
-    icon   : 'fa-edit'
+    icon   : 'fa-file-code-o'
     opts   : {mode:'css', indent_unit:4, tab_size:4}
 
 file_associations['sage-terminal'] =
     editor : 'terminal'
-    icon   : 'fa-credit-card'
+    icon   : 'fa-terminal'
     opts   : {}
 
 file_associations['term'] =
     editor : 'terminal'
-    icon   : 'fa-credit-card'
+    icon   : 'fa-terminal'
     opts   : {}
 
 file_associations['ipynb'] =
@@ -133,12 +134,18 @@ file_associations['sage-slideshow'] =
 for ext in ['png', 'jpg', 'gif', 'svg']
     file_associations[ext] =
         editor : 'image'
+        icon   : 'fa-file-image-o'
         opts   : {}
 
 file_associations['pdf'] =
     editor : 'pdf'
+    icon   : 'fa-file-pdf-o'
     opts   : {}
 
+file_associations['tasks'] =
+    editor : 'tasks'
+    icon   : 'fa-tasks'
+    opts   : {}
 
 # Multiplex'd worksheet mode
 
@@ -589,7 +596,6 @@ class exports.Editor
             typ = editor_name
         @project_page.project_activity({event:'open', filename:filename, type:typ})
 
-
         # Some of the editors below might get the content later and will call @file_options again then.
         switch editor_name
             # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
@@ -609,6 +615,8 @@ class exports.Editor
                 editor = new LatexEditor(@, filename, content, extra_opts)
             when 'pdf'
                 editor = new PDF_PreviewEmbed(@, filename, content, extra_opts)
+            when 'tasks'
+                editor = new TaskList(@, filename, content, extra_opts)
             when 'ipynb'
                 editor = new IPythonNotebook(@, filename, content, extra_opts)
             else
@@ -714,6 +722,12 @@ class exports.Editor
     close_all_open_files: () =>
         for filename, tab of @tabs
             tab.close_editor()
+
+    hide: () =>
+        for filename, tab of @tabs
+            if tab?
+                if tab.editor_open()
+                    tab.editor().hide?()
 
     resize_open_file_tabs: () =>
         # Make a list of the tabs after the search tab.
@@ -4213,6 +4227,46 @@ class IPythonNotebook extends FileEditor
             @element.css('position':'fixed')
         w = $(window).width()
         @iframe?.attr('width',w).maxheight()
+
+###
+# Todo list
+###
+tasks = require('tasks')
+class TaskList extends FileEditor
+    constructor: (@editor, @filename) ->
+        @element = tasks.task_list(@editor.project_id, @filename)
+        @task_list = @element.data('task_list')
+        @init_autosave()
+
+    save: () =>
+        @task_list.save()
+
+    has_unsaved_changes: (val) =>
+        return @task_list.has_unsaved_changes(val)
+
+    _get: () =>
+        # TODO
+        return 'history saving not yet implemented'
+
+    _set: (content) =>
+        # TODO
+
+    focus: () =>
+
+    terminate_session: () =>
+
+    remove: () =>
+        @element.remove()
+        @task_list.destroy()
+
+    show: () =>
+        @element.show()
+        @task_list.show()
+
+    hide: () =>
+        @element.hide()
+        @task_list.hide()
+
 
 #**************************************************
 # other...

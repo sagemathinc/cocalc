@@ -11,6 +11,7 @@ Editor for files in a project
     margin: 0;
     width: 100%;
     padding: 0;
+    background: white;
 }
 
 .salvus-editor-close-button-x {

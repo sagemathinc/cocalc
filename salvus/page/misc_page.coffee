@@ -58,7 +58,7 @@ exports.human_readable_size = (bytes) ->
 
 
 #############################################
-# Plugins
+# JQuery Plugins
 #############################################
 {required, defaults} = require('misc')
 
@@ -156,12 +156,13 @@ $.fn.extend
 
 
 # Expand element to be vertically maximal in height, keeping its current top position.
-$.fn.maxheight = (opts) ->
+$.fn.maxheight = (opts={}) ->
+    if not opts.offset?
+        opts.offset = 0
     @each ->
         elt = $(this)
-        elt.height($(window).height() - elt.offset().top)
+        elt.height($(window).height() - elt.offset().top - opts.offset)
     this
-
 
 $.fn.icon_spin = (start) ->
     if typeof start == "object"
