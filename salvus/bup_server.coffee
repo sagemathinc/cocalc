@@ -1117,7 +1117,7 @@ class GlobalProject
                     else
                         args = [server_id, opts.last_save[server_id], @project_id]
                         winston.debug("#{s} -- #{misc.to_json(args)}")
-                        @database.cql(s, args, cql.types.consistencies.eachQuorum, cb)
+                        @database.cql(s, args, cql.types.consistencies.localQuorum, cb)
                 winston.debug("#{misc.keys(opts.last_save)}")
                 async.map(misc.keys(opts.last_save), f, cb)
             (cb) =>
