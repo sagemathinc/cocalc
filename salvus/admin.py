@@ -1008,7 +1008,7 @@ def parse_groupfile(filename):
         line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
         if line: # ignore blank lines
             if line.startswith('import ') or '=' in line:
-                # import modules for use in assignments below 
+                # import modules for use in assignments below
                 print "exec ", line
                 exec line in namespace
                 continue
@@ -1403,6 +1403,21 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
+    def pingall(self, hosts='all', on=None):
+        v = []
+        for x in hosts.split():
+            try:
+                v += self._hosts[x]
+            except ValueError:
+                v.append(x)
+        c = 'pingall ' + ' '.join(v)
+        if on is not None:
+            c = 'ssh %s "cd salvus/salvus && . salvus-env && %s"'%(on, c)
+        print c
+        s = os.popen(c).read()
+        print s
+        return json.loads(s)
+
     def dns(self, hosts='all', rounds=1):
         """
         Verify that DNS is working well on all machines.
@@ -1594,14 +1609,18 @@ class Monitor(object):
 
     def _go(self):
         all = self.all()
-        self.update_db(all=all)
+        try:
+            self.update_db(all=all)
+        except:
+            # exception can happen, e.g., when db is down
+            print "Failed to update database"
         self.print_status(all=all)
         down = self.down(all=all)
         m = ''
         if len(down) > 0:
                 m += "The following are down: %s"%down
         for x in all['load']:
-            if x['load15'] > 20:
+            if x['load15'] > 100:
                 m += "A machine is going *crazy* with load!: %s"%x
         #for x in all['zfs']:
         #    if x['nproc'] > 10000:
@@ -1628,12 +1647,12 @@ class Monitor(object):
                     last_time = now
                     try:
                         self._go()
-                    except Exception, msg:
-                        print "ERROR -- %s"%msg
+                    except:
+                        print "ERROR"
                         try:
                             self._go()
-                        except Exception, msg:
-                            print "ERROR -- %s"%msg
+                        except:
+                            print "ERROR"
 
             time.sleep(20)
 

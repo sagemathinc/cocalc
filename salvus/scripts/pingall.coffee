@@ -19,10 +19,12 @@ pingall = (hosts, cb) ->
     f = (host, cb) ->
         t = (new Date()).getTime()
         session.pingHost host, (err) -> 
-            x = {}
-            x[host] = if err then -1 else (new Date()).getTime()-t
-            cb(undefined, x)
-    require('async').map hosts, f, (err, v) -> cb(v)
+            cb(undefined, [host,if err then -1 else (new Date()).getTime()-t] )
+    require('async').map hosts, f, (err, v) -> 
+        x = {}
+        for a in v
+            x[a[0]] = a[1]
+        cb(x)
 
 pingall(process.argv.slice(4), (e)->console.log(JSON.stringify(e)))
 

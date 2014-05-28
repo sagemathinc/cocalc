@@ -20,8 +20,6 @@ import misc
 
 GCUTIL = '/home/salvus/google-cloud-sdk/bin/gcutil'
 
-UW_TINC_HOSTS = ['cloud%s'%n for n in range(1,8) + range(10,22)]
-
 def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
     if isinstance(s, list):
         s = [str(x) for x in s]
@@ -241,38 +239,72 @@ class Instance(object):
     def init_hostname(self):
         self.ssh("echo '%s' > /etc/hostname && hostname %s && echo '127.0.1.1  %s' >> /etc/hosts"%(self.hostname, self.hostname, self.hostname), user='root')
 
+    def tinc_servers(self):
+        """
+        Return list of pairs [(tinc address, tinc name) ...] for each "server" node with an address= line.
+        If "not server" is in the host conf file (say as a comment), then it is ignored.
+        """
+        tinc_hosts = "/home/salvus/salvus/salvus/conf/tinc_hosts"
+        v = []
+        for x in os.listdir(tinc_hosts):
+            r = open(os.path.join(tinc_hosts,x)).read().lower()
+            if 'not server' in r:
+                continue
+            if 'address' in r:
+                i = r.find('subnet')
+                if i != -1:
+                    r = r[i:]
+                    j = r.find("\n")
+                    addr = r[:j].split('=')[1].split('/')[0].strip()
+                    v.append( (addr, x) )
+        v.sort(lambda a,b: cmp(a[1], b[1]))
+        return v
+
     def configure_tinc(self, ip_address):
         self.log("configure_tinc(ip_address=%s)", ip_address)
         self.delete_tinc_public_keys()
-        s = self.ssh("cd salvus/salvus && . salvus-env && configure_tinc.py %s %s %s"%(self.external_ip(), ip_address, self.tinc_name), user='salvus')
+        external_ip = self.external_ip()
+        s = self.ssh("cd salvus/salvus && . salvus-env && configure_tinc.py init %s %s %s"%(external_ip, ip_address, self.tinc_name), user='salvus')
         v = json.loads(s)
         tinc_hosts = "/home/salvus/salvus/salvus/conf/tinc_hosts"
         host_filename = os.path.join(tinc_hosts, self.tinc_name)
         open(host_filename,'w').write(v['host_file'])
         hostname = socket.gethostname()
+
+        log.info("configure_tinc -- copy out public key to the servers our new host will connect to")
+        connect_to = []
         def f(host):
             try:
-                os.popen("scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s %s:%s"%(host_filename, host, host_filename))
+                os.popen("scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s %s:%s"%(host_filename, host[0], host_filename))
+                # success
+                connect_to.append(host[1])
             except Exception, msg:
-                # We only *really* need the file locally for everything to work; copying it around just makes things more durable.
-                log.info("WARNING: unable to copy tinc key to %s -- %s", host, msg)
-        misc.thread_map(f, [((host,),{}) for host in UW_TINC_HOSTS if host != hostname])
+                self.log("configure_tinc -- WARNING: unable to copy tinc key to %s -- %s", host, msg)
+        # We do the copy in parallel, to save an enormous amount of time.
+        misc.thread_map(f, [((host,),{}) for host in self.tinc_servers() if host[1] != hostname])
+
+        log.info("configure_tinc -- appending ConnectTo information to configuration")
+        self.ssh("cd salvus/salvus && . salvus-env && configure_tinc.py connect_to %s"%(' '.join(connect_to)), user='salvus')
+
+        log.info("configure_tinc -- copy over the public key conf files of servers we will connect to")
+        s = "cd %s && scp %s salvus@%s:salvus/salvus/conf/tinc_hosts/"%(tinc_hosts, ' '.join(connect_to), external_ip)
+        cmd(s, timeout=60)
 
         log.info("Start tinc running...")
         self.ssh("killall -9 tincd; sleep 3; nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd", user='root')
 
 
     def delete_tinc_public_keys(self):
-        self.log("delete_tinc_public_keys() -- deleting the tinc public key files on the UW hosts")
+        self.log("delete_tinc_public_keys() -- deleting the tinc public key files on the tinc servers")
         host_filename = os.path.join("/home/salvus/salvus/salvus/conf/tinc_hosts", self.tinc_name)
         print 'ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s "rm -f %s"'%('host', host_filename)
         def f(host):
             try:
-                os.popen('ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s "rm -f %s"'%(host, host_filename))
+                os.popen('ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s "rm -f %s"'%(host[0], host_filename))
             except Exception, msg:
                 # There is no real *need* to remove these public keys...
                 log.info("WARNING: unable to remove tinc key from %s -- %s", host, msg)
-        misc.thread_map(f, [((host,),{}) for host in UW_TINC_HOSTS])
+        misc.thread_map(f, [((host,),{}) for host in self.tinc_servers()])
 
     def delete_instance(self):
         self.log("delete_instance()")

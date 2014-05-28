@@ -28,6 +28,8 @@ their 900 clients in parallel.
 # hasn't been opened in a while, it can take a while.
 CONNECT_TIMEOUT_S = 45
 
+DEFAULT_TIMEOUT   = 35
+
 log = (s) -> console.log(s)
 
 diffsync = require('diffsync')
@@ -168,7 +170,7 @@ class DiffSyncHub
     recv_edits: (edit_stack, last_version_ack, cb) =>
         @cm_session.call
             message : message.codemirror_diffsync(edit_stack:edit_stack, last_version_ack:last_version_ack)
-            timeout : 30
+            timeout : DEFAULT_TIMEOUT
             cb      : (err, mesg) =>
                 if err
                     cb(err)
@@ -304,7 +306,7 @@ class AbstractSynchronizedDoc extends EventEmitter
                 cb(err); return
             @call
                 message : message.codemirror_write_to_disk()
-                timeout : 10
+                timeout : DEFAULT_TIMEOUT
                 cb      : (err, resp) ->
                     if err
                         cb(err)
@@ -316,7 +318,7 @@ class AbstractSynchronizedDoc extends EventEmitter
     call: (opts) =>
         opts = defaults opts,
             message        : required
-            timeout        : 30
+            timeout        : DEFAULT_TIMEOUT
             multi_response : false
             cb             : undefined
         opts.message.session_uuid = @session_uuid
@@ -356,6 +358,13 @@ class SynchronizedString extends AbstractSynchronizedDoc
     # "connect(cb)": Connect to the given server; will retry until it succeeds.
     # _connect(cb): Try once to connect and on any error, cb(err).
     _connect: (cb) =>
+
+        if @_connect_lock  # this lock is purely defense programming; it should be impossible for it to be hit.
+            m = "bug -- connect_lock bug in SynchronizedString; this should never happen -- PLEASE REPORT!"
+            alert_message(type:"error", message:m)
+            cb(m)
+        @_connect_lock = true
+
         @_remove_listeners()
         delete @session_uuid
         #console.log("_connect -- '#{@filename}'")
@@ -368,23 +377,23 @@ class SynchronizedString extends AbstractSynchronizedDoc
                 if resp.event == 'error'
                     err = resp.error
                 if err
+                    delete @_connect_lock
                     cb?(err); return
 
                 @session_uuid = resp.session_uuid
                 @readonly = resp.readonly
 
+                patch = undefined
+                synced_before = false
                 if @_last_sync?
                     # We have sync'd before.
                     @_presync?() # give syncstring chance to be updated by true live.
                     patch = @dsync_client._compute_edits(@_last_sync, @live())
+                    synced_before = true
 
                 @dsync_client = new diffsync.DiffSync(doc:resp.content)
 
-                if @_last_sync?
-                    # applying missed patches to the new upstream version that we just got from the hub.
-                    @_apply_patch_to_live(patch)
-                    reconnect = true
-                else
+                if not synced_before
                     # This initialiation is the first.
                     @_last_sync   = resp.content
                     reconnect = false
@@ -397,13 +406,22 @@ class SynchronizedString extends AbstractSynchronizedDoc
                 if reconnect
                     @emit('reconnect')
 
+                delete @_connect_lock
                 cb?()
+
+                # This patch application below must happen *AFTER* everything above, including
+                # the callback, since that fully initializes the document and sync mechanisms.
+                if synced_before
+                    # applying missed patches to the new upstream version that we just got from the hub.
+                    #console.log("now applying missed patches to the new upstream version that we just got from the hub: ", patch)
+                    @_apply_patch_to_live(patch)
+                    reconnect = true
 
     disconnect_from_session: (cb) =>
         @_remove_listeners()
         if @session_uuid? # no need to re-disconnect if not connected (and would cause serious error!)
             @call
-                timeout : 10
+                timeout : DEFAULT_TIMEOUT
                 message : message.codemirror_disconnect(session_uuid : @session_uuid)
                 cb      : cb
 
@@ -413,7 +431,6 @@ synchronized_string = (opts) ->
     new SynchronizedString(opts)
 
 exports.synchronized_string = synchronized_string
-
 
 class SynchronizedDocument extends AbstractSynchronizedDoc
     constructor: (@editor, opts, cb) ->  # if given, cb will be called when done initializing.
@@ -484,6 +501,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         super(cb)
 
     _connect: (cb) =>
+        if @_connect_lock  # this lock is purely defense programming; it should be impossible for it to be hit.
+            m = "bug -- connect_lock bug in SynchronizedDocument; this should never happen -- PLEASE REPORT!"
+            alert_message(type:"error", message:m)
+            cb(m)
+
         @_remove_listeners()
         @other_cursors = {}
         delete @session_uuid
@@ -498,6 +520,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 if resp.event == 'error'
                     err = resp.error
                 if err
+                    delete @_connect_lock
                     cb?(err); return
 
                 @session_uuid = resp.session_uuid
@@ -526,12 +549,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     setTimeout( ( () => @codemirror.clearHistory(); @editor.codemirror1.clearHistory() ), 1000)
 
                 @dsync_client = codemirror_diffsync_client(@, resp.content)
-
-                if synced_before
-                    # applying missed patches to the new upstream version that we just got from the hub.
-                    @_apply_patch_to_live(patch)
-                    @emit 'sync'
-
                 @dsync_server = new DiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
@@ -540,7 +557,16 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
                 @emit 'connect'    # successful connection
 
+                delete @_connect_lock
                 cb?()
+
+                # This patch application below must happen *AFTER* everything above, including
+                # the callback, since that fully initializes the document and sync mechanisms.
+                if synced_before
+                    # applying missed patches to the new upstream version that we just got from the hub.
+                    #console.log("now applying missed patches to the new upstream version that we just got from the hub: ", patch)
+                    @_apply_patch_to_live(patch)
+                    @emit 'sync'
 
     ui_loading: () =>
         @element.find(".salvus-editor-codemirror-loading").show()
@@ -568,7 +594,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         if @session_uuid?
             # no need to re-disconnect (and would cause serious error!)
             @call
-                timeout : 10
+                timeout : DEFAULT_TIMEOUT
                 message : message.codemirror_disconnect()
                 cb      : cb
 
@@ -1601,10 +1627,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         if opts.execute
             @set_cell_flag(marker, FLAGS.execute)
-            @sync()
-            setTimeout( (() => @sync()), 50 )
-            setTimeout( (() => @sync()), 200 )
-
+            # sync (up to a certain number of times) until either computation happens or is acknowledged.
+            # Just successfully calling sync could return and mean that a sync started before this computation
+            # started had completed.
+            wait = 50
+            f = () =>
+                if FLAGS.execute in @get_cell_flagstring(marker)
+                    @sync () =>
+                        wait = wait*1.2
+                        if wait < 15000
+                            setTimeout(f, wait)
+            @sync () =>
+                setTimeout(f, 50)
 
     split_cell_at: (pos) =>
         # Split the cell at the given pos.

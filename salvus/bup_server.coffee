@@ -1117,7 +1117,7 @@ class GlobalProject
                     else
                         args = [server_id, opts.last_save[server_id], @project_id]
                         winston.debug("#{s} -- #{misc.to_json(args)}")
-                        @database.cql(s, args, cql.types.consistencies.eachQuorum, cb)
+                        @database.cql(s, args, cql.types.consistencies.localQuorum, cb)
                 winston.debug("#{misc.keys(opts.last_save)}")
                 async.map(misc.keys(opts.last_save), f, cb)
             (cb) =>
@@ -1491,9 +1491,8 @@ class GlobalClient
                                     hosts = ("10.1.#{i}.2" for i in [1..7])
                                 else if a == 1 and b>=10 and b<=21
                                     hosts = ("10.1.#{i}.2" for i in [10..21])
-                                else if a == 3
-                                    # TODO -- change this as soon as we get a DB spun up at Google...
-                                    hosts = ("10.1.#{i}.1" for i in [10..21])
+                                else if a == 3 or a == 4
+                                    hosts = ("10.#{a}.#{i}.2" for i in [1..4])
                             winston.debug("database hosts=#{misc.to_json(hosts)}")
                             @database = new cassandra.Salvus
                                 hosts       : hosts

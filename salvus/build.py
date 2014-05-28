@@ -322,7 +322,9 @@ NODE_MODULES = [
     'underscore',
     'read',
     'hashring',
-    'rimraf'
+    'rimraf',
+    'net-ping',
+    'marked'
     ]
 
 PYTHON_PACKAGES = [
@@ -373,7 +375,8 @@ SAGE_PIP_PACKAGES = [
     'paramiko', # SSH2 protocol library
     'httplib2', # A comprehensive HTTP client library.
     'greenlet',  # Lightweight in-process concurrent programming
-    'gmpy2'
+    'gmpy2',
+    'mmh3'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
