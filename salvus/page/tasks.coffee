@@ -467,6 +467,7 @@ class TaskList
         if task.deleted
             desc = "<del>#{desc}</del>"
         e = task.element.find(".salvus-task-desc")
+
         e.html(desc).mathjax()
 
         if desc.indexOf('[ ]') != -1 or desc.indexOf('[x]') != -1
@@ -728,6 +729,11 @@ class TaskList
         else
             f()
 
+    toggle_current_task_done: () =>
+        if @current_task
+            @set_task_done(@current_task, not @current_task.done)
+
+
     set_task_done: (task, done) =>
         task.element.stop().animate(opacity:'100')
         if not task.done and not done
@@ -805,7 +811,7 @@ class TaskList
     init_showing_done: () =>
         @showing_done = @local_storage("showing_done")
         if not @showing_done?
-            @showing_done = false
+            @showing_done = true  # default to showing done
         @set_showing_done(@showing_done)
         @element.find(".salvus-task-search-not-done").click(=> @set_showing_done(true))
         @element.find(".salvus-task-search-done").click(=> @set_showing_done(false))
@@ -974,7 +980,7 @@ $(window).keydown (evt) =>
     if evt.shiftKey
         return
 
-    if evt.ctrlKey or evt.metaKey
+    if evt.ctrlKey or evt.metaKey or evt.altKey
         if evt.keyCode == 83 # s
             current_task_list.save()
             return false
@@ -986,11 +992,14 @@ $(window).keydown (evt) =>
         else if evt.keyCode == 78 # n
             current_task_list.create_task()
             return false
-        else if evt.which == 40  # j = down (evt.which == 74)
+        else if evt.which == 40  #
             current_task_list.move_current_task_down()
             return false
-        else if evt.which == 38  # k = down (evt.which == 75)
+        else if evt.which == 38  #
             current_task_list.move_current_task_up()
+            return false
+        else if evt.which == 32  # space
+            current_task_list.toggle_current_task_done()
             return false
     else
 
@@ -1002,11 +1011,11 @@ $(window).keydown (evt) =>
             current_task_list.edit_desc(current_task_list.current_task)
             return false
 
-        else if evt.which == 40  # j = down (evt.which == 74)
+        else if evt.which == 40  # down
             current_task_list.set_current_task_next()
             return false
 
-        else if evt.which == 38  # k = down (evt.which == 75)
+        else if evt.which == 38  # up
             current_task_list.set_current_task_prev()
             return false
 

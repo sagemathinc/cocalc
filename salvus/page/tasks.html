@@ -120,9 +120,10 @@
                         <!--<a class="btn"  style="margin-bottom:1ex" href="#cancel"  data-toggle="tooltip" data-placement="bottom" title="or press esc"> Cancel</a>-->
                     </span>
                 </div>
-                <div class="span8">
+                <!--<div class="span8">
                     <span style="color:#999">Use <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>, LaTeX, <tt>#tag</tt> to create hashtag labels, and [ ] and [x] to create checklists, then press shift+enter.</span>
                 </div>
+                -->
             </div>
         </div>
 
@@ -150,7 +151,8 @@
             <h4>Editing</h4>
             Click or use the cursor keys (and press enter) to edit a task, or create a new task.
             Use <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>
-            to describe your task, use LaTeX to enter mathematics, and use [ ] and [x] to create checklists.
+            to describe your task, use LaTeX to enter mathematics, use <code>[ ]</code> and <code>[x]</code> to create checklists, and
+            press shift+enter to save your changes.
             The editor respects the color scheme and keybindings that you
             select in account settings, and
             external links open in another browser tab.
@@ -175,6 +177,11 @@
             <h4>Order</h4>
             If you select the order column, then tasks will shown sorted by the order you manually specify.
             The order column has buttons to indicate the task that you are currently working on and to delete a task.
+
+            <h4>Keyboard shortcuts</h4>
+            Let mod be any of control, alt, or command.
+            Use mod+s to save, mod+f to find, mod+n to make a new task, mod+space to toggle done state, and mod+arrow to move a task up or down the list.
+            Use arrows to change which task is selected, enter to start editing a task description, and shift+enter to stop editing.
 
             <h4>File format</h4>
             A task list is stored as a file with extension <tt>.tasks</tt> that contains one JSON line per task.
