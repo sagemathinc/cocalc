@@ -1609,7 +1609,11 @@ class Monitor(object):
 
     def _go(self):
         all = self.all()
-        self.update_db(all=all)
+        try:
+            self.update_db(all=all)
+        except:
+            # exception can happen, e.g., when db is down
+            print "Failed to update database"
         self.print_status(all=all)
         down = self.down(all=all)
         m = ''
