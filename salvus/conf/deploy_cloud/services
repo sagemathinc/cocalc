@@ -42,8 +42,8 @@ localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra:200', 'instance_type
 localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
 
 # web servers/hubs
-localhost    {'hostname':'web1dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
-localhost    {'hostname':'web2dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
+#localhost    {'hostname':'web1dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
+#localhost    {'hostname':'web2dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
 
 
 #####################
@@ -63,8 +63,8 @@ localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra:200', 'instance_type
 localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
 
 # web servers/hubs
-localhost    {'hostname':'web1dc3', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
-localhost    {'hostname':'web2dc3', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
+#localhost    {'hostname':'web1dc3', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
+#localhost    {'hostname':'web2dc3', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
 
 
 #####################
@@ -109,7 +109,7 @@ cloud12   {'hostname':'cassandra12', 'vcpus':cassandra_cpu, 'ram':cassandra_ram,
 cloud13   {'hostname':'cassandra13', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
 cloud14   {'hostname':'cassandra14', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
 cloud15   {'hostname':'cassandra15', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
-cloud16   {'hostname':'cassandra16', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud16   {'hostname':'cassandra16', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2'}
 cloud17   {'hostname':'cassandra17', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
 cloud18   {'hostname':'cassandra18', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
 cloud19   {'hostname':'cassandra19', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
@@ -207,16 +207,16 @@ cassandra4dc3  {'seed':True,   'topology':'DC3:RAC0', 'num_tokens':256}
 
 [stunnel] {'sudo':True}
 edge
-web1dc3
+#web1dc3
 
 [haproxy] {'sudo':True, 'insecure_redirect_port':80, 'sitename':'cloud.sagemath.com'}
 edge
-web1dc3 {'hub_servers':[{'ip':'10.4.1.3','maxconn':100,'port':'5000'}], 'nginx_servers':[{'ip':'10.4.1.3','maxconn':10000, 'port':8080}], 'proxy_servers':[{'ip':'10.4.1.3','maxconn':100,'proxy_port':'5001'}]}
+#web1dc3 {'hub_servers':[{'ip':'10.4.1.3','maxconn':100,'port':'5000'}], 'nginx_servers':[{'ip':'10.4.1.3','maxconn':10000, 'port':8080}], 'proxy_servers':[{'ip':'10.4.1.3','maxconn':100,'proxy_port':'5001'}]}
 
 
 [nginx]
 nginx
-web1dc3
+#web1dc3
 
 [hub]
 hub {'id':'0', 'port':'5000', 'proxy_port':'5001'}
@@ -224,7 +224,7 @@ hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
 hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
 hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
 
-web1dc3 {'id':'0', 'port':'5000', 'proxy_port':'5001','monitor_database':'10.4.1.2:9042'}
+#web1dc3 {'id':'0', 'port':'5000', 'proxy_port':'5001','monitor_database':'10.4.1.2:9042'}
 
 
 
