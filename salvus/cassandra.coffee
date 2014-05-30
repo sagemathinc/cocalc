@@ -68,7 +68,7 @@ higher_consistency = (consistency) ->
     i = CONSISTENCIES.indexOf(consistency)
     if i == -1
         # unknown -- ?
-        return cql.types.consistencies.quorum # official default
+        return cql.types.consistencies.localQuorum
     else
         return CONSISTENCIES[Math.min(CONSISTENCIES.length-1,i+1)]
 
@@ -389,7 +389,7 @@ class exports.Cassandra extends EventEmitter
         @query_max_retry = opts.query_max_retry
 
         if opts.hosts.length == 1
-            # the default QUORUM won't work if there is only one node.
+            # the default consistency won't work if there is only one node.
             opts.consistency = 1
 
         @consistency = opts.consistency  # the default consistency (for now)
