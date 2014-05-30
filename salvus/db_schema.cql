@@ -416,6 +416,8 @@ CREATE TABLE storage_topology (
    create an account.
    When a user connects, if their normalized address is in this table, then they
    are rejected.
+
+   UPDATE banned_email_addresses set dummy=true where email_address='khandebazaar@gmail.com';
 */
 
 CREATE TABLE banned_email_addresses (
