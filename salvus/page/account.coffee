@@ -293,7 +293,6 @@ sign_in = () ->
         email_address : $("#sign_in-email").val()
         password      : $("#sign_in-password").val()
         remember_me   : true
-        timeout       : 10
         cb            : (error, mesg) ->
             if error
                 alert_message(type:"error", message: "There was an unexpected error during sign in.  Please try again later. #{error}")
@@ -370,7 +369,6 @@ sign_out = () ->
     # requested to sign out.  The server must clean up resources
     # and *invalidate* the remember_me cookie for this client.
     salvus_client.sign_out
-        timeout : 10
         cb      : (error) ->
             if error
                 alert_message(type:"error", message:error)
