@@ -1903,9 +1903,44 @@ start_kill_monitor = (cb) ->
     setInterval(kill_if_inactive, 30000)
     cb()
 
+# Truncate the ~/.sagemathcloud.log if it exceeds a certain length threshhold.
+SAGEMATHCLOUD_LOG_THRESH = 5000 # log grows to at most 50% more than this
+SAGEMATHCLOUD_LOG_FILE = process.env['HOME'] + '/.sagemathcloud.log'
+log_truncate = (cb) ->
+    data = undefined
+    winston.info("log_truncate: checking that logfile isn't too long")
+    async.series([
+        (cb) ->
+            # read the log file
+            fs.readFile SAGEMATHCLOUD_LOG_FILE, (err, _data) ->
+                data = _data.toString()
+                cb(err)
+        (cb) ->
+            # if number of lines exceeds 50% more than MAX_LINES
+            n = misc.count(data, '\n')
+            if n  >= SAGEMATHCLOUD_LOG_THRESH * 1.5
+                winston.debug("log_truncate: truncating log file to #{SAGEMATHCLOUD_LOG_THRESH} lines")
+                v = data.split('\n')  # the -1 below is since last entry is a blank line
+                new_data = v.slice(n - SAGEMATHCLOUD_LOG_THRESH, v.length-1).join('\n')
+                fs.writeFile(SAGEMATHCLOUD_LOG_FILE, new_data, cb)
+            else
+                cb()
+    ], cb)
+
+start_log_truncate = (cb) ->
+    winston.info("start_log_truncate")
+    f = (c) ->
+        winston.debug("calling log_truncate")
+        log_truncate (err) ->
+            if err
+                winston.debug("ERROR: problem truncating log -- #{err}")
+            c()
+    setInterval(f, 1000*3600*12)   # once every 12 hours
+    f(cb)
+
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
-    async.series [start_kill_monitor, start_tcp_server, start_raw_server], (err) ->
+    async.series [start_log_truncate, start_kill_monitor, start_tcp_server, start_raw_server], (err) ->
         if err
             winston.debug("Error starting a server -- #{err}")
         else
