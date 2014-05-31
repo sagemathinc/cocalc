@@ -717,12 +717,11 @@ class TaskList
                 where : {task_id : task.task_id}
             task.deleted = deleted
             @set_dirty()
-            @render_task(task)
 
         e = task.element.find(".salvus-task-delete")
         if deleted and not @showing_deleted
             task.element.fadeOut () =>
-                if e.hasClass('salvus-task-deleted')  # they could have canceled the action by clicking again
+                if not task.deleted # they could have canceled the action by clicking again
                     @set_current_task_next()
                     task.element?.remove()
                     f()
@@ -843,7 +842,7 @@ class TaskList
     empty_trash: () =>
         if @readonly
             return
-        bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h4>Permanently erase the deleted items?</h4><br> <span class='lighten'>Old versions of this list are available as snapshots.</span>  ", (result) =>
+        bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h4>Permanently erase the deleted items?</h4><br> <span class='lighten'>Old versions of this list may be available as snapshots.</span>  ", (result) =>
             if result == true
                 a = @db.delete({deleted : true}, false)
                 @tasks = (x for x in @tasks when not x.deleted)
