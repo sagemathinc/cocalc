@@ -245,7 +245,7 @@ init_http_server = () ->
                             # more work and I don't have time now.
                             # get the file itself
                             (cb) ->
-                                winston.debug(misc.to_json(files))
+                                #winston.debug(misc.to_json(files))
                                 winston.debug("Reading file from disk '#{files.file.path}'")
                                 fs.readFile files.file.path, (err, _data) ->
                                     if err
@@ -595,7 +595,7 @@ class Client extends EventEmitter
     # Pushing messages to this particular connected client
     #######################################################
     push_to_client: (mesg) =>
-        winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),600)}") if mesg.event != 'pong'
+        winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}") if mesg.event != 'pong'
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
 
     push_data_to_client: (channel, data) ->
@@ -840,7 +840,7 @@ class Client extends EventEmitter
             return
         #winston.debug("got message: #{data}")
         if mesg.event.slice(0,4) != 'ping' and mesg.event != 'codemirror_bcast'
-            winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 600)}")
+            winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 300)}")
         handler = @["mesg_#{mesg.event}"]
         if handler?
             handler(mesg)
@@ -1606,6 +1606,13 @@ class Client extends EventEmitter
                     project.local_hub?.project.save()
                 setTimeout(f, 5000)
 
+            # Record eaching opening of a file in the database log
+            if mesg.message.event == 'codemirror_get_session' and mesg.message.path? and mesg.message.path != '.sagemathcloud.log' and @account_id? and mesg.message.project_id?
+                database.log_file_access
+                    project_id : mesg.message.project_id
+                    account_id : @account_id
+                    filename   : mesg.message.path
+
             # Make the actual call
             project.call
                 mesg           : mesg.message
@@ -1811,7 +1818,7 @@ class Client extends EventEmitter
     # The code below all work(ed) when written, but I had not
     # implemented limitations and authentication.  Also, I don't
     # plan now to use this code.  So I'm disabling handling any
-    # of these messages, as a security precaution.   
+    # of these messages, as a security precaution.
     ###
     mesg_create_task_list: (mesg) =>
         # TODO: add verification that owners is valid
@@ -3961,7 +3968,7 @@ class SageSession
         @conn = undefined
 
     send_json: (client, mesg) ->
-        winston.debug("hub --> sage_server: #{misc.trunc(to_safe_str(mesg),600)}")
+        winston.debug("hub --> sage_server: #{misc.trunc(to_safe_str(mesg),300)}")
         async.series([
             (cb) =>
                 if @conn?

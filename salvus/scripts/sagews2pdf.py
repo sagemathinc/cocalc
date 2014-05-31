@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Copyright (c) 2014, William Stein and Cedric Sodhi
+Copyright (c) 2014, William Stein
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -23,6 +23,13 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+CONTRIBUTORS:
+
+  - William Stein (maintainer and initial author)
+  - Cedric Sodhi  - internationalization and bug fixes
+  - Tomas Kalvoda - internationalization 
+
 """
 
 MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
@@ -273,6 +280,7 @@ class Worksheet(object):
 \usepackage{etoolbox}
 \usepackage{url}
 \usepackage{hyperref}
+\usepackage[T1]{fontenc}
 \makeatletter
 \preto{\@verbatim}{\topsep=0pt \partopsep=0pt }
 \makeatother
@@ -372,5 +380,5 @@ if __name__ == "__main__":
     else:
         args.remove_tmpdir = False
 
-    sagews_to_pdf(args.filename, title=args.title, author=args.author, outfile=args.outfile,
+    sagews_to_pdf(args.filename, title=args.title.decode('utf8'), author=args.author.decode('utf8'), outfile=args.outfile,
                   date=args.date, contents=args.contents, remove_tmpdir=args.remove_tmpdir)
