@@ -1119,16 +1119,23 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     # only do something if the flagstring changed.
                     elt = @elt_at_mark(mark)
                     if FLAGS.execute in flagstring
+                        elt.data('execute',FLAGS.execute)
                         # execute requested
-                        elt.spin(true)
+                        f = () ->
+                            if elt.data('execute') == FLAGS.execute
+                                elt.spin(true)
+                        setTimeout(f, 1500)
                     else if FLAGS.running in flagstring
+                        elt.data('execute',FLAGS.running)
+                        f = () ->
+                            if elt.data('execute') == FLAGS.running
+                                elt.spin(color:'green')
                         # code is running on remote local hub.
-                        elt.spin(false)
-                        elt.icon_spin(start:true, delay:1000)
+                        setTimeout(f, 1500)
                     else
+                        elt.data('execute','')
                         # code is not running
                         elt.spin(false)
-                        elt.icon_spin(start:false)
                     if FLAGS.hide_input in flagstring and FLAGS.hide_input not in mark.flagstring
                         @hide_input(line)
                     else if FLAGS.hide_input in mark.flagstring and FLAGS.hide_input not in flagstring
