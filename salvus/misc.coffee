@@ -84,7 +84,7 @@ exports.min_object = (target, upper_bounds) ->
 # obj1.  For each property P of obj2 not specified in obj1, the
 # corresponding value obj1[P] is set (all in a new copy of obj1) to
 # be obj2[P].
-exports.defaults = (obj1, obj2) ->
+exports.defaults = (obj1, obj2, allow_extra) ->
     if not obj1?
         obj1 = {}
     error  = () ->
@@ -110,10 +110,11 @@ exports.defaults = (obj1, obj2) ->
                 throw "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
             else
                 r[prop] = obj2[prop]
-    for prop, val of obj1
-        if not obj2.hasOwnProperty(prop)
-            console.trace()
-            throw "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
+    if not allow_extra
+        for prop, val of obj1
+            if not obj2.hasOwnProperty(prop)
+                console.trace()
+                throw "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
     return r
 
 # WARNING -- don't accidentally use this as a default:

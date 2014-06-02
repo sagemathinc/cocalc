@@ -519,7 +519,7 @@ class AccountSettings
             if typeof(def) == "object"
                 if not value?
                     value = {}
-                @settings[prop] = value = misc.defaults(value, def)
+                @settings[prop] = value = misc.defaults(value, def, true)
 
             element = $("#account-settings-#{prop}")
             switch prop
