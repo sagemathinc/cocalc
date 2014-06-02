@@ -1877,8 +1877,8 @@ start_kill_monitor = (cb) ->
     # Start a monitor that periodically checks for some sort of client-initiated hub activity.
     # If there is none for program.timeout seconds, then all processes running as this user
     # are killed (including this local hub, of course).
-    if not program.timeout or process.env['USER'].length != 8   # 8 = length of SMC accounts... this excludes 'wstein' (say)
-        winston.debug("Not setting kill monitor")
+    if not program.timeout or process.env['USER'].length != 32   # 32 = length of SMC accounts...
+        winston.info("Not setting kill monitor")
         cb()
         return
 
