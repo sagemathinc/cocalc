@@ -1909,13 +1909,22 @@ SAGEMATHCLOUD_LOG_FILE = process.env['HOME'] + '/.sagemathcloud.log'
 log_truncate = (cb) ->
     data = undefined
     winston.info("log_truncate: checking that logfile isn't too long")
+    exists = undefined
     async.series([
         (cb) ->
+            fs.exists SAGEMATHCLOUD_LOG_FILE, (_exists) ->
+                exists = _exists
+                cb()
+        (cb) ->
+            if not exists
+                cb(); return
             # read the log file
             fs.readFile SAGEMATHCLOUD_LOG_FILE, (err, _data) ->
                 data = _data.toString()
                 cb(err)
         (cb) ->
+            if not exists
+                cb(); return
             # if number of lines exceeds 50% more than MAX_LINES
             n = misc.count(data, '\n')
             if n  >= SAGEMATHCLOUD_LOG_THRESH * 1.5
