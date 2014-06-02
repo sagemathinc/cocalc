@@ -213,8 +213,9 @@ init_http_server = () ->
                                 x    = value.split('$')
                                 hash = generate_hash(x[0], x[1], x[2], x[3])
                                 database.key_value_store(name: 'remember_me').get
-                                    key : hash
-                                    cb  : (err, signed_in_mesg) =>
+                                    key         : hash
+                                    consistency : 1
+                                    cb          : (err, signed_in_mesg) =>
                                         if err or not signed_in_mesg?
                                             cb('unable to get remember_me cookie from db -- cookie invalid'); return
                                         account_id = signed_in_mesg.account_id
@@ -304,8 +305,9 @@ init_http_proxy_server = () =>
                 x    = opts.remember_me.split('$')
                 hash = generate_hash(x[0], x[1], x[2], x[3])
                 database.key_value_store(name: 'remember_me').get
-                    key : hash
-                    cb  : (err, signed_in_mesg) =>
+                    key         : hash
+                    consistency : 1
+                    cb          : (err, signed_in_mesg) =>
                         account_id = signed_in_mesg?.account_id
                         if err or not account_id?
                             cb('unable to get remember_me cookie from db -- cookie invalid')
@@ -560,8 +562,9 @@ class Client extends EventEmitter
                     x    = value.split('$')
                     hash = generate_hash(x[0], x[1], x[2], x[3])
                     @remember_me_db.get
-                        key : hash
-                        cb  : (error, signed_in_mesg) =>
+                        key         : hash
+                        consistency : 1
+                        cb          : (error, signed_in_mesg) =>
                             if not error and signed_in_mesg?
                                 database.is_banned_user
                                     email_address : signed_in_mesg.email_address
@@ -2737,9 +2740,10 @@ user_owns_project = (opts) ->
 
 user_has_write_access_to_project = (opts) ->
     opts = defaults opts,
-        project_id : required
-        account_id : undefined
-        cb : required        # cb(err, true or false)
+        project_id  : required
+        account_id  : undefined
+        consistency : 1
+        cb          : required        # cb(err, true or false)
     if not opts.account_id?
         # we can have a client *without* account_id that is requesting access to a project.  Just say no.
         opts.cb(false, false) # do not have access
@@ -2749,9 +2753,10 @@ user_has_write_access_to_project = (opts) ->
 
 user_has_read_access_to_project = (opts) ->
     opts = defaults opts,
-        project_id : required
-        account_id : required
-        cb : required        # cb(err, true or false)
+        project_id  : required
+        account_id  : required
+        consistency : 1
+        cb          : required        # cb(err, true or false)
     opts.groups = ['owner', 'collaborator', 'viewer']
     database.user_is_in_project_group(opts)
 
@@ -2903,9 +2908,10 @@ sign_in = (client, mesg) =>
         # POLICY 1: A given email address is allowed at most 5 failed login attempts per minute.
         (cb) ->
             database.count
-                table: "failed_sign_ins_by_email_address"
-                where: {email_address:mesg.email_address, time: {'>=':cass.minutes_ago(1)}}
-                cb: (error, count) ->
+                table       : "failed_sign_ins_by_email_address"
+                where       : {email_address:mesg.email_address, time: {'>=':cass.minutes_ago(1)}}
+                consistency : 1
+                cb          : (error, count) ->
                     if error
                         sign_in_error(error)
                         cb(true); return
@@ -2916,9 +2922,10 @@ sign_in = (client, mesg) =>
         # POLICY 2: A given email address is allowed at most 100 failed login attempts per hour.
         (cb) ->
             database.count
-                table: "failed_sign_ins_by_email_address"
-                where: {email_address:mesg.email_address, time: {'>=':cass.hours_ago(1)}}
-                cb: (error, count) ->
+                table       : "failed_sign_ins_by_email_address"
+                where       : {email_address:mesg.email_address, time: {'>=':cass.hours_ago(1)}}
+                consistency : 1
+                cb          : (error, count) ->
                     if error
                         sign_in_error(error)
                         cb(true); return
@@ -2930,9 +2937,10 @@ sign_in = (client, mesg) =>
         # POLICY 3: A given ip address is allowed at most 100 failed login attempts per minute.
         (cb) ->
             database.count
-                table: "failed_sign_ins_by_ip_address"
-                where: {ip_address:client.ip_address, time: {'>=':cass.minutes_ago(1)}}
-                cb: (error, count) ->
+                table       : "failed_sign_ins_by_ip_address"
+                where       : {ip_address:client.ip_address, time: {'>=':cass.minutes_ago(1)}}
+                consistency : 1
+                cb          : (error, count) ->
                     if error
                         sign_in_error(error)
                         cb(true); return
@@ -2944,9 +2952,10 @@ sign_in = (client, mesg) =>
         # POLICY 4: A given ip address is allowed at most 250 failed login attempts per hour.
         (cb) ->
             database.count
-                table: "failed_sign_ins_by_ip_address"
-                where: {ip_address:client.ip_address, time: {'>=':cass.hours_ago(1)}}
-                cb: (error, count) ->
+                table       : "failed_sign_ins_by_ip_address"
+                where       : {ip_address:client.ip_address, time: {'>=':cass.hours_ago(1)}}
+                consistency : 1
+                cb          : (error, count) ->
                     if error
                         sign_in_error(error)
                         cb(true); return
@@ -2976,6 +2985,7 @@ sign_in = (client, mesg) =>
             error_mesg = "Invalid e-mail or password."
             database.get_account
                 email_address : mesg.email_address
+                consistency   : 1
                 cb            : (error, account) ->
                     if error
                         record_sign_in
@@ -3031,18 +3041,21 @@ record_sign_in = (opts) ->
         remember_me   : false
     if not opts.successful
         database.update
-            table : 'failed_sign_ins_by_ip_address'
-            set   : {email_address:opts.email_address}
-            where : {time:cass.now(), ip_address:opts.ip_address}
+            table       : 'failed_sign_ins_by_ip_address'
+            set         : {email_address:opts.email_address}
+            where       : {time:cass.now(), ip_address:opts.ip_address}
+            consistency : 1
         database.update
-            table : 'failed_sign_ins_by_email_address'
-            set   : {ip_address:opts.ip_address}
-            where : {time:cass.now(), email_address:opts.email_address}
+            table       : 'failed_sign_ins_by_email_address'
+            set         : {ip_address:opts.ip_address}
+            where       : {time:cass.now(), email_address:opts.email_address}
+            consistency : 1
     else
         database.update
-            table : 'successful_sign_ins'
-            set   : {ip_address:opts.ip_address, first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, remember_me:opts.remember_me}
-            where : {time:cass.now(), account_id:opts.account_id}
+            table       : 'successful_sign_ins'
+            set         : {ip_address:opts.ip_address, first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, remember_me:opts.remember_me}
+            where       : {time:cass.now(), account_id:opts.account_id}
+            consistency : 1
 
 
 
