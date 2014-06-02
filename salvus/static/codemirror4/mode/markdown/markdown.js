@@ -1,3 +1,6 @@
+// CodeMirror, copyright (c) by Marijn Haverbeke and others
+// Distributed under an MIT license: http://codemirror.net/LICENSE
+
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
     mod(require("../../lib/codemirror", require("../xml/xml")));
@@ -209,7 +212,7 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
 
   function htmlBlock(stream, state) {
     var style = htmlMode.token(stream, state.htmlState);
-    if ((htmlFound && !state.htmlState.tagName && !state.htmlState.context) ||
+    if ((htmlFound && state.htmlState.tagStart === null && !state.htmlState.context) ||
         (state.md_inside && stream.current().indexOf(">") > -1)) {
       state.f = inlineNormal;
       state.block = blockNormal;
@@ -249,7 +252,7 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
         styles.push(formatting + "-" + state.formatting[i]);
 
         if (state.formatting[i] === "header") {
-          styles.push(formatting + "-" + state.formatting[i] + state.header);
+          styles.push(formatting + "-" + state.formatting[i] + "-" + state.header);
         }
 
         // Add `formatting-quote` and `formatting-quote-#` for blockquotes
@@ -285,7 +288,7 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
 
     if (state.code) { styles.push(code); }
 
-    if (state.header) { styles.push(header); styles.push(header + state.header); }
+    if (state.header) { styles.push(header); styles.push(header + "-" + state.header); }
 
     if (state.quote) {
       styles.push(quote);
@@ -737,7 +740,9 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
         state.indentation = adjustedIndentation;
         if (indentation > 0) return null;
       }
-      return state.f(stream, state);
+      var result = state.f(stream, state);
+      if (stream.start == stream.pos) return this.token(stream, state);
+      else return result;
     },
 
     innerMode: function(state) {
@@ -748,7 +753,9 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
 
     blankLine: blankLine,
 
-    getType: getType
+    getType: getType,
+
+    fold: "markdown"
   };
   return mode;
 }, "xml");

@@ -1,3 +1,6 @@
+// CodeMirror, copyright (c) by Marijn Haverbeke and others
+// Distributed under an MIT license: http://codemirror.net/LICENSE
+
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
     mod(require("../../lib/codemirror"));
@@ -44,6 +47,7 @@ CodeMirror.defineMode("ruby", function(config) {
     if (ch == "`" || ch == "'" || ch == '"') {
       return chain(readQuoted(ch, "string", ch == '"' || ch == "`"), stream, state);
     } else if (ch == "/" && !stream.eol() && stream.peek() != " ") {
+      if (stream.eat("=")) return "operator";
       return chain(readQuoted(ch, "string-2", true), stream, state);
     } else if (ch == "%") {
       var style = "string", embed = true;

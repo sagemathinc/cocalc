@@ -19,6 +19,9 @@
     <li><a href="#beforeSelectionChange">The beforeSelectionChange event</a>
     <li><a href="#replaceSelection">replaceSelection and collapsing</a>
     <li><a href="#changeEvent">change event data</a>
+    <li><a href="#showIfHidden">showIfHidden option to line widgets</a>
+    <li><a href="#module">Module loaders</a>
+    <li><a href="#shareddata">Mutating shared data structures</a></li>
     <li><a href="#deprecated">Deprecated interfaces dropped</a>
   </ul>
 </div>
@@ -26,9 +29,6 @@
 <article>
 
 <h2 id=upgrade>Upgrading to version 4</h2>
-
-<p><strong>Note:</strong> Version 4 hasn't been released yet. The
-information here is provisional and might still change.</p>
 
 <p>CodeMirror 4's interface is <em>very</em> close version 3, but it
 does fix a few awkward details in a backwards-incompatible ways. At
@@ -77,6 +77,43 @@ pointers from one change object to the next, the library will now
 simply fire
 multiple <a href="manual.html#event_change"><code>"change"</code></a>
 events. Existing code will probably continue to work unmodified.</p>
+
+</section>
+
+<section id=showIfHidden><h2>showIfHidden option to line widgets</h2>
+
+<p>This option, which conceptually caused line widgets to be visible
+even if their line was hidden, was never really well-defined, and was
+buggy from the start. It would be a rather expensive feature, both in
+code complexity and run-time performance, to implement properly. It
+has been dropped entirely in 4.0.</p>
+
+</section>
+
+<section id=module><h2>Module loaders</h2>
+
+<p>All modules in the CodeMirror distribution are now wrapped in a
+shim function to make them compatible with both AMD
+(<a href="http://requirejs.org">requirejs</a>) and CommonJS (as used
+by <a href="http://nodejs.org/">node</a>
+and <a href="http://browserify.org/">browserify</a>) module loaders.
+When neither of these is present, they fall back to simply using the
+global <code>CodeMirror</code> variable.</p>
+
+<p>If you have a module loader present in your environment, CodeMirror
+will attempt to use it, and you might need to change the way you load
+CodeMirror modules.</p>
+
+</section>
+
+<section id=shareddata><h2>Mutating shared data structures</h2>
+
+<p>Data structures produced by the library should not be mutated
+unless explicitly allowed, in general. This is slightly more strict in
+4.0 than it was in earlier versions, which copied the position objects
+returned by <a href="manual.html#getCursor"><code>getCursor</code></a>
+for nebulous, historic reasons. In 4.0, mutating these
+objects <em>will</em> corrupt your editor's selection.</p>
 
 </section>
 

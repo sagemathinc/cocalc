@@ -53,6 +53,7 @@ codemirror_associations =
     lua    : 'lua'
     m      : 'text/x-octave'
     md     : 'markdown'
+    ml     : 'text/x-ocaml'
     mysql  : 'text/x-sql'
     patch  : 'text/x-diff'
     gp     : 'text/pari'
@@ -1058,6 +1059,7 @@ class CodeMirrorEditor extends FileEditor
             electric_chars            : editor_settings.electric_chars
             undo_depth                : editor_settings.undo_depth
             match_brackets            : editor_settings.match_brackets
+            auto_close_brackets       : editor_settings.auto_close_brackets
             line_wrapping             : editor_settings.line_wrapping
             spaces_instead_of_tabs    : editor_settings.spaces_instead_of_tabs
             style_active_line         : 15    # editor_settings.style_active_line  # (a number between 0 and 127)
@@ -1138,22 +1140,24 @@ class CodeMirrorEditor extends FileEditor
 
         make_editor = (node) =>
             options =
-                firstLineNumber : opts.first_line_number
-                autofocus       : false
-                mode            : opts.mode
-                lineNumbers     : opts.line_numbers
-                indentUnit      : opts.indent_unit
-                tabSize         : opts.tab_size
-                smartIndent     : opts.smart_indent
-                electricChars   : opts.electric_chars
-                undoDepth       : opts.undo_depth
-                matchBrackets   : opts.match_brackets
-                lineWrapping    : opts.line_wrapping
-                readOnly        : opts.read_only
-                styleActiveLine : opts.style_active_line
-                indentWithTabs  : not opts.spaces_instead_of_tabs
-                extraKeys       : extraKeys
-                cursorScrollMargin : 40
+                firstLineNumber         : opts.first_line_number
+                autofocus               : false
+                mode                    : opts.mode
+                lineNumbers             : opts.line_numbers
+                indentUnit              : opts.indent_unit
+                tabSize                 : opts.tab_size
+                smartIndent             : opts.smart_indent
+                electricChars           : opts.electric_chars
+                undoDepth               : opts.undo_depth
+                matchBrackets           : opts.match_brackets
+                autoCloseBrackets       : opts.auto_close_brackets
+                lineWrapping            : opts.line_wrapping
+                readOnly                : opts.read_only
+                styleActiveLine         : opts.style_active_line
+                indentWithTabs          : not opts.spaces_instead_of_tabs
+                showCursorWhenSelecting : true
+                extraKeys               : extraKeys
+                cursorScrollMargin      : 40
 
             if opts.bindings? and opts.bindings != "standard"
                 options.keyMap = opts.bindings

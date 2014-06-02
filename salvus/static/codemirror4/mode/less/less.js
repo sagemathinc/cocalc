@@ -5,16 +5,6 @@
   GitHub: @peterkroon
 */
 
-(function(mod) {
-  if (typeof exports == "object" && typeof module == "object") // CommonJS
-    mod(require("../../lib/codemirror"));
-  else if (typeof define == "function" && define.amd) // AMD
-    define(["../../lib/codemirror"], mod);
-  else // Plain browser env
-    mod(CodeMirror);
-})(function(CodeMirror) {
-"use strict";
-
 CodeMirror.defineMode("less", function(config) {
   var indentUnit = config.indentUnit, type;
   function ret(style, tp) {type = tp; return style;}
@@ -81,7 +71,7 @@ CodeMirror.defineMode("less", function(config) {
       if(stream.peek() === " ")stream.eatSpace();
       if(stream.peek() === ")" || type === ":")return ret("number", "unit");//rgba(0,0,0,.25);
       else if(stream.current().length >1){
-        if(state.stack[state.stack.length-1] === "rule" && !stream.match(/^[{,+(]/, false)) return ret("number", "unit");
+        if(state.stack[state.stack.length-1] === "rule" && stream.peek().match(/{|,|\+|\(/) === null)return ret("number", "unit");
       }
       return ret("tag", "tag");
     } else if (ch == "#") {
@@ -180,7 +170,7 @@ CodeMirror.defineMode("less", function(config) {
       } else if(type == "compare" || type == "a" || type == "("){
         return ret("string", "string");
       } else if(type == "|" || stream.current() == "-" || type == "["){
-        if (type == "|" && stream.match(/^[\]=~]/, false)) return ret("number", stream.current());
+        if(type == "|" && stream.peek().match(/\]|=|\~/) !== null)return ret("number", stream.current());
         else if(type == "|" )return ret("tag", "tag");
         else if(type == "["){
           stream.eatWhile(/\w\-/);
@@ -211,7 +201,7 @@ CodeMirror.defineMode("less", function(config) {
 
         //else if((type === ")" && state.stack[state.stack.length-1] === "rule") || (state.stack[state.stack.length-2] === "{" && state.stack[state.stack.length-1] === "rule" && type === "variable"))return ret(null, stream.current());
 
-        else if (/\^|\$/.test(stream.current()) && stream.match(/^[~=]/, false)) return ret("string", "string");//att^=val
+        else if(/\^|\$/.test(stream.current()) && stream.peek().match(/\~|=/) !== null)return ret("string", "string");//att^=val
 
         else if(type === "unit" && state.stack[state.stack.length-1] === "rule")return ret(null, "unit");
         else if(type === "unit" && state.stack[state.stack.length-1] === ";")return ret(null, "unit");
@@ -220,13 +210,12 @@ CodeMirror.defineMode("less", function(config) {
         //else if(type === "unit" && state.stack[state.stack.length-1] === "rule")return ret(null, stream.current());
 
         else if((type === ";" || type === "}" || type === ",") && state.stack[state.stack.length-1] === ";")return ret("tag", stream.current());
-        else if((type === ";" && stream.peek() !== undefined && !stream.match(/^[{\.]/, false)) ||
-                (type === ";" && stream.eatSpace() && !stream.match(/^[{\.]/))) return ret("variable", stream.current());
+        else if((type === ";" && stream.peek() !== undefined && stream.peek().match(/{|./) === null) || (type === ";" && stream.eatSpace() && stream.peek().match(/{|./) === null))return ret("variable", stream.current());
         else if((type === "@media" && state.stack[state.stack.length-1] === "@media") || type === "@namespace")return ret("tag", stream.current());
 
         else if(type === "{"  && state.stack[state.stack.length-1] === ";" && stream.peek() === "{")return ret("tag", "tag");
         else if((type === "{" || type === ":") && state.stack[state.stack.length-1] === ";")return ret(null, stream.current());
-        else if((state.stack[state.stack.length-1] === "{" && stream.eatSpace() && !stream.match(/^[\.#]/)) || type === "select-op"  || (state.stack[state.stack.length-1] === "rule" && type === ",") )return ret("tag", "tag");
+        else if((state.stack[state.stack.length-1] === "{" && stream.eatSpace() && stream.peek().match(/.|#/) === null) || type === "select-op"  || (state.stack[state.stack.length-1] === "rule" && type === ",") )return ret("tag", "tag");
         else if(type === "variable" && state.stack[state.stack.length-1] === "rule")return ret("tag", "tag");
         else if((stream.eatSpace() && stream.peek() === "{") || stream.eol() || stream.peek() === "{")return ret("tag", "tag");
         //this one messes up indentation
@@ -238,7 +227,7 @@ CodeMirror.defineMode("less", function(config) {
         else if(stream.sol())return ret("tag", "tag");
         else if((stream.eatSpace() && stream.peek() === "#") || stream.peek() === "#")return ret("tag", "tag");
         else if(state.stack.length === 0)return ret("tag", "tag");
-        else if(type === ";" && stream.peek() !== undefined && stream.match(/^[\.|#]/g)) return ret("tag", "tag");
+        else if(type === ";" && stream.peek() !== undefined && stream.peek().match(/^[.|\#]/g) !== null)return ret("tag", "tag");
 
         else if(type === ":"){stream.eatSpace();return ret(null, stream.current());}
 
@@ -355,5 +344,3 @@ CodeMirror.defineMode("less", function(config) {
 CodeMirror.defineMIME("text/x-less", "less");
 if (!CodeMirror.mimeModes.hasOwnProperty("text/css"))
   CodeMirror.defineMIME("text/css", "less");
-
-});

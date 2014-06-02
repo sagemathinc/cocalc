@@ -570,6 +570,7 @@ exports.account_settings_defaults =
         smart_indent              : true
         electric_chars            : true
         match_brackets            : true
+        auto_close_brackets       : true
         spaces_instead_of_tabs    : true
         first_line_number         : 1
         indent_unit               : 4

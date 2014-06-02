@@ -394,6 +394,7 @@ EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
                               'line_numbers',
                               'smart_indent',
                               'match_brackets',
+                              'auto_close_brackets',
                               'electric_chars',
                               'spaces_instead_of_tabs']
 
