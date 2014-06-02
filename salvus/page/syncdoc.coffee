@@ -481,16 +481,17 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @ui_synced(false)
                 @editor.init_autosave()
                 @sync()
-                @codemirror.on 'change', (instance, changeObj) =>
-                    #console.log("change #{misc.to_json(changeObj)}")
-                    if changeObj.origin?
-                        if changeObj.origin == 'undo'
-                            @on_undo(instance, changeObj)
-                        if changeObj.origin == 'redo'
-                            @on_redo(instance, changeObj)
-                        if changeObj.origin != 'setValue'
-                            @ui_synced(false)
-                            @sync()
+                @codemirror.on 'changes', (instance, changes) =>
+                    for changeObj in changes
+                        #console.log("change #{misc.to_json(changeObj)}")
+                        if changeObj.origin?
+                            if changeObj.origin == 'undo'
+                                @on_undo(instance, changeObj)
+                            if changeObj.origin == 'redo'
+                                @on_redo(instance, changeObj)
+                            if changeObj.origin != 'setValue'
+                                @ui_synced(false)
+                                @sync()
             # Done initializing and have got content.
             cb?()
 

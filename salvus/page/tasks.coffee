@@ -610,7 +610,9 @@ class TaskList
         extraKeys =
             "Enter"       : "newlineAndIndentContinueMarkdownList"
             "Shift-Enter" : save_task
-            "Shift-Tab"    : (editor) -> editor.unindent_selection()
+            "Shift-Tab"   : (editor) -> editor.unindent_selection()
+            #"F11"         : (editor) -> console.log('hi'); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
+
 
         if editor_settings.bindings != 'vim'  # this escape binding below would be a major problem for vim!
             extraKeys["Esc"] = stop_editing

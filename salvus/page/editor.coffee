@@ -1129,6 +1129,8 @@ class CodeMirrorEditor extends FileEditor
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
+            #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
+
         # We will replace this by a general framework...
         if misc.filename_extension(filename) == "sagews"
             evaluate_key = require('account').account_settings.settings.evaluate_key.toLowerCase()
@@ -1192,7 +1194,6 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror1.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror1
-
 
         @_split_view = false
 
@@ -1484,7 +1485,7 @@ class CodeMirrorEditor extends FileEditor
         return false
 
     init_change_event: () =>
-        @codemirror.on 'change', (instance, changeObj) =>
+        @codemirror.on 'changes', () =>
             @has_unsaved_changes(true)
 
     _get: () =>
