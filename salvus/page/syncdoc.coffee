@@ -1120,20 +1120,26 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     elt = @elt_at_mark(mark)
                     if FLAGS.execute in flagstring
                         elt.data('execute',FLAGS.execute)
-                        # execute requested
-                        f = () ->
-                            if elt.data('execute') == FLAGS.execute
-                                elt.spin(true)
-                        setTimeout(f, 1500)
+                        g = () ->  #ugly use of closure -- ok for now -- TODO: clean up
+                            # execute requested
+                            elt0 = elt
+                            f = () ->
+                                if elt0.data('execute') not in ['done', FLAGS.running]
+                                    elt0.spin(true)
+                            setTimeout(f, 1000)
+                        g()
                     else if FLAGS.running in flagstring
                         elt.data('execute',FLAGS.running)
-                        f = () ->
-                            if elt.data('execute') == FLAGS.running
-                                elt.spin(color:'green')
-                        # code is running on remote local hub.
-                        setTimeout(f, 1500)
+                        g = () ->   #ugly use of closure -- ok for now -- TODO: clean up
+                            elt0 = elt
+                            f = () ->
+                                if elt0.data('execute') not in ['done', FLAGS.execute]
+                                    elt0.spin(color:'green')
+                            # code is running on remote local hub.
+                            setTimeout(f, 1000)
+                        g()
                     else
-                        elt.data('execute','')
+                        elt.data('execute','done')
                         # code is not running
                         elt.spin(false)
                     if FLAGS.hide_input in flagstring and FLAGS.hide_input not in mark.flagstring
