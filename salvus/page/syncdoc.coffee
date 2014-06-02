@@ -1050,7 +1050,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
     elt_at_mark: (mark) =>
         elt = mark.replacedWith
         if elt?
-            return $($(elt).children()[0])  # codemirror wraps the element -- maybe a bug in codemirror that it does this.
+            return $(elt)
 
     cm_wrapper: () =>
         if @_cm_wrapper?
@@ -1123,10 +1123,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         elt.spin(true)
                     else if FLAGS.running in flagstring
                         # code is running on remote local hub.
-                        elt.spin(color:'green')
+                        elt.spin(false)
+                        elt.icon_spin(start:true, delay:1000)
                     else
                         # code is not running
                         elt.spin(false)
+                        elt.icon_spin(start:false)
                     if FLAGS.hide_input in flagstring and FLAGS.hide_input not in mark.flagstring
                         @hide_input(line)
                     else if FLAGS.hide_input in mark.flagstring and FLAGS.hide_input not in flagstring

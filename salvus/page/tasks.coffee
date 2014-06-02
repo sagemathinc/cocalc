@@ -579,8 +579,12 @@ class TaskList
         elt_desc.after(elt)
         elt_desc.hide()
 
+        # this expansion is kind of hackish but makes the editor more usable.  Clean up later. 
+        e.find(".salvus-tasks-desc-column").removeClass("span7").addClass("span12")
+
         finished = false
         stop_editing = () =>
+            e.find(".salvus-tasks-desc-column").removeClass("span12").addClass("span7")
             finished = true
             e.removeClass('salvus-task-editing-desc')
             try
@@ -618,16 +622,17 @@ class TaskList
             extraKeys["Esc"] = stop_editing
 
         opts =
-            mode           : 'gfm'
-            lineNumbers    : false
-            theme          : editor_settings.theme
-            lineWrapping   : editor_settings.line_wrapping
-            matchBrackets  : editor_settings.match_brackets
-            indentUnit     : editor_settings.indent_unit
-            styleActiveLine: 15
-            tabSize        : editor_settings.tab_size
-            viewportMargin : Infinity
-            extraKeys      : extraKeys
+            mode                : 'gfm'
+            lineNumbers         : false
+            theme               : editor_settings.theme
+            lineWrapping        : editor_settings.line_wrapping
+            matchBrackets       : editor_settings.match_brackets
+            indentUnit          : editor_settings.indent_unit
+            styleActiveLine     : 15
+            tabSize             : editor_settings.tab_size
+            viewportMargin      : Infinity
+            extraKeys           : extraKeys
+
 
         if editor_settings.bindings != "standard"
             opts.keyMap = editor_settings.bindings
@@ -644,6 +649,9 @@ class TaskList
         elt.find("a[href=#save]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
             save_task()
             event.preventDefault()
+        elt.find(".CodeMirror-hscrollbar").remove()
+        elt.find(".CodeMirror-vscrollbar").remove()
+
         #elt.find("a[href=#cancel]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
         #    stop_editing()
         #    event.preventDefault()

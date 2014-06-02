@@ -2147,16 +2147,14 @@ def show_3d_plot_using_tachyon(obj, **kwds):
 from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
 
-def show(obj, svg=False, **kwds):
+def show(obj, svg=True, **kwds):
     """
     Show a 2d or 3d graphics object, animation, or matplotlib figure, or show an
     expression typeset nicely using LaTeX.
 
        - display: (default: True); if true use display math for expression (big and centered).
 
-       - svg: (default False); if True, render graphics using svg.  This is False by default,
-         since at least Google Chrome mis-renders this as empty:
-              line([(10, 0), (10, 15)], color='black').show(svg=True)
+       - svg: (default: True); if True, render graphics using svg.  
 
        - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly

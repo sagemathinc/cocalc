@@ -5741,7 +5741,8 @@
     // The padding-right forces the element to have a 'border', which
     // is needed on Webkit to be able to get line-level bounding
     // rectangles for it (in measureChar).
-    var content = elt("span", null, null, webkit ? "padding-right: .1px" : null);
+    /*var content = elt("span", null, null, webkit ? "padding-right: .1px" : null); */
+    var content = elt("span", null, null, null); 
     var builder = {pre: elt("pre", [content]), content: content, col: 0, pos: 0, cm: cm};
     lineView.measure = {};
 
