@@ -1973,6 +1973,10 @@ if program._name.split('.')[0] == 'local_hub'
     console.log("setting up conf path")
     init_confpath()
     init_info_json()
+
+    # empty the forever logfile -- it doesn't get reset on startup and easily gets huge.
+    fs.writeFileSync(program.forever_logfile, '')
+
     console.log("start daemon")
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:program.forever_logfile, max:1}, start_server)
     console.log("after daemon")
