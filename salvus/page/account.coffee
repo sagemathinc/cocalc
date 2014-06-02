@@ -390,6 +390,7 @@ $("#account").find("a[href=#sign-out]").click (event) ->
 ################################################
 
 EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
+                              'show_trailing_whitespace',
                               'line_wrapping',
                               'line_numbers',
                               'smart_indent',

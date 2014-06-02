@@ -565,6 +565,7 @@ exports.account_settings_defaults =
         confirm_close : false
     editor_settings    :
         strip_trailing_whitespace : false
+        show_trailing_whitespace  : true
         line_wrapping             : true
         line_numbers              : true
         smart_indent              : true

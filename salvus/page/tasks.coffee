@@ -579,7 +579,7 @@ class TaskList
         elt_desc.after(elt)
         elt_desc.hide()
 
-        # this expansion is kind of hackish but makes the editor more usable.  Clean up later. 
+        # this expansion is kind of hackish but makes the editor more usable.  Clean up later.
         e.find(".salvus-tasks-desc-column").removeClass("span7").addClass("span12")
 
         finished = false
@@ -630,6 +630,7 @@ class TaskList
             indentUnit          : editor_settings.indent_unit
             styleActiveLine     : 15
             tabSize             : editor_settings.tab_size
+            showTrailingSpace   : editor_settings.show_trailing_whitespace
             viewportMargin      : Infinity
             extraKeys           : extraKeys
 

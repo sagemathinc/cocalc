@@ -1050,6 +1050,7 @@ class CodeMirrorEditor extends FileEditor
             geometry                  : undefined  # (default=full screen);
             read_only                 : false
             delete_trailing_whitespace: editor_settings.strip_trailing_whitespace  # delete on save
+            show_trailing_whitespace  : editor_settings.show_trailing_whitespace
             allow_javascript_eval     : true  # if false, the one use of eval isn't allowed.
             line_numbers              : editor_settings.line_numbers
             first_line_number         : editor_settings.first_line_number
@@ -1129,6 +1130,9 @@ class CodeMirrorEditor extends FileEditor
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
+            #"Ctrl-Q"       : (cm) => cm.foldCode(cm.getCursor())
+
+
             #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
 
         # We will replace this by a general framework...
@@ -1146,6 +1150,7 @@ class CodeMirrorEditor extends FileEditor
                 autofocus               : false
                 mode                    : opts.mode
                 lineNumbers             : opts.line_numbers
+                showTrailingSpace       : opts.show_trailing_whitespace
                 indentUnit              : opts.indent_unit
                 tabSize                 : opts.tab_size
                 smartIndent             : opts.smart_indent
@@ -1160,6 +1165,8 @@ class CodeMirrorEditor extends FileEditor
                 showCursorWhenSelecting : true
                 extraKeys               : extraKeys
                 cursorScrollMargin      : 40
+                #foldGutter: true
+                #gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 
             if opts.bindings? and opts.bindings != "standard"
                 options.keyMap = opts.bindings
