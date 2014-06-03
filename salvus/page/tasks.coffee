@@ -179,7 +179,7 @@ class TaskList
         search = @selected_hashtags()
         for x in misc.split(@element.find(".salvus-tasks-search").val().toLowerCase())
             x = $.trim(x)
-            if x.length > 0
+            if x.length > 1
                 search.push(x)
         search_describe = @element.find(".salvus-tasks-search-describe")
         search_describe.find("span").hide()
