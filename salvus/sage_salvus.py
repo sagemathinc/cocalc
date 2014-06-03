@@ -15,6 +15,10 @@
 
 import copy, os, sys
 
+# This reduces a lot of confusion for Sage worksheets -- people expect
+# to be able to import from the current working directory.
+sys.path.append('.')
+
 salvus = None
 
 import json
@@ -2154,7 +2158,7 @@ def show(obj, svg=True, **kwds):
 
        - display: (default: True); if true use display math for expression (big and centered).
 
-       - svg: (default: True); if True, render graphics using svg.  
+       - svg: (default: True); if True, render graphics using svg.
 
        - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
@@ -2251,9 +2255,10 @@ def hideall(code=None):
 ##########################################################
 class Exercise:
     def __init__(self, question, answer, check=None, hints=None):
-        import sage.all, sage.matrix.all
+        import sage.all
+        from sage.structure.element import is_Matrix
         if not (isinstance(answer, (tuple, list)) and len(answer) == 2):
-            if sage.matrix.all.is_Matrix(answer):
+            if is_Matrix(answer):
                 default = sage.all.parent(answer)(0)
             else:
                 default = ''
@@ -2750,6 +2755,8 @@ def load(*args, **kwds):
         load('a.css', 'a.js', 'a.coffee', 'a.html')
         load('a.css a.js a.coffee a.html')
         load(['a.css', 'a.js', 'a.coffee', 'a.html'])
+
+    ALIAS: %runfile is the same as %load, for compatibility with IPython.
     """
     if len(args) == 1:
         if isinstance(args[0], (unicode,str)):
@@ -2797,7 +2804,8 @@ def load(*args, **kwds):
                 del salvus.namespace[t]
             except: pass
 
-
+# add alias, due to IPython.
+runfile = load
 
 ## Make it so pylab (matplotlib) figures display, at least using pylab.show
 import pylab

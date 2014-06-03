@@ -179,7 +179,7 @@ class TaskList
         search = @selected_hashtags()
         for x in misc.split(@element.find(".salvus-tasks-search").val().toLowerCase())
             x = $.trim(x)
-            if x.length > 0
+            if x.length > 1
                 search.push(x)
         search_describe = @element.find(".salvus-tasks-search-describe")
         search_describe.find("span").hide()
@@ -505,6 +505,7 @@ class TaskList
                         set   : {desc  : task.desc, last_edited : new Date() - 0}
                         where : {task_id : task.task_id}
                     @set_dirty()
+                    @set_current_task(task)
                 @display_desc(task)
                 return false
 
@@ -599,6 +600,9 @@ class TaskList
                 return
             desc = cm.getValue()
             stop_editing()
+
+            desc = desc.replace(/\[\]/g, '[ ]')  # [] --> [ ] on save, so that dynamic checkbox code is uniform; it might be better to do this during editing?
+
             if desc != task.desc
                 orig_desc = task.desc
                 task.desc = desc
