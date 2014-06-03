@@ -599,6 +599,9 @@ class TaskList
                 return
             desc = cm.getValue()
             stop_editing()
+
+            desc = desc.replace(/\[\]/g, '[ ]')  # [] --> [ ] on save, so that dynamic checkbox code is uniform; it might be better to do this during editing?
+
             if desc != task.desc
                 orig_desc = task.desc
                 task.desc = desc
