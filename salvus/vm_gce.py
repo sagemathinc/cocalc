@@ -277,7 +277,9 @@ class Instance(object):
             try:
                 os.popen("scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s %s:%s"%(host_filename, host[0], host_filename))
                 # success
-                connect_to.append(host[1])
+                # exclude most cloud servers to avoid crazy race conditions on restart... hopefully
+                if not host[1].startswith('cloud') or host[1] in ['cloud1', 'cloud7', 'cloud10', 'cloud21']:
+                    connect_to.append(host[1])
             except Exception, msg:
                 self.log("configure_tinc -- WARNING: unable to copy tinc key to %s -- %s", host, msg)
         # We do the copy in parallel, to save an enormous amount of time.
