@@ -2255,9 +2255,10 @@ def hideall(code=None):
 ##########################################################
 class Exercise:
     def __init__(self, question, answer, check=None, hints=None):
-        import sage.all, sage.matrix.all
+        import sage.all
+        from sage.structure.element import is_Matrix
         if not (isinstance(answer, (tuple, list)) and len(answer) == 2):
-            if sage.matrix.all.is_Matrix(answer):
+            if is_Matrix(answer):
                 default = sage.all.parent(answer)(0)
             else:
                 default = ''
