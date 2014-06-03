@@ -15,6 +15,10 @@
 
 import copy, os, sys
 
+# This reduces a lot of confusion for Sage worksheets -- people expect
+# to be able to import from the current working directory.
+sys.path.append('.')
+
 salvus = None
 
 import json
@@ -2154,7 +2158,7 @@ def show(obj, svg=True, **kwds):
 
        - display: (default: True); if true use display math for expression (big and centered).
 
-       - svg: (default: True); if True, render graphics using svg.  
+       - svg: (default: True); if True, render graphics using svg.
 
        - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
