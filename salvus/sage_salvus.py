@@ -2754,6 +2754,8 @@ def load(*args, **kwds):
         load('a.css', 'a.js', 'a.coffee', 'a.html')
         load('a.css a.js a.coffee a.html')
         load(['a.css', 'a.js', 'a.coffee', 'a.html'])
+
+    ALIAS: %runfile is the same as %load, for compatibility with IPython.
     """
     if len(args) == 1:
         if isinstance(args[0], (unicode,str)):
@@ -2801,7 +2803,8 @@ def load(*args, **kwds):
                 del salvus.namespace[t]
             except: pass
 
-
+# add alias, due to IPython.
+runfile = load
 
 ## Make it so pylab (matplotlib) figures display, at least using pylab.show
 import pylab
