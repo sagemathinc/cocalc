@@ -505,6 +505,7 @@ class TaskList
                         set   : {desc  : task.desc, last_edited : new Date() - 0}
                         where : {task_id : task.task_id}
                     @set_dirty()
+                    @set_current_task(task)
                 @display_desc(task)
                 return false
 
