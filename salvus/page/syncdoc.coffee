@@ -176,7 +176,10 @@ class DiffSyncHub
                     cb(err)
                 else if mesg.event != 'codemirror_diffsync'
                     # various error conditions, e.g., reconnect, etc.
-                    cb(mesg.event)
+                    if mesg.error?
+                        cb(mesg.error)
+                    else
+                        cb(true)
                 else
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 

@@ -1270,13 +1270,20 @@ class CodeMirrorSession
 
         # Message from some client reporting new edits, thus initiating a sync.
         ds_client = @diffsync_clients[mesg.client_id]
+
         if not ds_client?
             write_mesg('error', {error:"client #{mesg.client_id} not registered for synchronization"})
             return
 
-        if @_client_sync_lock or @_filesystem_sync_lock # or Math.random() <= .5 # (for testing)
-            winston.debug("client_diffsync hit a sync lock -- send retry message back")
+        if @_client_sync_lock # or Math.random() <= .5 # (for testing)
+            winston.debug("client_diffsync hit a click_sync_lock -- send retry message back")
             write_mesg('error', {error:"retry"})
+            return
+
+        if @_filesystem_sync_lock
+            winston.debug("client_diffsync hit a filesystem_sync_lock -- send retry message back")
+            write_mesg('error', {error:"retry"})
+            return
 
         @_client_sync_lock = true
         before = @content
