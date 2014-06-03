@@ -1,3 +1,6 @@
+// CodeMirror, copyright (c) by Marijn Haverbeke and others
+// Distributed under an MIT license: http://codemirror.net/LICENSE
+
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
     mod(require("../../lib/codemirror"), require("../fold/xml-fold"));
@@ -57,7 +60,7 @@
     var found = CodeMirror.findMatchingTag(cm, cm.getCursor());
     if (found) {
       var other = found.at == "close" ? found.open : found.close;
-      if (other) cm.setSelection(other.to, other.from);
+      if (other) cm.extendSelection(other.to, other.from);
     }
   };
 });

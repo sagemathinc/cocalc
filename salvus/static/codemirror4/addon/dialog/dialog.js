@@ -1,3 +1,6 @@
+// CodeMirror, copyright (c) by Marijn Haverbeke and others
+// Distributed under an MIT license: http://codemirror.net/LICENSE
+
 // Open simple dialogs on top of an editor. Relies on dialog.css.
 
 (function(mod) {
@@ -46,6 +49,7 @@
       CodeMirror.on(inp, "keydown", function(e) {
         if (options && options.onKeyDown && options.onKeyDown(e, inp.value, close)) { return; }
         if (e.keyCode == 13 || e.keyCode == 27) {
+          inp.blur();
           CodeMirror.e_stop(e);
           close();
           me.focus();

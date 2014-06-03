@@ -53,6 +53,7 @@ codemirror_associations =
     lua    : 'lua'
     m      : 'text/x-octave'
     md     : 'markdown'
+    ml     : 'text/x-ocaml'
     mysql  : 'text/x-sql'
     patch  : 'text/x-diff'
     gp     : 'text/pari'
@@ -1049,6 +1050,7 @@ class CodeMirrorEditor extends FileEditor
             geometry                  : undefined  # (default=full screen);
             read_only                 : false
             delete_trailing_whitespace: editor_settings.strip_trailing_whitespace  # delete on save
+            show_trailing_whitespace  : editor_settings.show_trailing_whitespace
             allow_javascript_eval     : true  # if false, the one use of eval isn't allowed.
             line_numbers              : editor_settings.line_numbers
             first_line_number         : editor_settings.first_line_number
@@ -1058,6 +1060,7 @@ class CodeMirrorEditor extends FileEditor
             electric_chars            : editor_settings.electric_chars
             undo_depth                : editor_settings.undo_depth
             match_brackets            : editor_settings.match_brackets
+            auto_close_brackets       : editor_settings.auto_close_brackets
             line_wrapping             : editor_settings.line_wrapping
             spaces_instead_of_tabs    : editor_settings.spaces_instead_of_tabs
             style_active_line         : 15    # editor_settings.style_active_line  # (a number between 0 and 127)
@@ -1127,6 +1130,11 @@ class CodeMirrorEditor extends FileEditor
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
+            #"Ctrl-Q"       : (cm) => cm.foldCode(cm.getCursor())
+
+
+            #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
+
         # We will replace this by a general framework...
         if misc.filename_extension(filename) == "sagews"
             evaluate_key = require('account').account_settings.settings.evaluate_key.toLowerCase()
@@ -1138,22 +1146,27 @@ class CodeMirrorEditor extends FileEditor
 
         make_editor = (node) =>
             options =
-                firstLineNumber : opts.first_line_number
-                autofocus       : false
-                mode            : opts.mode
-                lineNumbers     : opts.line_numbers
-                indentUnit      : opts.indent_unit
-                tabSize         : opts.tab_size
-                smartIndent     : opts.smart_indent
-                electricChars   : opts.electric_chars
-                undoDepth       : opts.undo_depth
-                matchBrackets   : opts.match_brackets
-                lineWrapping    : opts.line_wrapping
-                readOnly        : opts.read_only
-                styleActiveLine : opts.style_active_line
-                indentWithTabs  : not opts.spaces_instead_of_tabs
-                extraKeys       : extraKeys
-                cursorScrollMargin : 40
+                firstLineNumber         : opts.first_line_number
+                autofocus               : false
+                mode                    : opts.mode
+                lineNumbers             : opts.line_numbers
+                showTrailingSpace       : opts.show_trailing_whitespace
+                indentUnit              : opts.indent_unit
+                tabSize                 : opts.tab_size
+                smartIndent             : opts.smart_indent
+                electricChars           : opts.electric_chars
+                undoDepth               : opts.undo_depth
+                matchBrackets           : opts.match_brackets
+                autoCloseBrackets       : opts.auto_close_brackets
+                lineWrapping            : opts.line_wrapping
+                readOnly                : opts.read_only
+                styleActiveLine         : opts.style_active_line
+                indentWithTabs          : not opts.spaces_instead_of_tabs
+                showCursorWhenSelecting : true
+                extraKeys               : extraKeys
+                cursorScrollMargin      : 40
+                #foldGutter: true
+                #gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 
             if opts.bindings? and opts.bindings != "standard"
                 options.keyMap = opts.bindings
@@ -1188,7 +1201,6 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror1.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror1
-
 
         @_split_view = false
 
@@ -1480,7 +1492,7 @@ class CodeMirrorEditor extends FileEditor
         return false
 
     init_change_event: () =>
-        @codemirror.on 'change', (instance, changeObj) =>
+        @codemirror.on 'changes', () =>
             @has_unsaved_changes(true)
 
     _get: () =>

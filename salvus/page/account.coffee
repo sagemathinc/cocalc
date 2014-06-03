@@ -293,7 +293,6 @@ sign_in = () ->
         email_address : $("#sign_in-email").val()
         password      : $("#sign_in-password").val()
         remember_me   : true
-        timeout       : 10
         cb            : (error, mesg) ->
             if error
                 alert_message(type:"error", message: "There was an unexpected error during sign in.  Please try again later. #{error}")
@@ -370,7 +369,6 @@ sign_out = () ->
     # requested to sign out.  The server must clean up resources
     # and *invalidate* the remember_me cookie for this client.
     salvus_client.sign_out
-        timeout : 10
         cb      : (error) ->
             if error
                 alert_message(type:"error", message:error)
@@ -392,10 +390,12 @@ $("#account").find("a[href=#sign-out]").click (event) ->
 ################################################
 
 EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
+                              'show_trailing_whitespace',
                               'line_wrapping',
                               'line_numbers',
                               'smart_indent',
                               'match_brackets',
+                              'auto_close_brackets',
                               'electric_chars',
                               'spaces_instead_of_tabs']
 
@@ -520,7 +520,7 @@ class AccountSettings
             if typeof(def) == "object"
                 if not value?
                     value = {}
-                @settings[prop] = value = misc.defaults(value, def)
+                @settings[prop] = value = misc.defaults(value, def, true)
 
             element = $("#account-settings-#{prop}")
             switch prop

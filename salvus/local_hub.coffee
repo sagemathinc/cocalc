@@ -1877,8 +1877,8 @@ start_kill_monitor = (cb) ->
     # Start a monitor that periodically checks for some sort of client-initiated hub activity.
     # If there is none for program.timeout seconds, then all processes running as this user
     # are killed (including this local hub, of course).
-    if not program.timeout or process.env['USER'].length != 8   # 8 = length of SMC accounts... this excludes 'wstein' (say)
-        winston.debug("Not setting kill monitor")
+    if not program.timeout or process.env['USER'].length != 32   # 32 = length of SMC accounts...
+        winston.info("Not setting kill monitor")
         cb()
         return
 
@@ -1903,9 +1903,53 @@ start_kill_monitor = (cb) ->
     setInterval(kill_if_inactive, 30000)
     cb()
 
+# Truncate the ~/.sagemathcloud.log if it exceeds a certain length threshhold.
+SAGEMATHCLOUD_LOG_THRESH = 5000 # log grows to at most 50% more than this
+SAGEMATHCLOUD_LOG_FILE = process.env['HOME'] + '/.sagemathcloud.log'
+log_truncate = (cb) ->
+    data = undefined
+    winston.info("log_truncate: checking that logfile isn't too long")
+    exists = undefined
+    async.series([
+        (cb) ->
+            fs.exists SAGEMATHCLOUD_LOG_FILE, (_exists) ->
+                exists = _exists
+                cb()
+        (cb) ->
+            if not exists
+                cb(); return
+            # read the log file
+            fs.readFile SAGEMATHCLOUD_LOG_FILE, (err, _data) ->
+                data = _data.toString()
+                cb(err)
+        (cb) ->
+            if not exists
+                cb(); return
+            # if number of lines exceeds 50% more than MAX_LINES
+            n = misc.count(data, '\n')
+            if n  >= SAGEMATHCLOUD_LOG_THRESH * 1.5
+                winston.debug("log_truncate: truncating log file to #{SAGEMATHCLOUD_LOG_THRESH} lines")
+                v = data.split('\n')  # the -1 below is since last entry is a blank line
+                new_data = v.slice(n - SAGEMATHCLOUD_LOG_THRESH, v.length-1).join('\n')
+                fs.writeFile(SAGEMATHCLOUD_LOG_FILE, new_data, cb)
+            else
+                cb()
+    ], cb)
+
+start_log_truncate = (cb) ->
+    winston.info("start_log_truncate")
+    f = (c) ->
+        winston.debug("calling log_truncate")
+        log_truncate (err) ->
+            if err
+                winston.debug("ERROR: problem truncating log -- #{err}")
+            c()
+    setInterval(f, 1000*3600*12)   # once every 12 hours
+    f(cb)
+
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
-    async.series [start_kill_monitor, start_tcp_server, start_raw_server], (err) ->
+    async.series [start_log_truncate, start_kill_monitor, start_tcp_server, start_raw_server], (err) ->
         if err
             winston.debug("Error starting a server -- #{err}")
         else
@@ -1938,6 +1982,10 @@ if program._name.split('.')[0] == 'local_hub'
     console.log("setting up conf path")
     init_confpath()
     init_info_json()
+
+    # empty the forever logfile -- it doesn't get reset on startup and easily gets huge.
+    fs.writeFileSync(program.forever_logfile, '')
+
     console.log("start daemon")
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:program.forever_logfile, max:1}, start_server)
     console.log("after daemon")

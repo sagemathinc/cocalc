@@ -1,3 +1,6 @@
+// CodeMirror, copyright (c) by Marijn Haverbeke and others
+// Distributed under an MIT license: http://codemirror.net/LICENSE
+
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
     mod(require("../../lib/codemirror"));
@@ -48,6 +51,8 @@ CodeMirror.defineMode("toml", function () {
         return 'bracket';
       } else if (state.lhs && stream.peek() === '[' && stream.skipTo(']')) {
         stream.next();//skip closing ]
+        // array of objects has an extra open & close []
+        if (stream.peek() === ']') stream.next();
         return "atom";
       } else if (stream.peek() === "#") {
         stream.skipToEnd();

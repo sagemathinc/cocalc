@@ -393,6 +393,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                             <div class="row span3">
                                 <select class="account-settings-editor-bindings">
                                     <option value="standard">Standard</option>
+                                    <option value="sublime">Sublime</option>
                                     <option value="vim">Vim</option>
                                     <option value="emacs">Emacs</option>
                                 </select>
@@ -449,9 +450,27 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 
                         <div class="row">
                             <div class="row span5">
+                                <label class="checkbox" rel="tooltip" title="Whether the editor should automatically add the closing bracket.">
+                                    <input type="checkbox" checked="checked" class="account-settings-auto_close_brackets">Auto brackets:
+                                    <span class="lighten">automatically close brackets</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="row span5">
                                 <label class="checkbox" rel="tooltip" title="If checked, trailing whitespace will be stripped from files when they are saved.">
                                     <input type="checkbox" checked="checked" class="account-settings-strip_trailing_whitespace">Delete trailing whitespace:
                                     <span class="lighten">remove whenever file is saved</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="row span5">
+                                <label class="checkbox" rel="tooltip" title="Show trailing whitespace at the ends of lines.">
+                                    <input type="checkbox" checked="checked" class="account-settings-show_trailing_whitespace">Show trailing whitespace:
+                                    <span class="lighten">show spaces at ends of lines</span>
                                 </label>
                             </div>
                         </div>
@@ -465,6 +484,11 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                             </div>
                         </div>
 
+                        <div class="row">
+                            <div class="row span5">
+                                Multiple cursors: <span class="lighten">control+click in several places to create multiple cursors (command+click on Mac)</a>
+                            </div>
+                        </div>
                     </div>
 
 
