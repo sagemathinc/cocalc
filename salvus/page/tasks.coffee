@@ -510,7 +510,7 @@ class TaskList
         if i?
             i -= 1
             if i < 0
-                i = @_visible_tasks.length - 1
+                i = 0
             @set_current_task(@_visible_tasks[i])
 
     set_current_task_next: () =>
@@ -518,7 +518,7 @@ class TaskList
         if i?
             i += 1
             if i >= @_visible_tasks.length
-                i = 0
+                i = @_visible_tasks.length - 1
             @set_current_task(@_visible_tasks[i])
 
     move_current_task_down: () =>
