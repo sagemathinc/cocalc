@@ -940,6 +940,7 @@ class CodeMirrorSession
                 socket.write_mesg('json',
                     message.execute_code
                         id       : output_id
+                        cell_id  : id         # extra info -- which cell is running
                         code     : code
                         preparse : true
                 )

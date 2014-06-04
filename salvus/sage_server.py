@@ -429,12 +429,13 @@ class Salvus(object):
     def __repr__(self):
         return ''
 
-    def __init__(self, conn, id, data=None, message_queue=None):
+    def __init__(self, conn, id, data=None, cell_id=None, message_queue=None):
         self._conn = conn
         self._num_output_messages = 0
         self._id   = id
         self._done = True    # done=self._done when last execute message is sent; e.g., set self._done = False to not close cell on code term.
         self.data = data
+        self.cell_id = cell_id
         self.namespace = namespace
         self.message_queue = message_queue
         self.code_decorators = [] # gets reset if there are code decorators
@@ -1079,9 +1080,9 @@ class Salvus(object):
 
 Salvus.pdf.__func__.__doc__ = sage_salvus.show_pdf.__doc__
 
-def execute(conn, id, code, data, preparse, message_queue):
+def execute(conn, id, code, data, cell_id, preparse, message_queue):
 
-    salvus = Salvus(conn=conn, id=id, data=data, message_queue=message_queue)
+    salvus = Salvus(conn=conn, id=id, data=data, message_queue=message_queue, cell_id=cell_id)
     salvus.start_executing()
 
     try:
@@ -1209,7 +1210,13 @@ def session(conn):
                 return
             elif event == 'execute_code':
                 try:
-                    execute(conn=conn, id=mesg['id'], code=mesg['code'], data=mesg.get('data',None), preparse=mesg['preparse'], message_queue=mq)
+                    execute(conn          = conn,
+                            id            = mesg['id'],
+                            code          = mesg['code'],
+                            data          = mesg.get('data',None),
+                            cell_id       = mesg.get('cell_id',None),
+                            preparse      = mesg['preparse'],
+                            message_queue = mq)
                 except:
                     pass
             elif event == 'introspect':
