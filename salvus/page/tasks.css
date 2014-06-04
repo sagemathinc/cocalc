@@ -22,7 +22,6 @@
 
 .salvus-task-desc:hover {
     cursor : text;
-    color : #000;
 }
 
 .salvus-tasks-desc-edit {
@@ -45,8 +44,12 @@
 }
 
 .salvus-task-icon-done-box {
-    font-size:15pt;
+    font-size:17pt;
     color:#888;
+}
+
+.salvus-task-icon-done-box:hover {
+    color: #51a7e8
 }
 
 
@@ -168,7 +171,12 @@
 }
 
 .salvus-task-delete {
-    font-size:13pt;
+    font-size:15pt;
+    color:#888;
+}
+
+.salvus-task-delete:hover {
+    color : red;
 }
 
 .salvus-task-deleted {

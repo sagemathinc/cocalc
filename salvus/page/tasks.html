@@ -70,34 +70,20 @@
     </div>
 
     <div class="row-fluid salvus-task">
-        <div class="span7 salvus-tasks-desc-column">
+        <div class="span8 salvus-tasks-desc-column">
             <i class="fa fa-reorder salvus-task-reorder-handle pull-left"> </i>
-            <i class="fa fa-check-square-o salvus-task-viewer-done  salvus-task-icon-done-box hide pull-left " style="margin-right: 1ex !important;"> </i>
-            <i class="fa fa-square-o salvus-task-viewer-not-done salvus-task-icon-done-box pull-left " style="margin-right: 1ex !important;"> </i>
+            <i class="fa fa-check-square-o salvus-task-viewer-done  salvus-task-icon-done-box hide pull-left"> </i>
+            <i class="fa fa-square-o salvus-task-viewer-not-done salvus-task-icon-done-box pull-left "> </i>
+            <i class="fa fa-trash-o  salvus-task-delete pull-left"  style="margin-right: 1ex !important;"> </i>
             <a class='btn btn-danger salvus-task-undelete hide'><i class="fa fa-trash-o"> </i> Undelete</a>
 
 
             <i class="fa fa-caret-left salvus-task-toggle-icon pull-right hide"> </i>
             <i class="fa fa-caret-down salvus-task-toggle-icon  pull-right"> </i>
+
             <span class="salvus-task-desc"></span>
         </div>
-        <div class="span1">
-            <span class='salvus-task-buttons btn-group hide' style="margin-top: -4px;">  <!-- ugly fake vertical center for now -->
-                <!--
-<i class="fa fa-fast-backward fa-rotate-90 salvus-task-icon salvus-task-to-top-icon"> </i>
-<i class="fa fa-fast-forward fa-rotate-90  salvus-task-icon salvus-task-to-bottom-icon"> </i>
--->
-                <a class="btn btn-small">
-                    <span class="salvus-task-active-button">
-                        <i class="fa fa-clock-o salvus-task-icon salvus-task-icon-active"> </i>
-                        <span class="salvus-task-active hide"></span>
-                    </span>
-                </a>
-                <a class="btn btn-small">
-                    <i class="fa fa-trash-o  salvus-task-icon salvus-task-delete"> </i>
-                </a>
-            </span>
-        </div>
+
         <div class="span2 salvus-task-due-div">
             <span class="salvus-task-due">none</span>
             <i class="fa fa-times salvus-task-icon salvus-task-due-clear hide"> </i>
@@ -114,8 +100,8 @@
         <div class="salvus-tasks-desc-edit">
             <textarea></textarea>
             <div class="row-fluid">
-                <div class="offset1 span6">
-                    <a class="btn btn-success" style="margin-bottom:1ex" href="#save"  data-toggle="tooltip" data-placement="bottom" title="or press shift+enter">Finished (shift+enter)</a>
+                <div class="span6 offset1">
+                    <a class="btn" style="margin-bottom:1ex" href="#save"  data-toggle="tooltip" data-placement="bottom" title="or press shift+enter">Close</a>
                 </div>
                 <!--<div class="span8">
                     <span style="color:#999">Use <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>, LaTeX, <tt>#tag</tt> to create hashtag labels, and [ ] and [x] to create checklists, then press shift+enter.</span>
