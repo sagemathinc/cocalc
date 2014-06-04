@@ -348,7 +348,7 @@ class Project(object):
             self.chown(self.project_mnt)
         else:
             src = os.path.join(self.snap_mnt, self.branch, snapshot)+'/'
-            self.cmd(['rsync', '-axH', '--delete', self.exclude(src), src, self.project_mnt+'/'])
+            self.cmd(['rsync', '-axH', '--delete-excluded', '--delete', self.exclude(src), src, self.project_mnt+'/'])
 
     def umount_snapshots(self):
         self.cmd(['fusermount', '-uz', self.snap_mnt], ignore_errors=True)
@@ -447,7 +447,7 @@ class Project(object):
         shutil.rmtree(self.bup_path)
 
     def exclude(self, prefix):
-        excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots', 'core']
+        excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots']
         return ['--exclude=%s'%(prefix+x) for x in excludes]
 
     def save(self, path=None, timestamp=None, branch=None, sync=True, mnt=True, targets=""):
@@ -811,7 +811,7 @@ class Project(object):
 
         if os.path.exists(self.project_mnt):
             def f(ignore_errors):
-                o = self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "--delete", "--ignore-errors"] + self.exclude('') +
+                o = self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, '--delete-excluded', "--delete", "--ignore-errors"] + self.exclude('') +
                           ['-e', 'ssh -o StrictHostKeyChecking=no',
                           self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=True)
                 # include only lines that don't contain any of the following errors, since permission denied errors are standard with
@@ -839,7 +839,7 @@ class Project(object):
 
         if destructive:
             log("push so that remote=local: easier; have to do this after a recompact (say)")
-            self.cmd(["rsync", "-axH", "--delete", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no',
+            self.cmd(["rsync", "-axH", '--delete-excluded', "--delete", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no',
                       self.bup_path+'/', "root@%s:%s/"%(remote, remote_bup_path)])
             return
 
