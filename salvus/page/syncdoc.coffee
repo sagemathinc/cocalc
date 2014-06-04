@@ -1305,7 +1305,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
         if mesg.html?
-            output.append($("<span class='sagews-output-html'>").html(mesg.html).mathjax())
+            e = $("<span class='sagews-output-html'>").html(mesg.html).mathjax()
+            output.append(e)
+            e.find('a').attr("target","_blank") # make all links open in a new tab
+            e.find("table").addClass('table')   # makes bootstrap tables look MUCH nicer
 
         if mesg.interact?
             @interact(output, mesg.interact)
