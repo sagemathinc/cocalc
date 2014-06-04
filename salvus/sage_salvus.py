@@ -1357,7 +1357,7 @@ class Time:
 
     def after(self, code):
         from sage.all import walltime, cputime
-        print "CPU time: %.2f s, Wall time: %.2f s"%(walltime(self._start_walltime), cputime(self._start_cputime))
+        print "CPU time: %.2f s, Wall time: %.2f s"%( cputime(self._start_cputime), walltime(self._start_walltime))
         self._start_cputime = self._start_walltime = None
 
     def __call__(self, code):
@@ -3026,3 +3026,61 @@ def magics(dummy=None):
     else:
         for s in v:
             print(s)
+
+########################################################
+# Go magic
+########################################################
+def go(s):
+    """
+    Run a go program.  For example,
+
+        %go
+        func main() { fmt.Println("Hello World") }
+
+    You can set the whole worksheet to be in go mode by typing
+
+        %default_mode go
+
+    NOTES:
+
+    - There is no relation between one cell and the next.  Each is a separate
+      self-contained go program, which gets compiled and run, with the only
+      side effects being changes to the filesystem.  The program itself is
+      stored in a random file that is deleted after it is run.
+
+    - The %go command automatically adds 'package main' and 'import "fmt"'
+      (if fmt. is used) to the top of the program, since the assumption
+      is that you're using %go interactively.
+
+    - When you use %go in a cell, it should be properly syntax highlighted.
+    """
+    import uuid
+    name = str(uuid.uuid4())
+    if 'fmt.' in s and '"fmt"' not in s and "'fmt'" not in s:
+        s = 'import "fmt"\n' + s
+    if 'package main' not in s:
+        s = 'package main\n' + s
+    try:
+        open(name +'.go','w').write(s.encode("UTF-8"))
+        (child_stdin, child_stdout, child_stderr) = os.popen3('go build %s.go'%name)
+        err = child_stderr.read()
+        sys.stdout.write(child_stdout.read())
+        sys.stderr.write(err)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        if not os.path.exists(name): # failed to produce executable
+            return
+        (child_stdin, child_stdout, child_stderr) = os.popen3("./" + name)
+        sys.stdout.write(child_stdout.read())
+        sys.stderr.write(child_stderr.read())
+        sys.stdout.flush()
+        sys.stderr.flush()
+    finally:
+        try:
+            os.unlink(name+'.go')
+        except:
+            pass
+        try:
+            os.unlink(name)
+        except:
+            pass

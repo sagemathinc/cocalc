@@ -164,6 +164,7 @@ sagews_decorator_modes = [
     ['lisp'        , 'ecl'],
     ['md'          , 'markdown'],
     ['gp'          , 'text/pari'],
+    ['go'          , 'text/x-go']
     ['perl'        , 'text/x-perl'],
     ['python3'     , 'python'],
     ['python'      , 'python'],
