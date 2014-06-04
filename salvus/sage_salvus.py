@@ -2987,3 +2987,42 @@ def sage_chat(chatroom=None, height="258px"):
     <iframe src="/static/webrtc/index.html?%s" height="%s" width="100%%"></iframe>
     """%(chatroom, height), hide=False)
 
+
+########################################################
+# Documentation of magics
+########################################################
+def magics(dummy=None):
+    """
+    Type %magics to print all SageMathCloud magic commands or
+    magics() to get a list of them.
+
+    To use a magic command, either type
+
+        %command <a line of code>
+
+    or
+
+        %command
+        [rest of cell]
+
+    Create your own magic command by dedefining a function that takes
+    a string as input and outputs a string. (Yes, it is that simple.)
+    """
+    import re
+    magic_cmds = set()
+    for s in open(os.path.realpath(__file__), 'r').xreadlines():
+        s = s.strip()
+        if s.startswith('%'):
+            magic_cmds.add(re.findall(r'%[a-zA-Z]+', s)[0])
+    magic_cmds.discard('%s')
+    for k,v in sage.interfaces.all.__dict__.iteritems():
+        if isinstance(v, sage.interfaces.expect.Expect):
+            magic_cmds.add('%'+k)
+    magic_cmds.update(['%cython', '%time', '%magics', '%auto', '%hide', '%hideall',
+                       '%fork', '%runfile', '%default_mode', '%typeset_mode'])
+    v = list(sorted(magic_cmds))
+    if dummy is None:
+        return v
+    else:
+        for s in v:
+            print(s)
