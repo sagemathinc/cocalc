@@ -20,6 +20,10 @@
     margin-right: 1ex;
 }
 
+.salvus-connection-status-protocol-bad {
+    color : #f55;
+}
+
 .salvus-top_navbar {
     font-size: 14px;
 }
