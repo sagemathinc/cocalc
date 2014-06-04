@@ -3043,6 +3043,10 @@ def go(s):
 
     NOTES:
 
+    - The official Go tutorial as a long Sage Worksheet is available here:
+
+        https://github.com/sagemath/cloud-examples/tree/master/go
+
     - There is no relation between one cell and the next.  Each is a separate
       self-contained go program, which gets compiled and run, with the only
       side effects being changes to the filesystem.  The program itself is
@@ -3051,8 +3055,6 @@ def go(s):
     - The %go command automatically adds 'package main' and 'import "fmt"'
       (if fmt. is used) to the top of the program, since the assumption
       is that you're using %go interactively.
-
-    - When you use %go in a cell, it should be properly syntax highlighted.
     """
     import uuid
     name = str(uuid.uuid4())
