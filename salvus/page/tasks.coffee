@@ -140,9 +140,11 @@ class TaskList
         @parse_hashtags()
         bar = @element.find(".salvus-tasks-hashtag-bar")
         bar.empty()
-        if @hashtags.length == 0
-            bar.hide()
+        if not @hashtags? or misc.len(@hashtags) == 0
+            @element.find(".salvus-tasks-hashtags").hide()
             return
+        else
+            @element.find(".salvus-tasks-hashtags").show()
 
         click_hashtag = (event) =>
             button = $(event.delegateTarget)
@@ -379,9 +381,9 @@ class TaskList
             if task.deleted
                 # nothing to do
                 return
-            bootbox.confirm "<h3><i class='fa fa-trash-o'> </i> Delete task?</h3><hr><span class='lighten'>View deleted tasks by clicking the deleted checkbox in the upper right.</span>", (result) =>
-                if result
-                    @delete_task(task, not t.find(".salvus-task-delete").hasClass('salvus-task-deleted'))
+            #bootbox.confirm "<h3><i class='fa fa-trash-o'> </i> Delete task?</h3><hr><span class='lighten'>View deleted tasks by clicking the deleted checkbox in the upper right.</span>", (result) =>
+            #    if result
+            @delete_task(task, not t.find(".salvus-task-delete").hasClass('salvus-task-deleted'))
         t.find(".salvus-task-undelete").click () =>
             @set_current_task(task)
             @delete_task(task, false)
@@ -553,11 +555,11 @@ class TaskList
         elt_desc.hide()
 
         # this expansion is kind of hackish but makes the editor more usable.  Clean up later.
-        e.find(".salvus-tasks-desc-column").removeClass("span8").addClass("span12")
+        e.find(".salvus-tasks-desc-column").removeClass("span7").addClass("span11")
 
         finished = false
         stop_editing = () =>
-            e.find(".salvus-tasks-desc-column").removeClass("span12").addClass("span8")
+            e.find(".salvus-tasks-desc-column").removeClass("span11").addClass("span7")
             finished = true
             e.removeClass('salvus-task-editing-desc')
             try
