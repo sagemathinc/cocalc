@@ -73,6 +73,22 @@ class TaskList
                         @save_button.text("Readonly")
                         @element.find("a[href=#create-task]").remove()
                     @tasks = @db.select()
+
+                    # ensure task_id's are unique (TODO: does it make sense for this code to be here instead of somewhere else?)
+                    v = {}
+                    badness = false
+                    for t in @tasks
+                        if not t.task_id?
+                            @db.delete({task_id : undefined})
+                            badness = true
+                        else if v[t.task_id]?
+                            @db.delete_one({task_id : t.task_id})
+                            badness = true
+                        else
+                            v[t.task_id] = true
+                    if badness
+                        @tasks = @db.select()
+
                     @render_hashtag_bar()
                     @render_task_list()
                     @element.find(".salvus-tasks-loading").remove()
@@ -805,7 +821,9 @@ class TaskList
             last_edited : new Date() - 0
 
         task_id = uuid()
-        @db.update(set:task, where:{task_id : task_id})
+        @db.update
+            set   : task
+            where : {task_id : task_id}
         task.task_id = task_id
         @tasks.push(task)
 
