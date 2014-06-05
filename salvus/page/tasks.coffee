@@ -459,18 +459,6 @@ class TaskList
         if task.last_edited
             task.element.find(".salvus-task-last-edited").attr('title',(new Date(task.last_edited)).toISOString()).timeago()
 
-    display_due_date: (task) =>
-        e = task.element.find(".salvus-task-due")
-        if task.due_date
-            task.element.find(".salvus-task-due-clear").show()
-            d = new Date(0)   # see http://stackoverflow.com/questions/4631928/convert-utc-epoch-to-local-date-with-javascript
-            d.setUTCMilliseconds(task.due_date)
-            e.attr('title',d.toISOString()).timeago()
-            if d < new Date()
-                e.addClass("salvus-task-overdue")
-        else
-            e.timeago('dispose').text("none")
-            task.element.find(".salvus-task-due-clear").hide()
 
     click_hashtag_in_desc: (event) =>
         tag = $(event.delegateTarget).text().slice(1).toLowerCase()
@@ -785,7 +773,7 @@ class TaskList
         else
             picker.setLocalDate(new Date())
         elt.on 'changeDate', (e) =>
-            task.due_date = e.localDate - 0
+            @set_due_date(task, e.localDate - 0)
             @display_due_date(task)
         # This is truly horrendous - but I just wanted to get this particular
         # date picker to work.  This can easily be slotted out with something better later.
@@ -807,6 +795,23 @@ class TaskList
             set   : {due_date : due_date}
             where : {task_id : task.task_id}
         @set_dirty()
+
+    display_due_date: (task) =>
+        e = task.element.find(".salvus-task-due")
+        if e.text() != 'none'
+            e.timeago('dispose').text("none")
+            f = task_template.find(".salvus-task-due").clone()
+            e.replaceWith(f)
+            e = f
+        if task.due_date
+            task.element.find(".salvus-task-due-clear").show()
+            d = new Date(0)   # see http://stackoverflow.com/questions/4631928/convert-utc-epoch-to-local-date-with-javascript
+            d.setUTCMilliseconds(task.due_date)
+            e.attr('title',d.toISOString()).timeago()
+            if d < new Date()
+                e.addClass("salvus-task-overdue")
+        else
+            task.element.find(".salvus-task-due-clear").hide()
 
     display_done: (task) =>
         if task.done
