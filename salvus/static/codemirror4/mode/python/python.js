@@ -103,8 +103,8 @@
       var ch = stream.peek();
 
       // Handle Comments
-      if (ch == "#") {
-        stream.skipToEnd();
+      if (ch == "#"  || ch == "\uFE21") {
+          stream.skipToEnd();
         return "comment";
       }
 
@@ -224,6 +224,7 @@
       offset = top(state).offset + (type == "py" ? conf.indentUnit : hangingIndent);
       if (type != "py" && !stream.match(/^(\s|#.*)*$/, false))
         align = stream.column() + 1;
+      console.log('align =', align);
       state.scopes.push({offset: offset, type: type, align: align});
     }
 
@@ -313,15 +314,21 @@
       },
 
       indent: function(state, textAfter) {
-        if (state.tokenize != tokenBase)
+        console.log('indent')
+        if (state.tokenize != tokenBase) {
+          console.log(0,state.tokenize.isString ? CodeMirror.Pass : 0);
           return state.tokenize.isString ? CodeMirror.Pass : 0;
+        }
 
         var scope = top(state);
         var closing = textAfter && textAfter.charAt(0) == scope.type;
-        if (scope.align != null)
+        if (scope.align != null) {
+          console.log(1, scope.align, closing, scope.align - (closing ? 1 : 0));
           return scope.align - (closing ? 1 : 0);
-        else
+        } else {
+          console.log(2,scope.offset - (closing ? conf.indentUnit : 0))
           return scope.offset - (closing ? conf.indentUnit : 0);
+        }
       },
 
       lineComment: "#",
