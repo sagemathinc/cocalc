@@ -519,7 +519,7 @@ class TaskList
         i = @get_current_task_visible_index()
         if i > 0
             task = @current_task
-            @set_current_task_next()
+            @set_current_task_prev()
             @custom_sort_order()
             @save_task_position(task, @tasks[0].position-1)
             @render_task_list()
@@ -530,7 +530,7 @@ class TaskList
         i = @get_current_task_visible_index()
         if i < @_visible_tasks.length-1
             task = @current_task
-            @set_current_task_prev()
+            @set_current_task_next()
             if task.done
                 # put at very bottom
                 p = @tasks[@tasks.length-1].position + 1
@@ -802,13 +802,15 @@ class TaskList
             event.preventDefault()
 
     init_move_task_to_top: () =>
-        @element.find("a[href=#move-task-to-top]").click (event) =>
-            @move_current_task_to_top()
+        b = @element.find("a[href=#move-task-to-top]").click (event) =>
+            if not b.hasClass('disabled')
+                @move_current_task_to_top()
             event.preventDefault()
 
     init_move_task_to_bottom: () =>
-        @element.find("a[href=#move-task-to-bottom]").click (event) =>
-            @move_current_task_to_bottom()
+        b = @element.find("a[href=#move-task-to-bottom]").click (event) =>
+            if not b.hasClass('disabled')
+                @move_current_task_to_bottom()
             event.preventDefault()
 
     set_showing_done: (showing) =>
@@ -913,6 +915,12 @@ class TaskList
         heading.find(".fa-sort-desc").hide()
         # show ours
         heading.find(".salvus-task-sort-#{@sort_order.heading}").addClass('salvus-task-header-current').find(".fa-sort-#{@sort_order.dir}").show()
+        # disable to bottom and to top buttons if not in position sort order
+        b = @element.find(".salvus-tasks-buttons-pos-move")
+        if @sort_order.heading == 'custom'
+            b.removeClass('disabled')
+        else
+            b.addClass('disabled')
 
     click_sort_by: (column) =>
         if @sort_order.heading == column
