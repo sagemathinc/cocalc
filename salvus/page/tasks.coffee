@@ -208,7 +208,7 @@ class TaskList
         if not @current_task?
             task_id = @local_storage("current_task")
             if task_id?
-                @current_task = @get_task_by_id(task_id)
+                @set_current_task_by_id(task_id)
 
         for task in @tasks
             if task.done and not @showing_done
@@ -470,6 +470,13 @@ class TaskList
             task.element.addClass("salvus-current-task")
             task.element.scrollintoview()
 
+    get_current_task_index: () =>
+        if not @current_task?
+            return
+        for i in [0...@tasks.length]  # TODO: could maintain a map
+            if @tasks[i].task_id == @current_task.task_id
+                return i
+
     get_current_task_visible_index: () =>
         if not @current_task?
             return
@@ -554,7 +561,11 @@ class TaskList
 
     edit_desc: (task) =>
         if not task?
+            task = @current_task
+        if not task?
             task = @_visible_tasks[0]
+        if not task?
+            return
         e = task.element
         if e.hasClass('salvus-task-editing-desc')
             return
@@ -763,11 +774,26 @@ class TaskList
     create_task: () =>
         if @readonly
             return
-        p = 0
-        for t in @tasks
-            if t.position < p
-                p = t.position
-        position = p - 1
+
+        # we create the task after the current task
+        p0 = @current_task?.position
+        if p0?
+            # set p1 to the smallest position that is bigger than the position of the current task
+            p1 = undefined
+            for t in @tasks
+                if t.position > p0 and (not p1? or t.position < p1)
+                    p1 = t.position
+            if p1? and p1>p0
+                position = (p0 + p1)/2
+            else
+                position = p0 + 1
+        else
+            # no current task, so just put new task at the very beginning
+            p = 0
+            for t in @tasks
+                if t.position < p
+                    p = t.position
+            position = p - 1
 
         desc = @selected_hashtags().join(' ')
         if desc.length > 0
@@ -778,14 +804,18 @@ class TaskList
             position    : position
             last_edited : new Date() - 0
 
-        @tasks.unshift(task)
-        @_visible_tasks.unshift(task)
         task_id = uuid()
         @db.update(set:task, where:{task_id : task_id})
         task.task_id = task_id
-        @render_task(task, true)
+        @tasks.push(task)
+
+        @render_task_list()
+        @set_current_task(task)
         @edit_desc(task)
         @set_dirty()
+
+    set_current_task_by_id: (task_id) =>
+        @current_task = @get_task_by_id(task_id)
 
     init_create_task: () =>
         @element.find("a[href=#create-task]").click (event) =>
