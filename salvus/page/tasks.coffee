@@ -395,7 +395,9 @@ class TaskList
             task.element.data('task', task)
             task.element.click(@click_on_task)
             if not @readonly
-                task.element.find('.salvus-task-desc').click () =>
+                task.element.find('.salvus-task-desc').click (e) =>
+                    if $(e.target).prop("tagName") == 'A'
+                        return
                     @edit_desc(task)
             task.changed = true
 
@@ -453,12 +455,10 @@ class TaskList
             @delete_task(task, false)
         else
             @set_current_task(task)
-        return false
 
     display_last_edited : (task) =>
         if task.last_edited
             task.element.find(".salvus-task-last-edited").attr('title',(new Date(task.last_edited)).toISOString()).timeago()
-
 
     click_hashtag_in_desc: (event) =>
         tag = $(event.delegateTarget).text().slice(1).toLowerCase()
@@ -665,11 +665,11 @@ class TaskList
         elt_desc.hide()
 
         # this expansion is kind of hackish but makes the editor more usable.  Clean up later.
-        e.find(".salvus-tasks-desc-column").removeClass("span7").addClass("span11")
+        #e.find(".salvus-tasks-desc-column").removeClass("span7").addClass("span11")
 
         finished = false
         stop_editing = () =>
-            e.find(".salvus-tasks-desc-column").removeClass("span11").addClass("span7")
+            #e.find(".salvus-tasks-desc-column").removeClass("span11").addClass("span7")
             finished = true
             e.removeClass('salvus-task-editing-desc')
             try
