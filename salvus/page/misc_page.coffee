@@ -85,15 +85,25 @@ $.fn.extend
             inline  : false
         @each () ->
             t = $(this)
-            if opts.tex?
-                tex = opts.tex
+            if not opts.tex? and not opts.display and not opts.inline
+                # Doing this test is still much better than calling mathjax below, since I guess
+                # it doesn't do a simple test first... and mathjax is painful.
+                html = t.html()
+                if html.indexOf('$') == -1 and html.indexOf('\\') == -1
+                    return t
+                # this is a common special case - the code below would work, but would be
+                # stupid, since it involves converting back and forth between html
+                element = t
             else
-                tex = t.html()
-            if opts.display
-                tex = "$${#{tex}}$$"
-            else if opts.inline
-                tex = "\\({#{tex}}\\)"
-            element = t.html(tex)
+                if opts.tex?
+                    tex = opts.tex
+                else
+                    tex = t.html()
+                if opts.display
+                    tex = "$${#{tex}}$$"
+                else if opts.inline
+                    tex = "\\({#{tex}}\\)"
+                element = t.html(tex)
             MathJax.Hub.Queue(["Typeset", MathJax.Hub, element[0]])
             return t
 

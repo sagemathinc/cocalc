@@ -71,7 +71,7 @@ class TaskList
                     @readonly = @db.readonly
                     if @readonly
                         @save_button.text("Readonly")
-                        @element.find("a[href=#create-task]").remove()
+                        @element.find(".salvus-tasks-action-buttons").remove()
                     @tasks = @db.select()
 
                     # ensure task_id's are unique (TODO: does it make sense for this code to be here instead of somewhere else?)
@@ -197,6 +197,7 @@ class TaskList
                 @hashtags[task.desc.slice(x[0]+1, x[1]).toLowerCase()] = true
 
     render_task_list: () =>
+        #t0 = misc.walltime()
         search = @selected_hashtags()
         for x in misc.split(@element.find(".salvus-tasks-search").val().toLowerCase())
             x = $.trim(x)
@@ -268,6 +269,7 @@ class TaskList
         search_describe.find(".salvus-tasks-count").text(count).show()
 
         if @readonly
+            #console.log('time', misc.walltime(t0))
             return
 
         if not current_task_is_visible and first_task?
@@ -305,6 +307,7 @@ class TaskList
                 # now they are different: set our position to the average of adjacent positions.
                 else
                     @save_task_position(task, (prev.data('task').position + next.data('task').position)/2)
+        #console.log('time', misc.walltime(t0))
 
     save_task_position: (task, position) =>
         task.position = position
@@ -325,6 +328,7 @@ class TaskList
             @elt_task_list.prepend(t)
         else
             @elt_task_list.append(t)
+        #0.01
         task.element = t
 
         if task.done
@@ -333,17 +337,20 @@ class TaskList
         if @current_task? and task.task_id == @current_task.task_id
             @set_current_task(task)
 
+        # 0.025
         if @local_storage("toggle-#{task.task_id}")
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
 
         if task.due_date?
             @display_due_date(task)
 
+        # 0.13
         if task.deleted
             t.find(".salvus-task-undelete").show()
 
         t.data('task',task)
         @display_last_edited(task)
+        # 0.20
         @display_desc(task)
 
         if task.done
@@ -351,6 +358,8 @@ class TaskList
 
         if @readonly
             return
+
+        # 0.42
 
         # Install all click handlers -- TODO: we will
         # redo this with a single more intelligent handler, for much greater
@@ -376,6 +385,8 @@ class TaskList
             @set_current_task(task)
             @delete_task(task, false)
             return false
+
+    click_on_task: (event) =>
 
 
     display_last_edited : (task) =>
@@ -430,7 +441,11 @@ class TaskList
             desc = "<del>#{desc}</del>"
         e = task.element.find(".salvus-task-desc")
 
-        e.html(desc).mathjax()
+        e.html(desc)
+        if desc.indexOf('$') != -1 or desc.indexOf('\\') != -1
+            # .mathjax() does the above optimization, but it first does e.html(), so is a slight waste -- most
+            # items have no math, so this is worth it...
+            e.mathjax()
 
         if desc.indexOf('[ ]') != -1 or desc.indexOf('[x]') != -1
 
