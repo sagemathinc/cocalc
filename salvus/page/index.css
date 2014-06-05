@@ -158,7 +158,12 @@ body { padding-top:41px; }
     border-radius: 3px;
 }
 
+/* fix bootstrap ugliness */
 
 code  {
     color: #444;
+}
+
+blockquote p {
+    font-size: 15px;
 }

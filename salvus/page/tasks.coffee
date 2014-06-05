@@ -1,25 +1,25 @@
+###
+Task List
+
+###
 
 # tasks makes use of future timestamps (for due date)
 jQuery.timeago.settings.allowFuture = true
 
-async = require('async')
-
+async  = require('async')
 marked = require('marked')
-
-misc = require('misc')
+misc   = require('misc')
 {defaults, required, to_json, uuid} = misc
-
 
 {salvus_client}   = require('salvus_client')
 {alert_message}   = require('alerts')
 {synchronized_db} = require('syncdb')
 
 misc_page = require('misc_page')
-
 templates = $(".salvus-tasks-templates")
 
-task_template = templates.find(".salvus-task")
-edit_task_template = templates.find(".salvus-task-editor")
+task_template           = templates.find(".salvus-task")
+edit_task_template      = templates.find(".salvus-task-editor")
 hashtag_button_template = templates.find(".salvus-tasks-hashtag-button")
 
 exports.task_list = (project_id, filename) ->
@@ -27,7 +27,7 @@ exports.task_list = (project_id, filename) ->
     new TaskList(project_id, filename, element)
     return element
 
-HEADINGS = ['custom', 'description', 'due', 'last-edited']
+HEADINGS    = ['custom', 'description', 'due', 'last-edited']
 HEADING_MAP = {custom:'position', description:'desc', due:'due_date', 'last-edited':'last_edited'}
 
 # disabled due to causing hangs -- I should just modify the gfm or markdown source code (?).
@@ -40,6 +40,9 @@ CodeMirror.defineMode "tasks", (config) ->
     return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "gfm"), options...)
 ###
 
+#log = console.log
+log = () ->
+
 class TaskList
     constructor : (@project_id, @filename, @element) ->
         @element.data('task_list', @)
@@ -47,7 +50,7 @@ class TaskList
         @element.find(".salvus-tasks-filename").text(misc.path_split(@filename).tail)
         @elt_task_list = @element.find(".salvus-tasks-listing")
         @showing_deleted = false
-        @tasks = []
+        @tasks = {}
         @sort_order = {heading:'custom', dir:'desc'}  # asc or desc
         @init_create_task()
         @init_delete_task()
@@ -72,13 +75,16 @@ class TaskList
                     if @readonly
                         @save_button.text("Readonly")
                         @element.find(".salvus-tasks-action-buttons").remove()
-                    @tasks = @db.select()
+
+                    @tasks = {}
+                    for task in @db.select()
+                        @tasks[task.task_id] = task
 
                     # ensure task_id's are unique (TODO: does it make sense for this code to be here instead of somewhere else?)
                     v = {}
                     badness = false
-                    for t in @tasks
-                        if not t.task_id?
+                    for task_id, t of @tasks
+                        if not task_id?
                             @db.delete({task_id : undefined})
                             badness = true
                         else if v[t.task_id]?
@@ -86,16 +92,42 @@ class TaskList
                             badness = true
                         else
                             v[t.task_id] = true
+
                     if badness
-                        @tasks = @db.select()
+                        @tasks = {}
+                        for task in @db.select()
+                            @tasks[task.task_id] = task
 
                     @render_hashtag_bar()
                     @render_task_list()
+
                     @element.find(".salvus-tasks-loading").remove()
                     @set_clean()
+
                     @db.on 'change', (changes) =>
                         @set_dirty()
-                        @tasks = @db.select()
+                        c = {}
+                        for x in changes
+                            if x.insert?.task_id?
+                                c[x.insert.task_id] = true
+                            else if x.remove?.task_id?
+                                c[x.remove.task_id] = true
+                        for task_id, _ of c
+                            log("task changed: #{task_id}")
+                            t = @db.select_one(task_id:task_id)
+                            if not t?
+                                # deleted
+                                delete @tasks[task_id]
+                            else
+                                # changed
+                                task = @tasks[task_id]
+                                if not task?
+                                    @tasks[task_id] = t
+                                else
+                                    # would do some clever diff stuff here...
+                                    @tasks[task_id] = t
+                                    t.element = task.element
+                                    t.changed = true
                         @render_task_list()
 
     destroy: () =>
@@ -105,7 +137,7 @@ class TaskList
         {local_storage}   = require('editor')
         return local_storage(@project_id, @filename, key, value)
 
-    sort_task_list: () =>
+    sort_visible_tasks: () =>
         h = @sort_order.heading
         field = HEADING_MAP[h]
         if @showing_done and field == 'due_date'
@@ -137,11 +169,11 @@ class TaskList
                     return 1
                 else
                     return 0
-        @tasks.sort(f)
+        @_visible_tasks.sort(f)
         if field in ['last_edited', 'done']
-            @tasks.reverse()
+            @_visible_tasks.reverse()
         if @sort_order.dir == 'asc'
-            @tasks.reverse()
+            @_visible_tasks.reverse()
 
     selected_hashtags: () =>
         return ($(b).text() for b in @element.find(".salvus-tasks-hashtag-bar").find('.btn-warning'))
@@ -156,7 +188,9 @@ class TaskList
             @local_storage("hashtag-#{tag}", false)
 
     render_hashtag_bar: () =>
+        t0 = misc.walltime()
         @parse_hashtags()
+        log('time to parse hashtags =', misc.walltime(t0))
         bar = @element.find(".salvus-tasks-hashtag-bar")
         bar.empty()
         if not @hashtags? or misc.len(@hashtags) == 0
@@ -185,10 +219,11 @@ class TaskList
             if selected
                 @toggle_hashtag_button(button)
         bar.show()
+        log('time to parse hashtags =', misc.walltime(t0))
 
     parse_hashtags: () =>
         @hashtags = {}
-        for task in @tasks
+        for _, task of @tasks
             if task.done and not @showing_done
                 continue
             if task.deleted and not @showing_deleted
@@ -197,12 +232,16 @@ class TaskList
                 @hashtags[task.desc.slice(x[0]+1, x[1]).toLowerCase()] = true
 
     render_task_list: () =>
-        #t0 = misc.walltime()
+        t0 = misc.walltime()
+
+        # Determine the search criteria, which restricts what is visible
         search = @selected_hashtags()
         for x in misc.split(@element.find(".salvus-tasks-search").val().toLowerCase())
             x = $.trim(x)
             if x.length > 1
                 search.push(x)
+
+        # Fill in sentences describing the search, so user isn't confused by which tasks are visible.
         search_describe = @element.find(".salvus-tasks-search-describe")
         search_describe.find("span").hide()
         if search.length > 0
@@ -213,21 +252,24 @@ class TaskList
         if @showing_deleted
             search_describe.find(".salvus-tasks-search-showing-deleted").show()
 
-        @elt_task_list.empty()
-        @sort_task_list()
-
-        first_task = undefined
-        count = 0
-        @_visible_tasks = []
-        @_visible_descs = ''
-        current_task_is_visible = false
-
+        # set current task from local storage, if it isn't set (and that task still exists)
         if not @current_task?
             task_id = @local_storage("current_task")
             if task_id?
                 @set_current_task_by_id(task_id)
 
-        for task in @tasks
+        log('time0', misc.walltime(t0))
+
+        # Compute the list @_visible_tasks of tasks that are visible,
+        # according to the search/hashtag/done/trash criteria.
+        # Also, we make a big string that is the concatenation of the
+        # desc fields of all visible tasks, so we know which hashtags to show.
+        first_task = undefined
+        count = 0
+        @_visible_tasks = []
+        @_visible_descs = ''
+        current_task_is_visible = false
+        for _, task of @tasks
             if task.done and not @showing_done
                 continue
             if task.deleted and not @showing_deleted
@@ -246,35 +288,66 @@ class TaskList
                 @_visible_descs += ' ' + task.desc.toLowerCase()
                 if @current_task?.task_id == task.task_id
                     current_task_is_visible = true
-                @render_task(task)
                 count += 1
                 if not first_task?
                     first_task = task
 
+        log('time1', misc.walltime(t0))
+
+        # Draw the hashtags that should be visible.
         @render_hashtag_bar()
-        ###
-        if @_visible_tasks.length == 0
-            @element.find(".salvus-tasks-first").show()
-        else
-            @element.find(".salvus-tasks-first").hide()
-        ###
 
+        log('time2', misc.walltime(t0))
+
+        # Sort only the visible tasks in the list according to the currently selected sort order.
+        @sort_visible_tasks()
+        log('time3', misc.walltime(t0))
+
+        # Make it so the DOM displays exactly the visible tasks in the correct order
+        t1 = misc.walltime()
+        @elt_task_list.children().detach()
+        for task in @_visible_tasks
+            @render_task(task)
+        # ensure that all tasks are actually visible (not display:none, which happens on fading out)
+        @elt_task_list.children().css('display','inherit')
+
+        log("time to update DOM", misc.walltime(t1))
+        log('time4', misc.walltime(t0))
+
+        # remove any existing highlighting:
+        @elt_task_list.unhighlight()
         if search.length > 0
+            # Go through the DOM tree of tasks and highlight all the search terms
             @elt_task_list.highlight(search)
+        log('time5 (highlight)', misc.walltime(t0))
 
+        # Show number of displayed tasks in UI.
         if count != 1
             count = "#{count} tasks"
         else
             count = "#{count} task"
         search_describe.find(".salvus-tasks-count").text(count).show()
 
-        if @readonly
-            #console.log('time', misc.walltime(t0))
-            return
-
         if not current_task_is_visible and first_task?
             @current_task = first_task
-        @set_current_task(@current_task)
+
+        if @readonly
+            # Task list is read only so there is nothing further to do -- in
+            # particular, there's no need to make the task list sortable.
+            #log('time', misc.walltime(t0))
+            @elt_task_list.find(".salvus-task-reorder-handle").hide()
+            return
+
+        if @sort_order.heading != 'custom'
+            try
+                @elt_task_list.sortable( "destroy" )
+            catch
+                # if sortable never called get exception.
+            @elt_task_list.find(".salvus-task-reorder-handle").hide()
+            log('time', misc.walltime(t0))
+            return
+
+        @elt_task_list.find(".salvus-task-reorder-handle").show()
 
         @elt_task_list.sortable
             containment : @element
@@ -282,34 +355,30 @@ class TaskList
             update      : (event, ui) =>
                 e    = ui.item
                 task = e.data('task')
-                @custom_sort_order()
                 @set_current_task(task)
                 # determine the previous and next tasks and their position numbers.
                 prev = e.prev()
                 next = e.next()
-                # if no next or previous, this shouldn't get called (but definitely nothing to do)
                 if prev.length == 0 and next.length == 0
+                    # if no next or previous, this shouldn't get called (but definitely nothing to do)
                     return # nothing to do
-                # if no previous, make our position the next position -1
                 if prev.length == 0
-                    @save_task_position(task, next.data('task').position - 1)
-                # if no next, make our position the previous + 1
+                    # if no previous, make our position the next position -1
+                    @set_task_position(task, next.data('task').position - 1)
                 else if next.length == 0
-                    @save_task_position(task, prev.data('task').position + 1)
-                # if they are the same pos (due to very rare conflict during async add, which can happen),
-                # recompute and save all task positions
-                else if  prev.data('task').position == next.data('task').position
-                    i = 0
-                    @sort_task_list()
-                    for i in [0...@tasks.length]
-                        @save_task_position(@tasks[i], i)
-                    @save_task_position(task, (prev.data('task').position + next.data('task').position)/2)
-                # now they are different: set our position to the average of adjacent positions.
+                    # if no next, make our position the previous + 1
+                    @set_task_position(task, prev.data('task').position + 1)
+                else if prev.data('task').position == next.data('task').position
+                    # they are the same pos,
+                    # TODO: need to jiggle stuff around -- the below will just be random.
+                    @set_task_position(task, (prev.data('task').position + next.data('task').position)/2)
                 else
-                    @save_task_position(task, (prev.data('task').position + next.data('task').position)/2)
-        #console.log('time', misc.walltime(t0))
+                    # now they are different: set our position to the average of adjacent positions.
+                    @set_task_position(task, (prev.data('task').position + next.data('task').position)/2)
 
-    save_task_position: (task, position) =>
+        log('time', misc.walltime(t0))
+
+    set_task_position: (task, position) =>
         task.position = position
         @db.update
             set   : {position : position}
@@ -317,77 +386,74 @@ class TaskList
         @set_dirty()
 
     get_task_by_id: (task_id) =>
-        for t in @tasks
-            if t.task_id == task_id
-                return t
+        return @tasks[task_id]
 
-    render_task: (task, top) =>
+    render_task: (task) =>
+        if not task.element?
+            log("cloning task_template")
+            task.element = task_template.clone()
+            task.element.data('task', task)
+            task.element.click(@click_on_task)
+            if not @readonly
+                task.element.find('.salvus-task-desc').click () =>
+                    @edit_desc(task)
+            task.changed = true
 
-        t = task_template.clone()
-        if top
-            @elt_task_list.prepend(t)
-        else
-            @elt_task_list.append(t)
-        #0.01
-        task.element = t
+        t = task.element
 
-        if task.done
-            @display_done(task)
+        # append the object to the DOM
+        @elt_task_list.append(t)
 
-        if @current_task? and task.task_id == @current_task.task_id
-            @set_current_task(task)
+        if not task.changed
+            # nothing changed, so nothing to update
+            return
 
-        # 0.025
-        if @local_storage("toggle-#{task.task_id}")
-            t.find(".salvus-task-toggle-icon").toggleClass('hide')
-
-        if task.due_date?
-            @display_due_date(task)
-
-        # 0.13
-        if task.deleted
-            t.find(".salvus-task-undelete").show()
-
-        t.data('task',task)
+        @display_done(task)
+        @display_due_date(task)
+        @display_undelete(task)
         @display_last_edited(task)
-        # 0.20
         @display_desc(task)
 
-        if task.done
-            t.addClass("salvus-task-overall-done")
+        task.changed = false
 
         if @readonly
             return
 
-        # 0.42
+    display_undelete: (task) =>
+        if task.deleted
+            task.element.find(".salvus-task-undelete").show()
+        else
+            task.element.find(".salvus-task-undelete").hide()
 
-        # Install all click handlers -- TODO: we will
-        # redo this with a single more intelligent handler, for much greater
-        # efficiency, like with file listing.
-        t.click () =>
-            @set_current_task(task)
-        t.find(".salvus-task-desc").click () =>
-            @edit_desc(task)
-        t.find(".salvus-task-viewer-not-done").click () =>
+    click_on_task: (e) =>
+        task = $(e.delegateTarget).closest(".salvus-task").data('task')
+        target = $(e.target)
+        log('click on ', e, $(e.delegateTarget), target)
+        if target.hasClass("salvus-task-viewer-not-done")
+            return false if @readonly
             @set_task_done(task, true)
-        t.find(".salvus-task-viewer-done").click () =>
+        else if target.hasClass("salvus-task-viewer-done")
+            return false if @readonly
             @set_task_done(task, false)
-        t.find(".salvus-task-toggle-icon").click () =>
-            t.find(".salvus-task-toggle-icon").toggleClass('hide')
+        else if target.hasClass("salvus-task-toggle-icon")
+            is_down = @local_storage("toggle-#{task.task_id}")
+            @local_storage("toggle-#{task.task_id}", not is_down)
             @display_desc(task)
-        t.find(".salvus-task-due").click (event) =>
+        else if target.hasClass("salvus-task-due")
+            return false if @readonly
             @edit_due_date(task)
             event.preventDefault()
-        t.find(".salvus-task-due-clear").click (event) =>
+        else if target.hasClass("salvus-task-due-clear")
+            return false if @readonly
             @remove_due_date(task)
             event.preventDefault()
-        t.find(".salvus-task-undelete").click () =>
+        else if target.hasClass("salvus-task-undelete")
+            return false if @readonly
             @set_current_task(task)
             @delete_task(task, false)
-            return false
-
-    click_on_task: (event) =>
-
+        else
+            @set_current_task(task)
+        return false
 
     display_last_edited : (task) =>
         if task.last_edited
@@ -413,17 +479,25 @@ class TaskList
         return false
 
     display_desc: (task) =>
-        desc = task.desc
+        desc = $.trim(task.desc)
         m = desc.match(/^\s*[\r\n]/m)  # blank line
-        if m?.index?
-            i = m.index
-            if task.element.find(".fa-caret-down").hasClass("hide")
-                @local_storage("toggle-#{task.task_id}",true)
-                desc = desc.slice(0,i)
+        i = m?.index
+        if i?
+            task.element.find(".salvus-task-toggle-icons").show()
+            is_up = @local_storage("toggle-#{task.task_id}")
+            if is_up?
+                if is_up == task.element.find(".fa-caret-down").hasClass("hide")
+                    task.element.find(".salvus-task-toggle-icon").toggleClass('hide')
+                if task.element.find(".fa-caret-down").hasClass("hide")
+                    desc = desc.slice(0,i)
             else
-                @local_storage("toggle-#{task.task_id}",false)
+                if task.element.find(".fa-caret-down").hasClass("hide")
+                    @local_storage("toggle-#{task.task_id}",false)
+                    desc = desc.slice(0,i)
+                else
+                    @local_storage("toggle-#{task.task_id}",true)
         else
-            task.element.find(".fa-caret-down").hide()
+            task.element.find(".salvus-task-toggle-icons").hide()
         if desc.length == 0
             desc = "<span class='lighten'>Enter a description...</span>" # so it is possible to edit
         else
@@ -501,19 +575,15 @@ class TaskList
             task.element.addClass("salvus-current-task")
             task.element.scrollintoview()
 
-    get_current_task_index: () =>
-        if not @current_task?
+    get_task_visible_index: (task) =>
+        if not task?
             return
-        for i in [0...@tasks.length]  # TODO: could maintain a map
-            if @tasks[i].task_id == @current_task.task_id
+        for i in [0...@_visible_tasks.length]
+            if @_visible_tasks[i].task_id == task.task_id
                 return i
 
     get_current_task_visible_index: () =>
-        if not @current_task?
-            return
-        for i in [0...@_visible_tasks.length]
-            if @_visible_tasks[i].task_id == @current_task.task_id
-                return i
+        return @get_task_visible_index(@current_task)
 
     set_current_task_prev: () =>
         i = @get_current_task_visible_index()
@@ -558,8 +628,7 @@ class TaskList
         if i > 0
             task = @current_task
             @set_current_task_prev()
-            @custom_sort_order()
-            @save_task_position(task, @tasks[0].position-1)
+            @set_task_position(task, @_visible_tasks[0].position-1)
             @render_task_list()
 
     move_current_task_to_bottom: () =>
@@ -571,19 +640,19 @@ class TaskList
             @set_current_task_next()
             if task.done
                 # put at very bottom
-                p = @tasks[@tasks.length-1].position + 1
+                p = @_visible_tasks[@_visible_tasks.length-1].position + 1
             else
                 # put after last not done task
-                i = @tasks.length - 1
+                i = @_visible_tasks.length - 1
                 while i >= 0
-                    if not @tasks[i].done
-                        if i == @tasks.length - 1
-                            p = @tasks[i].position + 1
+                    if not @_visible_tasks[i].done
+                        if i == @_visible_tasks.length - 1
+                            p = @_visible_tasks[i].position + 1
                         else
-                            p = (@tasks[i].position + @tasks[i+1].position)/2
+                            p = (@_visible_tasks[i].position + @_visible_tasks[i+1].position)/2
                         break
                     i -= 1
-            @save_task_position(task, p)
+            @set_task_position(task, p)
             @render_task_list()
 
     delete_current_task: () =>
@@ -646,7 +715,7 @@ class TaskList
             "Enter"       : "newlineAndIndentContinueMarkdownList"
             "Shift-Enter" : save_task
             "Shift-Tab"   : (editor) -> editor.unindent_selection()
-            #"F11"         : (editor) -> console.log('hi'); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
+            #"F11"         : (editor) -> log('hi'); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
 
 
         if editor_settings.bindings != 'vim'  # this escape binding below would be a major problem for vim!
@@ -746,10 +815,12 @@ class TaskList
             if typeof(task.done) == 'number'
                 task.element.find(".salvus-task-done").show().find(
                     'span').attr('title',(new Date(task.done)).toISOString()).timeago()
+            task.element.addClass("salvus-task-overall-done")
         else
             task.element.find(".salvus-task-viewer-not-done").show()
             task.element.find(".salvus-task-viewer-done").hide()
             task.element.find(".salvus-task-done").hide()
+            task.element.removeClass("salvus-task-overall-done")
 
     delete_task: (task, deleted) =>
         task.element.stop().animate(opacity:'100')
@@ -811,7 +882,7 @@ class TaskList
         if p0?
             # set p1 to the smallest position that is bigger than the position of the current task
             p1 = undefined
-            for t in @tasks
+            for _, t of @tasks
                 if t.position > p0 and (not p1? or t.position < p1)
                     p1 = t.position
             if p1? and p1>p0
@@ -821,7 +892,7 @@ class TaskList
         else
             # no current task, so just put new task at the very beginning
             p = 0
-            for t in @tasks
+            for _, t of @tasks
                 if t.position < p
                     p = t.position
             position = p - 1
@@ -840,7 +911,7 @@ class TaskList
             set   : task
             where : {task_id : task_id}
         task.task_id = task_id
-        @tasks.push(task)
+        @tasks[task_id] = task
 
         @render_task_list()
         @set_current_task(task)
@@ -923,7 +994,9 @@ class TaskList
         bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h4>Permanently erase the deleted items?</h4><br> <span class='lighten'>Old versions of this list may be available as snapshots.</span>  ", (result) =>
             if result == true
                 a = @db.delete({deleted : true}, false)
-                @tasks = (x for x in @tasks when not x.deleted)
+                for task_id, task of @tasks
+                    if task.deleted
+                        delete @tasks[task_id]
                 @set_dirty()
                 @render_task_list()
 
@@ -942,7 +1015,7 @@ class TaskList
         @_last_search = misc.walltime()
         @element.find(".salvus-tasks-search").keyup () =>
             t = misc.walltime()
-            if t - @_last_search >= 1000
+            if t - @_last_search >= 250
                 @_last_search = t
                 @render_task_list()
             else
@@ -951,7 +1024,7 @@ class TaskList
                     if t0 == @_last_search
                         @_last_search = t
                         @render_task_list()
-                setTimeout(f, 1000)
+                setTimeout(f, 250)
 
         @element.find(".salvus-tasks-search-clear").click () =>
             e = @element.find(".salvus-tasks-search")
@@ -1000,7 +1073,7 @@ class TaskList
     custom_sort_order: () =>
         @sort_order = {heading:'custom', dir:'desc'}
         @update_sort_order_display()
-        @sort_task_list()
+        @sort_visible_tasks()
 
     init_save: () =>
         @save_button = @element.find("a[href=#save]").click (event) =>
@@ -1052,11 +1125,11 @@ set_key_handler = (task_list) ->
 
 $(window).keydown (evt) =>
     if not current_task_list?
-        #console.log("no task list")
+        #log("no task list")
         return
 
     if help_dialog_open
-        #console.log("help dialog open")
+        #log("help dialog open")
         close_help_dialog()
         return
 
@@ -1089,7 +1162,7 @@ $(window).keydown (evt) =>
     else
 
         if current_task_list.element?.find(".salvus-task-editing-desc").length > 0
-            #console.log("currently editing some task")
+            #log("currently editing some task")
             return
 
         if evt.which == 13 and not current_task_list.readonly # return = edit selected
