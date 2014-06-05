@@ -40,7 +40,7 @@ CodeMirror.defineMode "tasks", (config) ->
     return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "gfm"), options...)
 ###
 
-#log = console.log
+#log = (x,y) -> console.log(x,y)
 log = () ->
 
 class TaskList
@@ -308,6 +308,7 @@ class TaskList
         @elt_task_list.children().detach()
         for task in @_visible_tasks
             @render_task(task)
+
         # ensure that all tasks are actually visible (not display:none, which happens on fading out)
         @elt_task_list.children().css('display','inherit')
 
@@ -405,6 +406,10 @@ class TaskList
 
         # append the object to the DOM
         @elt_task_list.append(t)
+
+        if @current_task.task_id == task.task_id and t.hasClass('salvus-task-editing-desc')
+            t.data('cm')?.focus()
+            # todo -- if changed need to update the edit area
 
         if not task.changed
             # nothing changed, so nothing to update
@@ -679,7 +684,7 @@ class TaskList
             elt.remove()
             elt_desc.show()
 
-        save_task = () =>
+        save_desc = () =>
             if finished
                 return
             desc = cm.getValue()
@@ -687,21 +692,30 @@ class TaskList
 
             desc = desc.replace(/\[\]/g, '[ ]')  # [] --> [ ] on save, so that dynamic checkbox code is uniform; it might be better to do this during editing?
 
-            if desc != task.desc
-                orig_desc = task.desc
-                task.desc = desc
-                task.last_edited = (new Date()) - 0
-                @display_last_edited(task)
-                @display_desc(task)
-                @db.update
-                    set   : {desc  : desc, last_edited : task.last_edited}
-                    where : {task_id : task.task_id}
-                @set_dirty()
+            task.desc = desc
+            task.last_edited = (new Date()) - 0
+            @display_last_edited(task)
+            @display_desc(task)
+            @db.update
+                set   : {desc  : desc, last_edited : task.last_edited}
+                where : {task_id : task.task_id}
+            @set_dirty()
+
+        sync_desc = () =>
+            last_sync = misc.mswalltime()
+            desc = cm.getValue()
+            desc = desc.replace(/\[\]/g, '[ ]')
+            task.desc = desc
+            task.last_edited = (new Date()) - 0
+            @db.update
+                set   : {desc  : desc, last_edited : task.last_edited}
+                where : {task_id : task.task_id}
+            @set_dirty()
 
         editor_settings = require('account').account_settings.settings.editor_settings
         extraKeys =
             "Enter"       : "newlineAndIndentContinueMarkdownList"
-            "Shift-Enter" : save_task
+            "Shift-Enter" : save_desc
             "Shift-Tab"   : (editor) -> editor.unindent_selection()
             #"F11"         : (editor) -> log('hi'); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
 
@@ -722,11 +736,11 @@ class TaskList
             viewportMargin      : Infinity
             extraKeys           : extraKeys
 
-
         if editor_settings.bindings != "standard"
             opts.keyMap = editor_settings.bindings
 
         cm = CodeMirror.fromTextArea(elt.find("textarea")[0], opts)
+        e.data('cm',cm)
         if not task.desc?
             task.desc = ''
         cm.setValue(task.desc)
@@ -734,16 +748,27 @@ class TaskList
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
         #cm.on 'blur', save_task
         cm.focus()
-        cm.save = save_task
+        cm.save = save_desc
         elt.find("a[href=#save]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
-            save_task()
+            save_desc()
             event.preventDefault()
         elt.find(".CodeMirror-hscrollbar").remove()
         elt.find(".CodeMirror-vscrollbar").remove()
 
-        #elt.find("a[href=#cancel]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
-        #    stop_editing()
-        #    event.preventDefault()
+        last_sync = undefined
+        min_time = 5000
+        cm.on 'changes', (instance, changes) =>
+            t = misc.mswalltime()
+            if not last_sync?
+                sync_desc()
+            else
+                if t - last_sync >= min_time
+                    sync_desc()
+                else
+                    f = () ->
+                        if t - last_sync >= min_time
+                            sync_desc()
+                    setTimeout(f, min_time - (t - last_sync))
 
     edit_due_date: (task) =>
         @set_current_task(task)
