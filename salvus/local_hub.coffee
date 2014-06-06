@@ -825,8 +825,8 @@ class CodeMirrorSession
                 # Set path to be the same as the file.
                 mesg = message.execute_code
                     id       : misc.uuid()
-                    code     : "os.chdir(salvus.data['path'])"
-                    data     : {path: misc.path_split(@path).head}
+                    code     : "os.chdir(salvus.data['path']);__file__=salvus.data['file']"
+                    data     : {path: misc.path_split(@path).head, file:abspath(@path)}
                     preparse : false
                 socket.write_mesg('json', mesg)
 
@@ -940,6 +940,7 @@ class CodeMirrorSession
                 socket.write_mesg('json',
                     message.execute_code
                         id       : output_id
+                        cell_id  : id         # extra info -- which cell is running
                         code     : code
                         preparse : true
                 )

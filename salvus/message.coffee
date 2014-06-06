@@ -167,6 +167,7 @@ message
     code         : required
     data         : undefined
     session_uuid : undefined
+    cell_id      : undefined  # optional extra useful information about which cells is being executed
     preparse     : true
     allow_cache  : true
 

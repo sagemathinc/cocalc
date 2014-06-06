@@ -140,9 +140,11 @@ class TaskList
         @parse_hashtags()
         bar = @element.find(".salvus-tasks-hashtag-bar")
         bar.empty()
-        if @hashtags.length == 0
-            bar.hide()
+        if not @hashtags? or misc.len(@hashtags) == 0
+            @element.find(".salvus-tasks-hashtags").hide()
             return
+        else
+            @element.find(".salvus-tasks-hashtags").show()
 
         click_hashtag = (event) =>
             button = $(event.delegateTarget)
@@ -312,9 +314,6 @@ class TaskList
         if @current_task? and task.task_id == @current_task.task_id
             @set_current_task(task)
 
-        if task.active?
-            @display_actively_working_on_task(task, task.active)
-
         if @local_storage("toggle-#{task.task_id}")
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
 
@@ -328,29 +327,23 @@ class TaskList
         @display_last_edited(task)
         @display_desc(task)
 
-        buttons = t.find(".salvus-task-buttons")
-        if @readonly
-            buttons.hide()
-            return
-
-        t.hover((()->buttons.show()), (()->buttons.hide()))
-
         if task.done
             t.addClass("salvus-task-overall-done")
+
+        if @readonly
+            return
 
         # Install all click handlers -- TODO: we will
         # redo this with a single more intelligent handler, for much greater
         # efficiency, like with file listing.
-        t.click () => @set_current_task(task)
+        t.click () =>
+            @set_current_task(task)
         t.find(".salvus-task-desc").click () =>
             @edit_desc(task)
         t.find(".salvus-task-viewer-not-done").click () =>
             @set_task_done(task, true)
         t.find(".salvus-task-viewer-done").click () =>
             @set_task_done(task, false)
-        t.find(".salvus-task-active-button").click (event) =>
-            @set_actively_working_on_task(task, not task.active)
-            event.preventDefault()
         t.find(".salvus-task-toggle-icon").click () =>
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
             @display_desc(task)
@@ -385,36 +378,17 @@ class TaskList
             @remove_due_date(task)
             event.preventDefault()
         t.find(".salvus-task-delete").click () =>
+            if task.deleted
+                # nothing to do
+                return
+            #bootbox.confirm "<h3><i class='fa fa-trash-o'> </i> Delete task?</h3><hr><span class='lighten'>View deleted tasks by clicking the deleted checkbox in the upper right.</span>", (result) =>
+            #    if result
             @delete_task(task, not t.find(".salvus-task-delete").hasClass('salvus-task-deleted'))
         t.find(".salvus-task-undelete").click () =>
             @set_current_task(task)
             @delete_task(task, false)
             return false
 
-    set_actively_working_on_task: (task, active) =>
-        active = !!active
-        if task.active != active
-            @display_actively_working_on_task(task, active)
-            task.last_edited = (new Date()) - 0
-            @display_last_edited(task)
-            @db.update
-                set   : {active  : active, last_edited : task.last_edited}
-                where : {task_id : task.task_id}
-            @set_dirty()
-
-    display_actively_working_on_task: (task, active) =>
-        active = !!active
-        icon = task.element.find(".salvus-task-icon-active")
-        is_active = icon.hasClass("salvus-task-icon-active-is_active")
-
-        if active != is_active
-            # change state in UI.
-            if active
-                task.element.addClass('salvus-task-is_active')
-            else
-                task.element.removeClass('salvus-task-is_active')
-            icon.toggleClass('salvus-task-icon-active-is_active')
-            task.element.find(".salvus-task-active").toggleClass('hide')
 
     display_last_edited : (task) =>
         if task.last_edited
@@ -536,7 +510,7 @@ class TaskList
         if i?
             i -= 1
             if i < 0
-                i = @_visible_tasks.length - 1
+                i = 0
             @set_current_task(@_visible_tasks[i])
 
     set_current_task_next: () =>
@@ -544,7 +518,7 @@ class TaskList
         if i?
             i += 1
             if i >= @_visible_tasks.length
-                i = 0
+                i = @_visible_tasks.length - 1
             @set_current_task(@_visible_tasks[i])
 
     move_current_task_down: () =>
@@ -581,11 +555,11 @@ class TaskList
         elt_desc.hide()
 
         # this expansion is kind of hackish but makes the editor more usable.  Clean up later.
-        e.find(".salvus-tasks-desc-column").removeClass("span7").addClass("span12")
+        e.find(".salvus-tasks-desc-column").removeClass("span7").addClass("span11")
 
         finished = false
         stop_editing = () =>
-            e.find(".salvus-tasks-desc-column").removeClass("span12").addClass("span7")
+            e.find(".salvus-tasks-desc-column").removeClass("span11").addClass("span7")
             finished = true
             e.removeClass('salvus-task-editing-desc')
             try
@@ -762,7 +736,6 @@ class TaskList
             @db.update
                 set   : {done : task.done}
                 where : {task_id : task.task_id}
-            @set_actively_working_on_task(task, false)
             @set_dirty()
         if done and not @showing_done
             task.element.fadeOut () =>
@@ -995,14 +968,16 @@ $(window).keydown (evt) =>
         return
 
     if evt.ctrlKey or evt.metaKey or evt.altKey
-        if evt.keyCode == 83 # s
-            current_task_list.save()
-            return false
-        else if evt.keyCode == 70 # f
+        if evt.keyCode == 70 # f
             if current_task_list.element?.find(".salvus-task-editing-desc").length == 0
                 # not editing any tasks, so global find
                 current_task_list.element.find(".salvus-tasks-search").focus()
                 return false
+        if current_task_list.readonly
+            return
+        if evt.keyCode == 83 # s
+            current_task_list.save()
+            return false
         else if evt.keyCode == 78 # n
             current_task_list.create_task()
             return false
@@ -1021,7 +996,7 @@ $(window).keydown (evt) =>
             #console.log("currently editing some task")
             return
 
-        if evt.which == 13  # return
+        if evt.which == 13 and not current_task_list.readonly # return = edit selected
             current_task_list.edit_desc(current_task_list.current_task)
             return false
 
