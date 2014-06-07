@@ -50,6 +50,9 @@ class TaskList
         @tasks = []
         @sort_order = {heading:'custom', dir:'desc'}  # asc or desc
         @init_create_task()
+        @init_delete_task()
+        @init_move_task_to_top()
+        @init_move_task_to_bottom()
         @init_showing_done()
         @init_showing_deleted()
         @init_search()
@@ -347,43 +350,12 @@ class TaskList
         t.find(".salvus-task-toggle-icon").click () =>
             t.find(".salvus-task-toggle-icon").toggleClass('hide')
             @display_desc(task)
-        ###
-        t.find(".salvus-task-to-top-icon").click () =>
-            @custom_sort_order()
-            @save_task_position(task, @tasks[0].position-1)
-            @display_desc(task)
-        t.find(".salvus-task-to-bottom-icon").click () =>
-            @custom_sort_order()
-            if task.done
-                # put at very bottom
-                p = @tasks[@tasks.length-1].position + 1
-            else
-                # put after last not done task
-                i = @tasks.length - 1
-                while i >= 0
-                    if not @tasks[i].done
-                        if i == @tasks.length - 1
-                            p = @tasks[i].position + 1
-                        else
-                            p = (@tasks[i].position + @tasks[i+1].position)/2
-                        break
-                    i -= 1
-            @save_task_position(task, p)
-            @display_desc(task)
-        ###
         t.find(".salvus-task-due").click (event) =>
             @edit_due_date(task)
             event.preventDefault()
         t.find(".salvus-task-due-clear").click (event) =>
             @remove_due_date(task)
             event.preventDefault()
-        t.find(".salvus-task-delete").click () =>
-            if task.deleted
-                # nothing to do
-                return
-            #bootbox.confirm "<h3><i class='fa fa-trash-o'> </i> Delete task?</h3><hr><span class='lighten'>View deleted tasks by clicking the deleted checkbox in the upper right.</span>", (result) =>
-            #    if result
-            @delete_task(task, not t.find(".salvus-task-delete").hasClass('salvus-task-deleted'))
         t.find(".salvus-task-undelete").click () =>
             @set_current_task(task)
             @delete_task(task, false)
@@ -540,6 +512,45 @@ class TaskList
                 a = b - 1
             @current_task.position =  (a + b)/2
             @render_task_list()
+
+    move_current_task_to_top: () =>
+        if not @current_task?
+            return
+        i = @get_current_task_visible_index()
+        if i > 0
+            task = @current_task
+            @set_current_task_next()
+            @custom_sort_order()
+            @save_task_position(task, @tasks[0].position-1)
+            @render_task_list()
+
+    move_current_task_to_bottom: () =>
+        if not @current_task?
+            return
+        i = @get_current_task_visible_index()
+        if i < @_visible_tasks.length-1
+            task = @current_task
+            @set_current_task_prev()
+            if task.done
+                # put at very bottom
+                p = @tasks[@tasks.length-1].position + 1
+            else
+                # put after last not done task
+                i = @tasks.length - 1
+                while i >= 0
+                    if not @tasks[i].done
+                        if i == @tasks.length - 1
+                            p = @tasks[i].position + 1
+                        else
+                            p = (@tasks[i].position + @tasks[i+1].position)/2
+                        break
+                    i -= 1
+            @save_task_position(task, p)
+            @render_task_list()
+
+    delete_current_task: () =>
+        if @current_task?
+            @delete_task(@current_task, true)
 
     edit_desc: (task) =>
         if not task?
@@ -707,7 +718,6 @@ class TaskList
             task.deleted = deleted
             @set_dirty()
 
-        e = task.element.find(".salvus-task-delete")
         if deleted and not @showing_deleted
             task.element.fadeOut () =>
                 if not task.deleted # they could have canceled the action by clicking again
@@ -784,6 +794,21 @@ class TaskList
 
         @element.find(".salvus-tasks-first").click (event) =>
             @create_task()
+            event.preventDefault()
+
+    init_delete_task: () =>
+        @element.find("a[href=#delete-task]").click (event) =>
+            @delete_current_task()
+            event.preventDefault()
+
+    init_move_task_to_top: () =>
+        @element.find("a[href=#move-task-to-top]").click (event) =>
+            @move_current_task_to_top()
+            event.preventDefault()
+
+    init_move_task_to_bottom: () =>
+        @element.find("a[href=#move-task-to-bottom]").click (event) =>
+            @move_current_task_to_bottom()
             event.preventDefault()
 
     set_showing_done: (showing) =>

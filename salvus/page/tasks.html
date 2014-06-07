@@ -1,25 +1,7 @@
 <div class="salvus-tasks-templates hide">
 
     <div class="salvus-tasks-editor" >
-        <div class="row" style="margin:1em;">
-            <div class="row-fluid">
-                <div class="span3">
-                    <span class="btn-group">
-                        <a class="btn" href="#create-task"><i class="fa fa-plus-circle"> </i> New</a>
-                        <a class="btn btn-success disabled" href="#save"><i class="fa fa-save"> </i> Save</a>
-                        <a class='btn btn-info salvus-tasks-info'><i class="fa fa-question-circle"> </i> Help</a>
-                    </span>
-                </div>
-                <div class="span6" style="margin-bottom: 1ex;" >
-                    <div>
-                        <input class="salvus-tasks-search search-query" style="width:88%" type="search" placeholder="Search...">
-                        <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
-                    </div>
-                </div>
-                <div class="span3">
-                    <span class="salvus-tasks-filename pull-right"></span>
-                </div>
-            </div>
+        <div class="row" style="margin-left:1em;margin-right:1em;">
 
             <div class="row-fluid">
                 <div class="span10">
@@ -39,32 +21,49 @@
                 </div>
             </div>
 
-            <div class="lighten salvus-tasks-search-describe">
-                Showing <span class="salvus-tasks-count">0 tasks</span>.
-                <h4 class="salvus-tasks-loading">Loading task list... <i class="fa fa-spin fa-spinner"> </i></h4>
-                <span class="salvus-tasks-search-contain hide">Only showing tasks that contain <b><i><span class="salvus-tasks-search-query"></span></i></b>. </span>
-                <span class="salvus-tasks-search-showing-deleted hide">Showing <b><i>deleted tasks</i></b>. </span>
-                <span class="salvus-tasks-search-showing-done hide">Showing <b><i>completed tasks</i></b>.</span>
-            </div>                <div class="row-fluid  salvus-tasks-list-heading">
-            <div class="span7 lighten salvus-tasks-header">
-                <a href="#create-task" style="font-size: 14pt;">
-                    <i class="fa fa-plus-circle"> </i> Create a new task...
-                </a>
+            <div class="row-fluid">
+                <div class="span5 lighten salvus-tasks-header">
+                    <input class="salvus-tasks-search search-query" style="width:95%" type="search" placeholder="Search...">
+                </div>
+                <div class="span7 lighten salvus-tasks-search-describe">
+
+                    Showing <span class="salvus-tasks-count">0 tasks</span>.
+                    <h4 class="salvus-tasks-loading">Loading task list... <i class="fa fa-spin fa-spinner"> </i></h4>
+                    <span class="salvus-tasks-search-contain hide">Only showing tasks that contain <b><i><span class="salvus-tasks-search-query"></span></i></b>. </span>
+                    <span class="salvus-tasks-search-showing-deleted hide">Showing <b><i>deleted tasks</i></b>. </span>
+                    <span class="salvus-tasks-search-showing-done hide">Showing <b><i>completed tasks</i></b>.</span>
+                </div>
+            </div>
+
+            <div class="row-fluid salvus-tasks-list-heading ">
+                <div class="span6">
+                    <span class="btn-group">
+                        <a class="btn" href="#create-task"><i class="fa fa-plus-circle"> </i> New</a>
+                        <a class="btn" href="#move-task-to-top"><i class="fa fa-hand-o-up"> </i>  </a>
+                        <a class="btn" href="#move-task-to-bottom"><i class="fa fa-hand-o-down"> </i>  </a>
+                        <a class="btn btn-danger" href="#delete-task"><i class="fa fa-trash-o"> </i> </a>
+                    </span>
+                    <span class="btn-group">
+                        <a class="btn btn-success disabled" href="#save"><i class="fa fa-save"> </i> Save</a>
+                        <a class='btn btn-info salvus-tasks-info'><i class="fa fa-question-circle"> </i> Help</a>
+                    </span>
+                </div>
+
+                <div class="span2 lighten salvus-tasks-header  salvus-task-sort-custom">
+                    Custom
+                    <i class="fa fa-sort-desc pull-right hide salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
+                </div>
+                <div class="span2 lighten salvus-tasks-header  salvus-task-sort-due">
+                    Due <span class="salvus-tasks-show-done hide"> / Done</span>
+                    <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
+                </div>
+                <div class="span2 lighten salvus-tasks-header  salvus-task-sort-last-edited">
+                    Edited <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
+                </div>
 
             </div>
 
-            <div class="span1 lighten salvus-tasks-header  salvus-task-sort-custom">
-                Order
-                <i class="fa fa-sort-desc pull-right hide salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
-            </div>
-            <div class="span2 lighten salvus-tasks-header  salvus-task-sort-due">
-                Due <span class="salvus-tasks-show-done hide"> / Done</span>
-                <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
-            </div>
-            <div class="span2 lighten salvus-tasks-header  salvus-task-sort-last-edited">
-                Edited <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
-            </div>
-            </div>
+
             <div class="well salvus-tasks-list">
                 <div class="salvus-tasks-listing">
                 </div>
@@ -78,7 +77,6 @@
             <i class="fa fa-reorder salvus-task-reorder-handle"> </i>
             <i class="fa fa-check-square-o salvus-task-viewer-done  salvus-task-icon-done-box hide"> </i>
             <i class="fa fa-square-o salvus-task-viewer-not-done salvus-task-icon-done-box"> </i>
-            <i class="fa fa-trash-o  salvus-task-delete"> </i>
             <a class='btn btn-danger btn-small salvus-task-undelete hide'>Undelete</a>
         </div>
         <div class="span7 salvus-tasks-desc-column">
@@ -104,7 +102,7 @@
         <div class="salvus-tasks-desc-edit">
             <textarea></textarea>
             <div class="row-fluid">
-                <div class="span6 offset1">
+                <div class="span6">
                     <a class="btn" style="margin-bottom:1ex" href="#save"  data-toggle="tooltip" data-placement="bottom" title="or press shift+enter">Close</a>
                 </div>
                 <!--<div class="span8">
