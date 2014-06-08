@@ -285,11 +285,15 @@ class TaskList
                 continue
             skip = false
             if task.desc?
-                t = task.desc.toLowerCase()
-                for s in search
-                    if t.indexOf(s) == -1
-                        skip = true
-                        continue
+                if @current_task?.task_id == task.task_id and task.element?.hasClass('salvus-task-editing-desc')
+                    # always include task that we are currently editing, irregardless of search
+                    skip = false
+                else
+                    t = task.desc.toLowerCase()
+                    for s in search
+                        if t.indexOf(s) == -1
+                            skip = true
+                            continue
             else
                 task.desc = ''
             if not skip
@@ -703,12 +707,8 @@ class TaskList
         elt_desc.after(elt)
         elt_desc.hide()
 
-        # this expansion is kind of hackish but makes the editor more usable.  Clean up later.
-        #e.find(".salvus-tasks-desc-column").removeClass("span7").addClass("span11")
-
         finished = false
         stop_editing = () =>
-            #e.find(".salvus-tasks-desc-column").removeClass("span11").addClass("span7")
             finished = true
             e.removeClass('salvus-task-editing-desc')
             try
