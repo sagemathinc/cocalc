@@ -183,4 +183,4 @@
 {"desc":"#tasks #v1 #ui\nmove expand toggle to the left","position":-167.25,"last_edited":1402252375878,"task_id":"0d8b18a7-e887-47b9-888e-0d9a959780e4"}
 {"desc":"#tasks #v1 #ui\nfor new task, place cursor at the end","position":-166.25,"last_edited":1402252378286,"task_id":"e5f9b95b-0ed9-43ef-9a5d-9b658d4fd121"}
 {"desc":"#tasks #v1 #bug\nsometimes searching makes it so two tasks have \"current_task\" ui style\n\n- this is confusing.","position":-167.75,"last_edited":1402252680982,"task_id":"9fb4ac83-1377-49d8-93a1-c74141050834"}
-{"desc":"#tasks #v1 #unclear\nallow dashes and colons in hashtags (?)","position":-168,"last_edited":1402253315047,"task_id":"eb0d84a8-1e89-4cb6-89b8-6125cc41a1a1"}
+{"desc":"#tasks #v1\nallow dashes in hashtags (?)","position":-168,"last_edited":1402268455240,"task_id":"eb0d84a8-1e89-4cb6-89b8-6125cc41a1a1"}

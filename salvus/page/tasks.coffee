@@ -1255,8 +1255,8 @@ parse_hashtags = (t0) ->
             t = t.slice(i+1)
             continue
         t = t.slice(i+1)
-        # find next whitespace or non-alphanumeric
-        i = t.match(/\s|\W/)
+        # find next whitespace or non-alphanumeric or dash
+        i = t.match(/\s|[^A-Za-z0-9_\-]/)
         if i
             i = i.index
         else
