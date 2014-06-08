@@ -171,3 +171,4 @@
 {"desc":"#now #tasks\nmake undelete button disappear once task is un-deleted (and conversely)","position":-152.75,"last_edited":1402185441615,"task_id":"c1f77ec4-2f41-4c1d-9c8a-b3adf68e3b79","deleted":true}
 {"desc":"#tasks\nsort column should be stored in local storage.","position":111,"last_edited":1402195468712,"task_id":"e3ce3426-f407-4f4a-b093-c0afc11f5cb3"}
 {"desc":"(0:20?) #now #tasks #bug \nchanging the due date doesn't update display.","position":-153,"last_edited":1402195834865,"task_id":"5f6cc585-dd55-4a83-a1b6-a0a06615c295","done":1402202739357}
+{"desc":"#now #tasks\nFor `last_edited`\n - [ ] when that column changes, I need to remove the span and re-add it, like with due.\n - [ ] not allow a value greater than now, no matter what. ","position":-151.5,"last_edited":1402239429138,"task_id":"6219c38d-2535-4f22-b8a4-7277c61f154e"}

@@ -266,6 +266,7 @@ class TaskList
         # desc fields of all visible tasks, so we know which hashtags to show.
         first_task = undefined
         count = 0
+        last_visible_tasks = (t for t in @_visible_tasks) if @_visible_tasks?
         @_visible_tasks = []
         @_visible_descs = ''
         current_task_is_visible = false
@@ -305,9 +306,28 @@ class TaskList
 
         # Make it so the DOM displays exactly the visible tasks in the correct order
         t1 = misc.walltime()
-        @elt_task_list.children().detach()
+
+        changed = false
+        if not last_visible_tasks?
+            changed = true
+        else
+            if last_visible_tasks.length != @_visible_tasks.length
+                changed = true
+            else
+                for i in [0...last_visible_tasks.length]
+                    if last_visible_tasks[i].task_id != @_visible_tasks[i].task_id
+                        changed = true
+                        break
+
         for task in @_visible_tasks
             @render_task(task)
+
+        if changed
+            # the ordered list of displayed tasks have changed in some way, so we pull them all out of the DOM
+            # and put them back in correctly.
+            @elt_task_list.children().detach()
+            for task in @_visible_tasks
+                @elt_task_list.append(task.element)
 
         # ensure that all tasks are actually visible (not display:none, which happens on fading out)
         @elt_task_list.children().css('display','inherit')
@@ -397,19 +417,22 @@ class TaskList
             task.element.click(@click_on_task)
             if not @readonly
                 task.element.find('.salvus-task-desc').click (e) =>
-                    if $(e.target).prop("tagName") == 'A'
+                    if $(e.target).prop("tagName") == 'A'  # clicking on link in task description shouldn't start editor
                         return
                     @edit_desc(task)
             task.changed = true
 
         t = task.element
 
-        # append the object to the DOM
-        @elt_task_list.append(t)
-
-        if @current_task.task_id == task.task_id and t.hasClass('salvus-task-editing-desc')
-            t.data('cm')?.focus()
-            # todo -- if changed need to update the edit area
+        if t.hasClass('salvus-task-editing-desc')
+            cm = t.data('cm')
+            if cm?
+                # todo -- instead patch; cursors, etc.
+                if task.changed
+                    if task.desc != cm.getValue()
+                        cm.setValue(task.desc)
+                if @current_task.task_id == task.task_id
+                    cm.focus()
 
         if not task.changed
             # nothing changed, so nothing to update
@@ -662,6 +685,7 @@ class TaskList
         e = task.element
         if e.hasClass('salvus-task-editing-desc')
             return
+        e.find(".salvus-task-toggle-icons").hide()
         e.addClass('salvus-task-editing-desc')
         elt_desc = e.find(".salvus-task-desc")
         @set_current_task(task)
@@ -696,17 +720,6 @@ class TaskList
             task.last_edited = (new Date()) - 0
             @display_last_edited(task)
             @display_desc(task)
-            @db.update
-                set   : {desc  : desc, last_edited : task.last_edited}
-                where : {task_id : task.task_id}
-            @set_dirty()
-
-        sync_desc = () =>
-            last_sync = misc.mswalltime()
-            desc = cm.getValue()
-            desc = desc.replace(/\[\]/g, '[ ]')
-            task.desc = desc
-            task.last_edited = (new Date()) - 0
             @db.update
                 set   : {desc  : desc, last_edited : task.last_edited}
                 where : {task_id : task.task_id}
@@ -756,8 +769,21 @@ class TaskList
         elt.find(".CodeMirror-vscrollbar").remove()
 
         last_sync = undefined
-        min_time = 5000
-        cm.on 'changes', (instance, changes) =>
+        min_time = 1500
+
+        sync_desc = () =>
+            last_sync = misc.mswalltime()
+            desc = cm.getValue()
+            desc = desc.replace(/\[\]/g, '[ ]')
+            task.desc = desc
+            task.last_edited = (new Date()) - 0
+            @db.update
+                set   : {desc  : desc, last_edited : task.last_edited}
+                where : {task_id : task.task_id}
+            @set_dirty()
+
+        timer = undefined
+        cm.on 'change', () =>
             t = misc.mswalltime()
             if not last_sync?
                 sync_desc()
@@ -765,10 +791,12 @@ class TaskList
                 if t - last_sync >= min_time
                     sync_desc()
                 else
-                    f = () ->
-                        if t - last_sync >= min_time
-                            sync_desc()
-                    setTimeout(f, min_time - (t - last_sync))
+                    if not timer?
+                        f = () ->
+                            timer = undefined
+                            if misc.mswalltime() - last_sync >= min_time
+                                sync_desc()
+                        timer = setTimeout(f, min_time - (t - last_sync))
 
     edit_due_date: (task) =>
         @set_current_task(task)
