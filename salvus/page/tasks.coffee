@@ -14,6 +14,8 @@ misc   = require('misc')
 {salvus_client}   = require('salvus_client')
 {alert_message}   = require('alerts')
 {synchronized_db} = require('syncdb')
+{DiffSyncDoc}     = require('syncdoc')
+{dmp}             = require('diffsync')     # diff-match-patch library
 
 misc_page = require('misc_page')
 templates = $(".salvus-tasks-templates")
@@ -437,7 +439,8 @@ class TaskList
                     # if the description changed
                     if task.desc != task.last_desc
                         # compute patch and apply diff to live content
-                        cm.setValue(task.desc)
+                        p = dmp.patch_make(task.last_desc, task.desc)
+                        t.data('diff_sync').patch_in_place(p)
                 if @current_task.task_id == task.task_id
                     cm.focus()
 
@@ -761,6 +764,9 @@ class TaskList
         if not task.desc?
             task.desc = ''
         cm.setValue(task.desc)
+        e.data('diff_sync', new DiffSyncDoc(cm:cm, readonly:false))
+
+        cm.clearHistory()  # ensure that the undo history doesn't start with "empty document"
         $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor').addClass('salvus-new-task-cm-editor-focus')
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
         #cm.on 'blur', save_task

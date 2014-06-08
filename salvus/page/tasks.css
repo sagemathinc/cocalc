@@ -28,9 +28,9 @@
 
 .salvus-task-desc:hover {
     cursor : text;
-    border-radius: 3px;
+    /*border-radius: 3px;
     border-color: #51a7e8;
-    box-shadow: inset 0 0 5px rgba(81,167,232,0.5);
+    box-shadow: inset 0 0 5px rgba(81,167,232,0.5); */
 }
 
 .salvus-tasks-desc-edit {
