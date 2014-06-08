@@ -335,11 +335,15 @@ class TaskList
             @render_task(task)
 
         if changed
+            cm = @current_task?.element?.data('cm')
+            focus_current = cm? and cm.hasFocus()
             # the ordered list of displayed tasks have changed in some way, so we pull them all out of the DOM
             # and put them back in correctly.
             @elt_task_list.children().detach()
             for task in @_visible_tasks
                 @elt_task_list.append(task.element)
+            if focus_current
+                cm.focus()
 
         # ensure that all tasks are actually visible (not display:none, which happens on fading out)
         @elt_task_list.children().css('display','inherit')
@@ -348,10 +352,10 @@ class TaskList
         log('time4', misc.walltime(t0))
 
         # remove any existing highlighting:
-        @elt_task_list.unhighlight()
+        @elt_task_list.find('.salvus-task-desc').unhighlight()
         if search.length > 0
             # Go through the DOM tree of tasks and highlight all the search terms
-            @elt_task_list.highlight(search)
+            @elt_task_list.find('.salvus-task-desc').highlight(search)
         log('time5 (highlight)', misc.walltime(t0))
 
         # Show number of displayed tasks in UI.
@@ -445,8 +449,6 @@ class TaskList
                         # compute patch and apply diff to live content
                         p = dmp.patch_make(task.last_desc, task.desc)
                         t.data('diff_sync').patch_in_place(p)
-                if @current_task.task_id == task.task_id
-                    cm.focus()
 
         if not task.changed
             # nothing changed, so nothing to update
