@@ -30,6 +30,8 @@ exports.task_list = (project_id, filename) ->
 HEADINGS    = ['custom', 'description', 'due', 'last-edited']
 HEADING_MAP = {custom:'position', description:'desc', due:'due_date', 'last-edited':'last_edited'}
 
+SPECIAL_PROPS = {element:true, changed:true, last_desc:true}
+
 # disabled due to causing hangs -- I should just modify the gfm or markdown source code (?).
 ###
 CodeMirror.defineMode "tasks", (config) ->
@@ -124,10 +126,14 @@ class TaskList
                                 if not task?
                                     @tasks[task_id] = t
                                 else
-                                    # would do some clever diff stuff here...
-                                    @tasks[task_id] = t
-                                    t.element = task.element
-                                    t.changed = true
+                                    # merge in properties from t (removing missing non-special ones)
+                                    for k,v of task
+                                        if not t[k]? and not SPECIAL_PROPS[k]?
+                                            delete task[k]
+                                    for k,v of t
+                                        task[k] = v
+                                    task.changed = true
+
                         @render_task_list()
 
     destroy: () =>
@@ -427,9 +433,10 @@ class TaskList
         if t.hasClass('salvus-task-editing-desc')
             cm = t.data('cm')
             if cm?
-                # todo -- instead patch; cursors, etc.
                 if task.changed
-                    if task.desc != cm.getValue()
+                    # if the description changed
+                    if task.desc != task.last_desc
+                        # compute patch and apply diff to live content
                         cm.setValue(task.desc)
                 if @current_task.task_id == task.task_id
                     cm.focus()
@@ -495,7 +502,7 @@ class TaskList
         return false
 
     display_desc: (task) =>
-        desc = $.trim(task.desc)
+        desc = task.desc
         m = desc.match(/^\s*[\r\n]/m)  # blank line
         i = m?.index
         if i?
@@ -713,9 +720,6 @@ class TaskList
                 return
             desc = cm.getValue()
             stop_editing()
-
-            desc = desc.replace(/\[\]/g, '[ ]')  # [] --> [ ] on save, so that dynamic checkbox code is uniform; it might be better to do this during editing?
-
             task.desc = desc
             task.last_edited = (new Date()) - 0
             @display_last_edited(task)
@@ -772,13 +776,13 @@ class TaskList
         min_time = 1500
 
         sync_desc = () =>
-            last_sync = misc.mswalltime()
-            desc = cm.getValue()
-            desc = desc.replace(/\[\]/g, '[ ]')
-            task.desc = desc
+            last_sync      = misc.mswalltime()
+            desc           = cm.getValue()
+            task.last_desc = desc  # the description before syncing.
+            task.desc      = desc
             task.last_edited = (new Date()) - 0
             @db.update
-                set   : {desc  : desc, last_edited : task.last_edited}
+                set   : {desc    : task.desc, last_edited : task.last_edited}
                 where : {task_id : task.task_id}
             @set_dirty()
 

@@ -22,7 +22,8 @@
 
 .salvus-task-desc {
     border : 1px solid transparent;
-    padding: 1ex;
+    padding-left: 1ex;
+    padding-right: 1ex;
 }
 
 .salvus-task-desc:hover {
