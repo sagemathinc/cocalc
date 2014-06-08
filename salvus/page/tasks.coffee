@@ -703,39 +703,31 @@ class TaskList
         e.addClass('salvus-task-editing-desc')
         elt_desc = e.find(".salvus-task-desc")
         @set_current_task(task)
+        elt = e.find(".salvus-tasks-desc-edit")
+        if elt.length > 0
+            elt.show()
+            cm = e.data('cm')
+            cm.focus()
+            e.addClass('salvus-task-editing-desc')
+            # apply any changes
+            p = dmp.patch_make(cm.getValue(), task.desc)
+            e.data('diff_sync').patch_in_place(p)
+            return
+
         elt = edit_task_template.find(".salvus-tasks-desc-edit").clone()
-        elt_desc.after(elt)
-        elt_desc.hide()
+        elt_desc.before(elt)
 
         finished = false
         stop_editing = () =>
             finished = true
             e.removeClass('salvus-task-editing-desc')
-            try
-                cm.toTextArea()
-            catch
-                # TODO: this raises an exception...
-            elt.remove()
-            elt_desc.show()
-
-        save_desc = () =>
-            if finished
-                return
-            desc = cm.getValue()
-            stop_editing()
-            task.desc = desc
-            task.last_edited = (new Date()) - 0
-            @display_last_edited(task)
-            @display_desc(task)
-            @db.update
-                set   : {desc  : desc, last_edited : task.last_edited}
-                where : {task_id : task.task_id}
-            @set_dirty()
+            elt.hide()
+            sync_desc()
 
         editor_settings = require('account').account_settings.settings.editor_settings
         extraKeys =
             "Enter"       : "newlineAndIndentContinueMarkdownList"
-            "Shift-Enter" : save_desc
+            "Shift-Enter" : stop_editing
             "Shift-Tab"   : (editor) -> editor.unindent_selection()
             #"F11"         : (editor) -> log('hi'); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
 
@@ -769,11 +761,10 @@ class TaskList
         cm.clearHistory()  # ensure that the undo history doesn't start with "empty document"
         $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor').addClass('salvus-new-task-cm-editor-focus')
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
-        #cm.on 'blur', save_task
+
         cm.focus()
-        cm.save = save_desc
         elt.find("a[href=#save]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
-            save_desc()
+            stop_editing()
             event.preventDefault()
         elt.find(".CodeMirror-hscrollbar").remove()
         elt.find(".CodeMirror-vscrollbar").remove()
