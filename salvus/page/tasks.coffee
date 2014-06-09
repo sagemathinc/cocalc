@@ -89,6 +89,7 @@ class TaskList
 
                     @init_tasks()
 
+                    @render_hashtag_bar()
                     @render_task_list()
 
                     @set_clean()  # we have made no changes yet.
