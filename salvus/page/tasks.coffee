@@ -819,12 +819,23 @@ class TaskList
         # some hacks to make it look right for us:
         # make calendar pop up
         elt.find(".icon-calendar").click()
-        # get rid of text input
+        # get rid of text input -- clicking is pretty good, and I could do the text thing differently.
         elt.hide()
-        # get rid of ugly little icon
-        $(".bootstrap-datetimepicker-widget:visible").draggable().find(".icon-time").addClass('fa').addClass('fa-clock-o').css
-            'font-size' : '16pt'
+
+        datetime = $(".bootstrap-datetimepicker-widget:visible")
+        # replace ugly little time icon with bigger awesome icon
+        x = datetime.draggable().find(".icon-time").addClass('fa').addClass('fa-clock-o').css
+            'font-size' : '24pt'
+            'height'    : '24pt'
             'background': 'white'
+
+        close = () =>
+            elt.data('datetimepicker').destroy()
+            elt.remove()
+
+        done = $('<a class="btn pull-right">Close</a>')
+        done.click(close)
+        x.parent().before(done)
 
         picker = elt.data('datetimepicker')
         if task.due_date?
@@ -834,14 +845,6 @@ class TaskList
         elt.on 'changeDate', (e) =>
             @set_due_date(task, e.localDate - 0)
             @render_task(task)
-        # This is truly horrendous - but I just wanted to get this particular
-        # date picker to work.  This can easily be slotted out with something better later.
-        f = () =>
-            if $("div.bootstrap-datetimepicker-widget:visible").length == 0
-                clearInterval(interval)
-                picker.destroy()
-                elt.remove()
-        interval = setInterval(f, 300)
 
     remove_due_date: (task) =>
         @set_due_date(task, undefined)
