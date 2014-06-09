@@ -110,17 +110,16 @@ class TaskList
 
 
     init_tasks: () =>
-        # read the mapping of tasks from the database
+        # ensure that every db entry has a distinct task_id
+        @db.ensure_uuid_primary_key('task_id')
+
+        # read tasks from the database
         @tasks = {}
         for task in @db.select()
             @tasks[task.task_id] = task
 
-        # do some sanity checks on the data:
-        #    - ensure task_id's are unique
-        #    - ensure positions are unique
-        v = {}
+        # ensure positions are all defined
         positions = {}
-        reload = false
         for task_id, t of @tasks
             if not t.position?
                 # Every position must be defined.
@@ -130,30 +129,9 @@ class TaskList
                 @db.update
                     set   : {position : t.position}
                     where : {task_id  : task_id}
-                reload = true
-            else
-                positions[t.position] = true
-            if not task_id?
-                # TODO: should generate a task_id
-                @db.delete({task_id : undefined})
-                reload = true
-            else if v[t.task_id]?
-                # TODO: should generate a *new* task_id for this task!
-                @db.delete_one({task_id : t.task_id})
-                reload = true
-            else
-                v[t.task_id] = true
+            positions[t.position] = true
 
-        if reload
-            # We made some changes to the database as a result of sanity checks.  We just reload
-            # everything from the database, knowing that sanity checks are now satisfied.
-            # This is a slight waste of effort, but ensures the states are in sync when we start.
-            positions = {}
-            @tasks    = {}
-            for task in @db.select()
-                positions[task.position] = true
-                @tasks[task.task_id] = task
-
+        # and that positions are unique
         if misc.len(positions) != misc.len(@tasks)
             # The positions are NOT unique -- this should be a very rare case, only arising from unlikely
             # race conditions, or user created data (e.g., concatenating two tasks lists).

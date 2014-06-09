@@ -190,6 +190,21 @@ class SynchronizedDB extends EventEmitter
     delete_one: (where) =>
         @delete(where, true)
 
+    # ensure that every db entry has a distinct uuid value for the given key
+    ensure_uuid_primary_key: (key) =>
+        uuids = {}
+        changes = {}
+        for h,v of @_data
+            if not v.data[key]? or uuids[v.data[key]]  # not defined or seen before
+                v.data[key] = misc.uuid()
+                h2 = hash_string(to_json(v.data))
+                delete @_data[h]
+                changes[h2] = v
+            uuids[v.data[key]] = true
+        if misc.len(changes) > 0
+            for h, v of changes
+                @_data[h] = v
+            @_set_doc_from_data()
 
 
 exports.synchronized_db = (opts) ->
