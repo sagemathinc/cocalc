@@ -502,7 +502,8 @@ class TaskList
 
     display_last_edited : (task) =>
         if task.last_edited
-            task.element.find(".salvus-task-last-edited").attr('title',(new Date(task.last_edited)).toISOString()).timeago()
+            a = $("<span>").attr('title',(new Date(task.last_edited)).toISOString()).timeago()
+            task.element.find(".salvus-task-last-edited").empty().append(a)
 
     click_hashtag_in_desc: (event) =>
         tag = $(event.delegateTarget).text().slice(1).toLowerCase()
@@ -830,7 +831,7 @@ class TaskList
             picker.setLocalDate(new Date())
         elt.on 'changeDate', (e) =>
             @set_due_date(task, e.localDate - 0)
-            @display_due_date(task)
+            @render_task(task)
         # This is truly horrendous - but I just wanted to get this particular
         # date picker to work.  This can easily be slotted out with something better later.
         f = () =>
@@ -838,7 +839,6 @@ class TaskList
                 clearInterval(interval)
                 picker.destroy()
                 elt.remove()
-                @set_due_date(task, task.due_date)
         interval = setInterval(f, 300)
 
     remove_due_date: (task) =>
@@ -848,7 +848,7 @@ class TaskList
     set_due_date: (task, due_date) =>
         task.due_date = due_date
         @db.update
-            set   : {due_date : due_date}
+            set   : {due_date : due_date, last_edited : new Date() - 0}
             where : {task_id : task.task_id}
         @set_dirty()
 
@@ -887,7 +887,7 @@ class TaskList
         task.element.stop().animate(opacity:'100')
         f = () =>
             @db.update
-                set   : {deleted : deleted}
+                set   : {deleted : deleted, last_edited : new Date() - 0}
                 where : {task_id : task.task_id}
             task.deleted = deleted
             @set_dirty()
@@ -918,7 +918,7 @@ class TaskList
         @display_done(task)
         f = () =>
             @db.update
-                set   : {done : task.done}
+                set   : {done : task.done, last_edited : new Date() - 0}
                 where : {task_id : task.task_id}
             @set_dirty()
         if done and not @showing_done
