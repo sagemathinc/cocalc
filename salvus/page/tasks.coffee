@@ -34,6 +34,8 @@ HEADING_MAP = {custom:'position', description:'desc', due:'due_date', 'last-edit
 
 SPECIAL_PROPS = {element:true, changed:true, last_desc:true}
 
+sortnum = (a,b) -> a - b
+
 # disabled due to causing hangs -- I should just modify the gfm or markdown source code (?).
 ###
 CodeMirror.defineMode "tasks", (config) ->
@@ -95,7 +97,7 @@ class TaskList
                     @set_clean()  # we have made no changes yet.
 
                     # UI indicators that sync started/stopped -- so user has a visual hint that their work is not saved.
-                    @db.on 'presync', () => @save_button.icon_spin(start:true, delay:1000)
+                    @db.on 'presync', () => @save_button.icon_spin(false); @save_button.icon_spin(start:true, delay:1000)
                     @db.on 'sync', () => @save_button.icon_spin(false)
 
                     # Handle any changes, merging in with current state.
@@ -198,8 +200,32 @@ class TaskList
                 i = j
             j += 1
 
+    positions: () =>
+        # Return sorted list of positions of all tasks, guaranteed to be
+        # unique (fixing the positions if necessary so unique)
+        positions = {}
+        for task_id, t of @tasks
+            if not t.position?
+                # Every position must be defined.
+                # If necessary, the 0 will get changed to something
+                # distinct from others below.
+                t.position = 0
+                @db.update
+                    set   : {position : t.position}
+                    where : {task_id  : task_id}
+            positions[t.position] = true
+
+        if misc.len(positions) != misc.len(@tasks)
+            # The positions are NOT unique -- this should be a very rare case, only arising from unlikely
+            # race conditions, or user created data (e.g., concatenating two tasks lists).
+            @ensure_positions_unique()
+
+        v = (task.position for _, task of @tasks)
+        v.sort(sortnum)
+        return v
+
     handle_changes: (changes) =>
-        # determine the tasks that changed from the changes object, which lists and
+        # Determine the tasks that changed from the changes object, which lists and
         # insert and remove for a change (but not for a delete), since syncdb is very generic.
         c = {}
         for x in changes
@@ -498,19 +524,11 @@ class TaskList
                 if prev.length == 0 and next.length == 0
                     # if no next or previous, this shouldn't get called (but definitely nothing to do)
                     return # nothing to do
-                if prev.length == 0
-                    # if no previous, make our position the next position -1
-                    @set_task_position(task, next.data('task').position - 1)
-                else if next.length == 0
+                if next.length > 0
+                    @move_task_before(task, next.data('task').position)
+                else if prev.length > 0
                     # if no next, make our position the previous + 1
-                    @set_task_position(task, prev.data('task').position + 1)
-                else if prev.data('task').position == next.data('task').position
-                    # they are the same pos,
-                    # TODO: need to jiggle stuff around -- the below will just be random.
-                    @set_task_position(task, (prev.data('task').position + next.data('task').position)/2)
-                else
-                    # now they are different: set our position to the average of adjacent positions.
-                    @set_task_position(task, (prev.data('task').position + next.data('task').position)/2)
+                    @move_task_after(task, prev.data('task').position)
 
         #console.log('time', misc.walltime(t0))
 
@@ -521,12 +539,38 @@ class TaskList
             where : {task_id : task.task_id}
         @set_dirty()
 
+    move_task_before: (task, position) =>
+        v = @positions() # ensures uniqueness of positions
+        if position <= v[0]
+            p = position - 1
+        else
+            for i in [1...v.length]
+                if position <= v[i]
+                    p = (v[i-1] + position)/2
+                    break
+        if p?
+            @set_task_position(task, p)
+
+    move_task_after: (task, position) =>
+        v = @positions()
+        i = v.length - 1
+        if v[i] <= position
+            p = position + 1
+        else
+            i -= 1
+            while i >= 0
+                if v[i] <= position
+                    p = (v[i+1] + position)/2
+                    break
+                i -= 1
+        if p?
+            @set_task_position(task, p)
+
     get_task_by_id: (task_id) =>
         return @tasks?[task_id]
 
     render_task: (task) =>
         if not task.element?
-            #console.log("cloning task_template")
             task.element = task_template.clone()
             task.element.data('task', task)
             task.element.click(@click_on_task)
@@ -573,7 +617,6 @@ class TaskList
     click_on_task: (e) =>
         task = $(e.delegateTarget).closest(".salvus-task").data('task')
         target = $(e.target)
-        #console.log('click on ', e, $(e.delegateTarget), target)
         if target.hasClass("salvus-task-viewer-not-done")
             return false if @readonly
             @set_task_done(task, true)
@@ -736,56 +779,24 @@ class TaskList
     move_current_task_down: () =>
         i = @get_current_task_visible_index()
         if i < @_visible_tasks.length-1
-            a = @_visible_tasks[i+1].position
-            b = @_visible_tasks[i+2]?.position
-            if not b?
-                b = a + 1
-            @current_task.position =  (a + b)/2
+            @move_task_after(@current_task, @_visible_tasks[i+1].position)
             @render_task_list()
 
     move_current_task_up: () =>
         i = @get_current_task_visible_index()
         if i > 0
-            a = @_visible_tasks[i-2]?.position
-            b = @_visible_tasks[i-1].position
-            if not a?
-                a = b - 1
-            @current_task.position =  (a + b)/2
+            @move_task_before(@current_task, @_visible_tasks[i-1].position)
             @render_task_list()
 
     move_current_task_to_top: () =>
         if not @current_task?
             return
-        i = @get_current_task_visible_index()
-        if i > 0
-            task = @current_task
-            @set_current_task_prev()
-            @set_task_position(task, @_visible_tasks[0].position-1)
-            @render_task_list()
+        @move_task_before(@current_task,  @_visible_tasks[0].position)
 
     move_current_task_to_bottom: () =>
         if not @current_task?
             return
-        i = @get_current_task_visible_index()
-        if i < @_visible_tasks.length-1
-            task = @current_task
-            @set_current_task_next()
-            if task.done
-                # put at very bottom
-                p = @_visible_tasks[@_visible_tasks.length-1].position + 1
-            else
-                # put after last not done task
-                i = @_visible_tasks.length - 1
-                while i >= 0
-                    if not @_visible_tasks[i].done
-                        if i == @_visible_tasks.length - 1
-                            p = @_visible_tasks[i].position + 1
-                        else
-                            p = (@_visible_tasks[i].position + @_visible_tasks[i+1].position)/2
-                        break
-                    i -= 1
-            @set_task_position(task, p)
-            @render_task_list()
+        @move_task_after(@current_task, @_visible_tasks[@_visible_tasks.length-1].position)
 
     delete_current_task: () =>
         if @current_task?
@@ -1293,11 +1304,9 @@ set_key_handler = (task_list) ->
 
 $(window).keydown (evt) =>
     if not current_task_list?
-        #console.log("no task list")
         return
 
     if help_dialog_open
-        #console.log("help dialog open")
         close_help_dialog()
         return
 
@@ -1330,7 +1339,6 @@ $(window).keydown (evt) =>
     else
 
         if current_task_list.element?.find(".salvus-task-editing-desc").length > 0
-            #console.log("currently editing some task")
             return
 
         if evt.which == 13 and not current_task_list.readonly # return = edit selected
