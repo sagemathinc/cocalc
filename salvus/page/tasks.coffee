@@ -373,12 +373,10 @@ class TaskList
         # according to the search/hashtag/done/trash criteria.
         # Also, we make a big string that is the concatenation of the
         # desc fields of all visible tasks, so we know which hashtags to show.
-        first_task = undefined
         count = 0
         last_visible_tasks = (t for t in @_visible_tasks) if @_visible_tasks?
         @_visible_tasks = []
         @_visible_descs = ''
-        current_task_is_visible = false
         for _, task of @tasks
             if task.done and not @showing_done
                 continue
@@ -400,11 +398,7 @@ class TaskList
             if not skip
                 @_visible_tasks.push(task)
                 @_visible_descs += ' ' + task.desc.toLowerCase()
-                if @current_task?.task_id == task.task_id
-                    current_task_is_visible = true
                 count += 1
-                if not first_task?
-                    first_task = task
 
         #console.log('time1', misc.walltime(t0))
 
@@ -441,8 +435,21 @@ class TaskList
             # the ordered list of displayed tasks have changed in some way, so we pull them all out of the DOM
             # and put them back in correctly.
             @elt_task_list.children().detach()
+
+            current_task_is_visible = false
             for task in @_visible_tasks
                 @elt_task_list.append(task.element)
+                if task.task_id == @current_task?.task_id
+                    current_task_is_visible = true
+
+
+            # ensure that at most one task is selected as the current task
+            @elt_task_list.children().removeClass("salvus-current-task")
+            if not current_task_is_visible and @_visible_tasks.length > 0
+                @set_current_task(@_visible_tasks[0])
+            else
+                @current_task?.element.addClass("salvus-current-task").scrollintoview()
+
             if focus_current
                 cm.focus()
 
@@ -465,9 +472,6 @@ class TaskList
         else
             count = "#{count} task"
         search_describe.find(".salvus-tasks-count").text(count).show()
-
-        if not current_task_is_visible and first_task?
-            @current_task = first_task
 
         if @readonly
             # Task list is read only so there is nothing further to do -- in
@@ -628,6 +632,7 @@ class TaskList
     click_hashtag_in_desc: (event) =>
         tag = $(event.delegateTarget).text().slice(1).toLowerCase()
         @toggle_hashtag_button(@element.find(".salvus-hashtag-#{tag}"))
+        @set_current_task($(event.delegateTarget).closest(".salvus-task").data('task'))
         @render_task_list()
         return false
 
@@ -724,7 +729,7 @@ class TaskList
             @current_task.element.removeClass("salvus-current-task")
         @current_task = task
         @local_storage("current_task", task.task_id)
-        if task.element?  # if it is actually being displayed
+        if task.element?
             task.element.addClass("salvus-current-task")
             task.element.scrollintoview()
 
@@ -1162,9 +1167,10 @@ class TaskList
         ###
 
         @_last_search = misc.walltime()
+        search_delay = 300  # do the search when user stops typing for this many ms
         @element.find(".salvus-tasks-search").keyup () =>
             t = misc.walltime()
-            if t - @_last_search >= 250
+            if t - @_last_search >= search_delay
                 @_last_search = t
                 @render_task_list()
             else
@@ -1173,7 +1179,7 @@ class TaskList
                     if t0 == @_last_search
                         @_last_search = t
                         @render_task_list()
-                setTimeout(f, 250)
+                setTimeout(f, search_delay)
 
         @element.find(".salvus-tasks-search-clear").click () =>
             e = @element.find(".salvus-tasks-search")
