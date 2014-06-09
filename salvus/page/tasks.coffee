@@ -975,7 +975,7 @@ class TaskList
             task.element.removeClass("salvus-task-overall-done")
 
     delete_task: (task, deleted) =>
-        task.element.stop().animate(opacity:'100')
+        task.element.stop().prop('style').removeProperty('opacity')
         f = () =>
             @db.update
                 set   : {deleted : deleted, last_edited : new Date() - 0}
@@ -987,7 +987,6 @@ class TaskList
             task.element.fadeOut () =>
                 if not task.deleted # they could have canceled the action by clicking again
                     @set_current_task_next()
-                    task.element?.remove()
                     f()
         else
             f()
@@ -998,7 +997,7 @@ class TaskList
 
 
     set_task_done: (task, done) =>
-        task.element.stop().animate(opacity:'100')
+        task.element.stop().prop('style').removeProperty('opacity')
         if not task.done and not done
             # nothing to do
             return
@@ -1006,7 +1005,6 @@ class TaskList
             task.done = (new Date()) - 0
         else
             task.done = 0
-        @display_done(task)
         f = () =>
             @db.update
                 set   : {done : task.done, last_edited : new Date() - 0}
@@ -1016,7 +1014,6 @@ class TaskList
             task.element.fadeOut () =>
                 if task.done  # they could have canceled the action by clicking again
                     @set_current_task_next()
-                    task.element?.remove()
                     f()
         else
             f()
