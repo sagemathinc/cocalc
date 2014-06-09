@@ -65,8 +65,8 @@ class DiffSyncDoc
     #     string = a string
     constructor: (opts) ->
         @opts = defaults opts,
-            cm     : undefined
-            string : undefined
+            cm       : undefined
+            string   : undefined
             readonly : false   # only impacts the editor
         if not ((opts.cm? and not opts.string?) or (opts.string? and not opts.cm?))
             console.log("BUG -- exactly one of opts.cm and opts.string must be defined!")
@@ -144,6 +144,8 @@ class DiffSyncDoc
                 console.log("BUG in patch_in_place")
             cm.setOption('readOnly', @opts.readonly)
 
+# DiffSyncDoc is useful outside, e.g., for task list.
+exports.DiffSyncDoc = DiffSyncDoc
 
 codemirror_diffsync_client = (cm_session, content) ->
     # This happens on initialization and reconnect.  On reconnect, we could be more

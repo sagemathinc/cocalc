@@ -14,6 +14,8 @@ misc   = require('misc')
 {salvus_client}   = require('salvus_client')
 {alert_message}   = require('alerts')
 {synchronized_db} = require('syncdb')
+{DiffSyncDoc}     = require('syncdoc')
+{dmp}             = require('diffsync')     # diff-match-patch library
 
 misc_page = require('misc_page')
 templates = $(".salvus-tasks-templates")
@@ -30,6 +32,8 @@ exports.task_list = (project_id, filename) ->
 HEADINGS    = ['custom', 'description', 'due', 'last-edited']
 HEADING_MAP = {custom:'position', description:'desc', due:'due_date', 'last-edited':'last_edited'}
 
+SPECIAL_PROPS = {element:true, changed:true, last_desc:true}
+
 # disabled due to causing hangs -- I should just modify the gfm or markdown source code (?).
 ###
 CodeMirror.defineMode "tasks", (config) ->
@@ -40,7 +44,7 @@ CodeMirror.defineMode "tasks", (config) ->
     return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "gfm"), options...)
 ###
 
-#log = console.log
+#log = (x,y) -> console.log(x,y)
 log = () ->
 
 class TaskList
@@ -124,10 +128,14 @@ class TaskList
                                 if not task?
                                     @tasks[task_id] = t
                                 else
-                                    # would do some clever diff stuff here...
-                                    @tasks[task_id] = t
-                                    t.element = task.element
-                                    t.changed = true
+                                    # merge in properties from t (removing missing non-special ones)
+                                    for k,v of task
+                                        if not t[k]? and not SPECIAL_PROPS[k]?
+                                            delete task[k]
+                                    for k,v of t
+                                        task[k] = v
+                                    task.changed = true
+
                         @render_task_list()
 
     destroy: () =>
@@ -266,6 +274,7 @@ class TaskList
         # desc fields of all visible tasks, so we know which hashtags to show.
         first_task = undefined
         count = 0
+        last_visible_tasks = (t for t in @_visible_tasks) if @_visible_tasks?
         @_visible_tasks = []
         @_visible_descs = ''
         current_task_is_visible = false
@@ -276,11 +285,15 @@ class TaskList
                 continue
             skip = false
             if task.desc?
-                t = task.desc.toLowerCase()
-                for s in search
-                    if t.indexOf(s) == -1
-                        skip = true
-                        continue
+                if @current_task?.task_id == task.task_id and task.element?.hasClass('salvus-task-editing-desc')
+                    # always include task that we are currently editing, irregardless of search
+                    skip = false
+                else
+                    t = task.desc.toLowerCase()
+                    for s in search
+                        if t.indexOf(s) == -1
+                            skip = true
+                            continue
             else
                 task.desc = ''
             if not skip
@@ -305,9 +318,33 @@ class TaskList
 
         # Make it so the DOM displays exactly the visible tasks in the correct order
         t1 = misc.walltime()
-        @elt_task_list.children().detach()
+
+        changed = false
+        if not last_visible_tasks?
+            changed = true
+        else
+            if last_visible_tasks.length != @_visible_tasks.length
+                changed = true
+            else
+                for i in [0...last_visible_tasks.length]
+                    if last_visible_tasks[i].task_id != @_visible_tasks[i].task_id
+                        changed = true
+                        break
+
         for task in @_visible_tasks
             @render_task(task)
+
+        if changed
+            cm = @current_task?.element?.data('cm')
+            focus_current = cm? and cm.hasFocus()
+            # the ordered list of displayed tasks have changed in some way, so we pull them all out of the DOM
+            # and put them back in correctly.
+            @elt_task_list.children().detach()
+            for task in @_visible_tasks
+                @elt_task_list.append(task.element)
+            if focus_current
+                cm.focus()
+
         # ensure that all tasks are actually visible (not display:none, which happens on fading out)
         @elt_task_list.children().css('display','inherit')
 
@@ -315,10 +352,10 @@ class TaskList
         log('time4', misc.walltime(t0))
 
         # remove any existing highlighting:
-        @elt_task_list.unhighlight()
+        @elt_task_list.find('.salvus-task-desc').unhighlight()
         if search.length > 0
             # Go through the DOM tree of tasks and highlight all the search terms
-            @elt_task_list.highlight(search)
+            @elt_task_list.find('.salvus-task-desc').highlight(search)
         log('time5 (highlight)', misc.walltime(t0))
 
         # Show number of displayed tasks in UI.
@@ -396,15 +433,22 @@ class TaskList
             task.element.click(@click_on_task)
             if not @readonly
                 task.element.find('.salvus-task-desc').click (e) =>
-                    if $(e.target).prop("tagName") == 'A'
+                    if $(e.target).prop("tagName") == 'A'  # clicking on link in task description shouldn't start editor
                         return
                     @edit_desc(task)
             task.changed = true
 
         t = task.element
 
-        # append the object to the DOM
-        @elt_task_list.append(t)
+        if t.hasClass('salvus-task-editing-desc')
+            cm = t.data('cm')
+            if cm?
+                if task.changed
+                    # if the description changed
+                    if task.desc != task.last_desc
+                        # compute patch and apply diff to live content
+                        p = dmp.patch_make(task.last_desc, task.desc)
+                        t.data('diff_sync').patch_in_place(p)
 
         if not task.changed
             # nothing changed, so nothing to update
@@ -467,7 +511,7 @@ class TaskList
         return false
 
     display_desc: (task) =>
-        desc = $.trim(task.desc)
+        desc = task.desc
         m = desc.match(/^\s*[\r\n]/m)  # blank line
         i = m?.index
         if i?
@@ -657,51 +701,35 @@ class TaskList
         e = task.element
         if e.hasClass('salvus-task-editing-desc')
             return
+        e.find(".salvus-task-toggle-icons").hide()
         e.addClass('salvus-task-editing-desc')
         elt_desc = e.find(".salvus-task-desc")
         @set_current_task(task)
-        elt = edit_task_template.find(".salvus-tasks-desc-edit").clone()
-        elt_desc.after(elt)
-        elt_desc.hide()
+        elt = e.find(".salvus-tasks-desc-edit")
+        if elt.length > 0
+            elt.show()
+            cm = e.data('cm')
+            cm.focus()
+            e.addClass('salvus-task-editing-desc')
+            # apply any changes
+            p = dmp.patch_make(cm.getValue(), task.desc)
+            e.data('diff_sync').patch_in_place(p)
+            return
 
-        # this expansion is kind of hackish but makes the editor more usable.  Clean up later.
-        #e.find(".salvus-tasks-desc-column").removeClass("span7").addClass("span11")
+        elt = edit_task_template.find(".salvus-tasks-desc-edit").clone()
+        elt_desc.before(elt)
 
         finished = false
         stop_editing = () =>
-            #e.find(".salvus-tasks-desc-column").removeClass("span11").addClass("span7")
             finished = true
             e.removeClass('salvus-task-editing-desc')
-            try
-                cm.toTextArea()
-            catch
-                # TODO: this raises an exception...
-            elt.remove()
-            elt_desc.show()
-
-        save_task = () =>
-            if finished
-                return
-            desc = cm.getValue()
-            stop_editing()
-
-            desc = desc.replace(/\[\]/g, '[ ]')  # [] --> [ ] on save, so that dynamic checkbox code is uniform; it might be better to do this during editing?
-
-            if desc != task.desc
-                orig_desc = task.desc
-                task.desc = desc
-                task.last_edited = (new Date()) - 0
-                @display_last_edited(task)
-                @display_desc(task)
-                @db.update
-                    set   : {desc  : desc, last_edited : task.last_edited}
-                    where : {task_id : task.task_id}
-                @set_dirty()
+            elt.hide()
+            sync_desc()
 
         editor_settings = require('account').account_settings.settings.editor_settings
         extraKeys =
             "Enter"       : "newlineAndIndentContinueMarkdownList"
-            "Shift-Enter" : save_task
+            "Shift-Enter" : stop_editing
             "Shift-Tab"   : (editor) -> editor.unindent_selection()
             #"F11"         : (editor) -> log('hi'); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
 
@@ -722,28 +750,56 @@ class TaskList
             viewportMargin      : Infinity
             extraKeys           : extraKeys
 
-
         if editor_settings.bindings != "standard"
             opts.keyMap = editor_settings.bindings
 
         cm = CodeMirror.fromTextArea(elt.find("textarea")[0], opts)
+        e.data('cm',cm)
         if not task.desc?
             task.desc = ''
         cm.setValue(task.desc)
+        e.data('diff_sync', new DiffSyncDoc(cm:cm, readonly:false))
+
+        cm.clearHistory()  # ensure that the undo history doesn't start with "empty document"
         $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor').addClass('salvus-new-task-cm-editor-focus')
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
-        #cm.on 'blur', save_task
+
         cm.focus()
-        cm.save = save_task
         elt.find("a[href=#save]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
-            save_task()
+            stop_editing()
             event.preventDefault()
         elt.find(".CodeMirror-hscrollbar").remove()
         elt.find(".CodeMirror-vscrollbar").remove()
 
-        #elt.find("a[href=#cancel]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
-        #    stop_editing()
-        #    event.preventDefault()
+        last_sync = undefined
+        min_time = 1500
+
+        sync_desc = () =>
+            last_sync      = misc.mswalltime()
+            desc           = cm.getValue()
+            task.last_desc = desc  # the description before syncing.
+            task.desc      = desc
+            task.last_edited = (new Date()) - 0
+            @db.update
+                set   : {desc    : task.desc, last_edited : task.last_edited}
+                where : {task_id : task.task_id}
+            @set_dirty()
+
+        timer = undefined
+        cm.on 'change', () =>
+            t = misc.mswalltime()
+            if not last_sync?
+                sync_desc()
+            else
+                if t - last_sync >= min_time
+                    sync_desc()
+                else
+                    if not timer?
+                        f = () ->
+                            timer = undefined
+                            if misc.mswalltime() - last_sync >= min_time
+                                sync_desc()
+                        timer = setTimeout(f, min_time - (t - last_sync))
 
     edit_due_date: (task) =>
         @set_current_task(task)
@@ -1199,8 +1255,8 @@ parse_hashtags = (t0) ->
             t = t.slice(i+1)
             continue
         t = t.slice(i+1)
-        # find next whitespace or non-alphanumeric
-        i = t.match(/\s|\W/)
+        # find next whitespace or non-alphanumeric or dash
+        i = t.match(/\s|[^A-Za-z0-9_\-]/)
         if i
             i = i.index
         else

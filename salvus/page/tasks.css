@@ -9,7 +9,7 @@
     padding-right: 0em;
     padding-top: 1ex;
     cursor : pointer;
-    border: 2px solid #fff;
+    border: 2px solid transparent;
     border-radius: 1ex;
     width: 98%;
     margin-top: 3px;
@@ -20,12 +20,21 @@
     background-color:#efe;
 }
 
+.salvus-task-desc {
+    border : 1px solid transparent;
+    padding-left: 1ex;
+    padding-right: 1ex;
+}
+
 .salvus-task-desc:hover {
     cursor : text;
+    /*border-radius: 3px;
+    border-color: #51a7e8;
+    box-shadow: inset 0 0 5px rgba(81,167,232,0.5); */
 }
 
 .salvus-tasks-desc-edit {
-    width: 98%
+    width: 100%
 }
 
 .salvus-task-icon {
