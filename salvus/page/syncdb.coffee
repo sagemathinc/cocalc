@@ -38,8 +38,10 @@ class SynchronizedDB extends EventEmitter
                     @_data = {}
                     @_set_data_from_doc()
                     @_doc._presync = () =>
+                        @emit('presync')
                         @_live_before_sync = @_doc.live()
-                    @_doc.on 'sync', () =>
+                    @_doc.on 'sync', (err) =>
+                        @emit('sync')
                         #console.log("syncdb -- syncing")
                         if not @_set_data_from_doc() and @_live_before_sync?
                             #console.log("DEBUG: invalid/corrupt sync request; revert it")

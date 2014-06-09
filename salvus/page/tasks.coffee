@@ -108,6 +108,11 @@ class TaskList
                     @element.find(".salvus-tasks-loading").remove()
                     @set_clean()
 
+                    @db.on 'presync', () =>
+                        @save_button.icon_spin(start:true, delay:1000)
+                    @db.on 'sync', () =>
+                        @save_button.icon_spin(false)
+
                     @db.on 'change', (changes) =>
                         @set_dirty()
                         c = {}
@@ -1141,11 +1146,6 @@ class TaskList
         @update_sort_order_display()
         @sort_visible_tasks()
 
-    init_save: () =>
-        @save_button = @element.find("a[href=#save]").click (event) =>
-            @save()
-            event.preventDefault()
-
     init_info: () =>
         @element.find(".salvus-tasks-info").click () =>
             help_dialog()
@@ -1164,12 +1164,19 @@ class TaskList
             @set_dirty()
         return not @save_button.hasClass('disabled')
 
+    init_save: () =>
+        @save_button = @element.find("a[href=#save]").click (event) =>
+            @save()
+            event.preventDefault()
+
     save: () =>
         if not @has_unsaved_changes() or @_saving
             return
         @_saving = true
         @_new_changes = false
+        @save_button.icon_spin(start:true, delay:1000)
         @db.save (err) =>
+            @save_button.icon_spin(false)
             @_saving = false
             if not err and not @_new_changes
                 @set_clean()

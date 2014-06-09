@@ -3937,7 +3937,7 @@ class IPythonNotebook extends FileEditor
     save: (cb) =>
         if not @nb?
             cb?(); return
-        @save_button.icon_spin(start:true,delay:500)
+        @save_button.icon_spin(start:true, delay:1000)
         @nb._save_checkpoint?()
         @doc.save () =>
             @save_button.icon_spin(false)
