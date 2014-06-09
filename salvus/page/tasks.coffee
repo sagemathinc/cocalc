@@ -392,6 +392,8 @@ class TaskList
             update      : (event, ui) =>
                 e    = ui.item
                 task = e.data('task')
+                if not task?
+                    return
                 @set_current_task(task)
                 # determine the previous and next tasks and their position numbers.
                 prev = e.prev()
