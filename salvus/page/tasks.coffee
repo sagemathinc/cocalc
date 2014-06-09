@@ -117,12 +117,26 @@ class TaskList
         #    - ensure task_id's are unique
         #    - ensure positions are unique
         v = {}
+        positions = {}
         reload = false
         for task_id, t of @tasks
+            if not t.position?
+                # Every position must be defined.
+                # If necessary, the 0 will get changed to something
+                # distinct from others below.
+                t.position = 0
+                @db.update
+                    set   : {position : t.position}
+                    where : {task_id  : task_id}
+                reload = true
+            else
+                positions[t.position] = true
             if not task_id?
+                # TODO: should generate a task_id
                 @db.delete({task_id : undefined})
                 reload = true
             else if v[t.task_id]?
+                # TODO: should generate a *new* task_id for this task!
                 @db.delete_one({task_id : t.task_id})
                 reload = true
             else
@@ -132,11 +146,57 @@ class TaskList
             # We made some changes to the database as a result of sanity checks.  We just reload
             # everything from the database, knowing that sanity checks are now satisfied.
             # This is a slight waste of effort, but ensures the states are in sync when we start.
-            @tasks = {}
+            positions = {}
+            @tasks    = {}
             for task in @db.select()
+                positions[task.position] = true
                 @tasks[task.task_id] = task
 
+        if misc.len(positions) != misc.len(@tasks)
+            # The positions are NOT unique -- this should be a very rare case, only arising from unlikely
+            # race conditions, or user created data (e.g., concatenating two tasks lists).
+            @ensure_positions_unique()
 
+    ensure_positions_unique: () =>
+        # We modify the positions to preserve the order (as well defined as it is), changing as few
+        # of the tasks as possible.  We seek to minimize changes, since task lists may be stored in git
+        # and we want to minimize diffs, and also this will be less pain on other connected clients.
+
+        # 1. Create sorted list of the tasks, sorted by position.
+        v = (task for _, task of @tasks)
+        v.sort (t0, t1) ->
+            if t0.position < t1.position
+                return -1
+            else if t0.position > t1.position
+                return 1
+            else
+                return 0
+        # 2. Move along the list finding a maximal sequence of repeats, which looks like this:
+        #        [a, b_1, b_2, ..., b_k, c]    with a < b < c,
+        #    with special cases for b_1 being the first (a=b_1-1) or b_k the
+        #    last item (a=b_k+1) in the list.
+        i = 0
+        j = 1
+        while j <= v.length
+            if j == v.length or v[i].position != v[j].position
+                # found maximal sequence of repeats
+                if j-i > 1
+                    # 3. Replace the b_i's by equally spaced numbers between a and c,
+                    #    saving the new positions.
+                    a = if i == 0 then v[0].position - 1 else v[i-1].position
+                    b = if j == v.length then v[v.length-1].position + 1 else v[j].position
+                    delta = (b-a)/(j-i+1)  # safe in Javascript, unlike Python2 :-)
+                    d = a
+                    for k in [i...j]
+                        t = v[k]
+                        d += delta
+                        t.position = d
+                        @db.update
+                            set   : {position : t.position}
+                            where : {task_id  : t.task_id}
+                # reset, so we find next sequence of repeats...
+                i = j
+            j += 1
 
     handle_changes: (changes) =>
         # determine the tasks that changed from the changes object, which lists and

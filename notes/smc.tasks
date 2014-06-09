@@ -211,4 +211,5 @@
 {"desc":"#tasks #v1\nwhen ren","position":-146.75,"last_edited":1402323198212,"task_id":"d31fb0c9-746c-4882-8a77-57a58759eee6","deleted":true}
 {"desc":"(0:30?) #tasks #v1 #bug\nsometimes done task doesn't get rendered as greyed out.","position":-153,"last_edited":1402323569551,"task_id":"84beaad5-76ff-487d-aab4-39897f66f4c9"}
 {"desc":"#bug #now #tasks #v1\n\nget column headings to line up better with columns (general css/html cleanup)","position":-171.0625,"last_edited":1402345236024,"task_id":"53630a6f-cbfd-47d2-a453-031646962fb9","done":1402345235200}
-{"desc":"#bug #now #tasks #v1\nrefactor code to make loading more robust, especially when it fails. ","position":-172.0625,"last_edited":1402347954993,"task_id":"b54cd1ca-2038-432d-acf8-6db4a583873b","done":1402347954177}
+{"desc":"(0:45) #bug #now #tasks #v1\nrefactor code to make loading more robust, especially when it fails. ","position":-172.0625,"last_edited":1402348150810,"task_id":"b54cd1ca-2038-432d-acf8-6db4a583873b","done":1402347954177}
+{"desc":"#bug #now #tasks #v1\n\nAddress these todo's in the code:\n\n- [ ] TODO: should generate a task_id\n- [ ] TODO: should generate a *new* task_id for this task!","position":-172.21875,"last_edited":1402349549138,"task_id":"c5352b32-99d3-4d9c-a027-a4f56f2acaf2"}
