@@ -38,7 +38,6 @@ class SynchronizedDB extends EventEmitter
                     @_data = {}
                     @_set_data_from_doc()
                     @_doc._presync = () =>
-                        @emit('presync')
                         @_live_before_sync = @_doc.live()
                     @_doc.on 'sync', (err) =>
                         @emit('sync')
@@ -47,6 +46,7 @@ class SynchronizedDB extends EventEmitter
                             #console.log("DEBUG: invalid/corrupt sync request; revert it")
                             @_doc.live(@_live_before_sync)
                             @_set_data_from_doc()
+                            @emit('presync')
                             @_doc.sync()
                     cb(undefined, @)
 
@@ -104,6 +104,7 @@ class SynchronizedDB extends EventEmitter
                 v.push(to_json(z.x.data))
                 line += 1
         @_doc.live(v.join('\n'))
+        @emit('presync')
         @_doc.sync()
 
     save: (cb) =>
