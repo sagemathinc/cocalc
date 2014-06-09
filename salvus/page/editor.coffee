@@ -843,7 +843,7 @@ class exports.Editor
                 if opts.foreground
                     ed.show()
                     setTimeout((() -> ed.show(); ed.focus()), 100)
-                    @element.find(".btn-group").children().removeClass('disabled')
+                    #@element.find(".btn-group").children().removeClass('disabled')
 
                 top_link = @active_tab.open_file_pill
                 if top_link?
