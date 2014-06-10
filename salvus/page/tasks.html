@@ -3,7 +3,7 @@
     <div class="salvus-tasks-editor" >
         <div class="row" style="margin-left:1em;margin-right:1em;">
 
-            <div class="row-fluid">
+            <div class="row-fluid" style="width:98%; padding-bottom: .5ex; padding-top:.5ex;">
                 <div class="span10">
                     <div class="well salvus-tasks-hashtags">
                         <span class='btn-group salvus-tasks-hashtag-bar'  style="white-space: normal">
@@ -21,7 +21,7 @@
                 </div>
             </div>
 
-            <div class="row-fluid">
+            <div class="row-fluid"  style="width:98%;">
                 <div class="span5 lighten salvus-tasks-header">
                     <input class="salvus-tasks-search search-query" style="width:88%" type="search" placeholder="Search...">
                     <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
@@ -35,7 +35,7 @@
                 </div>
             </div>
 
-            <div class="row-fluid salvus-tasks-list-heading ">
+            <div class="row-fluid salvus-tasks-list-heading "  style="width:98%">
                 <div class="span6">
                     <span class="btn-group salvus-tasks-action-buttons">
                         <a class="btn" href="#create-task"><i class="fa fa-plus-circle"> </i> New</a>
@@ -58,7 +58,7 @@
                     <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
                 </div>
                 <div class="span2 lighten salvus-tasks-header  salvus-task-sort-last-edited">
-                    Edited <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
+                    Changed <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
                 </div>
 
             </div>
@@ -74,17 +74,16 @@
 
     <div class="row-fluid salvus-task">
         <div class="span1">
+            <span class="salvus-task-toggle-icons">
+                <i class="fa fa-caret-right salvus-task-toggle-icon pull-right hide"> </i>
+                <i class="fa fa-caret-down salvus-task-toggle-icon pull-right"> </i>
+            </span>
             <i class="fa fa-reorder salvus-task-reorder-handle"> </i>
             <i class="fa fa-check-square-o salvus-task-viewer-done  salvus-task-icon-done-box hide"> </i>
             <i class="fa fa-square-o salvus-task-viewer-not-done salvus-task-icon-done-box"> </i>
             <a class='btn btn-danger btn-small salvus-task-undelete hide'>Undelete</a>
         </div>
         <div class="span7 salvus-tasks-desc-column">
-            <span class="salvus-task-toggle-icons">
-                <i class="fa fa-caret-left salvus-task-toggle-icon pull-right hide"> </i>
-                <i class="fa fa-caret-down salvus-task-toggle-icon pull-right"> </i>
-            </span>
-
             <div class="salvus-task-desc"></div>
         </div>
 
@@ -105,7 +104,7 @@
             <textarea></textarea>
             <div class="row-fluid">
                 <div class="span6">
-                    <a class="btn" style="margin-bottom:1ex" href="#save"  data-toggle="tooltip" data-placement="bottom" title="or press shift+enter">Finished Editing</a>
+                    <a class="btn" style="margin-bottom:1ex" href="#close"  data-toggle="tooltip" data-placement="bottom" title="or press shift+enter">Close</a>
                 </div>
                 <!--<div class="span8">
 <span style="color:#999">Use <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>, LaTeX, <tt>#tag</tt> to create hashtag labels, and [ ] and [x] to create checklists, then press shift+enter.</span>

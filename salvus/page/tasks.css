@@ -53,7 +53,7 @@
 }
 
 .salvus-task-icon-done-box {
-    font-size:15pt;
+    font-size:17pt;
     color:#888;
 }
 
@@ -99,7 +99,7 @@
 }
 
 .salvus-tasks-list-heading {
-    padding-left: .8ex;
+    padding-bottom: .5ex;
     font-size: 11pt;
     cursor: pointer;
 }
@@ -122,8 +122,9 @@
 }
 
 .salvus-task-reorder-handle {
-    font-size: 15pt;
+    font-size: 17pt;
     color: #888;
+    margin-right: 6px;
 }
 
 .salvus-task-reorder-handle:hover {
@@ -149,7 +150,12 @@
 
 .salvus-task-toggle-icon {
     color: #888;
-    font-size: 18pt;
+    font-size: 17pt;
+    margin-left: 0 !important;   /* undo the pull-right bootstrap style */
+}
+
+.salvus-task-toggle-icon:hover {
+    color: #51a7e8;
 }
 
 .salvus-task-active-icon:hover {

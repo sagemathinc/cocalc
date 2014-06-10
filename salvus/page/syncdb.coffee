@@ -39,12 +39,14 @@ class SynchronizedDB extends EventEmitter
                     @_set_data_from_doc()
                     @_doc._presync = () =>
                         @_live_before_sync = @_doc.live()
-                    @_doc.on 'sync', () =>
+                    @_doc.on 'sync', (err) =>
+                        @emit('sync')
                         #console.log("syncdb -- syncing")
                         if not @_set_data_from_doc() and @_live_before_sync?
                             #console.log("DEBUG: invalid/corrupt sync request; revert it")
                             @_doc.live(@_live_before_sync)
                             @_set_data_from_doc()
+                            @emit('presync')
                             @_doc.sync()
                     cb(undefined, @)
 
@@ -102,6 +104,7 @@ class SynchronizedDB extends EventEmitter
                 v.push(to_json(z.x.data))
                 line += 1
         @_doc.live(v.join('\n'))
+        @emit('presync')
         @_doc.sync()
 
     save: (cb) =>
@@ -187,6 +190,21 @@ class SynchronizedDB extends EventEmitter
     delete_one: (where) =>
         @delete(where, true)
 
+    # ensure that every db entry has a distinct uuid value for the given key
+    ensure_uuid_primary_key: (key) =>
+        uuids = {}
+        changes = {}
+        for h,v of @_data
+            if not v.data[key]? or uuids[v.data[key]]  # not defined or seen before
+                v.data[key] = misc.uuid()
+                h2 = hash_string(to_json(v.data))
+                delete @_data[h]
+                changes[h2] = v
+            uuids[v.data[key]] = true
+        if misc.len(changes) > 0
+            for h, v of changes
+                @_data[h] = v
+            @_set_doc_from_data()
 
 
 exports.synchronized_db = (opts) ->
