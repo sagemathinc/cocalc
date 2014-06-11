@@ -216,12 +216,9 @@
 {"desc":"#bug #tasks #v1\nsync spinner is now **too** aggressive to be useful. ","position":-172.296875,"last_edited":1402355121876,"task_id":"e982b60f-4704-4990-983c-5b2d4f9acc36","done":1402355121875}
 {"desc":"#tasks #v2\nuse locale for date picker, if possible (or at least make configurable)\n\nThis note in the source code:\n> TODO: this should somehow adjust to use locale, right?!","position":113.5,"last_edited":1402355699840,"task_id":"d8ecad77-2e95-4160-b5b1-5d709c7ccc33"}
 {"desc":"(0:15?) #bug #tasks #v1\n","position":-172.6796875,"last_edited":1402373787673,"task_id":"02815200-be32-4dc1-bb5e-afe309da69a9","deleted":true}
-<<<<<<< HEAD
 {"desc":"#bug #tasks #v1\nGot this error when doing sync\n\n    Uncaught Error: Unknown call format to patch_make. ","position":-172.515625,"last_edited":1402414616935,"task_id":"6e2a84a1-9ba1-4350-bf3f-e287e350a72b"}
 {"desc":"#latex\nshift-enter should also save and tex, and maybe save should not tex.","position":-55.5,"last_edited":1402415936575,"task_id":"dcd32e7b-4115-4a62-ba46-a5182b25715e"}
-=======
 {"desc":"(0:15?) #bug #tasks #v1  #today\nneed to do mathjax first, then mardkown, e.g., $\\rho_n:G_\\mathbf{Q}$ is wrong.","position":-142.91666666666669,"last_edited":1402497059893,"task_id":"2f9f5d1a-6327-445e-baeb-7d30c9483b85"}
 {"desc":"#tasks #notes #unclear\nidea: make a \"notes\" (?) type with a settings object.\n\nset a default mode for cells, which could be %md, but also %sage\n\nsame base code as tasks.\n\ncan have a compute component with graphical output, etc.\n\nalternatively, anything that is code gets evaluated as %sage by default...  HMM.\n\nor could have the setting to automatically *add in the %sage* at the top (say), but still leave it in explicitly...","position":-141.125,"last_edited":1402426400888,"task_id":"b4293bc9-677b-4276-9e18-0c11dbbfaece"}
 {"desc":"#ui #unclear\nshould I make all the search boxes (etc) codemirror, so they can use the vim/emacs/etc. features too?  Would be nice for consistency.","position":119.8125,"last_edited":1402426445350,"task_id":"cb84506d-90bb-4a04-8104-7cdafdc9a856"}
 {"desc":"#upgrade #devops\nconsider switching vpn\n\n- http://www.softether.org/ (PPA: https://launchpad.net/~dajhorn/+archive/softether)\n- http://www.freelan.org/\n- email with keith: https://mail.google.com/mail/u/0/?shva=1#search/keith/146886525002ca64","position":-173.0625,"last_edited":1402496739813,"task_id":"8d28161b-095d-471f-88c4-2ec76f3cce8b"}
->>>>>>> dec198dfed985786a54551315343c29f8f7df9d9
