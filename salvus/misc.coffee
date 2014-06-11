@@ -580,3 +580,92 @@ exports.hash_string = (s) ->
     return hash
 
 
+
+
+
+
+
+
+
+
+
+
+
+exports.parse_hashtags = (t) ->
+    # return list of pairs (i,j) such that t.slice(i,j) is a hashtag (starting with #).
+    v = []
+    if not t?
+        return v
+    base = 0
+    while true
+        i = t.indexOf('#')
+        if i == -1 or i == t.length-1
+            return v
+        base += i+1
+        if t[i+1] == '#' or not (i == 0 or t[i-1].match(/\s/))
+            t = t.slice(i+1)
+            continue
+        t = t.slice(i+1)
+        # find next whitespace or non-alphanumeric or dash
+        i = t.match(/\s|[^A-Za-z0-9_\-]/)
+        if i
+            i = i.index
+        else
+            i = -1
+        if i == 0
+            # hash followed immediately by whitespace -- markdown desc
+            base += i+1
+            t = t.slice(i+1)
+        else
+            # a hash tag
+            if i == -1
+                # to the end
+                v.push([base-1, base+t.length])
+                return v
+            else
+                v.push([base-1, base+i])
+                base += i+1
+                t = t.slice(i+1)
+
+mathjax_delim = [['$$','$$'], ['\\(','\\)'], ['\\[','\\]'],
+                 ['\\begin{equation}', '\\end{equation}'],
+                 ['\\begin{equation*}', '\\end{equation*}'],
+                 ['\\begin{align}', '\\end{align}'],
+                 ['\\begin{align*}', '\\end{align*}'],
+                 ['\\begin{eqnarray}', '\\end{eqnarray}'],
+                 ['\\begin{eqnarray*}', '\\end{eqnarray*}'],
+                 ['$', '$']  # must be after $$
+                ]
+
+exports.parse_mathjax = (t) ->
+    # Return list of pairs (i,j) such that t.slice(i,j) is a mathjax, including delimiters.
+    # The delimiters are given in the mathjax_delim list above.
+    v = []
+    i = 0
+    while i < t.length
+        if t.slice(i,i+2) == '\\$'
+            i += 2
+            continue
+        for d in mathjax_delim
+            if t.slice(i,i+d[0].length) == d[0]
+                # a match -- find the close
+                j = i+1
+                while j < t.length and t.slice(j,j+d[1].length) != d[1]
+                    j += 1
+                j += d[1].length
+                v.push([i,j])
+                i = j
+                break
+        i += 1
+    return v
+
+# If you're going to set some innerHTML then mathjax it,
+exports.mathjax_escape = (html) ->
+    return html.replace(/&(?!#?\w+;)/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;")
+
+
+
+
+
+
+

@@ -110,6 +110,7 @@ $.fn.extend
                 MathJax.Hub.Queue([opts.cb, t])
             return t
 
+
 # Mathjax-enabled Contenteditable Editor plugin
 $.fn.extend
     make_editable: (opts={}) ->
@@ -437,3 +438,26 @@ exports.copy_to_clipboard = (text) ->
     document.execCommand("Copy", false, null)
     document.body.removeChild(copyDiv)
 ###
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

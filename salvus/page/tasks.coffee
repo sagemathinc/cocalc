@@ -8,6 +8,17 @@ jQuery.timeago.settings.allowFuture = true
 
 async  = require('async')
 marked = require('marked')
+
+marked.setOptions
+    renderer    : new marked.Renderer()
+    gfm         : true
+    tables      : true
+    breaks      : false
+    pedantic    : false
+    sanitize    : false
+    smartLists  : true
+    smartypants : true
+
 misc   = require('misc')
 {defaults, required, to_json, uuid} = misc
 
@@ -76,7 +87,8 @@ class TaskList
                     @element.find(".salvus-tasks-loading").text(e)
                     alert_message(type:"error", message:e)
                     @readonly = true
-                    @save_button.removeClass('disabled').text("Try again to load...").off('click').click () =>
+                    @save_button.find("span").text("Try again to load...")
+                    @save_button.removeClass('disabled').off('click').click () =>
                         @save_button.off('click')
                         @save_button.addClass('disabled')
                         @init_syncdb()
@@ -84,10 +96,10 @@ class TaskList
                     @db = db
                     @readonly = @db.readonly
                     if @readonly
-                        @save_button.text("Readonly")
+                        @save_button.find("span").text("Readonly")
                         @element.find(".salvus-tasks-action-buttons").remove()
                     else
-                        @save_button.text("Save")
+                        @save_button.find("span").text("Save")
 
                     @init_tasks()
 
@@ -335,7 +347,7 @@ class TaskList
                 continue
             if task.deleted and not @showing_deleted
                 continue
-            for x in parse_hashtags(task.desc)
+            for x in misc.parse_hashtags(task.desc)
                 @hashtags[task.desc.slice(x[0]+1, x[1]).toLowerCase()] = true
 
     render_task_list: () =>
@@ -656,10 +668,12 @@ class TaskList
                     @local_storage("toggle-#{task.task_id}",true)
         else
             task.element.find(".salvus-task-toggle-icons").hide()
+        has_mathjax = false
         if desc.length == 0
             desc = "<span class='lighten'>Enter a description...</span>" # so it is possible to edit
         else
-            v = parse_hashtags(desc)
+            # replace hashtags by a span with appropriate class
+            v = misc.parse_hashtags(desc)
             if v.length > 0
                 # replace hashtags by something that renders nicely in markdown (instead of as descs)
                 x0 = [0,0]
@@ -668,13 +682,39 @@ class TaskList
                     desc0 += desc.slice(x0[1], x[0]) + '<span class="salvus-tasks-hash">' + desc.slice(x[0], x[1]) + '</span>'
                     x0 = x
                 desc = desc0 + desc.slice(x0[1])
+
+            # replace mathjax, which is delimited by $, $$, \( \), and \[ \]
+            v = misc.parse_mathjax(desc)
+            if v.length > 0
+                w = []
+                has_mathjax = true
+                x0 = [0,0]
+                desc0 = ''
+                i = 0
+                for x in v
+                    w.push(desc.slice(x[0], x[1]))
+                    desc0 += desc.slice(x0[1], x[0]) + "@@@@#{i}@@@@"
+                    x0 = x
+                    i += 1
+                desc = desc0 + desc.slice(x0[1])
+            else
+                has_mathjax = false
+
+            # render description into html (from markdown)
             desc = marked(desc)
+
+            # if there was any mathjax, put it back in the desc
+            if has_mathjax
+                for i in [0...w.length]
+                    desc = desc.replace("@@@@#{i}@@@@", misc.mathjax_escape(w[i].replace(/\$/g, "$$$$")))
+
         if task.deleted
             desc = "<del>#{desc}</del>"
+
         e = task.element.find(".salvus-task-desc")
 
         e.html(desc)
-        if desc.indexOf('$') != -1 or desc.indexOf('\\') != -1
+        if has_mathjax
             # .mathjax() does the above optimization, but it first does e.html(), so is a slight waste -- most
             # items have no math, so this is worth it...
             e.mathjax()
@@ -1336,42 +1376,7 @@ $(window).keydown (evt) =>
             return false
 
 
-parse_hashtags = (t0) ->
-    # return list of pairs (i,j) such that t.slice(i,j) is a hashtag (starting with #).
-    t = t0
-    v = []
-    if not t?
-        return v
-    base = 0
-    while true
-        i = t.indexOf('#')
-        if i == -1 or i == t.length-1
-            return v
-        base += i+1
-        if t[i+1] == '#' or not (i == 0 or t[i-1].match(/\s/))
-            t = t.slice(i+1)
-            continue
-        t = t.slice(i+1)
-        # find next whitespace or non-alphanumeric or dash
-        i = t.match(/\s|[^A-Za-z0-9_\-]/)
-        if i
-            i = i.index
-        else
-            i = -1
-        if i == 0
-            # hash followed immediately by whitespace -- markdown desc
-            base += i+1
-            t = t.slice(i+1)
-        else
-            # a hash tag
-            if i == -1
-                # to the end
-                v.push([base-1, base+t.length])
-                return v
-            else
-                v.push([base-1, base+i])
-                base += i+1
-                t = t.slice(i+1)
+
 
 help_dialog_element = templates.find(".salvus-tasks-help-dialog")
 
