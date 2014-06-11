@@ -4276,6 +4276,7 @@ class TaskList extends FileEditor
         if not IS_MOBILE
             @element.css(top:@editor.editor_top_position(), width:'100%', position:'fixed')
         else
+            # TODO: this is a terrible HACK!
             @element.closest(".salvus-editor-content").css(position:'relative', top:'0')
             @element.css(position:'relative', top:'0')
         @task_list.show()

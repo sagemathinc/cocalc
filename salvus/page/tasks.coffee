@@ -489,8 +489,9 @@ class TaskList
         # remove any existing highlighting:
         @elt_task_list.find('.salvus-task-desc').unhighlight()
         if search.length > 0
-            # Go through the DOM tree of tasks and highlight all the search terms
-            @elt_task_list.find('.salvus-task-desc').highlight(search)
+            # Go through the DOM tree of tasks and highlight all the search terms for
+            # tasks that aren't currently being edited.
+            @elt_task_list.find('.salvus-task-desc').not(".salvus-task-desc-editing").highlight(search)
 
         # show the "create a new task" link if no tasks.
         if count == 0
@@ -670,7 +671,7 @@ class TaskList
     display_desc: (task) =>
         desc = task.desc
         if not @currently_editing_task(task)
-            # not editing task
+            # not editing task -- check on toggle status
             m = desc.match(/^\s*[\r\n]/m)  # blank line
             i = m?.index
             if i?
@@ -862,6 +863,7 @@ class TaskList
         if e.hasClass('salvus-task-editing-desc') and e.data('cm')?
             e.data('cm').focus()
             return
+        e.find(".salvus-task-desc").addClass('salvus-task-desc-editing')
         e.find(".salvus-task-toggle-icons").hide()
         e.addClass('salvus-task-editing-desc')
         elt_desc = e.find(".salvus-task-desc")
@@ -884,6 +886,7 @@ class TaskList
         stop_editing = () =>
             finished = true
             e.removeClass('salvus-task-editing-desc')
+            e.find(".salvus-task-desc").removeClass('salvus-task-desc-editing')
             elt.hide()
             sync_desc()
 
@@ -944,7 +947,7 @@ class TaskList
             desc           = cm.getValue()
             task.last_desc = desc  # update current description before syncing.
             task.desc      = desc
-            @display_desc(task) # update the realtime preview
+            @display_desc(task) # update the preview
             task.last_edited = (new Date()) - 0
             @db.update
                 set   : {desc    : task.desc, last_edited : task.last_edited}
