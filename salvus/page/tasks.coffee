@@ -924,6 +924,7 @@ class TaskList
             desc           = cm.getValue()
             task.last_desc = desc  # update current description before syncing.
             task.desc      = desc
+            @display_desc(task) # update the realtime preview
             task.last_edited = (new Date()) - 0
             @db.update
                 set   : {desc    : task.desc, last_edited : task.last_edited}
