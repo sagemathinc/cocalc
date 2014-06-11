@@ -44,7 +44,7 @@
                         <a class="btn btn-danger" href="#delete-task"><i class="fa fa-trash-o"> </i> </a>
                     </span>
                     <span class="btn-group">
-                        <a class="btn btn-success disabled" href="#save"><i class="fa fa-save"> </i> Save</a>
+                        <a class="btn btn-success disabled" href="#save"><i class="fa fa-save"> </i> <span>Save</span></a>
                         <a class='btn btn-info salvus-tasks-info'><i class="fa fa-question-circle"> </i> Help</a>
                     </span>
                 </div>
@@ -167,7 +167,8 @@
             <h4>Keyboard shortcuts</h4>
             Let mod be any of control, alt, or command.
             Use mod+s to save, mod+f to find, mod+n to make a new task, mod+space to toggle done state, and mod+arrow to move a task up or down the list.
-            Use arrows to change which task is selected, enter to start editing a task description, and shift+enter to stop editing.
+            Use arrows to change which task is selected, enter to start editing a task description,
+            and shift+enter to stop editing.
 
             <h4>File format</h4>
             A task list is stored as a file with extension <tt>.tasks</tt> that contains one JSON line per task.
@@ -175,7 +176,6 @@
             and changes should appear in the task list within a few seconds.  You can
             have many task lists, store them in revision control, create and modify
             them using scripts, recover them from snapshots, etc.
-
 
         </div>
         <div class="modal-footer">
