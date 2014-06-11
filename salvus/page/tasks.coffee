@@ -35,6 +35,8 @@ task_template           = templates.find(".salvus-task")
 edit_task_template      = templates.find(".salvus-task-editor")
 hashtag_button_template = templates.find(".salvus-tasks-hashtag-button")
 
+currently_focused_editor = undefined
+
 exports.task_list = (project_id, filename) ->
     element = templates.find(".salvus-tasks-editor").clone()
     new TaskList(project_id, filename, element)
@@ -833,7 +835,8 @@ class TaskList
         if not task?
             return
         e = task.element
-        if e.hasClass('salvus-task-editing-desc')
+        if e.hasClass('salvus-task-editing-desc') and e.data('cm')?
+            e.data('cm').focus()
             return
         e.find(".salvus-task-toggle-icons").hide()
         e.addClass('salvus-task-editing-desc')
@@ -895,10 +898,10 @@ class TaskList
         e.data('diff_sync', new DiffSyncDoc(cm:cm, readonly:false))
 
         cm.clearHistory()  # ensure that the undo history doesn't start with "empty document"
-        $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor').addClass('salvus-new-task-cm-editor-focus')
+        $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor')
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
 
-        cm.focus()
+
         elt.find("a[href=#close]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
             stop_editing()
             event.preventDefault()
@@ -935,6 +938,15 @@ class TaskList
                             if misc.mswalltime() - last_sync >= min_time
                                 sync_desc()
                         timer = setTimeout(f, min_time - (t - last_sync))
+        cm.on 'focus', () ->
+            currently_focused_editor = cm
+            $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor-focus')
+
+        cm.on 'blur', () ->
+            $(cm.getWrapperElement()).removeClass('salvus-new-task-cm-editor-focus')
+            currently_focused_editor = undefined
+
+        cm.focus()
 
     edit_due_date: (task) =>
         @set_current_task(task)
@@ -1196,20 +1208,17 @@ class TaskList
                 @render_task_list()
 
     init_search: () =>
-        ###
-        @element.find(".salvus-tasks-search").keydown (evt) =>
-            if evt.which == 13
-                @render_task_list()
-                return false
-            else if evt.which == 27 # escape
-                @element.find(".salvus-tasks-search").val("")
-                @render_task_list()
-                return false
-        ###
-
         @_last_search = misc.walltime()
         search_delay = 300  # do the search when user stops typing for this many ms
-        @element.find(".salvus-tasks-search").keyup () =>
+        search_box = @element.find(".salvus-tasks-search")
+        search_box.keyup (evt) =>
+            if evt.which == 27
+                search_box.val('').blur()
+                @render_task_list()
+                return
+            else if evt.which == 13
+                @edit_desc(@current_task)
+                return
             t = misc.walltime()
             if t - @_last_search >= search_delay
                 @_last_search = t
@@ -1221,6 +1230,11 @@ class TaskList
                         @_last_search = t
                         @render_task_list()
                 setTimeout(f, search_delay)
+        search_box.focus () =>
+            currently_focused_editor = search_box
+        search_box.blur () =>
+            currently_focused_editor = undefined
+
 
         @element.find(".salvus-tasks-search-clear").click () =>
             e = @element.find(".salvus-tasks-search")
@@ -1335,6 +1349,9 @@ $(window).keydown (evt) =>
     if evt.shiftKey
         return
 
+    if currently_focused_editor?
+        return
+
     if evt.ctrlKey or evt.metaKey or evt.altKey
         if evt.keyCode == 70 # f
             if current_task_list.element?.find(".salvus-task-editing-desc").length == 0
@@ -1359,19 +1376,15 @@ $(window).keydown (evt) =>
             current_task_list.toggle_current_task_done()
             return false
     else
-
-        if current_task_list.element?.find(".salvus-task-editing-desc").length > 0
-            return
-
-        if evt.which == 13 and not current_task_list.readonly # return = edit selected
+        if (evt.which == 13 or evt.which == 73) and not current_task_list.readonly # return = edit selected
             current_task_list.edit_desc(current_task_list.current_task)
             return false
 
-        else if evt.which == 40  # down
+        else if evt.which == 40 or evt.which == 74    # down
             current_task_list.set_current_task_next()
             return false
 
-        else if evt.which == 38  # up
+        else if evt.which == 38 or evt.which == 75    # up
             current_task_list.set_current_task_prev()
             return false
 
