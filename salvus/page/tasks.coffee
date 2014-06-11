@@ -650,26 +650,32 @@ class TaskList
         @render_task_list()
         return false
 
+    currently_editing_task: (task) =>
+        return currently_focused_editor? and currently_focused_editor == task.element.data('cm')
+
     display_desc: (task) =>
         desc = task.desc
-        m = desc.match(/^\s*[\r\n]/m)  # blank line
-        i = m?.index
-        if i?
-            task.element.find(".salvus-task-toggle-icons").show()
-            is_up = @local_storage("toggle-#{task.task_id}")
-            if is_up?
-                if is_up == task.element.find(".fa-caret-down").hasClass("hide")
-                    task.element.find(".salvus-task-toggle-icon").toggleClass('hide')
-                if task.element.find(".fa-caret-down").hasClass("hide")
-                    desc = desc.slice(0,i)
-            else
-                if task.element.find(".fa-caret-down").hasClass("hide")
-                    @local_storage("toggle-#{task.task_id}",false)
-                    desc = desc.slice(0,i)
+        if not @currently_editing_task(task)
+            # not editing task
+            m = desc.match(/^\s*[\r\n]/m)  # blank line
+            i = m?.index
+            if i?
+                task.element.find(".salvus-task-toggle-icons").show()
+                is_up = @local_storage("toggle-#{task.task_id}")
+                if is_up?
+                    if is_up == task.element.find(".fa-caret-down").hasClass("hide")
+                        task.element.find(".salvus-task-toggle-icon").toggleClass('hide')
+                    if task.element.find(".fa-caret-down").hasClass("hide")
+                        desc = desc.slice(0,i)
                 else
-                    @local_storage("toggle-#{task.task_id}",true)
-        else
-            task.element.find(".salvus-task-toggle-icons").hide()
+                    if task.element.find(".fa-caret-down").hasClass("hide")
+                        @local_storage("toggle-#{task.task_id}",false)
+                        desc = desc.slice(0,i)
+                    else
+                        @local_storage("toggle-#{task.task_id}",true)
+            else
+                task.element.find(".salvus-task-toggle-icons").hide()
+                
         has_mathjax = false
         if desc.length == 0
             desc = "<span class='lighten'>Enter a description...</span>" # so it is possible to edit
