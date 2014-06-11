@@ -216,3 +216,5 @@
 {"desc":"#bug #tasks #v1\nsync spinner is now **too** aggressive to be useful. ","position":-172.296875,"last_edited":1402355121876,"task_id":"e982b60f-4704-4990-983c-5b2d4f9acc36","done":1402355121875}
 {"desc":"#tasks #v2\nuse locale for date picker, if possible (or at least make configurable)\n\nThis note in the source code:\n> TODO: this should somehow adjust to use locale, right?!","position":113.5,"last_edited":1402355699840,"task_id":"d8ecad77-2e95-4160-b5b1-5d709c7ccc33"}
 {"desc":"(0:15?) #bug #tasks #v1\n","position":-172.6796875,"last_edited":1402373787673,"task_id":"02815200-be32-4dc1-bb5e-afe309da69a9","deleted":true}
+{"desc":"#bug #tasks #v1\nGot this error when doing sync\n\n    Uncaught Error: Unknown call format to patch_make. ","position":-172.515625,"last_edited":1402414616935,"task_id":"6e2a84a1-9ba1-4350-bf3f-e287e350a72b"}
+{"desc":"#latex\nshift-enter should also save and tex, and maybe save should not tex.","position":-55.5,"last_edited":1402415936575,"task_id":"dcd32e7b-4115-4a62-ba46-a5182b25715e"}
