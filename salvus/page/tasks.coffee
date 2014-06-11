@@ -362,7 +362,6 @@ class TaskList
     render_task_list: () =>
         if not @tasks?
             return
-        t0 = misc.walltime()
 
         # Determine the search criteria, which restricts what is visible
         search = @selected_hashtags()
@@ -387,8 +386,6 @@ class TaskList
             task_id = @local_storage("current_task")
             if task_id?
                 @set_current_task_by_id(task_id)
-
-        #console.log('time0', misc.walltime(t0))
 
         # Compute the list @_visible_tasks of tasks that are visible,
         # according to the search/hashtag/done/trash criteria.
@@ -421,20 +418,13 @@ class TaskList
                 @_visible_descs += ' ' + task.desc.toLowerCase()
                 count += 1
 
-        #console.log('time1', misc.walltime(t0))
-
         # Draw the hashtags that should be visible.
         @render_hashtag_bar()
 
-        #console.log('time2', misc.walltime(t0))
-
         # Sort only the visible tasks in the list according to the currently selected sort order.
         @sort_visible_tasks()
-        #console.log('time3', misc.walltime(t0))
 
         # Make it so the DOM displays exactly the visible tasks in the correct order
-        t1 = misc.walltime()
-
         changed = false
         if not last_visible_tasks?
             changed = true
@@ -463,7 +453,6 @@ class TaskList
                 if task.task_id == @current_task?.task_id
                     current_task_is_visible = true
 
-
             # ensure that at most one task is selected as the current task
             @elt_task_list.children().removeClass("salvus-current-task")
             if not current_task_is_visible and @_visible_tasks.length > 0
@@ -477,16 +466,17 @@ class TaskList
         # ensure that all tasks are actually visible (not display:none, which happens on fading out)
         @elt_task_list.children().css('display','inherit')
 
-        #console.log("time to update DOM", misc.walltime(t1))
-        #console.log('time4', misc.walltime(t0))
-
         # remove any existing highlighting:
         @elt_task_list.find('.salvus-task-desc').unhighlight()
         if search.length > 0
             # Go through the DOM tree of tasks and highlight all the search terms
             @elt_task_list.find('.salvus-task-desc').highlight(search)
-        #console.log('time5 (highlight)', misc.walltime(t0))
 
+        # show the "create a new task" link if no tasks.
+        if count == 0
+            @element.find(".salvus-tasks-list-none").show()
+        else
+            @element.find(".salvus-tasks-list-none").hide()
         # Show number of displayed tasks in UI.
         if count != 1
             count = "#{count} tasks"
@@ -494,10 +484,10 @@ class TaskList
             count = "#{count} task"
         search_describe.find(".salvus-tasks-count").text(count).show()
 
+
         if @readonly
             # Task list is read only so there is nothing further to do -- in
             # particular, there's no need to make the task list sortable.
-            #console.log('time', misc.walltime(t0))
             @elt_task_list.find(".salvus-task-reorder-handle").hide()
             return
 
@@ -507,7 +497,6 @@ class TaskList
             catch
                 # if sortable never called get exception.
             @elt_task_list.find(".salvus-task-reorder-handle").hide()
-            #console.log('time', misc.walltime(t0))
             return
 
         @elt_task_list.find(".salvus-task-reorder-handle").show()
@@ -532,8 +521,6 @@ class TaskList
                 else if prev.length > 0
                     # if no next, make our position the previous + 1
                     @move_task_after(task, prev.data('task').position)
-
-        #console.log('time', misc.walltime(t0))
 
     set_task_position: (task, position) =>
         task.position = position

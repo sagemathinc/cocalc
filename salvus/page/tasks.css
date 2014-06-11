@@ -255,3 +255,7 @@
 .salvus-tasks-loading {
     font-size: 16pt;
 }
+
+.salvus-tasks-list-none {
+    margin-left:3em;
+}
