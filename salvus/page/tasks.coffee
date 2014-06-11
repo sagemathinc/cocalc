@@ -297,7 +297,12 @@ class TaskList
             @_visible_tasks.reverse()
 
     selected_hashtags: () =>
-        return ($(b).text() for b in @element.find(".salvus-tasks-hashtag-bar").find('.btn-warning'))
+        @parse_hashtags()
+        v = []
+        for tag,_ of @hashtags
+            if @local_storage("hashtag-##{tag}")
+                v.push('#'+tag)
+        return v
 
     toggle_hashtag_button: (button) =>
         tag = button.text()
@@ -329,12 +334,13 @@ class TaskList
         tags.sort()
         for tag in tags
             selected = @local_storage("hashtag-##{tag}")
-            if not selected and @_visible_descs? and @_visible_descs.indexOf('#'+tag) == -1
-                continue
             button = hashtag_button_template.clone()
             button.addClass("salvus-hashtag-#{tag}")
-            button.text("#"+tag)
-            button.click(click_hashtag)
+            button.text("#" + tag)
+            if not selected and @_visible_descs? and @_visible_descs.indexOf('#'+tag) == -1
+                button.addClass("disabled")
+            else
+                button.click(click_hashtag)
             bar.append(button)
             if selected
                 @toggle_hashtag_button(button)
@@ -875,7 +881,8 @@ class TaskList
             "Enter"       : "newlineAndIndentContinueMarkdownList"
             "Shift-Enter" : stop_editing
             "Shift-Tab"   : (editor) -> editor.unindent_selection()
-            #"F11"         : editor.setOption("fullScreen", not editor.getOption("fullScreen"))
+            "Ctrl-S"      : (editor) => @save()
+            "Cmd-S"       : (editor) => @save()
 
 
         if editor_settings.bindings != 'vim'  # this escape binding below would be a major problem for vim!
@@ -898,6 +905,8 @@ class TaskList
             opts.keyMap = editor_settings.bindings
 
         cm = CodeMirror.fromTextArea(elt.find("textarea")[0], opts)
+        cm.save = @save
+
         e.data('cm',cm)
         if not task.desc?
             task.desc = ''

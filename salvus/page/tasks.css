@@ -226,15 +226,12 @@
 
 .salvus-tasks-hashtags {
     overflow   : hidden;
-    padding    : 0;
+    padding    : 3px;
     margin     : 0;
     line-height: 0;
 }
 
 .salvus-tasks-hashtag-button {
-    padding        : 4px;
-    padding-top    : 0px;
-    padding-bottom : 0px;
 }
 
 .salvus-tasks-first {
