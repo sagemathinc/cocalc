@@ -94,7 +94,7 @@ class SynchronizedDB extends EventEmitter
             m = []
             for hash, x of @_data
                 m[x.line] = {hash:hash, x:x}
-            m = (x for x in m if x?)
+            m = (x for x in m when x?)
             line = 0
             v = []
             for z in m

@@ -77,6 +77,8 @@ class TaskList
         @init_sort()
         @init_info()
         @init_syncdb()
+        #@element.find(".salvus-tasks-hashtags").resizable
+        #     handles  : "s"
 
     init_syncdb: (cb) =>
         synchronized_db
@@ -309,14 +311,13 @@ class TaskList
     render_hashtag_bar: () =>
         t0 = misc.walltime()
         @parse_hashtags()
-        #console.log('time to parse hashtags =', misc.walltime(t0))
         bar = @element.find(".salvus-tasks-hashtag-bar")
         bar.empty()
         if not @hashtags? or misc.len(@hashtags) == 0
-            @element.find(".salvus-tasks-hashtags").hide()
+            @element.find(".salvus-tasks-hashtags-row").hide()
             return
         else
-            @element.find(".salvus-tasks-hashtags").show()
+            @element.find(".salvus-tasks-hashtags-row").show()
 
         click_hashtag = (event) =>
             button = $(event.delegateTarget)
@@ -675,7 +676,7 @@ class TaskList
                         @local_storage("toggle-#{task.task_id}",true)
             else
                 task.element.find(".salvus-task-toggle-icons").hide()
-                
+
         has_mathjax = false
         if desc.length == 0
             desc = "<span class='lighten'>Enter a description...</span>" # so it is possible to edit
@@ -833,7 +834,7 @@ class TaskList
         if @current_task?
             @delete_task(@current_task, true)
 
-    edit_desc: (task) =>
+    edit_desc: (task, cursor_at_end) =>
         if not task?
             task = @current_task
         if not task?
@@ -953,6 +954,8 @@ class TaskList
             currently_focused_editor = undefined
 
         cm.focus()
+        if cursor_at_end
+            cm.execCommand('goDocEnd')
 
     edit_due_date: (task) =>
         @set_current_task(task)
@@ -1115,7 +1118,7 @@ class TaskList
             desc += "\n"
         desc += @element.find(".salvus-tasks-search").val()
         task =
-            desc       : $.trim(desc)
+            desc        : desc
             position    : position
             last_edited : new Date() - 0
 
@@ -1128,7 +1131,7 @@ class TaskList
 
         @render_task_list()
         @set_current_task(task)
-        @edit_desc(task)
+        @edit_desc(task, true)
         @set_dirty()
 
     set_current_task_by_id: (task_id) =>
@@ -1197,14 +1200,18 @@ class TaskList
         @set_showing_deleted(@showing_deleted)
         @element.find(".salvus-task-search-not-deleted").click(=> @set_showing_deleted(true))
         @element.find(".salvus-task-search-deleted").click(=> @set_showing_deleted(false))
-        if @readonly
-            return
-        @element.find(".salvus-task-empty-trash").click(@empty_trash)
+        @element.find(".salvus-task-empty-trash").click () =>
+            if @readonly
+                return
+            @empty_trash()
 
     empty_trash: () =>
         if @readonly or not @tasks?
             return
+        prev = currently_focused_editor
+        currently_focused_editor = 'bootbox'
         bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h4>Permanently erase the deleted items?</h4><br> <span class='lighten'>Old versions of this list may be available as snapshots.</span>  ", (result) =>
+            currently_focused_editor = prev
             if result == true
                 a = @db.delete({deleted : true}, false)
                 for task_id, task of @tasks
@@ -1224,6 +1231,9 @@ class TaskList
                 return
             else if evt.which == 13
                 @edit_desc(@current_task)
+                return
+            else if evt.which == 78 and (evt.ctrlKey or evt.metaKey)
+                @create_task()
                 return
             t = misc.walltime()
             if t - @_last_search >= search_delay
@@ -1360,10 +1370,9 @@ $(window).keydown (evt) =>
 
     if evt.ctrlKey or evt.metaKey or evt.altKey
         if evt.keyCode == 70 # f
-            if current_task_list.element?.find(".salvus-task-editing-desc").length == 0
-                # not editing any tasks, so global find
-                current_task_list.element.find(".salvus-tasks-search").focus()
-                return false
+            # global find
+            current_task_list.element.find(".salvus-tasks-search").focus()
+            return false
         if current_task_list.readonly
             return
         if evt.keyCode == 83 # s

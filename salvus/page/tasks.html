@@ -2,13 +2,19 @@
 
     <div class="salvus-tasks-editor" >
         <div class="row" style="margin-left:1em;margin-right:1em;">
-
-            <div class="row-fluid" style="width:98%; padding-bottom: .5ex; padding-top:.5ex;">
-                <div class="span10">
+            <div class="row-fluid salvus-tasks-hashtags-row">
+                <div class="span12">
                     <div class="well salvus-tasks-hashtags">
                         <span class='btn-group salvus-tasks-hashtag-bar'  style="white-space: normal">
                         </span>
                     </div>
+                </div>
+            </div>
+
+            <div class="row-fluid"  style="width:98%;padding-top: 0.5ex;">
+                <div class="span4 lighten salvus-tasks-header">
+                    <input class="salvus-tasks-search search-query" style="width:88%" type="search" placeholder="Find...">
+                    <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
                 </div>
                 <div class="span2 lighten">
                     <i class="fa fa-square-o salvus-task-icon-done-box salvus-task-search-done-icon salvus-task-search-not-done"> </i>
@@ -19,14 +25,7 @@
                     Deleted<br>
                     <a class='btn btn-danger salvus-task-empty-trash'><i class="fa fa-trash-o"> </i> Empty Trash</a>
                 </div>
-            </div>
-
-            <div class="row-fluid"  style="width:98%;">
-                <div class="span5 lighten salvus-tasks-header">
-                    <input class="salvus-tasks-search search-query" style="width:88%" type="search" placeholder="Search...">
-                    <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
-                </div>
-                <div class="span7 lighten salvus-tasks-search-describe">
+                <div class="span6 lighten salvus-tasks-search-describe">
                     Showing <span class="salvus-tasks-count">0 tasks</span>.
                     <h4 class="salvus-tasks-loading">Loading task list... <i class="fa fa-spin fa-spinner"> </i></h4>
                     <span class="salvus-tasks-search-contain hide">Only showing tasks that contain <b><i><span class="salvus-tasks-search-query"></span></i></b>. </span>
