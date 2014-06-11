@@ -83,6 +83,7 @@ $.fn.extend
             tex : undefined
             display : false
             inline  : false
+            cb      : undefined     # if defined, gets called as cb(t) for *every* element t in the jquery set!
         @each () ->
             t = $(this)
             if not opts.tex? and not opts.display and not opts.inline
@@ -105,6 +106,8 @@ $.fn.extend
                     tex = "\\({#{tex}}\\)"
                 element = t.html(tex)
             MathJax.Hub.Queue(["Typeset", MathJax.Hub, element[0]])
+            if opts.cb?
+                MathJax.Hub.Queue([opts.cb, t])
             return t
 
 # Mathjax-enabled Contenteditable Editor plugin
