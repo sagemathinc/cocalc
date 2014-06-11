@@ -128,6 +128,10 @@ class TaskList
 
 
     init_tasks: () =>
+
+        # anything that couldn't be parsed from JSON as a map gets converted to {desc:thing}.
+        @db.ensure_objects('desc')
+
         # ensure that every db entry has a distinct task_id
         @db.ensure_uuid_primary_key('task_id')
 
@@ -136,7 +140,7 @@ class TaskList
         for task in @db.select()
             @tasks[task.task_id] = task
 
-        # ensure positions are all defined
+        # ensure positions and desc[riptions] are all defined
         positions = {}
         for task_id, t of @tasks
             if not t.position?
@@ -148,6 +152,22 @@ class TaskList
                     set   : {position : t.position}
                     where : {task_id  : task_id}
             positions[t.position] = true
+
+            # in case of corrupt input (so JSON couldn't be parsed)
+            if t.corrupt?
+                if not t.desc?
+                    t.desc = ''
+                t.desc += t.corrupt
+                @db.update
+                    set   : {desc     : t.desc,    corrupt:undefined}
+                    where : {task_id  : task_id}
+
+            if not t.desc?
+                # every description must be defined
+                t.desc = ''
+                @db.update
+                    set   : {desc     : t.desc}
+                    where : {task_id  : task_id}
 
         # and that positions are unique
         if misc.len(positions) != misc.len(@tasks)
@@ -316,7 +336,6 @@ class TaskList
             @local_storage("hashtag-#{tag}", false)
 
     render_hashtag_bar: () =>
-        t0 = misc.walltime()
         @parse_hashtags()
         bar = @element.find(".salvus-tasks-hashtag-bar")
         bar.empty()
@@ -347,7 +366,6 @@ class TaskList
             if selected
                 @toggle_hashtag_button(button)
         bar.show()
-        #console.log('time to render hashtags =', misc.walltime(t0))
 
     parse_hashtags: () =>
         @hashtags = {}
@@ -818,12 +836,16 @@ class TaskList
     move_current_task_to_top: () =>
         if not @current_task?
             return
-        @move_task_before(@current_task,  @_visible_tasks[0].position)
+        task = @current_task
+        @set_current_task_prev()
+        @move_task_before(task,  @_visible_tasks[0].position)
 
     move_current_task_to_bottom: () =>
         if not @current_task?
             return
-        @move_task_after(@current_task, @_visible_tasks[@_visible_tasks.length-1].position)
+        task = @current_task
+        @set_current_task_next()
+        @move_task_after(task, @_visible_tasks[@_visible_tasks.length-1].position)
 
     delete_current_task: () =>
         if @current_task?

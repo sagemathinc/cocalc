@@ -190,9 +190,25 @@ class SynchronizedDB extends EventEmitter
     delete_one: (where) =>
         @delete(where, true)
 
+    # anything that couldn't be parsed from JSON as a map gets converted to {key:thing}.
+    ensure_objects: (key) =>
+        changes = {}
+        for h,v of @_data
+            if typeof(v.data) != 'object'
+                x = v.data
+                v.data = {}
+                v.data[key] = x
+                h2 = hash_string(to_json(v.data))
+                delete @_data[h]
+                changes[h2] = v
+        if misc.len(changes) > 0
+            for h, v of changes
+                @_data[h] = v
+            @_set_doc_from_data()
+
     # ensure that every db entry has a distinct uuid value for the given key
     ensure_uuid_primary_key: (key) =>
-        uuids = {}
+        uuids   = {}
         changes = {}
         for h,v of @_data
             if not v.data[key]? or uuids[v.data[key]]  # not defined or seen before
