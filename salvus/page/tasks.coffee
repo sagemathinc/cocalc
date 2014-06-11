@@ -868,10 +868,11 @@ class TaskList
         last_sync = undefined
         min_time = 1500
 
+        task.last_desc = task.desc  # initialize last_desc, in case we get an update before ever sync'ing.
         sync_desc = () =>
             last_sync      = misc.mswalltime()
             desc           = cm.getValue()
-            task.last_desc = desc  # the description before syncing.
+            task.last_desc = desc  # update current description before syncing.
             task.desc      = desc
             task.last_edited = (new Date()) - 0
             @db.update
