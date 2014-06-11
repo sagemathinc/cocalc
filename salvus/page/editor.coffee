@@ -329,7 +329,6 @@ class exports.Editor
 
         @project_page.container.css('position', 'fixed')
 
-
     # Used for resizing editor windows.
     editor_top_position: () =>
         if salvus_client.in_fullscreen_mode()
@@ -4274,6 +4273,7 @@ class TaskList extends FileEditor
 
     show: () =>
         @element.show()
+        @element.css(top:@editor.editor_top_position(), width:'100%', position:'fixed')
         @task_list.show()
 
     hide: () =>
