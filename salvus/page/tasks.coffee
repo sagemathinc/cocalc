@@ -28,6 +28,8 @@ misc   = require('misc')
 {DiffSyncDoc}     = require('syncdoc')
 {dmp}             = require('diffsync')     # diff-match-patch library
 
+{IS_MOBILE} = require("feature")
+
 misc_page = require('misc_page')
 templates = $(".salvus-tasks-templates")
 
@@ -1340,7 +1342,8 @@ class TaskList
                     alert_message(type:"error", message:"unable to save #{@filename} -- #{to_json(err)}")
 
     show: () =>
-        @element.find(".salvus-tasks-list").maxheight(offset:50)
+        if not IS_MOBILE
+            @element.find(".salvus-tasks-list").maxheight(offset:50)
         set_key_handler(@)
 
     hide: () =>

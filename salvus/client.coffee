@@ -1642,7 +1642,7 @@ class exports.Connection extends EventEmitter
     in_fullscreen_mode: (state) =>
         if state?
             @_fullscreen_mode = state
-        return $(window).width() <=979 or @_fullscreen_mode
+        return $(window).width() <= 979 or @_fullscreen_mode
 
     #################################################
     # Tasks
