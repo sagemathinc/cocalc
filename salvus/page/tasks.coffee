@@ -1382,6 +1382,9 @@ set_key_handler = (task_list) ->
 $(window).keydown (evt) =>
     if not current_task_list?
         return
+    if not  current_task_list.element.is(":visible")
+        current_task_list = undefined
+        return
 
     if help_dialog_open
         close_help_dialog()
