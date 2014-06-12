@@ -2,13 +2,19 @@
 
     <div class="salvus-tasks-editor" >
         <div class="row" style="margin-left:1em;margin-right:1em;">
-
-            <div class="row-fluid" style="width:98%; padding-bottom: .5ex; padding-top:.5ex;">
-                <div class="span10">
+            <div class="row-fluid salvus-tasks-hashtags-row">
+                <div class="span12">
                     <div class="well salvus-tasks-hashtags">
                         <span class='btn-group salvus-tasks-hashtag-bar'  style="white-space: normal">
                         </span>
                     </div>
+                </div>
+            </div>
+
+            <div class="row-fluid"  style="width:98%;padding-top: 0.5ex;">
+                <div class="span4 lighten salvus-tasks-header">
+                    <input class="salvus-tasks-search search-query" style="width:82%" type="search" placeholder="Find...">
+                    <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
                 </div>
                 <div class="span2 lighten">
                     <i class="fa fa-square-o salvus-task-icon-done-box salvus-task-search-done-icon salvus-task-search-not-done"> </i>
@@ -19,14 +25,7 @@
                     Deleted<br>
                     <a class='btn btn-danger salvus-task-empty-trash'><i class="fa fa-trash-o"> </i> Empty Trash</a>
                 </div>
-            </div>
-
-            <div class="row-fluid"  style="width:98%;">
-                <div class="span5 lighten salvus-tasks-header">
-                    <input class="salvus-tasks-search search-query" style="width:88%" type="search" placeholder="Search...">
-                    <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
-                </div>
-                <div class="span7 lighten salvus-tasks-search-describe">
+                <div class="span6 lighten salvus-tasks-search-describe">
                     Showing <span class="salvus-tasks-count">0 tasks</span>.
                     <h4 class="salvus-tasks-loading">Loading task list... <i class="fa fa-spin fa-spinner"> </i></h4>
                     <span class="salvus-tasks-search-contain hide">Only showing tasks that contain <b><i><span class="salvus-tasks-search-query"></span></i></b>. </span>
@@ -44,7 +43,7 @@
                         <a class="btn btn-danger" href="#delete-task"><i class="fa fa-trash-o"> </i> </a>
                     </span>
                     <span class="btn-group">
-                        <a class="btn btn-success disabled" href="#save"><i class="fa fa-save"> </i> Save</a>
+                        <a class="btn btn-success disabled" href="#save"><i class="fa fa-save"> </i> <span>Save</span></a>
                         <a class='btn btn-info salvus-tasks-info'><i class="fa fa-question-circle"> </i> Help</a>
                     </span>
                 </div>
@@ -63,10 +62,12 @@
 
             </div>
 
-
             <div class="well salvus-tasks-list">
                 <div class="salvus-tasks-listing">
                 </div>
+                <h3 class="salvus-tasks-list-none hide">
+                    <a  href="#create-task"><i class="fa fa-plus-circle"> </i>   Create a New Task...</a>
+                </h3>
                 <div style="height:5em"></div>
             </div>
         </div>
@@ -137,7 +138,8 @@
             <h4>Editing</h4>
             Click or use the cursor keys (and press enter) to edit a task, or create a new task.
             Use <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>
-            to describe your task, use LaTeX to enter mathematics, use <code>[ ]</code> and <code>[x]</code> to create checklists, and
+            to describe your task, use LaTeX to typeset mathematics (use <code>\$</code> for a dollar sign),
+            use <code>[ ]</code> and <code>[x]</code> to create checklists, and
             press shift+enter to save your changes.
             The editor respects the color scheme and keybindings that you
             select in account settings, and
@@ -167,7 +169,8 @@
             <h4>Keyboard shortcuts</h4>
             Let mod be any of control, alt, or command.
             Use mod+s to save, mod+f to find, mod+n to make a new task, mod+space to toggle done state, and mod+arrow to move a task up or down the list.
-            Use arrows to change which task is selected, enter to start editing a task description, and shift+enter to stop editing.
+            Use arrows to change which task is selected, enter to start editing a task description,
+            and shift+enter to stop editing.
 
             <h4>File format</h4>
             A task list is stored as a file with extension <tt>.tasks</tt> that contains one JSON line per task.
@@ -175,7 +178,6 @@
             and changes should appear in the task list within a few seconds.  You can
             have many task lists, store them in revision control, create and modify
             them using scripts, recover them from snapshots, etc.
-
 
         </div>
         <div class="modal-footer">

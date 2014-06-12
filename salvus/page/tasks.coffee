@@ -8,6 +8,17 @@ jQuery.timeago.settings.allowFuture = true
 
 async  = require('async')
 marked = require('marked')
+
+marked.setOptions
+    renderer    : new marked.Renderer()
+    gfm         : true
+    tables      : true
+    breaks      : false
+    pedantic    : false
+    sanitize    : false
+    smartLists  : true
+    smartypants : true
+
 misc   = require('misc')
 {defaults, required, to_json, uuid} = misc
 
@@ -17,12 +28,16 @@ misc   = require('misc')
 {DiffSyncDoc}     = require('syncdoc')
 {dmp}             = require('diffsync')     # diff-match-patch library
 
+{IS_MOBILE} = require("feature")
+
 misc_page = require('misc_page')
 templates = $(".salvus-tasks-templates")
 
 task_template           = templates.find(".salvus-task")
 edit_task_template      = templates.find(".salvus-task-editor")
 hashtag_button_template = templates.find(".salvus-tasks-hashtag-button")
+
+currently_focused_editor = undefined
 
 exports.task_list = (project_id, filename) ->
     element = templates.find(".salvus-tasks-editor").clone()
@@ -64,6 +79,8 @@ class TaskList
         @init_sort()
         @init_info()
         @init_syncdb()
+        #@element.find(".salvus-tasks-hashtags").resizable
+        #     handles  : "s"
 
     init_syncdb: (cb) =>
         synchronized_db
@@ -76,7 +93,8 @@ class TaskList
                     @element.find(".salvus-tasks-loading").text(e)
                     alert_message(type:"error", message:e)
                     @readonly = true
-                    @save_button.removeClass('disabled').text("Try again to load...").off('click').click () =>
+                    @save_button.find("span").text("Try again to load...")
+                    @save_button.removeClass('disabled').off('click').click () =>
                         @save_button.off('click')
                         @save_button.addClass('disabled')
                         @init_syncdb()
@@ -84,10 +102,10 @@ class TaskList
                     @db = db
                     @readonly = @db.readonly
                     if @readonly
-                        @save_button.text("Readonly")
+                        @save_button.find("span").text("Readonly")
                         @element.find(".salvus-tasks-action-buttons").remove()
                     else
-                        @save_button.text("Save")
+                        @save_button.find("span").text("Save")
 
                     @init_tasks()
 
@@ -281,7 +299,12 @@ class TaskList
             @_visible_tasks.reverse()
 
     selected_hashtags: () =>
-        return ($(b).text() for b in @element.find(".salvus-tasks-hashtag-bar").find('.btn-warning'))
+        @parse_hashtags()
+        v = []
+        for tag,_ of @hashtags
+            if @local_storage("hashtag-##{tag}")
+                v.push('#'+tag)
+        return v
 
     toggle_hashtag_button: (button) =>
         tag = button.text()
@@ -295,14 +318,13 @@ class TaskList
     render_hashtag_bar: () =>
         t0 = misc.walltime()
         @parse_hashtags()
-        #console.log('time to parse hashtags =', misc.walltime(t0))
         bar = @element.find(".salvus-tasks-hashtag-bar")
         bar.empty()
         if not @hashtags? or misc.len(@hashtags) == 0
-            @element.find(".salvus-tasks-hashtags").hide()
+            @element.find(".salvus-tasks-hashtags-row").hide()
             return
         else
-            @element.find(".salvus-tasks-hashtags").show()
+            @element.find(".salvus-tasks-hashtags-row").show()
 
         click_hashtag = (event) =>
             button = $(event.delegateTarget)
@@ -314,12 +336,13 @@ class TaskList
         tags.sort()
         for tag in tags
             selected = @local_storage("hashtag-##{tag}")
-            if not selected and @_visible_descs? and @_visible_descs.indexOf('#'+tag) == -1
-                continue
             button = hashtag_button_template.clone()
             button.addClass("salvus-hashtag-#{tag}")
-            button.text("#"+tag)
-            button.click(click_hashtag)
+            button.text("#" + tag)
+            if not selected and @_visible_descs? and @_visible_descs.indexOf('#'+tag) == -1
+                button.addClass("disabled")
+            else
+                button.click(click_hashtag)
             bar.append(button)
             if selected
                 @toggle_hashtag_button(button)
@@ -335,13 +358,12 @@ class TaskList
                 continue
             if task.deleted and not @showing_deleted
                 continue
-            for x in parse_hashtags(task.desc)
+            for x in misc.parse_hashtags(task.desc)
                 @hashtags[task.desc.slice(x[0]+1, x[1]).toLowerCase()] = true
 
     render_task_list: () =>
         if not @tasks?
             return
-        t0 = misc.walltime()
 
         # Determine the search criteria, which restricts what is visible
         search = @selected_hashtags()
@@ -366,8 +388,6 @@ class TaskList
             task_id = @local_storage("current_task")
             if task_id?
                 @set_current_task_by_id(task_id)
-
-        #console.log('time0', misc.walltime(t0))
 
         # Compute the list @_visible_tasks of tasks that are visible,
         # according to the search/hashtag/done/trash criteria.
@@ -400,20 +420,13 @@ class TaskList
                 @_visible_descs += ' ' + task.desc.toLowerCase()
                 count += 1
 
-        #console.log('time1', misc.walltime(t0))
-
         # Draw the hashtags that should be visible.
         @render_hashtag_bar()
 
-        #console.log('time2', misc.walltime(t0))
-
         # Sort only the visible tasks in the list according to the currently selected sort order.
         @sort_visible_tasks()
-        #console.log('time3', misc.walltime(t0))
 
         # Make it so the DOM displays exactly the visible tasks in the correct order
-        t1 = misc.walltime()
-
         changed = false
         if not last_visible_tasks?
             changed = true
@@ -442,7 +455,6 @@ class TaskList
                 if task.task_id == @current_task?.task_id
                     current_task_is_visible = true
 
-
             # ensure that at most one task is selected as the current task
             @elt_task_list.children().removeClass("salvus-current-task")
             if not current_task_is_visible and @_visible_tasks.length > 0
@@ -456,16 +468,17 @@ class TaskList
         # ensure that all tasks are actually visible (not display:none, which happens on fading out)
         @elt_task_list.children().css('display','inherit')
 
-        #console.log("time to update DOM", misc.walltime(t1))
-        #console.log('time4', misc.walltime(t0))
-
         # remove any existing highlighting:
         @elt_task_list.find('.salvus-task-desc').unhighlight()
         if search.length > 0
             # Go through the DOM tree of tasks and highlight all the search terms
             @elt_task_list.find('.salvus-task-desc').highlight(search)
-        #console.log('time5 (highlight)', misc.walltime(t0))
 
+        # show the "create a new task" link if no tasks.
+        if count == 0
+            @element.find(".salvus-tasks-list-none").show()
+        else
+            @element.find(".salvus-tasks-list-none").hide()
         # Show number of displayed tasks in UI.
         if count != 1
             count = "#{count} tasks"
@@ -473,10 +486,10 @@ class TaskList
             count = "#{count} task"
         search_describe.find(".salvus-tasks-count").text(count).show()
 
+
         if @readonly
             # Task list is read only so there is nothing further to do -- in
             # particular, there's no need to make the task list sortable.
-            #console.log('time', misc.walltime(t0))
             @elt_task_list.find(".salvus-task-reorder-handle").hide()
             return
 
@@ -486,7 +499,6 @@ class TaskList
             catch
                 # if sortable never called get exception.
             @elt_task_list.find(".salvus-task-reorder-handle").hide()
-            #console.log('time', misc.walltime(t0))
             return
 
         @elt_task_list.find(".salvus-task-reorder-handle").show()
@@ -511,8 +523,6 @@ class TaskList
                 else if prev.length > 0
                     # if no next, make our position the previous + 1
                     @move_task_after(task, prev.data('task').position)
-
-        #console.log('time', misc.walltime(t0))
 
     set_task_position: (task, position) =>
         task.position = position
@@ -636,30 +646,38 @@ class TaskList
         @render_task_list()
         return false
 
+    currently_editing_task: (task) =>
+        return currently_focused_editor? and currently_focused_editor == task.element.data('cm')
+
     display_desc: (task) =>
         desc = task.desc
-        m = desc.match(/^\s*[\r\n]/m)  # blank line
-        i = m?.index
-        if i?
-            task.element.find(".salvus-task-toggle-icons").show()
-            is_up = @local_storage("toggle-#{task.task_id}")
-            if is_up?
-                if is_up == task.element.find(".fa-caret-down").hasClass("hide")
-                    task.element.find(".salvus-task-toggle-icon").toggleClass('hide')
-                if task.element.find(".fa-caret-down").hasClass("hide")
-                    desc = desc.slice(0,i)
-            else
-                if task.element.find(".fa-caret-down").hasClass("hide")
-                    @local_storage("toggle-#{task.task_id}",false)
-                    desc = desc.slice(0,i)
+        if not @currently_editing_task(task)
+            # not editing task
+            m = desc.match(/^\s*[\r\n]/m)  # blank line
+            i = m?.index
+            if i?
+                task.element.find(".salvus-task-toggle-icons").show()
+                is_up = @local_storage("toggle-#{task.task_id}")
+                if is_up?
+                    if is_up == task.element.find(".fa-caret-down").hasClass("hide")
+                        task.element.find(".salvus-task-toggle-icon").toggleClass('hide')
+                    if task.element.find(".fa-caret-down").hasClass("hide")
+                        desc = desc.slice(0,i)
                 else
-                    @local_storage("toggle-#{task.task_id}",true)
-        else
-            task.element.find(".salvus-task-toggle-icons").hide()
+                    if task.element.find(".fa-caret-down").hasClass("hide")
+                        @local_storage("toggle-#{task.task_id}",false)
+                        desc = desc.slice(0,i)
+                    else
+                        @local_storage("toggle-#{task.task_id}",true)
+            else
+                task.element.find(".salvus-task-toggle-icons").hide()
+
+        has_mathjax = false
         if desc.length == 0
             desc = "<span class='lighten'>Enter a description...</span>" # so it is possible to edit
         else
-            v = parse_hashtags(desc)
+            # replace hashtags by a span with appropriate class
+            v = misc.parse_hashtags(desc)
             if v.length > 0
                 # replace hashtags by something that renders nicely in markdown (instead of as descs)
                 x0 = [0,0]
@@ -668,13 +686,39 @@ class TaskList
                     desc0 += desc.slice(x0[1], x[0]) + '<span class="salvus-tasks-hash">' + desc.slice(x[0], x[1]) + '</span>'
                     x0 = x
                 desc = desc0 + desc.slice(x0[1])
+
+            # replace mathjax, which is delimited by $, $$, \( \), and \[ \]
+            v = misc.parse_mathjax(desc)
+            if v.length > 0
+                w = []
+                has_mathjax = true
+                x0 = [0,0]
+                desc0 = ''
+                i = 0
+                for x in v
+                    w.push(desc.slice(x[0], x[1]))
+                    desc0 += desc.slice(x0[1], x[0]) + "@@@@#{i}@@@@"
+                    x0 = x
+                    i += 1
+                desc = desc0 + desc.slice(x0[1])
+            else
+                has_mathjax = false
+
+            # render description into html (from markdown)
             desc = marked(desc)
+
+            # if there was any mathjax, put it back in the desc
+            if has_mathjax
+                for i in [0...w.length]
+                    desc = desc.replace("@@@@#{i}@@@@", misc.mathjax_escape(w[i].replace(/\$/g, "$$$$")))
+
         if task.deleted
             desc = "<del>#{desc}</del>"
+
         e = task.element.find(".salvus-task-desc")
 
         e.html(desc)
-        if desc.indexOf('$') != -1 or desc.indexOf('\\') != -1
+        if has_mathjax
             # .mathjax() does the above optimization, but it first does e.html(), so is a slight waste -- most
             # items have no math, so this is worth it...
             e.mathjax()
@@ -785,7 +829,7 @@ class TaskList
         if @current_task?
             @delete_task(@current_task, true)
 
-    edit_desc: (task) =>
+    edit_desc: (task, cursor_at_end) =>
         if not task?
             task = @current_task
         if not task?
@@ -793,7 +837,8 @@ class TaskList
         if not task?
             return
         e = task.element
-        if e.hasClass('salvus-task-editing-desc')
+        if e.hasClass('salvus-task-editing-desc') and e.data('cm')?
+            e.data('cm').focus()
             return
         e.find(".salvus-task-toggle-icons").hide()
         e.addClass('salvus-task-editing-desc')
@@ -825,7 +870,8 @@ class TaskList
             "Enter"       : "newlineAndIndentContinueMarkdownList"
             "Shift-Enter" : stop_editing
             "Shift-Tab"   : (editor) -> editor.unindent_selection()
-            #"F11"         : editor.setOption("fullScreen", not editor.getOption("fullScreen"))
+            "Ctrl-S"      : (editor) => @save()
+            "Cmd-S"       : (editor) => @save()
 
 
         if editor_settings.bindings != 'vim'  # this escape binding below would be a major problem for vim!
@@ -848,6 +894,8 @@ class TaskList
             opts.keyMap = editor_settings.bindings
 
         cm = CodeMirror.fromTextArea(elt.find("textarea")[0], opts)
+        cm.save = @save
+
         e.data('cm',cm)
         if not task.desc?
             task.desc = ''
@@ -855,10 +903,10 @@ class TaskList
         e.data('diff_sync', new DiffSyncDoc(cm:cm, readonly:false))
 
         cm.clearHistory()  # ensure that the undo history doesn't start with "empty document"
-        $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor').addClass('salvus-new-task-cm-editor-focus')
+        $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor')
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
 
-        cm.focus()
+
         elt.find("a[href=#close]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
             stop_editing()
             event.preventDefault()
@@ -868,11 +916,13 @@ class TaskList
         last_sync = undefined
         min_time = 1500
 
+        task.last_desc = task.desc  # initialize last_desc, in case we get an update before ever sync'ing.
         sync_desc = () =>
             last_sync      = misc.mswalltime()
             desc           = cm.getValue()
-            task.last_desc = desc  # the description before syncing.
+            task.last_desc = desc  # update current description before syncing.
             task.desc      = desc
+            @display_desc(task) # update the realtime preview
             task.last_edited = (new Date()) - 0
             @db.update
                 set   : {desc    : task.desc, last_edited : task.last_edited}
@@ -894,6 +944,17 @@ class TaskList
                             if misc.mswalltime() - last_sync >= min_time
                                 sync_desc()
                         timer = setTimeout(f, min_time - (t - last_sync))
+        cm.on 'focus', () ->
+            currently_focused_editor = cm
+            $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor-focus')
+
+        cm.on 'blur', () ->
+            $(cm.getWrapperElement()).removeClass('salvus-new-task-cm-editor-focus')
+            currently_focused_editor = undefined
+
+        cm.focus()
+        if cursor_at_end
+            cm.execCommand('goDocEnd')
 
     edit_due_date: (task) =>
         @set_current_task(task)
@@ -1056,7 +1117,7 @@ class TaskList
             desc += "\n"
         desc += @element.find(".salvus-tasks-search").val()
         task =
-            desc       : $.trim(desc)
+            desc        : desc
             position    : position
             last_edited : new Date() - 0
 
@@ -1069,7 +1130,7 @@ class TaskList
 
         @render_task_list()
         @set_current_task(task)
-        @edit_desc(task)
+        @edit_desc(task, true)
         @set_dirty()
 
     set_current_task_by_id: (task_id) =>
@@ -1138,14 +1199,18 @@ class TaskList
         @set_showing_deleted(@showing_deleted)
         @element.find(".salvus-task-search-not-deleted").click(=> @set_showing_deleted(true))
         @element.find(".salvus-task-search-deleted").click(=> @set_showing_deleted(false))
-        if @readonly
-            return
-        @element.find(".salvus-task-empty-trash").click(@empty_trash)
+        @element.find(".salvus-task-empty-trash").click () =>
+            if @readonly
+                return
+            @empty_trash()
 
     empty_trash: () =>
         if @readonly or not @tasks?
             return
+        prev = currently_focused_editor
+        currently_focused_editor = 'bootbox'
         bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h4>Permanently erase the deleted items?</h4><br> <span class='lighten'>Old versions of this list may be available as snapshots.</span>  ", (result) =>
+            currently_focused_editor = prev
             if result == true
                 a = @db.delete({deleted : true}, false)
                 for task_id, task of @tasks
@@ -1155,20 +1220,20 @@ class TaskList
                 @render_task_list()
 
     init_search: () =>
-        ###
-        @element.find(".salvus-tasks-search").keydown (evt) =>
-            if evt.which == 13
-                @render_task_list()
-                return false
-            else if evt.which == 27 # escape
-                @element.find(".salvus-tasks-search").val("")
-                @render_task_list()
-                return false
-        ###
-
         @_last_search = misc.walltime()
         search_delay = 300  # do the search when user stops typing for this many ms
-        @element.find(".salvus-tasks-search").keyup () =>
+        search_box = @element.find(".salvus-tasks-search")
+        search_box.keyup (evt) =>
+            if evt.which == 27
+                search_box.val('').blur()
+                @render_task_list()
+                return
+            else if evt.which == 13
+                @edit_desc(@current_task)
+                return
+            else if evt.which == 78 and (evt.ctrlKey or evt.metaKey)
+                @create_task()
+                return
             t = misc.walltime()
             if t - @_last_search >= search_delay
                 @_last_search = t
@@ -1180,6 +1245,11 @@ class TaskList
                         @_last_search = t
                         @render_task_list()
                 setTimeout(f, search_delay)
+        search_box.focus () =>
+            currently_focused_editor = search_box
+        search_box.blur () =>
+            currently_focused_editor = undefined
+
 
         @element.find(".salvus-tasks-search-clear").click () =>
             e = @element.find(".salvus-tasks-search")
@@ -1272,7 +1342,8 @@ class TaskList
                     alert_message(type:"error", message:"unable to save #{@filename} -- #{to_json(err)}")
 
     show: () =>
-        @element.find(".salvus-tasks-list").maxheight(offset:50)
+        if not IS_MOBILE
+            @element.find(".salvus-tasks-list").maxheight(offset:50)
         set_key_handler(@)
 
     hide: () =>
@@ -1294,12 +1365,14 @@ $(window).keydown (evt) =>
     if evt.shiftKey
         return
 
+    if currently_focused_editor?
+        return
+
     if evt.ctrlKey or evt.metaKey or evt.altKey
         if evt.keyCode == 70 # f
-            if current_task_list.element?.find(".salvus-task-editing-desc").length == 0
-                # not editing any tasks, so global find
-                current_task_list.element.find(".salvus-tasks-search").focus()
-                return false
+            # global find
+            current_task_list.element.find(".salvus-tasks-search").focus()
+            return false
         if current_task_list.readonly
             return
         if evt.keyCode == 83 # s
@@ -1318,59 +1391,20 @@ $(window).keydown (evt) =>
             current_task_list.toggle_current_task_done()
             return false
     else
-
-        if current_task_list.element?.find(".salvus-task-editing-desc").length > 0
-            return
-
-        if evt.which == 13 and not current_task_list.readonly # return = edit selected
+        if (evt.which == 13 or evt.which == 73) and not current_task_list.readonly # return = edit selected
             current_task_list.edit_desc(current_task_list.current_task)
             return false
 
-        else if evt.which == 40  # down
+        else if evt.which == 40 or evt.which == 74    # down
             current_task_list.set_current_task_next()
             return false
 
-        else if evt.which == 38  # up
+        else if evt.which == 38 or evt.which == 75    # up
             current_task_list.set_current_task_prev()
             return false
 
 
-parse_hashtags = (t0) ->
-    # return list of pairs (i,j) such that t.slice(i,j) is a hashtag (starting with #).
-    t = t0
-    v = []
-    if not t?
-        return v
-    base = 0
-    while true
-        i = t.indexOf('#')
-        if i == -1 or i == t.length-1
-            return v
-        base += i+1
-        if t[i+1] == '#' or not (i == 0 or t[i-1].match(/\s/))
-            t = t.slice(i+1)
-            continue
-        t = t.slice(i+1)
-        # find next whitespace or non-alphanumeric or dash
-        i = t.match(/\s|[^A-Za-z0-9_\-]/)
-        if i
-            i = i.index
-        else
-            i = -1
-        if i == 0
-            # hash followed immediately by whitespace -- markdown desc
-            base += i+1
-            t = t.slice(i+1)
-        else
-            # a hash tag
-            if i == -1
-                # to the end
-                v.push([base-1, base+t.length])
-                return v
-            else
-                v.push([base-1, base+i])
-                base += i+1
-                t = t.slice(i+1)
+
 
 help_dialog_element = templates.find(".salvus-tasks-help-dialog")
 

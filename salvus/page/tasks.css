@@ -1,3 +1,7 @@
+.salvus-tasks-editor {
+    background: #fff;
+}
+
 .salvus-tasks-new {
     background-color:white;
 }
@@ -225,10 +229,13 @@
 }
 
 .salvus-tasks-hashtags {
-    overflow-x : auto;
-    max-height : 3em;
-    padding    : 6px;
-    margin     : 0px;
+    overflow   : hidden;
+    padding    : 3px;
+    margin     : 0;
+    line-height: 0;
+}
+
+.salvus-tasks-hashtag-button {
 }
 
 .salvus-tasks-first {
@@ -251,4 +258,8 @@
 
 .salvus-tasks-loading {
     font-size: 16pt;
+}
+
+.salvus-tasks-list-none {
+    margin-left:3em;
 }
