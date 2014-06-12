@@ -128,6 +128,10 @@ class TaskList
 
 
     init_tasks: () =>
+
+        # anything that couldn't be parsed from JSON as a map gets converted to {desc:thing}.
+        @db.ensure_objects('desc')
+
         # ensure that every db entry has a distinct task_id
         @db.ensure_uuid_primary_key('task_id')
 
@@ -136,7 +140,7 @@ class TaskList
         for task in @db.select()
             @tasks[task.task_id] = task
 
-        # ensure positions are all defined
+        # ensure positions and desc[riptions] are all defined
         positions = {}
         for task_id, t of @tasks
             if not t.position?
@@ -148,6 +152,22 @@ class TaskList
                     set   : {position : t.position}
                     where : {task_id  : task_id}
             positions[t.position] = true
+
+            # in case of corrupt input (so JSON couldn't be parsed)
+            if t.corrupt?
+                if not t.desc?
+                    t.desc = ''
+                t.desc += t.corrupt
+                @db.update
+                    set   : {desc     : t.desc,    corrupt:undefined}
+                    where : {task_id  : task_id}
+
+            if not t.desc?
+                # every description must be defined
+                t.desc = ''
+                @db.update
+                    set   : {desc     : t.desc}
+                    where : {task_id  : task_id}
 
         # and that positions are unique
         if misc.len(positions) != misc.len(@tasks)
@@ -316,7 +336,6 @@ class TaskList
             @local_storage("hashtag-#{tag}", false)
 
     render_hashtag_bar: () =>
-        t0 = misc.walltime()
         @parse_hashtags()
         bar = @element.find(".salvus-tasks-hashtag-bar")
         bar.empty()
@@ -347,7 +366,6 @@ class TaskList
             if selected
                 @toggle_hashtag_button(button)
         bar.show()
-        #console.log('time to render hashtags =', misc.walltime(t0))
 
     parse_hashtags: () =>
         @hashtags = {}
@@ -471,8 +489,9 @@ class TaskList
         # remove any existing highlighting:
         @elt_task_list.find('.salvus-task-desc').unhighlight()
         if search.length > 0
-            # Go through the DOM tree of tasks and highlight all the search terms
-            @elt_task_list.find('.salvus-task-desc').highlight(search)
+            # Go through the DOM tree of tasks and highlight all the search terms for
+            # tasks that aren't currently being edited.
+            @elt_task_list.find('.salvus-task-desc').not(".salvus-task-desc-editing").highlight(search)
 
         # show the "create a new task" link if no tasks.
         if count == 0
@@ -652,7 +671,7 @@ class TaskList
     display_desc: (task) =>
         desc = task.desc
         if not @currently_editing_task(task)
-            # not editing task
+            # not editing task -- check on toggle status
             m = desc.match(/^\s*[\r\n]/m)  # blank line
             i = m?.index
             if i?
@@ -818,12 +837,16 @@ class TaskList
     move_current_task_to_top: () =>
         if not @current_task?
             return
-        @move_task_before(@current_task,  @_visible_tasks[0].position)
+        task = @current_task
+        @set_current_task_prev()
+        @move_task_before(task,  @_visible_tasks[0].position)
 
     move_current_task_to_bottom: () =>
         if not @current_task?
             return
-        @move_task_after(@current_task, @_visible_tasks[@_visible_tasks.length-1].position)
+        task = @current_task
+        @set_current_task_next()
+        @move_task_after(task, @_visible_tasks[@_visible_tasks.length-1].position)
 
     delete_current_task: () =>
         if @current_task?
@@ -840,6 +863,7 @@ class TaskList
         if e.hasClass('salvus-task-editing-desc') and e.data('cm')?
             e.data('cm').focus()
             return
+        e.find(".salvus-task-desc").addClass('salvus-task-desc-editing')
         e.find(".salvus-task-toggle-icons").hide()
         e.addClass('salvus-task-editing-desc')
         elt_desc = e.find(".salvus-task-desc")
@@ -862,6 +886,7 @@ class TaskList
         stop_editing = () =>
             finished = true
             e.removeClass('salvus-task-editing-desc')
+            e.find(".salvus-task-desc").removeClass('salvus-task-desc-editing')
             elt.hide()
             sync_desc()
 
@@ -922,7 +947,7 @@ class TaskList
             desc           = cm.getValue()
             task.last_desc = desc  # update current description before syncing.
             task.desc      = desc
-            @display_desc(task) # update the realtime preview
+            @display_desc(task) # update the preview
             task.last_edited = (new Date()) - 0
             @db.update
                 set   : {desc    : task.desc, last_edited : task.last_edited}
