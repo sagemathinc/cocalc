@@ -94,6 +94,9 @@ def conf():
 
     cmd("chmod og-rwx -R /home/salvus/")
 
+    if hostname.startswith('devel'):
+        os.system('rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra')
+
     if hostname.startswith('compute'):
         # Create a firewall so that only the hub nodes can connect to things like ipython and the raw server.
         cmd("/home/salvus/salvus/salvus/scripts/compute_firewall.sh")
