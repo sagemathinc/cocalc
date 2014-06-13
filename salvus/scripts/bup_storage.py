@@ -34,23 +34,27 @@ Setup Pool:
 
 #zpool create -f bup XXXXX /dev/vdb
 
-zpool create -f bup /dev/sdb   # on gce
-zfs create bup/projects
-zfs set mountpoint=/projects bup/projects
-zfs set dedup=on bup/projects
-zfs set compression=lz4 bup/projects
-zfs create bup/bups
-zfs set mountpoint=/bup/bups bup/bups
+export POOL=bup
+# export POOL=pool
+#zpool create -f $POOL /dev/sdb   # on gce
+zfs create $POOL/projects
+zfs set mountpoint=/projects $POOL/projects
+zfs set dedup=on $POOL/projects
+zfs set compression=lz4 $POOL/projects
+zfs create $POOL/bups
+zfs set mountpoint=/bup/bups $POOL/bups
 chmod og-rwx /bup/bups
 
-zfs create bup/scratch
-zfs set mountpoint=/scratch bup/scratch
+zfs create $POOL/scratch
+zfs set mountpoint=/scratch $POOL/scratch
 chmod a+rwx /scratch
 
-zfs create bup/conf
-zfs set mountpoint=/bup/conf bup/conf
+zfs create $POOL/conf
+zfs set mountpoint=/bup/conf $POOL/conf
 chmod og-rwx /bup/conf
 chown salvus. /bup/conf
+
+chmod a+rx /bup
 
 """
 
