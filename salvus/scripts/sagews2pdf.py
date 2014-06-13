@@ -28,7 +28,7 @@ CONTRIBUTORS:
 
   - William Stein (maintainer and initial author)
   - Cedric Sodhi  - internationalization and bug fixes
-  - Tomas Kalvoda - internationalization 
+  - Tomas Kalvoda - internationalization
 
 """
 
@@ -228,7 +228,7 @@ class Cell(object):
                                 filename = base+'.png'
                             img = filename
                     if img:
-                        s += '\\includegraphics[width=\\textwidth]{%s}'%img
+                        s += '\\includegraphics[width=\\textwidth]{%s}\n'%img
                     else:
                         s += "(problem loading \\verb|'%s'|)"%filename
                 else:
