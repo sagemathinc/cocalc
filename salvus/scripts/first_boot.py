@@ -11,6 +11,9 @@ if hostname.startswith("salvus-base"):
     # no special config -- this is our template machine
     sys.exit(0)
 
+if hostname.startswith('devel'):
+    os.system('rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra')
+
 if hostname.startswith('compute'):
 
 
