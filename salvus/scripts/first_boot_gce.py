@@ -100,7 +100,7 @@ def conf():
         # Delete data that doesn't need to be on this node
         cmd("rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra")
         # Start the storage server
-        os.system("zpool import -f bup; zfs set mountpoint=/projects bup/projects; chmod og-r /projects; su - salvus -c 'cd /home/salvus/salvus/salvus/&& . salvus-env&& ./bup_server start'")
+        os.system("umount /projects; umount /bup/conf; umount /bup/bups; zpool import -f bup; zfs set mountpoint=/projects bup/projects; chmod og-r /projects; su - salvus -c 'cd /home/salvus/salvus/salvus/&& . salvus-env&& ./bup_server start'")
         # Install crontab for snapshotting the bup pool, etc.
         os.system("crontab /home/salvus/salvus/salvus/scripts/root-compute.crontab")
 
