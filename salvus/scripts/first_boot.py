@@ -12,6 +12,10 @@ if hostname.startswith("salvus-base"):
     sys.exit(0)
 
 if hostname.startswith('devel'):
+    # do NOT want this node on tinc network -- that messes up bup server, making it listen only externally, etc.
+    os.system("killall tincd")
+
+    # mount pool and start bup
     os.system("zpool import -f pool; zfs mount -a; chmod og-r /projects; su - salvus -c 'cd /home/salvus/salvus/salvus/&& . salvus-env&& export BUP_POOL=\"pool\"; ./bup_server start'")
     # replace this secret by something harmless (don't just delete since hub.coffee assumes file exists)
     os.system('echo ""> /home/salvus/salvus/salvus/data/secrets/cassandra/hub')
