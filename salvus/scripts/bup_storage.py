@@ -34,23 +34,27 @@ Setup Pool:
 
 #zpool create -f bup XXXXX /dev/vdb
 
-zpool create -f bup /dev/sdb   # on gce
-zfs create bup/projects
-zfs set mountpoint=/projects bup/projects
-zfs set dedup=on bup/projects
-zfs set compression=lz4 bup/projects
-zfs create bup/bups
-zfs set mountpoint=/bup/bups bup/bups
+export POOL=bup
+# export POOL=pool
+#zpool create -f $POOL /dev/sdb   # on gce
+zfs create $POOL/projects
+zfs set mountpoint=/projects $POOL/projects
+zfs set dedup=on $POOL/projects
+zfs set compression=lz4 $POOL/projects
+zfs create $POOL/bups
+zfs set mountpoint=/bup/bups $POOL/bups
 chmod og-rwx /bup/bups
 
-zfs create bup/scratch
-zfs set mountpoint=/scratch bup/scratch
+zfs create $POOL/scratch
+zfs set mountpoint=/scratch $POOL/scratch
 chmod a+rwx /scratch
 
-zfs create bup/conf
-zfs set mountpoint=/bup/conf bup/conf
+zfs create $POOL/conf
+zfs set mountpoint=/bup/conf $POOL/conf
 chmod og-rwx /bup/conf
 chown salvus. /bup/conf
+
+chmod a+rx /bup
 
 """
 
@@ -348,7 +352,7 @@ class Project(object):
             self.chown(self.project_mnt)
         else:
             src = os.path.join(self.snap_mnt, self.branch, snapshot)+'/'
-            self.cmd(['rsync', '-axH', '--delete', self.exclude(src), src, self.project_mnt+'/'])
+            self.cmd(['rsync', '-axH', '--delete-excluded', '--delete', self.exclude(src), src, self.project_mnt+'/'])
 
     def umount_snapshots(self):
         self.cmd(['fusermount', '-uz', self.snap_mnt], ignore_errors=True)
@@ -447,7 +451,7 @@ class Project(object):
         shutil.rmtree(self.bup_path)
 
     def exclude(self, prefix):
-        excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots', 'core']
+        excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots']
         return ['--exclude=%s'%(prefix+x) for x in excludes]
 
     def save(self, path=None, timestamp=None, branch=None, sync=True, mnt=True, targets=""):
@@ -811,7 +815,7 @@ class Project(object):
 
         if os.path.exists(self.project_mnt):
             def f(ignore_errors):
-                o = self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "--delete", "--ignore-errors"] + self.exclude('') +
+                o = self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, '--delete-excluded', "--delete", "--ignore-errors"] + self.exclude('') +
                           ['-e', 'ssh -o StrictHostKeyChecking=no',
                           self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=True)
                 # include only lines that don't contain any of the following errors, since permission denied errors are standard with
@@ -839,7 +843,7 @@ class Project(object):
 
         if destructive:
             log("push so that remote=local: easier; have to do this after a recompact (say)")
-            self.cmd(["rsync", "-axH", "--delete", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no',
+            self.cmd(["rsync", "-axH", '--delete-excluded', "--delete", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no',
                       self.bup_path+'/', "root@%s:%s/"%(remote, remote_bup_path)])
             return
 

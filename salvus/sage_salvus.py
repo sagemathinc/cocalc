@@ -15,6 +15,10 @@
 
 import copy, os, sys
 
+# This reduces a lot of confusion for Sage worksheets -- people expect
+# to be able to import from the current working directory.
+sys.path.append('.')
+
 salvus = None
 
 import json
@@ -1353,7 +1357,7 @@ class Time:
 
     def after(self, code):
         from sage.all import walltime, cputime
-        print "CPU time: %.2f s, Wall time: %.2f s"%(walltime(self._start_walltime), cputime(self._start_cputime))
+        print "CPU time: %.2f s, Wall time: %.2f s"%( cputime(self._start_cputime), walltime(self._start_walltime))
         self._start_cputime = self._start_walltime = None
 
     def __call__(self, code):
@@ -2154,7 +2158,7 @@ def show(obj, svg=True, **kwds):
 
        - display: (default: True); if true use display math for expression (big and centered).
 
-       - svg: (default: True); if True, render graphics using svg.  
+       - svg: (default: True); if True, render graphics using svg.
 
        - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
@@ -2251,9 +2255,10 @@ def hideall(code=None):
 ##########################################################
 class Exercise:
     def __init__(self, question, answer, check=None, hints=None):
-        import sage.all, sage.matrix.all
+        import sage.all
+        from sage.structure.element import is_Matrix
         if not (isinstance(answer, (tuple, list)) and len(answer) == 2):
-            if sage.matrix.all.is_Matrix(answer):
+            if is_Matrix(answer):
                 default = sage.all.parent(answer)(0)
             else:
                 default = ''
@@ -2750,6 +2755,8 @@ def load(*args, **kwds):
         load('a.css', 'a.js', 'a.coffee', 'a.html')
         load('a.css a.js a.coffee a.html')
         load(['a.css', 'a.js', 'a.coffee', 'a.html'])
+
+    ALIAS: %runfile is the same as %load, for compatibility with IPython.
     """
     if len(args) == 1:
         if isinstance(args[0], (unicode,str)):
@@ -2797,7 +2804,8 @@ def load(*args, **kwds):
                 del salvus.namespace[t]
             except: pass
 
-
+# add alias, due to IPython.
+runfile = load
 
 ## Make it so pylab (matplotlib) figures display, at least using pylab.show
 import pylab
@@ -2979,3 +2987,102 @@ def sage_chat(chatroom=None, height="258px"):
     <iframe src="/static/webrtc/index.html?%s" height="%s" width="100%%"></iframe>
     """%(chatroom, height), hide=False)
 
+
+########################################################
+# Documentation of magics
+########################################################
+def magics(dummy=None):
+    """
+    Type %magics to print all SageMathCloud magic commands or
+    magics() to get a list of them.
+
+    To use a magic command, either type
+
+        %command <a line of code>
+
+    or
+
+        %command
+        [rest of cell]
+
+    Create your own magic command by dedefining a function that takes
+    a string as input and outputs a string. (Yes, it is that simple.)
+    """
+    import re
+    magic_cmds = set()
+    for s in open(os.path.realpath(__file__), 'r').xreadlines():
+        s = s.strip()
+        if s.startswith('%'):
+            magic_cmds.add(re.findall(r'%[a-zA-Z]+', s)[0])
+    magic_cmds.discard('%s')
+    for k,v in sage.interfaces.all.__dict__.iteritems():
+        if isinstance(v, sage.interfaces.expect.Expect):
+            magic_cmds.add('%'+k)
+    magic_cmds.update(['%cython', '%time', '%magics', '%auto', '%hide', '%hideall',
+                       '%fork', '%runfile', '%default_mode', '%typeset_mode'])
+    v = list(sorted(magic_cmds))
+    if dummy is None:
+        return v
+    else:
+        for s in v:
+            print(s)
+
+########################################################
+# Go magic
+########################################################
+def go(s):
+    """
+    Run a go program.  For example,
+
+        %go
+        func main() { fmt.Println("Hello World") }
+
+    You can set the whole worksheet to be in go mode by typing
+
+        %default_mode go
+
+    NOTES:
+
+    - The official Go tutorial as a long Sage Worksheet is available here:
+
+        https://github.com/sagemath/cloud-examples/tree/master/go
+
+    - There is no relation between one cell and the next.  Each is a separate
+      self-contained go program, which gets compiled and run, with the only
+      side effects being changes to the filesystem.  The program itself is
+      stored in a random file that is deleted after it is run.
+
+    - The %go command automatically adds 'package main' and 'import "fmt"'
+      (if fmt. is used) to the top of the program, since the assumption
+      is that you're using %go interactively.
+    """
+    import uuid
+    name = str(uuid.uuid4())
+    if 'fmt.' in s and '"fmt"' not in s and "'fmt'" not in s:
+        s = 'import "fmt"\n' + s
+    if 'package main' not in s:
+        s = 'package main\n' + s
+    try:
+        open(name +'.go','w').write(s.encode("UTF-8"))
+        (child_stdin, child_stdout, child_stderr) = os.popen3('go build %s.go'%name)
+        err = child_stderr.read()
+        sys.stdout.write(child_stdout.read())
+        sys.stderr.write(err)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        if not os.path.exists(name): # failed to produce executable
+            return
+        (child_stdin, child_stdout, child_stderr) = os.popen3("./" + name)
+        sys.stdout.write(child_stdout.read())
+        sys.stderr.write(child_stderr.read())
+        sys.stdout.flush()
+        sys.stderr.flush()
+    finally:
+        try:
+            os.unlink(name+'.go')
+        except:
+            pass
+        try:
+            os.unlink(name)
+        except:
+            pass

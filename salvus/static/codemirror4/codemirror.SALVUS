@@ -1,3 +1,8 @@
+* In mode/python.js I add our unicode output character to be a comment starter:
+      // Handle Comments
+      if (ch == "#"  || ch == "\uFE21") {
+
+
 
 * The theme/solarized.css file looks like *CRAP* -- I had to remove the weird background image and shadow text.  Come on. 
 

@@ -65,8 +65,8 @@ class DiffSyncDoc
     #     string = a string
     constructor: (opts) ->
         @opts = defaults opts,
-            cm     : undefined
-            string : undefined
+            cm       : undefined
+            string   : undefined
             readonly : false   # only impacts the editor
         if not ((opts.cm? and not opts.string?) or (opts.string? and not opts.cm?))
             console.log("BUG -- exactly one of opts.cm and opts.string must be defined!")
@@ -144,6 +144,8 @@ class DiffSyncDoc
                 console.log("BUG in patch_in_place")
             cm.setOption('readOnly', @opts.readonly)
 
+# DiffSyncDoc is useful outside, e.g., for task list.
+exports.DiffSyncDoc = DiffSyncDoc
 
 codemirror_diffsync_client = (cm_session, content) ->
     # This happens on initialization and reconnect.  On reconnect, we could be more
@@ -176,7 +178,10 @@ class DiffSyncHub
                     cb(err)
                 else if mesg.event != 'codemirror_diffsync'
                     # various error conditions, e.g., reconnect, etc.
-                    cb(mesg.event)
+                    if mesg.error?
+                        cb(mesg.error)
+                    else
+                        cb(true)
                 else
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 
@@ -1302,7 +1307,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
         if mesg.html?
-            output.append($("<span class='sagews-output-html'>").html(mesg.html).mathjax())
+            e = $("<span class='sagews-output-html'>").html(mesg.html).mathjax()
+            output.append(e)
+            e.find('a').attr("target","_blank") # make all links open in a new tab
+            e.find("table").addClass('table')   # makes bootstrap tables look MUCH nicer
 
         if mesg.interact?
             @interact(output, mesg.interact)

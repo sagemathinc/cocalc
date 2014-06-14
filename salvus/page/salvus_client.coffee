@@ -34,7 +34,11 @@ salvus_client.on "connected", (protocol) ->
     $(".salvus-connection-status-connecting").hide()
     if not salvus_client.in_fullscreen_mode()
         $(".salvus-fullscreen-activate").show()
-    $(".salvus-connection-status-protocol").html(protocol.slice(0,9))   # more than 9 characters takes too much space.
+    $(".salvus-connection-status-protocol").html(protocol.slice(0,10))   # more than 10 characters takes too much space.
+    if protocol != 'websocket'
+        $(".salvus-connection-status-protocol").addClass('salvus-connection-status-protocol-bad')
+    else
+        $(".salvus-connection-status-protocol").removeClass('salvus-connection-status-protocol-bad')
     $("a[href=#salvus-connection-reconnect]").find("i").removeClass('fa-spin')
 
 salvus_client.on "ping", (ping_time) ->

@@ -164,6 +164,7 @@ sagews_decorator_modes = [
     ['lisp'        , 'ecl'],
     ['md'          , 'markdown'],
     ['gp'          , 'text/pari'],
+    ['go'          , 'text/x-go']
     ['perl'        , 'text/x-perl'],
     ['python3'     , 'python'],
     ['python'      , 'python'],
@@ -327,7 +328,6 @@ class exports.Editor
             tab.label.removeClass('active')
 
         @project_page.container.css('position', 'fixed')
-
 
     # Used for resizing editor windows.
     editor_top_position: () =>
@@ -842,7 +842,7 @@ class exports.Editor
                 if opts.foreground
                     ed.show()
                     setTimeout((() -> ed.show(); ed.focus()), 100)
-                    @element.find(".btn-group").children().removeClass('disabled')
+                    #@element.find(".btn-group").children().removeClass('disabled')
 
                 top_link = @active_tab.open_file_pill
                 if top_link?
@@ -1549,7 +1549,7 @@ class CodeMirrorEditor extends FileEditor
 
         cm_height = Math.floor((elem_height - button_bar_height)/font_height) * font_height
 
-        @element.css(top:top)
+        @element.css(top:top, left:0)
         @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height)
 
         @element.height(elem_height).show()
@@ -3194,7 +3194,7 @@ class Terminal extends FileEditor
             if feature.isMobile.iOS()
                 ht = Math.floor(ht/2)
             e.height(ht)
-            @element.css(top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
+            @element.css(left:0, top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
             @console.focus(true)
 
 class Worksheet extends FileEditor
@@ -3936,7 +3936,7 @@ class IPythonNotebook extends FileEditor
     save: (cb) =>
         if not @nb?
             cb?(); return
-        @save_button.icon_spin(start:true,delay:500)
+        @save_button.icon_spin(start:true, delay:1000)
         @nb._save_checkpoint?()
         @doc.save () =>
             @save_button.icon_spin(false)
@@ -4273,6 +4273,12 @@ class TaskList extends FileEditor
 
     show: () =>
         @element.show()
+        if not IS_MOBILE
+            @element.css(top:@editor.editor_top_position(), width:'100%', position:'fixed')
+        else
+            # TODO: this is a terrible HACK!
+            @element.closest(".salvus-editor-content").css(position:'relative', top:'0')
+            @element.css(position:'relative', top:'0')
         @task_list.show()
 
     hide: () =>

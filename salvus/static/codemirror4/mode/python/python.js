@@ -103,8 +103,8 @@
       var ch = stream.peek();
 
       // Handle Comments
-      if (ch == "#") {
-        stream.skipToEnd();
+      if (ch == "#"  || ch == "\uFE21") {
+          stream.skipToEnd();
         return "comment";
       }
 
@@ -313,15 +313,17 @@
       },
 
       indent: function(state, textAfter) {
-        if (state.tokenize != tokenBase)
+        if (state.tokenize != tokenBase) {
           return state.tokenize.isString ? CodeMirror.Pass : 0;
+        }
 
         var scope = top(state);
         var closing = textAfter && textAfter.charAt(0) == scope.type;
-        if (scope.align != null)
+        if (scope.align != null) {
           return scope.align - (closing ? 1 : 0);
-        else
+        } else {
           return scope.offset - (closing ? conf.indentUnit : 0);
+        }
       },
 
       lineComment: "#",

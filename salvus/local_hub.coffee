@@ -825,8 +825,8 @@ class CodeMirrorSession
                 # Set path to be the same as the file.
                 mesg = message.execute_code
                     id       : misc.uuid()
-                    code     : "os.chdir(salvus.data['path'])"
-                    data     : {path: misc.path_split(@path).head}
+                    code     : "os.chdir(salvus.data['path']);__file__=salvus.data['file']"
+                    data     : {path: misc.path_split(@path).head, file:abspath(@path)}
                     preparse : false
                 socket.write_mesg('json', mesg)
 
@@ -940,6 +940,7 @@ class CodeMirrorSession
                 socket.write_mesg('json',
                     message.execute_code
                         id       : output_id
+                        cell_id  : id         # extra info -- which cell is running
                         code     : code
                         preparse : true
                 )
@@ -1270,13 +1271,20 @@ class CodeMirrorSession
 
         # Message from some client reporting new edits, thus initiating a sync.
         ds_client = @diffsync_clients[mesg.client_id]
+
         if not ds_client?
             write_mesg('error', {error:"client #{mesg.client_id} not registered for synchronization"})
             return
 
-        if @_client_sync_lock or @_filesystem_sync_lock # or Math.random() <= .5 # (for testing)
-            winston.debug("client_diffsync hit a sync lock -- send retry message back")
+        if @_client_sync_lock # or Math.random() <= .5 # (for testing)
+            winston.debug("client_diffsync hit a click_sync_lock -- send retry message back")
             write_mesg('error', {error:"retry"})
+            return
+
+        if @_filesystem_sync_lock
+            winston.debug("client_diffsync hit a filesystem_sync_lock -- send retry message back")
+            write_mesg('error', {error:"retry"})
+            return
 
         @_client_sync_lock = true
         before = @content

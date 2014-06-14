@@ -96,7 +96,8 @@ class Console extends EventEmitter
                 @opts.renderer = 'ttyjs'
 
         # The is_focused variable keeps track of whether or not the
-        # editor is focused.  This impacts the cursor, at least.
+        # editor is focused.  This impacts the cursor, and also whether
+        # messages such as open_file or open_directory are handled (see @init_mesg).
         @is_focused = false
 
         # Create the DOM element that realizes this console, from an HTML template.
@@ -191,17 +192,14 @@ class Console extends EventEmitter
         #console.log("init_mesg")
         @_ignore_mesg = false
         @terminal.on 'mesg', (mesg) =>
-            if @_ignore_mesg
+            if @_ignore_mesg or not @is_focused   # ignore messages when terminal not in focus (otherwise collaboration is confusing)
                 return
-            #console.log("got message '#{mesg}', length=#{mesg.length}")
             try
                 mesg = from_json(mesg)
                 switch mesg.event
                     when 'open_file'
-                        #console.log("now opening #{mesg.name}...", @opts.editor)
                         @opts.editor?.project_page.open_file(path:mesg.name, foreground:true)
                     when 'open_directory'
-                        #console.log("changing to directory #{mesg.name}")
                         @opts.editor?.project_page.chdir(mesg.name)
                         @opts.editor?.project_page.display_tab("project-file-listing")
             catch e
