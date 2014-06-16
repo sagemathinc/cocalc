@@ -528,7 +528,7 @@ class Console extends EventEmitter
 
         @element.find("a[href=#paste]").click () =>
             id = uuid()
-            s = "<h2><i class='fa fa-credit-card'></i> Terminal Copy and Paste</h2>Copy and paste in terminals works as usual: to copy, highlight text then press ctrl+c (or command+c); press ctrl+v (or command+v) to paste. <br><br><span class='lighten'>NOTE: When no text is highlighted, ctrl+c sends the usual interrupt signal.</span><br><hr>You can copy the terminal history from here:<br><br><textarea readonly style='font-size: 6pt;font-family: monospace;line-height: 8pt;width:97%' id='#{id}' rows=10></textarea>"
+            s = "<h2><i class='fa project-file-icon fa-terminal'></i> Terminal Copy and Paste</h2>Copy and paste in terminals works as usual: to copy, highlight text then press ctrl+c (or command+c); press ctrl+v (or command+v) to paste. <br><br><span class='lighten'>NOTE: When no text is highlighted, ctrl+c sends the usual interrupt signal.</span><br><hr>You can copy the terminal history from here:<br><br><textarea readonly style='font-size: 6pt;font-family: monospace;line-height: 8pt;cursor: auto;width: 97%' id='#{id}' rows=10></textarea>"
             bootbox.alert(s)
             elt = $("##{id}")
             elt.val(@value).scrollTop(elt[0].scrollHeight)
