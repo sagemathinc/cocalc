@@ -10,7 +10,7 @@
  *
  *  ---------------------------------------------------------------------
  *  
- *  Copyright (c) 2011-2013 The MathJax Consortium
+ *  Copyright (c) 2011-2014 The MathJax Consortium
  * 
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@
  */
 
 (function (HUB,HTML,AJAX,CALLBACK,LOCALE,OUTPUT,INPUT) {
-  var VERSION = "2.2";
+  var VERSION = "2.4.0";
   
   var EXTENSION = MathJax.Extension;
   var ME = EXTENSION.MathEvents = {version: VERSION};
@@ -45,7 +45,7 @@
     button: {
       x: -4, y: -3,          // menu button offsets
       wx: -2,                // button offset for full-width equations
-      src: AJAX.fileURL(OUTPUT.imageDir+"/MenuArrow-15.png")  // button image
+      src: AJAX.urlRev(OUTPUT.imageDir+"/MenuArrow-15.png")  // button image
     },
     fadeinInc: .2,           // increment for fade-in
     fadeoutInc: .05,         // increment for fade-out
@@ -114,10 +114,9 @@
     False: function (event) {
       if (!event) {event = window.event}
       if (event) {
-        if (event.preventDefault) {event.preventDefault()}
+        if (event.preventDefault) {event.preventDefault()} else {event.returnValue = false}
         if (event.stopPropagation) {event.stopPropagation()}
         event.cancelBubble = true;
-        event.returnValue = false;
       }
       return false;
     },
@@ -161,6 +160,25 @@
 	  source.items[0].name = jax.sourceMenuTitle;
 	  source.items[0].format = (jax.sourceMenuFormat||"MathML");
           source.items[1].name = INPUT[jax.inputJax].sourceMenuTitle;
+          source.items[5].disabled = !INPUT[jax.inputJax].annotationEncoding;
+
+          // 
+          // Try and find each known annotation format and enable the menu
+          // items accordingly.
+          //
+          var annotations = source.items[2]; annotations.disabled = true;
+          var annotationItems = annotations.menu.items;
+          annotationList = MathJax.Hub.Config.semanticsAnnotations;
+          for (var i = 0, m = annotationItems.length; i < m; i++) {
+            var name = annotationItems[i].name[1]
+            if (jax.root && jax.root.getAnnotation(name) !== null) {
+              annotations.disabled = false;
+              annotationItems[i].hidden = false;
+            } else {
+              annotationItems[i].hidden = true;
+            }
+          }
+
           var MathPlayer = MENU.menu.Find("Math Settings","MathPlayer");
           MathPlayer.hidden = !(jax.outputJax === "NativeMML" && HUB.Browser.hasMathPlayer);
           return MENU.menu.Post(event);
@@ -422,8 +440,10 @@
     //  Preload images so they show up with the menu
     //
     getImages: function () {
-      var menu = new Image();
-      menu.src = CONFIG.button.src;
+      if (SETTINGS.discoverable) {
+        var menu = new Image();
+        menu.src = CONFIG.button.src;
+      }
     }
 
   };
