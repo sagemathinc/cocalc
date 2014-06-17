@@ -9,7 +9,7 @@
  *
  *  ---------------------------------------------------------------------
  *  
- *  Copyright (c) 2010-2013 The MathJax Consortium
+ *  Copyright (c) 2010-2014 The MathJax Consortium
  * 
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@
  */
 
 MathJax.Hub.Register.StartupHook("HTML-CSS Jax Ready",function () {
-  var VERSION = "2.2";
+  var VERSION = "2.4.0";
   var MML = MathJax.ElementJax.mml,
       HTMLCSS = MathJax.OutputJax["HTML-CSS"],
       LOCALE = MathJax.Localization;
@@ -45,7 +45,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Jax Ready",function () {
             } else {
               if (values.alt === "")
                 {values.alt = LOCALE._(["MathML","BadMglyphFont"],"Bad font: %1",font.family)}
-              err = MML.merror(values.alt).With({mathsize:"75%"});
+              err = MML.Error(values.alt,{mathsize:"75%"});
               this.Append(err); err.toHTML(span); this.data.pop();
               span.bbox = err.HTMLspanElement().bbox;
             }
@@ -62,26 +62,23 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Jax Ready",function () {
           MathJax.Hub.RestartAfter(img.onload);
         }
         if (this.img.status !== "OK") {
-          err = MML.merror(
-            LOCALE._(["MathML","BadMglyph"],"Bad mglyph: %1",values.src)
-          ).With({mathsize:"75%"});
+          err = MML.Error(
+            LOCALE._(["MathML","BadMglyph"],"Bad mglyph: %1",values.src),
+            {mathsize:"75%"});
           this.Append(err); err.toHTML(span); this.data.pop();
           span.bbox = err.HTMLspanElement().bbox;
         } else {
           var mu = this.HTMLgetMu(span);
           img = HTMLCSS.addElement(span,"img",{isMathJax:true, src:values.src, alt:values.alt, title:values.alt});
           if (values.width)  {
-            if (String(values.width).match(/^\s*-?\d+\s*$/)) {values.width += "px"}
             img.style.width = HTMLCSS.Em(HTMLCSS.length2em(values.width,mu,this.img.img.width/HTMLCSS.em));
           }
           if (values.height) {
-            if (String(values.height).match(/^\s*-?\d+\s*$/)) {values.height += "px"}
             img.style.height = HTMLCSS.Em(HTMLCSS.length2em(values.height,mu,this.img.img.height/HTMLCSS.em));
           }
           span.bbox.w = span.bbox.rw = img.offsetWidth/HTMLCSS.em;
           span.bbox.h = img.offsetHeight/HTMLCSS.em;
           if (values.valign) {
-            if (String(values.valign).match(/^\s*-?\d+\s*$/)) {values.valign += "px"}
             span.bbox.d = -HTMLCSS.length2em(values.valign,mu,this.img.img.height/HTMLCSS.em);
             img.style.verticalAlign = HTMLCSS.Em(-span.bbox.d);
             span.bbox.h -= span.bbox.d;
