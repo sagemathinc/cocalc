@@ -3411,7 +3411,7 @@ class Image extends FileEditor
 ipython_notebook_server = (opts) ->
     opts = defaults opts,
         project_id : required
-        path       : required   # directory from which the files are served
+        path       : '.'   # directory from which the files are served -- default to home directory of project
         cb         : required   # cb(err, server)
 
     I = new IPythonNotebookServer(opts.project_id, opts.path)
@@ -3771,10 +3771,9 @@ class IPythonNotebook extends FileEditor
     initialize: (cb) =>
         async.series([
             (cb) =>
-                @status("Connecting to IPython server")
+                @status("Connecting to the IPython Notebook server")
                 ipython_notebook_server
                     project_id : @editor.project_id
-                    path       : @path
                     cb         : (err, server) =>
                         @server = server
                         cb(err)
