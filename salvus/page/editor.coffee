@@ -3448,15 +3448,6 @@ class IPythonNotebookServer  # call ipython_notebook_server above
                     catch e
                         cb?(true)
 
-    notebooks: (cb) =>  # cb(err, [{kernel_id:?, name:?, notebook_id:?}, ...]  # kernel_id is null if not running
-        get_with_retry
-            url : @url + 'notebooks'
-            cb  : (err, data) =>
-                if not err
-                    cb(false, misc.from_json(data))
-                else
-                    cb(err)
-
     stop_server: (cb) =>
         if not @pid?
             cb?(); return
@@ -3753,21 +3744,6 @@ class IPythonNotebook extends FileEditor
         @doc?.disconnect_from_session()
         @_dead = true
 
-    get_ids: (cb) =>   # cb(err); if no error, sets @kernel_id and @notebook_id, though @kernel_id will be null if not started
-        if not @server?
-            cb("cannot call get_ids until connected to the ipython notebook server."); return
-        @status("Getting notebook id and kernel id...")
-        @server.notebooks (err, notebooks) =>
-            @status()
-            if err
-                cb(err); return
-            for n in notebooks
-                if n.name + '.ipynb' == @file
-                    @kernel_id = n.kernel_id  # will be null if kernel not yet started
-                    @notebook_id = n.notebook_id
-                    cb(); return
-            cb("no ipython notebook listed by server with name '#{@file}'")
-
     initialize: (cb) =>
         async.series([
             (cb) =>
@@ -3778,34 +3754,12 @@ class IPythonNotebook extends FileEditor
                         @server = server
                         cb(err)
             (cb) =>
-                @get_ids(cb)
-            (cb) =>
                 @_init_iframe(cb)
-            (cb) =>
-                # start polling until we get the kernel_id
-                attempts = 0
-                f = () =>
-                    attempts += 1
-                    if attempts < 20
-                        @get_ids () =>
-                            if not @kernel_id?
-                                setTimeout(f,500)
-                            else
-                                cb()
-                    else
-                        cb("unable to get kernel id")
-                setTimeout(f, 250)
         ], cb)
 
     # Initialize the embedded iframe and wait until the notebook object in it is initialized.
     # If this returns (calls cb) without an error, then the @nb attribute must be defined.
     _init_iframe: (cb) =>
-        #console.log("* starting _init_iframe**")
-        if not @notebook_id?
-            # assumes @notebook_id has been set
-            #console.log("exit _init_iframe 1")
-            cb("must first call get_ids"); return
-
         @status("Rendering IPython notebook")
         get_with_retry
             url : @server.url
@@ -3818,7 +3772,7 @@ class IPythonNotebook extends FileEditor
 
                 @status("Loading IPython notebook...")
 
-                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.01').attr('src', @server.url + @notebook_id)
+                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.01').attr('src', "#{@server.url}notebooks/#{@filename}")
                 @notebook.html('').append(@iframe)
                 @show()
 
@@ -3955,18 +3909,15 @@ class IPythonNotebook extends FileEditor
         t = "<h3>The IPython Notebook</h3>"
         t += "<h4>Enhanced with SageMathCloud Sync</h4>"
         t += "You are editing this document using the IPython Notebook enhanced with realtime synchronization."
-        if @kernel_id?
-            t += "<h4>Sage mode by pasting this into a cell</h4>"
-            t += "<pre>%load_ext sage</pre>"
-        if @kernel_id?
-            t += "<h4>Connect to this IPython kernel in a terminal</h4>"
-            t += "<pre>ipython console --existing #{@kernel_id}</pre>"
-        if @server.url?
-            t += "<h4>Pure IPython notebooks</h4>"
-            t += "You can also directly use an <a target='_blank' href='#{@server.url}'>unmodified version of the IPython Notebook server</a> (this link works for all project collaborators).  "
-            t += "<br><br>To start your own unmodified IPython Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
-            t += "<h4>Known Issues</h4>"
-            t += "If two people edit the same <i>cell</i> simultaneously, the cursor will jump to the start of the cell."
+        t += "<h4>Sage mode by pasting this into a cell</h4>"
+        t += "<pre>%load_ext sage</pre>"
+        t += "<h4>Connect to this IPython kernel in a terminal</h4>"
+        t += "<pre>ipython console --existing #{@kernel_id}</pre>"
+        t += "<h4>Pure IPython notebooks</h4>"
+        t += "You can also directly use an <a target='_blank' href='#{@server.url}'>unmodified version of the IPython Notebook server</a> (this link works for all project collaborators).  "
+        t += "<br><br>To start your own unmodified IPython Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
+        t += "<h4>Known Issues</h4>"
+        t += "If two people edit the same <i>cell</i> simultaneously, the cursor will jump to the start of the cell."
         bootbox.alert(t)
         return false
 
