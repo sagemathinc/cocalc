@@ -133,6 +133,10 @@ MaxStartups 128
 
 # Build Sage (as usual)
 
+    Get Sage and pull my patches from this repo!
+
+           https://github.com/sagemath/sagesmc/commits/develop
+
     umask 022
     #export SAGE_ATLAS_LIB=/usr/lib/   #<--- too slow!
     export MAKE="make -j20"
