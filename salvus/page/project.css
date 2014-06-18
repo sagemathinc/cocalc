@@ -152,8 +152,12 @@
     font-size:18pt;
 }
 
-.project-pages {
+.project-pages, .file-pages {
     font-size: 10pt;
+}
+
+.project-pages {
+    float: left;
 }
 
 .salvus-project-status-indicator-button {

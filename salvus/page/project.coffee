@@ -120,6 +120,7 @@ move_path_dialog = new Dialog
 class ProjectPage
     constructor: (@project) ->
         @container = templates.find(".salvus-project").clone()
+        @container.data('project', @)
         $("body").append(@container)
 
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
@@ -138,6 +139,7 @@ class ProjectPage
                     document.title = "Project - #{@project.title}"
                     @push_state()
                 @editor?.refresh()
+
 
             onfullscreen: (entering) =>
                 if @project?
@@ -286,6 +288,19 @@ class ProjectPage
 
         @init_file_sessions()
 
+    init_sortable_file_list: () =>
+        # make the list of open files user-sortable.
+        if @_init_sortable_file_list
+            return
+        @_init_sortable_file_list = true
+        @container.find(".file-pages").sortable
+            axis                 : 'x'
+            delay                : 50
+            containment          : 'parent'
+            tolerance            : 'pointer'
+            placeholder          : 'file-tab-placeholder'
+            forcePlaceholderSize : true
+
     push_state: (url) =>
         #console.log("push_state: ", url)
         if not url?
@@ -419,6 +434,14 @@ class ProjectPage
             if data.auto_open
                 tab = @editor.create_tab(filename : filename)
         cb?()
+        @container.find(".nav.projects").sortable
+            axis                 : 'x'
+            delay                : 50
+            containment          : 'parent'
+            tolerance            : 'pointer'
+            placeholder          : 'nav-projects-placeholder'
+            forcePlaceholderSize : true
+
 
     ########################################
     # Search
@@ -699,9 +722,11 @@ class ProjectPage
 
     hide_tabs: () =>
         @container.find(".project-pages").hide()
+        @container.find(".file-pages").hide()
 
     show_tabs: () =>
         @container.find(".project-pages").show()
+        @container.find(".file-pages").show()
 
     init_tabs: () ->
         @tabs = []
@@ -766,6 +791,33 @@ class ProjectPage
                     that.push_state('search/' + that.current_path.join('/'))
                     that.container.find(".project-search-form-input").focus()
 
+        for item in @container.find(".file-pages").children()
+            t = $(item)
+            target = t.find("a").data('target')
+            if not target?
+                continue
+
+            # activate any a[href=...] links elsewhere on the page
+            @container.find("a[href=##{target}]").data('item',t).data('target',target).click () ->
+                link = $(@)
+                if link.data('item').hasClass('disabled')
+                    return false
+                that.display_tab(link.data('target'))
+                return false
+
+            t.find('a').tooltip(delay:{ show: 1000, hide: 200 })
+            name = target
+            tab = {label:t, name:name, target:@container.find(".#{name}")}
+            @tabs.push(tab)
+
+            t.find("a").data('item',t).click () ->
+                link = $(@)
+                if link.data('item').hasClass('disabled')
+                    return false
+                that.display_tab(link.data("target"))
+                return false
+
+            that.update_file_list_tab()
         @display_tab("project-file-listing")
 
     create_editor: (initial_files) =>   # initial_files (optional)
@@ -777,6 +829,7 @@ class ProjectPage
 
     display_tab: (name) =>
         @container.find(".project-pages").children().removeClass('active')
+        @container.find(".file-pages").children().removeClass('active')
         @container.css(position: 'absolute')
         for tab in @tabs
             if tab.name == name
@@ -861,7 +914,6 @@ class ProjectPage
             @container.find(".project-heading-well").addClass("private-project").removeClass("public-project")
             @container.find(".project-settings-make-public").show()
             @container.find(".project-settings-make-private").hide()
-
 
         @container.find(".project-project_title").text(@project.title)
         @container.find(".project-project_description").text(@project.description)
@@ -2988,6 +3040,7 @@ project_page = exports.project_page = (project) ->
         return p
     p = new ProjectPage(project)
     project_pages[project.project_id] = p
+    top_navbar.init_sortable_project_list()
     return p
 
 
@@ -3018,6 +3071,3 @@ transform_get_url = (url) ->  # returns something like {command:'wget', args:['h
         args = [url]
 
     return {command:command, args:args}
-
-
-
