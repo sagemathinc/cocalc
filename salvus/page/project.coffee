@@ -606,7 +606,7 @@ class ProjectPage
                         filename = line
                         r = search_result.clone()
                         r.find("a").text(filename).data(filename: path_prefix + filename).mousedown (e) ->
-                            that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey))
+                            that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or (e.ctrlKey or e.metaKey)))
                             return false
                         r.find("span").addClass('lighten').text('(filename)')
                     else
@@ -620,7 +620,7 @@ class ProjectPage
                         r = search_result.clone()
                         r.find("span").text(context)
                         r.find("a").text(filename).data(filename: path_prefix + filename).mousedown (e) ->
-                            that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey))
+                            that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or (e.ctrlKey or e.metaKey)))
                             return false
 
                     search_output.append(r)
@@ -1280,7 +1280,7 @@ class ProjectPage
         @push_state('files/' + url_path)
 
         that = @
-        click_file =(e) ->
+        click_file = (e) ->
             obj = $(e.delegateTarget).closest(".project-path-link").data('obj')
             target = $(e.target)
             if target.hasClass("salvus-file-action") or target.parent().hasClass('salvus-file-action')
@@ -1292,7 +1292,7 @@ class ProjectPage
                 else
                     that.open_file
                         path       : obj.fullname
-                        foreground : not(e.which==2 or e.ctrlKey)
+                        foreground : not(e.which==2 or (e.ctrlKey or e.metaKey))
             e.preventDefault()
 
         @update_snapshot_link()
@@ -1537,7 +1537,7 @@ class ProjectPage
             else
                 @open_file
                     path : fullname
-                    foreground : not(e.which==2 or e.ctrlKey)
+                    foreground : not(e.which==2 or (e.ctrlKey or e.metaKey))
             return false
 
         file_link = t.find("a[href=#open-file]")
@@ -2106,9 +2106,11 @@ class ProjectPage
                         if filename == ".sagemathcloud.log"
                             alert_message(type:"error", message:"Edit .sagemathcloud.log via the terminal (this is safe).")
                         else
-                            that.open_file(path:filename, foreground: not(e.which==2 or e.ctrlKey))
+                            that.open_file
+                                path       : filename
+                                foreground : not(e.which==2 or (e.ctrlKey or e.metaKey))
                         return false
-                    elt.find(".project-activity-open-filename").text(entry.filename).mousedown(f)
+                    elt.find(".project-activity-open-filename").text(entry.filename).click(f)
                     elt.find(".project-activity-open-type").text(entry.type)
                 else
                     elt = template.find(".project-activity-other").clone()

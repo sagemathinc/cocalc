@@ -268,8 +268,9 @@ templates = $("#salvus-editor-templates")
 
 class exports.Editor
     constructor: (opts) ->
+        
         opts = defaults opts,
-            project_page   : required
+            project_page  : required
             initial_files : undefined # if given, attempt to open these files on creation
             counter       : undefined # if given, is a jQuery set of DOM objs to set to the number of open files
 
@@ -307,6 +308,20 @@ class exports.Editor
             if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
                 @show_recent()
                 @project_page.display_tab("project-editor")
+                return false
+            else if ev.ctrlKey or ev.metaKey or ev.altKey
+                if ev.keyCode == 219
+                    pgs = @project_page.container.find(".file-pages li > a > span")
+                    idx = $(".super-menu.salvus-editor-filename-pill.active").index()
+                    next = pgs[(idx - 1) %% pgs.length]
+                    filename = next.innerHTML
+                    @display_tab(path:filename)
+                else if ev.keyCode == 221
+                    pgs = @project_page.container.find(".file-pages li > a > span")
+                    idx = $(".super-menu.salvus-editor-filename-pill.active").index()
+                    next = pgs[(idx + 1) %% pgs.length]
+                    filename = next.innerHTML
+                    @display_tab(path:filename)
                 return false
 
 
@@ -524,7 +539,9 @@ class exports.Editor
             if ignore_clicks
                 return false
             foreground = not(e.which==2 or e.ctrlKey)
-            @display_tab(path:link_filename.text(), foreground:foreground)
+            @display_tab
+                path       : link_filename.text()
+                foreground : not(e.which==2 or (e.ctrlKey or e.metaKey))
             if foreground
                 @project_page.set_current_path(containing_path)
             return false
@@ -694,6 +711,7 @@ class exports.Editor
                 return false
             open_file(filename)
             return false
+
 
         #link.draggable
         #    zIndex      : 1000
