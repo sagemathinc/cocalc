@@ -40,6 +40,7 @@ IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this m
 
 ZPOOL = if process.env.BUP_POOL? then process.env.BUP_POOL else 'bup'
 
+#console.log("ZPOOL=",ZPOOL)
 CONF = "/bup/conf"
 fs.exists CONF, (exists) ->
     if exists
@@ -1209,6 +1210,7 @@ class GlobalProject
         server_id = undefined
         project = undefined
         state = 'error'
+        dbg = (m) -> winston.debug("GlobalProject.get_local_state(#{@project_id}): #{m}")
         async.series([
             (cb) =>
                 @get_location_pref (err, s) =>
@@ -2627,6 +2629,8 @@ if not program.address
         program.address = require('os').networkInterfaces().eth1?[0].address  # my laptop vm...
     if not program.address  # useless
         program.address = '127.0.0.1'
+
+#console.log(program.address)
 
 main = () ->
     if program.debug
