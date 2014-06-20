@@ -1,5 +1,5 @@
 ########################################################################
-# top_navbar -- the top level navbar
+#  top_navbar -- the top level navbar
 #########################################################################
 
 {salvus_client} = require('salvus_client')
@@ -21,9 +21,10 @@ class TopNavbar  extends EventEmitter
     constructor: () ->
         @pages            = {}
         @navbar           = $(".salvus-top_navbar")
-        @buttons          = @navbar.find("ul.nav.pull-left")   # the list of buttons on the left
+        @buttons          = @navbar.find("ul.nav.pull-left.buttons")   # the list of buttons on the left
+        @projects         = @navbar.find("ul.nav.pull-left.projects")
         @buttons_right    = @navbar.find("ul.nav.pull-right")  # the list of buttons on the right
-        @button_template  = $("#top_navbar-button-template")
+        @button_template  = $(".top_navbar-button-template")
         @divider_template = $("#top_navbar-divider-template")
 
     add_page: (opts) ->
@@ -47,9 +48,11 @@ class TopNavbar  extends EventEmitter
         if opts.pull_right
             @buttons_right.prepend(button)
             #button.before(divider)
+        else if opts.id.length == 36
+            @projects.append(button)
+            #button.after(divider)
         else
             @buttons.append(button)
-            #button.after(divider)
         @pages[opts.id] =
             page    : opts.page
             button  : button
@@ -177,7 +180,21 @@ class TopNavbar  extends EventEmitter
     have_unsaved_changes: (id) ->
         return false
 
+    # Makes the project list sortable by the user
+    init_sortable_project_list: () =>
+        if @_init_sortable_project_list
+            return
+        @navbar.find(".nav.projects").sortable
+            axis                 : 'x'
+            delay                : 50
+            containment          : 'parent'
+            tolerance            : 'pointer'
+            placeholder          : 'nav-projects-placeholder'
+            forcePlaceholderSize : true
+        @_init_sortable_project_list = true
+
 top_navbar = exports.top_navbar = new TopNavbar()
+
 
 # Make a jQuery plugin for adding dom objects to top navbar
 $.fn.extend
@@ -193,9 +210,10 @@ $.fn.extend
 $("#salvus-help").top_navbar
     id      : "salvus-help"
     label   : "Help"
-    icon : 'fa-question-circle'
+    icon    : 'fa-question-circle'
     close   : false
     onshow: () -> document.title = "SageMathCloud - Help"
+
 
 
 ###
@@ -266,3 +284,5 @@ $(".salvus-fullscreen-deactivate").click () ->
 
 $(".salvus-connection-status-protocol").tooltip(delay:{ show: 500, hide: 100 })
 $(".salvus-connection-status-ping-time").tooltip(delay:{ show: 500, hide: 100 })
+
+#$(".nav.projects").sortable(axis: 'x')

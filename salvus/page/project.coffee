@@ -20,7 +20,7 @@ account         = require('account')
 
 {scroll_top, human_readable_size, download_file} = require('misc_page')
 
-MAX_TITLE_LENGTH = 15
+#MAX_TITLE_LENGTH = 100
 
 templates = $("#salvus-project-templates")
 template_project_file          = templates.find(".project-file-link")
@@ -869,7 +869,7 @@ class ProjectPage
         if not @project.title? # make sure that things work even if @project is invalid.
             @project.title = ""
             alert_message(type:"error", message:"Project #{@project.project_id} is corrupt. Please report.")
-        label = @project.title.slice(0,MAX_TITLE_LENGTH) + if @project.title.length > MAX_TITLE_LENGTH then "..." else ""
+        label = @project.title
         top_navbar.set_button_label(@project.project_id, label)
         document.title = "Sagemath: #{@project.title}"
 
