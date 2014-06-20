@@ -25,4 +25,5 @@ hosts.sort()
 print hosts
 
 for h in hosts:
+   print h
    cmd("time ssh %s 'cd salvus/salvus; . salvus-env && nodetool repair -pr -par salvus'"%h)  # cassandra 2

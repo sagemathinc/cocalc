@@ -12,7 +12,7 @@
  *  
  *  ---------------------------------------------------------------------
  *  
- *  Copyright (c) 2009-2013 The MathJax Consortium
+ *  Copyright (c) 2009-2014 The MathJax Consortium
  * 
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -27,13 +27,28 @@
  *  limitations under the License.
  */
 
-if (document.getElementById && document.childNodes && document.createElement) {
 
-if (!window.MathJax) {window.MathJax= {}}
-if (!MathJax.Hub) {  // skip if already loaded
+//
+//  Check if browser can support MathJax (no one fails this nowadays)
+//
+if (document.getElementById && document.childNodes && document.createElement) {
+//
+//  Skip if MathJax is already loaded
+//
+if (!(window.MathJax && MathJax.Hub)) {
   
-MathJax.version = "2.2";
-MathJax.fileversion = "2.2";
+//
+//  Get author configuration from MathJax variable, if any
+//
+if (window.MathJax) {window.MathJax = {AuthorConfig: window.MathJax}}
+               else {window.MathJax = {}}
+
+// MathJax.isPacked = true; // This line is uncommented by the packer.
+
+MathJax.version = "2.4.0";
+MathJax.fileversion = "2.4.0";
+MathJax.cdnVersion = "2.4-beta-2";  // specifies a revision to break caching
+MathJax.cdnFileVersions = {};       // can be used to specify revisions for individual files
 
 /**********************************************************/
 
@@ -43,22 +58,12 @@ MathJax.fileversion = "2.2";
 
   var PROTO = [];  // a static object used to indicate when a prototype is being created
   var OBJECT = function (def) {
-    var obj = def.constructor; if (!obj) {obj = new Function("")}
+    var obj = def.constructor; if (!obj) {obj = function () {}}
     for (var id in def) {if (id !== 'constructor' && def.hasOwnProperty(id)) {obj[id] = def[id]}}
     return obj;
   };
   var CONSTRUCTOR = function () {
-    return new Function ("return arguments.callee.Init.call(this,arguments)");
-  };
-  //
-  //  Test for Safari 2.x bug (can't replace prototype for result of new Function()).
-  //  (We don't use this version for everyone since it is a closure and we don't need that).
-  //
-  var BUGTEST = CONSTRUCTOR(); BUGTEST.prototype = {bug_test: 1};
-  if (!BUGTEST.prototype.bug_test) {
-    CONSTRUCTOR = function () {
-      return function () {return arguments.callee.Init.call(this,arguments)};
-    };
+    return function () {return arguments.callee.Init.call(this,arguments)};
   };
 
   BASE.Object = OBJECT({
@@ -136,26 +141,17 @@ MathJax.fileversion = "2.2";
       },
 
       wrap: function (id,f) {
-	if (typeof(f) === 'function' && f.toString().match(/\.\s*SUPER\s*\(/)) {
-	  var fn = new Function(this.wrapper);
-	  fn.label = id; fn.original = f; f = fn;
-	  fn.toString = this.stringify;
-	}
-	return f;
-      },
-
-      wrapper: function () {
-	var fn = arguments.callee;
-	this.SUPER = fn.SUPER[fn.label];
-	try {var result = fn.original.apply(this,arguments)}
-	  catch (err) {delete this.SUPER; throw err}
-	delete this.SUPER;
-	return result;
-      }.toString().replace(/^\s*function\s*\(\)\s*\{\s*/i,"").replace(/\s*\}\s*$/i,""),
-
-      toString: function () {
-	return this.original.toString.apply(this.original,arguments);
+        if (typeof(f) !== 'function' || !f.toString().match(/\.\s*SUPER\s*\(/)) {return f}
+        var fn = function () {
+          this.SUPER = fn.SUPER[id];
+          try {var result = f.apply(this,arguments)} catch (err) {delete this.SUPER; throw err}
+          delete this.SUPER;
+          return result;
+        }
+        fn.toString = function () {return f.toString.apply(f,arguments)}
+        return fn;
       }
+
     })
   });
 
@@ -219,7 +215,7 @@ MathJax.fileversion = "2.2";
   //  Create a callback from an associative array
   //
   var CALLBACK = function (data) {
-    var cb = new Function("return arguments.callee.execute.apply(arguments.callee,arguments)");
+    var cb = function () {return arguments.callee.execute.apply(arguments.callee,arguments)};
     for (var id in CALLBACK.prototype) {
       if (CALLBACK.prototype.hasOwnProperty(id)) {
         if (typeof(data[id]) !== 'undefined') {cb[id] = data[id]}
@@ -246,40 +242,45 @@ MathJax.fileversion = "2.2";
   var ISCALLBACK = function (f) {
     return (typeof(f) === "function" && f.isCallback);
   }
+
   //
   //  Evaluate a string in global context
   //
   var EVAL = function (code) {return eval.call(window,code)}
-  EVAL("var __TeSt_VaR__ = 1"); // check if it works in global context
-  if (window.__TeSt_VaR__) {
-    try { delete window.__TeSt_VaR__; } // NOTE IE9 throws when in IE7 mode
-    catch (error) { window.__TeSt_VaR__ = null; } 
-  } else {
-    if (window.execScript) {
-      // IE
-      EVAL = function (code) {
-        BASE.__code = code;
-        code = "try {"+BASENAME+".__result = eval("+BASENAME+".__code)} catch(err) {"+BASENAME+".__result = err}";
-        window.execScript(code);
-        var result = BASE.__result; delete BASE.__result; delete BASE.__code;
-        if (result instanceof Error) {throw result}
-        return result;
-      }
+  var TESTEVAL = function () {
+    EVAL("var __TeSt_VaR__ = 1"); // check if it works in global context
+    if (window.__TeSt_VaR__) {
+      try { delete window.__TeSt_VaR__; } // NOTE IE9 throws when in IE7 mode
+      catch (error) { window.__TeSt_VaR__ = null; } 
     } else {
-      // Safari2
-      EVAL = function (code) {
-        BASE.__code = code;
-        code = "try {"+BASENAME+".__result = eval("+BASENAME+".__code)} catch(err) {"+BASENAME+".__result = err}";
-        var head = (document.getElementsByTagName("head"))[0]; if (!head) {head = document.body}
-        var script = document.createElement("script");
-        script.appendChild(document.createTextNode(code));
-        head.appendChild(script); head.removeChild(script);
-        var result = BASE.__result; delete BASE.__result; delete BASE.__code;
-        if (result instanceof Error) {throw result}
-        return result;
+      if (window.execScript) {
+        // IE
+        EVAL = function (code) {
+          BASE.__code = code;
+          code = "try {"+BASENAME+".__result = eval("+BASENAME+".__code)} catch(err) {"+BASENAME+".__result = err}";
+          window.execScript(code);
+          var result = BASE.__result; delete BASE.__result; delete BASE.__code;
+          if (result instanceof Error) {throw result}
+          return result;
+        }
+      } else {
+        // Safari2
+        EVAL = function (code) {
+          BASE.__code = code;
+          code = "try {"+BASENAME+".__result = eval("+BASENAME+".__code)} catch(err) {"+BASENAME+".__result = err}";
+          var head = (document.getElementsByTagName("head"))[0]; if (!head) {head = document.body}
+          var script = document.createElement("script");
+          script.appendChild(document.createTextNode(code));
+          head.appendChild(script); head.removeChild(script);
+          var result = BASE.__result; delete BASE.__result; delete BASE.__code;
+          if (result instanceof Error) {throw result}
+          return result;
+        }
       }
     }
+    TESTEVAL = null;
   }
+
   //
   //  Create a callback from various types of data
   //
@@ -304,6 +305,7 @@ MathJax.fileversion = "2.2";
         return CALLBACK({hook: args[1], object: args[0], data: args.slice(2)});
       }
     } else if (typeof(args) === 'string') {
+      if (TESTEVAL) TESTEVAL();
       return CALLBACK({hook: EVAL, data: [args]});
     } else if (args instanceof Object) {
       return CALLBACK(args);
@@ -530,7 +532,7 @@ MathJax.fileversion = "2.2";
     call: function () {this.callback(this); this.Process()},
     
     //
-    //  A listener calls this to register intrest in the signal (so it will be called
+    //  A listener calls this to register interest in the signal (so it will be called
     //  when posts occur).  If ignorePast is true, it will not be sent the post history.
     //
     Interest: function (callback,ignorePast,priority) {
@@ -567,7 +569,7 @@ MathJax.fileversion = "2.2";
     //
     //  Execute the message hooks for the given message
     //
-    ExecuteHooks: function (msg,more) {
+    ExecuteHooks: function (msg) {
       var type = ((msg instanceof Array) ? msg[0] : msg);
       if (!this.hooks[type]) {return null}
       return this.hooks[type].Execute(msg);
@@ -627,25 +629,57 @@ MathJax.fileversion = "2.2";
     SCRIPTS = [];
   };
   
+  var PATH = {};
+  PATH[BASENAME] = "";  // empty path gets the root URL
+  
   BASE.Ajax = {
     loaded: {},         // files already loaded
     loading: {},        // files currently in process of loading
     loadHooks: {},      // hooks to call when files are loaded
     timeout: 15*1000,   // timeout for loading of files (15 seconds)
     styleDelay: 1,      // delay to use before styles are available
-    config: {root: ""}, // URL of root directory to load from
+    config: {
+      root: "",         // URL of root directory to load from
+      path: PATH        // paths to named URL's (e.g., [MathJax]/...)
+    },
 
     STATUS: {
       OK: 1,         // file is loading or did load OK
       ERROR: -1      // file timed out during load
     },
-    
-    rootPattern: new RegExp("^\\["+BASENAME+"\\]"),
-    
+
     //
-    //  Return a complete URL to a file (replacing the root pattern)
+    //  Return a complete URL to a file (replacing any root names)
     //
-    fileURL: function (file) {return file.replace(this.rootPattern,this.config.root)},
+    fileURL: function (file) {
+      var match = file.match(/^\[([-._a-z0-9]+)\]/i);
+      if (match && match[1] in PATH)
+        {file = (PATH[match[1]]||this.config.root) + file.substr(match[1].length+2)}
+      return file;
+    },
+    //
+    //  Replace root names if URL includes one
+    //
+    fileName: function (url) {
+      var root = this.config.root;
+      if (url.substr(0,root.length) === root) {url = "["+BASENAME+"]"+url.substr(root.length)}
+      else {
+        for (var id in PATH) {if (PATH.hasOwnProperty(id) && PATH[id]) {
+          if (url.substr(0,PATH[id].length) === PATH[id])
+            {url = "["+id+"]"+url.substr(PATH[id].length); break}
+        }}
+      }
+      return url;
+    },
+    //
+    //  Cache-breaking revision number for file
+    //
+    fileRev: function (file) {
+      var rev = BASE.cdnFileVersions[name] || BASE.cdnVersion;
+      if (rev) {rev = "?rev="+rev}
+      return rev;
+    },
+    urlRev: function (file) {return this.fileURL(file)+this.fileRev(file)},
     
     //
     //  Load a file if it hasn't been already.
@@ -725,7 +759,8 @@ MathJax.fileversion = "2.2";
       //
       //  Create a SCRIPT tag to load the file
       //
-        JS: function (file,callback) {
+      JS: function (file,callback) {
+        var name = this.fileName(file);
         var script = document.createElement("script");
         var timeout = BASE.Callback(["loadTimeout",this,file]);
         this.loading[file] = {
@@ -734,23 +769,27 @@ MathJax.fileversion = "2.2";
           status: this.STATUS.OK,
           script: script
         };
+        //
         // Add this to the structure above after it is created to prevent recursion
         //  when loading the initial localization file (before loading messsage is available)
-        this.loading[file].message = BASE.Message.File(file);
+        //
+        this.loading[file].message = BASE.Message.File(name);
         script.onerror = timeout;  // doesn't work in IE and no apparent substitute
         script.type = "text/javascript";
-        script.src = file;
+        script.src = file+this.fileRev(name);
         this.head.appendChild(script);
       },
       //
       //  Create a LINK tag to load the style sheet
       //
       CSS: function (file,callback) {
+        var name = this.fileName(file);
         var link = document.createElement("link");
-        link.rel = "stylesheet"; link.type = "text/css"; link.href = file;
+        link.rel = "stylesheet"; link.type = "text/css";
+        link.href = file+this.fileRev(name);
         this.loading[file] = {
           callback: callback,
-          message: BASE.Message.File(file),
+          message: BASE.Message.File(name),
           status: this.STATUS.OK
         };
         this.head.appendChild(link);
@@ -772,9 +811,9 @@ MathJax.fileversion = "2.2";
         if (node.nodeName === "STYLE" && node.styleSheet &&
             typeof(node.styleSheet.cssText) !== 'undefined') {
           callback(this.STATUS.OK); // MSIE processes style immediately, but doesn't set its styleSheet!
-        } else if (window.chrome && typeof(window.sessionStorage) !== "undefined" &&
-                   node.nodeName === "STYLE") {
-          callback(this.STATUS.OK); // Same for Chrome 5 (beta), Grrr.
+        } else if (window.chrome && node.nodeName === "LINK") {
+          callback(this.STATUS.OK); // Chrome doesn't give access to cssRules for stylesheet in
+                                    //   a link node, so we can't detect when it is loaded.
         } else if (isSafari2) {
           this.timer.start(this,[this.timer.checkSafari2,sheets++,callback],this.styleDelay);
         } else {
@@ -789,7 +828,7 @@ MathJax.fileversion = "2.2";
         check = BASE.Callback(check);
         check.execute = this.execute; check.time = this.time;
         check.STATUS = AJAX.STATUS; check.timeout = timeout || AJAX.timeout;
-        check.delay = check.total = 0;
+        check.delay = check.total = delay || 0;
         if (delay) {setTimeout(check,delay)} else {check()}
       },
       //
@@ -946,7 +985,7 @@ MathJax.fileversion = "2.2";
       return string;
     }
   };
-
+  
 })("MathJax");
 
 /**********************************************************/
@@ -1040,7 +1079,8 @@ MathJax.HTML = {
     Get: function (name,obj) {
       if (!obj) {obj = {}}
       var pattern = new RegExp("(?:^|;\\s*)"+this.prefix+"\\."+name+"=([^;]*)(?:;|$)");
-      var match = pattern.exec(document.cookie);
+      var match;
+      try {match = pattern.exec(document.cookie)} catch (err) {}; // ignore errors reading cookies
       if (match && match[1] !== "") {
         var keys = unescape(match[1]).split('&;');
         for (var i = 0, m = keys.length; i < m; i++) {
@@ -1065,9 +1105,48 @@ MathJax.Localization = {
   locale: "en",
   directory: "[MathJax]/localization",
   strings: {
-    en: {menuTitle: "English", isLoaded: true},   // nothing needs to be loaded for this
-    de: {menuTitle: "Deutsch"},
-    fr: {menuTitle: "Fran\u00E7ais"}
+    // Currently, this list is not modified by the MathJax-i18n script. You can
+    // run the following command in MathJax/unpacked/localization to update it:
+    //
+    // find . -name "*.js" | xargs grep menuTitle\: | grep -v qqq | sed 's/^\.\/\(.*\)\/.*\.js\:  /    "\1"\: \{/' | sed 's/,$/\},/' | sed 's/"English"/"English", isLoaded: true/' > tmp ; sort tmp > tmp2 ; sed '$ s/,$//' tmp2 ; rm tmp*
+    //
+    // This only takes languages with localization data so you must also add
+    // the languages that use a remap but are not translated at all.
+    //
+    "ast": {menuTitle: "asturianu"},
+    "br": {menuTitle: "brezhoneg"},
+    "ca": {menuTitle: "catal\u00E0"},
+    "cdo": {menuTitle: "M\u00ECng-d\u0115\u0324ng-ng\u1E73\u0304"},
+    "cs": {menuTitle: "\u010De\u0161tina"},
+    "da": {menuTitle: "dansk"},
+    "de": {menuTitle: "Deutsch"},
+    "en": {menuTitle: "English", isLoaded: true},
+    "eo": {menuTitle: "Esperanto"},
+    "es": {menuTitle: "espa\u00F1ol"},
+    "fa": {menuTitle: "\u0641\u0627\u0631\u0633\u06CC"},
+    "fi": {menuTitle: "suomi"},
+    "fr": {menuTitle: "fran\u00E7ais"},
+    "gl": {menuTitle: "galego"},
+    "he": {menuTitle: "\u05E2\u05D1\u05E8\u05D9\u05EA"},
+    "ia": {menuTitle: "interlingua"},
+    "it": {menuTitle: "italiano"},
+    "ja": {menuTitle: "\u65E5\u672C\u8A9E"},
+    "kn": {menuTitle: "\u0C95\u0CA8\u0CCD\u0CA8\u0CA1"},
+    "ko": {menuTitle: "\uD55C\uAD6D\uC5B4"},
+    "lb": {menuTitle: "L\u00EBtzebuergesch"},
+    "mk": {menuTitle: "\u043C\u0430\u043A\u0435\u0434\u043E\u043D\u0441\u043A\u0438"},
+    "nl": {menuTitle: "Nederlands"},
+    "oc": {menuTitle: "occitan"},
+    "pl": {menuTitle: "polski"},
+    "pt": {menuTitle: "portugus\u00EA"},
+    "pt-br": {menuTitle: "portugu\u00EAs do Brasil"},
+    "ru": {menuTitle: "\u0440\u0443\u0441\u0441\u043A\u0438\u0439"},
+    "sl": {menuTitle: "sloven\u0161\u010Dina"},
+    "sv": {menuTitle: "svenska"},
+    "tr": {menuTitle: "T\u00FCrk\u00E7e"},
+    "uk": {menuTitle: "\u0443\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430"},
+    "vi": {menuTitle: "Ti\u1EBFng Vi\u1EC7t"},
+    "zh-hans": {menuTitle: "\u4E2D\u6587\uFF08\u7B80\u4F53\uFF09"}
   },
 
   //
@@ -1087,7 +1166,7 @@ MathJax.Localization = {
       var result = [], match, last = 0;
       regex.lastIndex = 0;
       while (match = regex.exec(string)) {
-        result.push(string.substr(last,match.index));
+        result.push(string.substr(last,match.index-last));
         result.push.apply(result,match.slice(1));
         last = match.index + match[0].length;
       }
@@ -1318,7 +1397,7 @@ MathJax.Localization = {
   //  directory and file.
   //
   loadFile: function (file,data,callback) {
-    callback = MathJax.Callback(callback||{});
+    callback = MathJax.Callback(callback);
     file = (data.file || file);  // the data's file name or the default name
     if (!file.match(/\.js$/)) {file += ".js"} // add .js if needed
     //
@@ -1357,7 +1436,7 @@ MathJax.Localization = {
         if (load) {
           return MathJax.Callback.Queue(
             load,["loadDomain",this,domain] // call again to load domain
-          ).Push(callback);
+          ).Push(callback||{});
         }
       }
       if (localeData.domains && domain in localeData.domains) {
@@ -1390,11 +1469,30 @@ MathJax.Localization = {
   },
 
   //
+  //  Reset the current language
+  //
+  resetLocale: function(locale) {
+    // Selection algorithm:
+    // 1) Downcase locale name (e.g. "en-US" => "en-us")
+    // 2) Try a parent language (e.g. "en-us" => "en")
+    // 3) Try the fallback specified in the data (e.g. "pt" => "pt-br")
+    // 4) Otherwise don't change the locale.
+    if (!locale) return;
+    locale = locale.toLowerCase();
+    while (!this.strings[locale]) {
+      var dashPos = locale.lastIndexOf("-");
+      if (dashPos === -1) return;
+      locale = locale.substring(0, dashPos);
+    }
+    var remap = this.strings[locale].remap;
+    this.locale = remap ? remap : locale;
+  },
+
+  //
   //  Set the current language
   //
   setLocale: function(locale) {
-    // don't set it if there isn't a definition for it
-    if (this.strings[locale]) {this.locale = locale}
+    this.resetLocale(locale);
     if (MathJax.Menu) {this.loadDomain("MathMenu")}
   },
 
@@ -1490,7 +1588,9 @@ MathJax.Message = {
   
   browsers: {
     MSIE: function (browser) {
-      MathJax.Hub.config.styles["#MathJax_Message"].position = "absolute";
+      MathJax.Message.msieFixedPositionBug = ((document.documentMode||0) < 7);
+      if (MathJax.Message.msieFixedPositionBug) 
+        {MathJax.Hub.config.styles["#MathJax_Message"].position = "absolute"}
       MathJax.Message.quirks = (document.compatMode === "BackCompat");
     },
     Chrome: function (browser) {
@@ -1513,7 +1613,7 @@ MathJax.Message = {
     }
     if (!this.div) {
       var frame = document.body;
-      if (MathJax.Hub.Browser.isMSIE) {
+      if (this.msieFixedPositionBug && window.attachEvent) {
         frame = this.frame = this.addDiv(document.body); frame.removeAttribute("id");
         frame.style.position = "absolute";
         frame.style.border = frame.style.margin = frame.style.padding = "0px";
@@ -1697,8 +1797,6 @@ MathJax.Message = {
   },
   
   File: function (file) {
-    var root = MathJax.Ajax.config.root;
-    if (file.substr(0,root.length) === root) {file = "[MathJax]"+file.substr(root.length)}
     return this.Set(["LoadFile","Loading %1",file],null,null);
   },
   
@@ -1754,7 +1852,8 @@ MathJax.Hub = {
       locale: "en",        //  the language to use for messages
       mpContext: false,    //  true means pass menu events to MathPlayer in IE
       mpMouse: false,      //  true means pass mouse events to MathPlayer in IE
-      texHints: true       //  include class names for TeXAtom elements
+      texHints: true,      //  include class names for TeXAtom elements
+      semantics: false     //  add semantics tag with original form in MathML output
     },
     
     errorSettings: {
@@ -2228,6 +2327,12 @@ MathJax.Hub = {
   },
   
   elementScripts: function (element) {
+    if (element instanceof Array) {
+      var scripts = [];
+      for (var i = 0, m = element.length; i < m; i++)
+        {scripts.push.apply(scripts,this.elementScripts(element[i]))}
+      return scripts;
+    }
     if (typeof(element) === 'string') {element = document.getElementById(element)}
     if (!document.body) {document.body = document.getElementsByTagName("body")[0]}
     if (element == null) {element = document.body}
@@ -2282,23 +2387,8 @@ MathJax.Hub.Startup = {
     //    set the locale and the default menu value for the locale
     //
     if (this.params.locale) {
-      MathJax.Localization.locale = this.params.locale;
+      MathJax.Localization.resetLocale(this.params.locale);
       MathJax.Hub.config.menuSettings.locale = this.params.locale;
-    }
-    //
-    //  Check for user cookie configuration
-    //
-    var user = MathJax.HTML.Cookie.Get("user");
-    if (user.URL || user.Config) {
-      if (confirm(
-        MathJax.Localization._("CookieConfig",
-          "MathJax has found a user-configuration cookie that includes code to "+
-          "be run. Do you want to run it?\n\n"+
-          "(You should press Cancel unless you set up the cookie yourself.)")
-      )) {
-        if (user.URL) {this.queue.Push(["Require",MathJax.Ajax,user.URL])}
-        if (user.Config) {this.queue.Push(new Function(user.Config))}
-      } else {MathJax.HTML.Cookie.Set("user",{})}
     }
     //
     //  Run the config files, if any are given in the parameter list
@@ -2310,6 +2400,10 @@ MathJax.Hub.Startup = {
         this.queue.Push(["Require",MathJax.Ajax,this.URL("config",files[i])]);
       }
     }
+    //
+    //  Perform author configuration from in-line MathJax = {...}
+    //
+    this.queue.Push(["Config",MathJax.Hub,MathJax.AuthorConfig]);
     //
     //  Run the deprecated configuration script, if any (ignoring return value)
     //  Wait for the startup delay signal
@@ -2334,7 +2428,7 @@ MathJax.Hub.Startup = {
     return delay;
   },
   //
-  //  Run the scipts of type=text/x-mathajx-config
+  //  Run the scripts of type=text/x-mathjax-config
   //
   ConfigBlocks: function () {
     var scripts = document.getElementsByTagName("script");
@@ -2360,7 +2454,7 @@ MathJax.Hub.Startup = {
       ["Get",MathJax.HTML.Cookie,"menu",MathJax.Hub.config.menuSettings],
       [function (config) {
         if (config.menuSettings.locale)
-          {MathJax.Localization.locale = config.menuSettings.locale}
+          {MathJax.Localization.resetLocale(config.menuSettings.locale)}
         var renderer = config.menuSettings.renderer, jax = config.jax;
         if (renderer) {
           var name = "output/"+renderer; jax.sort();
@@ -2477,26 +2571,28 @@ MathJax.Hub.Startup = {
   //  if needed later on.
   //
   MenuZoom: function () {
-    if (!MathJax.Extension.MathMenu) {
-      setTimeout(
-        function () {
-          MathJax.Callback.Queue(
-            ["Require",MathJax.Ajax,"[MathJax]/extensions/MathMenu.js",{}],
-            ["loadDomain",MathJax.Localization,"MathMenu"]
-          )
-        },1000
-      );
-    } else {
-      setTimeout(
-        MathJax.Callback(["loadDomain",MathJax.Localization,"MathMenu"]),
-        1000
-      );
-    }
-    if (!MathJax.Extension.MathZoom) {
-      setTimeout(
-        MathJax.Callback(["Require",MathJax.Ajax,"[MathJax]/extensions/MathZoom.js",{}]),
-        2000
-      );
+    if (MathJax.Hub.config.showMathMenu) {
+      if (!MathJax.Extension.MathMenu) {
+        setTimeout(
+          function () {
+            MathJax.Callback.Queue(
+              ["Require",MathJax.Ajax,"[MathJax]/extensions/MathMenu.js",{}],
+              ["loadDomain",MathJax.Localization,"MathMenu"]
+            )
+          },1000
+        );
+      } else {
+        setTimeout(
+          MathJax.Callback(["loadDomain",MathJax.Localization,"MathMenu"]),
+          1000
+        );
+      }
+      if (!MathJax.Extension.MathZoom) {
+        setTimeout(
+          MathJax.Callback(["Require",MathJax.Ajax,"[MathJax]/extensions/MathZoom.js",{}]),
+          2000
+        );
+      }
     }
   },
   
@@ -2645,7 +2741,7 @@ MathJax.Hub.Startup = {
     }
   },{
     id: "Jax",
-    version: "2.2",
+    version: "2.4.0",
     directory: ROOT+"/jax",
     extensionDir: ROOT+"/extensions"
   });
@@ -2654,7 +2750,7 @@ MathJax.Hub.Startup = {
 
   BASE.InputJax = JAX.Subclass({
     elementJax: "mml",  // the element jax to load for this input jax
-    sourceMenuTitle: /*_(MathMenu)*/ ["OriginalForm","Original Form"],
+    sourceMenuTitle: /*_(MathMenu)*/ ["Original","Original Form"],
     copyTranslate: true,
     Process: function (script,state) {
       var queue = CALLBACK.Queue(), file;
@@ -2691,7 +2787,7 @@ MathJax.Hub.Startup = {
     }
   },{
     id: "InputJax",
-    version: "2.2",
+    version: "2.4.0",
     directory: JAX.directory+"/input",
     extensionDir: JAX.extensionDir
   });
@@ -2724,7 +2820,7 @@ MathJax.Hub.Startup = {
     Remove: function (jax) {}
   },{
     id: "OutputJax",
-    version: "2.2",
+    version: "2.4.0",
     directory: JAX.directory+"/output",
     extensionDir: JAX.extensionDir,
     fontDir: ROOT+(BASE.isPacked?"":"/..")+"/fonts",
@@ -2808,7 +2904,7 @@ MathJax.Hub.Startup = {
     }
   },{
     id: "ElementJax",
-    version: "2.2",
+    version: "2.4.0",
     directory: JAX.directory+"/element",
     extensionDir: JAX.extensionDir,
     ID: 0,  // jax counter (for IDs)
@@ -2832,7 +2928,7 @@ MathJax.Hub.Startup = {
   //  Some "Fake" jax used to allow menu access for "Math Processing Error" messages
   //
   BASE.OutputJax.Error = {
-    id: "Error", version: "2.2", config: {},
+    id: "Error", version: "2.4.0", config: {},
     ContextMenu: function () {return BASE.Extension.MathEvents.Event.ContextMenu.apply(BASE.Extension.MathEvents.Event,arguments)},
     Mousedown:   function () {return BASE.Extension.MathEvents.Event.AltContextMenu.apply(BASE.Extension.MathEvents.Event,arguments)},
     getJaxFromMath: function (math) {return (math.nextSibling.MathJax||{}).error},
@@ -2849,8 +2945,8 @@ MathJax.Hub.Startup = {
     }
   };
   BASE.InputJax.Error = {
-    id: "Error", version: "2.2", config: {},
-    sourceMenuTitle: /*_(MathMenu)*/ ["OriginalForm","Original Form"]
+    id: "Error", version: "2.4.0", config: {},
+    sourceMenuTitle: /*_(MathMenu)*/ ["Original","Original Form"]
   };
   
 })("MathJax");
@@ -2876,23 +2972,25 @@ MathJax.Hub.Startup = {
           if (KV) {STARTUP.params[unescape(KV[1])] = unescape(KV[2])}
         }
       }
-      CONFIG.root = scripts[i].src.replace(/(^|\/)[^\/]*(\?.*)?$/,'');
+      CONFIG.root = scripts[i].src.replace(/(^|\/)[^\/]*(\?.*)?$/,'')
+        // convert rackspace to cdn.mathjax.org now that it supports https protocol
+        .replace(/^(https?:)\/\/[0-9a-f]+(-[0-9a-f]+)?.ssl.cf1.rackcdn.com\//,"$1//cdn.mathjax.org/");
+      BASE.Ajax.config.root = CONFIG.root;
       break;
     }
   }
-  BASE.Ajax.config = CONFIG;
 
+  var AGENT = navigator.userAgent;
   var BROWSERS = {
     isMac:       (navigator.platform.substr(0,3) === "Mac"),
     isPC:        (navigator.platform.substr(0,3) === "Win"),
-    isMSIE:      (window.ActiveXObject != null && window.clipboardData != null),
-    isFirefox:   (navigator.userAgent.match(/Gecko/) != null &&
-                  navigator.userAgent.match(/KHTML/) == null),
-    isSafari:    (navigator.userAgent.match(/ (Apple)?WebKit\//) != null &&
+    isMSIE:      ("ActiveXObject" in window && "clipboardData" in window),
+    isFirefox:   (AGENT.match(/Gecko\//) && !AGENT.match(/like Gecko/)),
+    isSafari:    (AGENT.match(/ (Apple)?WebKit\//) != null &&
                      (!window.chrome || window.chrome.loadTimes == null)),
     isChrome:    (window.chrome != null && window.chrome.loadTimes != null),
     isOpera:     (window.opera != null && window.opera.version != null),
-    isKonqueror: (window.hasOwnProperty && window.hasOwnProperty("konqueror") && navigator.vendor == "KDE"),
+    isKonqueror: ("konqueror" in window && navigator.vendor == "KDE"),
     versionAtLeast: function (v) {
       var bv = (this.version).split('.'); v = (new String(v)).split('.');
       for (var i = 0, m = v.length; i < m; i++)
@@ -2906,7 +3004,7 @@ MathJax.Hub.Startup = {
     }
   };
 
-  var AGENT = navigator.userAgent
+  var xAGENT = AGENT
     .replace(/^Mozilla\/(\d+\.)+\d+ /,"")                                   // remove initial Mozilla, which is never right
     .replace(/[a-z][-a-z0-9._: ]+\/\d+[^ ]*-[^ ]*\.([a-z][a-z])?\d+ /i,"")  // remove linux version
     .replace(/Gentoo |Ubuntu\/(\d+\.)*\d+ (\([^)]*\) )?/,"");               // special case for these
@@ -2918,11 +3016,11 @@ MathJax.Hub.Startup = {
       if (browser === "Mac" || browser === "PC") continue;
       HUB.Browser = HUB.Insert(new String(browser),BROWSERS);
       var VERSION = new RegExp(
-        ".*(Version)/((?:\\d+\\.)+\\d+)|" +                                       // for Safari and Opera10
+        ".*(Version/| Trident/.*; rv:)((?:\\d+\\.)+\\d+)|" +                      // for Safari, Opera10, and IE11+
         ".*("+browser+")"+(browser == "MSIE" ? " " : "/")+"((?:\\d+\\.)*\\d+)|"+  // for one of the main browser
         "(?:^|\\(| )([a-z][-a-z0-9._: ]+|(?:Apple)?WebKit)/((?:\\d+\\.)+\\d+)");  // for unrecognized browser
-      var MATCH = VERSION.exec(AGENT) || ["","","","unknown","0.0"];
-      HUB.Browser.name = (MATCH[1] == "Version" ? browser : (MATCH[3] || MATCH[5]));
+      var MATCH = VERSION.exec(xAGENT) || ["","","","unknown","0.0"];
+      HUB.Browser.name = (MATCH[1] != "" ? browser : (MATCH[3] || MATCH[5]));
       HUB.Browser.version = MATCH[2] || MATCH[4] || MATCH[6];
       break;
     }
@@ -2946,9 +3044,9 @@ MathJax.Hub.Startup = {
       browser.noContextMenu = browser.isMobile;
     },
     Firefox: function (browser) {
-      if ((browser.version === "0.0" || navigator.userAgent.match(/Firefox/) == null) &&
+      if ((browser.version === "0.0" || AGENT.match(/Firefox/) == null) &&
            navigator.product === "Gecko") {
-        var rv = navigator.userAgent.match(/[\/ ]rv:(\d+\.\d.*?)[\) ]/);
+        var rv = AGENT.match(/[\/ ]rv:(\d+\.\d.*?)[\) ]/);
         if (rv) {browser.version = rv[1]}
         else {
           var date = (navigator.buildID||navigator.productSub||"0").substr(0,8);
@@ -2965,8 +3063,8 @@ MathJax.Hub.Startup = {
         }
       }
       browser.isMobile = (navigator.appVersion.match(/Android/i) != null ||
-                          navigator.userAgent.match(/ Fennec\//) != null ||
-                          navigator.userAgent.match(/Mobile/) != null);
+                          AGENT.match(/ Fennec\//) != null ||
+                          AGENT.match(/Mobile/) != null);
     },
     Opera: function (browser) {browser.version = opera.version()},
     MSIE: function (browser) {
@@ -2998,6 +3096,7 @@ MathJax.Hub.Startup = {
   });
   HUB.Browser.Select(MathJax.Message.browsers);
 
+  if (BASE.AuthorConfig && typeof BASE.AuthorConfig.AuthorInit === "function") {BASE.AuthorConfig.AuthorInit()}
   HUB.queue = BASE.Callback.Queue();
   HUB.queue.Push(
     ["Post",STARTUP.signal,"Begin"],

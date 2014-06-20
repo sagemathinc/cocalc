@@ -39,6 +39,17 @@ json = (out) -> misc.trunc(misc.to_json(out),512)
 
 {ensure_containing_directory_exists, abspath} = misc_node
 
+# We make it an error for a client to try to edit a file larger than MAX_FILE_SIZE.
+# I decided on this, because attempts to open a much larger file leads
+# to disaster.  Opening a 10MB file works but is a just a little slow.
+MAX_FILE_SIZE = 10000000   # 10MB
+check_file_size = (size) ->
+    if size? and size > MAX_FILE_SIZE
+        e = "Attempt to open large file of size #{Math.round(size/1000000)}MB; the maximum allowed size is #{Math.round(MAX_FILE_SIZE/1000000)}MB. Use vim, emacs, or pico from a terminal instead."
+        winston.debug(e)
+        return e
+
+
 #####################################################################
 # Generate the "secret_token" file as
 # $SAGEMATHCLOUD/data/secret_token if it does not already
@@ -531,7 +542,7 @@ sage_sessions = new SageSessions()
 #
 # Differentially-Synchronized document editing sessions
 #
-# Here's a map                    YOU ARE HERE
+# Here's a map                 YOU ARE HERE
 #                                   |
 #   [client]s.. ---> [hub] ---> [local hub] <--- [hub] <--- [client]s...
 #                                   |
@@ -555,11 +566,12 @@ class DiffSyncFile_server extends diffsync.DiffSync
         # knowing about the backup, in which case it makes more sense
         # to just go with the master.
 
-        no_master = undefined
-        stats_path = undefined
-        no_backup = undefined
+        no_master    = undefined
+        stats_path   = undefined
+        no_backup    = undefined
         stats_backup = undefined
-        file = undefined
+        stats        = undefined
+        file         = undefined
 
         async.series([
             (cb) =>
@@ -587,20 +599,28 @@ class DiffSyncFile_server extends diffsync.DiffSync
                                     fs.close fd, cb
                 else if no_backup # no backup file -- always use master
                     file = @path
+                    stats = stats_path
                     cb()
                 else if no_master # no master file but there is a backup file -- use backup
                     file = @_backup_file
+                    stats = stats_backup
                     cb()
                 else
                     # both master and backup exist
                     if stats_path.mtime.getTime() >= stats_backup.mtime.getTime()
                         # master is newer
                         file = @path
+                        stats = stats_path
                     else
                         # backup is newer
                         file = @_backup_file
+                        stats = stats_backup
                     cb()
             (cb) =>
+                e = check_file_size(stats?.size)
+                if e
+                    cb(e)
+                    return
                 fs.readFile file, (err, data) =>
                     if err
                         cb(err); return
@@ -627,13 +647,25 @@ class DiffSyncFile_server extends diffsync.DiffSync
             winston.debug("watch: skipping read because watching is off.")
             return
         @_stop_watching_file()
-        fs.readFile @path, (err, data) =>
+        async.series([
+            (cb) =>
+                fs.stat @path, (err, stats) =>
+                    if err
+                        cb(err)
+                    else
+                        cb(check_file_size(stats.size))
+            (cb) =>
+                fs.readFile @path, (err, data) =>
+                    if err
+                        cb(err)
+                    else
+                        @live = data.toString().replace(/\r/g,'')  # NOTE: we immediately delete \r's (see above).
+                        @cm_session.sync_filesystem(cb)
+        ], (err) =>
             if err
-                @_start_watching_file()
-            else
-                @live = data.toString().replace(/\r/g,'')  # NOTE: we immediately delete \r's (see above).
-                @cm_session.sync_filesystem (err) =>
-                    @_start_watching_file()
+                winston.debug("watch: file '#{@path}' error -- #{err}")
+            @_start_watching_file()
+        )
 
     _start_watching_file: () =>
         if @_do_watch?
@@ -1382,19 +1414,32 @@ class CodeMirrorSession
             socket.write_mesg('json', resp)
 
     read_from_disk: (socket, mesg) =>
-        fs.readFile @path, (err, data) =>
+        async.series([
+            (cb) =>
+                fs.stat (err, stats) =>
+                    if err
+                        cb(err)
+                    else
+                        cb(check_file_size(stats.size))
+            (cb) =>
+                fs.readFile @path, (err, data) =>
+                    if err
+                        cb("Error reading file '#{@path}' from disk -- #{err}")
+                    else
+                        value = data.toString()
+                        if value != @content
+                            @set_content(value)
+                            # Tell the global hubs that now might be a good time to do a sync.
+                            for id, ds of @diffsync_clients
+                                ds.remote.sync_ready()
+                        cb()
+
+        ], (err) =>
             if err
-                socket.write_mesg('json', message.error(id:mesg.id, error:"Error reading file '#{@path}' to disk"))
+                socket.write_mesg('json', message.error(id:mesg.id, error:err))
             else
-                value = data.toString()
-                if value == @content
-                    # nothing to do -- so do not do anything!
-                    socket.write_mesg('json', message.success(id:mesg.id))
-                    return
-                @set_content(value)
-                # Tell the global hubs that now might be a good time to do a sync.
-                for id, ds of @diffsync_clients
-                    ds.remote.sync_ready()
+                socket.write_mesg('json', message.success(id:mesg.id))
+        )
 
     get_content: (socket, mesg) =>
         @is_active = true
@@ -1567,20 +1612,25 @@ terminate_session = (socket, mesg) ->
 # TODO: should support -- 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'. and mesg.archive option!!!
 #
 read_file_from_project = (socket, mesg) ->
-    data   = undefined
-    path   = abspath(mesg.path)
-    is_dir = undefined
-    id     = undefined
+    data    = undefined
+    path    = abspath(mesg.path)
+    is_dir  = undefined
+    id      = undefined
     archive = undefined
+    stats   = undefined
     async.series([
         (cb) ->
             #winston.debug("Determine whether the path '#{path}' is a directory or file.")
-            fs.stat path, (err, stats) ->
+            fs.stat path, (err, _stats) ->
                 if err
                     cb(err)
                 else
+                    stats = _stats
                     is_dir = stats.isDirectory()
                     cb()
+        (cb) ->
+            # make sure the file isn't too large
+            cb(check_file_size(stats.size))
         (cb) ->
             if is_dir
                 if mesg.archive != 'tar.bz2'

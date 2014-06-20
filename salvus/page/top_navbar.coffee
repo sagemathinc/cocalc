@@ -285,4 +285,3 @@ $(".salvus-fullscreen-deactivate").click () ->
 $(".salvus-connection-status-protocol").tooltip(delay:{ show: 500, hide: 100 })
 $(".salvus-connection-status-ping-time").tooltip(delay:{ show: 500, hide: 100 })
 
-#$(".nav.projects").sortable(axis: 'x')
