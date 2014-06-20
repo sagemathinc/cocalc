@@ -3559,7 +3559,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                 to      : mesg.email_address
                 cb      : (error) ->
                     if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error sending password reset email to #{mesg.email_address}."))
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error sending password reset email to #{mesg.email_address} -- #{error}."))
                         cb(true)
                     else
                         push_to_client(message.forgot_password_response(id:mesg.id))
