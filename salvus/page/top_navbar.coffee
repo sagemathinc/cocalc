@@ -24,7 +24,7 @@ class TopNavbar  extends EventEmitter
         @buttons          = @navbar.find("ul.nav.pull-left.buttons")   # the list of buttons on the left
         @projects         = @navbar.find("ul.nav.pull-left.projects")
         @buttons_right    = @navbar.find("ul.nav.pull-right")  # the list of buttons on the right
-        @button_template  = $(".top_navbar-button-template")
+        @button_template  = $("#top_navbar-button-template")
         @divider_template = $("#top_navbar-divider-template")
 
     add_page: (opts) ->
@@ -284,4 +284,3 @@ $(".salvus-fullscreen-deactivate").click () ->
 
 $(".salvus-connection-status-protocol").tooltip(delay:{ show: 500, hide: 100 })
 $(".salvus-connection-status-ping-time").tooltip(delay:{ show: 500, hide: 100 })
-
