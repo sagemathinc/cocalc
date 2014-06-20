@@ -1,5 +1,6 @@
 .close-button-x {
     font-size: 18px;
+    position: relative;
 }
 
 .close-button-x:hover {

@@ -195,7 +195,6 @@ class TopNavbar  extends EventEmitter
         @_init_sortable_project_list = true
 
     resize_open_project_tabs: () =>
-        console.log("resizing open project tabs12")
         # Make a list of the open project tabs
         x = @projects.find("li")
         if x.length == 0
@@ -204,18 +203,14 @@ class TopNavbar  extends EventEmitter
         # Determine the width
         if $(window).width() <= 979
             # responsive mode
-            width = 204
+            width = "100%"
         else
             n = x.length
-            if n <= 3
-                n = 4
-            width = (@projects.width() - 10)/n
+            width = Math.min(200, (@projects.width() - n)/n) # subtracts n to prevent rounding problems
             if width < 0
                 width = 0
         for a in x
-            console.log(width)
             $(a).width(width)
-            console.log("changed width: " + $(a).width())
 
 top_navbar = exports.top_navbar = new TopNavbar()
 
