@@ -24,7 +24,7 @@ class TopNavbar  extends EventEmitter
         @buttons          = @navbar.find("ul.nav.pull-left.buttons")   # the list of buttons on the left
         @projects         = @navbar.find("ul.nav.pull-left.projects")
         @buttons_right    = @navbar.find("ul.nav.pull-right")  # the list of buttons on the right
-        @button_template  = $("#top_navbar-button-template")
+        @button_template  = $(".top_navbar-button-template")
         @divider_template = $("#top_navbar-divider-template")
 
     add_page: (opts) ->
@@ -166,6 +166,7 @@ class TopNavbar  extends EventEmitter
             p.divider.remove()
             delete @pages[id]
 
+            @resize_open_project_tabs()
             # Now switch to the next page
 
     # make it so the navbar entry to go to a given page is hidden
@@ -192,6 +193,29 @@ class TopNavbar  extends EventEmitter
             placeholder          : 'nav-projects-placeholder'
             forcePlaceholderSize : true
         @_init_sortable_project_list = true
+
+    resize_open_project_tabs: () =>
+        console.log("resizing open project tabs12")
+        # Make a list of the open project tabs
+        x = @projects.find("li")
+        if x.length == 0
+            return
+
+        # Determine the width
+        if $(window).width() <= 979
+            # responsive mode
+            width = 204
+        else
+            n = x.length
+            if n <= 3
+                n = 4
+            width = (@projects.width() - 10)/n
+            if width < 0
+                width = 0
+        for a in x
+            console.log(width)
+            $(a).width(width)
+            console.log("changed width: " + $(a).width())
 
 top_navbar = exports.top_navbar = new TopNavbar()
 
@@ -264,6 +288,7 @@ $("#account").top_navbar
 $(window).resize () ->
     $("body").css
         'padding-top': ($(".salvus-top_navbar").height()) + 'px'
+    top_navbar.resize_open_project_tabs()
 
 $(".salvus-fullscreen-activate").click () ->
     salvus_client.in_fullscreen_mode(true)

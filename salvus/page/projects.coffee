@@ -361,6 +361,8 @@ exports.open_project = open_project = (project, item) ->
             project = x
 
     proj = project_page(project)
+    top_navbar.resize_open_project_tabs()
+    console.log("open page 17")
     top_navbar.switch_to_page(project.project_id)
 
     if not (project.bup_location?)

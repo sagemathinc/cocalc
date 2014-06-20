@@ -108,3 +108,12 @@
 .salvus-connection-status:hover {
     color: #222
 }
+
+.top_navbar-button-link {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.top_navbar-button-template {
+    white-space: nowrap;
+}
