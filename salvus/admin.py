@@ -1866,17 +1866,18 @@ class Services(object):
 
         name = service.capitalize()
         if name=='Compute' or not hasattr(self, '_cassandra'):
-            db_string = ""
+            def db_string(address):
+                return ""
         else:
-            dc = self.ip_address_to_dc(self._hosts[host][0])
-            db_string = "monitor_database='%s'"%(','.join(self.cassandras_in_dc(dc)))
+            def db_string(address):
+                dc = self.ip_address_to_dc(self._hosts[address][0])
+                return "monitor_database='%s'"%(','.join(self.cassandras_in_dc(dc)))
 
         v = self._hostopts(service, host, opts)
 
         self._hosts.password()  # can't get password in thread
 
-        w = [((name, action, address, options, db_string, wait),{}) for address, options in v]
-
+        w = [((name, action, address, options, db_string(address), wait),{}) for address, options in v]
         if parallel:
             return misc.thread_map(self._do_action, w)
         else:
