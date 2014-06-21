@@ -655,6 +655,12 @@ class TaskList
 
     display_last_edited : (task) =>
         if task.last_edited
+            if typeof(task.last_edited) != "number"  # corrupt
+                task.last_edited = new Date() - 0
+                @db.update
+                    set   : {last_edited : task.last_edited }
+                    where : {task_id : task.task_id}
+
             a = $("<span>").attr('title',(new Date(task.last_edited)).toISOString()).timeago()
             task.element.find(".salvus-task-last-edited").empty().append(a)
 
@@ -1027,6 +1033,7 @@ class TaskList
         @set_due_date(task, undefined)
         @display_due_date(task)
 
+
     set_due_date: (task, due_date) =>
         task.due_date = due_date
         @db.update
@@ -1042,6 +1049,10 @@ class TaskList
             e.replaceWith(f)
             e = f
         if task.due_date
+            if typeof task.due_date != 'number'
+                # very rare corruption -- valid json but date somehow got messed up.
+                @remove_due_date(task)
+                return
             task.element.find(".salvus-task-due-clear").show()
             d = new Date(0)   # see http://stackoverflow.com/questions/4631928/convert-utc-epoch-to-local-date-with-javascript
             d.setUTCMilliseconds(task.due_date)

@@ -89,7 +89,7 @@ body { padding-top:41px; }
         top: 0px !important;
     }
 
-    .project-pages {
+    .project-pages, .file-pages {
         margin-top: 10px;
     }
 }

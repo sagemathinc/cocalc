@@ -70,7 +70,7 @@
  *
  *  ---------------------------------------------------------------------
  *  
- *  Copyright (c) 2010-2013 The MathJax Consortium
+ *  Copyright (c) 2010-2014 The MathJax Consortium
  * 
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -86,7 +86,7 @@
  */
 
 (function (HUB,HTML) {
-  var VERSION = "2.2";
+  var VERSION = "2.4.0";
 
   var STIXURL = "http://www.stixfonts.org/";
   var MATHJAXURL = "https://github.com/mathjax/MathJax/tree/master/fonts/HTML-CSS/TeX/otf";
@@ -134,7 +134,7 @@
           "This will render slower than usual, and the mathematics may not print "+
           "at the full resolution of your printer."],
         ["fonts"],
-        ["webfonts"]
+        ["webFonts"]
       ],
       
       noFonts: [
@@ -146,7 +146,7 @@
           "your browser will be able to display them.  Some characters "+
           "may not show up properly, or possibly not at all."],
         ["fonts"],
-        ["webfonts"]
+        ["webFonts"]
       ]
     },
     
@@ -178,9 +178,9 @@
         [["span",{style:{position:"relative", bottom:".2em"}},["x"]]]
       ]],
       
-      webfonts: [
+      webFonts: [
         ["p"],
-        ["webfonts",
+        ["webFonts",
           "Most modern browsers allow for fonts to be downloaded over the web. "+
           "Updating to a more recent version of your browser (or changing "+
           "browsers) could improve the quality of the mathematics on this page."
@@ -241,8 +241,8 @@
     if (HUB.Browser.isMSIE) {
       if (CONFIG.messageStyle.position === "fixed") {
         MathJax.Message.Init();  // make sure MathJax_MSIE_frame exists
-        frame = document.getElementById("MathJax_MSIE_Frame");
-        CONFIG.messageStyle.position = "absolute";
+        frame = document.getElementById("MathJax_MSIE_Frame") || frame;
+        if (frame !== document.body) {CONFIG.messageStyle.position = "absolute"}
       }
     } else {delete CONFIG.messageStyle.filter}
     CONFIG.messageStyle.maxWidth = (document.body.clientWidth-75) + "px";
@@ -252,7 +252,7 @@
           data.splice.apply(data,[i,1].concat(CONFIG.HTML[data[i][0]]));
         } else if (typeof data[i][1] === "string") {
           var message = MathJax.Localization.lookupPhrase(["FontWarnings",data[i][0]],data[i][1]);
-          message = MathJax.Localization.processString(message,data[i].slice(2),"FontWarnings");
+          message = MathJax.Localization.processMarkdown(message,data[i].slice(2),"FontWarnings");
           data.splice.apply(data,[i,1].concat(message));
           i += message.length;
         } else {i++}

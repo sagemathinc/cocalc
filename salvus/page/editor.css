@@ -424,5 +424,27 @@ code {
 }
 
 
+/* Deals with the currently open file tabs and moving them around */
+
+.file-pages {
+    float: none;
+    overflow: hidden;
+}
+
+.file-pages > li > a {
+    border-radius: 5px 5px 0px 0px;
+}
+
+.file-tab-placeholder {
+    /* Currently blank */
+}
+
+.file-pages li.ui-sortable-helper > a {
+    background-color: #eee;
+}
+
+.file-pages li.active.ui-sortable-helper > a {
+    background-color: #08c;
+}
 
 

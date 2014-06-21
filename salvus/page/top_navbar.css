@@ -11,6 +11,34 @@
     font-size:18px;
 }
 
+.nav.buttons {
+    margin: 0;
+}
+
+.nav-projects-placeholder {
+    -webkit-box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
+    -moz-box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
+    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
+}
+
+.nav.projects li.ui-sortable-helper {
+    color: #555555;
+    text-decoration: none;
+    background-color: #ffffff;
+    -webkit-box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
+    -moz-box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
+    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
+}
+
+.nav.pull-right {
+    float: right;
+}
+
+.nav.projects {
+    float: none;
+    overflow: hidden;
+}
+
 .salvus-connection-status {
     width       : 6.5em;
     font-size   : 10pt;

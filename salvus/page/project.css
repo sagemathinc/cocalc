@@ -49,6 +49,7 @@
 }
 
 .project-file-listing {
+    clear: both;
     margin-left  : 3em;
     margin-right : 3em;
 }
@@ -152,8 +153,12 @@
     font-size:18pt;
 }
 
-.project-pages {
+.project-pages, .file-pages {
     font-size: 10pt;
+}
+
+.project-pages {
+    float: left;
 }
 
 .salvus-project-status-indicator-button {
