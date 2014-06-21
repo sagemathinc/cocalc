@@ -1868,7 +1868,8 @@ class Services(object):
         if name=='Compute' or not hasattr(self, '_cassandra'):
             db_string = ""
         else:
-            db_string = "monitor_database='%s'"%(','.join(self._cassandra))
+            dc = self.ip_address_to_dc(self._hosts[host][0])
+            db_string = "monitor_database='%s'"%(','.join(self.cassandras_in_dc(dc)))
 
         v = self._hostopts(service, host, opts)
 
@@ -1882,10 +1883,17 @@ class Services(object):
             return [self._do_action(*args, **kwds) for args, kwds in w]
 
     def ip_address_to_dc(self, ip_address):
-        # convert ip address to data center that contains that machine
+        """
+        Convert the given ip address to the data center that contains that machine.  The returned datacenter
+        is an integer: 0, 1, 2, 3, etc.
+        """
         return self._ip_address_to_dc[ip_address]
 
     def cassandras_in_dc(self, dc):
+        """
+        Return the Cassandra database nodes in the given datacenter. The specified data center dc should
+        be an integer: 0, 1, 2, 3, etc.
+        """
         if not isinstance(dc, str):
             dc = "dc%s"%dc
         return self._cassandras_in_dc[dc]
