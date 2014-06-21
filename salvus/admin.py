@@ -580,9 +580,18 @@ frontend unsecured *:$port
 # Hub
 ####################
 class Hub(Process):
-    def __init__(self, id=0, host='', port=HUB_PORT, proxy_port=HUB_PROXY_PORT,
-                 monitor_database=None, keyspace='salvus', debug=False,
-                 logfile=None, pidfile=None, base_url=None, local=False):
+    def __init__(self,
+                 id               = 0,
+                 host             = '',
+                 port             = HUB_PORT,
+                 proxy_port       = HUB_PROXY_PORT,
+                 monitor_database = None,
+                 keyspace         = 'salvus',
+                 debug            = False,
+                 logfile          = None,
+                 pidfile          = None,
+                 base_url         = None,
+                 local            = False):
         self._port = port
         if pidfile is None:
             pidfile = os.path.join(PIDS, 'hub-%s.pid'%id)
@@ -1682,10 +1691,21 @@ class Services(object):
 
         self._options = dict([(service, hostopts(service)) for service in self._ordered_service_names])
 
+
+        # Divide up hosts by their data center
+        self._ip_address_to_dc = {}
+        for k, v in self._hosts._ip_addresses.iteritems():
+            if len(k) == 3 and k.startswith('dc') and k[2] >= '0' and k[2] <= '9':
+                dc = int(k[2])
+                for w in v:
+                    self._ip_address_to_dc[w] = dc
+
+
         ##########################################
         # Programatically fill in extra options to the list
         ##########################################
         # CASSANDRA options
+        self._cassandras_in_dc = {}
         if 'cassandra' in self._options:
             v = self._options['cassandra']
             # determine the seeds
@@ -1693,11 +1713,17 @@ class Services(object):
             # determine global topology file; ip_address=data_center:rack
             topology = '\n'.join(['%s=%s'%(h, o.get('topology', 'DC0:RAC0'))
                                                                   for h, o in v] + ['default=DC0:RAC0'])
+
             for address, o in v:
-                o['seeds'] = seeds
-                o['topology'] = topology
+                dc = o.get('topology','DC0:RAC0').split(':')[0].lower()  # this must be before o['topology'] line below!
+                if dc not in self._cassandras_in_dc:
+                    self._cassandras_in_dc[dc] = [address]
+                else:
+                    self._cassandras_in_dc[dc].append(address)
+                o['seeds']          = seeds
+                o['topology']       = topology
                 o['listen_address'] = address
-                o['rpc_address'] = address
+                o['rpc_address']    = address
                 if 'seed' in o: del o['seed']
 
             native_transport_port = v[0][1].get('native_transport_port', 9042)
@@ -1839,7 +1865,11 @@ class Services(object):
 
 
         name = service.capitalize()
-        db_string = "" if (name=='Compute' or not hasattr(self, '_cassandra')) else "monitor_database='%s'"%(','.join(self._cassandra))
+        if name=='Compute' or not hasattr(self, '_cassandra'):
+            db_string = ""
+        else:
+            db_string = "monitor_database='%s'"%(','.join(self._cassandra))
+
         v = self._hostopts(service, host, opts)
 
         self._hosts.password()  # can't get password in thread
@@ -1850,6 +1880,15 @@ class Services(object):
             return misc.thread_map(self._do_action, w)
         else:
             return [self._do_action(*args, **kwds) for args, kwds in w]
+
+    def ip_address_to_dc(self, ip_address):
+        # convert ip address to data center that contains that machine
+        return self._ip_address_to_dc[ip_address]
+
+    def cassandras_in_dc(self, dc):
+        if not isinstance(dc, str):
+            dc = "dc%s"%dc
+        return self._cassandras_in_dc[dc]
 
     def stunnel_key_files(self, hostname, action):
         target = os.path.join(BASE, SECRETS)

@@ -118,7 +118,7 @@ cloud15   {'hostname':'cassandra15', 'vcpus':cassandra_cpu, 'ram':cassandra_ram,
 cloud16   {'hostname':'cassandra16', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2'}
 cloud17   {'hostname':'cassandra17', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2'}
 cloud18   {'hostname':'cassandra18', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2'}
-cloud19   {'hostname':'cassandra19', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2'}
+cloud19   {'hostname':'cassandra19', 'vcpus':cassandra_cpu, 'ram':10, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2'}
 cloud20   {'hostname':'cassandra20', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2'}
 cloud21   {'hostname':'cassandra21', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2'}
 
