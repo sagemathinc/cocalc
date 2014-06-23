@@ -20,8 +20,6 @@ account         = require('account')
 
 {scroll_top, human_readable_size, download_file} = require('misc_page')
 
-MAX_TITLE_LENGTH = 15
-
 templates = $("#salvus-project-templates")
 template_project_file          = templates.find(".project-file-link")
 template_home_icon             = templates.find(".project-home-icon")
@@ -921,7 +919,7 @@ class ProjectPage
         if not @project.title? # make sure that things work even if @project is invalid.
             @project.title = ""
             alert_message(type:"error", message:"Project #{@project.project_id} is corrupt. Please report.")
-        label = @project.title.slice(0,MAX_TITLE_LENGTH) + if @project.title.length > MAX_TITLE_LENGTH then "..." else ""
+        label = @project.title
         top_navbar.set_button_label(@project.project_id, label)
         document.title = "Sagemath: #{@project.title}"
 
@@ -1931,9 +1929,13 @@ class ProjectPage
         else
             LOG_FILE = '.sagemathcloud.log'
 
-        @container.find(".salvus-project-activity-search").keyup () =>
+        @container.find(".salvus-project-activity-search").keyup (e) =>
             @_project_activity_log_page = 0
             @render_project_activity_log()
+            if e?.keyCode == 13
+                first = @container.find(".first-entry")
+                if first.length != 0
+                    first.find(".project-activity-open-filename").click()
 
         @container.find(".salvus-project-activity-search-clear").click () =>
             @container.find(".salvus-project-activity-search").val('')
@@ -2083,8 +2085,8 @@ class ProjectPage
             @container.find(".project-activity-older").addClass('disabled')
         else
             @container.find(".project-activity-older").removeClass('disabled')
-
-        for e in lines
+        first = -1
+        for e, i in lines
             if not $.trim(e)
                 continue
             try
@@ -2101,6 +2103,8 @@ class ProjectPage
                     elt = template.find(".project-activity-open_project").clone()
                 when 'open'
                     elt = template.find(".project-activity-open").clone()
+                    if first == -1
+                        first = i
                     f = (e) ->
                         filename = $(@).text()
                         if filename == ".sagemathcloud.log"
@@ -2118,6 +2122,8 @@ class ProjectPage
 
             if elt?
                 x = template_entry.clone()
+                if i == first
+                    x.addClass("first-entry")
                 x.find(".project-activity-value").append(elt)
                 if entry.fullname?
                     x.find(".project-activity-name").text(entry.fullname)

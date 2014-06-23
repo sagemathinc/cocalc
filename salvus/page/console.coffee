@@ -867,4 +867,3 @@ $.fn.extend
                 opts0.element = this
                 return t.data('console', new Console(opts0))
 
-
