@@ -13,7 +13,7 @@ def cmd(s):
 
 for i in range(1,8):
     host = "10.1.%s.2"%i
-    cmd("time rsync -axvH --delete --bwlimit=%s %s:/mnt/cassandra/ %s/"%(BWLIMIT, host, os.path.join(target, 'cassandra%s'%i)))
+    cmd("time rsync -axvH --delete --exclude lib/data/*/*/snapshots --bwlimit=%s %s:/mnt/cassandra/ %s/"%(BWLIMIT, host, os.path.join(target, 'cassandra%s'%i)))
 
 cmd("time bup index %s"%target)
 cmd("time bup save %s -n cassandra"%target)
