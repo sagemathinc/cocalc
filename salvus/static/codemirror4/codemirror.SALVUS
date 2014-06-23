@@ -1,8 +1,6 @@
-* In mode/python.js I add our unicode output character to be a comment starter:
+* In mode/python/python.js I add our unicode output character to be a comment starter:
       // Handle Comments
       if (ch == "#"  || ch == "\uFE21") {
-
-
 
 * The theme/solarized.css file looks like *CRAP* -- I had to remove the weird background image and shadow text.  Come on. 
 
@@ -23,3 +21,9 @@ index 104ccd7..2ac716d 100644
      var builder = {pre: elt("pre", [content]), content: content, col: 0, pos: 0, cm: cm};
      lineView.measure = {};
  
+
+* Add modes:
+
+cp -rv ../codemirror4.orig/mode/less mode/
+cp -rv ../codemirror4.orig/mode/pari mode/
+cp -rv ../codemirror4.orig/mode/ocaml mode/
