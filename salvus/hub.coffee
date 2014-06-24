@@ -483,7 +483,10 @@ init_http_proxy_server = () =>
                 res.writeHead(500, {'Content-Type':'text/html'})
                 res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
             else
-                proxy = httpProxy.createProxyServer(ws:false, target:"http://#{location.host}:#{location.port}", timeout:0)
+                t = "http://#{location.host}:#{location.port}"
+                proxy = httpProxy.createProxyServer(ws:false, target:t, timeout:0)
+                proxy.on "error", (e) ->
+                    winston.debug("non-websocket http proxy -- create proxy #{t}; error -- #{e}")
                 proxy.web(req, res)
 
     http_proxy_server.listen(program.proxy_port, program.host)
@@ -502,7 +505,7 @@ init_http_proxy_server = () =>
                     winston.debug("websocket upgrade #{t}: not using cache")
                     proxy = httpProxy.createProxyServer(ws:true, target:t, timeout:0)
                     proxy.on "error", (e) ->
-                        winston.debug("websocket upgrade -- create proxy #{t} error -- #{e}")
+                        winston.debug("websocket upgrade -- create proxy #{t}; error -- #{e}")
                     _ws_proxy_servers[t] = proxy
                 else
                     winston.debug("websocket upgrade: using cache")
