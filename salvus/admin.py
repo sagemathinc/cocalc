@@ -1346,7 +1346,9 @@ class Monitor(object):
         import random
         hosts = self._hosts['cassandra']
         for i in range(len(hosts)):
-            v = self._hosts(random.choice(hosts), "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False, timeout=45)
+            h = random.choice(hosts)
+            print "cassandra host = ", h
+            v = self._hosts(h, "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False, timeout=45)
             r = v[v.keys()[0]]
             status = {}
             for z in [x for x in r['stdout'].splitlines() if '%' in x]:

@@ -63,7 +63,7 @@
 <section class=first id=overview>
     <h2 style="position: relative">
       User manual and reference guide
-      <span style="color: #888; font-size: 1rem; position: absolute; right: 0; bottom: 0">version 4.2.0</span>
+      <span style="color: #888; font-size: 1rem; position: absolute; right: 0; bottom: 0">version 4.3.0</span>
     </h2>
 
     <p>CodeMirror is a code-editor component that can be embedded in
@@ -370,7 +370,8 @@
 
       <dt id="option_cursorBlinkRate"><code><strong>cursorBlinkRate</strong>: number</code></dt>
       <dd>Half-period in milliseconds used for cursor blinking. The default blink
-      rate is 530ms. By setting this to zero, blinking can be disabled.</dd>
+      rate is 530ms. By setting this to zero, blinking can be disabled. A
+      negative value hides the cursor entirely.</dd>
 
       <dt id="option_cursorScrollMargin"><code><strong>cursorScrollMargin</strong>: number</code></dt>
       <dd>How much extra space to always keep above and below the
@@ -1199,7 +1200,7 @@
       merged). Each object in the array contains <code>anchor</code>
       and <code>head</code> properties referring to <code>{line,
       ch}</code> objects.</dd>
-      
+
       <dt id="somethingSelected"><code><strong>doc.somethingSelected</strong>() → boolean</code></dt>
       <dd>Return true if any text is selected.</dd>
       <dt id="setCursor"><code><strong>doc.setCursor</strong>(pos: {line, ch}|number, ?ch: number, ?options: object)</code></dt>
@@ -1598,7 +1599,7 @@
       <dd>Remove all gutter markers in
       the <a href="#option_gutters">gutter</a> with the given ID.</dd>
 
-      <dt id="addLineClass"><code><strong>cm.addLineClass</strong>(line: integer|LineHandle, where: string, class: string) → LineHandle</code></dt>
+      <dt id="addLineClass"><code><strong>doc.addLineClass</strong>(line: integer|LineHandle, where: string, class: string) → LineHandle</code></dt>
       <dd>Set a CSS class name for the given line. <code>line</code>
       can be a number or a line handle. <code>where</code> determines
       to which element this class should be applied, can can be one
@@ -1609,7 +1610,7 @@
       gutter elements). <code>class</code> should be the name of the
       class to apply.</dd>
 
-      <dt id="removeLineClass"><code><strong>cm.removeLineClass</strong>(line: integer|LineHandle, where: string, class: string) → LineHandle</code></dt>
+      <dt id="removeLineClass"><code><strong>doc.removeLineClass</strong>(line: integer|LineHandle, where: string, class: string) → LineHandle</code></dt>
       <dd>Remove a CSS class from a line. <code>line</code> can be a
       line handle or number. <code>where</code> should be one
       of <code>"text"</code>, <code>"background"</code>,

@@ -1,2 +1,2 @@
 # sites
-127.0.0.1 localhost cassandra hub admin compute snap backup cellserver
+127.0.0.1 localhost cassandra hub admin compute snap backup cellserver dc0

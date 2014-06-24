@@ -45,11 +45,11 @@ localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra:200', 'instance_type
 #localhost    {'hostname':'web1dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
 #localhost    {'hostname':'web2dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
 
-localhost    {'hostname':'devel1dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
-localhost    {'hostname':'devel2dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
-localhost    {'hostname':'devel3dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
-localhost    {'hostname':'devel4dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
-localhost    {'hostname':'devel5dc2', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+#localhost    {'hostname':'devel1dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+#localhost    {'hostname':'devel2dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+#localhost    {'hostname':'devel3dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+#localhost    {'hostname':'devel4dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+#localhost    {'hostname':'devel5dc2', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
 
 
 #####################

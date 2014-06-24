@@ -327,6 +327,8 @@ class TaskList
         return v
 
     toggle_hashtag_button: (button) =>
+        if not button?
+            return
         tag = button.text()
         if button.hasClass('btn-info')
             button.removeClass('btn-info').addClass('btn-warning')
@@ -478,7 +480,7 @@ class TaskList
             if not current_task_is_visible and @_visible_tasks.length > 0
                 @set_current_task(@_visible_tasks[0])
             else
-                @current_task?.element.addClass("salvus-current-task").scrollintoview()
+                @current_task?.element?.addClass("salvus-current-task").scrollintoview()
 
             if focus_current
                 cm.focus()
@@ -866,6 +868,8 @@ class TaskList
         if not task?
             return
         e = task.element
+        if not e?
+            return
         if e.hasClass('salvus-task-editing-desc') and e.data('cm')?
             e.data('cm').focus()
             return
@@ -1063,6 +1067,8 @@ class TaskList
             task.element.find(".salvus-task-due-clear").hide()
 
     display_done: (task) =>
+        if not task.element?
+            return
         if task.done
             task.element.find(".salvus-task-viewer-not-done").hide()
             task.element.find(".salvus-task-viewer-done").show()
@@ -1077,7 +1083,7 @@ class TaskList
             task.element.removeClass("salvus-task-overall-done")
 
     delete_task: (task, deleted) =>
-        task.element.stop().prop('style').removeProperty('opacity')
+        task.element?.stop().prop('style').removeProperty('opacity')
         f = () =>
             @db.update
                 set   : {deleted : deleted, last_edited : new Date() - 0}
@@ -1086,7 +1092,7 @@ class TaskList
             @set_dirty()
 
         if deleted and not @showing_deleted
-            task.element.fadeOut () =>
+            task.element?.fadeOut () =>
                 if not task.deleted # they could have canceled the action by clicking again
                     @set_current_task_next()
                     f()
@@ -1347,7 +1353,7 @@ class TaskList
             @save_button.removeClass('disabled')
 
     set_clean: () =>
-        @save_button.addClass('disabled')
+        @save_button?.addClass('disabled')
 
     has_unsaved_changes: (val) =>
         if val
@@ -1356,9 +1362,9 @@ class TaskList
 
     init_save: () =>
         if @readonly
-            @save_button.addClass('disabled')
+            @save_button?.addClass('disabled')
         else
-            @save_button.click (event) =>
+            @save_button?.click (event) =>
                 @save()
                 event.preventDefault()
 
