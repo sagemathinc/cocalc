@@ -62,6 +62,21 @@ if hostname.startswith('cassandra'):
     # be able to start cassandra itself.
     os.system("zpool import -f cassandra ")
 
+    # set clearly permissions constraints: see -- http://www.datastax.com/docs/1.1/install/recommended_settings
+    open("/etc/security/limits.conf","w").write("""
+        * soft memlock unlimited
+        * hard memlock unlimited
+        * soft nofile 32768
+        * hard nofile 32768
+        * soft as unlimited
+        * hard as unlimited
+    """)
+
+    os.system("sysctl -w vm.max_map_count=131072")
+
+    # Ensure no swap: http://www.datastax.com/docs/1.1/install/recommended_settings
+    os.system("swapoff --all")
+
 if hostname.startswith('compute'):
     # Create a firewall so that only the hub nodes can connect to things like ipython and the raw server.
     os.system("/home/salvus/salvus/salvus/scripts/compute_firewall.sh")
