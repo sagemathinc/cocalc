@@ -778,7 +778,7 @@ class exports.Salvus extends exports.Cassandra
 
     # all_users: cb(err, array of {first_name:?, last_name:?, account_id:?, search:'names and email thing to search'})
     #
-    # No matter how often all_users is called, it is only updated at most once every 60 seconds, since it is expensive
+    # No matter how often all_users is called, it is only updated at most once every 5 minutes, since it is expensive
     # to scan the entire database, and the client will typically make numerous requests within seconds for
     # different searches.  When some time elapses and we get a search, if we have an old cached list in memory, we
     # use it and THEN start computing a new one -- so user queries are always answered nearly instantly, but only
@@ -824,7 +824,7 @@ class exports.Salvus extends exports.Cassandra
                 @_all_users_fresh = true
                 f = () =>
                     delete @_all_users_fresh
-                setTimeout(f, 60000)   # cache for 1 minute
+                setTimeout(f, 5*60000)   # cache for 5 minutes
 
     user_search: (opts) =>
         opts = defaults opts,
@@ -1288,7 +1288,7 @@ class exports.Salvus extends exports.Cassandra
                             banned_accounts = @_account_is_banned_cache
                             f = () =>
                                 delete @_account_is_banned_cache
-                            setTimeout(f, 60000)    # cache db lookups for 1 minute
+                            setTimeout(f, 10*60000)    # cache db lookups for 10 minutes
                             cb()
             (cb) =>
                 if opts.email_address?
