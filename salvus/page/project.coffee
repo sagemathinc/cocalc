@@ -2003,6 +2003,7 @@ class ProjectPage
             text = $(button).text()
             if localStorage["project-activity-button-#{text}"]
                 $(button).removeClass('btn-warning').addClass('btn-default')
+
         @container.find(".salvus-project-activity-search").keyup (e) =>
             @_project_activity_log_page = 0
             @render_project_activity_log()
