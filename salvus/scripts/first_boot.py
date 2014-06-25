@@ -12,6 +12,8 @@ if hostname.startswith("salvus-base"):
     sys.exit(0)
 
 if hostname.startswith('devel'):
+    os.system('/root/ip_blacklist/block.sh')
+
     # do NOT want this node on tinc network -- that messes up bup server, making it listen only externally, etc.
     os.system("killall tincd")
     # And make sure tinc can't be started, which would happen later, and is a potential security hole -- this deletes the trusted private key.
@@ -32,6 +34,8 @@ if hostname.startswith('devel'):
 if hostname.startswith('compute'):
     # Delete secrets that aren't needed for the *compute machines* (only web machines)
     os.system('rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra')
+
+    os.system('/root/ip_blacklist/block.sh')
 
     if False:
         # Store crontabs in persistent storage, so they don't vanish on VM restart
