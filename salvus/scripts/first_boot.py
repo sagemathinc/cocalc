@@ -21,6 +21,10 @@ if hostname.startswith('devel'):
     os.system("zpool import -f pool; zfs mount -a; chmod og-r /projects; su - salvus -c 'cd /home/salvus/salvus/salvus/&& . salvus-env&& export BUP_POOL=\"pool\"; ./bup_server start'")
     # replace this secret by something harmless (don't just delete since hub.coffee assumes file exists)
     os.system('echo ""> /home/salvus/salvus/salvus/data/secrets/cassandra/hub')
+
+    # setup a fake pem
+    os.system("cp /home/salvus/salvus/salvus/data/secrets/sagemath.com/nopassphrase.pem.fake /home/salvus/salvus/salvus/data/secrets/sagemath.com/nopassphrase.pem")
+
     # Copy over newest version of certain scripts and set permissions
     for s in ['bup_storage.py']:
         os.system("cp /home/salvus/salvus/salvus/scripts/%s /usr/local/bin/; chmod og-w /usr/local/bin/%s; chmod og+rx /usr/local/bin/%s"%(s,s,s))
