@@ -23,7 +23,7 @@ for i, server_id in enumerate(v):
     a = cmd("ssh root@%s 'ls /bup/bups'"%host).splitlines()
     for project_id in a:
         print project_id
-        cmd("time /home/salvus/bup/bup on root@%s get -v -s /bup/bups/%s master:%s"%(host, project_id, project_id))
+        cmd("time /home/salvus/bup/bup on root@%s get -v -s /bup/bups/%s --ff master:%s"%(host, project_id, project_id))
 
 
 #cmd("time rsync -axvH --delete %s/ disk.math.washington.edu:bups2-bup/"%os.environ['BUP_DIR'])
