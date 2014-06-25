@@ -4,7 +4,7 @@
 #
 ###############################################################################
 
-{IS_MOBILE} = require("feature")
+{IS_MOBILE}     = require("feature")
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
 message         = require('message')
@@ -838,6 +838,7 @@ class ProjectPage
                 @focus()
             else
                 tab.target.hide()
+
         if name != 'project-editor'
             @editor?.hide()
         @editor?.resize_open_file_tabs()
@@ -1411,7 +1412,13 @@ class ProjectPage
                         that.update_file_list_tab()
                         return false
                     t.droppable(drop:file_dropped_on_directory, scope:'files')
-                    t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".fa-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
+                    t.find("a").tooltip
+                        trigger : 'hover'
+                        delay   : { show: 500, hide: 100 }
+                    t.find(".fa-move").tooltip
+                        trigger : 'hover'
+                        delay   : { show: 500, hide: 100 }
+
                     file_or_listing.append(t)
 
 
@@ -1422,7 +1429,21 @@ class ProjectPage
                 #console.log("building listing for #{path}...")
 
                 tm = misc.walltime()
-                for obj in listing.files
+                masked_file_exts =
+                    'pyc'           : 'py'
+                    'class'         : 'java'
+                    'log'           : 'tex'
+                    'aux'           : 'tex'
+                    'gz'            : 'tex' # really looks for .synctex.gz
+                    'exe'           : 'cs'
+
+                    #many languages such as fortran or c++ have a default file name of "a.out." when compiled, so .out extensions are not masked
+
+                masked_file_exts_bad = (key for key of masked_file_exts)
+                masked_file_exts_good = (value for key, value of masked_file_exts)
+                masked_file_bad_index = []
+                masked_file_good_name = []
+                for obj, i in listing.files
                     t = template_project_file.clone()
                     t.data(obj:obj)
                     if obj.isdir
@@ -1446,6 +1467,10 @@ class ProjectPage
                             name = obj.name
                         t.find(".project-file-name").text(name)
                         if ext != ''
+                            if ext in masked_file_exts_bad
+                                masked_file_bad_index.push(i)
+                            if ext in masked_file_exts_good
+                                masked_file_good_name.push(obj.name)
                             t.find(".project-file-name-extension").text('.' + ext)
                             if file_associations[ext]? and file_associations[ext].icon?
                                 t.find(".project-file-icon").removeClass("fa-file").addClass(file_associations[ext].icon)
@@ -1488,8 +1513,40 @@ class ProjectPage
                         axis           : 'y'
                         scope          : 'files'
 
-                    t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".fa-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
+                    t.find("a").tooltip
+                        trigger : 'hover'
+                        delay   : { show: 500, hide: 100 }
+                    t.find(".fa-move").tooltip
+                        trigger : 'hover'
+                        delay   : { show: 500, hide: 100 }
 
+                # Masks (greys out) files that the user probably doesn't want to open
+                if account.account_settings.settings.other_settings.mask_files
+                    # mask compiled files corresponding to source files
+                    for index in masked_file_bad_index
+                        filename = listing.files[index].name
+                        ext = filename_extension(filename)
+                        name = filename.slice(0,filename.length - ext.length - 1)
+                        compare_name = name
+
+                        # TODO: other unusual cases may need to be added here
+                        if ext == 'gz' 
+                            if name.indexOf(".synctex") != -1
+                                compare_name = name.slice(0,name.indexOf(".synctex"))
+                            else
+                                continue
+
+                        good_name_index = masked_file_good_name.indexOf(compare_name + "." + masked_file_exts[ext])
+                        if good_name_index != -1
+                            # mask the matched file
+                            i = if path == "" then index else index + 1 # skip over 'Parent Directory' link
+                            $(@container.find(".project-file-listing-file-list").children()[i]).addClass("project-file-listing-masked-file")
+
+                    # mask files starting with a '.'
+                    for file, index in listing.files
+                        if file.name.indexOf('.') == 0
+                            i = if path == "" then index else index + 1 # skip over 'Parent Directory' link
+                            $(@container.find(".project-file-listing-file-list").children()[i]).addClass("project-file-listing-masked-file")
 
                 #@clear_file_search()
                 #console.log("done building listing in #{misc.walltime(tm)}")
@@ -1924,14 +1981,35 @@ class ProjectPage
         page = @container.find(".project-activity")
         page.find("h1").icon_spin(start:true, delay:500)
         @_project_activity_log = page.find(".project-activity-log")
+         
+        click_type_button = (event) =>
+            button = $(event.delegateTarget)
+            text = button.text()
+            if button.hasClass('btn-default')
+                button.removeClass('btn-default').addClass('btn-warning')
+                delete localStorage["project-activity-button-#{text}"]
+            else
+                button.removeClass('btn-warning').addClass('btn-default')
+                localStorage["project-activity-button-#{text}"] = true
+            @render_project_activity_log()
+            return false
+            
         if window.salvus_base_url
             LOG_FILE = '.sagemathcloud-local.log'
         else
             LOG_FILE = '.sagemathcloud.log'
-
-        @container.find(".salvus-project-activity-search").keyup () =>
+        for button in @container.find(".project-activity-type-buttons").children()
+            $(button).click(click_type_button)
+            text = $(button).text()
+            if localStorage["project-activity-button-#{text}"]
+                $(button).removeClass('btn-warning').addClass('btn-default')
+        @container.find(".salvus-project-activity-search").keyup (e) =>
             @_project_activity_log_page = 0
             @render_project_activity_log()
+            if e?.keyCode == 13
+                first = @container.find(".first-entry")
+                if first.length != 0
+                    first.find(".project-activity-open-filename").click()
 
         @container.find(".salvus-project-activity-search-clear").click () =>
             @container.find(".salvus-project-activity-search").val('')
@@ -2051,7 +2129,12 @@ class ProjectPage
         start = page*items_per_page
         stop  = (page+1)*items_per_page
 
-        if search.length > 0
+        types = []
+        button_types = ['open', 'open_project', 'chat']
+        for button, i in @container.find(".project-activity-type-buttons").children()
+            if $(button).hasClass("btn-warning")
+                types.push(button_types[i])
+        if search.length > 0 or types.length != button_types.length
             if search.length == 1
                 s = search[0]
                 f = (x) ->
@@ -2065,12 +2148,13 @@ class ProjectPage
                     return true
             z = []
             for x in lines
-                if f(x)
-                    z.push(x)
-                    if z.length > stop
-                        break
+                if x != ""
+                    if f(x) and JSON.parse(x).event in types
+                        z.push(x)
+                        if z.length > stop
+                            break
             lines = z
-
+                     
         lines = lines.slice(start, stop)
 
         template = $(".project-activity-templates")
@@ -2081,8 +2165,8 @@ class ProjectPage
             @container.find(".project-activity-older").addClass('disabled')
         else
             @container.find(".project-activity-older").removeClass('disabled')
-
-        for e in lines
+        first = -1
+        for e, i in lines
             if not $.trim(e)
                 continue
             try
@@ -2099,6 +2183,8 @@ class ProjectPage
                     elt = template.find(".project-activity-open_project").clone()
                 when 'open'
                     elt = template.find(".project-activity-open").clone()
+                    if first == -1 and @_project_activity_log_page == 0
+                        first = i
                     f = (e) ->
                         filename = $(@).text()
                         if filename == ".sagemathcloud.log"
@@ -2116,6 +2202,8 @@ class ProjectPage
 
             if elt?
                 x = template_entry.clone()
+                if i == first
+                    x.addClass("first-entry")
                 x.find(".project-activity-value").append(elt)
                 if entry.fullname?
                     x.find(".project-activity-name").text(entry.fullname)

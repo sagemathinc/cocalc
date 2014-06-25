@@ -108,7 +108,10 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 </div>
 -->
         <div class="span4 well">
-            <form id="sign_in-form">
+            <div class="salvus-remember_me-message hide">
+                Loading <span></span>... <i class="fa fa-spin fa-refresh"></i>
+            </div>
+            <form class="salvus-sign_in-form">
                 <h4>Sign in (or <a href="#account-create_account">create an account</a>)</h4><br  class="big-only">
                 <!--<span class="big-only lighten">Email:</span>-->
                 <input class="span4" type="email" placeholder="Email" id="sign_in-email"><br class="big-only">
@@ -486,7 +489,10 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 
                         <div class="row">
                             <div class="row span5">
-                                Multiple cursors: <span class="lighten">control+click in several places to create multiple cursors (command+click on Mac)</a>
+                                <label class="checkbox" rel="tooltip" title="If checked, holding control while clicking creates multiple cursors.">
+                                    <input type="checkbox" checked="checked" class="account-settings-multiple_cursors">Multiple cursors:
+                                    <span class="lighten">control+click in several places to create multiple cursors (command+click on Mac)</span>
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -528,6 +534,15 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                 <label class="checkbox" rel="tooltip" title="Ask for confirmation before closing the SageMathCloud window.">
                                     <input type="checkbox" class="account-settings-other_settings-confirm_close">Confirm:
                                     <span class="lighten">always ask for confirmation before closing the browser window (except on mobile)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="row span5">
+                                <label class="checkbox" rel="tooltip" title="Grey-out compiled and hidden files in the files tab.">
+                                    <input type="checkbox" class="account-settings-other_settings-mask_files">Mask Files:
+                                    <span class="lighten">grey-out files in the files viewer that you probably don't want to open.</span>
                                 </label>
                             </div>
                         </div>
@@ -709,5 +724,3 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
         <button class="btn" data-dismiss="modal" id="account-forgot_password_reset-button-cancel">Cancel</button>
     </div>
 </div>
-
-

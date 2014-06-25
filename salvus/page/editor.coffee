@@ -66,7 +66,7 @@ codemirror_associations =
     r      : 'r'
     rst    : 'rst'
     rb     : 'text/x-ruby'
-    ru        : 'text/x-ruby'
+    ru     : 'text/x-ruby'
     sage   : 'python'
     sagews : 'sagews'
     scala  : 'text/x-scala'
@@ -79,6 +79,7 @@ codemirror_associations =
     bib    : 'stex'
     bbl    : 'stex'
     xml    : 'xml'
+    xsl    : 'xsl'
     yaml   : 'yaml'
     ''     : 'text'
 
@@ -268,7 +269,7 @@ templates = $("#salvus-editor-templates")
 
 class exports.Editor
     constructor: (opts) ->
-        
+
         opts = defaults opts,
             project_page  : required
             initial_files : undefined # if given, attempt to open these files on creation
@@ -686,8 +687,8 @@ class exports.Editor
                 if name?
                     open_file(name)
                 else
-                    # just show the recent files
-                    @project_page.display_tab('project-editor')
+                    # just show the file listing
+                    @project_page.display_tab('project-file-listing')
 
             tab = @tabs[filename]
             if tab?

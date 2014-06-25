@@ -6,7 +6,14 @@
     margin-top: 0;
     top: 40px;
 }
+.first-entry {
+    background-color: #08c;        
+}
 
+.first-entry * {
+    color: #fff !important;
+    background-color: #08c;
+}
 
 .project-activity-well {
     background-color:white;
@@ -18,9 +25,12 @@
 
 .project-activity-entry {
     border-bottom: 1px solid #bbb;
-    margin-top: 1ex;
+    padding: 1ex 0 0 1ex;
 }
 
+.project-activity-type-button:focus {
+    outline: 0
+}
 .project-disk_usage {
     background-color:white;
 }
@@ -453,6 +463,18 @@
     width: 1em;
 }
 
+.project-file-listing-masked-file .project-file-icon {
+    color: #bbbbbb;
+}
+
+.project-file-listing-masked-file .project-file-name {
+    color: #bbbbbb;
+}
+
+.project-file-listing-masked-file .project-file-name-extension {
+    color: #bbbbbb;
+}
+
 .salvus-file-action {
     color : #888;
 }
@@ -510,5 +532,4 @@
     margin-top: 4px;
     font-size: 14pt;
 }
-
 

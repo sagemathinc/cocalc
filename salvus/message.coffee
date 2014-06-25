@@ -563,7 +563,8 @@ exports.account_settings_defaults =
     connect_Dropbox    : ''
     autosave           : 45
     other_settings     :
-        confirm_close : false
+        confirm_close             : false
+        mask_files                : true
     editor_settings    :
         strip_trailing_whitespace : false
         show_trailing_whitespace  : true
@@ -574,6 +575,7 @@ exports.account_settings_defaults =
         match_brackets            : true
         auto_close_brackets       : true
         spaces_instead_of_tabs    : true
+        multiple_cursors          : true
         first_line_number         : 1
         indent_unit               : 4
         tab_size                  : 4
@@ -581,9 +583,9 @@ exports.account_settings_defaults =
         theme                     : "standard"
         undo_depth                : 300
     terminal           :
-        font_size    : 14
-        color_scheme : 'default'
-        font         : 'monospace'
+        font_size                 : 14
+        color_scheme              : 'default'
+        font                      : 'monospace'
 
 # client <--> hub
 message(
