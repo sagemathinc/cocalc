@@ -14,6 +14,8 @@ if hostname.startswith("salvus-base"):
 if hostname.startswith('devel'):
     # do NOT want this node on tinc network -- that messes up bup server, making it listen only externally, etc.
     os.system("killall tincd")
+    # And make sure tinc can't be started, which would happen later, and is a potential security hole -- this deletes the trusted private key.
+    os.system("rm -rf /home/salvus/salvus/salvus/data/local/etc/tinc/")
 
     # mount pool and start bup
     os.system("zpool import -f pool; zfs mount -a; chmod og-r /projects; su - salvus -c 'cd /home/salvus/salvus/salvus/&& . salvus-env&& export BUP_POOL=\"pool\"; ./bup_server start'")
@@ -24,8 +26,6 @@ if hostname.startswith('devel'):
         os.system("cp /home/salvus/salvus/salvus/scripts/%s /usr/local/bin/; chmod og-w /usr/local/bin/%s; chmod og+rx /usr/local/bin/%s"%(s,s,s))
 
 if hostname.startswith('compute'):
-
-
     # Delete secrets that aren't needed for the *compute machines* (only web machines)
     os.system('rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra')
 
