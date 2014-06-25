@@ -425,6 +425,13 @@ message
     password       : required
     remember_me    : false
 
+
+# hub --> client
+message
+    id             : undefined
+    event          : 'remember_me_failed'
+    reason         : required
+
 # client --> hub
 message
     id             : undefined
