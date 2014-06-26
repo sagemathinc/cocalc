@@ -312,7 +312,6 @@ first_login = true
 hub = undefined
 signed_in = (mesg) ->
     _gaq.push(['_trackEvent', 'account', 'signed_in'])  # custom google analytic event -- user signed in
-
     # Record which hub we're connected to.
     hub = mesg.hub
 
@@ -399,7 +398,8 @@ EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
                               'electric_chars',
                               'spaces_instead_of_tabs']
 
-OTHER_SETTINGS_CHECKBOXES = ['confirm_close']
+OTHER_SETTINGS_CHECKBOXES = ['confirm_close',
+                             'mask_files']
 
 class AccountSettings
     account_id: () =>
