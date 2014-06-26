@@ -396,8 +396,7 @@ EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
                               'match_brackets',
                               'auto_close_brackets',
                               'electric_chars',
-                              'spaces_instead_of_tabs',
-                              'multiple_cursors']
+                              'spaces_instead_of_tabs']
 
 OTHER_SETTINGS_CHECKBOXES = ['confirm_close',
                              'mask_files']
