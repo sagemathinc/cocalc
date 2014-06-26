@@ -1371,9 +1371,11 @@ class Monitor(object):
     def compute(self):
         hosts = self._hosts['cassandra']
         ans = []
-        for k, v in self._hosts('compute-2', 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l', wait=True, parallel=True).iteritems():
+        c = 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l && cd salvus/salvus; . salvus-env; ./bup_server status 2>/dev/null'
+        for k, v in self._hosts('compute-2', c, wait=True, parallel=True).iteritems():
             d = {'host':k[0], 'service':'compute'}
-            m = v.get('stdout','').splitlines()
+            stdout = v.get('stdout','')
+            m = stdout.splitlines()
             if v.get('exit_status',1) != 0 or len(m) < 7:
                 d['status'] = 'down'
             else:
@@ -1387,6 +1389,9 @@ class Monitor(object):
                 d['ram_used_GB'] = int(z[2])
                 d['ram_free_GB'] = int(z[3])
                 d['nprojects'] = int(m[6])
+                d['bup_server'] = 'daemon running' in stdout
+                if not d['bup_server']:
+                    d['status'] = 'down'
                 ans.append(d)
         w = [(-d['load15'], d) for d in ans]
         w.sort()
