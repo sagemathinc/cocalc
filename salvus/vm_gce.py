@@ -178,6 +178,9 @@ class Instance(object):
         self.log("start: add the machine to the vpn")
         self.configure_tinc(ip_address)
 
+        self.log("start: run first_boot.py")
+        self.first_boot()
+
     def disk_exists(self, name):
         self.log("disk_exists(%s)",name)
         return disk_exists(name=self._disk_name(name), zone=self.zone)
@@ -295,6 +298,8 @@ class Instance(object):
         log.info("Start tinc running...")
         self.ssh("killall -9 tincd; sleep 3; nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd", user='root')
 
+    def first_boot(self):
+        self.ssh("echo '/home/salvus/salvus/salvus/scripts/first_boot.py' >> /etc/rc.local; /home/salvus/salvus/salvus/scripts/first_boot.py", user='root')
 
     def delete_tinc_public_keys(self):
         self.log("delete_tinc_public_keys() -- deleting the tinc public key files on the tinc servers")
