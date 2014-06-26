@@ -1873,7 +1873,10 @@ class Services(object):
         else:
             def db_string(address):
                 dc = self.ip_address_to_dc(self._hosts[address][0])
-                return "monitor_database='%s'"%(','.join(self.cassandras_in_dc(dc)))
+                if dc == -1:
+                    return "monitor_database=''"
+                else:
+                    return "monitor_database='%s'"%(','.join(self.cassandras_in_dc(dc)))
 
         v = self._hostopts(service, host, opts)
 
@@ -1890,7 +1893,7 @@ class Services(object):
         Convert the given ip address to the data center that contains that machine.  The returned datacenter
         is an integer: 0, 1, 2, 3, etc.
         """
-        return self._ip_address_to_dc[ip_address]
+        return self._ip_address_to_dc.get(ip_address,-1)
 
     def cassandras_in_dc(self, dc):
         """
