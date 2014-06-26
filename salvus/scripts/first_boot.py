@@ -35,7 +35,8 @@ if hostname.startswith('compute'):
     # Delete secrets that aren't needed for the *compute machines* (only web machines)
     os.system('rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra')
 
-    os.system('/root/ip_blacklist/block.sh')
+    # Start our low-level iptables mostly-outgoing-blocking firewall
+    os.system('cd /root/smc-iptables; ./restart.sh')
 
     if False:
         # Store crontabs in persistent storage, so they don't vanish on VM restart
