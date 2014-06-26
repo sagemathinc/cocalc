@@ -564,7 +564,7 @@ class Project(object):
 
         After using this, you *must* do a destructive sync to all replicas!
         """
-        self.cmd("cd %s; rm -f bupindex; rm -f objects/pack/*.midx; rm -f objects/pack/*.midx.tmp && rm -rf objects/*tmp && time git repack -lad"%self.bup_path)
+        self.cmd("cd %s; rm -f bupindex; rm -f objects/pack/*.midx; rm -f objects/pack/*.midx.tmp && rm -rf objects/*tmp && time git repack --max-pack-size=2g --window=0 --depth=0 -lad"%self.bup_path)
 
     def makedirs(self, path, chown=True):
         log = self._log('makedirs')

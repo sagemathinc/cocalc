@@ -419,6 +419,21 @@ exports.download_file = (url) ->
     iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
     setTimeout((() -> iframe.remove()), 30000)
 
+# Get the DOM node that the currently selected text starts at, as a jquery wrapped object
+exports.get_selection_start_node = () ->
+    node = undefined
+    selection = undefined
+    if window.getSelection # FF3.6, Safari4, Chrome5 (DOM Standards)
+        selection = getSelection()
+        node = selection.anchorNode
+    if not node and document.selection # IE
+        selection = document.selection
+        range = (if selection.getRangeAt then selection.getRangeAt(0) else selection.createRange())
+        node = (if range.commonAncestorContainer then range.commonAncestorContainer else (if range.parentElement then range.parentElement() else range.item(0)))
+    if node
+        $(if node.nodeName is "#text" then node.parentNode else node)
+    else
+        $()
 
 ###
 # This doesn't work yet, since it can only work when this is a

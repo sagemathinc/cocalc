@@ -283,7 +283,7 @@ $('.salvus-password-meter').password_strength_meter()
 # Sign in
 ################################################
 
-$("#sign_in-form").submit((event) -> sign_in(); return false)
+$(".salvus-sign_in-form").submit((event) -> sign_in(); return false)
 
 $("#sign_in-button").click((event) -> sign_in(); return false)
 
@@ -312,7 +312,6 @@ first_login = true
 hub = undefined
 signed_in = (mesg) ->
     _gaq.push(['_trackEvent', 'account', 'signed_in'])  # custom google analytic event -- user signed in
-
     # Record which hub we're connected to.
     hub = mesg.hub
 
@@ -399,7 +398,8 @@ EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
                               'electric_chars',
                               'spaces_instead_of_tabs']
 
-OTHER_SETTINGS_CHECKBOXES = ['confirm_close']
+OTHER_SETTINGS_CHECKBOXES = ['confirm_close',
+                             'mask_files']
 
 class AccountSettings
     account_id: () =>
@@ -852,3 +852,21 @@ show_connection_information = () ->
         dialog.find(".salvus-connection-ping").show().find('pre').text((s.ping_time()*1000).toFixed(0) + "ms")
     else
         dialog.find(".salvus-connection-ping").hide()
+
+
+
+################################################
+# Automatically log in
+################################################
+if localStorage.remember_me
+    $(".salvus-remember_me-message").show().find("span").text(localStorage.remember_me)
+    $(".salvus-sign_in-form").hide()
+    # just in case, always show manual login screen after 10s.
+    setTimeout((()=>$(".salvus-remember_me-message").hide(); $(".salvus-sign_in-form").show()), 10000)
+
+salvus_client.on "remember_me_failed", () ->
+    $(".salvus-remember_me-message").hide()
+    $(".salvus-sign_in-form").show()
+
+salvus_client.on "signed_in", () ->
+    $(".salvus-remember_me-message").hide()

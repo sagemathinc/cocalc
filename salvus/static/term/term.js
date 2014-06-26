@@ -898,7 +898,7 @@ Terminal.prototype.refresh = function(start, end) {
     row = y + this.ydisp;
 
     if (row >= this.lines.length)
-	break;
+	    break;
     line = this.lines[row];
     out = '';
 

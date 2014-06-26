@@ -687,8 +687,8 @@ class exports.Editor
                 if name?
                     open_file(name)
                 else
-                    # just show the recent files
-                    @project_page.display_tab('project-editor')
+                    # just show the file listing
+                    @project_page.display_tab('project-file-listing')
 
             tab = @tabs[filename]
             if tab?

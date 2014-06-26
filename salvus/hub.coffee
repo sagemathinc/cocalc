@@ -553,34 +553,45 @@ class Client extends EventEmitter
 
         winston.debug("connection: hub <--> client(id=#{@id})  ESTABLISHED")
 
+    remember_me_failed: (reason) =>
+        @push_to_client(message.remember_me_failed(reason:reason))
+
     check_for_remember_me: () =>
         @get_cookie
             name : program.base_url + 'remember_me'
             cb   : (value) =>
-                if value?
-                    x    = value.split('$')
-                    hash = generate_hash(x[0], x[1], x[2], x[3])
-                    @remember_me_db.get
-                        key         : hash
-                        consistency : 1
-                        cb          : (error, signed_in_mesg) =>
-                            if not error and signed_in_mesg?
-                                database.is_banned_user
-                                    email_address : signed_in_mesg.email_address
-                                    cb            : (err, is_banned) =>
-                                        if err
-                                            # do nothing
-                                        else if is_banned
-                                            # delete this auth key, since banned users are a waste of space.
-                                            # TODO: probably want to log this attempt...
-                                            @remember_me_db.delete(key : hash)
-                                        else
-                                            # good -- sign them in
-                                            signed_in_mesg.email_address = misc.lower_email_address(signed_in_mesg.email_address)  # delete in April 2014.
-                                            signed_in_mesg.hub = program.host + ':' + program.port
-                                            @hash_session_id = hash
-                                            @signed_in(signed_in_mesg)
-                                            @push_to_client(signed_in_mesg)
+                if not value?
+                    @remember_me_failed("no remember_me cookie")
+                    return
+                x    = value.split('$')
+                hash = generate_hash(x[0], x[1], x[2], x[3])
+                @remember_me_db.get
+                    key         : hash
+                    consistency : 1
+                    cb          : (error, signed_in_mesg) =>
+                        if error
+                            @remember_me_failed("error accessing database")
+                            return
+                        if not signed_in_mesg?
+                            @remember_me_failed("remember_me deleted or expired")
+                            return
+                        database.is_banned_user
+                            email_address : signed_in_mesg.email_address
+                            cb            : (err, is_banned) =>
+                                if err
+                                    @remember_me_failed("error checking whether or not user is banned")
+                                else if is_banned
+                                    # delete this auth key, since banned users are a waste of space.
+                                    # TODO: probably want to log this attempt...
+                                    @remember_me_failed("user is banned")
+                                    @remember_me_db.delete(key : hash)
+                                else
+                                    # good -- sign them in
+                                    signed_in_mesg.email_address = misc.lower_email_address(signed_in_mesg.email_address)  # delete in April 2014.
+                                    signed_in_mesg.hub = program.host + ':' + program.port
+                                    @hash_session_id = hash
+                                    @signed_in(signed_in_mesg)
+                                    @push_to_client(signed_in_mesg)
 
     #######################################################
     # Capping resource limits; client can request anything.

@@ -201,12 +201,12 @@ class TopNavbar  extends EventEmitter
             return
 
         # Determine the width
-        if $(window).width() <= 979
+        if $(window).width() <= 962
             # responsive mode
             width = "100%"
         else
             n = x.length
-            width = Math.min(200, (@projects.width() - n)/n) # subtracts n to prevent rounding problems
+            width = Math.min(200, (@projects.width() - 2*n)/n) # subtracts n to prevent rounding problems
             if width < 0
                 width = 0
         for a in x
