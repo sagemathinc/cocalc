@@ -1335,8 +1335,15 @@ class Hosts(object):
                 pass # file doesn't exist
 
 class Monitor(object):
-    def __init__(self, hosts):
-        self._hosts = hosts
+    def __init__(self, hosts, services):
+        self._hosts    = hosts
+        self._services = services  # used for self-healing
+
+    def attempt_to_heal_cassandra_server(self, host):
+        self._services.start('cassandra', host=host)
+
+    def attempt_to_heal_bup_server(self, host):
+        self._hosts(host,'cd salvus/salvus; . salvus-env; bup_server start')
 
     def cassandra(self):
         """
@@ -1363,6 +1370,10 @@ class Monitor(object):
                 ans.append({'service':'cassandra', 'host':k[0], 'status':'down'})
             else:
                 ans.append({'service':'cassandra', 'host':k[0], 'use%':int(v['stdout'].splitlines()[1].split()[4][:-1]), 'status':status.get(k[0],'down')})
+
+        for d in ans:
+            if d['status'] == 'down':
+                self.attempt_to_heal_cassandra_server(d['host'])
 
         w = [((d['status'],d.get('use%','')), d) for d in ans]
         w.sort()
@@ -1392,6 +1403,7 @@ class Monitor(object):
                 d['bup_server'] = 'daemon running' in stdout
                 if not d['bup_server']:
                     d['status'] = 'down'
+                    self.attempt_to_heal_bup_server(d['host'])
                 ans.append(d)
         w = [(-d['load15'], d) for d in ans]
         w.sort()
@@ -1686,7 +1698,7 @@ class Services(object):
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]
 
-        self.monitor = Monitor(Hosts(os.path.join(path, 'hosts'), username=username, passwd=False))
+        self.monitor = Monitor(Hosts(os.path.join(path, 'hosts'), username=username, passwd=False), services = self)
 
         # this is the canonical list of options, expanded out by service and host.
         def hostopts(service, query='all', copy=True):
