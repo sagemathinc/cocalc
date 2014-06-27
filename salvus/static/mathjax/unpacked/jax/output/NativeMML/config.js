@@ -10,7 +10,7 @@
  *
  *  ---------------------------------------------------------------------
  *  
- *  Copyright (c) 2009-2013 The MathJax Consortium
+ *  Copyright (c) 2009-2014 The MathJax Consortium
  * 
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -27,16 +27,18 @@
 
 MathJax.OutputJax.NativeMML = MathJax.OutputJax({
   id: "NativeMML",
-  version: "2.2",
+  version: "2.4.0",
   directory: MathJax.OutputJax.directory + "/NativeMML",
   extensionDir: MathJax.OutputJax.extensionDir + "/NativeMML",
   
   config: {
+    matchFontHeight: true,   // try to match math font height to surrounding font?
     scale: 100,              // scaling factor for all math
     minScaleAdjust: 50,      // minimum scaling to adjust to surrounding text
                              //  (since the code for that is a bit delicate)
+
     styles: {
-      "DIV.MathJax_MathML": {
+      "div.MathJax_MathML": {
         "text-align": "center",
         margin: ".75em 0px"
       }

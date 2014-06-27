@@ -213,8 +213,9 @@ init_http_server = () ->
                                 x    = value.split('$')
                                 hash = generate_hash(x[0], x[1], x[2], x[3])
                                 database.key_value_store(name: 'remember_me').get
-                                    key : hash
-                                    cb  : (err, signed_in_mesg) =>
+                                    key         : hash
+                                    consistency : 1
+                                    cb          : (err, signed_in_mesg) =>
                                         if err or not signed_in_mesg?
                                             cb('unable to get remember_me cookie from db -- cookie invalid'); return
                                         account_id = signed_in_mesg.account_id
@@ -245,7 +246,7 @@ init_http_server = () ->
                             # more work and I don't have time now.
                             # get the file itself
                             (cb) ->
-                                winston.debug(misc.to_json(files))
+                                #winston.debug(misc.to_json(files))
                                 winston.debug("Reading file from disk '#{files.file.path}'")
                                 fs.readFile files.file.path, (err, _data) ->
                                     if err
@@ -304,8 +305,9 @@ init_http_proxy_server = () =>
                 x    = opts.remember_me.split('$')
                 hash = generate_hash(x[0], x[1], x[2], x[3])
                 database.key_value_store(name: 'remember_me').get
-                    key : hash
-                    cb  : (err, signed_in_mesg) =>
+                    key         : hash
+                    consistency : 1
+                    cb          : (err, signed_in_mesg) =>
                         account_id = signed_in_mesg?.account_id
                         if err or not account_id?
                             cb('unable to get remember_me cookie from db -- cookie invalid')
@@ -481,7 +483,10 @@ init_http_proxy_server = () =>
                 res.writeHead(500, {'Content-Type':'text/html'})
                 res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
             else
-                proxy = httpProxy.createProxyServer(ws:false, target:"http://#{location.host}:#{location.port}", timeout:0)
+                t = "http://#{location.host}:#{location.port}"
+                proxy = httpProxy.createProxyServer(ws:false, target:t, timeout:0)
+                proxy.on "error", (e) ->
+                    winston.debug("non-websocket http proxy -- create proxy #{t}; error -- #{e}")
                 proxy.web(req, res)
 
     http_proxy_server.listen(program.proxy_port, program.host)
@@ -497,18 +502,14 @@ init_http_proxy_server = () =>
                 t = "ws://#{location.host}:#{location.port}"
                 proxy = _ws_proxy_servers[t]
                 if not proxy?
-                    winston.debug("websocket upgrade: not using cache")
-                    try
-                        proxy = httpProxy.createProxyServer(ws:true, target:t, timeout:0)
-                        _ws_proxy_servers[t] = proxy
-                    catch e
-                        winston.debug("websocket upgrade -- create proxy: ERROR/DEBUG/TODO -- SOMETHING WENT WRONG -- #{e}")
+                    winston.debug("websocket upgrade #{t}: not using cache")
+                    proxy = httpProxy.createProxyServer(ws:true, target:t, timeout:0)
+                    proxy.on "error", (e) ->
+                        winston.debug("websocket upgrade -- create proxy #{t}; error -- #{e}")
+                    _ws_proxy_servers[t] = proxy
                 else
                     winston.debug("websocket upgrade: using cache")
-                try
-                    proxy.ws(req, socket, head)
-                catch e
-                    winston.debug("websocket upgrade -- proxy.ws: ERROR/DEBUG/TODO -- SOMETHING WENT WRONG -- #{e}")
+                proxy.ws(req, socket, head)
 
 
 
@@ -552,33 +553,45 @@ class Client extends EventEmitter
 
         winston.debug("connection: hub <--> client(id=#{@id})  ESTABLISHED")
 
+    remember_me_failed: (reason) =>
+        @push_to_client(message.remember_me_failed(reason:reason))
+
     check_for_remember_me: () =>
         @get_cookie
             name : program.base_url + 'remember_me'
             cb   : (value) =>
-                if value?
-                    x    = value.split('$')
-                    hash = generate_hash(x[0], x[1], x[2], x[3])
-                    @remember_me_db.get
-                        key : hash
-                        cb  : (error, signed_in_mesg) =>
-                            if not error and signed_in_mesg?
-                                database.is_banned_user
-                                    email_address : signed_in_mesg.email_address
-                                    cb            : (err, is_banned) =>
-                                        if err
-                                            # do nothing
-                                        else if is_banned
-                                            # delete this auth key, since banned users are a waste of space.
-                                            # TODO: probably want to log this attempt...
-                                            @remember_me_db.delete(key : hash)
-                                        else
-                                            # good -- sign them in
-                                            signed_in_mesg.email_address = misc.lower_email_address(signed_in_mesg.email_address)  # delete in April 2014.
-                                            signed_in_mesg.hub = program.host + ':' + program.port
-                                            @hash_session_id = hash
-                                            @signed_in(signed_in_mesg)
-                                            @push_to_client(signed_in_mesg)
+                if not value?
+                    @remember_me_failed("no remember_me cookie")
+                    return
+                x    = value.split('$')
+                hash = generate_hash(x[0], x[1], x[2], x[3])
+                @remember_me_db.get
+                    key         : hash
+                    consistency : 1
+                    cb          : (error, signed_in_mesg) =>
+                        if error
+                            @remember_me_failed("error accessing database")
+                            return
+                        if not signed_in_mesg?
+                            @remember_me_failed("remember_me deleted or expired")
+                            return
+                        database.is_banned_user
+                            email_address : signed_in_mesg.email_address
+                            cb            : (err, is_banned) =>
+                                if err
+                                    @remember_me_failed("error checking whether or not user is banned")
+                                else if is_banned
+                                    # delete this auth key, since banned users are a waste of space.
+                                    # TODO: probably want to log this attempt...
+                                    @remember_me_failed("user is banned")
+                                    @remember_me_db.delete(key : hash)
+                                else
+                                    # good -- sign them in
+                                    signed_in_mesg.email_address = misc.lower_email_address(signed_in_mesg.email_address)  # delete in April 2014.
+                                    signed_in_mesg.hub = program.host + ':' + program.port
+                                    @hash_session_id = hash
+                                    @signed_in(signed_in_mesg)
+                                    @push_to_client(signed_in_mesg)
 
     #######################################################
     # Capping resource limits; client can request anything.
@@ -595,7 +608,7 @@ class Client extends EventEmitter
     # Pushing messages to this particular connected client
     #######################################################
     push_to_client: (mesg) =>
-        winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),600)}") if mesg.event != 'pong'
+        winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}") if mesg.event != 'pong'
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
 
     push_data_to_client: (channel, data) ->
@@ -840,7 +853,7 @@ class Client extends EventEmitter
             return
         #winston.debug("got message: #{data}")
         if mesg.event.slice(0,4) != 'ping' and mesg.event != 'codemirror_bcast'
-            winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 600)}")
+            winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 300)}")
         handler = @["mesg_#{mesg.event}"]
         if handler?
             handler(mesg)
@@ -1606,6 +1619,13 @@ class Client extends EventEmitter
                     project.local_hub?.project.save()
                 setTimeout(f, 5000)
 
+            # Record eaching opening of a file in the database log
+            if mesg.message.event == 'codemirror_get_session' and mesg.message.path? and mesg.message.path != '.sagemathcloud.log' and @account_id? and mesg.message.project_id?
+                database.log_file_access
+                    project_id : mesg.message.project_id
+                    account_id : @account_id
+                    filename   : mesg.message.path
+
             # Make the actual call
             project.call
                 mesg           : mesg.message
@@ -1811,7 +1831,7 @@ class Client extends EventEmitter
     # The code below all work(ed) when written, but I had not
     # implemented limitations and authentication.  Also, I don't
     # plan now to use this code.  So I'm disabling handling any
-    # of these messages, as a security precaution.   
+    # of these messages, as a security precaution.
     ###
     mesg_create_task_list: (mesg) =>
         # TODO: add verification that owners is valid
@@ -2730,9 +2750,10 @@ user_owns_project = (opts) ->
 
 user_has_write_access_to_project = (opts) ->
     opts = defaults opts,
-        project_id : required
-        account_id : undefined
-        cb : required        # cb(err, true or false)
+        project_id  : required
+        account_id  : undefined
+        consistency : 1
+        cb          : required        # cb(err, true or false)
     if not opts.account_id?
         # we can have a client *without* account_id that is requesting access to a project.  Just say no.
         opts.cb(false, false) # do not have access
@@ -2742,9 +2763,10 @@ user_has_write_access_to_project = (opts) ->
 
 user_has_read_access_to_project = (opts) ->
     opts = defaults opts,
-        project_id : required
-        account_id : required
-        cb : required        # cb(err, true or false)
+        project_id  : required
+        account_id  : required
+        consistency : 1
+        cb          : required        # cb(err, true or false)
     opts.groups = ['owner', 'collaborator', 'viewer']
     database.user_is_in_project_group(opts)
 
@@ -2896,9 +2918,10 @@ sign_in = (client, mesg) =>
         # POLICY 1: A given email address is allowed at most 5 failed login attempts per minute.
         (cb) ->
             database.count
-                table: "failed_sign_ins_by_email_address"
-                where: {email_address:mesg.email_address, time: {'>=':cass.minutes_ago(1)}}
-                cb: (error, count) ->
+                table       : "failed_sign_ins_by_email_address"
+                where       : {email_address:mesg.email_address, time: {'>=':cass.minutes_ago(1)}}
+                consistency : 1
+                cb          : (error, count) ->
                     if error
                         sign_in_error(error)
                         cb(true); return
@@ -2909,9 +2932,10 @@ sign_in = (client, mesg) =>
         # POLICY 2: A given email address is allowed at most 100 failed login attempts per hour.
         (cb) ->
             database.count
-                table: "failed_sign_ins_by_email_address"
-                where: {email_address:mesg.email_address, time: {'>=':cass.hours_ago(1)}}
-                cb: (error, count) ->
+                table       : "failed_sign_ins_by_email_address"
+                where       : {email_address:mesg.email_address, time: {'>=':cass.hours_ago(1)}}
+                consistency : 1
+                cb          : (error, count) ->
                     if error
                         sign_in_error(error)
                         cb(true); return
@@ -2923,9 +2947,10 @@ sign_in = (client, mesg) =>
         # POLICY 3: A given ip address is allowed at most 100 failed login attempts per minute.
         (cb) ->
             database.count
-                table: "failed_sign_ins_by_ip_address"
-                where: {ip_address:client.ip_address, time: {'>=':cass.minutes_ago(1)}}
-                cb: (error, count) ->
+                table       : "failed_sign_ins_by_ip_address"
+                where       : {ip_address:client.ip_address, time: {'>=':cass.minutes_ago(1)}}
+                consistency : 1
+                cb          : (error, count) ->
                     if error
                         sign_in_error(error)
                         cb(true); return
@@ -2937,9 +2962,10 @@ sign_in = (client, mesg) =>
         # POLICY 4: A given ip address is allowed at most 250 failed login attempts per hour.
         (cb) ->
             database.count
-                table: "failed_sign_ins_by_ip_address"
-                where: {ip_address:client.ip_address, time: {'>=':cass.hours_ago(1)}}
-                cb: (error, count) ->
+                table       : "failed_sign_ins_by_ip_address"
+                where       : {ip_address:client.ip_address, time: {'>=':cass.hours_ago(1)}}
+                consistency : 1
+                cb          : (error, count) ->
                     if error
                         sign_in_error(error)
                         cb(true); return
@@ -2969,6 +2995,7 @@ sign_in = (client, mesg) =>
             error_mesg = "Invalid e-mail or password."
             database.get_account
                 email_address : mesg.email_address
+                consistency   : 1
                 cb            : (error, account) ->
                     if error
                         record_sign_in
@@ -3024,18 +3051,21 @@ record_sign_in = (opts) ->
         remember_me   : false
     if not opts.successful
         database.update
-            table : 'failed_sign_ins_by_ip_address'
-            set   : {email_address:opts.email_address}
-            where : {time:cass.now(), ip_address:opts.ip_address}
+            table       : 'failed_sign_ins_by_ip_address'
+            set         : {email_address:opts.email_address}
+            where       : {time:cass.now(), ip_address:opts.ip_address}
+            consistency : 1
         database.update
-            table : 'failed_sign_ins_by_email_address'
-            set   : {ip_address:opts.ip_address}
-            where : {time:cass.now(), email_address:opts.email_address}
+            table       : 'failed_sign_ins_by_email_address'
+            set         : {ip_address:opts.ip_address}
+            where       : {time:cass.now(), email_address:opts.email_address}
+            consistency : 1
     else
         database.update
-            table : 'successful_sign_ins'
-            set   : {ip_address:opts.ip_address, first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, remember_me:opts.remember_me}
-            where : {time:cass.now(), account_id:opts.account_id}
+            table       : 'successful_sign_ins'
+            set         : {ip_address:opts.ip_address, first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, remember_me:opts.remember_me}
+            where       : {time:cass.now(), account_id:opts.account_id}
+            consistency : 1
 
 
 
@@ -3539,7 +3569,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                 to      : mesg.email_address
                 cb      : (error) ->
                     if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error sending password reset email to #{mesg.email_address}."))
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error sending password reset email to #{mesg.email_address} -- #{error}."))
                         cb(true)
                     else
                         push_to_client(message.forgot_password_response(id:mesg.id))
@@ -3961,7 +3991,7 @@ class SageSession
         @conn = undefined
 
     send_json: (client, mesg) ->
-        winston.debug("hub --> sage_server: #{misc.trunc(to_safe_str(mesg),600)}")
+        winston.debug("hub --> sage_server: #{misc.trunc(to_safe_str(mesg),300)}")
         async.series([
             (cb) =>
                 if @conn?

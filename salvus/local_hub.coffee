@@ -39,6 +39,17 @@ json = (out) -> misc.trunc(misc.to_json(out),512)
 
 {ensure_containing_directory_exists, abspath} = misc_node
 
+# We make it an error for a client to try to edit a file larger than MAX_FILE_SIZE.
+# I decided on this, because attempts to open a much larger file leads
+# to disaster.  Opening a 10MB file works but is a just a little slow.
+MAX_FILE_SIZE = 10000000   # 10MB
+check_file_size = (size) ->
+    if size? and size > MAX_FILE_SIZE
+        e = "Attempt to open large file of size #{Math.round(size/1000000)}MB; the maximum allowed size is #{Math.round(MAX_FILE_SIZE/1000000)}MB. Use vim, emacs, or pico from a terminal instead."
+        winston.debug(e)
+        return e
+
+
 #####################################################################
 # Generate the "secret_token" file as
 # $SAGEMATHCLOUD/data/secret_token if it does not already
@@ -531,7 +542,7 @@ sage_sessions = new SageSessions()
 #
 # Differentially-Synchronized document editing sessions
 #
-# Here's a map                    YOU ARE HERE
+# Here's a map                 YOU ARE HERE
 #                                   |
 #   [client]s.. ---> [hub] ---> [local hub] <--- [hub] <--- [client]s...
 #                                   |
@@ -555,11 +566,12 @@ class DiffSyncFile_server extends diffsync.DiffSync
         # knowing about the backup, in which case it makes more sense
         # to just go with the master.
 
-        no_master = undefined
-        stats_path = undefined
-        no_backup = undefined
+        no_master    = undefined
+        stats_path   = undefined
+        no_backup    = undefined
         stats_backup = undefined
-        file = undefined
+        stats        = undefined
+        file         = undefined
 
         async.series([
             (cb) =>
@@ -587,20 +599,28 @@ class DiffSyncFile_server extends diffsync.DiffSync
                                     fs.close fd, cb
                 else if no_backup # no backup file -- always use master
                     file = @path
+                    stats = stats_path
                     cb()
                 else if no_master # no master file but there is a backup file -- use backup
                     file = @_backup_file
+                    stats = stats_backup
                     cb()
                 else
                     # both master and backup exist
                     if stats_path.mtime.getTime() >= stats_backup.mtime.getTime()
                         # master is newer
                         file = @path
+                        stats = stats_path
                     else
                         # backup is newer
                         file = @_backup_file
+                        stats = stats_backup
                     cb()
             (cb) =>
+                e = check_file_size(stats?.size)
+                if e
+                    cb(e)
+                    return
                 fs.readFile file, (err, data) =>
                     if err
                         cb(err); return
@@ -627,13 +647,25 @@ class DiffSyncFile_server extends diffsync.DiffSync
             winston.debug("watch: skipping read because watching is off.")
             return
         @_stop_watching_file()
-        fs.readFile @path, (err, data) =>
+        async.series([
+            (cb) =>
+                fs.stat @path, (err, stats) =>
+                    if err
+                        cb(err)
+                    else
+                        cb(check_file_size(stats.size))
+            (cb) =>
+                fs.readFile @path, (err, data) =>
+                    if err
+                        cb(err)
+                    else
+                        @live = data.toString().replace(/\r/g,'')  # NOTE: we immediately delete \r's (see above).
+                        @cm_session.sync_filesystem(cb)
+        ], (err) =>
             if err
-                @_start_watching_file()
-            else
-                @live = data.toString().replace(/\r/g,'')  # NOTE: we immediately delete \r's (see above).
-                @cm_session.sync_filesystem (err) =>
-                    @_start_watching_file()
+                winston.debug("watch: file '#{@path}' error -- #{err}")
+            @_start_watching_file()
+        )
 
     _start_watching_file: () =>
         if @_do_watch?
@@ -825,8 +857,8 @@ class CodeMirrorSession
                 # Set path to be the same as the file.
                 mesg = message.execute_code
                     id       : misc.uuid()
-                    code     : "os.chdir(salvus.data['path'])"
-                    data     : {path: misc.path_split(@path).head}
+                    code     : "os.chdir(salvus.data['path']);__file__=salvus.data['file']"
+                    data     : {path: misc.path_split(@path).head, file:abspath(@path)}
                     preparse : false
                 socket.write_mesg('json', mesg)
 
@@ -940,6 +972,7 @@ class CodeMirrorSession
                 socket.write_mesg('json',
                     message.execute_code
                         id       : output_id
+                        cell_id  : id         # extra info -- which cell is running
                         code     : code
                         preparse : true
                 )
@@ -1270,13 +1303,20 @@ class CodeMirrorSession
 
         # Message from some client reporting new edits, thus initiating a sync.
         ds_client = @diffsync_clients[mesg.client_id]
+
         if not ds_client?
             write_mesg('error', {error:"client #{mesg.client_id} not registered for synchronization"})
             return
 
-        if @_client_sync_lock or @_filesystem_sync_lock # or Math.random() <= .5 # (for testing)
-            winston.debug("client_diffsync hit a sync lock -- send retry message back")
+        if @_client_sync_lock # or Math.random() <= .5 # (for testing)
+            winston.debug("client_diffsync hit a click_sync_lock -- send retry message back")
             write_mesg('error', {error:"retry"})
+            return
+
+        if @_filesystem_sync_lock
+            winston.debug("client_diffsync hit a filesystem_sync_lock -- send retry message back")
+            write_mesg('error', {error:"retry"})
+            return
 
         @_client_sync_lock = true
         before = @content
@@ -1374,19 +1414,32 @@ class CodeMirrorSession
             socket.write_mesg('json', resp)
 
     read_from_disk: (socket, mesg) =>
-        fs.readFile @path, (err, data) =>
+        async.series([
+            (cb) =>
+                fs.stat (err, stats) =>
+                    if err
+                        cb(err)
+                    else
+                        cb(check_file_size(stats.size))
+            (cb) =>
+                fs.readFile @path, (err, data) =>
+                    if err
+                        cb("Error reading file '#{@path}' from disk -- #{err}")
+                    else
+                        value = data.toString()
+                        if value != @content
+                            @set_content(value)
+                            # Tell the global hubs that now might be a good time to do a sync.
+                            for id, ds of @diffsync_clients
+                                ds.remote.sync_ready()
+                        cb()
+
+        ], (err) =>
             if err
-                socket.write_mesg('json', message.error(id:mesg.id, error:"Error reading file '#{@path}' to disk"))
+                socket.write_mesg('json', message.error(id:mesg.id, error:err))
             else
-                value = data.toString()
-                if value == @content
-                    # nothing to do -- so do not do anything!
-                    socket.write_mesg('json', message.success(id:mesg.id))
-                    return
-                @set_content(value)
-                # Tell the global hubs that now might be a good time to do a sync.
-                for id, ds of @diffsync_clients
-                    ds.remote.sync_ready()
+                socket.write_mesg('json', message.success(id:mesg.id))
+        )
 
     get_content: (socket, mesg) =>
         @is_active = true
@@ -1559,20 +1612,25 @@ terminate_session = (socket, mesg) ->
 # TODO: should support -- 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'. and mesg.archive option!!!
 #
 read_file_from_project = (socket, mesg) ->
-    data   = undefined
-    path   = abspath(mesg.path)
-    is_dir = undefined
-    id     = undefined
+    data    = undefined
+    path    = abspath(mesg.path)
+    is_dir  = undefined
+    id      = undefined
     archive = undefined
+    stats   = undefined
     async.series([
         (cb) ->
             #winston.debug("Determine whether the path '#{path}' is a directory or file.")
-            fs.stat path, (err, stats) ->
+            fs.stat path, (err, _stats) ->
                 if err
                     cb(err)
                 else
+                    stats = _stats
                     is_dir = stats.isDirectory()
                     cb()
+        (cb) ->
+            # make sure the file isn't too large
+            cb(check_file_size(stats.size))
         (cb) ->
             if is_dir
                 if mesg.archive != 'tar.bz2'
@@ -1877,8 +1935,8 @@ start_kill_monitor = (cb) ->
     # Start a monitor that periodically checks for some sort of client-initiated hub activity.
     # If there is none for program.timeout seconds, then all processes running as this user
     # are killed (including this local hub, of course).
-    if not program.timeout or process.env['USER'].length != 8   # 8 = length of SMC accounts... this excludes 'wstein' (say)
-        winston.debug("Not setting kill monitor")
+    if not program.timeout or process.env['USER'].length != 32   # 32 = length of SMC accounts...
+        winston.info("Not setting kill monitor")
         cb()
         return
 
@@ -1903,9 +1961,53 @@ start_kill_monitor = (cb) ->
     setInterval(kill_if_inactive, 30000)
     cb()
 
+# Truncate the ~/.sagemathcloud.log if it exceeds a certain length threshhold.
+SAGEMATHCLOUD_LOG_THRESH = 5000 # log grows to at most 50% more than this
+SAGEMATHCLOUD_LOG_FILE = process.env['HOME'] + '/.sagemathcloud.log'
+log_truncate = (cb) ->
+    data = undefined
+    winston.info("log_truncate: checking that logfile isn't too long")
+    exists = undefined
+    async.series([
+        (cb) ->
+            fs.exists SAGEMATHCLOUD_LOG_FILE, (_exists) ->
+                exists = _exists
+                cb()
+        (cb) ->
+            if not exists
+                cb(); return
+            # read the log file
+            fs.readFile SAGEMATHCLOUD_LOG_FILE, (err, _data) ->
+                data = _data.toString()
+                cb(err)
+        (cb) ->
+            if not exists
+                cb(); return
+            # if number of lines exceeds 50% more than MAX_LINES
+            n = misc.count(data, '\n')
+            if n  >= SAGEMATHCLOUD_LOG_THRESH * 1.5
+                winston.debug("log_truncate: truncating log file to #{SAGEMATHCLOUD_LOG_THRESH} lines")
+                v = data.split('\n')  # the -1 below is since last entry is a blank line
+                new_data = v.slice(n - SAGEMATHCLOUD_LOG_THRESH, v.length-1).join('\n')
+                fs.writeFile(SAGEMATHCLOUD_LOG_FILE, new_data, cb)
+            else
+                cb()
+    ], cb)
+
+start_log_truncate = (cb) ->
+    winston.info("start_log_truncate")
+    f = (c) ->
+        winston.debug("calling log_truncate")
+        log_truncate (err) ->
+            if err
+                winston.debug("ERROR: problem truncating log -- #{err}")
+            c()
+    setInterval(f, 1000*3600*12)   # once every 12 hours
+    f(cb)
+
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
-    async.series [start_kill_monitor, start_tcp_server, start_raw_server], (err) ->
+    async.series [start_log_truncate, start_kill_monitor, start_tcp_server, start_raw_server], (err) ->
         if err
             winston.debug("Error starting a server -- #{err}")
         else
@@ -1938,6 +2040,10 @@ if program._name.split('.')[0] == 'local_hub'
     console.log("setting up conf path")
     init_confpath()
     init_info_json()
+
+    # empty the forever logfile -- it doesn't get reset on startup and easily gets huge.
+    fs.writeFileSync(program.forever_logfile, '')
+
     console.log("start daemon")
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:program.forever_logfile, max:1}, start_server)
     console.log("after daemon")

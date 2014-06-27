@@ -1,3 +1,6 @@
+// CodeMirror, copyright (c) by Marijn Haverbeke and others
+// Distributed under an MIT license: http://codemirror.net/LICENSE
+
 /* Just enough of CodeMirror to run runMode under node.js */
 
 // declare global: StringStream
@@ -94,7 +97,7 @@ exports.resolveMode = function(spec) {
   else return spec || {name: "null"};
 };
 exports.getMode = function(options, spec) {
-  spec = exports.resolveMode(mimeModes[spec]);
+  spec = exports.resolveMode(spec);
   var mfactory = modes[spec.name];
   if (!mfactory) throw new Error("Unknown mode: " + spec);
   return mfactory(options, spec);
@@ -107,6 +110,7 @@ exports.runMode = function(string, modespec, callback, options) {
   for (var i = 0, e = lines.length; i < e; ++i) {
     if (i) callback("\n");
     var stream = new exports.StringStream(lines[i]);
+    if (!stream.string && mode.blankLine) mode.blankLine(state);
     while (!stream.eol()) {
       var style = mode.token(stream, state);
       callback(stream.current(), style, i, stream.start, state);
@@ -114,3 +118,5 @@ exports.runMode = function(string, modespec, callback, options) {
     }
   }
 };
+
+require.cache[require.resolve("../../lib/codemirror")] = require.cache[require.resolve("./runmode.node")];

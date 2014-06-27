@@ -178,6 +178,9 @@ class Instance(object):
         self.log("start: add the machine to the vpn")
         self.configure_tinc(ip_address)
 
+        self.log("start: run first_boot.py")
+        self.first_boot()
+
     def disk_exists(self, name):
         self.log("disk_exists(%s)",name)
         return disk_exists(name=self._disk_name(name), zone=self.zone)
@@ -277,7 +280,9 @@ class Instance(object):
             try:
                 os.popen("scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 %s %s:%s"%(host_filename, host[0], host_filename))
                 # success
-                connect_to.append(host[1])
+                # exclude most cloud servers to avoid crazy race conditions on restart... hopefully
+                if not host[1].startswith('cloud') or host[1] in ['cloud1', 'cloud7', 'cloud10', 'cloud21']:
+                    connect_to.append(host[1])
             except Exception, msg:
                 self.log("configure_tinc -- WARNING: unable to copy tinc key to %s -- %s", host, msg)
         # We do the copy in parallel, to save an enormous amount of time.
@@ -293,6 +298,8 @@ class Instance(object):
         log.info("Start tinc running...")
         self.ssh("killall -9 tincd; sleep 3; nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd", user='root')
 
+    def first_boot(self):
+        self.ssh("echo '/home/salvus/salvus/salvus/scripts/first_boot.py' >> /etc/rc.local; /home/salvus/salvus/salvus/scripts/first_boot.py", user='root')
 
     def delete_tinc_public_keys(self):
         self.log("delete_tinc_public_keys() -- deleting the tinc public key files on the tinc servers")

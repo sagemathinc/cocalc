@@ -65,8 +65,8 @@ class DiffSyncDoc
     #     string = a string
     constructor: (opts) ->
         @opts = defaults opts,
-            cm     : undefined
-            string : undefined
+            cm       : undefined
+            string   : undefined
             readonly : false   # only impacts the editor
         if not ((opts.cm? and not opts.string?) or (opts.string? and not opts.cm?))
             console.log("BUG -- exactly one of opts.cm and opts.string must be defined!")
@@ -144,6 +144,8 @@ class DiffSyncDoc
                 console.log("BUG in patch_in_place")
             cm.setOption('readOnly', @opts.readonly)
 
+# DiffSyncDoc is useful outside, e.g., for task list.
+exports.DiffSyncDoc = DiffSyncDoc
 
 codemirror_diffsync_client = (cm_session, content) ->
     # This happens on initialization and reconnect.  On reconnect, we could be more
@@ -176,7 +178,10 @@ class DiffSyncHub
                     cb(err)
                 else if mesg.event != 'codemirror_diffsync'
                     # various error conditions, e.g., reconnect, etc.
-                    cb(mesg.event)
+                    if mesg.error?
+                        cb(mesg.error)
+                    else
+                        cb(true)
                 else
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 
@@ -481,16 +486,17 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @ui_synced(false)
                 @editor.init_autosave()
                 @sync()
-                @codemirror.on 'change', (instance, changeObj) =>
-                    #console.log("change #{misc.to_json(changeObj)}")
-                    if changeObj.origin?
-                        if changeObj.origin == 'undo'
-                            @on_undo(instance, changeObj)
-                        if changeObj.origin == 'redo'
-                            @on_redo(instance, changeObj)
-                        if changeObj.origin != 'setValue'
-                            @ui_synced(false)
-                            @sync()
+                @codemirror.on 'changes', (instance, changes) =>
+                    for changeObj in changes
+                        #console.log("change #{misc.to_json(changeObj)}")
+                        if changeObj.origin?
+                            if changeObj.origin == 'undo'
+                                @on_undo(instance, changeObj)
+                            if changeObj.origin == 'redo'
+                                @on_redo(instance, changeObj)
+                            if changeObj.origin != 'setValue'
+                                @ui_synced(false)
+                                @sync()
             # Done initializing and have got content.
             cb?()
 
@@ -1049,7 +1055,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
     elt_at_mark: (mark) =>
         elt = mark.replacedWith
         if elt?
-            return $($(elt).children()[0])  # codemirror wraps the element -- maybe a bug in codemirror that it does this.
+            return $(elt)
 
     cm_wrapper: () =>
         if @_cm_wrapper?
@@ -1118,12 +1124,27 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     # only do something if the flagstring changed.
                     elt = @elt_at_mark(mark)
                     if FLAGS.execute in flagstring
-                        # execute requested
-                        elt.spin(true)
+                        elt.data('execute',FLAGS.execute)
+                        g = () ->  #ugly use of closure -- ok for now -- TODO: clean up
+                            # execute requested
+                            elt0 = elt
+                            f = () ->
+                                if elt0.data('execute') not in ['done', FLAGS.running]
+                                    elt0.spin(true)
+                            setTimeout(f, 1000)
+                        g()
                     else if FLAGS.running in flagstring
-                        # code is running on remote local hub.
-                        elt.spin(color:'green')
+                        elt.data('execute',FLAGS.running)
+                        g = () ->   #ugly use of closure -- ok for now -- TODO: clean up
+                            elt0 = elt
+                            f = () ->
+                                if elt0.data('execute') not in ['done', FLAGS.execute]
+                                    elt0.spin(color:'green')
+                            # code is running on remote local hub.
+                            setTimeout(f, 1000)
+                        g()
                     else
+                        elt.data('execute','done')
                         # code is not running
                         elt.spin(false)
                     if FLAGS.hide_input in flagstring and FLAGS.hide_input not in mark.flagstring
@@ -1286,7 +1307,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
         if mesg.html?
-            output.append($("<span class='sagews-output-html'>").html(mesg.html).mathjax())
+            e = $("<span class='sagews-output-html'>").html(mesg.html).mathjax()
+            output.append(e)
+            e.find('a').attr("target","_blank") # make all links open in a new tab
+            e.find("table").addClass('table')   # makes bootstrap tables look MUCH nicer
 
         if mesg.interact?
             @interact(output, mesg.interact)

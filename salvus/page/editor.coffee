@@ -53,6 +53,7 @@ codemirror_associations =
     lua    : 'lua'
     m      : 'text/x-octave'
     md     : 'markdown'
+    ml     : 'text/x-ocaml'
     mysql  : 'text/x-sql'
     patch  : 'text/x-diff'
     gp     : 'text/pari'
@@ -65,7 +66,7 @@ codemirror_associations =
     r      : 'r'
     rst    : 'rst'
     rb     : 'text/x-ruby'
-    ru        : 'text/x-ruby'
+    ru     : 'text/x-ruby'
     sage   : 'python'
     sagews : 'sagews'
     scala  : 'text/x-scala'
@@ -78,6 +79,7 @@ codemirror_associations =
     bib    : 'stex'
     bbl    : 'stex'
     xml    : 'xml'
+    xsl    : 'xsl'
     yaml   : 'yaml'
     ''     : 'text'
 
@@ -163,6 +165,7 @@ sagews_decorator_modes = [
     ['lisp'        , 'ecl'],
     ['md'          , 'markdown'],
     ['gp'          , 'text/pari'],
+    ['go'          , 'text/x-go']
     ['perl'        , 'text/x-perl'],
     ['python3'     , 'python'],
     ['python'      , 'python'],
@@ -266,8 +269,9 @@ templates = $("#salvus-editor-templates")
 
 class exports.Editor
     constructor: (opts) ->
+
         opts = defaults opts,
-            project_page   : required
+            project_page  : required
             initial_files : undefined # if given, attempt to open these files on creation
             counter       : undefined # if given, is a jQuery set of DOM objs to set to the number of open files
 
@@ -306,6 +310,20 @@ class exports.Editor
                 @show_recent()
                 @project_page.display_tab("project-editor")
                 return false
+            else if ev.ctrlKey or ev.metaKey or ev.altKey
+                if ev.keyCode == 219
+                    pgs = @project_page.container.find(".file-pages li > a > span")
+                    idx = $(".super-menu.salvus-editor-filename-pill.active").index()
+                    next = pgs[(idx - 1) %% pgs.length]
+                    filename = next.innerHTML
+                    @display_tab(path:filename)
+                else if ev.keyCode == 221
+                    pgs = @project_page.container.find(".file-pages li > a > span")
+                    idx = $(".super-menu.salvus-editor-filename-pill.active").index()
+                    next = pgs[(idx + 1) %% pgs.length]
+                    filename = next.innerHTML
+                    @display_tab(path:filename)
+                return false
 
 
     show_recent: () =>
@@ -326,7 +344,6 @@ class exports.Editor
             tab.label.removeClass('active')
 
         @project_page.container.css('position', 'fixed')
-
 
     # Used for resizing editor windows.
     editor_top_position: () =>
@@ -523,7 +540,9 @@ class exports.Editor
             if ignore_clicks
                 return false
             foreground = not(e.which==2 or e.ctrlKey)
-            @display_tab(path:link_filename.text(), foreground:foreground)
+            @display_tab
+                path       : link_filename.text()
+                foreground : not(e.which==2 or (e.ctrlKey or e.metaKey))
             if foreground
                 @project_page.set_current_path(containing_path)
             return false
@@ -625,7 +644,7 @@ class exports.Editor
         return editor
 
     create_opened_file_tab: (filename) =>
-        link_bar = @project_page.container.find(".project-pages")
+        link_bar = @project_page.container.find(".file-pages")
 
         link = templates.find(".salvus-editor-filename-pill").clone()
         link.tooltip(title:filename, placement:'bottom', delay:{show: 500, hide: 0})
@@ -668,8 +687,8 @@ class exports.Editor
                 if name?
                     open_file(name)
                 else
-                    # just show the recent files
-                    @project_page.display_tab('project-editor')
+                    # just show the file listing
+                    @project_page.display_tab('project-file-listing')
 
             tab = @tabs[filename]
             if tab?
@@ -684,7 +703,7 @@ class exports.Editor
         link.find(".salvus-editor-close-button-x").click(close_tab)
 
         ignore_clicks = false
-        link.find("a").mousedown (e) =>
+        link.find("a").click (e) =>
             if ignore_clicks
                 return false
             if e.which==2 or e.ctrlKey
@@ -693,6 +712,7 @@ class exports.Editor
                 return false
             open_file(filename)
             return false
+
 
         #link.draggable
         #    zIndex      : 1000
@@ -709,13 +729,9 @@ class exports.Editor
 
     open_file_tabs: () =>
         x = []
-        file_tabs = false
-        for a in @project_page.container.find(".project-pages").children()
+        for a in @project_page.container.find(".file-pages").children()
             t = $(a)
-            if t.hasClass("project-search-menu-item")
-                file_tabs = true
-                continue
-            else if file_tabs and t.hasClass("salvus-editor-filename-pill")
+            if t.hasClass("salvus-editor-filename-pill")
                 x.push(t)
         return x
 
@@ -755,7 +771,7 @@ class exports.Editor
             a.width(width)
 
     make_open_file_pill_active: (link) =>
-        @project_page.container.find(".project-pages").children().removeClass('active')
+        @project_page.container.find(".file-pages").children().removeClass('active')
         link.addClass('active')
 
     # Close tab with given filename
@@ -841,7 +857,7 @@ class exports.Editor
                 if opts.foreground
                     ed.show()
                     setTimeout((() -> ed.show(); ed.focus()), 100)
-                    @element.find(".btn-group").children().removeClass('disabled')
+                    #@element.find(".btn-group").children().removeClass('disabled')
 
                 top_link = @active_tab.open_file_pill
                 if top_link?
@@ -856,6 +872,8 @@ class exports.Editor
 
         if prev_active_tab? and prev_active_tab.filename != @active_tab.filename and @tabs[prev_active_tab.filename]?   # ensure is still open!
             @nav_tabs.prepend(prev_active_tab.link)
+
+        @project_page.init_sortable_file_list()
 
     add_tab_to_navbar: (filename) =>
         navbar = require('top_navbar').top_navbar
@@ -1049,6 +1067,7 @@ class CodeMirrorEditor extends FileEditor
             geometry                  : undefined  # (default=full screen);
             read_only                 : false
             delete_trailing_whitespace: editor_settings.strip_trailing_whitespace  # delete on save
+            show_trailing_whitespace  : editor_settings.show_trailing_whitespace
             allow_javascript_eval     : true  # if false, the one use of eval isn't allowed.
             line_numbers              : editor_settings.line_numbers
             first_line_number         : editor_settings.first_line_number
@@ -1058,6 +1077,7 @@ class CodeMirrorEditor extends FileEditor
             electric_chars            : editor_settings.electric_chars
             undo_depth                : editor_settings.undo_depth
             match_brackets            : editor_settings.match_brackets
+            auto_close_brackets       : editor_settings.auto_close_brackets
             line_wrapping             : editor_settings.line_wrapping
             spaces_instead_of_tabs    : editor_settings.spaces_instead_of_tabs
             style_active_line         : 15    # editor_settings.style_active_line  # (a number between 0 and 127)
@@ -1127,6 +1147,11 @@ class CodeMirrorEditor extends FileEditor
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
+            #"Ctrl-Q"       : (cm) => cm.foldCode(cm.getCursor())
+
+
+            #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
+
         # We will replace this by a general framework...
         if misc.filename_extension(filename) == "sagews"
             evaluate_key = require('account').account_settings.settings.evaluate_key.toLowerCase()
@@ -1138,22 +1163,27 @@ class CodeMirrorEditor extends FileEditor
 
         make_editor = (node) =>
             options =
-                firstLineNumber : opts.first_line_number
-                autofocus       : false
-                mode            : opts.mode
-                lineNumbers     : opts.line_numbers
-                indentUnit      : opts.indent_unit
-                tabSize         : opts.tab_size
-                smartIndent     : opts.smart_indent
-                electricChars   : opts.electric_chars
-                undoDepth       : opts.undo_depth
-                matchBrackets   : opts.match_brackets
-                lineWrapping    : opts.line_wrapping
-                readOnly        : opts.read_only
-                styleActiveLine : opts.style_active_line
-                indentWithTabs  : not opts.spaces_instead_of_tabs
-                extraKeys       : extraKeys
-                cursorScrollMargin : 40
+                firstLineNumber         : opts.first_line_number
+                autofocus               : false
+                mode                    : opts.mode
+                lineNumbers             : opts.line_numbers
+                showTrailingSpace       : opts.show_trailing_whitespace
+                indentUnit              : opts.indent_unit
+                tabSize                 : opts.tab_size
+                smartIndent             : opts.smart_indent
+                electricChars           : opts.electric_chars
+                undoDepth               : opts.undo_depth
+                matchBrackets           : opts.match_brackets
+                autoCloseBrackets       : opts.auto_close_brackets
+                lineWrapping            : opts.line_wrapping
+                readOnly                : opts.read_only
+                styleActiveLine         : opts.style_active_line
+                indentWithTabs          : not opts.spaces_instead_of_tabs
+                showCursorWhenSelecting : true
+                extraKeys               : extraKeys
+                cursorScrollMargin      : 40
+                #foldGutter: true
+                #gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 
             if opts.bindings? and opts.bindings != "standard"
                 options.keyMap = opts.bindings
@@ -1188,7 +1218,6 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror1.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror1
-
 
         @_split_view = false
 
@@ -1480,7 +1509,7 @@ class CodeMirrorEditor extends FileEditor
         return false
 
     init_change_event: () =>
-        @codemirror.on 'change', (instance, changeObj) =>
+        @codemirror.on 'changes', () =>
             @has_unsaved_changes(true)
 
     _get: () =>
@@ -1537,7 +1566,7 @@ class CodeMirrorEditor extends FileEditor
 
         cm_height = Math.floor((elem_height - button_bar_height)/font_height) * font_height
 
-        @element.css(top:top)
+        @element.css(top:top, left:0)
         @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height)
 
         @element.height(elem_height).show()
@@ -3182,7 +3211,7 @@ class Terminal extends FileEditor
             if feature.isMobile.iOS()
                 ht = Math.floor(ht/2)
             e.height(ht)
-            @element.css(top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
+            @element.css(left:0, top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
             @console.focus(true)
 
 class Worksheet extends FileEditor
@@ -3399,7 +3428,7 @@ class Image extends FileEditor
 ipython_notebook_server = (opts) ->
     opts = defaults opts,
         project_id : required
-        path       : required   # directory from which the files are served
+        path       : '.'   # directory from which the files are served -- default to home directory of project
         cb         : required   # cb(err, server)
 
     I = new IPythonNotebookServer(opts.project_id, opts.path)
@@ -3435,15 +3464,6 @@ class IPythonNotebookServer  # call ipython_notebook_server above
                                     cb?(err)
                     catch e
                         cb?(true)
-
-    notebooks: (cb) =>  # cb(err, [{kernel_id:?, name:?, notebook_id:?}, ...]  # kernel_id is null if not running
-        get_with_retry
-            url : @url + 'notebooks'
-            cb  : (err, data) =>
-                if not err
-                    cb(false, misc.from_json(data))
-                else
-                    cb(err)
 
     stop_server: (cb) =>
         if not @pid?
@@ -3741,60 +3761,22 @@ class IPythonNotebook extends FileEditor
         @doc?.disconnect_from_session()
         @_dead = true
 
-    get_ids: (cb) =>   # cb(err); if no error, sets @kernel_id and @notebook_id, though @kernel_id will be null if not started
-        if not @server?
-            cb("cannot call get_ids until connected to the ipython notebook server."); return
-        @status("Getting notebook id and kernel id...")
-        @server.notebooks (err, notebooks) =>
-            @status()
-            if err
-                cb(err); return
-            for n in notebooks
-                if n.name + '.ipynb' == @file
-                    @kernel_id = n.kernel_id  # will be null if kernel not yet started
-                    @notebook_id = n.notebook_id
-                    cb(); return
-            cb("no ipython notebook listed by server with name '#{@file}'")
-
     initialize: (cb) =>
         async.series([
             (cb) =>
-                @status("Connecting to IPython server")
+                @status("Connecting to the IPython Notebook server")
                 ipython_notebook_server
                     project_id : @editor.project_id
-                    path       : @path
                     cb         : (err, server) =>
                         @server = server
                         cb(err)
             (cb) =>
-                @get_ids(cb)
-            (cb) =>
                 @_init_iframe(cb)
-            (cb) =>
-                # start polling until we get the kernel_id
-                attempts = 0
-                f = () =>
-                    attempts += 1
-                    if attempts < 20
-                        @get_ids () =>
-                            if not @kernel_id?
-                                setTimeout(f,500)
-                            else
-                                cb()
-                    else
-                        cb("unable to get kernel id")
-                setTimeout(f, 250)
         ], cb)
 
     # Initialize the embedded iframe and wait until the notebook object in it is initialized.
     # If this returns (calls cb) without an error, then the @nb attribute must be defined.
     _init_iframe: (cb) =>
-        #console.log("* starting _init_iframe**")
-        if not @notebook_id?
-            # assumes @notebook_id has been set
-            #console.log("exit _init_iframe 1")
-            cb("must first call get_ids"); return
-
         @status("Rendering IPython notebook")
         get_with_retry
             url : @server.url
@@ -3807,7 +3789,7 @@ class IPythonNotebook extends FileEditor
 
                 @status("Loading IPython notebook...")
 
-                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.01').attr('src', @server.url + @notebook_id)
+                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.01').attr('src', "#{@server.url}notebooks/#{@filename}")
                 @notebook.html('').append(@iframe)
                 @show()
 
@@ -3924,7 +3906,7 @@ class IPythonNotebook extends FileEditor
     save: (cb) =>
         if not @nb?
             cb?(); return
-        @save_button.icon_spin(start:true,delay:500)
+        @save_button.icon_spin(start:true, delay:1000)
         @nb._save_checkpoint?()
         @doc.save () =>
             @save_button.icon_spin(false)
@@ -3944,18 +3926,15 @@ class IPythonNotebook extends FileEditor
         t = "<h3>The IPython Notebook</h3>"
         t += "<h4>Enhanced with SageMathCloud Sync</h4>"
         t += "You are editing this document using the IPython Notebook enhanced with realtime synchronization."
-        if @kernel_id?
-            t += "<h4>Sage mode by pasting this into a cell</h4>"
-            t += "<pre>%load_ext sage</pre>"
-        if @kernel_id?
-            t += "<h4>Connect to this IPython kernel in a terminal</h4>"
-            t += "<pre>ipython console --existing #{@kernel_id}</pre>"
-        if @server.url?
-            t += "<h4>Pure IPython notebooks</h4>"
-            t += "You can also directly use an <a target='_blank' href='#{@server.url}'>unmodified version of the IPython Notebook server</a> (this link works for all project collaborators).  "
-            t += "<br><br>To start your own unmodified IPython Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
-            t += "<h4>Known Issues</h4>"
-            t += "If two people edit the same <i>cell</i> simultaneously, the cursor will jump to the start of the cell."
+        t += "<h4>Sage mode by pasting this into a cell</h4>"
+        t += "<pre>%load_ext sage</pre>"
+        #t += "<h4>Connect to this IPython kernel in a terminal</h4>"
+        #t += "<pre>ipython console --existing #{@kernel_id}</pre>"
+        t += "<h4>Pure IPython notebooks</h4>"
+        t += "You can also directly use an <a target='_blank' href='#{@server.url}'>unmodified version of the IPython Notebook server</a> (this link works for all project collaborators).  "
+        t += "<br><br>To start your own unmodified IPython Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
+        t += "<h4>Known Issues</h4>"
+        t += "If two people edit the same <i>cell</i> simultaneously, the cursor will jump to the start of the cell."
         bootbox.alert(t)
         return false
 
@@ -4261,6 +4240,12 @@ class TaskList extends FileEditor
 
     show: () =>
         @element.show()
+        if not IS_MOBILE
+            @element.css(top:@editor.editor_top_position(), width:'100%', position:'fixed')
+        else
+            # TODO: this is a terrible HACK!
+            @element.closest(".salvus-editor-content").css(position:'relative', top:'0')
+            @element.css(position:'relative', top:'0')
         @task_list.show()
 
     hide: () =>

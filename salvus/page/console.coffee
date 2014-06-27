@@ -17,6 +17,8 @@ $.extend $.fn,
 {alert_message} = require('alerts')
 {copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('misc')
 
+misc_page = require('misc_page')
+
 templates        = $("#salvus-console-templates")
 console_template = templates.find(".salvus-console")
 
@@ -96,7 +98,8 @@ class Console extends EventEmitter
                 @opts.renderer = 'ttyjs'
 
         # The is_focused variable keeps track of whether or not the
-        # editor is focused.  This impacts the cursor, at least.
+        # editor is focused.  This impacts the cursor, and also whether
+        # messages such as open_file or open_directory are handled (see @init_mesg).
         @is_focused = false
 
         # Create the DOM element that realizes this console, from an HTML template.
@@ -172,6 +175,9 @@ class Console extends EventEmitter
         # Initialize the paste bin
         @_init_paste_bin()
 
+        # Init pausing rendering when user clicks
+        @_init_rendering_pause()
+
         # Initialize fullscreen button -- DELETE THIS; there's a generic fullscreen now...
         #@_init_fullscreen()
 
@@ -191,17 +197,14 @@ class Console extends EventEmitter
         #console.log("init_mesg")
         @_ignore_mesg = false
         @terminal.on 'mesg', (mesg) =>
-            if @_ignore_mesg
+            if @_ignore_mesg or not @is_focused   # ignore messages when terminal not in focus (otherwise collaboration is confusing)
                 return
-            #console.log("got message '#{mesg}', length=#{mesg.length}")
             try
                 mesg = from_json(mesg)
                 switch mesg.event
                     when 'open_file'
-                        #console.log("now opening #{mesg.name}...", @opts.editor)
                         @opts.editor?.project_page.open_file(path:mesg.name, foreground:true)
                     when 'open_directory'
-                        #console.log("changing to directory #{mesg.name}")
                         @opts.editor?.project_page.chdir(mesg.name)
                         @opts.editor?.project_page.display_tab("project-file-listing")
             catch e
@@ -229,22 +232,10 @@ class Console extends EventEmitter
         # The remote server sends data back to us to display:
         @session.on 'data',  (data) =>
             #console.log("got #{data.length} data")
-            try
-                @terminal.write(data)
-                if @value == ""
-                    #console.log("empty value")
-                    @resize()
-                @append_to_value(data)
-
-                if @scrollbar_nlines < @terminal.ybase
-                    @update_scrollbar()
-
-                setTimeout(@set_scrollbar_to_term, 10)
-
-            catch e
-                # TODO -- these are all basically bugs, I think...
-                # That said, try/catching them is better than having
-                # the whole terminal just be broken.
+            if @_rendering_is_paused
+                @_render_buffer += data
+            else
+                @render(data)
 
         @session.on 'reconnect', () =>
             #console.log("reconnect")
@@ -281,6 +272,24 @@ class Console extends EventEmitter
         @terminal.showCursor()
         @_ignore_mesg = false
 
+    render: (data) =>
+        try
+            @terminal.write(data)
+            if @value == ""
+                #console.log("empty value")
+                @resize()
+            @append_to_value(data)
+
+            if @scrollbar_nlines < @terminal.ybase
+                @update_scrollbar()
+
+            setTimeout(@set_scrollbar_to_term, 10)
+
+        catch e
+            # TODO -- these are all basically bugs, I think...
+            # That said, try/catching them is better than having
+            # the whole terminal just be broken.
+
     reset: () =>
         # reset the terminal to clean; need to do this on connect or reconnect.
         #$(@terminal.element).css('opacity':'0.5').animate(opacity:1, duration:500)
@@ -294,9 +303,62 @@ class Console extends EventEmitter
             @scrollbar_nlines += 1
         @resize_scrollbar()
 
+
+    pause_rendering: (immediate) =>
+        if @_rendering_is_paused
+            return
+        @_rendering_is_paused = true
+        if not @_render_buffer?
+            @_render_buffer = ''
+        f = () =>
+            if @_rendering_is_paused
+                @element.find("a[href=#pause]").addClass('btn-success').find('i').addClass('fa-play').removeClass('fa-pause')
+                @element.find(".salvus-console-terminal").css('opacity':'0.7')
+        if immediate
+            f()
+        else
+            setTimeout(f, 500)
+
+    unpause_rendering: () =>
+        if not @_rendering_is_paused
+            return
+        @_rendering_is_paused = false
+        f = () =>
+            @render(@_render_buffer)
+            @_render_buffer = ''
+        # Do the actual rendering the next time around, so that the copy operation completes with the
+        # current selection instead of the post-render empty version.
+        setTimeout(f, 0)
+        @element.find("a[href=#pause]").removeClass('btn-success').find('i').addClass('fa-pause').removeClass('fa-play')
+        @element.find(".salvus-console-terminal").css('opacity':'')
+
     #######################################################################
     # Private Methods
     #######################################################################
+
+    _init_rendering_pause: () =>
+
+        btn = @element.find("a[href=#pause]").click (e) =>
+            if @_rendering_is_paused
+                @unpause_rendering()
+            else
+                @pause_rendering(true)
+            return false
+
+        e = @element.find(".salvus-console-terminal")
+
+        e.mousedown () => @pause_rendering(false)
+
+        e.mouseup () =>
+            if not getSelection().toString()
+                @unpause_rendering()
+                return
+            s = misc_page.get_selection_start_node()
+            if s.closest(e).length == 0
+                # nothing in the terminal is selected
+                @unpause_rendering()
+
+        e.on('copy', @unpause_rendering)
 
     _init_colors: () =>
         colors = Terminal.color_schemes[@opts.color_scheme].colors
@@ -334,6 +396,8 @@ class Console extends EventEmitter
             # NOTE: we could do this on all keystrokes.  WE restrict as above merely for efficiency purposes.
             # See http://stackoverflow.com/questions/3902635/how-does-one-capture-a-macs-command-key-via-javascript
             @textarea.val('')
+        if @_rendering_is_paused and not (ev.ctrlKey or ev.metaKey)
+            @unpause_rendering()
 
     _increase_font_size: () =>
         @opts.font.size += 1
@@ -530,7 +594,7 @@ class Console extends EventEmitter
 
         @element.find("a[href=#paste]").click () =>
             id = uuid()
-            s = "<h2><i class='fa fa-credit-card'></i> Terminal Copy and Paste</h2>Copy and paste in terminals works as usual: to copy, highlight text then press ctrl+c (or command+c); press ctrl+v (or command+v) to paste. <br><br><span class='lighten'>NOTE: When no text is highlighted, ctrl+c sends the usual interrupt signal.</span><br><hr>You can copy the terminal history from here:<br><br><textarea readonly style='font-size: 6pt;font-family: monospace;line-height: 8pt;width:97%' id='#{id}' rows=10></textarea>"
+            s = "<h2><i class='fa project-file-icon fa-terminal'></i> Terminal Copy and Paste</h2>Copy and paste in terminals works as usual: to copy, highlight text then press ctrl+c (or command+c); press ctrl+v (or command+v) to paste. <br><br><span class='lighten'>NOTE: When no text is highlighted, ctrl+c sends the usual interrupt signal.</span><br><hr>You can copy the terminal history from here:<br><br><textarea readonly style='font-size: 6pt;font-family: monospace;line-height: 8pt;cursor: auto;width: 97%' id='#{id}' rows=10></textarea>"
             bootbox.alert(s)
             elt = $("##{id}")
             elt.val(@value).scrollTop(elt[0].scrollHeight)
@@ -868,5 +932,4 @@ $.fn.extend
                 opts0 = copy(opts)
                 opts0.element = this
                 return t.data('console', new Console(opts0))
-
 

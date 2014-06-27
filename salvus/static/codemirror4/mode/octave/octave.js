@@ -1,3 +1,6 @@
+// CodeMirror, copyright (c) by Marijn Haverbeke and others
+// Distributed under an MIT license: http://codemirror.net/LICENSE
+
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
     mod(require("../../lib/codemirror"));
@@ -23,17 +26,19 @@ CodeMirror.defineMode("octave", function() {
 
   var builtins = wordRegexp([
     'error', 'eval', 'function', 'abs', 'acos', 'atan', 'asin', 'cos',
-    'cosh', 'exp', 'log', 'prod', 'log10', 'max', 'min', 'sign', 'sin', 'sinh',
+    'cosh', 'exp', 'log', 'prod', 'sum', 'log10', 'max', 'min', 'sign', 'sin', 'sinh',
     'sqrt', 'tan', 'reshape', 'break', 'zeros', 'default', 'margin', 'round', 'ones',
     'rand', 'syn', 'ceil', 'floor', 'size', 'clear', 'zeros', 'eye', 'mean', 'std', 'cov',
     'det', 'eig', 'inv', 'norm', 'rank', 'trace', 'expm', 'logm', 'sqrtm', 'linspace', 'plot',
-    'title', 'xlabel', 'ylabel', 'legend', 'text', 'meshgrid', 'mesh', 'num2str'
+    'title', 'xlabel', 'ylabel', 'legend', 'text', 'grid', 'meshgrid', 'mesh', 'num2str',
+    'fft', 'ifft', 'arrayfun', 'cellfun', 'input', 'fliplr', 'flipud', 'ismember'
   ]);
 
   var keywords = wordRegexp([
     'return', 'case', 'switch', 'else', 'elseif', 'end', 'endif', 'endfunction',
     'if', 'otherwise', 'do', 'for', 'while', 'try', 'catch', 'classdef', 'properties', 'events',
-    'methods', 'global', 'persistent', 'endfor', 'endwhile', 'printf', 'disp', 'until', 'continue'
+    'methods', 'global', 'persistent', 'endfor', 'endwhile', 'printf', 'sprintf', 'disp', 'until',
+    'continue', 'pkg'
   ]);
 
 
@@ -69,7 +74,7 @@ CodeMirror.defineMode("octave", function() {
       return 'comment';
     }
 
-    if (stream.match(/^(%)|(\.\.\.)/)){
+    if (stream.match(/^[%#]/)){
       stream.skipToEnd();
       return 'comment';
     }

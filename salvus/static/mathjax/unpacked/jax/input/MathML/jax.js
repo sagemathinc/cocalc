@@ -11,7 +11,7 @@
  *
  *  ---------------------------------------------------------------------
  *  
- *  Copyright (c) 2010-2013 The MathJax Consortium
+ *  Copyright (c) 2010-2014 The MathJax Consortium
  * 
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -77,7 +77,7 @@
         mml = this.TeXAtom(match[2]);
       } else if (!(MML[type] && MML[type].isa && MML[type].isa(MML.mbase))) {
         MathJax.Hub.signal.Post(["MathML Jax - unknown node type",type]);
-        return MML.merror(_("UnknownNodeType","Unknown node type: %1",type));
+        return MML.Error(_("UnknownNodeType","Unknown node type: %1",type));
       } else {
         mml = MML[type]();
       }
@@ -96,7 +96,11 @@
       for (var i = 0, m = CLASS.length; i < m; i++) {
         if (CLASS[i].substr(0,4) === "MJX-") {
           if (CLASS[i] === "MJX-arrow") {
-            mml.arrow = true;
+            // This class was used in former versions of MathJax to attach an
+            // arrow to the updiagonalstrike notation. For backward
+            // compatibility, let's continue to accept this case. See issue 481.
+            if (!mml.notation.match("/"+MML.NOTATION.UPDIAGONALARROW+"/"))
+                mml.notation += " "+MML.NOTATION.UPDIAGONALARROW;
           } else if (CLASS[i] === "MJX-variant") {
             mml.variantForm = true;
             //
@@ -153,7 +157,7 @@
         var child = node.childNodes[i];
         if (child.nodeName === "#comment") continue;
         if (child.nodeName === "#text") {
-          if (mml.isToken && !mml.mmlSelfClosing) {
+          if ((mml.isToken || mml.isChars) && !mml.mmlSelfClosing) {
             var text = child.nodeValue.replace(/&([a-z][a-z0-9]*);/ig,this.replaceEntity);
             mml.Append(MML.chars(this.trimSpace(text)));
           } else if (child.nodeValue.match(/\S/)) {
@@ -263,7 +267,7 @@
     formatError: function (err,math,script) {
       var message = err.message.replace(/\n.*/,"");
       MathJax.Hub.signal.Post(["MathML Jax - parse error",message,math,script]);
-      return MML.merror(message);
+      return MML.Error(message);
     },
     Error: function (message) {
       //

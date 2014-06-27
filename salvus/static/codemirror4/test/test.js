@@ -173,7 +173,7 @@ test("core_defaults", function() {
   for (var opt in defs) defsCopy[opt] = defs[opt];
   defs.indentUnit = 5;
   defs.value = "uu";
-  defs.enterMode = "keep";
+  defs.indentWithTabs = true;
   defs.tabindex = 55;
   var place = document.getElementById("testground"), cm = CodeMirror(place);
   try {
@@ -181,7 +181,7 @@ test("core_defaults", function() {
     cm.setOption("indentUnit", 10);
     eq(defs.indentUnit, 5);
     eq(cm.getValue(), "uu");
-    eq(cm.getOption("enterMode"), "keep");
+    eq(cm.getOption("indentWithTabs"), true);
     eq(cm.getInputField().tabIndex, 55);
   }
   finally {
@@ -295,7 +295,7 @@ testCM("undoDepth", function(cm) {
   cm.replaceRange("f", Pos(0));
   cm.undo(); cm.undo(); cm.undo();
   eq(cm.getValue(), "abcd");
-}, {value: "abc", undoDepth: 2});
+}, {value: "abc", undoDepth: 4});
 
 testCM("undoDoesntClearValue", function(cm) {
   cm.undo();
@@ -351,6 +351,13 @@ testCM("undoSelection", function(cm) {
   eqPos(cm.getCursor(true), Pos(0, 2));
   eqPos(cm.getCursor(false), Pos(0, 2));
 }, {value: "abcdefgh\n"});
+
+testCM("undoSelectionAsBefore", function(cm) {
+  cm.replaceSelection("abc", "around");
+  cm.undo();
+  cm.redo();
+  eq(cm.getSelection(), "abc");
+});
 
 testCM("markTextSingleLine", function(cm) {
   forEach([{a: 0, b: 1, c: "", f: 2, t: 5},
@@ -775,6 +782,31 @@ testCM("collapsedRangeCoordsChar", function(cm) {
   eqPos(cm.coordsChar(pos_1_3), Pos(3, 3));
 }, {value: "123456\nabcdef\nghijkl\nmnopqr\n"});
 
+testCM("collapsedRangeBetweenLinesSelected", function(cm) {
+  var widget = document.createElement("span");
+  widget.textContent = "\u2194";
+  cm.markText(Pos(0, 3), Pos(1, 0), {replacedWith: widget});
+  cm.setSelection(Pos(0, 3), Pos(1, 0));
+  var selElts = byClassName(cm.getWrapperElement(), "CodeMirror-selected");
+  for (var i = 0, w = 0; i < selElts.length; i++)
+    w += selElts[i].offsetWidth;
+  is(w > 0);
+}, {value: "one\ntwo"});
+
+testCM("randomCollapsedRanges", function(cm) {
+  addDoc(cm, 20, 500);
+  cm.operation(function() {
+    for (var i = 0; i < 200; i++) {
+      var start = Pos(Math.floor(Math.random() * 500), Math.floor(Math.random() * 20));
+      if (i % 4)
+        try { cm.markText(start, Pos(start.line + 2, 1), {collapsed: true}); }
+        catch(e) { if (!/overlapping/.test(String(e))) throw e; }
+      else
+        cm.markText(start, Pos(start.line, start.ch + 4), {"className": "foo"});
+    }
+  });
+});
+
 testCM("hiddenLinesAutoUnfold", function(cm) {
   var range = foldLines(cm, 1, 3, true), cleared = 0;
   CodeMirror.on(range, "clear", function() {cleared++;});
@@ -912,6 +944,15 @@ testCM("nestedFoldOnSide", function(cm) {
   catch(e) { var caught = e; }
   is(caught && /overlap/i.test(caught.message));
 }, {value: "ab\ncd\ef"});
+
+testCM("editInFold", function(cm) {
+  addDoc(cm, 4, 6);
+  var m = cm.markText(Pos(1, 2), Pos(3, 2), {collapsed: true});
+  cm.replaceRange("", Pos(0, 0), Pos(1, 3));
+  cm.replaceRange("", Pos(2, 1), Pos(3, 3));
+  cm.replaceRange("a\nb\nc\nd", Pos(0, 1), Pos(1, 0));
+  cm.cursorCoords(Pos(0, 0));
+});
 
 testCM("wrappingInlineWidget", function(cm) {
   cm.setSize("11em");
@@ -1159,12 +1200,31 @@ testCM("groupMovementCommands", function(cm) {
   cm.execCommand("goGroupRight"); cm.execCommand("goGroupRight");
   eqPos(cm.getCursor(), Pos(0, 20));
   cm.execCommand("goGroupRight");
+  eqPos(cm.getCursor(), Pos(1, 0));
+  cm.execCommand("goGroupRight");
+  eqPos(cm.getCursor(), Pos(1, 2));
+  cm.execCommand("goGroupRight");
   eqPos(cm.getCursor(), Pos(1, 5));
   cm.execCommand("goGroupLeft"); cm.execCommand("goGroupLeft");
   eqPos(cm.getCursor(), Pos(1, 0));
   cm.execCommand("goGroupLeft");
+  eqPos(cm.getCursor(), Pos(0, 20));
+  cm.execCommand("goGroupLeft");
   eqPos(cm.getCursor(), Pos(0, 16));
 }, {value: "booo ba---quux. ffff\n  abc d"});
+
+testCM("groupsAndWhitespace", function(cm) {
+  var positions = [Pos(0, 0), Pos(0, 2), Pos(0, 5), Pos(0, 9), Pos(0, 11),
+                   Pos(1, 0), Pos(1, 2), Pos(1, 5)];
+  for (var i = 1; i < positions.length; i++) {
+    cm.execCommand("goGroupRight");
+    eqPos(cm.getCursor(), positions[i]);
+  }
+  for (var i = positions.length - 2; i >= 0; i--) {
+    cm.execCommand("goGroupLeft");
+    eqPos(cm.getCursor(), i == 2 ? Pos(0, 6) : positions[i]);
+  }
+}, {value: "  foo +++  \n  bar"});
 
 testCM("charMovementCommands", function(cm) {
   cm.execCommand("goCharLeft"); cm.execCommand("goColumnLeft");
@@ -1348,6 +1408,80 @@ testCM("lineWidgetCautiousRedraw", function(cm) {
 }, {value: "123\n456"});
 
 
+var knownScrollbarWidth;
+function scrollbarWidth(measure) {
+  if (knownScrollbarWidth != null) return knownScrollbarWidth;
+  var div = document.createElement('div');
+  div.style.cssText = "width: 50px; height: 50px; overflow-x: scroll";
+  document.body.appendChild(div);
+  knownScrollbarWidth = div.offsetHeight - div.clientHeight;
+  document.body.removeChild(div);
+  return knownScrollbarWidth || 0;
+}
+
+testCM("lineWidgetChanged", function(cm) {
+  addDoc(cm, 2, 300);
+  var halfScrollbarWidth = scrollbarWidth(cm.display.measure)/2;
+  cm.setOption('lineNumbers', true);
+  cm.setSize(600, cm.defaultTextHeight() * 50);
+  cm.scrollTo(null, cm.heightAtLine(125, "local"));
+
+  var expectedWidgetHeight = 60;
+  var expectedLinesInWidget = 3;
+  function w() {
+    var node = document.createElement("div");
+    // we use these children with just under half width of the line to check measurements are made with correct width
+    // when placed in the measure div.
+    // If the widget is measured at a width much narrower than it is displayed at, the underHalf children will span two lines and break the test.
+    // If the widget is measured at a width much wider than it is displayed at, the overHalf children will combine and break the test.
+    // Note that this test only checks widgets where coverGutter is true, because these require extra styling to get the width right.
+    // It may also be worthwhile to check this for non-coverGutter widgets.
+    // Visually:
+    // Good:
+    // | ------------- display width ------------- |
+    // | ------- widget-width when measured ------ |
+    // | | -- under-half -- | | -- under-half -- | | 
+    // | | --- over-half --- |                     |
+    // | | --- over-half --- |                     |
+    // Height: measured as 3 lines, same as it will be when actually displayed
+
+    // Bad (too narrow):
+    // | ------------- display width ------------- |
+    // | ------ widget-width when measured ----- |  < -- uh oh
+    // | | -- under-half -- |                    |
+    // | | -- under-half -- |                    |  < -- when measured, shoved to next line
+    // | | --- over-half --- |                   |
+    // | | --- over-half --- |                   |
+    // Height: measured as 4 lines, more than expected . Will be displayed as 3 lines!
+
+    // Bad (too wide):
+    // | ------------- display width ------------- |
+    // | -------- widget-width when measured ------- | < -- uh oh
+    // | | -- under-half -- | | -- under-half -- |   | 
+    // | | --- over-half --- | | --- over-half --- | | < -- when measured, combined on one line
+    // Height: measured as 2 lines, less than expected. Will be displayed as 3 lines!
+
+    var barelyUnderHalfWidthHtml = '<div style="display: inline-block; height: 1px; width: '+(285 - halfScrollbarWidth)+'px;"></div>';
+    var barelyOverHalfWidthHtml = '<div style="display: inline-block; height: 1px; width: '+(305 - halfScrollbarWidth)+'px;"></div>';
+    node.innerHTML = new Array(3).join(barelyUnderHalfWidthHtml) + new Array(3).join(barelyOverHalfWidthHtml);
+    node.style.cssText = "background: yellow;font-size:0;line-height: " + (expectedWidgetHeight/expectedLinesInWidget) + "px;";
+    return node;
+  }
+  var info0 = cm.getScrollInfo();
+  var w0 = cm.addLineWidget(0, w(), { coverGutter: true });
+  var w150 = cm.addLineWidget(150, w(), { coverGutter: true });
+  var w300 = cm.addLineWidget(300, w(), { coverGutter: true });
+  var info1 = cm.getScrollInfo();
+  eq(info0.height + (3 * expectedWidgetHeight), info1.height);
+  eq(info0.top + expectedWidgetHeight, info1.top);
+  expectedWidgetHeight = 12;
+  w0.node.style.lineHeight = w150.node.style.lineHeight = w300.node.style.lineHeight = (expectedWidgetHeight/expectedLinesInWidget) + "px";
+  w0.changed(); w150.changed(); w300.changed();
+  var info2 = cm.getScrollInfo();
+  eq(info0.height + (3 * expectedWidgetHeight), info2.height);
+  eq(info0.top + expectedWidgetHeight, info2.top);
+});
+
 testCM("getLineNumber", function(cm) {
   addDoc(cm, 2, 20);
   var h1 = cm.getLineHandle(1);
@@ -1466,6 +1600,29 @@ testCM("atomicMarker", function(cm) {
   eq(cm.getValue().length, 53, "del chunk");
 });
 
+testCM("selectionBias", function(cm) {
+  cm.markText(Pos(0, 1), Pos(0, 3), {atomic: true});
+  cm.setCursor(Pos(0, 2));
+  eqPos(cm.getCursor(), Pos(0, 3));
+  cm.setCursor(Pos(0, 2));
+  eqPos(cm.getCursor(), Pos(0, 1));
+  cm.setCursor(Pos(0, 2), null, {bias: -1});
+  eqPos(cm.getCursor(), Pos(0, 1));
+  cm.setCursor(Pos(0, 4));
+  cm.setCursor(Pos(0, 2), null, {bias: 1});
+  eqPos(cm.getCursor(), Pos(0, 3));
+}, {value: "12345"});
+
+testCM("selectionHomeEnd", function(cm) {
+  cm.markText(Pos(1, 0), Pos(1, 1), {atomic: true, inclusiveLeft: true});
+  cm.markText(Pos(1, 3), Pos(1, 4), {atomic: true, inclusiveRight: true});
+  cm.setCursor(Pos(1, 2));
+  cm.execCommand("goLineStart");
+  eqPos(cm.getCursor(), Pos(1, 1));
+  cm.execCommand("goLineEnd");
+  eqPos(cm.getCursor(), Pos(1, 3));
+}, {value: "ab\ncdef\ngh"});
+
 testCM("readOnlyMarker", function(cm) {
   function mark(ll, cl, lr, cr, at) {
     return cm.markText(Pos(ll, cl), Pos(lr, cr),
@@ -1503,12 +1660,12 @@ testCM("readOnlyMarker", function(cm) {
 
 testCM("dirtyBit", function(cm) {
   eq(cm.isClean(), true);
-  cm.replaceSelection("boo");
+  cm.replaceSelection("boo", null, "test");
   eq(cm.isClean(), false);
   cm.undo();
   eq(cm.isClean(), true);
-  cm.replaceSelection("boo");
-  cm.replaceSelection("baz");
+  cm.replaceSelection("boo", null, "test");
+  cm.replaceSelection("baz", null, "test");
   cm.undo();
   eq(cm.isClean(), false);
   cm.markClean();
@@ -1520,15 +1677,15 @@ testCM("dirtyBit", function(cm) {
 });
 
 testCM("changeGeneration", function(cm) {
-  cm.replaceSelection("x", null, "+insert");
+  cm.replaceSelection("x");
   var softGen = cm.changeGeneration();
-  cm.replaceSelection("x", null, "+insert");
+  cm.replaceSelection("x");
   cm.undo();
   eq(cm.getValue(), "");
   is(!cm.isClean(softGen));
-  cm.replaceSelection("x", null, "+insert");
+  cm.replaceSelection("x");
   var hardGen = cm.changeGeneration(true);
-  cm.replaceSelection("x", null, "+insert");
+  cm.replaceSelection("x");
   cm.undo();
   eq(cm.getValue(), "x");
   is(cm.isClean(hardGen));
@@ -1694,6 +1851,20 @@ testCM("lineStyleFromMode", function(cm) {
   is(/^\s*cm-span\s*$/.test(spanElts[0].className));
 }, {value: "line1: [br] [br]\nline2: (par) (par)\nline3: <tag> <tag>"});
 
+testCM("lineStyleFromBlankLine", function(cm) {
+  CodeMirror.defineMode("lineStyleFromBlankLine_mode", function() {
+    return {token: function(stream) { stream.skipToEnd(); return "comment"; },
+            blankLine: function() { return "line-blank"; }};
+  });
+  cm.setOption("mode", "lineStyleFromBlankLine_mode");
+  var blankElts = byClassName(cm.getWrapperElement(), "blank");
+  eq(blankElts.length, 1);
+  eq(blankElts[0].nodeName, "PRE");
+  cm.replaceRange("x", Pos(1, 0));
+  blankElts = byClassName(cm.getWrapperElement(), "blank");
+  eq(blankElts.length, 0);
+}, {value: "foo\n\nbar"});
+
 CodeMirror.registerHelper("xxx", "a", "A");
 CodeMirror.registerHelper("xxx", "b", "B");
 CodeMirror.defineMode("yyy", function() {
@@ -1711,4 +1882,109 @@ testCM("helpers", function(cm) {
   eq(cm.getHelpers(Pos(0, 0), "xxx").join("/"), "B/C");
   cm.setOption("mode", "javascript");
   eq(cm.getHelpers(Pos(0, 0), "xxx").join("/"), "");
+});
+
+testCM("selectionHistory", function(cm) {
+  for (var i = 0; i < 3; i++) {
+    cm.setExtending(true);
+    cm.execCommand("goCharRight");
+    cm.setExtending(false);
+    cm.execCommand("goCharRight");
+    cm.execCommand("goCharRight");
+  }
+  cm.execCommand("undoSelection");
+  eq(cm.getSelection(), "c");
+  cm.execCommand("undoSelection");
+  eq(cm.getSelection(), "");
+  eqPos(cm.getCursor(), Pos(0, 4));
+  cm.execCommand("undoSelection");
+  eq(cm.getSelection(), "b");
+  cm.execCommand("redoSelection");
+  eq(cm.getSelection(), "");
+  eqPos(cm.getCursor(), Pos(0, 4));
+  cm.execCommand("redoSelection");
+  eq(cm.getSelection(), "c");
+  cm.execCommand("redoSelection");
+  eq(cm.getSelection(), "");
+  eqPos(cm.getCursor(), Pos(0, 6));
+}, {value: "a b c d"});
+
+testCM("selectionChangeReducesRedo", function(cm) {
+  cm.replaceSelection("X");
+  cm.execCommand("goCharRight");
+  cm.undoSelection();
+  cm.execCommand("selectAll");
+  cm.undoSelection();
+  eq(cm.getValue(), "Xabc");
+  eqPos(cm.getCursor(), Pos(0, 1));
+  cm.undoSelection();
+  eq(cm.getValue(), "abc");
+}, {value: "abc"});
+
+testCM("selectionHistoryNonOverlapping", function(cm) {
+  cm.setSelection(Pos(0, 0), Pos(0, 1));
+  cm.setSelection(Pos(0, 2), Pos(0, 3));
+  cm.execCommand("undoSelection");
+  eqPos(cm.getCursor("anchor"), Pos(0, 0));
+  eqPos(cm.getCursor("head"), Pos(0, 1));
+}, {value: "1234"});
+
+testCM("cursorMotionSplitsHistory", function(cm) {
+  cm.replaceSelection("a");
+  cm.execCommand("goCharRight");
+  cm.replaceSelection("b");
+  cm.replaceSelection("c");
+  cm.undo();
+  eq(cm.getValue(), "a1234");
+  eqPos(cm.getCursor(), Pos(0, 2));
+  cm.undo();
+  eq(cm.getValue(), "1234");
+  eqPos(cm.getCursor(), Pos(0, 0));
+}, {value: "1234"});
+
+testCM("selChangeInOperationDoesNotSplit", function(cm) {
+  for (var i = 0; i < 4; i++) {
+    cm.operation(function() {
+      cm.replaceSelection("x");
+      cm.setCursor(Pos(0, cm.getCursor().ch - 1));
+    });
+  }
+  eqPos(cm.getCursor(), Pos(0, 0));
+  eq(cm.getValue(), "xxxxa");
+  cm.undo();
+  eq(cm.getValue(), "a");
+}, {value: "a"});
+
+testCM("alwaysMergeSelEventWithChangeOrigin", function(cm) {
+  cm.replaceSelection("U", null, "foo");
+  cm.setSelection(Pos(0, 0), Pos(0, 1), {origin: "foo"});
+  cm.undoSelection();
+  eq(cm.getValue(), "a");
+  cm.replaceSelection("V", null, "foo");
+  cm.setSelection(Pos(0, 0), Pos(0, 1), {origin: "bar"});
+  cm.undoSelection();
+  eq(cm.getValue(), "Va");
+}, {value: "a"});
+
+testCM("getTokenTypeAt", function(cm) {
+  eq(cm.getTokenTypeAt(Pos(0, 0)), "number");
+  eq(cm.getTokenTypeAt(Pos(0, 6)), "string");
+  cm.addOverlay({
+    token: function(stream) {
+      if (stream.match("foo")) return "foo";
+      else stream.next();
+    }
+  });
+  eq(byClassName(cm.getWrapperElement(), "cm-foo").length, 1);
+  eq(cm.getTokenTypeAt(Pos(0, 6)), "string");
+}, {value: "1 + 'foo'", mode: "javascript"});
+
+testCM("resizeLineWidget", function(cm) {
+  addDoc(cm, 200, 3);
+  var widget = document.createElement("pre");
+  widget.innerHTML = "imwidget";
+  widget.style.background = "yellow";
+  cm.addLineWidget(1, widget, {noHScroll: true});
+  cm.setSize(40);
+  is(widget.parentNode.offsetWidth < 42);
 });

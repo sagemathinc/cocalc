@@ -417,8 +417,34 @@ code {
 }
 
 
+.cm-trailingspace {
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAACCAYAAAB/qH1jAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QUXCToH00Y1UgAAACFJREFUCNdjPMDBUc/AwNDAAAFMTAwMDA0OP34wQgX/AQBYgwYEx4f9lQAAAABJRU5ErkJggg==);
+    background-position: bottom left;
+    background-repeat: repeat-x;
+}
 
 
+/* Deals with the currently open file tabs and moving them around */
 
+.file-pages {
+    float: none;
+    overflow: hidden;
+}
+
+.file-pages > li > a {
+    border-radius: 5px 5px 0px 0px;
+}
+
+.file-tab-placeholder {
+    /* Currently blank */
+}
+
+.file-pages li.ui-sortable-helper > a {
+    background-color: #eee;
+}
+
+.file-pages li.active.ui-sortable-helper > a {
+    background-color: #08c;
+}
 
 

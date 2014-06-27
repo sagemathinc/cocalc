@@ -562,6 +562,9 @@ exports.DiffSync = DiffSync
 # Support for using synchronized docs to represent Sage Worksheets (i.e., live compute documents)
 #---------------------------------------------------------------------------------------------------------
 
+# WARNING: in Codemirror, to avoid issues with parsing I also set the output marker to be a comment character
+# by modifying the python mode as follows:     if (ch == "#"  || ch == "\uFE21") {
+
 exports.MARKERS =
     cell   : "\uFE20"
     output : "\uFE21"

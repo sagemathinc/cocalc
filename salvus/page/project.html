@@ -271,6 +271,9 @@
                 </li>
 
             </ul>
+            
+            <ul class="nav nav-pills file-pages">
+            </ul>
 
             <!-- The actual screens that get revealed by each tab: -->
 
@@ -391,7 +394,7 @@
                                         <div class="span6">
                                             <a class="btn "  style="margin-top:1ex"  href="#new-latex" data-toggle="tooltip" data-placement="top" title="Full LaTeX document"><i class="fa fa-file-excel-o"></i> LaTeX Document</a>
                                             <a class="btn "  style="margin-top:1ex"  href="#new-terminal" data-toggle="tooltip" data-placement="top" title="Command line terminal session"><i class="fa fa-terminal"></i> Terminal</a>
-                                            <a class="btn hide"  style="margin-top:1ex"  href="#new-tasks" data-toggle="tooltip" data-placement="top" title="List of tasks to complete"><i class="fa fa-tasks"></i> Task List</a>
+                                            <a class="btn"  style="margin-top:1ex"  href="#new-tasks" data-toggle="tooltip" data-placement="top" title="List of tasks to complete"><i class="fa fa-tasks"></i> Task List</a>
 
                                         </div>
                                         <div class="span6">
@@ -449,6 +452,11 @@
                                 <a class="btn project-activity-newer disabled"> <i class="fa fa-angle-double-left"> </i> Newer </a>
                                 <a class="btn project-activity-older"> Older <i class="fa fa-angle-double-right"> </i></a>
                             </div>
+                            <span class="project-activity-type-buttons btn-group" style="white-space: normal">
+                                <button class="btn btn-warning btn-small project-activity-type-button" id="project-activity-type-file"><i class="fa fa-folder-open-o"></i> Files</button>
+                                <button class="btn btn-warning btn-small project-activity-type-button" id="project-activity-type-project"><i class="fa fa-tasks"></i> Project</button>
+                                <button class="btn btn-warning btn-small project-activity-type-button" id="project-activity-type-messages"><i class="fa fa-comment"></i> Messages</button>
+                            </span>
                             <br><br>
                         </div>
                         <div class="row-fluid">

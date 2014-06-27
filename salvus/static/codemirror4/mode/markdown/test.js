@@ -1,3 +1,6 @@
+// CodeMirror, copyright (c) by Marijn Haverbeke and others
+// Distributed under an MIT license: http://codemirror.net/LICENSE
+
 (function() {
   var mode = CodeMirror.getMode({tabSize: 4}, "markdown");
   function MT(name) { test.mode(name, mode, Array.prototype.slice.call(arguments, 1)); }
@@ -23,11 +26,11 @@
      "[comment&formatting&formatting-code ``][comment foo ` bar][comment&formatting&formatting-code ``]");
 
   FT("formatting_atxHeader",
-     "[header&header1&formatting&formatting-header&formatting-header1 #][header&header1  foo # bar ][header&header1&formatting&formatting-header&formatting-header1 #]");
+     "[header&header-1&formatting&formatting-header&formatting-header-1 #][header&header-1  foo # bar ][header&header-1&formatting&formatting-header&formatting-header-1 #]");
 
   FT("formatting_setextHeader",
      "foo",
-     "[header&header1&formatting&formatting-header&formatting-header1 =]");
+     "[header&header-1&formatting&formatting-header&formatting-header-1 =]");
 
   FT("formatting_blockquote",
      "[quote&quote-1&formatting&formatting-quote&formatting-quote-1 > ][quote&quote-1 foo]");
@@ -89,6 +92,14 @@
      "        [comment hello]",
      "    [comment world]");
 
+  // Code blocks should end even after extra indented lines
+  MT("codeBlocksWithTrailingIndentedLine",
+     "    [comment foo]",
+     "        [comment bar]",
+     "    [comment baz]",
+     "    ",
+     "hello");
+
   // Code blocks using 1 tab (regardless of CodeMirror.indentWithTabs value)
   MT("codeBlocksUsing1Tab",
      "\t[comment foo]");
@@ -138,31 +149,31 @@
   // http://daringfireball.net/projects/markdown/syntax#header
 
   MT("atxH1",
-     "[header&header1 # foo]");
+     "[header&header-1 # foo]");
 
   MT("atxH2",
-     "[header&header2 ## foo]");
+     "[header&header-2 ## foo]");
 
   MT("atxH3",
-     "[header&header3 ### foo]");
+     "[header&header-3 ### foo]");
 
   MT("atxH4",
-     "[header&header4 #### foo]");
+     "[header&header-4 #### foo]");
 
   MT("atxH5",
-     "[header&header5 ##### foo]");
+     "[header&header-5 ##### foo]");
 
   MT("atxH6",
-     "[header&header6 ###### foo]");
+     "[header&header-6 ###### foo]");
 
   // H6 - 7x '#' should still be H6, per Dingus
   // http://daringfireball.net/projects/markdown/dingus
   MT("atxH6NotH7",
-     "[header&header6 ####### foo]");
+     "[header&header-6 ####### foo]");
 
   // Inline styles should be parsed inside headers
   MT("atxH1inline",
-     "[header&header1 # foo ][header&header1&em *bar*]");
+     "[header&header-1 # foo ][header&header-1&em *bar*]");
 
   // Setext headers - H1, H2
   // Per documentation, "Any number of underlining =’s or -’s will work."
@@ -174,22 +185,22 @@
   // Check if single underlining = works
   MT("setextH1",
      "foo",
-     "[header&header1 =]");
+     "[header&header-1 =]");
 
   // Check if 3+ ='s work
   MT("setextH1",
      "foo",
-     "[header&header1 ===]");
+     "[header&header-1 ===]");
 
   // Check if single underlining - works
   MT("setextH2",
      "foo",
-     "[header&header2 -]");
+     "[header&header-2 -]");
 
   // Check if 3+ -'s work
   MT("setextH2",
      "foo",
-     "[header&header2 ---]");
+     "[header&header-2 ---]");
 
   // Single-line blockquote with trailing space
   MT("blockquoteSpace",
@@ -278,7 +289,7 @@
 
   // List after header
   MT("listAfterHeader",
-     "[header&header1 # foo]",
+     "[header&header-1 # foo]",
      "[variable-2 - bar]");
 
   // Formatting in lists (*)
@@ -721,4 +732,23 @@
      "[comment ```]",
      "foo",
      "[comment ```]");
+
+  // Tests that require XML mode
+
+  MT("xmlMode",
+     "[tag&bracket <][tag div][tag&bracket >]",
+     "*foo*",
+     "[tag&bracket <][tag http://github.com][tag&bracket />]",
+     "[tag&bracket </][tag div][tag&bracket >]",
+     "[link <http://github.com/>]");
+
+  MT("xmlModeWithMarkdownInside",
+     "[tag&bracket <][tag div] [attribute markdown]=[string 1][tag&bracket >]",
+     "[em *foo*]",
+     "[link <http://github.com/>]",
+     "[tag </div>]",
+     "[link <http://github.com/>]",
+     "[tag&bracket <][tag div][tag&bracket >]",
+     "[tag&bracket </][tag div][tag&bracket >]");
+
 })();

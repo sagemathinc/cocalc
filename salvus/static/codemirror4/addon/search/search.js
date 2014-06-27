@@ -1,3 +1,6 @@
+// CodeMirror, copyright (c) by Marijn Haverbeke and others
+// Distributed under an MIT license: http://codemirror.net/LICENSE
+
 // Define search commands. Depends on dialog.js or another
 // implementation of the openDialog method.
 
@@ -16,21 +19,21 @@
 })(function(CodeMirror) {
   "use strict";
   function searchOverlay(query, caseInsensitive) {
-    var startChar;
-    if (typeof query == "string") {
-      startChar = query.charAt(0);
-      query = new RegExp("^" + query.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"),
-                         caseInsensitive ? "i" : "");
-    } else {
-      query = new RegExp("^(?:" + query.source + ")", query.ignoreCase ? "i" : "");
-    }
+    if (typeof query == "string")
+      query = new RegExp(query.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"), caseInsensitive ? "gi" : "g");
+    else if (!query.global)
+      query = new RegExp(query.source, query.ignoreCase ? "gi" : "g");
+
     return {token: function(stream) {
-      if (stream.match(query)) return "searching";
-      while (!stream.eol()) {
-        stream.next();
-        if (startChar)
-          stream.skipTo(startChar) || stream.skipToEnd();
-        if (stream.match(query, false)) break;
+      query.lastIndex = stream.pos;
+      var match = query.exec(stream.string);
+      if (match && match.index == stream.pos) {
+        stream.pos += match[0].length;
+        return "searching";
+      } else if (match) {
+        stream.pos = match.index;
+      } else {
+        stream.skipToEnd();
       }
     }};
   }
@@ -59,7 +62,13 @@
   }
   function parseQuery(query) {
     var isRE = query.match(/^\/(.*)\/([a-z]*)$/);
-    return isRE ? new RegExp(isRE[1], isRE[2].indexOf("i") == -1 ? "" : "i") : query;
+    if (isRE) {
+      query = new RegExp(isRE[1], isRE[2].indexOf("i") == -1 ? "" : "i");
+      if (query.test("")) query = /x^/;
+    } else if (query == "") {
+      query = /x^/;
+    }
+    return query;
   }
   var queryDialog =
     'Search: <input type="text" style="width: 10em"/> <span style="color: #888">(Use /re/ syntax for regexp search)</span>';
@@ -71,7 +80,7 @@
         if (!query || state.query) return;
         state.query = parseQuery(query);
         cm.removeOverlay(state.overlay, queryCaseInsensitive(state.query));
-        state.overlay = searchOverlay(state.query);
+        state.overlay = searchOverlay(state.query, queryCaseInsensitive(state.query));
         cm.addOverlay(state.overlay);
         state.posFrom = state.posTo = cm.getCursor();
         findNext(cm, rev);
@@ -110,7 +119,7 @@
             for (var cursor = getSearchCursor(cm, query); cursor.findNext();) {
               if (typeof query != "string") {
                 var match = cm.getRange(cursor.from(), cursor.to()).match(query);
-                cursor.replace(text.replace(/\$(\d)/, function(_, i) {return match[i];}));
+                cursor.replace(text.replace(/\$(\d)/g, function(_, i) {return match[i];}));
               } else cursor.replace(text);
             }
           });
@@ -131,7 +140,7 @@
           };
           var doReplace = function(match) {
             cursor.replace(typeof query == "string" ? text :
-                           text.replace(/\$(\d)/, function(_, i) {return match[i];}));
+                           text.replace(/\$(\d)/g, function(_, i) {return match[i];}));
             advance();
           };
           advance();

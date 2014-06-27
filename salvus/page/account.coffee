@@ -283,7 +283,7 @@ $('.salvus-password-meter').password_strength_meter()
 # Sign in
 ################################################
 
-$("#sign_in-form").submit((event) -> sign_in(); return false)
+$(".salvus-sign_in-form").submit((event) -> sign_in(); return false)
 
 $("#sign_in-button").click((event) -> sign_in(); return false)
 
@@ -293,7 +293,6 @@ sign_in = () ->
         email_address : $("#sign_in-email").val()
         password      : $("#sign_in-password").val()
         remember_me   : true
-        timeout       : 10
         cb            : (error, mesg) ->
             if error
                 alert_message(type:"error", message: "There was an unexpected error during sign in.  Please try again later. #{error}")
@@ -313,7 +312,6 @@ first_login = true
 hub = undefined
 signed_in = (mesg) ->
     _gaq.push(['_trackEvent', 'account', 'signed_in'])  # custom google analytic event -- user signed in
-
     # Record which hub we're connected to.
     hub = mesg.hub
 
@@ -370,7 +368,6 @@ sign_out = () ->
     # requested to sign out.  The server must clean up resources
     # and *invalidate* the remember_me cookie for this client.
     salvus_client.sign_out
-        timeout : 10
         cb      : (error) ->
             if error
                 alert_message(type:"error", message:error)
@@ -392,14 +389,17 @@ $("#account").find("a[href=#sign-out]").click (event) ->
 ################################################
 
 EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
+                              'show_trailing_whitespace',
                               'line_wrapping',
                               'line_numbers',
                               'smart_indent',
                               'match_brackets',
+                              'auto_close_brackets',
                               'electric_chars',
                               'spaces_instead_of_tabs']
 
-OTHER_SETTINGS_CHECKBOXES = ['confirm_close']
+OTHER_SETTINGS_CHECKBOXES = ['confirm_close',
+                             'mask_files']
 
 class AccountSettings
     account_id: () =>
@@ -520,7 +520,7 @@ class AccountSettings
             if typeof(def) == "object"
                 if not value?
                     value = {}
-                @settings[prop] = value = misc.defaults(value, def)
+                @settings[prop] = value = misc.defaults(value, def, true)
 
             element = $("#account-settings-#{prop}")
             switch prop
@@ -852,3 +852,21 @@ show_connection_information = () ->
         dialog.find(".salvus-connection-ping").show().find('pre').text((s.ping_time()*1000).toFixed(0) + "ms")
     else
         dialog.find(".salvus-connection-ping").hide()
+
+
+
+################################################
+# Automatically log in
+################################################
+if localStorage.remember_me
+    $(".salvus-remember_me-message").show().find("span").text(localStorage.remember_me)
+    $(".salvus-sign_in-form").hide()
+    # just in case, always show manual login screen after 10s.
+    setTimeout((()=>$(".salvus-remember_me-message").hide(); $(".salvus-sign_in-form").show()), 10000)
+
+salvus_client.on "remember_me_failed", () ->
+    $(".salvus-remember_me-message").hide()
+    $(".salvus-sign_in-form").show()
+
+salvus_client.on "signed_in", () ->
+    $(".salvus-remember_me-message").hide()

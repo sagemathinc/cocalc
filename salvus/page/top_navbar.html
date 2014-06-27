@@ -1,5 +1,5 @@
-<i class="salvus-fullscreen salvus-fullscreen-activate fa fa-resize-full big-only"></i>
-<i class="salvus-fullscreen salvus-fullscreen-deactivate fa fa-resize-small hide big-only"></i>
+<i class="salvus-fullscreen salvus-fullscreen-activate fa fa-expand big-only"></i>
+<i class="salvus-fullscreen salvus-fullscreen-deactivate fa fa-compress hide big-only"></i>
 
 <div class="navbar navbar-fixed-top salvus-top_navbar">
     <div class="navbar-inner" >
@@ -16,8 +16,6 @@
                 </i>
             </a>
             <div class="nav-collapse collapse">
-                <ul class="nav pull-left">
-                </ul>
                 <ul class="nav pull-right">
                     <li class="divider-vertical"></li>
                     <li>
@@ -28,6 +26,11 @@
                         </div>
                     </li>
                 </ul>
+                <ul class="nav buttons pull-left">
+                </ul>
+                <ul class="nav projects pull-left">
+                </ul>
+
             </div>
         </div>
     </div>
@@ -35,7 +38,14 @@
 </div>
 
 <ul class="hide">
-    <li id="top_navbar-button-template" style="cursor:pointer;"><a style="padding-left:8px;padding-right:8px;height:20px;"><span class="button-label"></span><span class="close-button">&nbsp;&nbsp;&nbsp;<span class="close-button-x big-only">×</span><span class="close-button-x btn-warning not-big btn btn-large pull-right" style="margin-top: -5px;">× Close</span></span></a></li>
+    <li class="top_navbar-button-template" style="cursor:pointer;">
+        <a class="top_navbar-button-link" style="padding-left:8px;padding-right:8px;height:20px;">
+            <span class="close-button pull-right">
+                <span class="close-button-x big-only">×</span>
+                <span class="close-button-x btn-warning not-big btn btn-large pull-right" style="margin-top: -5px;">× Close</span>
+            </span>
+            <span class="button-label"></span>
+        </a>
+    </li>
     <li class="divider-vertical" id="top_navbar-divider-template"></li>
 </ul>
-

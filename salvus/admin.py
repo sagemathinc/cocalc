@@ -580,9 +580,18 @@ frontend unsecured *:$port
 # Hub
 ####################
 class Hub(Process):
-    def __init__(self, id=0, host='', port=HUB_PORT, proxy_port=HUB_PROXY_PORT,
-                 monitor_database=None, keyspace='salvus', debug=False,
-                 logfile=None, pidfile=None, base_url=None, local=False):
+    def __init__(self,
+                 id               = 0,
+                 host             = '',
+                 port             = HUB_PORT,
+                 proxy_port       = HUB_PROXY_PORT,
+                 monitor_database = None,
+                 keyspace         = 'salvus',
+                 debug            = False,
+                 logfile          = None,
+                 pidfile          = None,
+                 base_url         = None,
+                 local            = False):
         self._port = port
         if pidfile is None:
             pidfile = os.path.join(PIDS, 'hub-%s.pid'%id)
@@ -1326,8 +1335,15 @@ class Hosts(object):
                 pass # file doesn't exist
 
 class Monitor(object):
-    def __init__(self, hosts):
-        self._hosts = hosts
+    def __init__(self, hosts, services):
+        self._hosts    = hosts
+        self._services = services  # used for self-healing
+
+    def attempt_to_heal_cassandra_server(self, host):
+        self._services.start('cassandra', host=host)
+
+    def attempt_to_heal_bup_server(self, host):
+        self._hosts(host,'cd salvus/salvus; . salvus-env; bup_server start')
 
     def cassandra(self):
         """
@@ -1337,7 +1353,9 @@ class Monitor(object):
         import random
         hosts = self._hosts['cassandra']
         for i in range(len(hosts)):
-            v = self._hosts(random.choice(hosts), "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False, timeout=45)
+            h = random.choice(hosts)
+            print "cassandra host = ", h
+            v = self._hosts(h, "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False, timeout=45)
             r = v[v.keys()[0]]
             status = {}
             for z in [x for x in r['stdout'].splitlines() if '%' in x]:
@@ -1353,6 +1371,10 @@ class Monitor(object):
             else:
                 ans.append({'service':'cassandra', 'host':k[0], 'use%':int(v['stdout'].splitlines()[1].split()[4][:-1]), 'status':status.get(k[0],'down')})
 
+        for d in ans:
+            if d['status'] == 'down':
+                self.attempt_to_heal_cassandra_server(d['host'])
+
         w = [((d['status'],d.get('use%','')), d) for d in ans]
         w.sort()
         return [y for x,y in w]
@@ -1360,9 +1382,11 @@ class Monitor(object):
     def compute(self):
         hosts = self._hosts['cassandra']
         ans = []
-        for k, v in self._hosts('compute-2', 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l', wait=True, parallel=True).iteritems():
+        c = 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l && cd salvus/salvus; . salvus-env; ./bup_server status 2>/dev/null'
+        for k, v in self._hosts('compute-2', c, wait=True, parallel=True).iteritems():
             d = {'host':k[0], 'service':'compute'}
-            m = v.get('stdout','').splitlines()
+            stdout = v.get('stdout','')
+            m = stdout.splitlines()
             if v.get('exit_status',1) != 0 or len(m) < 7:
                 d['status'] = 'down'
             else:
@@ -1376,6 +1400,10 @@ class Monitor(object):
                 d['ram_used_GB'] = int(z[2])
                 d['ram_free_GB'] = int(z[3])
                 d['nprojects'] = int(m[6])
+                d['bup_server'] = 'daemon running' in stdout
+                if not d['bup_server']:
+                    d['status'] = 'down'
+                    self.attempt_to_heal_bup_server(d['host'])
                 ans.append(d)
         w = [(-d['load15'], d) for d in ans]
         w.sort()
@@ -1670,7 +1698,7 @@ class Services(object):
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]
 
-        self.monitor = Monitor(Hosts(os.path.join(path, 'hosts'), username=username, passwd=False))
+        self.monitor = Monitor(Hosts(os.path.join(path, 'hosts'), username=username, passwd=False), services = self)
 
         # this is the canonical list of options, expanded out by service and host.
         def hostopts(service, query='all', copy=True):
@@ -1682,10 +1710,21 @@ class Services(object):
 
         self._options = dict([(service, hostopts(service)) for service in self._ordered_service_names])
 
+
+        # Divide up hosts by their data center
+        self._ip_address_to_dc = {}
+        for k, v in self._hosts._ip_addresses.iteritems():
+            if len(k) == 3 and k.startswith('dc') and k[2] >= '0' and k[2] <= '9':
+                dc = int(k[2])
+                for w in v:
+                    self._ip_address_to_dc[w] = dc
+
+
         ##########################################
         # Programatically fill in extra options to the list
         ##########################################
         # CASSANDRA options
+        self._cassandras_in_dc = {}
         if 'cassandra' in self._options:
             v = self._options['cassandra']
             # determine the seeds
@@ -1693,11 +1732,17 @@ class Services(object):
             # determine global topology file; ip_address=data_center:rack
             topology = '\n'.join(['%s=%s'%(h, o.get('topology', 'DC0:RAC0'))
                                                                   for h, o in v] + ['default=DC0:RAC0'])
+
             for address, o in v:
-                o['seeds'] = seeds
-                o['topology'] = topology
+                dc = o.get('topology','DC0:RAC0').split(':')[0].lower()  # this must be before o['topology'] line below!
+                if dc not in self._cassandras_in_dc:
+                    self._cassandras_in_dc[dc] = [address]
+                else:
+                    self._cassandras_in_dc[dc].append(address)
+                o['seeds']          = seeds
+                o['topology']       = topology
                 o['listen_address'] = address
-                o['rpc_address'] = address
+                o['rpc_address']    = address
                 if 'seed' in o: del o['seed']
 
             native_transport_port = v[0][1].get('native_transport_port', 9042)
@@ -1793,6 +1838,12 @@ class Services(object):
         else:
             timeout = 60
 
+        for t in ['hub', 'nginx', 'proxy']:
+            s = '%s_servers'%t
+            if s in options:
+                # restrict to the subset of hub_servers in the same data center
+                dc = self.ip_address_to_dc(address)
+                options[s] = [x for x in options[s] if self.ip_address_to_dc(x['ip']) == dc]
 
         if 'id' not in options:
             options['id'] = 0
@@ -1839,17 +1890,42 @@ class Services(object):
 
 
         name = service.capitalize()
-        db_string = "" if (name=='Compute' or not hasattr(self, '_cassandra')) else "monitor_database='%s'"%(','.join(self._cassandra))
+        if name=='Compute' or not hasattr(self, '_cassandra'):
+            def db_string(address):
+                return ""
+        else:
+            def db_string(address):
+                dc = self.ip_address_to_dc(self._hosts[address][0])
+                if dc == -1:
+                    return "monitor_database=''"
+                else:
+                    return "monitor_database='%s'"%(','.join(self.cassandras_in_dc(dc)))
+
         v = self._hostopts(service, host, opts)
 
         self._hosts.password()  # can't get password in thread
 
-        w = [((name, action, address, options, db_string, wait),{}) for address, options in v]
-
+        w = [((name, action, address, options, db_string(address), wait),{}) for address, options in v]
         if parallel:
             return misc.thread_map(self._do_action, w)
         else:
             return [self._do_action(*args, **kwds) for args, kwds in w]
+
+    def ip_address_to_dc(self, ip_address):
+        """
+        Convert the given ip address to the data center that contains that machine.  The returned datacenter
+        is an integer: 0, 1, 2, 3, etc.
+        """
+        return self._ip_address_to_dc.get(ip_address,-1)
+
+    def cassandras_in_dc(self, dc):
+        """
+        Return the Cassandra database nodes in the given datacenter. The specified data center dc should
+        be an integer: 0, 1, 2, 3, etc.
+        """
+        if not isinstance(dc, str):
+            dc = "dc%s"%dc
+        return self._cassandras_in_dc[dc]
 
     def stunnel_key_files(self, hostname, action):
         target = os.path.join(BASE, SECRETS)

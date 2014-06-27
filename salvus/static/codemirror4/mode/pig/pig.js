@@ -1,3 +1,6 @@
+// CodeMirror, copyright (c) by Marijn Haverbeke and others
+// Distributed under an MIT license: http://codemirror.net/LICENSE
+
 /*
  *      Pig Latin Mode for CodeMirror 2
  *      @author Prasanth Jayachandran
@@ -178,6 +181,8 @@ CodeMirror.defineMode("pig", function(_config, parserConfig) {
     keywords: keywords(pKeywords),
     types: keywords(pTypes)
   });
+
+  CodeMirror.registerHelper("hintWords", "pig", (pBuiltins + pTypes + pKeywords).split(" "));
 }());
 
 });

@@ -83,19 +83,33 @@ $.fn.extend
             tex : undefined
             display : false
             inline  : false
+            cb      : undefined     # if defined, gets called as cb(t) for *every* element t in the jquery set!
         @each () ->
             t = $(this)
-            if opts.tex?
-                tex = opts.tex
+            if not opts.tex? and not opts.display and not opts.inline
+                # Doing this test is still much better than calling mathjax below, since I guess
+                # it doesn't do a simple test first... and mathjax is painful.
+                html = t.html()
+                if html.indexOf('$') == -1 and html.indexOf('\\') == -1
+                    return t
+                # this is a common special case - the code below would work, but would be
+                # stupid, since it involves converting back and forth between html
+                element = t
             else
-                tex = t.html()
-            if opts.display
-                tex = "$${#{tex}}$$"
-            else if opts.inline
-                tex = "\\({#{tex}}\\)"
-            element = t.html(tex)
+                if opts.tex?
+                    tex = opts.tex
+                else
+                    tex = t.html()
+                if opts.display
+                    tex = "$${#{tex}}$$"
+                else if opts.inline
+                    tex = "\\({#{tex}}\\)"
+                element = t.html(tex)
             MathJax.Hub.Queue(["Typeset", MathJax.Hub, element[0]])
+            if opts.cb?
+                MathJax.Hub.Queue([opts.cb, t])
             return t
+
 
 # Mathjax-enabled Contenteditable Editor plugin
 $.fn.extend
@@ -405,6 +419,21 @@ exports.download_file = (url) ->
     iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
     setTimeout((() -> iframe.remove()), 30000)
 
+# Get the DOM node that the currently selected text starts at, as a jquery wrapped object
+exports.get_selection_start_node = () ->
+    node = undefined
+    selection = undefined
+    if window.getSelection # FF3.6, Safari4, Chrome5 (DOM Standards)
+        selection = getSelection()
+        node = selection.anchorNode
+    if not node and document.selection # IE
+        selection = document.selection
+        range = (if selection.getRangeAt then selection.getRangeAt(0) else selection.createRange())
+        node = (if range.commonAncestorContainer then range.commonAncestorContainer else (if range.parentElement then range.parentElement() else range.item(0)))
+    if node
+        $(if node.nodeName is "#text" then node.parentNode else node)
+    else
+        $()
 
 ###
 # This doesn't work yet, since it can only work when this is a
@@ -424,3 +453,26 @@ exports.copy_to_clipboard = (text) ->
     document.execCommand("Copy", false, null)
     document.body.removeChild(copyDiv)
 ###
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,5 +1,6 @@
 .close-button-x {
     font-size: 18px;
+    position: relative;
 }
 
 .close-button-x:hover {
@@ -11,6 +12,34 @@
     font-size:18px;
 }
 
+.nav.buttons {
+    margin: 0;
+}
+
+.nav-projects-placeholder {
+    -webkit-box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
+    -moz-box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
+    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
+}
+
+.nav.projects li.ui-sortable-helper {
+    color: #555555;
+    text-decoration: none;
+    background-color: #ffffff;
+    -webkit-box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
+    -moz-box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
+    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
+}
+
+.nav.pull-right {
+    float: right;
+}
+
+.nav.projects {
+    float: none;
+    overflow: hidden;
+}
+
 .salvus-connection-status {
     width       : 6.5em;
     font-size   : 10pt;
@@ -18,6 +47,10 @@
     cursor      : default;
     margin-top  : 2ex;
     margin-right: 1ex;
+}
+
+.salvus-connection-status-protocol-bad {
+    color : #f55;
 }
 
 .salvus-top_navbar {
@@ -49,6 +82,7 @@
     padding:4px;
     color: #999;
     font-weight: bold;
+    background-color: #eee;
 }
 
 .salvus-fullscreen-deactivate:hover {
@@ -74,4 +108,13 @@
 
 .salvus-connection-status:hover {
     color: #222
+}
+
+.top_navbar-button-link {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.top_navbar-button-template {
+    white-space: nowrap;
 }

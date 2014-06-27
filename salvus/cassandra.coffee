@@ -68,7 +68,7 @@ higher_consistency = (consistency) ->
     i = CONSISTENCIES.indexOf(consistency)
     if i == -1
         # unknown -- ?
-        return cql.types.consistencies.quorum # official default
+        return cql.types.consistencies.localQuorum
     else
         return CONSISTENCIES[Math.min(CONSISTENCIES.length-1,i+1)]
 
@@ -109,21 +109,23 @@ exports.create_schema = (conn, cb) ->
 class UUIDStore
     set: (opts) ->
         opts = defaults opts,
-            uuid  : undefined
-            value : undefined
-            ttl   : 0
-            cb    : undefined
+            uuid        : undefined
+            value       : undefined
+            ttl         : 0
+            consistency : undefined
+            cb          : undefined
         if not opts.uuid?
             opts.uuid = uuid.v4()
         else
             if not misc.is_valid_uuid_string(opts.uuid)
                 throw "invalid uuid #{opts.uuid}"
         @cassandra.update
-            table : @_table
-            where : {name:@opts.name, uuid:opts.uuid}
-            set   : {value:@_to_db(opts.value)}
-            ttl   : opts.ttl
-            cb    : opts.cb
+            table       : @_table
+            where       : {name:@opts.name, uuid:opts.uuid}
+            set         : {value:@_to_db(opts.value)}
+            ttl         : opts.ttl
+            consistency : opts.consistency
+            cb          : opts.cb
         return opts.uuid
 
     # returns 0 if there is no ttl set; undefined if no object in table
@@ -203,15 +205,17 @@ class UUIDStore
 
     get: (opts) ->
         opts = defaults opts,
-            uuid : required
-            cb   : required
+            uuid        : required
+            consistency : undefined
+            cb          : required
         if not misc.is_valid_uuid_string(opts.uuid)
             opts.cb("invalid uuid #{opts.uuid}")
         @cassandra.select
-            table   : @_table
-            columns : ['value']
-            where   : {name:@opts.name, uuid:opts.uuid}
-            cb      : (err, results) =>
+            table       : @_table
+            columns     : ['value']
+            where       : {name:@opts.name, uuid:opts.uuid}
+            consistency : opts.consistency
+            cb          : (err, results) =>
                 if err
                     opts.cb(err)
                 else
@@ -291,30 +295,34 @@ class KeyValueStore
 
     set: (opts={}) =>
         opts = defaults opts,
-            key   : undefined
-            value : undefined
-            ttl   : 0
-            cb    : undefined
+            key         : undefined
+            value       : undefined
+            ttl         : 0
+            consistency : undefined
+            cb          : undefined
 
          @cassandra.update
-            table:'key_value'
-            where:{name:@opts.name, key:to_json(opts.key)}
-            set:{value:to_json(opts.value)}
-            ttl:opts.ttl
-            cb:opts.cb
+            table       : 'key_value'
+            where       : {name:@opts.name, key:to_json(opts.key)}
+            set         : {value:to_json(opts.value)}
+            ttl         : opts.ttl
+            consistency : opts.consistency
+            cb          : opts.cb
 
     get: (opts={}) =>
         opts = defaults opts,
-            key       : undefined
-            cb        : undefined  # cb(error, value)
-            timestamp : false      # if specified, result is {value:the_value, timestamp:the_timestamp} instead of just value.
+            key         : undefined
+            timestamp   : false      # if specified, result is {value:the_value, timestamp:the_timestamp} instead of just value.
+            consistency : undefined
+            cb          : undefined  # cb(error, value)
         if opts.timestamp
             @cassandra.select
-                table     : 'key_value'
-                columns   : ['value']
-                timestamp : ['value']
-                where     : {name:@opts.name, key:to_json(opts.key)}
-                cb : (error, results) =>
+                table       : 'key_value'
+                columns     : ['value']
+                timestamp   : ['value']
+                where       : {name:@opts.name, key:to_json(opts.key)}
+                consistency : opts.consistency
+                cb          : (error, results) =>
                     if error
                         opts.cb?(error)
                     else
@@ -389,7 +397,7 @@ class exports.Cassandra extends EventEmitter
         @query_max_retry = opts.query_max_retry
 
         if opts.hosts.length == 1
-            # the default QUORUM won't work if there is only one node.
+            # the default consistency won't work if there is only one node.
             opts.consistency = 1
 
         @consistency = opts.consistency  # the default consistency (for now)
@@ -537,9 +545,10 @@ class exports.Cassandra extends EventEmitter
     # ** This is highly inefficient in general and doesn't scale.  PAIN.  **
     count: (opts) ->
         opts = defaults opts,
-            table : required
-            where : {}
-            cb    : required   # cb(err, the count if delta=set=undefined)
+            table       : required
+            where       : {}
+            consistency : undefined
+            cb          : required   # cb(err, the count if delta=set=undefined)
 
         query = "SELECT COUNT(*) FROM #{opts.table}"
         vals = []
@@ -547,7 +556,7 @@ class exports.Cassandra extends EventEmitter
             where = @_where(opts.where, vals)
             query += " WHERE #{where}"
 
-        @cql query, vals, (err, results) =>
+        @cql query, vals, opts.consistency, (err, results) =>
             if err
                 opts.cb(err)
             else
@@ -769,7 +778,7 @@ class exports.Salvus extends exports.Cassandra
 
     # all_users: cb(err, array of {first_name:?, last_name:?, account_id:?, search:'names and email thing to search'})
     #
-    # No matter how often all_users is called, it is only updated at most once every 60 seconds, since it is expensive
+    # No matter how often all_users is called, it is only updated at most once every 5 minutes, since it is expensive
     # to scan the entire database, and the client will typically make numerous requests within seconds for
     # different searches.  When some time elapses and we get a search, if we have an old cached list in memory, we
     # use it and THEN start computing a new one -- so user queries are always answered nearly instantly, but only
@@ -815,7 +824,7 @@ class exports.Salvus extends exports.Cassandra
                 @_all_users_fresh = true
                 f = () =>
                     delete @_all_users_fresh
-                setTimeout(f, 60000)   # cache for 1 minute
+                setTimeout(f, 5*60000)   # cache for 5 minutes
 
     user_search: (opts) =>
         opts = defaults opts,
@@ -1192,6 +1201,7 @@ class exports.Salvus extends exports.Cassandra
             cb            : required
             email_address : undefined     # provide either email or account_id (not both)
             account_id    : undefined
+            consistency   : 1
             columns       : ['account_id', 'password_hash',
                              'first_name', 'last_name', 'email_address',
                              'default_system', 'evaluate_key',
@@ -1210,11 +1220,12 @@ class exports.Salvus extends exports.Cassandra
                     cb("either the email_address or account_id must be specified")
                 else
                     @select
-                        table     : 'email_address_to_account_id'
-                        where     : {email_address:opts.email_address}
-                        columns   : ['account_id']
-                        objectify : false
-                        cb        : (err, results) =>
+                        table       : 'email_address_to_account_id'
+                        where       : {email_address:opts.email_address}
+                        columns     : ['account_id']
+                        objectify   : false
+                        consistency : opts.consistency
+                        cb          : (err, results) =>
                             if err
                                 cb(err)
                             else if results.length == 0
@@ -1225,12 +1236,13 @@ class exports.Salvus extends exports.Cassandra
                                 cb()
             (cb) =>
                 @select
-                    table     : 'accounts'
-                    where     : {account_id : opts.account_id}
-                    columns   : opts.columns
-                    objectify : true
-                    json      : ['terminal', 'editor_settings', 'other_settings']
-                    cb        : (error, results) ->
+                    table       : 'accounts'
+                    where       : {account_id : opts.account_id}
+                    columns     : opts.columns
+                    objectify   : true
+                    json        : ['terminal', 'editor_settings', 'other_settings']
+                    consistency : opts.consistency
+                    cb          : (error, results) ->
                         if error
                             cb(error)
                         else if results.length == 0
@@ -1264,9 +1276,10 @@ class exports.Salvus extends exports.Cassandra
                 else
                     dbg("filling cache")
                     @select
-                        table   : 'banned_email_addresses'
-                        columns : ['email_address']
-                        cb      : (err, results) =>
+                        table       : 'banned_email_addresses'
+                        columns     : ['email_address']
+                        consistency : 1
+                        cb          : (err, results) =>
                             if err
                                 cb(err); return
                             @_account_is_banned_cache = {}
@@ -1275,7 +1288,7 @@ class exports.Salvus extends exports.Cassandra
                             banned_accounts = @_account_is_banned_cache
                             f = () =>
                                 delete @_account_is_banned_cache
-                            setTimeout(f, 60000)    # cache db lookups for 1 minute
+                            setTimeout(f, 10*60000)    # cache db lookups for 10 minutes
                             cb()
             (cb) =>
                 if opts.email_address?
@@ -1284,9 +1297,10 @@ class exports.Salvus extends exports.Cassandra
                 else
                     dbg("determining email address from account id")
                     @select_one
-                        table   : 'accounts'
-                        columns : ['email_address']
-                        cb      : (err, result) =>
+                        table       : 'accounts'
+                        columns     : ['email_address']
+                        consistency : 1
+                        cb          : (err, result) =>
                             if err
                                 cb(err); return
                             email_address = result[0]
@@ -1591,16 +1605,18 @@ class exports.Salvus extends exports.Cassandra
 
     get_project_data: (opts) =>
         opts = defaults opts,
-            project_id : required
-            columns    : required
-            objectify  : false
-            cb         : required
+            project_id  : required
+            columns     : required
+            objectify   : false
+            consistency : undefined
+            cb          : required
         @select_one
-            table   : 'projects'
-            where   : {project_id: opts.project_id}
-            columns : opts.columns
-            objectify : opts.objectify
-            cb      : opts.cb
+            table       : 'projects'
+            where       : {project_id: opts.project_id}
+            columns     : opts.columns
+            objectify   : opts.objectify
+            consistency : opts.consistency
+            cb          : opts.cb
 
     # get map {project_group:[{account_id:?,first_name:?,last_name:?}], ...}
     get_project_users: (opts) =>
@@ -1893,15 +1909,17 @@ class exports.Salvus extends exports.Cassandra
     # cb(err, true if user is in one of the groups)
     user_is_in_project_group: (opts) =>
         opts = defaults opts,
-            project_id : required
-            account_id : required
-            groups     : required  # array of elts of PROJECT_GROUPS above
-            cb         : required  # cb(err)
+            project_id  : required
+            account_id  : required
+            groups      : required  # array of elts of PROJECT_GROUPS above
+            consistency : undefined
+            cb          : required  # cb(err)
         @get_project_data
-            project_id : opts.project_id
-            columns    : opts.groups
-            objectify  : false
-            cb         : (err, result) ->
+            project_id  : opts.project_id
+            columns     : opts.groups
+            objectify   : false
+            consistency : opts.consistency
+            cb          : (err, result) ->
                 if err
                     opts.cb(err)
                 else

@@ -376,7 +376,11 @@ class exports.Connection extends EventEmitter
             when "signed_in"
                 @account_id = mesg.account_id
                 @_signed_in = true
+                localStorage['remember_me'] = mesg.email_address
                 @emit("signed_in", mesg)
+            when "remember_me_failed"
+                delete localStorage['remember_me']
+                @emit(mesg.event, mesg)
             when "project_list_updated", 'project_data_changed'
                 @emit(mesg.event, mesg)
             when "codemirror_diffsync_ready"
@@ -1642,7 +1646,7 @@ class exports.Connection extends EventEmitter
     in_fullscreen_mode: (state) =>
         if state?
             @_fullscreen_mode = state
-        return $(window).width() <=979 or @_fullscreen_mode
+        return $(window).width() <= 979 or @_fullscreen_mode
 
     #################################################
     # Tasks

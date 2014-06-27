@@ -1,3 +1,6 @@
+// CodeMirror, copyright (c) by Marijn Haverbeke and others
+// Distributed under an MIT license: http://codemirror.net/LICENSE
+
 /**
  * Author: Hans Engel
  * Branched from CodeMirror's Scheme mode (by Koh Zi Han, based on implementation by Koh Zi Chun)
@@ -56,7 +59,7 @@ CodeMirror.defineMode("clojure", function (options) {
         sign: /[+-]/,
         exponent: /e/i,
         keyword_char: /[^\s\(\[\;\)\]]/,
-        symbol: /[\w*+!\-\._?:\/]/
+        symbol: /[\w*+!\-\._?:<>\/]/
     };
 
     function stateStack(indent, type, prev) { // represents a state stack object
