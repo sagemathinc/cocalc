@@ -35,9 +35,6 @@ if hostname.startswith('compute'):
     # Delete secrets that aren't needed for the *compute machines* (only web machines)
     os.system('rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra')
 
-    # Start our low-level iptables mostly-outgoing-blocking firewall
-    os.system('cd /root/smc-iptables; ./restart.sh')
-
     if False:
         # Store crontabs in persistent storage, so they don't vanish on VM restart
         # disabled -- need to do something that takes into account how projects can move.
@@ -51,16 +48,16 @@ if hostname.startswith('compute'):
 
 
     # Start the bup storage server:
-    if hostname.startswith('compute'):
-        os.system("umount /projects; umount /bup/conf; umount /bup/bups; zpool import -f bup; zfs set mountpoint=/projects bup/projects; chmod og-r /projects")
-        # It's critical to start tinc *after* the above ZFS pools are mounted (so we don't get rsync'd), but before we start bup_server (which needs to know the tun0 address)
-        os.system("nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd")
+    os.system("umount /projects; umount /bup/conf; umount /bup/bups; zpool import -f bup; zfs set mountpoint=/projects bup/projects; chmod og-r /projects")
+    # It's critical to start tinc *after* the above ZFS pools are mounted (so we don't get rsync'd), but before we start bup_server (which needs to know the tun0 address)
+    os.system("nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd")
 
-        os.system("su - salvus -c 'cd /home/salvus/salvus/salvus/&& . salvus-env&& ./bup_server start'")
-        # Install crontab for snapshotting the bup pool, etc.
-        os.system("crontab /home/salvus/salvus/salvus/scripts/root-compute.crontab")
+    os.system("su - salvus -c 'cd /home/salvus/salvus/salvus/&& . salvus-env&& ./bup_server start'")
+    # Install crontab for snapshotting the bup pool, etc.
+    os.system("crontab /home/salvus/salvus/salvus/scripts/root-compute.crontab")
 
-        
+    # Start our low-level iptables mostly-outgoing-blocking firewall
+    os.system('cd /root/smc-iptables; ./restart.sh')
         
 # Lock down some perms a little, just in case I were to mess up somehow at some point
 os.system("chmod og-rwx -R /home/salvus/&")
