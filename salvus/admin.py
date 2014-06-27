@@ -1665,6 +1665,7 @@ class Monitor(object):
         Run a full monitor scan when the current time in *minutes* since the epoch
         is congruent to residue modulo interval.
         """
+        self._services._hosts.password()  # ensure known for self-healing
         import time
         last_time = 0
         while True:
