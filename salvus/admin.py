@@ -1838,6 +1838,12 @@ class Services(object):
         else:
             timeout = 60
 
+        for t in ['hub', 'nginx', 'proxy']:
+            s = '%s_servers'%t
+            if s in options:
+                # restrict to the subset of hub_servers in the same data center
+                dc = self.ip_address_to_dc(address)
+                options[s] = [x for x in options[s] if self.ip_address_to_dc(x['ip']) == dc]
 
         if 'id' not in options:
             options['id'] = 0
