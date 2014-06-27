@@ -1841,7 +1841,7 @@ class Services(object):
         for t in ['hub', 'nginx', 'proxy']:
             s = '%s_servers'%t
             if s in options:
-                # restrict to the subset of hub_servers in the same data center
+                # restrict to the subset of servers in the same data center
                 dc = self.ip_address_to_dc(address)
                 options[s] = [x for x in options[s] if self.ip_address_to_dc(x['ip']) == dc]
 
@@ -1849,7 +1849,7 @@ class Services(object):
             options['id'] = 0
 
         if 'monitor_database' in options:
-            db_string=''
+            db_string = ''
         else:
             db_string = db_string + ', '
 
