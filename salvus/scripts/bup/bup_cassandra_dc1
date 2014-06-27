@@ -28,6 +28,7 @@ for i, server_id in enumerate(v):
     print host
     cmd("time bup on root@%s init"%host)
     # get the project id's on that machine
+    # TODO: need to maybe pay attention to timestamps to avoid wasting tons of time!
     a = cmd("ssh root@%s 'ls /bup/bups'"%host).splitlines()
     a.sort()
     for s in "0123456789abcdef":
