@@ -311,7 +311,7 @@ NODE_MODULES = [
     'validator',
     'async',
     'password-hash',
-    'emailjs@0.3.4',   # version hold back because of https://github.com/eleith/emailjs/commits/master
+    'nodemailer',
     'cookies',
     'htmlparser',
     'mime',
