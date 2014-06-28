@@ -313,7 +313,7 @@ class Console extends EventEmitter
         f = () =>
             if @_rendering_is_paused
                 @element.find("a[href=#pause]").addClass('btn-success').find('i').addClass('fa-play').removeClass('fa-pause')
-                @element.find(".salvus-console-terminal").css('opacity':'0.7')
+                @element.find(".salvus-console-terminal")
         if immediate
             f()
         else
@@ -330,7 +330,7 @@ class Console extends EventEmitter
         # current selection instead of the post-render empty version.
         setTimeout(f, 0)
         @element.find("a[href=#pause]").removeClass('btn-success').find('i').addClass('fa-pause').removeClass('fa-play')
-        @element.find(".salvus-console-terminal").css('opacity':'')
+        @element.find(".salvus-console-terminal")
 
     #######################################################################
     # Private Methods
