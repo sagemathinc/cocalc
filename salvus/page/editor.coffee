@@ -2630,7 +2630,7 @@ class LatexEditor extends FileEditor
                 if z.indexOf('%sagemathcloud=') != -1
                     m = n
                     break
-            cm.setLine(m, line)
+            cm.replaceRange(line+'\n', {line:m,ch:0}, {line:m+1,ch:0})
         else
             cm.replaceRange('\n'+line, {line:cm.doc.lastLine()+1,ch:0})
         @latex_editor.syncdoc.sync()
