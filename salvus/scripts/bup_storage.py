@@ -97,7 +97,8 @@ DEFAULT_SETTINGS = {
     'cores'      : 1,
     'login_shell': '/bin/bash',
     'mintime'    : 60*60*3,  # default = 3 hours idle (no save) time before kill
-    'inode'      : 200000   # not used with ZFS
+    'inode'      : 200000,  # not used with ZFS
+    'network'    : False
 }
 
 FILESYSTEM = 'zfs'   # 'zfs' or 'ext4'
