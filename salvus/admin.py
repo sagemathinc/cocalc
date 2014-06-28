@@ -539,8 +539,15 @@ class Haproxy(Process):
 
         if proxy_servers:
             random.shuffle(proxy_servers)
-            t = Template('server proxy$n $ip:$port cookie server:$ip:$port check inter 4000 maxconn $maxconn')
-            proxy_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('proxy_port', HUB_PROXY_PORT), maxconn=x.get('maxconn',100)) for
+            t = Template('server proxy$n $ip:$port cookie server:$ip:$cookie_port check inter 4000 maxconn $maxconn')
+            # WARNING: note that cookie_port -- that is the port in the cookie's value, is set to be 1 less, i.e., it is
+            # the corresponding hub port.  This could cause bugs/confusion if that convention were changed!!!!!!  ***
+            # We do this so we can use the same cookie for both the hub and proxy servers, for efficiency.
+            proxy_servers = '    ' + ('\n    '.join([t.substitute(n           = n,
+                                                                  ip          = x['ip'],
+                                                                  port        = x.get('proxy_port', HUB_PROXY_PORT),
+                                                                  cookie_port = x.get('proxy_port', HUB_PROXY_PORT)-1,
+                                                                  maxconn     = x.get('maxconn',100)) for
                                                      n, x in enumerate(proxy_servers)]))
 
         if insecure_redirect_port:
