@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+
+import os
+
+os.environ['BUP_DIR']="%s/vm/images/bup/bups-all"%os.environ["HOME"]
+
+def cmd(s):
+    print s
+    return os.popen(s).read()
+
+def cmd2(s):
+    print s
+    if os.system(s):
+        raise RuntimeError
+    return
+
+cmd("bup init")
+
+v = ['306ad75d-ffe0-43a4-911d-60b8cd133bc8', 'a7cc2a28-5e70-44d9-bbc7-1c5afea1fc9e', '4e4a8d4e-4efa-4435-8380-54795ef6eb8f',
+     '630910c8-d0ef-421f-894e-6f58a954f215', 'e06fb88a-1683-41d6-97d8-92e1f3fb5196', 'd47df269-f3a3-47ed-854b-17d6d31fa4fd',
+     'bc74ea05-4878-4c5c-90e2-facb70cfe338']
+
+for i, server_id in enumerate(v):
+    if server_id != '4e4a8d4e-4efa-4435-8380-54795ef6eb8f':
+        continue
+    j = i+1
+    host = '10.1.%s.5'%j
+    print host
+    cmd("time bup on root@%s init"%host)
+    # get the project id's on that machine
+    # TODO: need to maybe pay attention to timestamps to avoid wasting tons of time!
+    a = cmd("ssh root@%s 'ls /bup/bups'"%host).splitlines()
+    a.sort()
+    for s in "0123456789abcdef":
+        shard = ['/bup/bups/%s'%project_id for project_id in a if project_id.startswith(s)]
+        paths = ' '.join(shard)
+        cmd2("time bup on root@%s index %s"%(host, paths))
+        cmd2("time bup on root@%s save -n %s-shard-%s %s"%(host, server_id, s, paths))
+
+#cmd("time rsync -axvH --delete %s/ disk.math.washington.edu:bups-all/"%os.environ['BUP_DIR'])

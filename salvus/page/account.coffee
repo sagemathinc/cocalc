@@ -288,12 +288,15 @@ $(".salvus-sign_in-form").submit((event) -> sign_in(); return false)
 $("#sign_in-button").click((event) -> sign_in(); return false)
 
 sign_in = () ->
+    $("#sign_in-button").icon_spin(start:true)
     $("#sign_in-email").focus()
+
     salvus_client.sign_in
         email_address : $("#sign_in-email").val()
         password      : $("#sign_in-password").val()
         remember_me   : true
         cb            : (error, mesg) ->
+            $("#sign_in-button").icon_spin()
             if error
                 alert_message(type:"error", message: "There was an unexpected error during sign in.  Please try again later. #{error}")
                 return

@@ -2513,10 +2513,11 @@ class ClientProject
             inode      : undefined
             mintime    : undefined
             login_shell: undefined
+            network    : undefined
             cb         : undefined
 
         param = []
-        for x in ['memory', 'cpu_shares', 'cores', 'disk', 'scratch', 'inode', 'mintime', 'login_shell']
+        for x in ['memory', 'cpu_shares', 'cores', 'disk', 'scratch', 'inode', 'mintime', 'login_shell', 'network']
             if opts[x]?
                 param.push("--#{x}")
                 param.push(opts[x])

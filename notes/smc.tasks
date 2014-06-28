@@ -264,3 +264,6 @@
 {"desc":"#now #sd59 #install\nupdate to new bup versions:\n\n  - [x] systemwide bup = with caching, etc. bup-1\n  - [x] another bup with get.","position":-181.99695694446564,"last_edited":1403661977715,"task_id":"0424f72d-3128-4dbc-bf98-a411a5f5fac5","done":1403661977301}
 {"desc":"#build\nadd neovim instructions:\n\n        cd /tmp; rm -rf neovim; unset MAKE; git clone https://github.com/neovim/neovim; cd neovim; make\n        umask 022\n        sudo make install","position":-181.99696069955826,"last_edited":1403670067572,"task_id":"a5d2ca2e-44a1-471e-93df-ed4d8c56da11"}
 {"desc":"#cassandra #upgrade\n\nThe log says:\n> OpenJDK is not recommended. Please upgrade to the newest Oracle Java release","position":-181.99694818258286,"last_edited":1403717748683,"task_id":"22f14d90-7ef6-403d-b11a-9f69781ab567"}
+{"desc":"#bup\ndelete save logs\n\n    time rm -v */conf/save_log.json","position":-40.375,"last_edited":1403888524689,"task_id":"45724c1d-1edc-4dfb-bf8a-5d4b58e1e9ed"}
+{"desc":"(1:15?) #gce\n\nstatic ip addresses...","position":-40.4375,"last_edited":1403898443123,"task_id":"b08a7e00-c500-41ac-99c2-0912946230a1"}
+{"desc":"(0:30?) #gce\n\nadd http-server to gce instance script.","position":-40.40625,"last_edited":1403898460796,"task_id":"eac977a1-5e53-4cb1-b91f-9e904da44d47"}

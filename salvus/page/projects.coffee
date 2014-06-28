@@ -12,11 +12,6 @@ misc            = require('misc')
 {human_readable_size} = require('misc_page')
 {account_settings} = require('account')
 
-top_navbar.on "switch_to_page-projects", () ->
-    window.history.pushState("", "", window.salvus_base_url + '/projects')
-    update_project_list?()
-    $(".projects-find-input").focus()
-
 templates = $(".salvus-projects-templates")
 
 project_list = undefined
@@ -34,15 +29,19 @@ compute_search_data = () ->
 
     # NOTE: create_project_item also adds to project.search, with info about the users of the projects
 
-project_list_spinner = $("#projects").find(".projects-project-list-spinner")
+project_list_spinner = $("a[href=#refresh-projects]").find('i')
+
+project_list_spin = () -> project_list_spinner.addClass('fa-spin')
+project_list_spin_stop = () -> project_list_spinner.removeClass('fa-spin')
 
 update_project_list = exports.update_project_list = (cb) ->
 
-    timer = setTimeout( (() -> project_list_spinner.show().spin()), 2500 )
+    timer = setTimeout(project_list_spin, if project_list? then 2000 else 1)
 
     salvus_client.get_projects
         cb: (error, mesg) ->
-            clearTimeout(timer); project_list_spinner.spin(false).hide()
+            clearTimeout(timer)
+            project_list_spin_stop()
 
             if not error and mesg.event == 'all_projects'
                 project_list = mesg.projects
@@ -65,16 +64,22 @@ update_project_list = exports.update_project_list = (cb) ->
 
             cb?()
 
+top_navbar.on "switch_to_page-projects", () ->
+    window.history.pushState("", "", window.salvus_base_url + '/projects')
+    update_project_list()
+    $(".projects-find-input").focus()
+
+
 project_refresh_button = $("#projects").find("a[href=#refresh-projects]").click () ->
-    project_refresh_button.addClass('fa-spin')
+    project_list_spin()
     update_project_list () ->
-        project_refresh_button.removeClass('fa-spin')
+        project_list_spin_stop()
     return false
 
 
 
 
-# update caused by update happenin on some other client
+# update caused by update happening on some other client
 salvus_client.on('project_list_updated', ((data) -> update_project_list()))
 
 # search as you type

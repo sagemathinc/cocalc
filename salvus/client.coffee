@@ -671,48 +671,43 @@ class exports.Connection extends EventEmitter
         @call(message:mesg, timeout:opts.timeout, cb:opts.cb)
 
     sign_in: (opts) ->
-        opts = defaults(opts,
+        opts = defaults opts,
             email_address : required
-            password     : required
-            remember_me  : false
-            cb           : required
-            timeout      : DEFAULT_TIMEOUT # seconds
-        )
-        @call(
+            password      : required
+            remember_me   : false
+            cb            : required
+            timeout       : DEFAULT_TIMEOUT # seconds
+
+        @call
             message : message.sign_in(email_address:opts.email_address, password:opts.password, remember_me:opts.remember_me)
             timeout : opts.timeout
             cb      : (error, mesg) =>
                 opts.cb(error, mesg)
-        )
 
     sign_out: (opts) ->
-        opts = defaults(opts,
+        opts = defaults opts,
             cb           : undefined
             timeout      : DEFAULT_TIMEOUT # seconds
-        )
 
         @account_id = undefined
 
-        @call(
+        @call
             message : message.sign_out()
             timeout : opts.timeout
             cb      : opts.cb
-        )
 
     change_password: (opts) ->
-        opts = defaults(opts,
+        opts = defaults opts,
             email_address : required
             old_password  : required
             new_password  : required
             cb            : undefined
-        )
-        @call(
-            message : message.change_password(
+        @call
+            message : message.change_password
                 email_address : opts.email_address
                 old_password  : opts.old_password
-                new_password  : opts.new_password)
+                new_password  : opts.new_password
             cb : opts.cb
-        )
 
     change_email: (opts) ->
         opts = defaults opts,
@@ -858,7 +853,6 @@ class exports.Connection extends EventEmitter
     feedback: (opts={}) ->
         opts = defaults opts,
             cb : required
-
         @call
             message: message.get_all_feedback_from_user()
             cb : (err, results) ->

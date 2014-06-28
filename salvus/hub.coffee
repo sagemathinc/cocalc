@@ -2164,6 +2164,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     restart: (cb) =>
         @dbg("restart")
         @project.restart(cb:cb)
+        delete @_status
+        delete @_socket
 
     # Send a JSON message to a session.
     # NOTE -- This makes no sense for console sessions, since they use a binary protocol,
@@ -2991,8 +2993,8 @@ sign_in = (client, mesg) =>
 
         # get account and check credentials
         (cb) ->
-            # Do not give away info about whether the e-mail address is valid:
-            error_mesg = "Invalid e-mail or password."
+            # NOTE: Despite people complaining, we do give away info about whether the e-mail address is for a valid user or not.
+            # There is no security in not doing this, since the same information can be determined via the invite collaborators feature.
             database.get_account
                 email_address : mesg.email_address
                 consistency   : 1
@@ -3002,7 +3004,7 @@ sign_in = (client, mesg) =>
                             ip_address    : client.ip_address
                             successful    : false
                             email_address : mesg.email_address
-                        sign_in_error(error_mesg)
+                        sign_in_error("There is no account with email address #{mesg.email_address}.")
                         cb(true); return
                     if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
                         record_sign_in
@@ -3010,7 +3012,7 @@ sign_in = (client, mesg) =>
                             successful    : false
                             email_address : mesg.email_address
                             account_id    : account.account_id
-                        sign_in_error(error_mesg)
+                        sign_in_error("Incorrect password.")
                         cb(true); return
                     else
 
@@ -3719,48 +3721,51 @@ get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
 # Sending emails
 #########################################
 
-emailjs = require('emailjs')
-email_server = null
+nodemailer   = require("nodemailer")
+email_server = undefined
 
-# here's how I test this function:  require('hub').send_email(subject:'subject', body:'body', to:'wstein@gmail.com', cb:winston.debug)
+# here's how I test this function:  require('hub').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@uw.edu', cb:console.log)
 exports.send_email = send_email = (opts={}) ->
     opts = defaults(opts,
         subject : required
         body    : required
-        from    : 'salvusmath@gmail.com'
+        from    : 'wstein@uw.edu'          # obviously change this at some point.  But it is the best "reply to right now"
         to      : required
         cc      : ''
         cb      : undefined)
 
     async.series([
         (cb) ->
-            if email_server == null
-                filename = 'data/secrets/salvusmath_email_password'
+            if not email_server?
+                filename = 'data/secrets/sendgrid_email_password'
                 require('fs').readFile(filename, 'utf8', (error, password) ->
                     if error
                         winston.info("Unable to read the file '#{filename}', which is needed to send emails.")
                         opts.cb(error)
-                    email_server  = emailjs.server.connect(
-                       user     : "salvusmath"
-                       password : password
-                       host     : "smtp.gmail.com"
-                       ssl      : true
-                    )
+                    email_server = nodemailer.createTransport "SMTP",
+                        service : "SendGrid"
+                        port    : 2525
+                        auth    :
+                            user: "wstein",
+                            pass: require('fs').readFileSync('data/secrets/sendgrid_email_password').toString().trim()
                     cb()
                 )
             else
                 cb()
         (cb) ->
-            email_server.send(
-               text : opts.body
-               from : opts.from
-               to   : opts.to
-               cc   : opts.cc
-               subject : opts.subject,
-            opts.cb)
-            cb()
-    ])
-
+            email_server.sendMail
+                from    : opts.from
+                to      : opts.to
+                text    : opts.body
+                subject : opts.subject
+                cc      : opts.cc,
+                cb
+    ], (err, message) ->
+        if err
+            # so next time it will try fresh to connect to email server, rather than being wrecked forever.
+            email_server = undefined
+        opts.cb?(err, message)
+    )
 
 
 ########################################

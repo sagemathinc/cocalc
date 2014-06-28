@@ -1606,7 +1606,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if opts.delete_output
             n = @find_output_line(pos.line)
             if n?
-                opts.cm.removeLine(n)
+                #opts.cm.removeLine(n)
+                opts.cm.replaceRange('',{line:n,ch:0},{line:n+1,ch:0})
                 @sync()
             return
 

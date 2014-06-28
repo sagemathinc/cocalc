@@ -539,8 +539,15 @@ class Haproxy(Process):
 
         if proxy_servers:
             random.shuffle(proxy_servers)
-            t = Template('server proxy$n $ip:$port cookie server:$ip:$port check inter 4000 maxconn $maxconn')
-            proxy_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('proxy_port', HUB_PROXY_PORT), maxconn=x.get('maxconn',100)) for
+            t = Template('server proxy$n $ip:$port cookie server:$ip:$cookie_port check inter 4000 maxconn $maxconn')
+            # WARNING: note that cookie_port -- that is the port in the cookie's value, is set to be 1 less, i.e., it is
+            # the corresponding hub port.  This could cause bugs/confusion if that convention were changed!!!!!!  ***
+            # We do this so we can use the same cookie for both the hub and proxy servers, for efficiency.
+            proxy_servers = '    ' + ('\n    '.join([t.substitute(n           = n,
+                                                                  ip          = x['ip'],
+                                                                  port        = x.get('proxy_port', HUB_PROXY_PORT),
+                                                                  cookie_port = str(int(x.get('proxy_port', HUB_PROXY_PORT))-1),
+                                                                  maxconn     = x.get('maxconn',100)) for
                                                      n, x in enumerate(proxy_servers)]))
 
         if insecure_redirect_port:
@@ -1665,6 +1672,7 @@ class Monitor(object):
         Run a full monitor scan when the current time in *minutes* since the epoch
         is congruent to residue modulo interval.
         """
+        self._services._hosts.password()  # ensure known for self-healing
         import time
         last_time = 0
         while True:
@@ -1841,7 +1849,7 @@ class Services(object):
         for t in ['hub', 'nginx', 'proxy']:
             s = '%s_servers'%t
             if s in options:
-                # restrict to the subset of hub_servers in the same data center
+                # restrict to the subset of servers in the same data center
                 dc = self.ip_address_to_dc(address)
                 options[s] = [x for x in options[s] if self.ip_address_to_dc(x['ip']) == dc]
 
@@ -1849,7 +1857,7 @@ class Services(object):
             options['id'] = 0
 
         if 'monitor_database' in options:
-            db_string=''
+            db_string = ''
         else:
             db_string = db_string + ', '
 
