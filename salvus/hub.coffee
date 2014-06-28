@@ -2993,8 +2993,8 @@ sign_in = (client, mesg) =>
 
         # get account and check credentials
         (cb) ->
-            # Do not give away info about whether the e-mail address is valid:
-            error_mesg = "Invalid e-mail or password."
+            # NOTE: Despite people complaining, we do give away info about whether the e-mail address is for a valid user or not.
+            # There is no security in not doing this, since the same information can be determined via the invite collaborators feature.
             database.get_account
                 email_address : mesg.email_address
                 consistency   : 1
@@ -3004,7 +3004,7 @@ sign_in = (client, mesg) =>
                             ip_address    : client.ip_address
                             successful    : false
                             email_address : mesg.email_address
-                        sign_in_error(error_mesg)
+                        sign_in_error("There is no account with email address #{mesg.email_address}.")
                         cb(true); return
                     if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
                         record_sign_in
@@ -3012,7 +3012,7 @@ sign_in = (client, mesg) =>
                             successful    : false
                             email_address : mesg.email_address
                             account_id    : account.account_id
-                        sign_in_error(error_mesg)
+                        sign_in_error("Incorrect password.")
                         cb(true); return
                     else
 
