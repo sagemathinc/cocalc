@@ -546,7 +546,7 @@ class Haproxy(Process):
             proxy_servers = '    ' + ('\n    '.join([t.substitute(n           = n,
                                                                   ip          = x['ip'],
                                                                   port        = x.get('proxy_port', HUB_PROXY_PORT),
-                                                                  cookie_port = x.get('proxy_port', HUB_PROXY_PORT)-1,
+                                                                  cookie_port = str(int(x.get('proxy_port', HUB_PROXY_PORT))-1),
                                                                   maxconn     = x.get('maxconn',100)) for
                                                      n, x in enumerate(proxy_servers)]))
 
