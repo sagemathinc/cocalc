@@ -2164,6 +2164,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     restart: (cb) =>
         @dbg("restart")
         @project.restart(cb:cb)
+        delete @_status
+        delete @_socket
 
     # Send a JSON message to a session.
     # NOTE -- This makes no sense for console sessions, since they use a binary protocol,
