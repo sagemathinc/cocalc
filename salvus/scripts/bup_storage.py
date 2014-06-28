@@ -68,6 +68,10 @@ import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, u
 from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
 
+UID_WHITELIST = "/root/smc-iptables/uid_whitelist"
+if not os.path.exists(UID_WHITELIST):
+    open(UID_WHITELIST,'w').close()
+
 # Flag to turn off all use of quotas, since it will take a while to set these up after migration.
 QUOTAS_ENABLED=True
 QUOTAS_OVERRIDE=0  # 0 = don't override
@@ -160,7 +164,6 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
     if timeout:
         mesg = "TIMEOUT: running '%s' took more than %s seconds, so killed"%(s, timeout)
         def handle(*a):
-
             if ignore_errors:
                 return mesg
             else:
@@ -636,8 +639,9 @@ class Project(object):
         cmd(['zfs', 'set', 'userquota@%s=none'%self.uid, '%s/scratch'%ZPOOL])
 
 
-    def settings(self, memory=None, cpu_shares=None, cores=None, disk=None,
-                         inode=None, login_shell=None, scratch=None, mintime=None):
+    def settings(self, memory  = None, cpu_shares  = None, cores   = None, disk    = None,
+                       inode   = None, login_shell = None, scratch = None, mintime = None,
+                       network = None):
         log = self._log('settings')
         log("configuring account...")
 
@@ -645,33 +649,40 @@ class Project(object):
 
         if memory is not None:
             settings['memory'] = int(memory)
-        else:
-            memory = settings['memory']
+        memory = settings['memory']
+
         if cpu_shares is not None:
             settings['cpu_shares'] = int(cpu_shares)
-        else:
-            cpu_shares = settings['cpu_shares']
+        cpu_shares = settings['cpu_shares']
+
         if cores is not None:
             settings['cores'] = float(cores)
-        else:
-            cores = settings['cores']
+        cores = settings['cores']
+
         if disk is not None:
             settings['disk'] = int(disk)
-        else:
-            disk = settings['disk']
+        disk = settings['disk']
+
         if scratch is not None:
             settings['scratch'] = int(scratch)
-        else:
-            scratch = settings['scratch']
+        scratch = settings['scratch']
+
         if inode is not None:
             settings['inode'] = int(inode)
-        else:
-            inode = settings['inode']
+        inode = settings['inode']
 
         if mintime is not None:
             settings['mintime'] = int(mintime)
-        else:
-            mintime= settings['mintime']
+        mintime = settings['mintime']
+
+        if network is not None:
+            if isinstance(network, str):
+                if network.lower() in ['0','false']:
+                    network = False
+                else:
+                    network = True
+            settings['network'] = bool(network)
+        network = settings['network']
 
         if login_shell is not None and os.path.exists(login_shell):
             settings['login_shell'] = login_shell
@@ -721,6 +732,22 @@ class Project(object):
             except:
                 pass
             self.cgclassify()
+
+        # open firewall whitelist for user if they have network access
+        restart_firewall = False
+        whitelisted_users = set([x.strip() for x in open(UID_WHITELIST).readlines()])
+        uid = str(self.uid)
+        if network and uid not in whitelisted_users:
+            # add to whitelist and restart
+            open(UID_WHITELIST,'a').write('\n' + uid + '\n')
+            restart_firewall = True
+        elif not network and uid in whitelisted_users:
+            # remove from whitelist and restart
+            s = '\n'.join([x for x in sorted(whitelisted_users) if x != uid])
+            open(UID_WHITELIST,'w').write(s)
+            restart_firewall = True
+        if restart_firewall:
+            self.cmd(['/root/smc-iptables/restart.sh'])
 
     def cgclassify(self):
         try:
@@ -1005,6 +1032,7 @@ if __name__ == "__main__":
     parser_settings.add_argument("--cores", dest="cores", help="max number of cores (may be float)",
                                type=float, default=None)
     parser_settings.add_argument("--disk", dest="disk", help="working disk space in megabytes", type=int, default=None)
+    parser_settings.add_argument("--network", dest="network", help="whether or not project has external network access", type=str, default=None)
     parser_settings.add_argument("--mintime", dest="mintime", help="minimum time in seconds before this project is automatically stopped if not saved", type=int, default=None)
     parser_settings.add_argument("--scratch", dest="scratch", help="scratch disk space in megabytes", type=int, default=None)
     parser_settings.add_argument("--inode", dest="inode", help="inode settings", type=int, default=None)
@@ -1012,7 +1040,7 @@ if __name__ == "__main__":
     parser_settings.set_defaults(func=lambda args: project.settings(
                     memory=args.memory, cpu_shares=args.cpu_shares,
                     cores=args.cores, disk=args.disk, inode=args.inode, scratch=args.scratch,
-                    login_shell=args.login_shell, mintime=args.mintime))
+                    login_shell=args.login_shell, mintime=args.mintime, network=args.network))
 
     parser_mount_remote = subparsers.add_parser('mount_remote',
                     help='Make it so /projects/project_id/remote_path (which is on the remote host) appears as a local directory at /projects/project_id/mount_point with ownership dynamically mapped so that the files appear owned by both projects (as they should).')
