@@ -956,6 +956,10 @@ class ProjectPage
                         usage.find(".salvus-project-settings-mintime").html(mintime)
                         usage.find(".salvus-project-settings-cpu_shares").text(Math.round(status.settings.cpu_shares/256))
                         usage.find(".salvus-project-settings-network").text(status.settings.network)
+                        if status.settings.network
+                            @container.find(".salvus-network-blocked").hide()
+                        else
+                            @container.find(".salvus-network-blocked").hid()
 
                     usage.show()
 
