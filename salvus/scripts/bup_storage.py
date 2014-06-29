@@ -800,8 +800,6 @@ class Project(object):
 
         If destructive is true, simply push from local to remote, overwriting anything that is remote.
         If destructive is false, pushes, then pulls, and makes a tag pointing at conflicts.
-
-
         """
         # NOTE: In the rsync's below we compress-in-transit the live project mount (-z),
         # but *NOT* the bup's, since they are already compressed.
@@ -811,15 +809,20 @@ class Project(object):
 
         remote_bup_path = os.path.join(BUP_PATH, self.project_id)
 
+        if ':' in remote:
+            remote, port = remote.split(':')
+        else:
+            port = 22
+
         if union:
             log("union stage 1: gather files from outside")
             self.cmd(['rsync', '--update', '-zaxH', '--timeout', rsync_timeout, '--bwlimit', bwlimit, "--ignore-errors"] + self.exclude('') +
-                          ['-e', 'ssh -o StrictHostKeyChecking=no',
+                          ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           "root@%s:%s/"%(remote, self.project_mnt),
                           self.project_mnt+'/'
                           ], ignore_errors=True)
             if snapshots:
-                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no',
+                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           "root@%s:%s/"%(remote, remote_bup_path),
                           self.bup_path+'/'
                           ], ignore_errors=False)
@@ -829,12 +832,12 @@ class Project(object):
         if union2:
             log("union stage 2: push back to form union")
             self.cmd(['rsync', '--update', '-zaxH', '--timeout', rsync_timeout, '--bwlimit', bwlimit, "--ignore-errors"] + self.exclude('') +
-                          ['-e', 'ssh -o StrictHostKeyChecking=no',
+                          ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           self.project_mnt+'/',
                           "root@%s:%s/"%(remote, self.project_mnt)
                           ], ignore_errors=True)
             if snapshots:
-                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no',
+                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           self.bup_path+'/',
                           "root@%s:%s/"%(remote, remote_bup_path)
                           ], ignore_errors=False)
@@ -844,7 +847,7 @@ class Project(object):
         if os.path.exists(self.project_mnt):
             def f(ignore_errors):
                 o = self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, '--delete-excluded', "--delete", "--ignore-errors"] + self.exclude('') +
-                          ['-e', 'ssh -o StrictHostKeyChecking=no',
+                          ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=True)
                 # include only lines that don't contain any of the following errors, since permission denied errors are standard with
                 # FUSE mounts, and there is no way to make rsync not report them (despite the -x option above).
@@ -858,7 +861,7 @@ class Project(object):
 
             e = f(ignore_errors=True)
             if QUOTAS_ENABLED and 'Disk quota exceeded' in e:
-                self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", 'root@'+remote,
+                self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", '-p', port, 'root@'+remote,
                           'zfs set userquota@%s=%sM %s/projects'%(
                                         self.uid, QUOTAS_OVERRIDE if QUOTAS_OVERRIDE else self.get_settings()['disk'], ZPOOL)])
                 f(ignore_errors=False)
@@ -871,12 +874,12 @@ class Project(object):
 
         if destructive:
             log("push so that remote=local: easier; have to do this after a recompact (say)")
-            self.cmd(["rsync", "-axH", '--delete-excluded', "--delete", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no',
+            self.cmd(["rsync", "-axH", '--delete-excluded', "--delete", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                       self.bup_path+'/', "root@%s:%s/"%(remote, remote_bup_path)])
             return
 
         log("get remote heads")
-        out = self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", 'root@'+remote,
+        out = self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", '-p', port, 'root@'+remote,
                         'grep -H \"\" %s/refs/heads/*'%remote_bup_path], ignore_errors=True)
         if 'such file or directory' in out:
             remote_heads = []
@@ -888,11 +891,11 @@ class Project(object):
                 a, b = x.split(':')[-2:]
                 remote_heads.append((os.path.split(a)[-1], b))
         log("sync from local to remote")
-        self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout, '--bwlimit', bwlimit,
+        self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port, '--timeout', rsync_timeout, '--bwlimit', bwlimit,
                   self.bup_path + '/', "root@%s:%s/"%(remote, remote_bup_path)])
         log("sync from remote back to local")
         # the -v is important below!
-        back = self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout, '--bwlimit', bwlimit,
+        back = self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port, '--timeout', rsync_timeout, '--bwlimit', bwlimit,
                          "root@%s:%s/"%(remote, remote_bup_path), self.bup_path + "/"]).splitlines()
         if remote_heads and len([x for x in back if x.endswith('.pack')]) > 0:
             log("there were remote packs possibly not available locally, so make tags that points to them")
@@ -908,7 +911,7 @@ class Project(object):
                     open(path,'w').write(id)
             if tag is not None:
                 log("sync back any tags")
-                self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
+                self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           '--timeout', rsync_timeout, '--bwlimit', bwlimit, self.bup_path+'/', 'root@'+remote+'/'])
 
     def mount_remote(self, remote_host, project_id, mount_point='', remote_path='', read_only=False):
