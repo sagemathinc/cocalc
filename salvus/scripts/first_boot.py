@@ -24,6 +24,9 @@ if hostname.startswith('devel'):
     # replace this secret by something harmless (don't just delete since hub.coffee assumes file exists)
     os.system('echo ""> /home/salvus/salvus/salvus/data/secrets/cassandra/hub')
 
+    # devel machines don't need this password...
+    os.system('echo ""> /home/salvus/salvus/salvus/data/secrets/sendgrid_email_password')
+
     # setup a fake pem
     os.system("cp /home/salvus/salvus/salvus/data/secrets/sagemath.com/nopassphrase.pem.fake /home/salvus/salvus/salvus/data/secrets/sagemath.com/nopassphrase.pem")
 
@@ -33,7 +36,7 @@ if hostname.startswith('devel'):
 
 if hostname.startswith('compute'):
     # Delete secrets that aren't needed for the *compute machines* (only web machines)
-    os.system('rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra')
+    os.system('rm -rf /home/salvus/salvus/salvus/data/secrets/')
 
     if False:
         # Store crontabs in persistent storage, so they don't vanish on VM restart
