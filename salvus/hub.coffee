@@ -1750,8 +1750,10 @@ class Client extends EventEmitter
                             cb()
                         else
                             # send an email to the user
+                            s = @signed_in_mesg
                             send_email
                                 to      : email_address
+                                from    : if s? then "#{s.first_name} #{s.last_name} <#{s.email_address}>" else undefined
                                 subject : "SageMathCloud Invitation"
                                 body    : email.replace("https://cloud.sagemath.com", "Sign up at https://cloud.sagemath.com using the email address #{email_address}.")
                                 cb      : cb
