@@ -267,3 +267,4 @@
 {"desc":"#bup\ndelete save logs\n\n    time rm -v */conf/save_log.json","position":-40.375,"last_edited":1403888524689,"task_id":"45724c1d-1edc-4dfb-bf8a-5d4b58e1e9ed"}
 {"desc":"(1:15?) #gce\n\nstatic ip addresses...","position":-40.4375,"last_edited":1403898443123,"task_id":"b08a7e00-c500-41ac-99c2-0912946230a1"}
 {"desc":"(0:30?) #gce\n\nadd http-server to gce instance script.","position":-40.40625,"last_edited":1403898460796,"task_id":"eac977a1-5e53-4cb1-b91f-9e904da44d47"}
+{"desc":"","position":-40.390625,"last_edited":1404063523580,"task_id":"52b71a11-7ac6-4a6c-90d8-67a929878e12","deleted":true}
