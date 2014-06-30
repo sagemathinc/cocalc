@@ -959,7 +959,7 @@ class ProjectPage
                         if status.settings.network
                             @container.find(".salvus-network-blocked").hide()
                         else
-                            @container.find(".salvus-network-blocked").hide()()
+                            @container.find(".salvus-network-blocked").hide()
 
                     usage.show()
 
