@@ -667,7 +667,7 @@ class exports.Editor
             if @active_tab? and @active_tab.filename == filename
                 @active_tab = undefined
 
-            if not @active_tab?
+            if @project_page.current_tab.name == 'project-editor' and not @active_tab?
                 next = link.next()
                 # skip past div's inserted by tooltips
                 while next.is("div")
@@ -680,7 +680,7 @@ class exports.Editor
             link.hide()
             link.remove()
 
-            if not @active_tab?
+            if @project_page.current_tab.name == 'project-editor' and not @active_tab?
                 # open last file if there is one
                 next_link = link_bar.find("li").last()
                 name = next_link.data('name')
