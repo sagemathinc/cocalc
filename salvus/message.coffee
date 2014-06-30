@@ -273,6 +273,16 @@ message
     content      : required
     readonly     : false       # if true, the file must be treated as "read-only" by the client.
 
+
+# turn on or off recording of revisions of a given synchronized editing file.
+# The file will be called
+message
+    event        : 'codemirror_revisions'
+    id           : undefined
+    session_uuid : required
+    enable       : required    # true or false  -- if true, start recording revisions for this file; if false, stop.
+
+
 # A list of edits that should be applied, along with the
 # last version of edits received before.
 # client <--> hub <--> local_hub
@@ -374,8 +384,6 @@ message
     id           : undefined
     session_uuid : required
     signal       : 2           # 2 = SIGINT, 3 = SIGQUIT, 9 = SIGKILL
-
-
 
 ############################################
 # Ping/pong

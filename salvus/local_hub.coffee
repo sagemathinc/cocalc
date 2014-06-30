@@ -50,6 +50,10 @@ check_file_size = (size) ->
         return e
 
 
+revision_tracking_path = (path) ->
+    s = misc.path_split(path)
+    return "#{s.head}/.#{s.tail}.sage-history"
+
 #####################################################################
 # Generate the "secret_token" file as
 # $SAGEMATHCLOUD/data/secret_token if it does not already
@@ -734,6 +738,7 @@ class DiffSyncFile_server extends diffsync.DiffSync
                     @_last_backup = x
                 cb?(err)
 
+
 # The live content of DiffSyncFile_client is our in-memory buffer.
 class DiffSyncFile_client extends diffsync.DiffSync
     constructor:(@server) ->
@@ -771,7 +776,6 @@ class CodeMirrorDiffSyncHub
         @write_mesg('diffsync_ready')
 
 
-# TODO:
 class CodeMirrorSession
     constructor: (mesg, cb) ->
         @path = mesg.path
@@ -1445,16 +1449,42 @@ class CodeMirrorSession
         @is_active = true
         socket.write_mesg('json', message.codemirror_content(id:mesg.id, content:@content))
 
+    # enable or disable tracking all revisions of the document
+    revisions: (socket, mesg) =>
+        winston.debug("revisions for #{@path}: #{mesg.enable}")
+        if mesg.enable
+            codemirror_sessions.connect
+                mesg :
+                    path       : revision_tracking_path(@path)
+                    project_id : INFO.project_id      # todo -- won't need in long run
+                cb   : (err, session) =>
+                    if err
+                        socket.write_mesg('json', message.error(id:mesg.id, error:err))
+                    else
+                        @revision_tracking = session
+                        socket.write_mesg('json', message.success(id:mesg.id))
+        else
+            delete @revision_tracking
+            socket.write_mesg('json', message.success(id:mesg.id))
+
 # Collection of all CodeMirror sessions hosted by this local_hub.
 
 class CodeMirrorSessions
     constructor: () ->
         @_sessions = {by_uuid:{}, by_path:{}, by_project:{}}
 
-    connect: (client_socket, mesg) =>
+    connect: (opts) =>
+        opts = defaults opts,
+            client_socket : undefined
+            mesg          : required    # event of type codemirror_get_session
+            cb            : undefined   # cb?(err, session)
+
+        mesg = opts.mesg
         finish = (session) ->
-            session.add_client(client_socket, mesg.client_id)
-            client_socket.write_mesg 'json', message.codemirror_session
+            if not opts.client_socket?
+                return
+            session.add_client(opts.client_socket, mesg.client_id)
+            opts.client_socket.write_mesg 'json', message.codemirror_session
                 id           : mesg.id,
                 session_uuid : session.session_uuid
                 path         : session.path
@@ -1476,13 +1506,15 @@ class CodeMirrorSessions
         mesg.session_uuid = uuid.v4()
         new CodeMirrorSession mesg, (err, session) =>
             if err
-                client_socket.write_mesg('json', message.error(id:mesg.id, error:err))
+                opts.client_socket?.write_mesg('json', message.error(id:mesg.id, error:err))
+                opts.cb?(err)
             else
                 @add_session_to_cache
                     session    : session
                     project_id : mesg.project_id
                     timeout    : 3600   # time in seconds (or undefined to not use timer)
                 finish(session)
+                opts.cb?(undefined, session)
 
     add_session_to_cache: (opts) =>
         opts = defaults opts,
@@ -1531,7 +1563,9 @@ class CodeMirrorSessions
     handle_mesg: (client_socket, mesg) =>
         winston.debug("CodeMirrorSessions.handle_mesg: '#{json(mesg)}'")
         if mesg.event == 'codemirror_get_session'
-            @connect(client_socket, mesg)
+            @connect
+                client_socket : client_socket
+                mesg          : mesg
             return
 
         # all other message types identify the session only by the uuid.
@@ -1551,6 +1585,8 @@ class CodeMirrorSessions
                 session.read_from_disk(client_socket, mesg)
             when 'codemirror_get_content'
                 session.get_content(client_socket, mesg)
+            when 'codemirror_revisions'  # enable/disable revisions
+                session.revisions(client_socket, mesg)
             when 'codemirror_execute_code'
                 session.sage_execute_code(client_socket, mesg)
             when 'codemirror_introspect'
