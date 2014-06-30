@@ -2192,5 +2192,47 @@ class Services(object):
         self.restart('hub')
 
 
+    def update_ssh_storage_server_access(self):
+        """
+          - query database for tinc address and server_id for all storage_servers
+          - for each, map the tinc address to the corresponding vm
+          - for uw machines: get the address from our conf script showing who hosts each vm
+          - for the google machines: get both addresses by querying gcutil
+        """
+        import cassandra
+        password = open(os.path.join(SECRETS, 'cassandra/monitor')).read().strip()
+        print cassandra.KEYSPACE
+
+        # Fill in disabled field for each compute node; this is useful to record in
+        # the monitor, and is used by the move project UI code.
+        for server_id, host in cassandra.cursor_execute(
+                "SELECT server_id,host FROM storage_servers WHERE dummy=true", user='monitor', password=password):
+            hostname = self._hosts._canonical_hostnames[host]
+            print server_id, host, "hostname='%s'"%hostname
+            # UW machine?
+            v = [x[0] for x in self._services['vm'] if x[1]['hostname'] == hostname]
+            value = {}
+            if v:
+                # yep, a UW vm.
+                value[-1] = socket.gethostbyname(v[0]) + ":2222"
+            else:
+                # Google Compute engine?
+                v = [x[0] for x in self._services['vmgce'] if x[1]['hostname'] == hostname]
+                if v:
+                    # Yep, it's a GCE machine: get the network info
+                    cmd = ['gcutil', '--project', 'sagemathcloud', 'getinstance', '--format','json', 'smc-%s'%hostname]
+                    z = json.loads(run(cmd, verbose=False, maxtime=60))
+                    google_ip   = z["networkInterfaces"][0]["networkIP"]
+                    external_ip = z["networkInterfaces"][0]["accessConfigs"][0]["natIP"]
+                    value[-1] = external_ip
+                    for i in [2,3,4]:   # 2 = us, 3 = europe, 4 = asia
+                        value[i] = google_ip
+                else:
+                    print("WARNING: unable to determine service of storage server: %s, %s"%(server_id, host))
+            print value
+            for dc, address in value.items():
+                query = "UPDATE storage_servers SET ssh[:dc]=:address WHERE dummy=true AND server_id=:server_id"
+                param = {'dc':dc, 'address':address, 'server_id':server_id}
+                cassandra.cursor_execute(query, param, user='monitor', password=password)
 
 
