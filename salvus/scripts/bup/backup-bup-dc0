@@ -14,12 +14,12 @@ def cmd(s):
 def cmd2(s):
     print s
     if os.system(s):
-        print "WARNING!"
+        print "WARNING!!"
     return
 
 cmd("bup init")
 
-for i in range(1,8):
+for i in range(10,22):
     host = '10.1.%s.5'%i
     print host
     cmd2("rsync -axvH --delete root@%s:/bup/bups/ %s/%s/"%(host, target, host))
