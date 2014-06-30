@@ -1823,7 +1823,6 @@ class Services(object):
                             raise RuntimeError("Error configuring a VM: hostname %s doesn't uniquely determine one ip address"%o['hostname'])
                         o['ip_address'] = addresses[0]
 
-
     def _hostopts(self, service, hostname, opts):
         """
         Return copy of pairs (hostname, options_dict) for the given
@@ -1918,6 +1917,10 @@ class Services(object):
             return misc.thread_map(self._do_action, w)
         else:
             return [self._do_action(*args, **kwds) for args, kwds in w]
+
+    def running_vms(self):
+        for k, v in sorted(self._hosts('kvm-host','virsh list', parallel=True).iteritems()):
+            print k[0], v['stdout']
 
     def ip_address_to_dc(self, ip_address):
         """

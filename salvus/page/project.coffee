@@ -955,6 +955,11 @@ class ProjectPage
                             mintime = "&infin;"
                         usage.find(".salvus-project-settings-mintime").html(mintime)
                         usage.find(".salvus-project-settings-cpu_shares").text(Math.round(status.settings.cpu_shares/256))
+                        usage.find(".salvus-project-settings-network").text(status.settings.network)
+                        if status.settings.network
+                            @container.find(".salvus-network-blocked").hide()
+                        else
+                            @container.find(".salvus-network-blocked").hid()
 
                     usage.show()
 
@@ -1530,7 +1535,7 @@ class ProjectPage
                         compare_name = name
 
                         # TODO: other unusual cases may need to be added here
-                        if ext == 'gz' 
+                        if ext == 'gz'
                             if name.indexOf(".synctex") != -1
                                 compare_name = name.slice(0,name.indexOf(".synctex"))
                             else
@@ -1981,7 +1986,7 @@ class ProjectPage
         page = @container.find(".project-activity")
         page.find("h1").icon_spin(start:true, delay:500)
         @_project_activity_log = page.find(".project-activity-log")
-         
+
         click_type_button = (event) =>
             button = $(event.delegateTarget)
             text = button.text()
@@ -1993,7 +1998,7 @@ class ProjectPage
                 localStorage["project-activity-button-#{text}"] = true
             @render_project_activity_log()
             return false
-            
+
         if window.salvus_base_url
             LOG_FILE = '.sagemathcloud-local.log'
         else
@@ -2155,7 +2160,7 @@ class ProjectPage
                         if z.length > stop
                             break
             lines = z
-                     
+
         lines = lines.slice(start, stop)
 
         template = $(".project-activity-templates")
