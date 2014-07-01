@@ -13,6 +13,9 @@ CREATE KEYSPACE salvus WITH replication = {
 };
 
 
+GRANT SELECT ON table storage_servers TO monitor;
+GRANT MODIFY ON table storage_servers TO monitor;
+
 */
 
 /* NOTE: as explained at https://cloud.sagemath.com/projects/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/files/salvus/salvus/db_schema.cql
