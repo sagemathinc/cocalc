@@ -51,6 +51,7 @@ chmod a+rwx /scratch
 
 zfs create $POOL/conf
 zfs set mountpoint=/bup/conf $POOL/conf
+zfs set compression=lz4 $POOL/conf
 chmod og-rwx /bup/conf
 chown salvus. /bup/conf
 
