@@ -49,6 +49,31 @@ check_file_size = (size) ->
         winston.debug(e)
         return e
 
+###
+# Revision tracking misc.
+###
+
+# Save the revision_tracking info for a file to disk *at most* this frequently.
+# NOTE: failing to save to disk would only mean missing a patch but should
+# otherwise *NOT* corrupt the history.
+REVISION_TRACKING_SAVE_INTERVAL = 45000   # 45 seconds
+
+# Filename of revision tracking file associated to a given file
+revision_tracking_path = (path) ->
+    s = misc.path_split(path)
+    return "#{s.head}/.#{s.tail}.sage-history"
+
+# Create dmp patch that transforms the empty string to s.
+### not used (so commented out), but could be useful...
+patch_from_trivial = (s) ->
+    return [
+        diffs   : [ [ 1, s ] ],
+        start1  : 0,
+        start2  : 0,
+        length1 : 0,
+        length2 : s.length }
+    ]
+###
 
 #####################################################################
 # Generate the "secret_token" file as
@@ -734,6 +759,7 @@ class DiffSyncFile_server extends diffsync.DiffSync
                     @_last_backup = x
                 cb?(err)
 
+
 # The live content of DiffSyncFile_client is our in-memory buffer.
 class DiffSyncFile_client extends diffsync.DiffSync
     constructor:(@server) ->
@@ -771,7 +797,6 @@ class CodeMirrorDiffSyncHub
         @write_mesg('diffsync_ready')
 
 
-# TODO:
 class CodeMirrorSession
     constructor: (mesg, cb) ->
         @path = mesg.path
@@ -1334,6 +1359,7 @@ class CodeMirrorSession
                     if changed
                         # We also suggest to other clients to update their state.
                         @tell_clients_to_update(mesg.client_id)
+                        @update_revision_tracking()
 
     tell_clients_to_update: (exclude) =>
         for id, ds_client of @diffsync_clients
@@ -1445,16 +1471,93 @@ class CodeMirrorSession
         @is_active = true
         socket.write_mesg('json', message.codemirror_content(id:mesg.id, content:@content))
 
+    # enable or disable tracking all revisions of the document
+    revision_tracking: (socket, mesg) =>
+        winston.debug("revision_tracking for #{@path}: #{mesg.enable}")
+        if mesg.enable
+            if @revision_tracking_doc?
+                # already enabled
+                socket.write_mesg('json', message.success(id:mesg.id))
+            else
+                # need to enable
+                codemirror_sessions.connect
+                    mesg :
+                        path       : revision_tracking_path(@path)
+                        project_id : INFO.project_id      # todo -- won't need in long run
+                    cb   : (err, session) =>
+                        if err
+                            socket.write_mesg('json', message.error(id:mesg.id, error:err))
+                        else
+                            @revision_tracking_doc = session
+                            socket.write_mesg('json', message.success(id:mesg.id))
+                            @update_revision_tracking()
+        else
+            delete @revision_tracking_doc
+            socket.write_mesg('json', message.success(id:mesg.id))
+
+    # If we are tracking the revision history of this file, add a new entry in that history.
+    # TODO: add user responsibile for this change as input to this function and as
+    # a field in the entry object below.   NOTE: Be sure to include "changing the file on disk"
+    # as one of the users, which is *NOT* defined by an account_id.
+    update_revision_tracking: () =>
+        if not @revision_tracking_doc?
+            return
+        winston.debug("update revision tracking data")
+        if not @revision_tracking_doc.HEAD?
+            if @revision_tracking_doc.content.length == 0
+                # brand new -- first time.
+                @revision_tracking_doc.HEAD = @content
+                @revision_tracking_doc.content = misc.to_json(@content)
+            else
+                i = @revision_tracking_doc.content.indexOf('\n')
+                if i == -1
+                    @revision_tracking_doc.HEAD = @revision_tracking_doc.content.slice(0,i)
+                else
+                    @revision_tracking_doc.HEAD = @revision_tracking_doc.content
+
+        if @revision_tracking_doc.HEAD != @content
+            # compute diff that transforms @revision_tracking_doc.HEAD to @content
+            patch = diffsync.dmp.patch_make(@content, @revision_tracking_doc.HEAD)
+            @revision_tracking_doc.HEAD = @content
+
+            # replace the file by new version that has first line equal to JSON version of HEAD,
+            # and rest all the patches, with our one new patch inserted at the front.
+            # TODO: redo without doing a split for efficiency.
+            i = @revision_tracking_doc.content.indexOf('\n')
+            entry = {patch:patch, time:new Date() - 0}
+            @revision_tracking_doc.content = misc.to_json(@content) + '\n' + \
+                        misc.to_json(entry) + \
+                        @revision_tracking_doc.content.slice(i)
+
+        # now tell everybody
+        @revision_tracking_doc._set_content_and_sync()
+
+        # save the revision tracking file to disk (but not too frequently)
+        if not @revision_tracking_save_timer?
+            f = () =>
+                delete @revision_tracking_save_timer
+                @revision_tracking_doc.sync_filesystem()
+            @revision_tracking_save_timer = setInterval(f, REVISION_TRACKING_SAVE_INTERVAL)
+
+
 # Collection of all CodeMirror sessions hosted by this local_hub.
 
 class CodeMirrorSessions
     constructor: () ->
         @_sessions = {by_uuid:{}, by_path:{}, by_project:{}}
 
-    connect: (client_socket, mesg) =>
+    connect: (opts) =>
+        opts = defaults opts,
+            client_socket : undefined
+            mesg          : required    # event of type codemirror_get_session
+            cb            : undefined   # cb?(err, session)
+
+        mesg = opts.mesg
         finish = (session) ->
-            session.add_client(client_socket, mesg.client_id)
-            client_socket.write_mesg 'json', message.codemirror_session
+            if not opts.client_socket?
+                return
+            session.add_client(opts.client_socket, mesg.client_id)
+            opts.client_socket.write_mesg 'json', message.codemirror_session
                 id           : mesg.id,
                 session_uuid : session.session_uuid
                 path         : session.path
@@ -1476,13 +1579,15 @@ class CodeMirrorSessions
         mesg.session_uuid = uuid.v4()
         new CodeMirrorSession mesg, (err, session) =>
             if err
-                client_socket.write_mesg('json', message.error(id:mesg.id, error:err))
+                opts.client_socket?.write_mesg('json', message.error(id:mesg.id, error:err))
+                opts.cb?(err)
             else
                 @add_session_to_cache
                     session    : session
                     project_id : mesg.project_id
                     timeout    : 3600   # time in seconds (or undefined to not use timer)
                 finish(session)
+                opts.cb?(undefined, session)
 
     add_session_to_cache: (opts) =>
         opts = defaults opts,
@@ -1531,7 +1636,9 @@ class CodeMirrorSessions
     handle_mesg: (client_socket, mesg) =>
         winston.debug("CodeMirrorSessions.handle_mesg: '#{json(mesg)}'")
         if mesg.event == 'codemirror_get_session'
-            @connect(client_socket, mesg)
+            @connect
+                client_socket : client_socket
+                mesg          : mesg
             return
 
         # all other message types identify the session only by the uuid.
@@ -1551,6 +1658,8 @@ class CodeMirrorSessions
                 session.read_from_disk(client_socket, mesg)
             when 'codemirror_get_content'
                 session.get_content(client_socket, mesg)
+            when 'codemirror_revision_tracking'  # enable/disable revision_tracking
+                session.revision_tracking(client_socket, mesg)
             when 'codemirror_execute_code'
                 session.sage_execute_code(client_socket, mesg)
             when 'codemirror_introspect'
