@@ -1653,6 +1653,38 @@ class GlobalClient
                     cb    : cb
         ], (err) => opts.cb?(err))
 
+    set_external_ssh: (opts) =>
+        opts = defaults opts,
+            server_id : required
+            dc        : -1       # -1 = default, works from anywhere;  0 = use from dc0,  1 = use from dc1, etc.
+            address   : required #  host[:port] to use when connecting from the given dc.
+            cb        : undefined
+        query = "UPDATE storage_servers SET ssh[?]=? WHERE dummy=true and server_id=?"
+        args  = [opts.dc, opts.address, opts.server_id]
+        @database.cql(query, args, cql.types.consistencies.one, opts.cb)
+
+    # get the address:port's that should be used to connect to the server with given
+    # id from the given data center.
+    get_external_ssh: (opts) =>
+        opts = defaults opts,
+            server_id : required
+            dc        : -1        # 0, 1, 2, etc., or -1 to connect from anywhere, albeit less efficiently.
+            cb        : required  # cb(err, 'address[:port]' if some address known; otherwise undefined)
+        @database.select_one
+            table   : 'storage_servers'
+            columns : ['ssh']
+            where   : {dummy:true, server_id:opts.server_id}
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    r = undefined
+                    k = result?[0]
+                    if k?
+                        r = k[opts.dc]
+                        if not r?
+                            r = k[-1]
+                    opts.cb(undefined, r)
 
     score_servers: (opts) =>
         opts = defaults opts,

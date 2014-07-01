@@ -30,7 +30,7 @@ template_project_branch_single = templates.find(".project-branch-single")
 template_project_collab        = templates.find(".project-collab")
 template_project_linked        = templates.find(".project-linked")
 
-################################O##################
+##################################################
 # Initialize the modal project management dialogs
 ##################################################
 delete_path_dialog = $("#project-delete-path-dialog")
@@ -959,7 +959,7 @@ class ProjectPage
                         if status.settings.network
                             @container.find(".salvus-network-blocked").hide()
                         else
-                            @container.find(".salvus-network-blocked").hid()
+                            @container.find(".salvus-network-blocked").hide()
 
                     usage.show()
 
@@ -1531,13 +1531,14 @@ class ProjectPage
                     for index in masked_file_bad_index
                         filename = listing.files[index].name
                         ext = filename_extension(filename)
-                        name = filename.slice(0,filename.length - ext.length - 1)
+                        name = filename.slice(0, filename.length - ext.length - 1)
                         compare_name = name
 
                         # TODO: other unusual cases may need to be added here
                         if ext == 'gz'
-                            if name.indexOf(".synctex") != -1
-                                compare_name = name.slice(0,name.indexOf(".synctex"))
+                            second_extension = 'synctex'
+                            if filename_extension(name) == second_extension
+                                compare_name = name.slice(0, name.length - second_extension.length - 1)
                             else
                                 continue
 
