@@ -277,7 +277,7 @@ message
 # turn on or off recording of revisions of a given synchronized editing file.
 # The file will be called
 message
-    event        : 'codemirror_revisions'
+    event        : 'codemirror_revision_tracking'
     id           : undefined
     session_uuid : required
     enable       : required    # true or false  -- if true, start recording revisions for this file; if false, stop.

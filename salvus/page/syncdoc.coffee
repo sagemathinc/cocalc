@@ -440,8 +440,9 @@ exports.synchronized_string = synchronized_string
 class SynchronizedDocument extends AbstractSynchronizedDoc
     constructor: (@editor, opts, cb) ->  # if given, cb will be called when done initializing.
         @opts = defaults opts,
-            cursor_interval : 1000
-            sync_interval   : 750   # never send sync messages up stream more often than this
+            cursor_interval   : 1000
+            sync_interval     : 750     # never send sync messages up stream more often than this
+            revision_tracking : false   # if true, save every revision in @.filename.sage-history
         @project_id = @editor.project_id
 
         @filename    = @editor.filename
@@ -573,6 +574,17 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     #console.log("now applying missed patches to the new upstream version that we just got from the hub: ", patch)
                     @_apply_patch_to_live(patch)
                     @emit 'sync'
+
+                if @opts.revision_tracking
+                    @call
+                        message : message.codemirror_revision_tracking
+                            session_uuid : @session_uuid
+                            enable       : true
+                        cb      : (err, resp) =>
+                            if resp.event == 'error'
+                                err = resp.error
+                            if err
+                                alert_message(type:"error", message:"error enabling revision saving -- #{err}")
 
     ui_loading: () =>
         @element.find(".salvus-editor-codemirror-loading").show()
