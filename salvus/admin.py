@@ -1675,7 +1675,15 @@ class Monitor(object):
         self._services._hosts.password()  # ensure known for self-healing
         import time
         last_time = 0
+        i = 0
         while True:
+            i += 1
+            if i % 20 == 0:
+                # update the external static ip address in the database every so often.
+                try:
+                    self._services.update_ssh_storage_server_access()
+                except Exception, msg:
+                    print "ERROR updating ssh storage server access! -- %s"%msg
             now = int(time.time()/60)  # minutes since epoch
             if now != last_time:
                 #print "%s minutes since epoch"%now
@@ -1689,7 +1697,6 @@ class Monitor(object):
                             self._go()
                         except:
                             print "ERROR"
-
             time.sleep(20)
 
 class Services(object):
@@ -2191,6 +2198,13 @@ class Services(object):
         self.restart('nginx')
         self.restart('hub')
 
+    def update_compute_firewall(self):
+        """
+        Pull new code from the upstream default repo into the smc-iptables repo on every compute
+        machine, and if this succeeds, then restart the firewall.  Do this after pushing new
+        whitelist rules, etc.
+        """
+        self._hosts('compute-2', 'cd /root/smc-iptables && git pull && ./restart.sh ', username='root', parallel=True, wait=True)
 
     def update_ssh_storage_server_access(self):
         """
