@@ -2166,6 +2166,27 @@ class exports.Salvus extends exports.Cassandra
                 opts.cb(err, stats)
         )
 
+    #####################################
+    # Storage server
+    #####################################
+
+    # Get ssh address to connect to a given storage server in various ways.
+    storage_server_ssh: (opts) =>
+        opts = defaults opts,
+            server_id : required
+            cb        : required
+        @select_one
+            table       : 'storage_servers'
+            consistency : 1
+            where       :
+                dummy     : true
+                server_id : opts.server_id
+            columns     : ['ssh']
+            cb          : (err, r) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, r[0])
 
     #####################################
     # Tasks

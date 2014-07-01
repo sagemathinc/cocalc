@@ -552,7 +552,6 @@ class GlobalProject
             where   : {project_id : @project_id}
             cb      : cb
 
-
     # starts project if necessary, waits until it is running, and
     # gets the hostname port where the local hub is serving.
     local_hub_address: (opts) =>
@@ -980,7 +979,30 @@ class GlobalProject
                 if err
                     opts.cb(err)
                 else if project?
-                    project.status(opts)
+                    orig_cb = opts.cb
+                    ssh = undefined
+                    resp = undefined
+                    async.parallel([
+                        (cb) =>
+                             @database.storage_server_ssh
+                                 server_id : project.client.server_id
+                                 cb        : (err, r) =>
+                                     # NOTE: non-fatal -- in case of db error, we just don't provide ssh info in status.
+                                     if not err
+                                         ssh = r['-1']
+                                     cb()
+                        (cb) =>
+                            opts.cb = (err, r) =>
+                                resp = r
+                                cb(err)
+                            project.status(opts)
+                    ], (err) =>
+                        if not err?
+                            resp.ssh = ssh
+                            orig_cb(undefined, resp)
+                        else
+                            orig_cb(err)
+                    )
                 else
                     opts.cb(undefined, {})  # no running project, so no status
 

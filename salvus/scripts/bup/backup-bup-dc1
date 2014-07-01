@@ -14,7 +14,7 @@ def cmd(s):
 def cmd2(s):
     print s
     if os.system(s):
-        raise RuntimeError
+        print "WARNING!"
     return
 
 cmd("bup init")

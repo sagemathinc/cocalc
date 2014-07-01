@@ -103,7 +103,11 @@ localhost    {'hostname':'web2dc3', 'instance_type':'g1-small', 'zone':'europe-w
 
 # database nodes
 cloud1    {'hostname':'cassandra1', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256:none:qcow2', 'vnc':13200}
-cloud2    {'hostname':'cassandra2', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:256:none:qcow2', 'vnc':13200}
+
+cloud2    {'hostname':'cassandra2', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/sdd1::none', 'vnc':13200}
+#cloud2    {'hostname':'cassandra2', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:256:none:qcow2', 'vnc':13200}
+cloud2    {'hostname':'cassandra2b', 'vcpus':1, 'ram':2, 'base':base, 'disk':'/dev/sdd1::none', 'vnc':13201}
+
 cloud3    {'hostname':'cassandra3', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
 cloud4    {'hostname':'cassandra4', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
 cloud5    {'hostname':'cassandra5', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
@@ -145,7 +149,7 @@ cloud21  {'hostname':'web21',      'vcpus':web_cpu,       'ram':web_ram,       '
 
 # new compute vm's
 cloud1   {'hostname':'compute1dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud2   {'hostname':'compute2dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
+cloud2   {'hostname':'compute2dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'/dev/sdd2::none', 'vnc':13100}
 cloud3   {'hostname':'compute3dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
 cloud4   {'hostname':'compute4dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
 cloud5   {'hostname':'compute5dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
