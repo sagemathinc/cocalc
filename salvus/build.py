@@ -160,6 +160,11 @@ MaxStartups 128
       cd /tmp/&& wget http://www.polymake.org/lib/exe/fetch.php/download/polymake-2.13.tar.bz2&& tar xvf polymake-2.13.tar.bz2; cd polymake-2.13 && ./configure && make -j8 && make install
       rm -rf /tmp/polymake*
 
+# Neovim system-wide:
+
+    cd /tmp; rm -rf neovim; unset MAKE; git clone https://github.com/neovim/neovim; cd neovim; make
+    umask 022
+    sudo make install
 
 # MACAULAY2:
 
