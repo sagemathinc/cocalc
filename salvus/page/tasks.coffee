@@ -1024,7 +1024,9 @@ class TaskList
                 # very rare corruption -- valid json but date somehow got messed up.
                 @remove_due_date(task)
                 return
-            task.element.find(".salvus-task-due-clear").show()
+            x = task.element.find(".salvus-task-due-clear")
+            x.show()
+            x.attr('title','Clear due date')
             d = new Date(0)   # see http://stackoverflow.com/questions/4631928/convert-utc-epoch-to-local-date-with-javascript
             d.setUTCMilliseconds(task.due_date)
             e.attr('title',d.toISOString()).timeago()
@@ -1040,8 +1042,15 @@ class TaskList
             task.element.find(".salvus-task-viewer-not-done").hide()
             task.element.find(".salvus-task-viewer-done").show()
             if typeof(task.done) == 'number'
-                task.element.find(".salvus-task-done").show().find(
-                    'span').attr('title',(new Date(task.done)).toISOString()).timeago()
+                e = task.element.find(".salvus-task-done")  # reconstructs the DOM element so that timeago updates correctly
+                if e.text() != 'none'
+                    e.timeago('dispose').text("none")
+                    f = task_template.find(".salvus-task-done").clone()
+                    e.replaceWith(f)
+                    e = f
+                done_text = task.element.find(".salvus-task-done").show().find('span')
+                done_text.attr('title',(new Date(task.done)).toISOString()).timeago()
+                done_text.parent().attr('title',(new Date(task.done)).toISOString())
             task.element.addClass("salvus-task-overall-done")
         else
             task.element.find(".salvus-task-viewer-not-done").show()
