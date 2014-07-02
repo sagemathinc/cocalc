@@ -989,7 +989,7 @@ class GlobalProject
                                  cb        : (err, r) =>
                                      # NOTE: non-fatal -- in case of db error, we just don't provide ssh info in status.
                                      if not err
-                                         ssh = r['-1']
+                                         ssh = r?['-1']
                                      cb()
                         (cb) =>
                             opts.cb = (err, r) =>

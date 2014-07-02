@@ -182,6 +182,8 @@ class ProjectPage
         @init_project_download()
 
         @init_project_restart()
+
+        @init_ssh()
         @init_worksheet_server_restart()
 
         @init_delete_project()
@@ -960,6 +962,19 @@ class ProjectPage
                             @container.find(".salvus-network-blocked").hide()
                         else
                             @container.find(".salvus-network-blocked").hide()
+                        if status.ssh
+                            @container.find(".project-settings-ssh").removeClass('lighten')
+                            username = @project.project_id.replace(/-/g, '')
+                            v = status.ssh.split(':')
+                            if v.length > 1
+                                port = " -p #{v[1]} "
+                            else
+                                port = " "
+                            address = v[0]
+
+                            @container.find(".salvus-project-ssh").text("ssh#{port}#{username}@#{address}")
+                        else
+                            @container.find(".project-settings-ssh").addClass('lighten')
 
                     usage.show()
 
@@ -2791,6 +2806,21 @@ class ProjectPage
                     #    type    : "success"
                     #    message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
                     #    timeout : 5
+            ])
+            return false
+
+    init_ssh: () =>
+        @container.find("a[href=#ssh]").click () =>
+            async.series([
+                (cb) =>
+                    @ensure_directory_exists
+                        path : '.ssh'
+                        cb   : cb
+                (cb) =>
+                    @open_file
+                        path       : '.ssh/authorized_keys'
+                        foreground : true
+                    cb()
             ])
             return false
 
