@@ -496,7 +496,7 @@ class ProjectPage
             if not fullpath?
                 entry.show()  # this is the "Parent directory" link.
                 continue
-            filename = misc.path_split(fullpath).tail
+            filename = entry.find(".project-file-name").text() + entry.find(".project-file-name-extension").text()
             if match(filename, entry.hasClass('project-directory-link'))
                 if first and event?.keyCode == 13 # enter -- select first match (if any)
                     entry.click()
