@@ -47,6 +47,7 @@ chmod og-rwx /bup/bups
 
 zfs create $POOL/scratch
 zfs set mountpoint=/scratch $POOL/scratch
+zfs set compression=lz4 $POOL/scratch
 chmod a+rwx /scratch
 
 zfs create $POOL/conf
