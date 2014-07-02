@@ -52,7 +52,7 @@ codemirror_associations =
     js     : 'javascript'
     lua    : 'lua'
     m      : 'text/x-octave'
-    md     : 'markdown'
+    md     : 'gfm'
     ml     : 'text/x-ocaml'
     mysql  : 'text/x-sql'
     patch  : 'text/x-diff'
@@ -163,7 +163,7 @@ sagews_decorator_modes = [
     ['javascript'  , 'javascript'],
     ['latex'       , 'stex']
     ['lisp'        , 'ecl'],
-    ['md'          , 'markdown'],
+    ['md'          , 'gfm'],
     ['gp'          , 'text/pari'],
     ['go'          , 'text/x-go']
     ['perl'        , 'text/x-perl'],

@@ -7,17 +7,6 @@ Task List
 jQuery.timeago.settings.allowFuture = true
 
 async  = require('async')
-marked = require('marked')
-
-marked.setOptions
-    renderer    : new marked.Renderer()
-    gfm         : true
-    tables      : true
-    breaks      : false
-    pedantic    : false
-    sanitize    : false
-    smartLists  : true
-    smartypants : true
 
 misc   = require('misc')
 {defaults, required, to_json, uuid} = misc
@@ -699,7 +688,6 @@ class TaskList
             else
                 task.element.find(".salvus-task-toggle-icons").hide()
 
-        has_mathjax = false
         if desc.length == 0
             desc = "<span class='lighten'>Enter a description...</span>" # so it is possible to edit
         else
@@ -714,30 +702,9 @@ class TaskList
                     x0 = x
                 desc = desc0 + desc.slice(x0[1])
 
-            # replace mathjax, which is delimited by $, $$, \( \), and \[ \]
-            v = misc.parse_mathjax(desc)
-            if v.length > 0
-                w = []
-                has_mathjax = true
-                x0 = [0,0]
-                desc0 = ''
-                i = 0
-                for x in v
-                    w.push(desc.slice(x[0], x[1]))
-                    desc0 += desc.slice(x0[1], x[0]) + "@@@@#{i}@@@@"
-                    x0 = x
-                    i += 1
-                desc = desc0 + desc.slice(x0[1])
-            else
-                has_mathjax = false
-
-            # render description into html (from markdown)
-            desc = marked(desc)
-
-            # if there was any mathjax, put it back in the desc
-            if has_mathjax
-                for i in [0...w.length]
-                    desc = desc.replace("@@@@#{i}@@@@", misc.mathjax_escape(w[i].replace(/\$/g, "$$$$")))
+            x = misc_page.markdown_to_html(desc)
+            desc = x.s
+            has_mathjax = x.has_mathjax
 
         if task.deleted
             desc = "<del>#{desc}</del>"

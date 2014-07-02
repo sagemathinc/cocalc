@@ -37,7 +37,10 @@ diffsync = require('diffsync')
 misc     = require('misc')
 {defaults, required} = misc
 
+misc_page = require('misc_page')
+
 message  = require('message')
+
 
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
@@ -1327,7 +1330,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if mesg.interact?
             @interact(output, mesg.interact)
 
+        if mesg.md?
+            # markdown
+            x = misc_page.markdown_to_html(mesg.md)
+            t = $('<span class="sagews-output-md">').html(x.s)
+            if x.has_mathjax
+                t.mathjax()
+            t.find('a').attr("target","_blank")
+            t.find("table").addClass('table')  # makes bootstrap tables look MUCH nicer -- and gfm has nice tables
+            output.append(t)
+
         if mesg.tex?
+            # latex
             val = mesg.tex
             elt = $("<span class='sagews-output-tex'>")
             arg = {tex:val.tex}

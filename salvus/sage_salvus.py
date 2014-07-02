@@ -2614,6 +2614,7 @@ def restore(vars=None):
 
 restore.__doc__ += sage.misc.reset.restore.__doc__
 
+# NOTE: this is not used anymore
 def md2html(s):
     from markdown2Mathjax import sanitizeInput, reconstructMath
     from markdown2 import markdown
@@ -2639,6 +2640,7 @@ def md2html(s):
 
     return markedDownText
 
+# NOTE: this is not used anymore
 class Markdown(object):
     r"""
     Cell mode that renders everything after %md as markdown and hides the input by default.
@@ -2690,8 +2692,59 @@ class Markdown(object):
             hide = self._hide
         html(md2html(s),hide=hide)
 
-md = Markdown()
+# not used
+#md = Markdown()
 
+# Instead... of the above server-side markdown, we use this client-side markdown.
+
+class Marked(object):
+    r"""
+    Cell mode that renders everything after %md as Github flavored
+    markdown [1] with mathjax and hides the input by default.
+
+    [1] https://help.github.com/articles/github-flavored-markdown
+
+    The rendering is done client-side using marked and mathjax.
+
+    EXAMPLES::
+
+        ---
+        %md
+        # A Title
+
+        ## A subheading
+
+        ---
+        %md(hide=False)
+        # A title
+
+        - a list
+
+        ---
+        md("# A title", hide=False)
+
+
+        ---
+        %md(hide=False) `some code`
+
+    """
+    def __init__(self, hide=True):
+        self._hide = hide
+
+    def __call__(self, *args, **kwds):
+        if len(kwds) > 0 and len(args) == 0:
+            return Marked(**kwds)
+        if len(args) > 0:
+            self._render(args[0], **kwds)
+
+    def _render(self, s, hide=None):
+        if hide is None:
+            hide = self._hide
+        if hide:
+            salvus.hide('input')
+        salvus.md(s)
+
+md = Marked()
 
 def load_html_resource(filename):
     fl = filename.lower()
