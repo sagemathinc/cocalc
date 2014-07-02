@@ -655,6 +655,11 @@ class exports.Editor
         display_name = path_split(filename).tail
         link_filename.text(display_name)
 
+        # Add an icon to the file tab based on the extension. Default icon is fa-file-o
+        ext = filename_extension(filename)
+        file_icon = if (file_associations[ext]? and file_associations[ext].icon?) then file_associations[ext].icon else 'fa-file-o'
+        link_filename.prepend("<i class='fa #{file_icon}' style='font-size:10pt'> </i> ")
+
         open_file = (name) =>
             @project_page.set_current_path(misc.path_split(name).head)
             @project_page.display_tab("project-editor")
@@ -756,14 +761,8 @@ class exports.Editor
             # responsive mode
             width = 204
         else
-            start = x[0].offset().left
-            end   = x[0].parent().offset().left + x[0].parent().width()
-            #end = @project_page.container.find(".project-settings-menu-item").offset().left
-
             n = x.length
-            if n <= 2
-                n = 3
-            width = (end - start - 10)/n
+            width = Math.min(250, (x[0].parent().width() - 2 * n)/n)
             if width < 0
                 width = 0
 

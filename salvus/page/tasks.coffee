@@ -1030,6 +1030,7 @@ class TaskList
             d = new Date(0)   # see http://stackoverflow.com/questions/4631928/convert-utc-epoch-to-local-date-with-javascript
             d.setUTCMilliseconds(task.due_date)
             e.attr('title',d.toISOString()).timeago()
+            e.attr('title',d.toISOString())
             if d < new Date()
                 e.addClass("salvus-task-overdue")
         else
