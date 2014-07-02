@@ -132,6 +132,34 @@ def html2tex(doc):
     parser.feed(doc)
     return parser.result
 
+def md2html(s):
+    from markdown2Mathjax import sanitizeInput, reconstructMath
+    from markdown2 import markdown
+
+    delims = [('\\(','\\)'), ('$$','$$'), ('\\[','\\]'),
+              ('\\begin{equation}', '\\end{equation}'), ('\\begin{equation*}', '\\end{equation*}'),
+              ('\\begin{align}', '\\end{align}'), ('\\begin{align*}', '\\end{align*}'),
+              ('\\begin{eqnarray}', '\\end{eqnarray}'), ('\\begin{eqnarray*}', '\\end{eqnarray*}'),
+              ('\\begin{math}', '\\end{math}'),
+              ('\\begin{displaymath}', '\\end{displaymath}')
+              ]
+
+    tmp = [((s,None),None)]
+    for d in delims:
+        tmp.append((sanitizeInput(tmp[-1][0][0], equation_delims=d), d))
+
+    extras = ['code-friendly', 'footnotes', 'smarty-pants', 'wiki-tables', 'fenced-code-blocks']
+    markedDownText = markdown(tmp[-1][0][0], extras=extras)
+
+    while len(tmp) > 1:
+        markedDownText = reconstructMath(markedDownText, tmp[-1][0][1], equation_delims=tmp[-1][1])
+        del tmp[-1]
+
+    return markedDownText
+
+def md2tex(doc):
+    return html2tex(md2html(doc))
+
 class Cell(object):
     def __init__(self, s):
         self.raw = s
@@ -187,6 +215,8 @@ class Cell(object):
                 #s += "\\begin{lstlisting}" + x['stderr'] + "\\end{lstlisting}"
             if 'html' in x:
                 s += html2tex(x['html'])
+            if 'md' in x:
+                s += md2tex(x['md'])
             if 'interact' in x:
                 pass
             if 'tex' in x:
