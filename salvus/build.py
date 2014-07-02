@@ -346,7 +346,7 @@ PYTHON_PACKAGES = [
     ]
 
 SAGE_PIP_PACKAGES = [
-    'mpld3',        # D3 Renderings of Matplotlib Graphics -- https://github.com/jakevdp/mpld3
+    'mpld3',              # D3 Renderings of Matplotlib Graphics -- https://github.com/jakevdp/mpld3
     'mercurial',          # used when installing neuron
     'backports.ssl-match-hostname',   # a dependency of tornado (we don't install deps automatically right now)
     'tornado',            # used by IPython notebook
@@ -386,7 +386,8 @@ SAGE_PIP_PACKAGES = [
     'httplib2', # A comprehensive HTTP client library.
     'greenlet',  # Lightweight in-process concurrent programming
     'gmpy2',
-    'mmh3'
+    'mmh3',
+    'joblib'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
