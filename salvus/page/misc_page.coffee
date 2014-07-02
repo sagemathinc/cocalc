@@ -503,6 +503,13 @@ exports.markdown_to_html = (s) ->
     return {s:s, has_mathjax:has_mathjax}
 
 
+# return true if d is a valid string -- see http://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
+exports.is_valid_date = (d) ->
+    if Object::toString.call(d) isnt "[object Date]"
+        return false
+    else
+        return not isNaN(d.getTime())
+
 
 
 

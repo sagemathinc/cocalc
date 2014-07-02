@@ -646,13 +646,21 @@ class TaskList
 
     display_last_edited : (task) =>
         if task.last_edited
+            corrupt = false
             if typeof(task.last_edited) != "number"  # corrupt
+                corrupt = true
+            else
+                d = new Date(task.last_edited)
+                if not misc_page.is_valid_date(d)
+                    corrupt = true
+            if corrupt
+                d = new Date()
                 task.last_edited = new Date() - 0
                 @db.update
                     set   : {last_edited : task.last_edited }
                     where : {task_id : task.task_id}
 
-            a = $("<span>").attr('title',(new Date(task.last_edited)).toISOString()).timeago()
+            a = $("<span>").attr('title',d.toISOString()).timeago()
             task.element.find(".salvus-task-last-edited").empty().append(a)
 
     click_hashtag_in_desc: (event) =>
@@ -993,9 +1001,12 @@ class TaskList
 
         picker = elt.data('datetimepicker')
         if task.due_date?
-            picker.setLocalDate(new Date(task.due_date))
+            d = new Date(task.due_date)
+            if not misc_page.is_valid_date(d)  # workaround potential (hopefully extremely rare) corruption
+                d = new Date()
         else
-            picker.setLocalDate(new Date())
+            d = new Date()
+        picker.setLocalDate(d)
         elt.on 'changeDate', (e) =>
             @set_due_date(task, e.localDate - 0)
             @render_task(task)
@@ -1050,8 +1061,11 @@ class TaskList
                     e.replaceWith(f)
                     e = f
                 done_text = task.element.find(".salvus-task-done").show().find('span')
-                done_text.attr('title',(new Date(task.done)).toISOString()).timeago()
-                done_text.parent().attr('title',(new Date(task.done)).toISOString())
+                d = new Date(task.done)
+                if not misc_page.is_valid_date(d)
+                    d = new Date()
+                done_text.attr('title', d.toISOString()).timeago()
+                done_text.parent().attr('title', d.toISOString())
             task.element.addClass("salvus-task-overall-done")
         else
             task.element.find(".salvus-task-viewer-not-done").show()
