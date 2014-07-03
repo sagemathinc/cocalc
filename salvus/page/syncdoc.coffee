@@ -1688,13 +1688,22 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         if opts.execute
             # check for client-side rendering
-            mode_line = @codemirror.getLine(block.start+1).replace(/\s/g,'').toLowerCase()
-            if mode_line in CLIENT_SIDE_MODE_LINES
-                @execute_cell_client_side
-                    block     : block
-                    mode_line : mode_line
-                    marker    : marker
-                return
+            start = block.start
+            # skip blank lines and the input uuid line:
+            while start <= block.end
+                s = @codemirror.getLine(start).trim()
+                if s.length == 0 or s[0] == MARKERS.cell
+                    start += 1
+                else
+                    # check if it is a mode line.
+                    mode_line = s.replace(/\s/g,'').toLowerCase()
+                    if mode_line in CLIENT_SIDE_MODE_LINES
+                        @execute_cell_client_side
+                            block     : {start:start, end:block.end}
+                            mode_line : mode_line
+                            marker    : marker
+                        return
+                    break
 
             @set_cell_flag(marker, FLAGS.execute)
             # sync (up to a certain number of times) until either computation happens or is acknowledged.
@@ -1722,8 +1731,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         console.log("execute_cell_client_side: block='#{cm.getRange({line:block.start,ch:0}, {line:block.end+1,ch:0})}'")
 
-        # get the input text
-        input = cm.getRange({line:block.start+2,ch:0}, {line:block.end+1,ch:0})
+        # get the input text -- after the mode line
+        input = cm.getRange({line:block.start+1,ch:0}, {line:block.end+1,ch:0})
         i = input.indexOf(MARKERS.output)
         if i != -1
             output_uuid        = input.slice(i+1,i+37)
