@@ -60,7 +60,7 @@ account = require('account')
 
 CLIENT_SIDE_MODE_LINES = []
 for mode in ['md', 'html', 'coffeescript', 'javascript']
-    for s in ['', '(hide=false)', '(hide=true)']
+    for s in ['', '(hide=false)', '(hide=true)', '(once=false)']
         CLIENT_SIDE_MODE_LINES.push("%#{mode}#{s}")
 
 # Return true if there are currently unsynchronized changes, e.g., due to the network
@@ -1729,8 +1729,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
         cm = @codemirror
         block = opts.block
 
-        console.log("execute_cell_client_side: block='#{cm.getRange({line:block.start,ch:0}, {line:block.end+1,ch:0})}'")
-
         # get the input text -- after the mode line
         input = cm.getRange({line:block.start+1,ch:0}, {line:block.end+1,ch:0})
         i = input.indexOf(MARKERS.output)
@@ -1741,9 +1739,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
         else
             output_uuid        = misc.uuid()
             has_output_already = false
-
-        console.log("input = '#{input}'")
-        console.log("output_uuid = '#{output_uuid}'")
 
         # determine the mode
         i = opts.mode_line.indexOf('(')
@@ -1777,7 +1772,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         # update so that client sees rendering
         @process_sage_updates()
-
 
     split_cell_at: (pos) =>
         # Split the cell at the given pos.
