@@ -1677,6 +1677,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @move_cursor_to_next_cell()
 
         if opts.execute
+            if @codemirror.getLine(block.start+1).replace(/\s/g,'').toLowerCase() in ["%md", "%md(hide=false)", "%md(hide=true)"]
+                # %md markdown optimization, to avoid roundtrip to server
+                @execute_markdown_cell_on_client(block)
+                return
+
             @set_cell_flag(marker, FLAGS.execute)
             # sync (up to a certain number of times) until either computation happens or is acknowledged.
             # Just successfully calling sync could return and mean that a sync started before this computation
@@ -1690,6 +1695,28 @@ class SynchronizedWorksheet extends SynchronizedDocument
                             setTimeout(f, wait)
             @sync () =>
                 setTimeout(f, 50)
+
+    # purely client-side markdown rendering for a markdown block -- an optimization
+    execute_markdown_cell_on_client: (block) =>
+        cm = @codemirror
+        # get the text to be processed by markdown
+        console.log("block='#{cm.getRange({line:block.start,ch:0}, {line:block.end+1,ch:0})}'")
+        content = cm.getRange({line:block.start+2,ch:0}, {line:block.end+1,ch:0})
+        i = content.indexOf(MARKERS.output)
+        if i != -1
+            content = content.slice(0,i)
+        console.log("content = '#{content}'")
+        # create corresponding output line: this is important since it ensures that all clients will *see* the new output too
+        output_line = MARKERS.output + misc.uuid() + MARKERS.output + misc.to_json(md:content) + MARKERS.output + '\n'
+        s = cm.getLine(block.end)
+        if s[0] == MARKERS.output
+            cm.replaceRange(output_line, {line:block.end,ch:0},{line:block.end+1,ch:0})
+        else
+            cm.replaceRange(output_line, {line:block.end+1,ch:0},{line:block.end+1,ch:0})
+
+        # update so that client sees rendering
+        @process_sage_updates()
+
 
     split_cell_at: (pos) =>
         # Split the cell at the given pos.

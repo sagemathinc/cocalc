@@ -967,7 +967,6 @@ class CodeMirrorSession
         for id, ds_client of @diffsync_clients
             ds_client.remote.sync_ready()
 
-
     sage_execute_cell: (id) =>
         winston.debug("exec request for cell with id #{id}")
         @sage_remove_cell_flag(id, diffsync.FLAGS.execute)
@@ -994,13 +993,12 @@ class CodeMirrorSession
                     @sage_remove_cell_flag(id, diffsync.FLAGS.running)
                     return
                 winston.debug("Sending execute message to sage socket.")
-                socket.write_mesg('json',
+                socket.write_mesg 'json',
                     message.execute_code
                         id       : output_id
                         cell_id  : id         # extra info -- which cell is running
                         code     : code
                         preparse : true
-                )
 
     # Execute code in the Sage session associated to this sync'd editor session
     sage_execute_code: (client_socket, mesg) =>
