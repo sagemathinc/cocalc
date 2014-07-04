@@ -2258,9 +2258,9 @@ class ProjectPage
     init_delete_project: () =>
         if @project.deleted
             @container.find(".project-settings-delete").hide()
-            return
         else
             @container.find(".project-settings-delete").show()
+
         link = @container.find("a[href=#delete-project]")
         m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Delete Project</h4>Are you sure you want to delete this project?<br><br><span class='lighten'>You can always undelete the project later from the Projects tab.</span>"
         link.click () =>
@@ -2286,18 +2286,15 @@ class ProjectPage
 
     init_undelete_project: () =>
 
-        if not @project.deleted
-            @container.find(".project-settings-undelete").hide()
-            return
-        else
+        if @project.deleted
             @container.find(".project-settings-undelete").show()
+        else
+            @container.find(".project-settings-undelete").hide()
 
         link = @container.find("a[href=#undelete-project]")
 
         m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Undelete Project</h4>Are you sure you want to undelete this project?"
         link.click () =>
-            bootbox.confirm("Project move is temporarily disabled while we sort out some replication issues that can lead to data inavailability.  If you find that files seem to have vanished in the last few days, contact wstein@gmail.com; your files are there, just on a different machine.")
-            return
             bootbox.confirm m, (result) =>
                 if result
                     link.find(".spinner").show()
@@ -2312,7 +2309,8 @@ class ProjectPage
                                     message: "Error trying to undelete project.  Please try again later. #{err}"
                             else
                                 link.hide()
-                                @container.find("a[href=#delete-project]").show()
+                                @container.find(".project-settings-undelete").hide()
+                                @container.find(".project-settings-delete").show()
                                 alert_message
                                     type : "info"
                                     message : "Successfully undeleted project \"#{@project.title}\"."
