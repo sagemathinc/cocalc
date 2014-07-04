@@ -751,7 +751,9 @@ class Project(object):
         if restart_firewall:
             # THERE is a potential race condition here!  I would prefer to instead have files with names the
             # uid's in a subdirectory, or something...
-            open(UID_WHITELIST,'w').write('\n'.join(whitelisted_users))
+            a = open(UID_WHITELIST,'w')
+            a.write('\n'.join(whitelisted_users)+'\n')
+            a.close()
             self.cmd(['/root/smc-iptables/restart.sh'])
 
     def cgclassify(self):
