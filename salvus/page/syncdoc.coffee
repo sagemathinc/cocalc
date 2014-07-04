@@ -37,7 +37,10 @@ diffsync = require('diffsync')
 misc     = require('misc')
 {defaults, required} = misc
 
+misc_page = require('misc_page')
+
 message  = require('message')
+
 
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
@@ -53,6 +56,12 @@ output_template     = templates.find(".sagews-output")
 salvus_threejs = require("salvus_threejs")
 
 account = require('account')
+
+
+CLIENT_SIDE_MODE_LINES = []
+for mode in ['md', 'html', 'coffeescript', 'javascript']
+    for s in ['', '(hide=false)', '(hide=true)', '(once=false)']
+        CLIENT_SIDE_MODE_LINES.push("%#{mode}#{s}")
 
 # Return true if there are currently unsynchronized changes, e.g., due to the network
 # connection being down, or SageMathCloud not working, or a bug.
@@ -1090,7 +1099,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         k = n - (m - (j + 1))
         if k > 0
             cursor = cm.getCursor()
-            cm.replaceRange(Array(k+1).join('\n'), {ch:0, line:m} )
+            cm.replaceRange(Array(k+1).join('\n'), {line:m+1, ch:0} )
             cm.setCursor(cursor)
 
     process_sage_updates: (start) =>
@@ -1327,7 +1336,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if mesg.interact?
             @interact(output, mesg.interact)
 
+        if mesg.md?
+            # markdown
+            x = misc_page.markdown_to_html(mesg.md)
+            t = $('<span class="sagews-output-md">').html(x.s)
+            if x.has_mathjax
+                t.mathjax()
+            t.find('a').attr("target","_blank")
+            t.find("table").addClass('table')  # makes bootstrap tables look MUCH nicer -- and gfm has nice tables
+            output.append(t)
+
         if mesg.tex?
+            # latex
             val = mesg.tex
             elt = $("<span class='sagews-output-tex'>")
             arg = {tex:val.tex}
@@ -1400,19 +1420,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         if mesg.javascript? and @editor.opts.allow_javascript_eval
             (() =>
-             cell      = new Cell(output :opts.element)
+             cell      = new Cell(output : opts.element)
              worksheet = new Worksheet(@)
+             print     = (s...) -> opts.element.append($("<div></div>").text("#{s.join(' ')}"))
 
              code = mesg.javascript.code
              if mesg.javascript.coffeescript
                  code = CoffeeScript.compile(code)
-             obj  = JSON.parse(mesg.obj)
-
-             #console.log("executing script: '#{code}', obj='#{mesg.obj}'")
+             if mesg.obj?
+                 obj  = JSON.parse(mesg.obj)
 
              # The eval below is an intentional cross-site scripting vulnerability in the fundamental design of Salvus.
              # Note that there is an allow_javascript document option, which (at some point) users
-             # will be able to set.
+             # will be able to set.  There is one more instance of eval below in _receive_broadcast.
              eval(code)
             )()
 
@@ -1430,6 +1450,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     (() =>
                          worksheet = new Worksheet(@)
                          cell      = new Cell(cell_id : mesg.cell_id)
+                         print     = (s...) -> console.log("#{s.join(' ')}") # doesn't make sense, but better than printing to printer...
                          code = mesg.code
                          if mesg.coffeescript
                              code = CoffeeScript.compile(code)
@@ -1626,7 +1647,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
         block = @current_input_block(pos.line)
 
         # create or get cell start mark
-        marker = @cell_start_marker(block.start)
+        {marker, created} = @cell_start_marker(block.start)
+        if created  # we added a new line when creating start marker
+            block.end += 1
 
         if opts.toggle_input
             if FLAGS.hide_input in @get_cell_flagstring(marker)
@@ -1660,9 +1683,27 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @sync()
 
         if opts.advance
-            @move_cursor_to_next_cell()
+            block.end = @move_cursor_to_next_cell()
 
         if opts.execute
+            # check for client-side rendering
+            start = block.start
+            # skip blank lines and the input uuid line:
+            while start <= block.end
+                s = @codemirror.getLine(start).trim()
+                if s.length == 0 or s[0] == MARKERS.cell
+                    start += 1
+                else
+                    # check if it is a mode line.
+                    mode_line = s.replace(/\s/g,'').toLowerCase()
+                    if mode_line in CLIENT_SIDE_MODE_LINES
+                        @execute_cell_client_side
+                            block     : {start:start, end:block.end}
+                            mode_line : mode_line
+                            marker    : marker
+                        return
+                    break
+
             @set_cell_flag(marker, FLAGS.execute)
             # sync (up to a certain number of times) until either computation happens or is acknowledged.
             # Just successfully calling sync could return and mean that a sync started before this computation
@@ -1677,11 +1718,67 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @sync () =>
                 setTimeout(f, 50)
 
+    # purely client-side markdown rendering for a markdown block -- an optimization
+    execute_cell_client_side: (opts) =>
+        opts = defaults opts,
+            block     : required
+            mode_line : required
+            marker    : required
+        cm = @codemirror
+        block = opts.block
+
+        # get the input text -- after the mode line
+        input = cm.getRange({line:block.start+1,ch:0}, {line:block.end+1,ch:0})
+        i = input.indexOf(MARKERS.output)
+        if i != -1
+            input              = input.slice(0,i)
+            has_output_already = true
+        else
+            has_output_already = false
+
+        # generate new uuid, so that other clients will re-render output.
+        output_uuid        = misc.uuid()
+
+        # determine the mode
+        i = opts.mode_line.indexOf('(')
+        if i == -1
+            mode = opts.mode_line.slice(1)
+        else
+            mode = opts.mode_line.slice(1,i)
+        hide = false
+        if mode in ['html', 'md'] and opts.mode_line.indexOf('false') == -1
+            hide = true
+
+        # create corresponding output line: this is important since it ensures that all clients will *see* the new output too
+        mesg = {}
+        if mode == 'javascript'
+            mesg['javascript'] = {code: input}
+        else if mode == 'coffeescript'
+            mesg['javascript'] = {coffeescript:true, code:input}
+        else
+            mesg[mode] = input
+        output_line = MARKERS.output + output_uuid + MARKERS.output + misc.to_json(mesg) + MARKERS.output + '\n'
+        if has_output_already
+            cm.replaceRange(output_line, {line:block.end,ch:0},   {line:block.end+1,ch:0})
+        else
+            cm.replaceRange(output_line, {line:block.end+1,ch:0}, {line:block.end+1,ch:0})
+
+        # hide input if necessary
+        if hide
+            @set_cell_flag(opts.marker, FLAGS.hide_input)
+        else
+            @remove_cell_flag(opts.marker, FLAGS.hide_input)
+
+        # update so that client sees rendering
+        @process_sage_updates()
+        @sync()
+
     split_cell_at: (pos) =>
         # Split the cell at the given pos.
         @cell_start_marker(pos.line)
         @sync()
 
+    # returns the line number where the previous cell ends
     move_cursor_to_next_cell: () =>
         cm = @codemirror
         line = cm.getCursor().line + 1
@@ -1689,13 +1786,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
             x = cm.getLine(line)
             if x.length > 0 and x[0] == MARKERS.cell
                 cm.setCursor(line:line+1, ch:0)
-                return
+                return line-1
             line += 1
         # there is no next cell, so we create one at the last non-whitespace line
         while line > 0 and $.trim(cm.getLine(line)).length == 0
             line -= 1
         @cell_start_marker(line+1)
         cm.setCursor(line:line+2, ch:0)
+        return line
 
     ##########################################
     # Codemirror-based cell manipulation code
@@ -1738,12 +1836,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
         x = cm.findMarksAt(line:line, ch:1)
         if x.length > 0 and x[0].type == MARKERS.cell
             # already properly marked
-            return x[0]
+            return {marker:x[0], created:false}
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})
         uuid = misc.uuid()
         cm.replaceRange(MARKERS.cell + uuid + MARKERS.cell + '\n', {line:line, ch:0})
-        return @mark_cell_start(line)
+        return {marker:@mark_cell_start(line), created:true}
 
     remove_cell_flags_from_changeObj: (changeObj, flags) =>
         # Remove cell flags from *contiguous* text in the changeObj.
@@ -1777,6 +1875,8 @@ class Cell
         @opts = defaults opts,
             output  : undefined # jquery wrapped output area
             cell_id : undefined
+        @output = opts.output
+        @cell_id = opts.cell_id
 
 class Worksheet
     constructor : (@worksheet) ->

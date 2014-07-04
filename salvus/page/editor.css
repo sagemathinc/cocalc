@@ -336,6 +336,10 @@ Editor for files in a project
     padding-right:2em;*/
 }
 
+.sagews-output-md {
+    font-family:helvetica;
+}
+
 .sagews-output-stdout {
     white-space: pre;
 }

@@ -182,6 +182,8 @@ class ProjectPage
         @init_project_download()
 
         @init_project_restart()
+
+        @init_ssh()
         @init_worksheet_server_restart()
 
         @init_delete_project()
@@ -494,7 +496,7 @@ class ProjectPage
             if not fullpath?
                 entry.show()  # this is the "Parent directory" link.
                 continue
-            filename = misc.path_split(fullpath).tail
+            filename = entry.find(".project-file-name").text() + entry.find(".project-file-name-extension").text()
             if match(filename, entry.hasClass('project-directory-link'))
                 if first and event?.keyCode == 13 # enter -- select first match (if any)
                     entry.click()
@@ -960,6 +962,19 @@ class ProjectPage
                             @container.find(".salvus-network-blocked").hide()
                         else
                             @container.find(".salvus-network-blocked").hide()
+                        if status.ssh
+                            @container.find(".project-settings-ssh").removeClass('lighten')
+                            username = @project.project_id.replace(/-/g, '')
+                            v = status.ssh.split(':')
+                            if v.length > 1
+                                port = " -p #{v[1]} "
+                            else
+                                port = " "
+                            address = v[0]
+
+                            @container.find(".salvus-project-ssh").text("ssh#{port}#{username}@#{address}")
+                        else
+                            @container.find(".project-settings-ssh").addClass('lighten')
 
                     usage.show()
 
@@ -1437,10 +1452,10 @@ class ProjectPage
                 masked_file_exts =
                     'pyc'           : 'py'
                     'class'         : 'java'
-                    'log'           : 'tex'
-                    'aux'           : 'tex'
-                    'gz'            : 'tex' # really looks for .synctex.gz
                     'exe'           : 'cs'
+
+                for ext in misc.split('blg bbl glo idx toc aux log lof ind nav snm gz xyc out ilg')  # gz really synctex.gz
+                    masked_file_exts[ext] = 'tex'
 
                     #many languages such as fortran or c++ have a default file name of "a.out." when compiled, so .out extensions are not masked
 
@@ -2243,9 +2258,9 @@ class ProjectPage
     init_delete_project: () =>
         if @project.deleted
             @container.find(".project-settings-delete").hide()
-            return
         else
             @container.find(".project-settings-delete").show()
+
         link = @container.find("a[href=#delete-project]")
         m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Delete Project</h4>Are you sure you want to delete this project?<br><br><span class='lighten'>You can always undelete the project later from the Projects tab.</span>"
         link.click () =>
@@ -2271,18 +2286,15 @@ class ProjectPage
 
     init_undelete_project: () =>
 
-        if not @project.deleted
-            @container.find(".project-settings-undelete").hide()
-            return
-        else
+        if @project.deleted
             @container.find(".project-settings-undelete").show()
+        else
+            @container.find(".project-settings-undelete").hide()
 
         link = @container.find("a[href=#undelete-project]")
 
         m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Undelete Project</h4>Are you sure you want to undelete this project?"
         link.click () =>
-            bootbox.confirm("Project move is temporarily disabled while we sort out some replication issues that can lead to data inavailability.  If you find that files seem to have vanished in the last few days, contact wstein@gmail.com; your files are there, just on a different machine.")
-            return
             bootbox.confirm m, (result) =>
                 if result
                     link.find(".spinner").show()
@@ -2297,7 +2309,8 @@ class ProjectPage
                                     message: "Error trying to undelete project.  Please try again later. #{err}"
                             else
                                 link.hide()
-                                @container.find("a[href=#delete-project]").show()
+                                @container.find(".project-settings-undelete").hide()
+                                @container.find(".project-settings-delete").show()
                                 alert_message
                                     type : "info"
                                     message : "Successfully undeleted project \"#{@project.title}\"."
@@ -2791,6 +2804,21 @@ class ProjectPage
                     #    type    : "success"
                     #    message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
                     #    timeout : 5
+            ])
+            return false
+
+    init_ssh: () =>
+        @container.find("a[href=#ssh]").click () =>
+            async.series([
+                (cb) =>
+                    @ensure_directory_exists
+                        path : '.ssh'
+                        cb   : cb
+                (cb) =>
+                    @open_file
+                        path       : '.ssh/authorized_keys'
+                        foreground : true
+                    cb()
             ])
             return false
 
