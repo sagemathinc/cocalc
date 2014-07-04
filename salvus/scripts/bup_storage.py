@@ -742,14 +742,16 @@ class Project(object):
         uid = str(self.uid)
         if network and uid not in whitelisted_users:
             # add to whitelist and restart
-            open(UID_WHITELIST,'a').write('\n' + uid + '\n')
+            whitelisted_users.add(uid)
             restart_firewall = True
         elif not network and uid in whitelisted_users:
             # remove from whitelist and restart
-            s = '\n'.join([x for x in sorted(whitelisted_users) if x != uid])
-            open(UID_WHITELIST,'w').write(s)
+            whitelisted_users.remove(uid)
             restart_firewall = True
         if restart_firewall:
+            # THERE is a potential race condition here!  I would prefer to instead have files with names the
+            # uid's in a subdirectory, or something...
+            open(UID_WHITELIST,'w').write('\n'.join(whitelisted_users))
             self.cmd(['/root/smc-iptables/restart.sh'])
 
     def cgclassify(self):
