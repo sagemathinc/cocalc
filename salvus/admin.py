@@ -1677,17 +1677,17 @@ class Monitor(object):
         last_time = 0
         i = 0
         while True:
-            i += 1
-            if i % 20 == 0:
-                # update the external static ip address in the database every so often.
-                try:
-                    self._services.update_ssh_storage_server_access()
-                except Exception, msg:
-                    print "ERROR updating ssh storage server access! -- %s"%msg
             now = int(time.time()/60)  # minutes since epoch
             if now != last_time:
                 #print "%s minutes since epoch"%now
                 if now % interval == residue:
+                    i += 1
+                    if i % 3 == 0:
+                        # update the external static ip address in the database every so often.
+                        try:
+                            self._services.update_ssh_storage_server_access()
+                        except Exception, msg:
+                            print "ERROR updating ssh storage server access! -- %s"%msg
                     last_time = now
                     try:
                         self._go()
