@@ -1188,7 +1188,7 @@ class HTML:
 html = HTML()
 html.iframe = _html.iframe  # written in a way that works fine
 
-def coffeescript(s=None, once=True):
+def coffeescript(s=None, once=False):
     """
     Execute code using CoffeeScript.
 
@@ -1213,13 +1213,34 @@ def coffeescript(s=None, once=True):
          %coffeescript(once=False)
          console.log("hi")
 
+
+    EXTRA FUNCTIONALITY:
+
+    When executing code, a function called print is defined, and objects cell and worksheet.::
+
+         print(1,2,'foo','bar')  -- displays the inputs in the output cell
+
+         cell -- has attributes cell.output (the html output box) and cell.cell_id
+
+         worksheet -- has attributes project_page and editor, and methods interrupt, kill, and
+
+            execute_code: (opts) =>
+                opts = defaults opts,
+                    code     : required
+                    data     : undefined
+                    preparse : true
+                    cb       : undefined
+
+    OPTIMIZATION: When used alone as a cell decorating in a Sage worksheet
+    with once=False (the default), rendering is done entirely client side,
+    which is much faster, not requiring a round-trip to the server.
     """
     if s is None:
         return lambda s : salvus.javascript(s, once=once, coffeescript=True)
     else:
-        return salvus.javascript(s, coffeescript=True)
+        return salvus.javascript(s, coffeescript=True, once=once)
 
-def javascript(s=None, once=True):
+def javascript(s=None, once=False):
     """
     Execute code using JavaScript.
 
@@ -1235,8 +1256,8 @@ def javascript(s=None, once=True):
     You may either pass in a string or use this as a cell decorator,
     i.e., put %javascript at the top of a cell.
 
-    If you set once=False, the code will be executed every time the output of the cell is rendered, e.g.,
-    on load, like with %auto::
+    If once=False (the default), the code will be executed every time the output of the
+    cell is rendered, e.g., on load, like with %auto::
 
          javascript('.. some code ', once=False)
 
@@ -1247,11 +1268,45 @@ def javascript(s=None, once=True):
 
     WARNING: If once=True, then this code is likely to get executed *before* the rest
     of the output for this cell has been rendered by the client.
+
+         javascript('console.log("HI")', once=False)
+
+    EXTRA FUNCTIONALITY:
+
+    When executing code, a function called print is defined, and objects cell and worksheet.::
+
+         print(1,2,'foo','bar')  -- displays the inputs in the output cell
+
+         cell -- has attributes cell.output (the html output box) and cell.cell_id
+
+         worksheet -- has attributes project_page and editor, and methods interrupt, kill, and
+
+            execute_code: (opts) =>
+                opts = defaults opts,
+                    code     : required
+                    data     : undefined
+                    preparse : true
+                    cb       : undefined
+
+    This example illustrates using worksheet.execute_code::
+
+        %coffeescript
+        for i in [500..505]
+            worksheet.execute_code
+                code : "i=salvus.data['i']; i, factor(i)"
+                data : {i:i}
+                cb   : (mesg) ->
+                    if mesg.stdout then print(mesg.stdout)
+                    if mesg.stderr then print(mesg.stderr)
+
+    OPTIMIZATION: When used alone as a cell decorating in a Sage worksheet
+    with once=False (the default), rendering is done entirely client side,
+    which is much faster, not requiring a round-trip to the server.
     """
     if s is None:
         return lambda s : salvus.javascript(s, once=once)
     else:
-        return salvus.javascript(s)
+        return salvus.javascript(s, once=once)
 
 javascript_exec_doc = r"""
 

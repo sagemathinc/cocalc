@@ -1420,21 +1420,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         if mesg.javascript? and @editor.opts.allow_javascript_eval
             (() =>
-             cell      = new Cell(output :opts.element)
+             cell      = new Cell(output : opts.element)
              worksheet = new Worksheet(@)
+             print     = (s...) -> opts.element.append($("<div></div>").text("#{s.join(' ')}"))
 
              code = mesg.javascript.code
-             console.log("evaluating javascript: '#{code}'")
              if mesg.javascript.coffeescript
                  code = CoffeeScript.compile(code)
              if mesg.obj?
                  obj  = JSON.parse(mesg.obj)
 
-             #console.log("executing script: '#{code}', obj='#{mesg.obj}'")
-
              # The eval below is an intentional cross-site scripting vulnerability in the fundamental design of Salvus.
              # Note that there is an allow_javascript document option, which (at some point) users
-             # will be able to set.
+             # will be able to set.  There is one more instance of eval below in _receive_broadcast.
              eval(code)
             )()
 
@@ -1452,6 +1450,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     (() =>
                          worksheet = new Worksheet(@)
                          cell      = new Cell(cell_id : mesg.cell_id)
+                         print     = (s...) -> console.log("#{s.join(' ')}") # doesn't make sense, but better than printing to printer...
                          code = mesg.code
                          if mesg.coffeescript
                              code = CoffeeScript.compile(code)
@@ -1725,7 +1724,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
             block     : required
             mode_line : required
             marker    : required
-
         cm = @codemirror
         block = opts.block
 
@@ -1733,12 +1731,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
         input = cm.getRange({line:block.start+1,ch:0}, {line:block.end+1,ch:0})
         i = input.indexOf(MARKERS.output)
         if i != -1
-            output_uuid        = input.slice(i+1,i+37)
             input              = input.slice(0,i)
             has_output_already = true
         else
-            output_uuid        = misc.uuid()
             has_output_already = false
+
+        # generate new uuid, so that other clients will re-render output.
+        output_uuid        = misc.uuid()
 
         # determine the mode
         i = opts.mode_line.indexOf('(')
@@ -1772,6 +1771,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         # update so that client sees rendering
         @process_sage_updates()
+        @sync()
 
     split_cell_at: (pos) =>
         # Split the cell at the given pos.
@@ -1875,6 +1875,8 @@ class Cell
         @opts = defaults opts,
             output  : undefined # jquery wrapped output area
             cell_id : undefined
+        @output = opts.output
+        @cell_id = opts.cell_id
 
 class Worksheet
     constructor : (@worksheet) ->
