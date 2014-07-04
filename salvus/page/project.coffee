@@ -1452,10 +1452,10 @@ class ProjectPage
                 masked_file_exts =
                     'pyc'           : 'py'
                     'class'         : 'java'
-                    'log'           : 'tex'
-                    'aux'           : 'tex'
-                    'gz'            : 'tex' # really looks for .synctex.gz
                     'exe'           : 'cs'
+
+                for ext in misc.split('blg bbl glo idx toc aux log lof ind nav snm gz xyc out ilg')  # gz really synctex.gz
+                    masked_file_exts[ext] = 'tex'
 
                     #many languages such as fortran or c++ have a default file name of "a.out." when compiled, so .out extensions are not masked
 
