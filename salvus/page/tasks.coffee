@@ -7,17 +7,6 @@ Task List
 jQuery.timeago.settings.allowFuture = true
 
 async  = require('async')
-marked = require('marked')
-
-marked.setOptions
-    renderer    : new marked.Renderer()
-    gfm         : true
-    tables      : true
-    breaks      : false
-    pedantic    : false
-    sanitize    : false
-    smartLists  : true
-    smartypants : true
 
 misc   = require('misc')
 {defaults, required, to_json, uuid} = misc
@@ -657,13 +646,21 @@ class TaskList
 
     display_last_edited : (task) =>
         if task.last_edited
+            corrupt = false
             if typeof(task.last_edited) != "number"  # corrupt
+                corrupt = true
+            else
+                d = new Date(task.last_edited)
+                if not misc_page.is_valid_date(d)
+                    corrupt = true
+            if corrupt
+                d = new Date()
                 task.last_edited = new Date() - 0
                 @db.update
                     set   : {last_edited : task.last_edited }
                     where : {task_id : task.task_id}
 
-            a = $("<span>").attr('title',(new Date(task.last_edited)).toISOString()).timeago()
+            a = $("<span>").attr('title',d.toISOString()).timeago()
             task.element.find(".salvus-task-last-edited").empty().append(a)
 
     click_hashtag_in_desc: (event) =>
@@ -699,7 +696,6 @@ class TaskList
             else
                 task.element.find(".salvus-task-toggle-icons").hide()
 
-        has_mathjax = false
         if desc.length == 0
             desc = "<span class='lighten'>Enter a description...</span>" # so it is possible to edit
         else
@@ -714,30 +710,9 @@ class TaskList
                     x0 = x
                 desc = desc0 + desc.slice(x0[1])
 
-            # replace mathjax, which is delimited by $, $$, \( \), and \[ \]
-            v = misc.parse_mathjax(desc)
-            if v.length > 0
-                w = []
-                has_mathjax = true
-                x0 = [0,0]
-                desc0 = ''
-                i = 0
-                for x in v
-                    w.push(desc.slice(x[0], x[1]))
-                    desc0 += desc.slice(x0[1], x[0]) + "@@@@#{i}@@@@"
-                    x0 = x
-                    i += 1
-                desc = desc0 + desc.slice(x0[1])
-            else
-                has_mathjax = false
-
-            # render description into html (from markdown)
-            desc = marked(desc)
-
-            # if there was any mathjax, put it back in the desc
-            if has_mathjax
-                for i in [0...w.length]
-                    desc = desc.replace("@@@@#{i}@@@@", misc.mathjax_escape(w[i].replace(/\$/g, "$$$$")))
+            x = misc_page.markdown_to_html(desc)
+            desc = x.s
+            has_mathjax = x.has_mathjax
 
         if task.deleted
             desc = "<del>#{desc}</del>"
@@ -1026,9 +1001,12 @@ class TaskList
 
         picker = elt.data('datetimepicker')
         if task.due_date?
-            picker.setLocalDate(new Date(task.due_date))
+            d = new Date(task.due_date)
+            if not misc_page.is_valid_date(d)  # workaround potential (hopefully extremely rare) corruption
+                d = new Date()
         else
-            picker.setLocalDate(new Date())
+            d = new Date()
+        picker.setLocalDate(d)
         elt.on 'changeDate', (e) =>
             @set_due_date(task, e.localDate - 0)
             @render_task(task)
@@ -1057,10 +1035,13 @@ class TaskList
                 # very rare corruption -- valid json but date somehow got messed up.
                 @remove_due_date(task)
                 return
-            task.element.find(".salvus-task-due-clear").show()
+            x = task.element.find(".salvus-task-due-clear")
+            x.show()
+            x.attr('title','Clear due date')
             d = new Date(0)   # see http://stackoverflow.com/questions/4631928/convert-utc-epoch-to-local-date-with-javascript
             d.setUTCMilliseconds(task.due_date)
             e.attr('title',d.toISOString()).timeago()
+            e.attr('title',d.toISOString())
             if d < new Date()
                 e.addClass("salvus-task-overdue")
         else
@@ -1073,8 +1054,18 @@ class TaskList
             task.element.find(".salvus-task-viewer-not-done").hide()
             task.element.find(".salvus-task-viewer-done").show()
             if typeof(task.done) == 'number'
-                task.element.find(".salvus-task-done").show().find(
-                    'span').attr('title',(new Date(task.done)).toISOString()).timeago()
+                e = task.element.find(".salvus-task-done")  # reconstructs the DOM element so that timeago updates correctly
+                if e.text() != 'none'
+                    e.timeago('dispose').text("none")
+                    f = task_template.find(".salvus-task-done").clone()
+                    e.replaceWith(f)
+                    e = f
+                done_text = task.element.find(".salvus-task-done").show().find('span')
+                d = new Date(task.done)
+                if not misc_page.is_valid_date(d)
+                    d = new Date()
+                done_text.attr('title', d.toISOString()).timeago()
+                done_text.parent().attr('title', d.toISOString())
             task.element.addClass("salvus-task-overall-done")
         else
             task.element.find(".salvus-task-viewer-not-done").show()

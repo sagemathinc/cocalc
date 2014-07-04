@@ -179,6 +179,7 @@ message
     stdout       : undefined   # plain text stream
     stderr       : undefined   # error text stream -- colored to indicate an error
     html         : undefined   # arbitrary html stream
+    md           : undefined   # github flavored markdown
     tex          : undefined   # tex/latex stream -- is an object {tex:..., display:...}
     hide         : undefined   # 'input' or 'output'; hide display of given component of cell
     show         : undefined   # 'input' or 'output'; show display of given component of cell
