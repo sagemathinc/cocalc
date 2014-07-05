@@ -1018,14 +1018,12 @@ def parse_groupfile(filename):
     ordered_group_names = []
     namespace = {}
     namespace['os'] = os
-    namespace['os'] = os
-    namespace['os'] = os
     for r in open(filename).xreadlines():
         line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
         if line: # ignore blank lines
             if line.startswith('import ') or '=' in line:
                 # import modules for use in assignments below
-                print "exec ", line
+                #print "exec ", line
                 exec line in namespace
                 continue
 
@@ -1044,6 +1042,9 @@ def parse_groupfile(filename):
             else:
                 opts.update(group_opts)
                 groups[group].append((name, opts))
+    for k in sorted(namespace.keys()):
+        if not k.startswith('_') and k not in ['os']:
+            print "%-20s = %s"%(k, namespace[k])
     return groups, ordered_group_names
 
 def parse_hosts_file(filename):

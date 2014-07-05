@@ -36,7 +36,9 @@ exports.task_list = (project_id, filename) ->
 HEADINGS    = ['custom', 'description', 'due', 'last-edited']
 HEADING_MAP = {custom:'position', description:'desc', due:'due_date', 'last-edited':'last_edited'}
 
-SPECIAL_PROPS = {element:true, changed:true, last_desc:true}
+SPECIAL_PROPS = {element:true, changed:true, last_desc:true, desc_timer:true, desc_last_sync:true}
+
+MIN_TIME = 1000 # minimum time in ms between sync events
 
 sortnum = (a,b) -> a - b
 
@@ -923,37 +925,37 @@ class TaskList
         elt.find(".CodeMirror-hscrollbar").remove()
         elt.find(".CodeMirror-vscrollbar").remove()
 
-        last_sync = undefined
-        min_time = 1500
+        task.desc_last_sync = undefined
 
         task.last_desc = task.desc  # initialize last_desc, in case we get an update before ever sync'ing.
         sync_desc = () =>
-            last_sync      = misc.mswalltime()
+            task.desc_last_sync = misc.mswalltime()
             desc           = cm.getValue()
             task.last_desc = desc  # update current description before syncing.
             task.desc      = desc
-            @display_desc(task) # update the preview
+            @display_desc(task)    # update the preview
             task.last_edited = (new Date()) - 0
             @db.update
                 set   : {desc    : task.desc, last_edited : task.last_edited}
                 where : {task_id : task.task_id}
             @set_dirty()
 
-        timer = undefined
-        cm.on 'change', () =>
+        task.desc_timer = undefined
+        cm.on 'changes', () =>
             t = misc.mswalltime()
-            if not last_sync?
+            if not task.desc_last_sync?
                 sync_desc()
             else
-                if t - last_sync >= min_time
+                if t - task.desc_last_sync >= MIN_TIME
                     sync_desc()
                 else
-                    if not timer?
+                    if not task.desc_timer?
                         f = () ->
-                            timer = undefined
-                            if misc.mswalltime() - last_sync >= min_time
+                            task.desc_timer = undefined
+                            if misc.mswalltime() - task.desc_last_sync >= MIN_TIME
                                 sync_desc()
-                        timer = setTimeout(f, min_time - (t - last_sync))
+                        task.desc_timer = setTimeout(f, MIN_TIME - (t - task.desc_last_sync))
+
         cm.on 'focus', () ->
             currently_focused_editor = cm
             $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor-focus')

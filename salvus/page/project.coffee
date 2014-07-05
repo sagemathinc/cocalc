@@ -30,6 +30,18 @@ template_project_branch_single = templates.find(".project-branch-single")
 template_project_collab        = templates.find(".project-collab")
 template_project_linked        = templates.find(".project-linked")
 
+
+exports.masked_file_exts = masked_file_exts =
+    'pyc'           : 'py'
+    'class'         : 'java'
+    'exe'           : 'cs'
+
+for ext in misc.split('blg bbl glo idx toc aux log lof ind nav snm gz xyc out ilg')  # gz really synctex.gz
+    masked_file_exts[ext] = 'tex'
+
+#many languages such as fortran or c++ have a default file name of "a.out." when compiled, so .out extensions are not masked
+
+
 ##################################################
 # Initialize the modal project management dialogs
 ##################################################
@@ -1449,15 +1461,6 @@ class ProjectPage
                 #console.log("building listing for #{path}...")
 
                 tm = misc.walltime()
-                masked_file_exts =
-                    'pyc'           : 'py'
-                    'class'         : 'java'
-                    'exe'           : 'cs'
-
-                for ext in misc.split('blg bbl glo idx toc aux log lof ind nav snm gz xyc out ilg')  # gz really synctex.gz
-                    masked_file_exts[ext] = 'tex'
-
-                    #many languages such as fortran or c++ have a default file name of "a.out." when compiled, so .out extensions are not masked
 
                 masked_file_exts_bad = (key for key of masked_file_exts)
                 masked_file_exts_good = (value for key, value of masked_file_exts)

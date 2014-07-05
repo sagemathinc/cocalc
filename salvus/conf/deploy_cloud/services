@@ -1,5 +1,8 @@
 # services
-base=os.path.splitext(list(sorted(os.listdir('/home/salvus/vm/images/base3')))[-1])[0]
+
+# Automatically determine the newest base image that isn't currently running live:
+_running      = os.popen('virsh list').read()
+base          = os.path.splitext([_x for _x in sorted(os.listdir('/home/salvus/vm/images/base3')) if _x.split('.')[0] not in _running][-1])[0]
 
 cassandra_ram = 8
 cassandra_cpu = 2
