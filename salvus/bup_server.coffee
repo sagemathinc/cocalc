@@ -534,7 +534,7 @@ class GlobalProject
     constructor: (@project_id, @global_client) ->
         @database = @global_client.database
 
-    get_location_pref: (cb) =>
+    get_location_pref: (cb) =>   # db(err, server_id)
         @database.select_one
             table   : "projects"
             columns : ["bup_location"]
@@ -782,47 +782,102 @@ class GlobalProject
                     dbg("project not running anywhere, so start it somewhere")
                     @start(opts)
 
+    sync_topology: (opts) =>
+        opts = defaults opts,
+            cb        : required   # (err, {host:{dc:n, server_id:server_id, running:true or false}, targets:{'ip_address:port':target_id, ...}})
+        dbg = (m) => winston.debug("GlobalProject.sync_targets(#{opts.server_id}): #{m}")
+
+        resp = {host:{}, targets:{}}
+        async.series([
+            (cb) =>
+                dbg("figure out where/if project is running")
+                @get_host_where_running
+                    cb : (err, s) =>
+                        dbg("project server_id = #{s}")
+                        resp.host.server_id = s
+                        if err
+                            cb(err)
+                        else if not resp.host.server_id?
+                            dbg("not running anywhere")
+                            @get_location_pref (err, s) =>
+                                resp.host.server_id = s
+                                resp.host.running = false
+                                cb(err)
+                        else
+                            resp.host.running = true
+                            cb()
+            (cb) =>
+                dbg("get the data center where this project is currently running")
+                @global_client.get_data_center
+                    server_id : resp.host.server_id
+                    cb : (err, dc) =>
+                        resp.host.dc = dc
+                        dbg("sync host: #{misc.to_json(resp.host)}")
+                        cb(err)
+            (cb) =>
+                dbg("get the targets for replication")
+                @get_hosts
+                    cb : (err, t) =>
+                        v = (x for x in t when x != resp.host.server_id)
+                        dbg("sync_targets = #{misc.to_json(v)}")
+                        f = (target_id, cb) =>
+                            @global_client.get_external_ssh
+                                server_id : target_id
+                                dc        : resp.host.dc
+                                cb        : (err, addr) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        resp.targets[addr] = target_id
+                                        cb()
+                        async.map v, f, (err) =>
+                            dbg("sync_targets --> #{misc.to_json(resp.targets)}")
+                            cb(err)
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, resp)
+        )
 
     save: (opts) =>
         opts = defaults opts,
             cb : undefined
+        dbg = (m) => winston.debug("GlobalProject.save(#{@project_id}): #{m}")
         # if we just saved this project, return immediately -- note: THIS IS "CLIENT" side, but there is a similar guard on the actual compute node
         if @_last_save? and misc.walltime() - @_last_save < MIN_SAVE_INTERVAL_S
+            dbg("we just saved this project recently")
             opts.cb?(undefined)
             return
 
         # put this here -- we don't even want to *try* more frequently than MIN_SAVE_INTERVAL_S, in case of save bup repo being broken (?)
         @_last_save = misc.walltime()
 
-        dbg = (m) => winston.debug("GlobalProject.save(#{@project_id}): #{m}")
 
         need_to_save = false
         project      = undefined
-        dc           = undefined   # data center where project currently running
-        targets      = []          # ['address:port', ...] of replication targets
-        server_id    = undefined   # id of the server on which the project is currently running
+        server_id    = undefined
+        targets      = undefined
         errors       = []
         async.series([
             (cb) =>
                 dbg("figure out where/if project is running")
-                @get_host_where_running
-                    cb : (err, s) =>
-                        server_id = s
+                @sync_topology
+                    cb : (err, resp) =>
                         if err
-                            cb(err)
-                        else if not server_id?
-                            dbg("not running anywhere -- nothing to save")
-                            cb()
-                        else if @state?[server_id] == 'saving'
+                            cb(err); return
+                        server_id = resp.host.server_id
+                        if @state?[server_id] == 'saving'
                             dbg("already saving -- nothing to do")
                             cb()
                         else
                             need_to_save = true
+                            targets = resp.targets
                             cb()
             (cb) =>
                 if not need_to_save
                     cb(); return
-                dbg("get the project itself")
+                dbg("get the project")
                 @project
                     server_id : server_id
                     cb        : (err, p) =>
@@ -830,39 +885,9 @@ class GlobalProject
             (cb) =>
                 if not need_to_save
                     cb(); return
-                dbg("get the data center where this project is currently running")
-                @get_data_center
-                    server_id : server_id
-                    cb : (err, _dc) =>
-                        dc = _dc
-                        cb(err)
-            (cb) =>
-                if not need_to_save
-                    cb(); return
-                dbg("get the targets for replication")
-                @get_hosts
-                    cb : (err, t) =>
-                        v = (x for x in t when x != server_id)
-                        dbg("sync_targets = #{misc.to_json(v)}")
-                        f = (target_id, cb) =>
-                            @get_external_ssh
-                                server_id : target_id
-                                dc        : dc
-                                cb        : (err, addr) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        targets.push(addr)
-                                        cb()
-                        async.map v, f, (err) =>
-                            dbg("sync_targets --> #{misc.to_json(targets)}")
-                            cb(err)
-            (cb) =>
-                if not need_to_save
-                    cb(); return
                 dbg("save the project and sync")
                 project.save
-                    targets : targets
+                    targets : misc.keys(targets)
                     cb      : (err, result) =>
                         r = result?.result
                         dbg("RESULT = #{misc.to_json(result)}")
@@ -875,7 +900,7 @@ class GlobalProject
                                     if x.host == '' # special case - the server hosting the project
                                         s = server_id
                                     else
-                                        s = @global_client.servers.by_host[x.host].server_id
+                                        s = targets[x.host]
                                     if not x.error?
                                         last_save[s] = r.timestamp*1000
                                     else
@@ -914,24 +939,14 @@ class GlobalProject
         errors    = []
         async.series([
             (cb) =>
-                dbg("figure out master if there is one")
-                @get_location_pref (err,s) =>
-                        server_id = s
-                        dbg("got master=#{server_id}")
-                        cb(err)
-            (cb) =>
-                dbg("lookup the servers that host this project")
-                @get_hosts
-                    cb : (err, hosts) =>
+                dbg("figure out where/if project is running")
+                @sync_topology
+                    cb : (err, resp) =>
                         if err
-                            cb(err)
-                        else
-                            targets = hosts
-                            dbg("servers=#{misc.to_json(targets)}")
-                            if not server_id? # no master (project never used), so choose one at random
-                                server_id = misc.random_choice(targets)
-                            targets = (@global_client.servers.by_id[x].host for x in targets when x!= server_id)
-                            cb()
+                            cb(err); return
+                        server_id = resp.host.server_id
+                        targets   = resp.targets
+                        cb()
             (cb) =>
                 dbg("get the project itself")
                 @project
@@ -942,7 +957,7 @@ class GlobalProject
                 dbg("do the sync")
                 tm = cassandra.now()
                 project.sync
-                    targets     : targets
+                    targets     : misc.keys(targets)
                     union       : opts.union
                     destructive : opts.destructive
                     snapshots   : opts.snapshots
@@ -962,7 +977,7 @@ class GlobalProject
                                 if x.host == '' # special case - the server hosting the project
                                     s = server_id
                                 else
-                                    s = @global_client.servers.by_host[x.host].server_id
+                                    s = targets[x.host]
                                 if not x.error?
                                     last_save[s] = tm
                                 else
