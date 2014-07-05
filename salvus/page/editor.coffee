@@ -307,8 +307,7 @@ class exports.Editor
 
         $(document).on 'keyup', (ev) =>
             if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
-                @show_recent()
-                @project_page.display_tab("project-editor")
+                @project_page.display_tab("project-file-listing")
                 return false
             else if ev.ctrlKey or ev.metaKey or ev.altKey
                 if ev.keyCode == 219
@@ -325,12 +324,6 @@ class exports.Editor
                     @display_tab(path:filename)
                 return false
 
-
-    show_recent: () =>
-        @hide_editor_content()
-        @show_recent_file_list()
-        if not IS_MOBILE
-            @element.find(".salvus-editor-search-openfiles-input").focus()
 
     hide_editor_content: () =>
         @_editor_content_visible = false
@@ -825,12 +818,6 @@ class exports.Editor
     hide_recent_file_list: () =>
         $(".salvus-editor-recent-files").hide()
         $(".project-editor-recent-files-header").hide()
-
-    show_recent_file_list: () =>
-        #console.log("show_recent_file_list")
-        $(".salvus-editor-recent-files").show()
-        $(".project-editor-recent-files-header").show()
-        @push_state('recent')
 
     # Make the tab appear in the tabs at the top, and if foreground=true, also make that tab active.
     display_tab: (opts) =>
