@@ -464,7 +464,8 @@ class Project(object):
         """
         Save a snapshot.
 
-        If sync is true, also syncs data out and returns info about how successful that was.
+        If sync is true, first does sync of live files, then creates the bup snapshot, then
+        finally syncs data out and returns info about how successful that was.
         """
         log = self._log("save")
         self.touch()
@@ -480,6 +481,10 @@ class Project(object):
                     return {'files_saved' : 0}
         except Exception, msg:
             log("WARNING: non-fatal issue reading /root/banned_files file and shrinking user priority: %s"%msg)
+
+        if sync:
+            log("Doing first sync before save of the live files (ignoring any issues or errors)")
+            self.sync(targets=targets, snapshots=False)
 
         # We ignore_errors below because unfortunately bup will return a nonzero exit code ("WARNING")
         # when it hits a fuse filesystem.   TODO: somehow be more careful that each
@@ -800,6 +805,16 @@ class Project(object):
 
         return status
 
+    def remote_is_ready(self, remote, port='22'):
+        """
+        Ensure that that /projects and /bup/bups are properly mounted on remote host.
+
+        This code assumes that / on the remote host is *NOT* a ZFS filesystem.
+        """
+        s   = "stat -f -c %T /projects /bup/bups"
+        out = self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", '-p', port, 'root@'+remote, s], ignore_errors=True)
+        return 'ext' not in out and 'zfs' in out  # properly mounted = mounted via ZFS in any way.
+
     def _sync(self, remote, destructive=False, snapshots=True, union=False, union2=False, rsync_timeout=120, bwlimit=4000):
         """
         NOTE: sync is by default destructive on live files; on snapshots it isn't by default.
@@ -819,6 +834,12 @@ class Project(object):
             remote, port = remote.split(':')
         else:
             port = 22
+
+        # Ensure that that /projects and /bup/bups are properly mounted on remote host before
+        # doing the sync. This is critical, since we do not want to sync to a machine that has
+        # booted up, but hasn't yet imported the ZFS pools.
+        if not self.remote_is_ready(remote, port):
+            raise RuntimeError("remote machine %s not ready to receive replicas"%remote)
 
         if union:
             log("union stage 1: gather files from outside")
