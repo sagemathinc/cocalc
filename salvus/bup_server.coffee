@@ -798,8 +798,9 @@ class GlobalProject
 
         need_to_save = false
         project      = undefined
-        targets      = undefined
-        server_id    = undefined
+        dc           = undefined   # data center where project currently running
+        targets      = []          # ['address:port', ...] of replication targets
+        server_id    = undefined   # id of the server on which the project is currently running
         errors       = []
         async.series([
             (cb) =>
@@ -829,12 +830,33 @@ class GlobalProject
             (cb) =>
                 if not need_to_save
                     cb(); return
+                dbg("get the data center where this project is currently running")
+                @get_data_center
+                    server_id : server_id
+                    cb : (err, _dc) =>
+                        dc = _dc
+                        cb(err)
+            (cb) =>
+                if not need_to_save
+                    cb(); return
                 dbg("get the targets for replication")
                 @get_hosts
                     cb : (err, t) =>
-                        targets = (@global_client.servers.by_id[x].host for x in t when x != server_id)  # targets as ip addresses
-                        dbg("sync_targets = #{misc.to_json(targets)}")
-                        cb(err)
+                        v = (x for x in t when x != server_id)
+                        dbg("sync_targets = #{misc.to_json(v)}")
+                        f = (target_id, cb) =>
+                            @get_external_ssh
+                                server_id : target_id
+                                dc        : dc
+                                cb        : (err, addr) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        targets.push(addr)
+                                        cb()
+                        async.map v, f, (err) =>
+                            dbg("sync_targets --> #{misc.to_json(targets)}")
+                            cb(err)
             (cb) =>
                 if not need_to_save
                     cb(); return
@@ -1707,6 +1729,20 @@ class GlobalClient
                         if not r?
                             r = k[-1]
                     opts.cb(undefined, r)
+
+    get_data_center: (opts) =>
+        opts = defaults opts,
+            server_id : required
+            cb        : required  # cb(err, dc)   where dc = 0,1,2,3, etc.
+        @database.select_one
+            table   : 'storage_servers'
+            columns : ['dc']
+            where   : {dummy:true, server_id:opts.server_id}
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, result[0])
 
     score_servers: (opts) =>
         opts = defaults opts,
