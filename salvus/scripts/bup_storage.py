@@ -770,7 +770,7 @@ class Project(object):
             # ps returns an error code if there are NO processes at all (a common condition).
             pids = []
 
-    def sync(self, targets="", destructive=False, snapshots=True, union=False):
+    def sync(self, targets="", destructive=True, snapshots=True, union=False):
         """
         If union is True, uses the --update option of rsync to make the bup repos and working files
         on all replicas identical, namely the union of the newest versions of all files.  This is mainly
@@ -815,7 +815,7 @@ class Project(object):
         out = self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", '-p', port, 'root@'+remote, s], ignore_errors=True)
         return 'ext' not in out and 'zfs' in out  # properly mounted = mounted via ZFS in any way.
 
-    def _sync(self, remote, destructive=False, snapshots=True, union=False, union2=False, rsync_timeout=120, bwlimit=4000):
+    def _sync(self, remote, destructive=True, snapshots=True, union=False, union2=False, rsync_timeout=120, bwlimit=20000):
         """
         NOTE: sync is by default destructive on live files; on snapshots it isn't by default.
 
