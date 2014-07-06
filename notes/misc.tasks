@@ -1,4 +1,4 @@
-{"desc":"#swap\nHow to make ZFS swap\n\n    sudo zfs create pool/swap -V 32G -b 4K\n    sudo mkswap -f /dev/pool/swap\n    sudo swapon /dev/pool/swap","position":-1,"last_edited":1404168782474,"task_id":"7b35378b-c1b9-4db7-824e-702d66fd43ac"}
+{"desc":"#swap\nHow to make ZFS swap\n\n    sudo zfs create pool/swap -V 32G -b 4K\n    sudo mkswap -f /dev/pool/swap\n    sudo swapon /dev/pool/swap","position":-1,"last_edited":1404580693445,"task_id":"7b35378b-c1b9-4db7-824e-702d66fd43ac"}
 {"desc":"#git\nHow to checkout remote branch\n\n    git checkout -b fix-fuse-mem --track origin/tmp/rlb/smc/fix-fuse-mem","position":0,"last_edited":1403670352766,"task_id":"fb614edd-6b1b-4a46-82a8-2e6333d993ef"}
 {"desc":"","position":-2,"last_edited":1403645815117,"task_id":"b5c300c0-3c44-41bc-abbd-3ef1504e8b46","deleted":true}
 {"desc":"#bup\n\nbup git\n\n\texport uid=005fe15d-9c05-4007-b87a-610d74395840; \n    ~/bup/bup on root@10.1.1.5 get -s /bup/bups/$uid master:$uid","position":-1.5,"last_edited":1403653983717,"task_id":"ab494a3a-5673-4db6-a50f-8ec90f378e8e"}
