@@ -337,8 +337,6 @@ class ProjectPage
         #console.log("project -- load_target=#{target}")
         segments = target.split('/')
         switch segments[0]
-            when 'recent'
-                @display_tab("project-editor")
             when 'files'
                 if target[target.length-1] == '/'
                     # open a directory
@@ -463,7 +461,7 @@ class ProjectPage
         @_file_search_box = @container.find(".salvus-project-search-for-file-input")
         @_file_search_box.keyup (event) =>
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79
-                @display_tab("project-editor")
+                @display_tab("project-new-file")
                 return false
             @update_file_search(event)
         @container.find(".salvus-project-search-for-file-input-clear").click () =>
@@ -1179,7 +1177,7 @@ class ProjectPage
                 click_new_file_button()
                 return false
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
-                @display_tab("project-file-listing")
+                @display_tab("project-activity")
                 return false
 
         new_file_from_web = (url, cb) =>
