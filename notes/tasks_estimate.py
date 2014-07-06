@@ -9,8 +9,16 @@ if len(sys.argv) > 1:
 else:
     file = 'smc.tasks'
 
+if len(sys.argv) > 2:
+    tag = sys.argv[2]
+else:
+    tag = 'today'
+
+print file
+print "#" + tag
+
 tm = 0
-for x in os.popen('grep \#today %s |grep -v done\\":1'%file).readlines():
+for x in os.popen('grep \#%s %s |grep -v done\\":1'%(tag, file)).readlines():
     i = x.find(OPENING)
     if i == -1:
         continue
