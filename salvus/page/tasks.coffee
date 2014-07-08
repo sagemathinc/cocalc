@@ -480,13 +480,12 @@ class TaskList
         @elt_task_list.children().css('display','inherit')
 
         # remove any existing highlighting:
-        @elt_task_list.find('.salvus-task-desc').unhighlight()
+        @elt_task_list.find('.highlight-tag').removeClass("highlight-tag")
         if search.length > 0
             # Go through the DOM tree of tasks and highlight all the search terms for
             # tasks that aren't currently being edited.
-            for tasks in @elt_task_list.find('.salvus-task-desc').not(".salvus-task-desc-editing")
-                for hash in $(tasks).find('.salvus-tasks-hash')
-                    $(hash).highlight($(hash).text()) if $(hash).text() in search
+            for tags in search
+                @elt_task_list.find(".#{(tags).substring(1)}").addClass("highlight-tag")
 
         # show the "create a new task" link if no tasks.
         if count == 0
@@ -710,7 +709,7 @@ class TaskList
                 x0 = [0,0]
                 desc0 = ''
                 for x in v
-                    desc0 += desc.slice(x0[1], x[0]) + '<span class="salvus-tasks-hash">' + desc.slice(x[0], x[1]) + '</span>'
+                    desc0 += desc.slice(x0[1], x[0]) + "<span class='salvus-tasks-hash #{(desc.slice(x[0], x[1])).substring(1)}'>" + desc.slice(x[0], x[1]) + '</span>'
                     x0 = x
                 desc = desc0 + desc.slice(x0[1])
 
