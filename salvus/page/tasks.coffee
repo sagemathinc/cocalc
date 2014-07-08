@@ -421,7 +421,7 @@ class TaskList
                 else
                     t = task.desc.toLowerCase()
                     for s in search
-                        if t.indexOf(s) == -1
+                        if t.indexOf(s) == -1 or not (t.charAt(t.indexOf(s) + s.length).match(/\s|[^A-Za-z0-9_\-]/) or t.substring(t.indexOf(s)).length == s.length)
                             skip = true
                             continue
             else
@@ -484,7 +484,9 @@ class TaskList
         if search.length > 0
             # Go through the DOM tree of tasks and highlight all the search terms for
             # tasks that aren't currently being edited.
-            @elt_task_list.find('.salvus-task-desc').not(".salvus-task-desc-editing").highlight(search)
+            for tasks in @elt_task_list.find('.salvus-task-desc').not(".salvus-task-desc-editing")
+                for hash in $(tasks).find('.salvus-tasks-hash')
+                    $(hash).highlight($(hash).text()) if $(hash).text() in search
 
         # show the "create a new task" link if no tasks.
         if count == 0
@@ -698,7 +700,7 @@ class TaskList
             else
                 task.element.find(".salvus-task-toggle-icons").hide()
 
-        if desc.length == 0
+        if desc.trim().length == 0
             desc = "<span class='lighten'>Enter a description...</span>" # so it is possible to edit
         else
             # replace hashtags by a span with appropriate class
@@ -1457,8 +1459,6 @@ close_help_dialog = () ->
     help_dialog_element.modal('hide')
 
 help_dialog_element.find(".btn-close").click(close_help_dialog)
-
-
 
 
 
