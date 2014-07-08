@@ -484,8 +484,7 @@ class TaskList
         if search.length > 0
             # Go through the DOM tree of tasks and highlight all the search terms for
             # tasks that aren't currently being edited.
-            for tags in search
-                @elt_task_list.find(".#{(tags).substring(1)}").addClass("highlight-tag")
+            @elt_task_list.find( ("."+tags.substring(1) for tags in search).join(',') ).addClass("highlight-tag")
 
         # show the "create a new task" link if no tasks.
         if count == 0
