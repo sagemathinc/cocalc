@@ -66,7 +66,7 @@ chmod a+rx /bup
 # on the system with arbitrary content.
 UNSAFE_MODE=False
 
-import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd, codecs
+import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd, codecs, re
 from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
 
@@ -257,6 +257,24 @@ class Project(object):
     def start_daemons(self):
         self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
 
+    def start_file_watch(self):
+        self.cmd([
+            "/usr/bin/bup", "watch",
+            "--start",
+            "--pidfile", os.path.join(self.bup_path, "watch.pid"),
+            "--logfile", os.path.join(self.bup_path, "watch.log"),
+            "--xdev"]
+            + self.exclude(self.project_mnt, prog='bup')
+            + [self.project_mnt]
+            )
+
+    def stop_file_watch(self):
+        self.cmd([
+            "/usr/bin/bup", "watch",
+            "--stop",
+            "--pidfile", os.path.join(self.bup_path, "watch.pid")]
+            )
+
     def start(self):
         self.init()
         self.create_home()
@@ -265,6 +283,7 @@ class Project(object):
         self.settings()
         self.ensure_conf_files()
         self.touch()
+        self.start_file_watch()
         self.update_daemon_code()
         self.start_daemons()
         self.umount_snapshots()
@@ -416,6 +435,9 @@ class Project(object):
             if n == 0:
                 break
 
+        log("stopping file watch for user with id %s"%self.uid)
+        self.stop_file_watch()
+
         # So crontabs, remote logins, etc., won't happen... and user can't just get more free time via crontab. Not sure.
         # We need another state, which is that the project is "on" but daemons are all stopped and not using RAM.
         self.delete_user()
@@ -456,9 +478,22 @@ class Project(object):
         self.archive()
         shutil.rmtree(self.bup_path)
 
-    def exclude(self, prefix):
-        excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots']
-        return ['--exclude=%s'%(prefix+x) for x in excludes]
+    def exclude(self, prefix, prog='rsync'):
+        eprefix = re.escape(prefix)
+        excludes = ['.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots']
+        exclude_rxs = []
+        if prog == 'rsync':
+            excludes.append('*.sage-backup')
+        else: # prog == 'bup'
+            exclude_rxs.append(r'.*\.sage\-backup')
+
+        for i,x in enumerate(exclude_rxs):
+            # escape the prefix for the regexs
+            ex_len = len(re.escape(x))
+            exclude_rxs[i] = re.escape(os.path.join(prefix, x))
+            exclude_rxs[i] = exclude_rxs[i][:-ex_len]+x
+
+        return ['--exclude=%s'%os.path.join(prefix, x) for x in excludes] + ['--exclude-rx=%s'%x for x in exclude_rxs]
 
     def save(self, path=None, timestamp=None, branch=None, sync=True, mnt=True, targets=""):
         """
@@ -485,10 +520,6 @@ class Project(object):
         if sync:
             log("Doing first sync before save of the live files (ignoring any issues or errors)")
             self.sync(targets=targets, snapshots=False)
-
-        # We ignore_errors below because unfortunately bup will return a nonzero exit code ("WARNING")
-        # when it hits a fuse filesystem.   TODO: somehow be more careful that each
-        self.cmd(["/usr/bin/bup", "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
 
         what_changed = self.cmd(["/usr/bin/bup", "index", '-m', path],verbose=0).splitlines()
         files_saved = max(0, len(what_changed) - 1)      # 1 since always includes the directory itself
