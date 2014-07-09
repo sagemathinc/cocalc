@@ -409,6 +409,7 @@ projects_running_on_server = (cb) ->     # cb(err, projects)
                             project_id = v[v.length-1].trim()
                             if project_id.length == 36
                                 projects.push(project_id)
+                            c()
             async.map(uids, f, cb)
     ], (err) =>
         cb(err, projects)
@@ -2526,6 +2527,8 @@ class Client
             timeout : 300
             cb      : undefined
         @dbg("call", opts, "start call")
+        if not opts.mesg.id?
+            opts.mesg.id = misc.uuid()
         @socket.write_mesg 'json', opts.mesg, (err) =>
             @dbg("call", opts, "got response from socket write mesg: #{err}")
             if err
