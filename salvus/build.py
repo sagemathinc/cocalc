@@ -181,6 +181,10 @@ MaxStartups 128
    sudo su
    umask 022  &&  cd /usr/local/ && git clone git://github.com/JuliaLang/julia.git  &&  cd julia  &&  make -j16 install  &&   cd /usr/local/bin  &&  ln -s /usr/local/julia/julia .
 
+Start Julia and type:
+
+   Pkg.add("IJulia")
+
 # FEnICS -- automated solution of differential equations by finite element methods
   (Test with "import dolfin".)
 
