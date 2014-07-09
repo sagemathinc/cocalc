@@ -658,16 +658,20 @@ class GlobalProject
 
     start: (opts) =>
         opts = defaults opts,
+            target : undefined
             cb     : undefined
         dbg = (m) -> winston.debug("GlobalProject.start(#{@project_id}): #{m}")
         dbg()
         state     = undefined
         project   = undefined
         server_id = undefined
-        target    = undefined
+        target    = opts.target
+        dbg("target = #{target}")
 
         async.series([
             (cb) =>
+                if target?
+                    cb(); return
                 @get_location_pref (err, result) =>
                     if not err and result?
                         dbg("setting prefered start target to #{result[0]}")
@@ -687,10 +691,8 @@ class GlobalProject
                     v = (server_id for server_id, s of state when s not in ['error'])
                     if v.length == 0
                         v = misc.keys(state)
-                    if target? and v.length > 1
-                        v = (server_id for server_id in v when server_id != @_next_start_avoid)
-                        delete @_next_start_avoid
                     if target? and target in v
+                        dbg("use requested target = #{target}")
                         server_id = target
                         cb()
                     else
@@ -727,7 +729,8 @@ class GlobalProject
                                         cb()
 
                 else if running_on.length == 1
-                    dbg("done -- nothing further to do -- project already running on one host")
+                    dbg("done -- nothing further to do -- project already running on one host: #{misc.to_json(running_on)}")
+                    server_id = undefined
                     cb()
                 else
                     dbg("project running on more than one host -- repair by killing all but first; this will force any clients to move to the correct host when their connections get dropped")
@@ -1063,10 +1066,17 @@ class GlobalProject
                 if err
                     opts.cb?(err)
                 else if not server_id?
-                    opts.cb?() # not running anywhere -- nothing to save
+                    opts.cb?() # not running anywhere -- nothing to stop
                 else
-                    @_stop_all([server_id])
-                    opts.cb?()
+                    @project
+                        server_id : server_id
+                        cb        : (err, project) =>
+                            if err
+                                opts.cb?(err)
+                            else
+                                project.stop
+                                    force : opts.force
+                                    cb    : opts.cb
 
     # change the location preference for the next start, and attempts to stop
     # if running somewhere now.
@@ -1076,29 +1086,76 @@ class GlobalProject
             cb     : undefined
         dbg = (m) -> winston.debug("GlobalProject.move(#{@project_id}): #{m}")
         dbg()
+        current = undefined
+        is_running = false
         async.series([
-            (cb) =>
-                if opts.target?
-                    dbg("set next open location preference -- target=#{opts.target}")
-                    @set_location_pref(opts.target, cb)
-                else
-                    cb()
             (cb) =>
                 @get_host_where_running
                     cb : (err, server_id) =>
                         if err
-                            dbg("error determining info about running status -- #{err}")
-                            cb(err)
+                            cb(err); return
+                        if server_id?
+                            is_running = true
+                            current = server_id
+                            cb(); return
                         else
-                            @_next_start_avoid = server_id
-                            if server_id?
-                                # next start will happen on new machine...
-                                @stop
-                                    cb: (err) =>
-                                        dbg("non-fatal error stopping -- expected given that move is used when host is down -- #{err}")
-                                        cb()
+                            @get_location_pref (err, server_id) =>
+                                current = server_id
+                                cb(err)
+            (cb) =>
+                if opts.target?
+                    cb(); return
+                dbg("determine move target")
+                @get_hosts
+                    cb : (err, hosts) =>
+                        if err
+                            cb(err); return
+                        hosts = (x for x in hosts when x != current)
+                        if hosts.length == 0
+                            cb("no host to move to")
+                        else
+                            opts.target = misc.random_choice(hosts)
+                            cb()
+            (cb) =>
+                if opts.target == current
+                    # nothing to do
+                    cb(); return
+                dbg("set next open location preference -- target=#{opts.target}")
+                @set_location_pref(opts.target, cb)
+            (cb) =>
+                if opts.target == current
+                    # nothing to do
+                    cb(); return
+                dbg("attempting to sync out from current")
+                @sync
+                    cb : (err) =>
+                        if err
+                            dbg("non-fatal error syncing -- expected given that move is used when host is down -- #{err}")
+                        else
+                            dbg("successfully sync'd project")
+                        cb()
+            (cb) =>
+                if opts.target == current
+                    # nothing to do
+                    cb(); return
+                if current?
+                    # next start should happen on opts.target:
+                    @stop
+                        cb: (err) =>
+                            if err
+                                dbg("non-fatal error stopping -- expected given that move is used when host is down -- #{err}")
                             else
-                                cb()
+                                dbg("successfully stopped project")
+                            cb()
+                else
+                    cb()
+            (cb) =>
+                if not is_running or opts.target == current
+                    cb(); return
+                dbg("now starting in new location = #{opts.target} (since project was running before)")
+                @start
+                    target : opts.target
+                    cb     : cb
         ], (err) =>
             dbg("move completed -- #{err}")
             opts.cb?(err)
