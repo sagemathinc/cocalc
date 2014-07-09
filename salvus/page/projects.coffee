@@ -400,6 +400,8 @@ exports.open_project = open_project = (project, item) ->
 $("#new_project-button").click((event) -> create_project.modal('show'))
 
 create_project = $("#projects-create_project")
+title_input = $("#projects-create_project-title")
+description_input = $("#projects-create_project-description")
 
 close_create_project = () ->
     create_project.modal('hide').find('input').val('')
@@ -413,13 +415,25 @@ $("#projects-create_project-button-cancel").click((event) -> close_create_projec
 
 create_project.on("shown", () -> $("#projects-create_project-title").focus())
 
-new_project_button = $("#projects-create_project-button-create_project").click (event) ->
-    title = $("#projects-create_project-title").val()
+new_project_button = $("#projects-create_project-button-create_project").click((event) -> create_new_project())
+
+# pressing enter on title_input brings you to description_input
+title_input.keyup (e) ->
+    if e.keyCode == 13
+        description_input.focus()
+
+# pressing enter on description_input creates new project
+description_input.keyup (e) ->
+    if e.keyCode == 13
+        create_new_project()
+
+create_new_project = () ->
+    title = title_input.val()
     if title == ""
-        title = $("#projects-create_project-title").attr("placeholder")
-    description = $("#projects-create_project-description").val()
+        title = title_input.attr("placeholder")
+    description = description_input.val()
     if description == ""
-        description = $("#projects-create_project-description").attr("placeholder")
+        description = description_input.attr("placeholder")
 
     new_project_button.icon_spin(start:true)
     alert_message(message:"Creating new project '#{title}'.  Project will automatically appear in the list in a few seconds.", timeout:10)
