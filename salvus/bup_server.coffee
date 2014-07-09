@@ -327,6 +327,13 @@ handle_mesg = (socket, mesg) ->
                         resp.result = result
                     resp.time_s = misc.walltime(t)
                     socket.write_mesg('json', resp)
+    else if mesg.event == 'projects_running_on_server'
+        projects_running_on_server (err, projects) ->
+            if err
+                socket.write_mesg('json', message.error(id:id, error:"error determining running projects -- #{err}"))
+            else
+                mesg.projects = projects
+                socket.write_mesg('json', mesg)
     else
         socket.write_mesg('json', message.error(id:id, error:"unknown event type: '#{mesg.event}'"))
 
@@ -361,11 +368,12 @@ init_server_id = (cb) ->
                     SERVER_ID = data.toString()
                     cb()
 
+projects_running_on_server = (cb) ->     # cb(err, projects)
+    dbg = (m) -> winston.debug("projects_running_on_server: #{m}")
+    dbg()
 
-idle_timeout = () ->
-    dbg = (m) -> winston.debug("idle_timeout: #{m}")
-    dbg('Periodic check for projects that are running and call "kill --only_if_idle" on them all.')
-    uids = []
+    uids     = []
+    projects = []
     async.series([
         (cb) ->
             dbg("get uids of active projects")
@@ -399,16 +407,30 @@ idle_timeout = () ->
                             dbg("#{uid} --> #{output.stdout}")
                             v = output.stdout.split('/')
                             project_id = v[v.length-1].trim()
-                            get_project(project_id).action
-                                action : 'stop'
-                                param  : '--only_if_idle'
-                                cb     : (err) ->
-                                    if err
-                                        dbg("WARNING: error stopping #{project_id} -- #{err}")
-                                    c()
+                            if project_id.length == 36
+                                projects.push(project_id)
             async.map(uids, f, cb)
-    ])
+    ], (err) =>
+        cb(err, projects)
+    )
 
+
+idle_timeout = () ->
+    dbg = (m) -> winston.debug("idle_timeout: #{m}")
+    dbg('Periodic check for projects that are running and call "kill --only_if_idle" on them all.')
+    projects_running_on_server (err, projects) ->
+        if err
+            dbg("ERROR: #{err}")
+        else
+            f = (project_id, cb) ->
+                get_project(project_id).action
+                    action : 'stop'
+                    param  : '--only_if_idle'
+                    cb     : (err) ->
+                        if err
+                            dbg("WARNING: error stopping #{project_id} -- #{err}")
+                        c()
+            async.map(projects, f)
 
 start_tcp_server = (cb) ->
     winston.info("starting tcp server...")
@@ -1639,6 +1661,65 @@ class GlobalClient
         if not P?
             P = @_project_cache[project_id] = new GlobalProject(project_id, @)
         return P
+
+    move_projects_off_server: (opts) =>
+        opts = defaults opts,
+            server_id : required     # uuid of a host
+            cb        : undefined
+
+        dbg = (m) -> winston.debug("move_projects_off_host: #{m}")
+        dbg()
+        projects = undefined
+        async.series([
+            (cb) =>
+                @projects_running_on_server
+                    server_id : opts.server_id
+                    cb        : (err, _projects) =>
+                        projects = _projects
+                        cb(err)
+            (cb) =>
+                f = (project_id, cb) =>
+                    @get_project(project_id).move
+                        cb : (err) =>
+                            if err
+                                dbg("error moving #{project_id} -- ignored -- #{err}")
+                                cb()
+                async.map(projects, f, cb)
+        ], (err) => opts.cb?(err))
+
+
+    projects_running_on_server: (opts) =>
+        opts = defaults opts,
+            server_id : required
+            cb        : required     # cb(err, [list, of, projects, on, host])
+        server = undefined
+        projects0 = undefined
+        projects = []
+        async.series([
+            (cb) =>
+                @storage_server
+                    server_id : opts.server_id
+                    cb        : (err, _server) =>
+                        server = _server
+                        cb(err)
+            (cb) =>
+                server.call
+                    mesg : message.projects_running_on_server()
+                    cb   : (err, resp) =>
+                        projects0 = resp?.projects
+                        cb(err)
+            (cb) =>
+                # for each query to see if really actually running there.  The above message only really returns projects that have a process running.
+                f = (project_id, cb) =>
+                    @get_project(project_id).get_state
+                        cb : (err, state) =>
+                            if err or state[project_id] != 'stopped'
+                                projects.push(project_id)
+                            cb()
+                async.map(projects0, f, cb)
+        ], (err) =>
+            opts.cb(err, projects))
+
 
     _update: (cb) =>
         dbg = (m) -> winston.debug("GlobalClient._update: #{m}")
