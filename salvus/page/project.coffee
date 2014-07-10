@@ -853,7 +853,7 @@ class ProjectPage
 
         if name != 'project-editor'
             @editor?.hide()
-        @editor?.resize_open_file_tabs()
+            @editor?.resize_open_file_tabs()
 
 
     save_browser_local_data: (cb) =>

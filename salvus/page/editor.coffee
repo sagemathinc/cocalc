@@ -683,6 +683,7 @@ class exports.Editor
                 next_link = link_bar.find("li").last()
                 name = next_link.data('name')
                 if name?
+                    @resize_open_file_tabs()
                     open_file(name)
                 else
                     # just show the file listing
@@ -695,7 +696,10 @@ class exports.Editor
                 tab.editor()?.disconnect_from_session()
                 tab.close_editor()
 
-            @resize_open_file_tabs()
+            @_currently_closing_files = true
+            if @open_file_tabs().length < 1
+                @resize_open_file_tabs()
+
             return false
 
         link.find(".salvus-editor-close-button-x").click(close_tab)
@@ -704,12 +708,16 @@ class exports.Editor
         link.find("a").click (e) =>
             if ignore_clicks
                 return false
+            open_file(filename)
+            return false
+
+        link.find("a").mousedown (e) =>
+            if ignore_clicks
+                return false
             if e.which==2 or e.ctrlKey
                 # middle (or control-) click on open tab: close the editor
                 close_tab()
                 return false
-            open_file(filename)
-            return false
 
 
         #link.draggable
@@ -721,6 +729,11 @@ class exports.Editor
 
         @tabs[filename].open_file_pill = link
         @tabs[filename].close_tab = close_tab
+
+        link_bar.mouseleave () =>
+            if @_currently_closing_files
+                @_currently_closing_files = false
+                @resize_open_file_tabs()
 
         link_bar.append(link)
         @resize_open_file_tabs()
@@ -744,6 +757,12 @@ class exports.Editor
                     tab.editor().hide?()
 
     resize_open_file_tabs: () =>
+        # First hide/show labels on the project navigation buttons (Files, New, Log..)
+        if @open_file_tabs().length > 4
+            @project_page.container.find(".project-pages-button-label").hide()
+        else
+            @project_page.container.find(".project-pages-button-label").show()
+
         # Make a list of the tabs after the search tab.
         x = @open_file_tabs()
         if x.length == 0
@@ -755,7 +774,7 @@ class exports.Editor
             width = 204
         else
             n = x.length
-            width = Math.min(250, (x[0].parent().width() - 2 * n)/n)
+            width = Math.min(250, parseInt((x[0].parent().width() - 25) / n)) # floor to prevent rounding problems
             if width < 0
                 width = 0
 
