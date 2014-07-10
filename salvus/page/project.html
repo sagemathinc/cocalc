@@ -555,8 +555,13 @@
                                     </div>
                                     <div class="span8">
                                         <!--<span class="lighten" style="font-weight:bold">Add&nbsp;&nbsp;</span>-->
-                                        <input class="project-add-collaborator-input search-query" type="search" placeholder="Search by name or email address...">
-                                        <select multiple="multiple" class="project-add-collaborator-select hide"> </select>
+                                        <input class="project-add-collaborator-input search-query" type="search" placeholder="Search by name or email...">
+                                        <a class="btn project-add-collaborator-button">
+                                            Search <i class="fa fa-spinner fa fa-spin project-collaborator-search-loading hide"> </i>
+                                        </a>
+
+                                        <select multiple="multiple" class="project-add-collaborator-select hide"></select>
+
 
                                         <div class="project-add-noncloud-collaborator hide">
                                             <a href="#add-noncloud-collaborator" style="margin-bottom: 1ex;" class="btn btn-large btn-primary">

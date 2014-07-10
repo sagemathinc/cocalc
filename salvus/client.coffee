@@ -1325,10 +1325,11 @@ class exports.Connection extends EventEmitter
 
     user_search: (opts) =>
         opts = defaults opts,
-            query   : required
-            limit   : 20
-            timeout : DEFAULT_TIMEOUT
-            cb      : required
+            query    : required
+            query_id : -1     # So we can check that it matches the most recent query
+            limit    : 20
+            timeout  : DEFAULT_TIMEOUT
+            cb       : required
 
         @call
             message : message.user_search(query:opts.query, limit:opts.limit)
@@ -1337,7 +1338,7 @@ class exports.Connection extends EventEmitter
                 if err
                     opts.cb(err)
                 else
-                    opts.cb(false, resp.results)
+                    opts.cb(false, resp.results, opts.query_id)
 
     project_users: (opts) =>
         opts = defaults opts,

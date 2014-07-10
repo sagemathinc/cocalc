@@ -2497,6 +2497,8 @@ class ProjectPage
         input   = @container.find(".project-add-collaborator-input")
         select  = @container.find(".project-add-collaborator-select")
         collabs = @container.find(".project-collaborators")
+        collabs_button = @container.find(".project-add-collaborator-button")
+        collabs_search_loading = @container.find(".project-collaborator-search-loading")
         collabs_loading = @container.find(".project-collaborators-loading")
 
         add_button = @container.find("a[href=#add-collaborator]").tooltip(delay:{ show: 500, hide: 100 })
@@ -2524,6 +2526,7 @@ class ProjectPage
                             update_collaborators()
 
         already_collab = {}
+        # Update actual list of collabs on a project
         update_collaborators = () =>
             collabs_loading.show()
             salvus_client.project_users
@@ -2568,6 +2571,7 @@ class ProjectPage
                                     c.tooltip(title:"Viewer"+extra_tip, delay: { show: 500, hide: 100 })
                             collabs.append(c)
 
+        # Update the search list
         update_collab_list = () =>
             x = input.val()
             if x == ""
@@ -2576,28 +2580,33 @@ class ProjectPage
                 @container.find(".project-add-noncloud-collaborator").hide()
                 @container.find(".project-add-collaborator").hide()
                 return
-            input.icon_spin(start:true)
+            @_last_query_id = if @_last_query_id? then @_last_query_id + 1 else 0
+            collabs_search_loading.show()
             salvus_client.user_search
-                query : input.val()
-                limit : 30
-                cb    : (err, result) =>
-                    input.icon_spin(false)
-                    select.html("")
-                    result = (r for r in result when not already_collab[r.account_id]?)   # only include not-already-collabs
-                    if result.length > 0
-                        select.show()
-                        select.attr(size:Math.min(10,result.length))
-                        @container.find(".project-add-noncloud-collaborator").hide()
-                        @container.find(".project-add-collaborator").show()
-                        for r in result
-                            name = r.first_name + ' ' + r.last_name
-                            select.append($("<option>").attr(value:r.account_id, label:name).text(name))
-                        select.show()
-                        add_button.addClass('disabled')
-                    else
-                        select.hide()
-                        @container.find(".project-add-collaborator").hide()
-                        @container.find(".project-add-noncloud-collaborator").show()
+                query    : x
+                limit    : 30
+                query_id : @_last_query_id
+                cb       : (err, result, query_id) =>
+                    # Ignore any query that is not the most recent
+                    if query_id == @_last_query_id
+                        collabs_search_loading.hide()
+                        select.html("")
+                        result = (r for r in result when not already_collab[r.account_id]?)   # only include not-already-collabs
+                        if result.length > 0
+                            select.show()
+                            select.attr(size:Math.min(10,result.length))
+                            @container.find(".project-add-noncloud-collaborator").hide()
+                            @container.find(".project-add-collaborator").show()
+                            for r in result
+                                name = r.first_name + ' ' + r.last_name
+                                select.append($("<option>").attr(value:r.account_id, label:name).text(name))
+                            select.show()
+                            add_button.addClass('disabled')
+                        else
+                            select.hide()
+                            @container.find(".project-add-collaborator").hide()
+                            @container.find(".project-add-noncloud-collaborator").show()
+
 
         invite_selected = () =>
             for y in select.find(":selected")
@@ -2621,10 +2630,12 @@ class ProjectPage
 
         timer = undefined
         input.keyup (event) ->
-            if timer?
-                clearTimeout(timer)
-            timer = setTimeout(update_collab_list, 100)
+            if event.keyCode == 13 # Enter key
+                update_collab_list()
             return false
+
+        collabs_button.click () ->
+            update_collab_list()
 
         return update_collaborators
 

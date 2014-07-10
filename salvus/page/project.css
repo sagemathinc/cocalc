@@ -41,8 +41,12 @@
 
 
 .project-add-collaborator-input {
-    width: 95%;
+    vertical-align: top !important;
     margin-bottom: 1ex !important;
+}
+
+.project-add-collaborator-select {
+    width:100% !important;
 }
 
 .project-add-linked-project-input {
@@ -50,16 +54,11 @@
     margin-bottom: 1ex !important;
 }
 
-.project-add-collaborator-select {
-    width:100%;
-}
-
 .project-add-linked-project-select {
     width:100%;
 }
 
 .project-file-listing {
-    clear: both;
     margin-left  : 3em;
     margin-right : 3em;
 }
@@ -67,6 +66,10 @@
 .project-file-listing-container {
     /* overflow-y: auto;
     overflow-x: hidden; */
+}
+
+.project-file-listing, .project-new-file, .project-activity, .project-settings, .project-search {
+    clear: both;
 }
 
 .project-connections {
@@ -291,6 +294,7 @@
 
 
 .project-command-line {
+    clear: both;
     margin-left:0em;
     padding-left: 1em;
     padding-right: 1em;
