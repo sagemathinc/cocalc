@@ -421,7 +421,7 @@ class TaskList
                 else
                     t = task.desc.toLowerCase()
                     for s in search
-                        if t.indexOf(s) == -1 or not (t.charAt(t.indexOf(s) + s.length).match(/\s|[^A-Za-z0-9_\-]/) or t.substring(t.indexOf(s)).length == s.length)
+                        if t.indexOf(s.toLowerCase()) == -1 or not (t.charAt(t.indexOf(s.toLowerCase()) + s.length).match(/\s|[^A-Za-z0-9_\-]/) or t.substring(t.indexOf(s.toLowerCase())).length == s.length) and s.indexOf('#') == -1 and t.indexOf(s.toLowerCase()) == -1
                             skip = true
                             continue
             else
@@ -481,10 +481,16 @@ class TaskList
 
         # remove any existing highlighting:
         @elt_task_list.find('.highlight-tag').removeClass("highlight-tag")
+        @elt_task_list.find('.salvus-task-desc').unhighlight()
         if search.length > 0
             # Go through the DOM tree of tasks and highlight all the search terms for
             # tasks that aren't currently being edited.
-            @elt_task_list.find( ("."+tags.substring(1) for tags in search).join(',') ).addClass("highlight-tag")
+            @elt_task_list.find( ("."+tags.toLowerCase().substring(1) for tags in search).join(',') ).unhighlight().addClass("highlight-tag")
+            input = ''
+            for tags in search
+                if tags.indexOf('#') == -1
+                    if input.length == 0 then input = tags else input += ' ' + tags
+            @elt_task_list.find('.salvus-task-desc').not(".salvus-task-desc-editing").highlight(input)
 
         # show the "create a new task" link if no tasks.
         if count == 0
@@ -708,7 +714,7 @@ class TaskList
                 x0 = [0,0]
                 desc0 = ''
                 for x in v
-                    desc0 += desc.slice(x0[1], x[0]) + "<span class='salvus-tasks-hash #{(desc.slice(x[0], x[1])).substring(1)}'>" + desc.slice(x[0], x[1]) + '</span>'
+                    desc0 += desc.slice(x0[1], x[0]) + "<span class='salvus-tasks-hash #{(desc.slice(x[0], x[1])).substring(1).toLowerCase()}'>" + desc.slice(x[0], x[1]) + '</span>'
                     x0 = x
                 desc = desc0 + desc.slice(x0[1])
 
