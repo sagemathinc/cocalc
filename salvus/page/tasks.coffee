@@ -378,9 +378,10 @@ class TaskList
 
         # Determine the search criteria, which restricts what is visible
         search = @selected_hashtags()
+        # TODO: exact string searching surrounded by quotes -- add a function misc.search_split...
         for x in misc.split(@element.find(".salvus-tasks-search").val().toLowerCase())
-            x = $.trim(x)
-            if x.length > 1
+            x = $.trim(x).toLowerCase()
+            if x != '#'
                 search.push(x)
 
         # Fill in sentences describing the search, so user isn't confused by which tasks are visible.
@@ -419,10 +420,20 @@ class TaskList
                     # always include task that we are currently editing, irregardless of search
                     skip = false
                 else
+                    # is there anything at all in the task that will match our search criteria?
                     t = task.desc.toLowerCase()
                     for s in search
-                        if t.indexOf(s.toLowerCase()) == -1 or not (t.charAt(t.indexOf(s.toLowerCase()) + s.length).match(/\s|[^A-Za-z0-9_\-]/) or t.substring(t.indexOf(s.toLowerCase())).length == s.length) and s.indexOf('#') == -1 and t.indexOf(s.toLowerCase()) == -1
+                        # show the task if either:
+                        #   (1) the search term s is not a hashtag and it's anywhere in the description, or
+                        #   (2) the search term s is a hashtag, and that tag exactly matches something in the description (i.e., hashtag[termination])
+                        if t.indexOf(s) == -1  # term is not in text at all, so definitely skip
                             skip = true
+                            continue
+                        else if s[0] == '#'
+                            # it's a hashtag, so we might skip it anyways, in case it's not an exact match
+                            reg = new RegExp("#{s}(|\s|[^A-Za-z0-9_\-])")
+                            if not t.match(reg)
+                                skip = true
                             continue
             else
                 task.desc = ''
@@ -482,15 +493,20 @@ class TaskList
         # remove any existing highlighting:
         @elt_task_list.find('.highlight-tag').removeClass("highlight-tag")
         @elt_task_list.find('.salvus-task-desc').unhighlight()
+
         if search.length > 0
             # Go through the DOM tree of tasks and highlight all the search terms for
             # tasks that aren't currently being edited.
-            @elt_task_list.find( ("."+tags.toLowerCase().substring(1) for tags in search).join(',') ).unhighlight().addClass("highlight-tag")
-            input = ''
-            for tags in search
-                if tags.indexOf('#') == -1
-                    if input.length == 0 then input = tags else input += ' ' + tags
-            @elt_task_list.find('.salvus-task-desc').not(".salvus-task-desc-editing").highlight(input)
+
+            # First highlight hashtags --
+            # Add the highlight-tag CSS class to every hashtag in the task list.
+            # select searched-for hashtags by their special class:
+            selector = ("."+tags.substring(1) for tags in search when tags[0] == "#").join(',')
+            @elt_task_list.find( selector ).addClass("highlight-tag")
+
+            # Now highlight non hashtags --
+            non_hashtag_search_terms = (t for t in search when t[0] != '#')
+            @elt_task_list.find('.salvus-task-desc').not(".salvus-task-desc-editing").highlight(non_hashtag_search_terms)
 
         # show the "create a new task" link if no tasks.
         if count == 0
