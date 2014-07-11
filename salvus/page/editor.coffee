@@ -2,6 +2,11 @@
 # Editor for files in a project
 ##################################################
 
+# Show button labels if there are at most this many file tabs opened.
+# This is in exports so that an elite user could customize this by doing, e.g.,
+#    require('editor').SHOW_BUTTON_LABELS=0
+exports.SHOW_BUTTON_LABELS = 4
+
 MAX_LATEX_ERRORS   = 10
 MAX_LATEX_WARNINGS = 50
 
@@ -758,7 +763,7 @@ class exports.Editor
 
     resize_open_file_tabs: () =>
         # First hide/show labels on the project navigation buttons (Files, New, Log..)
-        if @open_file_tabs().length > 4
+        if @open_file_tabs().length > require('editor').SHOW_BUTTON_LABELS
             @project_page.container.find(".project-pages-button-label").hide()
         else
             @project_page.container.find(".project-pages-button-label").show()
