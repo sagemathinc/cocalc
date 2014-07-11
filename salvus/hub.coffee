@@ -718,9 +718,10 @@ class Client extends EventEmitter
         ttl              = 24*3600 * 30     # 30 days
 
         @remember_me_db.set
-            key   : @hash_session_id
-            value : signed_in_mesg
-            ttl   : ttl
+            key         : @hash_session_id
+            value       : signed_in_mesg
+            ttl         : ttl
+            consistency : 'localQuorum'
 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @set_cookie
