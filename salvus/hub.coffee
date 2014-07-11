@@ -729,7 +729,7 @@ class Client extends EventEmitter
                     key         : @hash_session_id
                     value       : signed_in_mesg
                     ttl         : ttl
-                    consistency : 'eachQuorum'
+                    consistency : 2
                     cb          : (err) =>
                         if err
                             winston.debug("WARNING: issue writing remember me cookie: #{err}")
