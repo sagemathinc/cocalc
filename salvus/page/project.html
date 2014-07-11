@@ -277,12 +277,14 @@
                 <li class="super-menu project-pages-button project-search-menu-item">
                     <a data-target="project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project">
                         <i class="project-control-icon fa fa-search"></i>
+                        <span class="project-pages-button-label">Find</span>
                     </a>
                 </li>
 
                 <li class="super-menu project-pages-button  project-settings-menu-item">
                     <a data-target="project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls">
                         <i class="project-control-icon fa fa-wrench"></i>
+                        <span class="project-pages-button-label">Settings</span>
                     </a>
                 </li>
 
@@ -492,7 +494,7 @@
 
             <!-- Page to configure the settings for this project -->
             <div class="project-settings hide">  <!-- hidden by default -->
-                <h1 class="big-only" style="margin-left:1em;">Project Control</h1>
+                <h1 class="big-only" style="margin-left:1em;">Project Settings and Controls</h1>
                 <span class="hide salvus-project-id-warning pull-right"
                       title="When doing development of SMC inside an SMC project, the security of the raw http server and ipython server is via the project id; other users on the same VM that know the project id of your devel project both from the POV of SMC and of your local server, could get readonly access to your files (or read/write if you start an ipython server).">DANGER (hover with mouse)</span>
                 <div class="row">
@@ -572,7 +574,7 @@
                                         <!--<span class="lighten" style="font-weight:bold">Add&nbsp;&nbsp;</span>-->
                                         <input class="project-add-collaborator-input search-query" type="search" placeholder="Search by name or email...">
                                         <a class="btn project-add-collaborator-button">
-                                            Search <i class="fa fa-spinner fa fa-spin project-collaborator-search-loading hide"> </i>
+                                            <i class="fa fa-search"> </i> Search <i class="fa fa-spinner fa fa-spin project-collaborator-search-loading hide"> </i>
                                         </a>
 
                                         <select multiple="multiple" class="project-add-collaborator-select hide"></select>
@@ -757,7 +759,7 @@
 
             <!-- Search -->
             <div class="project-search hide">
-                <h1  class="big-only" style="margin-left:1em;">Find Files</h1>
+                <h1  class="big-only" style="margin-left:1em;">Find in Files</h1>
                 <div class="project-search-spinner hide">
                 </div>
                 <div class="row well"  style="margin-left:3em; margin-right:3em;">
