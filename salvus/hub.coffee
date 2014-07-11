@@ -717,11 +717,22 @@ class Client extends EventEmitter
         @hash_session_id = password_hash(session_id)
         ttl              = 24*3600 * 30     # 30 days
 
+        # write it -- quick and loose, then more replicas
         @remember_me_db.set
             key         : @hash_session_id
             value       : signed_in_mesg
             ttl         : ttl
-            consistency : 'localQuorum'
+            consistency : 1
+            cb          : (err) =>
+                # write to more replicas, just for good measure
+                @remember_me_db.set
+                    key         : @hash_session_id
+                    value       : signed_in_mesg
+                    ttl         : ttl
+                    consistency : 'eachQuorum'
+                    cb          : (err) =>
+                        if err
+                            winston.debug("WARNING: issue writing remember me cookie: #{err}")
 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @set_cookie
