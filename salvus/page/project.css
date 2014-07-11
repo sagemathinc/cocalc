@@ -39,10 +39,19 @@
     background-color:white;
 }
 
+.project-add-collaborator-button {
+    float: right;
+}
 
 .project-add-collaborator-input {
     vertical-align: top !important;
     margin-bottom: 1ex !important;
+    width: 100%;
+}
+
+.project-add-collaborator-input-container {
+    overflow: hidden;
+    padding-right: 40px;
 }
 
 .project-add-collaborator-select {
