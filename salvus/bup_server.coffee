@@ -327,6 +327,13 @@ handle_mesg = (socket, mesg) ->
                         resp.result = result
                     resp.time_s = misc.walltime(t)
                     socket.write_mesg('json', resp)
+    else if mesg.event == 'projects_running_on_server'
+        projects_running_on_server (err, projects) ->
+            if err
+                socket.write_mesg('json', message.error(id:id, error:"error determining running projects -- #{err}"))
+            else
+                mesg.projects = projects
+                socket.write_mesg('json', mesg)
     else
         socket.write_mesg('json', message.error(id:id, error:"unknown event type: '#{mesg.event}'"))
 
@@ -361,11 +368,12 @@ init_server_id = (cb) ->
                     SERVER_ID = data.toString()
                     cb()
 
+projects_running_on_server = (cb) ->     # cb(err, projects)
+    dbg = (m) -> winston.debug("projects_running_on_server: #{m}")
+    dbg()
 
-idle_timeout = () ->
-    dbg = (m) -> winston.debug("idle_timeout: #{m}")
-    dbg('Periodic check for projects that are running and call "kill --only_if_idle" on them all.')
-    uids = []
+    uids     = []
+    projects = []
     async.series([
         (cb) ->
             dbg("get uids of active projects")
@@ -399,16 +407,31 @@ idle_timeout = () ->
                             dbg("#{uid} --> #{output.stdout}")
                             v = output.stdout.split('/')
                             project_id = v[v.length-1].trim()
-                            get_project(project_id).action
-                                action : 'stop'
-                                param  : '--only_if_idle'
-                                cb     : (err) ->
-                                    if err
-                                        dbg("WARNING: error stopping #{project_id} -- #{err}")
-                                    c()
+                            if project_id.length == 36
+                                projects.push(project_id)
+                            c()
             async.map(uids, f, cb)
-    ])
+    ], (err) =>
+        cb(err, projects)
+    )
 
+
+idle_timeout = () ->
+    dbg = (m) -> winston.debug("idle_timeout: #{m}")
+    dbg('Periodic check for projects that are running and call "kill --only_if_idle" on them all.')
+    projects_running_on_server (err, projects) ->
+        if err
+            dbg("ERROR: #{err}")
+        else
+            f = (project_id, cb) ->
+                get_project(project_id).action
+                    action : 'stop'
+                    param  : '--only_if_idle'
+                    cb     : (err) ->
+                        if err
+                            dbg("WARNING: error stopping #{project_id} -- #{err}")
+                        c()
+            async.map(projects, f)
 
 start_tcp_server = (cb) ->
     winston.info("starting tcp server...")
@@ -534,7 +557,7 @@ class GlobalProject
     constructor: (@project_id, @global_client) ->
         @database = @global_client.database
 
-    get_location_pref: (cb) =>
+    get_location_pref: (cb) =>   # db(err, server_id)
         @database.select_one
             table   : "projects"
             columns : ["bup_location"]
@@ -551,7 +574,6 @@ class GlobalProject
             set   : {bup_location : server_id}
             where   : {project_id : @project_id}
             cb      : cb
-
 
     # starts project if necessary, waits until it is running, and
     # gets the hostname port where the local hub is serving.
@@ -659,16 +681,20 @@ class GlobalProject
 
     start: (opts) =>
         opts = defaults opts,
+            target : undefined
             cb     : undefined
         dbg = (m) -> winston.debug("GlobalProject.start(#{@project_id}): #{m}")
         dbg()
         state     = undefined
         project   = undefined
         server_id = undefined
-        target    = undefined
+        target    = opts.target
+        dbg("target = #{target}")
 
         async.series([
             (cb) =>
+                if target?
+                    cb(); return
                 @get_location_pref (err, result) =>
                     if not err and result?
                         dbg("setting prefered start target to #{result[0]}")
@@ -688,10 +714,8 @@ class GlobalProject
                     v = (server_id for server_id, s of state when s not in ['error'])
                     if v.length == 0
                         v = misc.keys(state)
-                    if target? and v.length > 1
-                        v = (server_id for server_id in v when server_id != @_next_start_avoid)
-                        delete @_next_start_avoid
                     if target? and target in v
+                        dbg("use requested target = #{target}")
                         server_id = target
                         cb()
                     else
@@ -728,7 +752,8 @@ class GlobalProject
                                         cb()
 
                 else if running_on.length == 1
-                    dbg("done -- nothing further to do -- project already running on one host")
+                    dbg("done -- nothing further to do -- project already running on one host: #{misc.to_json(running_on)}")
+                    server_id = undefined
                     cb()
                 else
                     dbg("project running on more than one host -- repair by killing all but first; this will force any clients to move to the correct host when their connections get dropped")
@@ -783,46 +808,102 @@ class GlobalProject
                     dbg("project not running anywhere, so start it somewhere")
                     @start(opts)
 
+    sync_topology: (opts) =>
+        opts = defaults opts,
+            cb        : required   # (err, {host:{dc:n, server_id:server_id, running:true or false}, targets:{'ip_address:port':target_id, ...}})
+        dbg = (m) => winston.debug("GlobalProject.sync_targets(#{opts.server_id}): #{m}")
+
+        resp = {host:{}, targets:{}}
+        async.series([
+            (cb) =>
+                dbg("figure out where/if project is running")
+                @get_host_where_running
+                    cb : (err, s) =>
+                        dbg("project server_id = #{s}")
+                        resp.host.server_id = s
+                        if err
+                            cb(err)
+                        else if not resp.host.server_id?
+                            dbg("not running anywhere")
+                            @get_location_pref (err, s) =>
+                                resp.host.server_id = s
+                                resp.host.running = false
+                                cb(err)
+                        else
+                            resp.host.running = true
+                            cb()
+            (cb) =>
+                dbg("get the data center where this project is currently running")
+                @global_client.get_data_center
+                    server_id : resp.host.server_id
+                    cb : (err, dc) =>
+                        resp.host.dc = dc
+                        dbg("sync host: #{misc.to_json(resp.host)}")
+                        cb(err)
+            (cb) =>
+                dbg("get the targets for replication")
+                @get_hosts
+                    cb : (err, t) =>
+                        v = (x for x in t when x != resp.host.server_id)
+                        dbg("sync_targets = #{misc.to_json(v)}")
+                        f = (target_id, cb) =>
+                            @global_client.get_external_ssh
+                                server_id : target_id
+                                dc        : resp.host.dc
+                                cb        : (err, addr) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        resp.targets[addr] = target_id
+                                        cb()
+                        async.map v, f, (err) =>
+                            dbg("sync_targets --> #{misc.to_json(resp.targets)}")
+                            cb(err)
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, resp)
+        )
 
     save: (opts) =>
         opts = defaults opts,
             cb : undefined
+        dbg = (m) => winston.debug("GlobalProject.save(#{@project_id}): #{m}")
         # if we just saved this project, return immediately -- note: THIS IS "CLIENT" side, but there is a similar guard on the actual compute node
         if @_last_save? and misc.walltime() - @_last_save < MIN_SAVE_INTERVAL_S
+            dbg("we just saved this project recently")
             opts.cb?(undefined)
             return
 
         # put this here -- we don't even want to *try* more frequently than MIN_SAVE_INTERVAL_S, in case of save bup repo being broken (?)
         @_last_save = misc.walltime()
 
-        dbg = (m) => winston.debug("GlobalProject.save(#{@project_id}): #{m}")
 
         need_to_save = false
         project      = undefined
-        targets      = undefined
         server_id    = undefined
+        targets      = undefined
         errors       = []
         async.series([
             (cb) =>
                 dbg("figure out where/if project is running")
-                @get_host_where_running
-                    cb : (err, s) =>
-                        server_id = s
+                @sync_topology
+                    cb : (err, resp) =>
                         if err
-                            cb(err)
-                        else if not server_id?
-                            dbg("not running anywhere -- nothing to save")
-                            cb()
-                        else if @state?[server_id] == 'saving'
+                            cb(err); return
+                        server_id = resp.host.server_id
+                        if @state?[server_id] == 'saving'
                             dbg("already saving -- nothing to do")
                             cb()
                         else
                             need_to_save = true
+                            targets = resp.targets
                             cb()
             (cb) =>
                 if not need_to_save
                     cb(); return
-                dbg("get the project itself")
+                dbg("get the project")
                 @project
                     server_id : server_id
                     cb        : (err, p) =>
@@ -830,18 +911,9 @@ class GlobalProject
             (cb) =>
                 if not need_to_save
                     cb(); return
-                dbg("get the targets for replication")
-                @get_hosts
-                    cb : (err, t) =>
-                        targets = (@global_client.servers.by_id[x].host for x in t when x != server_id)  # targets as ip addresses
-                        dbg("sync_targets = #{misc.to_json(targets)}")
-                        cb(err)
-            (cb) =>
-                if not need_to_save
-                    cb(); return
                 dbg("save the project and sync")
                 project.save
-                    targets : targets
+                    targets : misc.keys(targets)
                     cb      : (err, result) =>
                         r = result?.result
                         dbg("RESULT = #{misc.to_json(result)}")
@@ -854,7 +926,7 @@ class GlobalProject
                                     if x.host == '' # special case - the server hosting the project
                                         s = server_id
                                     else
-                                        s = @global_client.servers.by_host[x.host].server_id
+                                        s = targets[x.host]
                                     if not x.error?
                                         last_save[s] = r.timestamp*1000
                                     else
@@ -893,24 +965,14 @@ class GlobalProject
         errors    = []
         async.series([
             (cb) =>
-                dbg("figure out master if there is one")
-                @get_location_pref (err,s) =>
-                        server_id = s
-                        dbg("got master=#{server_id}")
-                        cb(err)
-            (cb) =>
-                dbg("lookup the servers that host this project")
-                @get_hosts
-                    cb : (err, hosts) =>
+                dbg("figure out where/if project is running")
+                @sync_topology
+                    cb : (err, resp) =>
                         if err
-                            cb(err)
-                        else
-                            targets = hosts
-                            dbg("servers=#{misc.to_json(targets)}")
-                            if not server_id? # no master (project never used), so choose one at random
-                                server_id = misc.random_choice(targets)
-                            targets = (@global_client.servers.by_id[x].host for x in targets when x!= server_id)
-                            cb()
+                            cb(err); return
+                        server_id = resp.host.server_id
+                        targets   = resp.targets
+                        cb()
             (cb) =>
                 dbg("get the project itself")
                 @project
@@ -921,7 +983,7 @@ class GlobalProject
                 dbg("do the sync")
                 tm = cassandra.now()
                 project.sync
-                    targets     : targets
+                    targets     : misc.keys(targets)
                     union       : opts.union
                     destructive : opts.destructive
                     snapshots   : opts.snapshots
@@ -941,7 +1003,7 @@ class GlobalProject
                                 if x.host == '' # special case - the server hosting the project
                                     s = server_id
                                 else
-                                    s = @global_client.servers.by_host[x.host].server_id
+                                    s = targets[x.host]
                                 if not x.error?
                                     last_save[s] = tm
                                 else
@@ -980,7 +1042,30 @@ class GlobalProject
                 if err
                     opts.cb(err)
                 else if project?
-                    project.status(opts)
+                    orig_cb = opts.cb
+                    ssh = undefined
+                    resp = undefined
+                    async.parallel([
+                        (cb) =>
+                             @database.storage_server_ssh
+                                 server_id : project.client.server_id
+                                 cb        : (err, r) =>
+                                     # NOTE: non-fatal -- in case of db error, we just don't provide ssh info in status.
+                                     if not err
+                                         ssh = r?['-1']
+                                     cb()
+                        (cb) =>
+                            opts.cb = (err, r) =>
+                                resp = r
+                                cb(err)
+                            project.status(opts)
+                    ], (err) =>
+                        if not err?
+                            resp.ssh = ssh
+                            orig_cb(undefined, resp)
+                        else
+                            orig_cb(err)
+                    )
                 else
                     opts.cb(undefined, {})  # no running project, so no status
 
@@ -1004,10 +1089,17 @@ class GlobalProject
                 if err
                     opts.cb?(err)
                 else if not server_id?
-                    opts.cb?() # not running anywhere -- nothing to save
+                    opts.cb?() # not running anywhere -- nothing to stop
                 else
-                    @_stop_all([server_id])
-                    opts.cb?()
+                    @project
+                        server_id : server_id
+                        cb        : (err, project) =>
+                            if err
+                                opts.cb?(err)
+                            else
+                                project.stop
+                                    force : opts.force
+                                    cb    : opts.cb
 
     # change the location preference for the next start, and attempts to stop
     # if running somewhere now.
@@ -1017,29 +1109,76 @@ class GlobalProject
             cb     : undefined
         dbg = (m) -> winston.debug("GlobalProject.move(#{@project_id}): #{m}")
         dbg()
+        current = undefined
+        is_running = false
         async.series([
-            (cb) =>
-                if opts.target?
-                    dbg("set next open location preference -- target=#{opts.target}")
-                    @set_location_pref(opts.target, cb)
-                else
-                    cb()
             (cb) =>
                 @get_host_where_running
                     cb : (err, server_id) =>
                         if err
-                            dbg("error determining info about running status -- #{err}")
-                            cb(err)
+                            cb(err); return
+                        if server_id?
+                            is_running = true
+                            current = server_id
+                            cb(); return
                         else
-                            @_next_start_avoid = server_id
-                            if server_id?
-                                # next start will happen on new machine...
-                                @stop
-                                    cb: (err) =>
-                                        dbg("non-fatal error stopping -- expected given that move is used when host is down -- #{err}")
-                                        cb()
+                            @get_location_pref (err, server_id) =>
+                                current = server_id
+                                cb(err)
+            (cb) =>
+                if opts.target?
+                    cb(); return
+                dbg("determine move target")
+                @get_hosts
+                    cb : (err, hosts) =>
+                        if err
+                            cb(err); return
+                        hosts = (x for x in hosts when x != current)
+                        if hosts.length == 0
+                            cb("no host to move to")
+                        else
+                            opts.target = misc.random_choice(hosts)
+                            cb()
+            (cb) =>
+                if opts.target == current
+                    # nothing to do
+                    cb(); return
+                dbg("set next open location preference -- target=#{opts.target}")
+                @set_location_pref(opts.target, cb)
+            (cb) =>
+                if opts.target == current
+                    # nothing to do
+                    cb(); return
+                dbg("attempting to sync out from current")
+                @sync
+                    cb : (err) =>
+                        if err
+                            dbg("non-fatal error syncing -- expected given that move is used when host is down -- #{err}")
+                        else
+                            dbg("successfully sync'd project")
+                        cb()
+            (cb) =>
+                if opts.target == current
+                    # nothing to do
+                    cb(); return
+                if current?
+                    # next start should happen on opts.target:
+                    @stop
+                        cb: (err) =>
+                            if err
+                                dbg("non-fatal error stopping -- expected given that move is used when host is down -- #{err}")
                             else
-                                cb()
+                                dbg("successfully stopped project")
+                            cb()
+                else
+                    cb()
+            (cb) =>
+                if not is_running or opts.target == current
+                    cb(); return
+                dbg("now starting in new location = #{opts.target} (since project was running before)")
+                @start
+                    target : opts.target
+                    cb     : cb
         ], (err) =>
             dbg("move completed -- #{err}")
             opts.cb?(err)
@@ -1524,6 +1663,65 @@ class GlobalClient
             P = @_project_cache[project_id] = new GlobalProject(project_id, @)
         return P
 
+    move_projects_off_server: (opts) =>
+        opts = defaults opts,
+            server_id : required     # uuid of a host
+            cb        : undefined
+
+        dbg = (m) -> winston.debug("move_projects_off_host: #{m}")
+        dbg()
+        projects = undefined
+        async.series([
+            (cb) =>
+                @projects_running_on_server
+                    server_id : opts.server_id
+                    cb        : (err, _projects) =>
+                        projects = _projects
+                        cb(err)
+            (cb) =>
+                f = (project_id, cb) =>
+                    @get_project(project_id).move
+                        cb : (err) =>
+                            if err
+                                dbg("error moving #{project_id} -- ignored -- #{err}")
+                                cb()
+                async.map(projects, f, cb)
+        ], (err) => opts.cb?(err))
+
+
+    projects_running_on_server: (opts) =>
+        opts = defaults opts,
+            server_id : required
+            cb        : required     # cb(err, [list, of, projects, on, host])
+        server = undefined
+        projects0 = undefined
+        projects = []
+        async.series([
+            (cb) =>
+                @storage_server
+                    server_id : opts.server_id
+                    cb        : (err, _server) =>
+                        server = _server
+                        cb(err)
+            (cb) =>
+                server.call
+                    mesg : message.projects_running_on_server()
+                    cb   : (err, resp) =>
+                        projects0 = resp?.projects
+                        cb(err)
+            (cb) =>
+                # for each query to see if really actually running there.  The above message only really returns projects that have a process running.
+                f = (project_id, cb) =>
+                    @get_project(project_id).get_state
+                        cb : (err, state) =>
+                            if err or state[project_id] != 'stopped'
+                                projects.push(project_id)
+                            cb()
+                async.map(projects0, f, cb)
+        ], (err) =>
+            opts.cb(err, projects))
+
+
     _update: (cb) =>
         dbg = (m) -> winston.debug("GlobalClient._update: #{m}")
         #dbg("updating list of available storage servers...")
@@ -1653,6 +1851,52 @@ class GlobalClient
                     cb    : cb
         ], (err) => opts.cb?(err))
 
+    set_external_ssh: (opts) =>
+        opts = defaults opts,
+            server_id : required
+            dc        : -1       # -1 = default, works from anywhere;  0 = use from dc0,  1 = use from dc1, etc.
+            address   : required #  host[:port] to use when connecting from the given dc.
+            cb        : undefined
+        query = "UPDATE storage_servers SET ssh[?]=? WHERE dummy=true and server_id=?"
+        args  = [opts.dc, opts.address, opts.server_id]
+        @database.cql(query, args, cql.types.consistencies.one, opts.cb)
+
+    # get the address:port's that should be used to connect to the server with given
+    # id from the given data center.
+    get_external_ssh: (opts) =>
+        opts = defaults opts,
+            server_id : required
+            dc        : -1        # 0, 1, 2, etc., or -1 to connect from anywhere, albeit less efficiently.
+            cb        : required  # cb(err, 'address[:port]' if some address known; otherwise undefined)
+        @database.select_one
+            table   : 'storage_servers'
+            columns : ['ssh']
+            where   : {dummy:true, server_id:opts.server_id}
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    r = undefined
+                    k = result?[0]
+                    if k?
+                        r = k[opts.dc]
+                        if not r?
+                            r = k[-1]
+                    opts.cb(undefined, r)
+
+    get_data_center: (opts) =>
+        opts = defaults opts,
+            server_id : required
+            cb        : required  # cb(err, dc)   where dc = 0,1,2,3, etc.
+        @database.select_one
+            table   : 'storage_servers'
+            columns : ['dc']
+            where   : {dummy:true, server_id:opts.server_id}
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, result[0])
 
     score_servers: (opts) =>
         opts = defaults opts,
@@ -2283,6 +2527,8 @@ class Client
             timeout : 300
             cb      : undefined
         @dbg("call", opts, "start call")
+        if not opts.mesg.id?
+            opts.mesg.id = misc.uuid()
         @socket.write_mesg 'json', opts.mesg, (err) =>
             @dbg("call", opts, "got response from socket write mesg: #{err}")
             if err

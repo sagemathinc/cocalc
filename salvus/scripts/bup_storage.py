@@ -47,10 +47,12 @@ chmod og-rwx /bup/bups
 
 zfs create $POOL/scratch
 zfs set mountpoint=/scratch $POOL/scratch
+zfs set compression=lz4 $POOL/scratch
 chmod a+rwx /scratch
 
 zfs create $POOL/conf
 zfs set mountpoint=/bup/conf $POOL/conf
+zfs set compression=lz4 $POOL/conf
 chmod og-rwx /bup/conf
 chown salvus. /bup/conf
 
@@ -462,7 +464,8 @@ class Project(object):
         """
         Save a snapshot.
 
-        If sync is true, also syncs data out and returns info about how successful that was.
+        If sync is true, first does sync of live files, then creates the bup snapshot, then
+        finally syncs data out and returns info about how successful that was.
         """
         log = self._log("save")
         self.touch()
@@ -478,6 +481,10 @@ class Project(object):
                     return {'files_saved' : 0}
         except Exception, msg:
             log("WARNING: non-fatal issue reading /root/banned_files file and shrinking user priority: %s"%msg)
+
+        if sync:
+            log("Doing first sync before save of the live files (ignoring any issues or errors)")
+            self.sync(targets=targets, snapshots=False)
 
         # We ignore_errors below because unfortunately bup will return a nonzero exit code ("WARNING")
         # when it hits a fuse filesystem.   TODO: somehow be more careful that each
@@ -740,14 +747,18 @@ class Project(object):
         uid = str(self.uid)
         if network and uid not in whitelisted_users:
             # add to whitelist and restart
-            open(UID_WHITELIST,'a').write('\n' + uid + '\n')
+            whitelisted_users.add(uid)
             restart_firewall = True
         elif not network and uid in whitelisted_users:
             # remove from whitelist and restart
-            s = '\n'.join([x for x in sorted(whitelisted_users) if x != uid])
-            open(UID_WHITELIST,'w').write(s)
+            whitelisted_users.remove(uid)
             restart_firewall = True
         if restart_firewall:
+            # THERE is a potential race condition here!  I would prefer to instead have files with names the
+            # uid's in a subdirectory, or something...
+            a = open(UID_WHITELIST,'w')
+            a.write('\n'.join(whitelisted_users)+'\n')
+            a.close()
             self.cmd(['/root/smc-iptables/restart.sh'])
 
     def cgclassify(self):
@@ -759,7 +770,7 @@ class Project(object):
             # ps returns an error code if there are NO processes at all (a common condition).
             pids = []
 
-    def sync(self, targets="", destructive=False, snapshots=True, union=False):
+    def sync(self, targets="", destructive=True, snapshots=True, union=False):
         """
         If union is True, uses the --update option of rsync to make the bup repos and working files
         on all replicas identical, namely the union of the newest versions of all files.  This is mainly
@@ -794,14 +805,22 @@ class Project(object):
 
         return status
 
-    def _sync(self, remote, destructive=False, snapshots=True, union=False, union2=False, rsync_timeout=120, bwlimit=4000):
+    def remote_is_ready(self, remote, port='22'):
+        """
+        Ensure that that /projects and /bup/bups are properly mounted on remote host.
+
+        This code assumes that / on the remote host is *NOT* a ZFS filesystem.
+        """
+        s   = "stat -f -c %T /projects /bup/bups"
+        out = self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", '-p', port, 'root@'+remote, s], ignore_errors=True)
+        return 'ext' not in out and 'zfs' in out  # properly mounted = mounted via ZFS in any way.
+
+    def _sync(self, remote, destructive=True, snapshots=True, union=False, union2=False, rsync_timeout=120, bwlimit=20000):
         """
         NOTE: sync is by default destructive on live files; on snapshots it isn't by default.
 
         If destructive is true, simply push from local to remote, overwriting anything that is remote.
         If destructive is false, pushes, then pulls, and makes a tag pointing at conflicts.
-
-
         """
         # NOTE: In the rsync's below we compress-in-transit the live project mount (-z),
         # but *NOT* the bup's, since they are already compressed.
@@ -811,15 +830,26 @@ class Project(object):
 
         remote_bup_path = os.path.join(BUP_PATH, self.project_id)
 
+        if ':' in remote:
+            remote, port = remote.split(':')
+        else:
+            port = 22
+
+        # Ensure that that /projects and /bup/bups are properly mounted on remote host before
+        # doing the sync. This is critical, since we do not want to sync to a machine that has
+        # booted up, but hasn't yet imported the ZFS pools.
+        if not self.remote_is_ready(remote, port):
+            raise RuntimeError("remote machine %s not ready to receive replicas"%remote)
+
         if union:
             log("union stage 1: gather files from outside")
             self.cmd(['rsync', '--update', '-zaxH', '--timeout', rsync_timeout, '--bwlimit', bwlimit, "--ignore-errors"] + self.exclude('') +
-                          ['-e', 'ssh -o StrictHostKeyChecking=no',
+                          ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           "root@%s:%s/"%(remote, self.project_mnt),
                           self.project_mnt+'/'
                           ], ignore_errors=True)
             if snapshots:
-                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no',
+                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           "root@%s:%s/"%(remote, remote_bup_path),
                           self.bup_path+'/'
                           ], ignore_errors=False)
@@ -829,12 +859,12 @@ class Project(object):
         if union2:
             log("union stage 2: push back to form union")
             self.cmd(['rsync', '--update', '-zaxH', '--timeout', rsync_timeout, '--bwlimit', bwlimit, "--ignore-errors"] + self.exclude('') +
-                          ['-e', 'ssh -o StrictHostKeyChecking=no',
+                          ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           self.project_mnt+'/',
                           "root@%s:%s/"%(remote, self.project_mnt)
                           ], ignore_errors=True)
             if snapshots:
-                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no',
+                self.cmd(["rsync",  "--update", "-axH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           self.bup_path+'/',
                           "root@%s:%s/"%(remote, remote_bup_path)
                           ], ignore_errors=False)
@@ -844,7 +874,7 @@ class Project(object):
         if os.path.exists(self.project_mnt):
             def f(ignore_errors):
                 o = self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, '--bwlimit', bwlimit, '--delete-excluded', "--delete", "--ignore-errors"] + self.exclude('') +
-                          ['-e', 'ssh -o StrictHostKeyChecking=no',
+                          ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=True)
                 # include only lines that don't contain any of the following errors, since permission denied errors are standard with
                 # FUSE mounts, and there is no way to make rsync not report them (despite the -x option above).
@@ -858,7 +888,7 @@ class Project(object):
 
             e = f(ignore_errors=True)
             if QUOTAS_ENABLED and 'Disk quota exceeded' in e:
-                self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", 'root@'+remote,
+                self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", '-p', port, 'root@'+remote,
                           'zfs set userquota@%s=%sM %s/projects'%(
                                         self.uid, QUOTAS_OVERRIDE if QUOTAS_OVERRIDE else self.get_settings()['disk'], ZPOOL)])
                 f(ignore_errors=False)
@@ -871,12 +901,12 @@ class Project(object):
 
         if destructive:
             log("push so that remote=local: easier; have to do this after a recompact (say)")
-            self.cmd(["rsync", "-axH", '--delete-excluded', "--delete", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no',
+            self.cmd(["rsync", "-axH", '--delete-excluded', "--delete", '--timeout', rsync_timeout, '--bwlimit', bwlimit, "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                       self.bup_path+'/', "root@%s:%s/"%(remote, remote_bup_path)])
             return
 
         log("get remote heads")
-        out = self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", 'root@'+remote,
+        out = self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", '-p', port, 'root@'+remote,
                         'grep -H \"\" %s/refs/heads/*'%remote_bup_path], ignore_errors=True)
         if 'such file or directory' in out:
             remote_heads = []
@@ -888,11 +918,11 @@ class Project(object):
                 a, b = x.split(':')[-2:]
                 remote_heads.append((os.path.split(a)[-1], b))
         log("sync from local to remote")
-        self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout, '--bwlimit', bwlimit,
+        self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port, '--timeout', rsync_timeout, '--bwlimit', bwlimit,
                   self.bup_path + '/', "root@%s:%s/"%(remote, remote_bup_path)])
         log("sync from remote back to local")
         # the -v is important below!
-        back = self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout, '--bwlimit', bwlimit,
+        back = self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port, '--timeout', rsync_timeout, '--bwlimit', bwlimit,
                          "root@%s:%s/"%(remote, remote_bup_path), self.bup_path + "/"]).splitlines()
         if remote_heads and len([x for x in back if x.endswith('.pack')]) > 0:
             log("there were remote packs possibly not available locally, so make tags that points to them")
@@ -908,7 +938,7 @@ class Project(object):
                     open(path,'w').write(id)
             if tag is not None:
                 log("sync back any tags")
-                self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
+                self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           '--timeout', rsync_timeout, '--bwlimit', bwlimit, self.bup_path+'/', 'root@'+remote+'/'])
 
     def mount_remote(self, remote_host, project_id, mount_point='', remote_path='', read_only=False):

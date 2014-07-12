@@ -38,7 +38,7 @@ sys.path.insert(0, PWD)
 MAX_OUTPUT_MESSAGES = 256
 # stdout, stderr, html, etc. that exceeds this many characters will be truncated to avoid
 # killing the client.
-MAX_STDOUT_SIZE = MAX_STDERR_SIZE = MAX_HTML_SIZE = 100000
+MAX_STDOUT_SIZE = MAX_STDERR_SIZE = MAX_HTML_SIZE = MAX_MD_SIZE = 100000
 MAX_TEX_SIZE = 2000
 
 LOGFILE = os.path.realpath(__file__)[:-3] + ".log"
@@ -197,7 +197,7 @@ class Message(object):
     def execute_javascript(self, code, obj=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None, once=None, hide=None, show=None, auto=None, events=None, clear=None):
+    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, md=None, tex=None, file=None, done=None, once=None, hide=None, show=None, auto=None, events=None, clear=None):
         m = self._new('output')
         m['id'] = id
         t = truncate_text
@@ -205,6 +205,7 @@ class Message(object):
         if stdout is not None and len(stdout) > 0: m['stdout'] = t(stdout, sage_server.MAX_STDOUT_SIZE)
         if stderr is not None and len(stderr) > 0: m['stderr'] = t(stderr, sage_server.MAX_STDERR_SIZE)
         if html is not None  and len(html) > 0: m['html'] = t(html, sage_server.MAX_HTML_SIZE)
+        if md is not None  and len(md) > 0: m['md'] = t(md, sage_server.MAX_MD_SIZE)
         if tex is not None and len(tex)>0:
             tex['tex'] = t(tex['tex'], sage_server.MAX_TEX_SIZE)
             m['tex'] = tex
@@ -409,6 +410,7 @@ class Salvus(object):
         import sage_server
         sage_server.MAX_STDOUT_SIZE   # max length of each stdout output message
         sage_server.MAX_STDERR_SIZE   # max length of each stderr output message
+        sage_server.MAX_MD_SIZE       # max length of each md (markdown) output message
         sage_server.MAX_HTML_SIZE     # max length of each html output message
         sage_server.MAX_TEX_SIZE      # max length of tex output message
         sage_server.MAX_OUTPUT_MESSAGES   # max number of messages output for a cell.
@@ -793,6 +795,17 @@ class Salvus(object):
         """
         self._flush_stdio()
         self._send_output(html=unicode8(html), id=self._id, done=done, once=once)
+
+    def md(self, md, done=False, once=None):
+        """
+        Display markdown in the output stream.
+
+        EXAMPLE:
+
+            salvus.md("**Hi**")
+        """
+        self._flush_stdio()
+        self._send_output(md=unicode8(md), id=self._id, done=done, once=once)
 
     def pdf(self, filename, **kwds):
         sage_salvus.show_pdf(filename, **kwds)

@@ -1,5 +1,8 @@
 # services
-base=os.path.splitext(list(sorted(os.listdir('/home/salvus/vm/images/base3')))[-1])[0]
+
+# Automatically determine the newest base image that isn't currently running live:
+_running      = os.popen('virsh list').read()
+base          = os.path.splitext([_x for _x in sorted(os.listdir('/home/salvus/vm/images/base3')) if _x.split('.')[0] not in _running][-1])[0]
 
 cassandra_ram = 8
 cassandra_cpu = 2
@@ -33,7 +36,7 @@ localhost    {'hostname':'compute7dc2', 'disk':'bup:500', 'instance_type':'n1-hi
 localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
 
 # backup
-localhost    {'hostname':'backup1dc2', 'disk':'backup1:1000,backup2:500,backup3:500,backup4:500', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+localhost    {'hostname':'backup1dc2', 'disk':'backup1:4000', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
 
 # cassandra cluster
 localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
@@ -103,7 +106,9 @@ localhost    {'hostname':'web2dc3', 'instance_type':'g1-small', 'zone':'europe-w
 
 # database nodes
 cloud1    {'hostname':'cassandra1', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256:none:qcow2', 'vnc':13200}
-cloud2    {'hostname':'cassandra2', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:256:none:qcow2', 'vnc':13200}
+
+cloud2    {'hostname':'cassandra2', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/sdd1::none', 'vnc':13200}
+
 cloud3    {'hostname':'cassandra3', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
 cloud4    {'hostname':'cassandra4', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
 cloud5    {'hostname':'cassandra5', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
@@ -145,7 +150,7 @@ cloud21  {'hostname':'web21',      'vcpus':web_cpu,       'ram':web_ram,       '
 
 # new compute vm's
 cloud1   {'hostname':'compute1dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud2   {'hostname':'compute2dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
+cloud2   {'hostname':'compute2dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'/dev/sdd2::none', 'vnc':13100}
 cloud3   {'hostname':'compute3dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
 cloud4   {'hostname':'compute4dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
 cloud5   {'hostname':'compute5dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
