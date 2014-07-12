@@ -5,7 +5,6 @@
 import sys, time
 from subprocess import Popen, PIPE
 
-filesystem = sys.argv[1]
 
 def cmd(v):
     t = time.time()
@@ -20,20 +19,25 @@ def cmd(v):
     print "    (%.2f seconds)"%(time.time()-t)
     return x
 
-x = cmd(['zfs', 'list', '-H', '-r', '-t', 'snapshot', filesystem])
+def delete_snapshots(filesystem):
+    print "deleting snapshots of %s"%filesystem
+    x = cmd(['zfs', 'list', '-H', '-r', '-t', 'snapshot', filesystem])
 
-# get rid of descendant filesystems in list.
-lines = [t for t in x.splitlines() if filesystem+"@" in t]
+    # get rid of descendant filesystems in list.
+    lines = [t for t in x.splitlines() if filesystem+"@" in t]
 
-total = len(lines)
-print "%s snapshots"%total
+    total = len(lines)
+    print "%s snapshots"%total
 
-i = 0
-for a in lines:
-    if a:
-        snapshot = a.split()[0]
-        print snapshot
-        cmd(['zfs', 'destroy', snapshot])
-        i += 1
-        print "%s/%s"%(i,total)
+    i = 0
+    for a in lines:
+        if a:
+            snapshot = a.split()[0]
+            print snapshot
+            cmd(['zfs', 'destroy', snapshot])
+            i += 1
+            print "%s/%s"%(i,total)
+
+for filesystem in sys.argv[1:]:
+    delete_snapshots(filesystem)
 
