@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # Delete all snapshots of a given ZFS filesystem but **NOT** of descendant filesystems
+# Or -- if filesystem='90d', delete all snapshots of all filesystems whose name ends in "--90d".
 
 import sys, time
 from subprocess import Popen, PIPE
@@ -20,21 +21,30 @@ def cmd(v):
     return x
 
 def delete_snapshots(filesystem):
-    print "deleting snapshots of %s"%filesystem
-    x = cmd(['zfs', 'list', '-H', '-r', '-t', 'snapshot', filesystem])
 
-    # get rid of descendant filesystems in list.
-    lines = [t for t in x.splitlines() if filesystem+"@" in t]
+    if filesystem == '90d':
+        print "deleting all snapshots of any filesystem in any pool ending in --90d"
+        x = cmd(['zfs', 'list', '-H', '-r', '-t', 'snapshot'])
+
+        # take only those ending in --90d
+        lines = [t for t in x.splitlines() if t.endswith('--90d')]
+
+    else:
+        print "deleting snapshots of filesystem %s"%filesystem
+        x = cmd(['zfs', 'list', '-H', '-r', '-t', 'snapshot', filesystem])
+
+        # get rid of descendant filesystems in list.
+        lines = [t for t in x.splitlines() if filesystem+"@" in t]
 
     total = len(lines)
-    print "%s snapshots"%total
+    print "%s snapshots to delete"%total
 
     i = 0
     for a in lines:
         if a:
             snapshot = a.split()[0]
             print snapshot
-            cmd(['zfs', 'destroy', snapshot])
+            #cmd(['zfs', 'destroy', snapshot])
             i += 1
             print "%s/%s"%(i,total)
 
