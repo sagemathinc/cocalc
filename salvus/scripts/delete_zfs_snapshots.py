@@ -23,11 +23,11 @@ def cmd(v):
 def delete_snapshots(filesystem):
 
     if filesystem == '90d':
-        print "deleting all snapshots of any filesystem in any pool ending in --90d"
+        print "deleting all snapshots of any filesystem in any pool that contain '--90d\\t'"
         x = cmd(['zfs', 'list', '-H', '-r', '-t', 'snapshot'])
 
         # take only those ending in --90d
-        lines = [t for t in x.splitlines() if t.endswith('--90d')]
+        lines = [t for t in x.splitlines() if '--90d\t'in t]
 
     else:
         print "deleting snapshots of filesystem %s"%filesystem
@@ -44,7 +44,7 @@ def delete_snapshots(filesystem):
         if a:
             snapshot = a.split()[0]
             print snapshot
-            #cmd(['zfs', 'destroy', snapshot])
+            cmd(['zfs', 'destroy', snapshot])
             i += 1
             print "%s/%s"%(i,total)
 
