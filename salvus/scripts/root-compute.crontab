@@ -23,12 +23,13 @@
 
 # delete old snapshots once per day at 1am
 0 1 * * *      /usr/local/bin/zfsnap.sh destroy -r bup
-
-# make a snapshot every 10 minutes, which gets kept for 5 days
-*/10 * * * *      /usr/local/bin/zfsnap.sh snapshot -a 5d -r bup
-
-# make a snapshot at midnight that is kept for 1 month
+ 
+# make a snapshot every 10 minutes, which gets kept for 3 days: 432 snapshots
+*/10 * * * *      /usr/local/bin/zfsnap.sh snapshot -a 3d -r bup
+ 
+# make a snapshot every hour, which gets kept for 5 days: 120 snapshots
+0 * * * *      /usr/local/bin/zfsnap.sh snapshot -a 5d -r bup
+ 
+# make a snapshot at midnight that is kept for 1 month: 30 snapshots
 0 0 * * *      /usr/local/bin/zfsnap.sh snapshot -a 30d -r bup
-
-# make a snapshot at 3am that is kept for 3 months
-0 3 * * *      /usr/local/bin/zfsnap.sh snapshot -a 90d -r bup
+ 
