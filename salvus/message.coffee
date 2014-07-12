@@ -1207,6 +1207,10 @@ message
     param      : undefined
     id         : undefined
 
+message
+    event      : 'projects_running_on_server'
+    id         : undefined
+    projects   : undefined   # for response
 
 
 
