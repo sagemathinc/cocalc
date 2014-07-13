@@ -303,7 +303,7 @@ if __name__ == "__main__":
             for x in args.disk.split(','):
                 a = x.split(':')
                 if len(a) == 1:
-                    a.append('1')
+                    a.append('1')  # default size = 1GB;  this size is ignored for raw devices.
                 if len(a) == 2:
                     a.append('none')  # default filesystem type = none = do not format
                 if len(a) == 3:
@@ -311,12 +311,12 @@ if __name__ == "__main__":
 
                 assert len(a) == 4
                 if a[2] == '':
-                    a[2] = 'ext4'
+                    a[2] = 'none'   # default filesystem type = none
                 if a[3] == '':
                     a[3] = 'raw'
                 disk.append(a)
     except (IndexError, ValueError):
-        raise RuntimeError("--disk option must be of the form 'name1:size1[:fstype][:format],name2:size2[:fstype][:format],...', with size in gigabytes")
+        raise RuntimeError("--disk option invalid; see usage info")
 
     def main():
         global log
