@@ -3,6 +3,8 @@ Task List
 
 ###
 
+SAVE_SPINNER_DELAY_MS = 3000  # TODO -- make this consistent across editors
+
 # tasks makes use of future timestamps (for due date)
 jQuery.timeago.settings.allowFuture = true
 
@@ -482,7 +484,7 @@ class TaskList
             if not current_task_is_visible and @_visible_tasks.length > 0
                 @set_current_task(@_visible_tasks[0])
             else
-                @current_task?.element?.addClass("salvus-current-task").scrollintoview()
+                @current_task?.element?.addClass("salvus-current-task")#.scrollintoview()
 
             if focus_current
                 cm.focus()
@@ -600,9 +602,14 @@ class TaskList
             task.element.data('task', task)
             task.element.click(@click_on_task)
             if not @readonly
-                task.element.find('.salvus-task-desc').click (e) =>
+                d = task.element.find('.salvus-task-desc').click (e) =>
                     if $(e.target).prop("tagName") == 'A'  # clicking on link in task description shouldn't start editor
                         return
+                    if misc_page.get_selection_start_node().closest(d).length != 0
+                        # clicking when something in the task is selected -- e.g., to select -- shouldn't start editor
+                        return
+                    @edit_desc(task)
+                task.element.find('.salvus-task-desc').dblclick (e) =>
                     @edit_desc(task)
             task.changed = true
 
@@ -796,11 +803,16 @@ class TaskList
             return
         if @current_task?.element?
             @current_task.element.removeClass("salvus-current-task")
+        scroll_into_view = (@current_task?.task_id != task.task_id)
         @current_task = task
         @local_storage("current_task", task.task_id)
         if task.element?
             task.element.addClass("salvus-current-task")
-            task.element.scrollintoview()
+            if misc_page.get_selection_start_node().closest(task.element).length != 0
+                # clicking when something in the task is selected -- e.g., don't scroll into view
+                scroll_into_view = false
+            if scroll_into_view
+                task.element.scrollintoview()
 
     get_task_visible_index: (task) =>
         if not task?
@@ -1387,7 +1399,7 @@ class TaskList
             return
         @_saving = true
         @_new_changes = false
-        @save_button.icon_spin(start:true, delay:1000)
+        @save_button.icon_spin(start:true, delay:SAVE_SPINNER_DELAY_MS)
         @db.save (err) =>
             @save_button.icon_spin(false)
             @_saving = false
