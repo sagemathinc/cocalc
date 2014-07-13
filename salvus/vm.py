@@ -13,6 +13,8 @@ vm.py -- create and run a virtual machine based on the standard
 
 import logging, os, shutil, socket, tempfile, time
 
+from vm_gce import cmd
+
 from admin import run
 import admin
 
@@ -26,6 +28,35 @@ conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
 
 def virsh(command, name):
     return run(['virsh', '--connect', 'qemu:///system', command, name], verbose=False, maxtime=600).strip()
+
+def get_local_address(host, maxtime=120):
+    t = time.time()
+    while time.time()-t < maxtime:
+        addr = os.popen('kvm_addresses.py %s'%host).read().strip()
+        if addr:
+            return addr
+        log.info("waiting for %s to boot up so we can get ethernet address...", host)
+        time.sleep(1)
+    raise RuntimeError("unable to determine address")
+
+def ssh(name, command, user='salvus', maxtries=10):
+    """
+    ssh from the host (running this script) into vm with given name
+    running on the local machine and run the given command, returning
+    the output.
+    """
+    address = get_local_address(name)
+    s = 'ssh -o StrictHostKeyChecking=no  -o ConnectTimeout=%s %s@%s "%s"'%(timeout, user, address, command)
+    tries = 0
+    while tries < max_tries:
+        try:
+            return cmd(s, verbose=2, stderr=False)
+        except RuntimeError, msg:
+            tries += 1
+            log.info("FAIL (%s/%s): %s", tries, max_tries, msg)
+            log.info("trying again in 3 seconds...")
+            time.sleep(3)
+    raise RuntimeError("failed too many times: %s"%s)
 
 def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
     #################################
@@ -49,8 +80,8 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
     if stop:
         log.info("stopping ephemeral vm '%s'"%hostname)
         try:
-            log.info("virsh undefine '%s'"%hostname)
-            virsh('undefine', hostname)
+            log.info("virsh shutdown '%s'"%hostname)
+            virsh('shutdown', hostname)
         except: pass
         try:
             log.info("virsh destroy '%s'"%hostname)
@@ -90,6 +121,7 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
                 # NOTE: size="mount point" for raw disk images
                 persistent_images.append((name, size, fstype, format))
             else:
+                # TODO: this functionality will be removed as soon as I move *all* UW vm's to use zvol's.
                 persistent_images.append((os.path.join(persistent_img_path, '%s-%s.img'%(hostname, name)),
                                           '/mnt/'+name, fstype, format))
                 img = persistent_images[-1][0]
@@ -243,7 +275,7 @@ if __name__ == "__main__":
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
                         help="store log in this file (default: '' = don't log to a file)")
     parser.add_argument("--disk", dest="disk", type=str, default="",
-                        help="persistent disks: '--disk=cassandra:64:ext4:qcow2,backup:10:xfs:qcow2,/dev/sdd1::none,/dev/sdd2:foo:ext4' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, one formated ext4 the other xfs, and mounted as /mnt/cassandra and /mnt/backup, also makes /dev/sdd1 available in the vm, and makes /dev/sdd2 available and mount as /mnt/foo; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.  More precisely, the format is --disk=[name]:[size]:[ext4|xfs|zfs|none]:[raw|qcow2].  If format is none, then the disk is not mounted in fstab.  If name is a device the format is --disk=[devicename]:[mountpoint]:[format]")
+                        help="persistent disks: '--disk=cassandra:64:ext4:qcow2,backup:10:xfs:qcow2,/dev/sdd1,/dev/sdd2:foo:ext4' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, one formated ext4 the other xfs, and mounted as /mnt/cassandra and /mnt/backup, also makes /dev/sdd1 available in the vm, and makes /dev/sdd2 available and mount as /mnt/foo; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.  More precisely, the format is --disk=[name]:[size]:[ext4|xfs|zfs|none]:[raw|qcow2].  If format is none (the default), then the disk is not mounted in fstab.  If name is a device the format is --disk=[devicename]:[mountpoint]:[format]")
     parser.add_argument("--fstab", dest="fstab", type=str, default="", help="custom string to add to the end of /etc/fstab; each mountpoint in that string will be created if necessary")
     parser.add_argument('--base', dest='base', type=str, default='salvus',
                         help="template image in ~/vm/images/base3 on which to base this machine; must *not* be running (default: salvus).")
@@ -271,20 +303,20 @@ if __name__ == "__main__":
             for x in args.disk.split(','):
                 a = x.split(':')
                 if len(a) == 1:
-                    a.append('1')
+                    a.append('1')  # default size = 1GB;  this size is ignored for raw devices.
                 if len(a) == 2:
-                    a.append('ext4')  # default filesystem type
+                    a.append('none')  # default filesystem type = none = do not format
                 if len(a) == 3:
                     a.append('raw')
 
                 assert len(a) == 4
                 if a[2] == '':
-                    a[2] = 'ext4'
+                    a[2] = 'none'   # default filesystem type = none
                 if a[3] == '':
                     a[3] = 'raw'
                 disk.append(a)
     except (IndexError, ValueError):
-        raise RuntimeError("--disk option must be of the form 'name1:size1[:fstype][:format],name2:size2[:fstype][:format],...', with size in gigabytes")
+        raise RuntimeError("--disk option invalid; see usage info")
 
     def main():
         global log

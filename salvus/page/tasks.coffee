@@ -3,6 +3,8 @@ Task List
 
 ###
 
+SAVE_SPINNER_DELAY_MS = 3000  # TODO -- make this consistent across editors
+
 # tasks makes use of future timestamps (for due date)
 jQuery.timeago.settings.allowFuture = true
 
@@ -378,9 +380,10 @@ class TaskList
 
         # Determine the search criteria, which restricts what is visible
         search = @selected_hashtags()
+        # TODO: exact string searching surrounded by quotes -- add a function misc.search_split...
         for x in misc.split(@element.find(".salvus-tasks-search").val().toLowerCase())
-            x = $.trim(x)
-            if x.length > 1
+            x = $.trim(x).toLowerCase()
+            if x != '#'
                 search.push(x)
 
         # Fill in sentences describing the search, so user isn't confused by which tasks are visible.
@@ -419,10 +422,20 @@ class TaskList
                     # always include task that we are currently editing, irregardless of search
                     skip = false
                 else
+                    # is there anything at all in the task that will match our search criteria?
                     t = task.desc.toLowerCase()
                     for s in search
-                        if t.indexOf(s) == -1 or not (t.charAt(t.indexOf(s) + s.length).match(/\s|[^A-Za-z0-9_\-]/) or t.substring(t.indexOf(s)).length == s.length)
+                        # show the task if either:
+                        #   (1) the search term s is not a hashtag and it's anywhere in the description, or
+                        #   (2) the search term s is a hashtag, and that tag exactly matches something in the description (i.e., hashtag[termination])
+                        if t.indexOf(s) == -1  # term is not in text at all, so definitely skip
                             skip = true
+                            continue
+                        else if s[0] == '#'
+                            # it's a hashtag, so we might skip it anyways, in case it's not an exact match
+                            reg = new RegExp("#{s}(|\s|[^A-Za-z0-9_\-])")
+                            if not t.match(reg)
+                                skip = true
                             continue
             else
                 task.desc = ''
@@ -471,7 +484,7 @@ class TaskList
             if not current_task_is_visible and @_visible_tasks.length > 0
                 @set_current_task(@_visible_tasks[0])
             else
-                @current_task?.element?.addClass("salvus-current-task").scrollintoview()
+                @current_task?.element?.addClass("salvus-current-task")#.scrollintoview()
 
             if focus_current
                 cm.focus()
@@ -481,10 +494,20 @@ class TaskList
 
         # remove any existing highlighting:
         @elt_task_list.find('.highlight-tag').removeClass("highlight-tag")
+        @elt_task_list.find('.salvus-task-desc').unhighlight()
+
         if search.length > 0
-            # Go through the DOM tree of tasks and highlight all the search terms for
-            # tasks that aren't currently being edited.
-            @elt_task_list.find( ("."+tags.substring(1) for tags in search).join(',') ).addClass("highlight-tag")
+            # Consider only tasks that *ARE NOT* currently being edited (since highlighting edited tasks is annoying)
+            e = @elt_task_list.find('.salvus-task-desc').not(".salvus-task-desc-editing")
+            # First highlight hashtags --
+            # Add the highlight-tag CSS class to every hashtag in the task list.
+            # select searched-for hashtags by their special class:
+            selector = ("."+tags.substring(1) for tags in search when tags[0] == "#").join(',')
+            e.find(selector).addClass("highlight-tag")
+
+            # Highlight all the search terms for
+            non_hashtag_search_terms = (t for t in search when t[0] != '#')
+            e.highlight(non_hashtag_search_terms)
 
         # show the "create a new task" link if no tasks.
         if count == 0
@@ -579,9 +602,14 @@ class TaskList
             task.element.data('task', task)
             task.element.click(@click_on_task)
             if not @readonly
-                task.element.find('.salvus-task-desc').click (e) =>
+                d = task.element.find('.salvus-task-desc').click (e) =>
                     if $(e.target).prop("tagName") == 'A'  # clicking on link in task description shouldn't start editor
                         return
+                    if misc_page.get_selection_start_node().closest(d).length != 0
+                        # clicking when something in the task is selected -- e.g., to select -- shouldn't start editor
+                        return
+                    @edit_desc(task)
+                task.element.find('.salvus-task-desc').dblclick (e) =>
                     @edit_desc(task)
             task.changed = true
 
@@ -708,7 +736,7 @@ class TaskList
                 x0 = [0,0]
                 desc0 = ''
                 for x in v
-                    desc0 += desc.slice(x0[1], x[0]) + "<span class='salvus-tasks-hash #{(desc.slice(x[0], x[1])).substring(1)}'>" + desc.slice(x[0], x[1]) + '</span>'
+                    desc0 += desc.slice(x0[1], x[0]) + "<span class='salvus-tasks-hash #{(desc.slice(x[0], x[1])).substring(1).toLowerCase()}'>" + desc.slice(x[0], x[1]) + '</span>'
                     x0 = x
                 desc = desc0 + desc.slice(x0[1])
 
@@ -775,11 +803,16 @@ class TaskList
             return
         if @current_task?.element?
             @current_task.element.removeClass("salvus-current-task")
+        scroll_into_view = (@current_task?.task_id != task.task_id)
         @current_task = task
         @local_storage("current_task", task.task_id)
         if task.element?
             task.element.addClass("salvus-current-task")
-            task.element.scrollintoview()
+            if misc_page.get_selection_start_node().closest(task.element).length != 0
+                # clicking when something in the task is selected -- e.g., don't scroll into view
+                scroll_into_view = false
+            if scroll_into_view
+                task.element.scrollintoview()
 
     get_task_visible_index: (task) =>
         if not task?
@@ -1366,7 +1399,7 @@ class TaskList
             return
         @_saving = true
         @_new_changes = false
-        @save_button.icon_spin(start:true, delay:1000)
+        @save_button.icon_spin(start:true, delay:SAVE_SPINNER_DELAY_MS)
         @db.save (err) =>
             @save_button.icon_spin(false)
             @_saving = false

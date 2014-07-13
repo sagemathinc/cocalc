@@ -797,12 +797,13 @@ class Vm(Process):
             - name -- default: "virtual_machine"
         """
         self._ip_address = ip_address
-        self._hostname = hostname
-        self._vcpus = vcpus
-        self._ram = ram
-        self._vnc = vnc
-        self._base = base
-        self._disk = disk
+        self._hostname   = hostname
+        self._vcpus      = vcpus
+        self._ram        = ram
+        self._vnc        = vnc
+        self._base       = base
+        self._disk       = disk
+        self._fstab      = fstab.strip()
         pidfile = os.path.join(PIDS, 'vm-%s.pid'%ip_address)
         logfile = os.path.join(LOGS, 'vm-%s.log'%ip_address)
 
@@ -810,8 +811,8 @@ class Vm(Process):
                      '--pidfile', pidfile, '--logfile', logfile,
                      '--vcpus', vcpus, '--ram', ram,
                      '--vnc', vnc,
-                     '--fstab', fstab,
                      '--base', base] + \
+                     (['--fstab', fstab] if self._fstab else []) + \
                      (['--disk', disk] if self._disk else []) + \
                      (['--hostname', self._hostname] if self._hostname else [])
 

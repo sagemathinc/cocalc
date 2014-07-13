@@ -8,7 +8,7 @@ if '@' in n:
     user = user + '@'
 else:
     user = ''
-    host = n 
+    host = n
 
 while True:
     addr = os.popen('kvm_addresses.py %s'%host).read().strip()
@@ -17,6 +17,13 @@ while True:
     print "address not yet known..."
     time.sleep(1)
 
-s = "ssh %s%s"%(user, addr)
-print s
-os.system(s)
+while True:
+    t = time.time()
+    s = "ssh %s%s"%(user, addr)
+    print s
+    os.system(s)
+    if time.time()-t > 5:
+        break
+    else:
+        time.sleep(3)
+
