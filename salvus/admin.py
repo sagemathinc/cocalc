@@ -816,7 +816,7 @@ class Vm(Process):
                      (['--disk', disk] if self._disk else []) + \
                      (['--hostname', self._hostname] if self._hostname else [])
 
-        stop_cmd = [PYTHON, 'vm.py', '--stop',  '--ip_address', ip_address] + (['--hostname', self._hostname] if self._hostname else [])
+        stop_cmd = [PYTHON, 'vm.py', '--stop', '--logfile', logfile, '--ip_address', ip_address] + (['--hostname', self._hostname] if self._hostname else [])
 
         Process.__init__(self, id=id, name=name, port=0,
                          pidfile = pidfile, logfile = logfile,

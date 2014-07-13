@@ -81,11 +81,15 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
         log.info("stopping ephemeral vm '%s'"%hostname)
         try:
             log.info("virsh shutdown '%s'"%hostname)
-            virsh('shutdown', hostname)
+            log.info(virsh('shutdown', hostname))
         except: pass
         try:
             log.info("virsh destroy '%s'"%hostname)
-            virsh('destroy', hostname)
+            log.info(virsh('destroy', hostname))
+        except: pass
+        try:
+            log.info("virsh undefine '%s'"%hostname)
+            log.info(virsh('undefine', hostname))
         except: pass
         try:
             path = os.path.join(conf_path, 'tinc_hosts', tincname)
