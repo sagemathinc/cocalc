@@ -242,36 +242,53 @@
 
                 <!-- we use data-target instead of href=# to avoid the highly annoying link text that appears on hover at the bottom of the screen! -->
                 <li class="super-menu project-pages-button">
-                    <a data-target="project-file-listing"  data-toggle="tooltip" data-placement="right" title="Browse files"><i class="project-control-icon fa fa-folder-open-o"></i> Files</a>
+                    <a data-target="project-file-listing"  data-toggle="tooltip" data-placement="right" title="Browse files">
+                        <i class="project-control-icon fa fa-folder-open-o"></i>
+                        <span class="project-pages-button-label">Files</span>
+                    </a>
                 </li>
 
                 <!-- File editor with links to recent files -->
                 <li class="super-menu project-pages-button hide">
-                    <a data-target="project-editor" data-toggle="tooltip" data-placement="bottom" title="Recent files"><i class="project-control-icon fa fa-clock-o"> </i> Recent</a>
+                    <a data-target="project-editor" data-toggle="tooltip" data-placement="bottom" title="Recent files">
+                        <i class="project-control-icon fa fa-clock-o"></i>
+                        <span class="project-pages-button-label">Recent</span>
+                    </a>
                 </li>
 
                 <!-- Create a new file (or, etc.)-->
                 <li class="super-menu project-pages-button">
-                    <a data-target="project-new-file" data-toggle="tooltip" data-placement="right" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon fa fa-plus-circle"> </i> New</a>
+                    <a data-target="project-new-file" data-toggle="tooltip" data-placement="right" title="Create new file, folder, worksheet or terminal">
+                        <i class="project-control-icon fa fa-plus-circle"></i>
+                        <span class="project-pages-button-label">New</span>
+                    </a>
                 </li>
 
 
                 <!-- Project activities  -->
                 <li class="super-menu project-pages-button">
-                    <a data-target="project-activity" data-toggle="tooltip" data-placement="right" title="Log of project activity and central chat"><i class="project-control-icon fa fa-list"> </i> Log</a>
+                    <a data-target="project-activity" data-toggle="tooltip" data-placement="right" title="Log of project activity and central chat">
+                        <i class="project-control-icon fa fa-list"></i>
+                        <span class="project-pages-button-label">Log</span>
+                    </a>
                 </li>
 
                 <!-- Search -->
                 <li class="super-menu project-pages-button project-search-menu-item">
-                    <a data-target="project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project"> <i class="project-control-icon fa fa-search"> </i> </a>
+                    <a data-target="project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project">
+                        <i class="project-control-icon fa fa-search"></i>
+                        <span class="project-pages-button-label">Find</span>
+                    </a>
                 </li>
 
                 <li class="super-menu project-pages-button  project-settings-menu-item">
-                    <a data-target="project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls"><i class="project-control-icon fa fa-wrench"> </i>  </a>
+                    <a data-target="project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls">
+                        <i class="project-control-icon fa fa-wrench"></i>
+                        <span class="project-pages-button-label">Settings</span>
+                    </a>
                 </li>
 
             </ul>
-
             <ul class="nav nav-pills file-pages">
             </ul>
 
@@ -477,7 +494,7 @@
 
             <!-- Page to configure the settings for this project -->
             <div class="project-settings hide">  <!-- hidden by default -->
-                <h1 class="big-only" style="margin-left:1em;">Project Control</h1>
+                <h1 class="big-only" style="margin-left:1em;">Project Settings and Controls</h1>
                 <span class="hide salvus-project-id-warning pull-right"
                       title="When doing development of SMC inside an SMC project, the security of the raw http server and ipython server is via the project id; other users on the same VM that know the project id of your devel project both from the POV of SMC and of your local server, could get readonly access to your files (or read/write if you start an ipython server).">DANGER (hover with mouse)</span>
                 <div class="row">
@@ -555,8 +572,15 @@
                                     </div>
                                     <div class="span8">
                                         <!--<span class="lighten" style="font-weight:bold">Add&nbsp;&nbsp;</span>-->
-                                        <input class="project-add-collaborator-input search-query" type="search" placeholder="Search by name or email address...">
-                                        <select multiple="multiple" class="project-add-collaborator-select hide"> </select>
+                                        <a class="btn project-add-collaborator-button">
+                                            <i class="fa fa-search"> </i> Search <i class="fa fa-spinner fa fa-spin project-collaborator-search-loading hide"> </i>
+                                        </a>
+                                        <div class="project-add-collaborator-input-container">
+                                            <input class="project-add-collaborator-input search-query" type="search" placeholder="Search by name or email...">
+                                        </div>
+
+                                        <select multiple="multiple" class="project-add-collaborator-select hide"></select>
+
 
                                         <div class="project-add-noncloud-collaborator hide">
                                             <a href="#add-noncloud-collaborator" style="margin-bottom: 1ex;" class="btn btn-large btn-primary">
@@ -737,7 +761,7 @@
 
             <!-- Search -->
             <div class="project-search hide">
-                <h1  class="big-only" style="margin-left:1em;">Find Files</h1>
+                <h1  class="big-only" style="margin-left:1em;">Find in Files</h1>
                 <div class="project-search-spinner hide">
                 </div>
                 <div class="row well"  style="margin-left:3em; margin-right:3em;">

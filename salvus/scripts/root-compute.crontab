@@ -22,13 +22,18 @@
 # m h  dom mon dow   command
 
 # delete old snapshots once per day at 1am
-0 1 * * *      /usr/local/bin/zfsnap.sh destroy -r bup
+0 1 * * *      /usr/local/bin/zfsnap.sh destroy -r bup/projects
+0 1 * * *      /usr/local/bin/zfsnap.sh destroy -r bup/bups
 
-# make a snapshot every 10 minutes, which gets kept for 5 days
-*/10 * * * *      /usr/local/bin/zfsnap.sh snapshot -a 5d -r bup
+# make a snapshot every 10 minutes, which gets kept for 3 days: 432*2=864 total snapshots
+*/10 * * * *      /usr/local/bin/zfsnap.sh snapshot -a 3d -r bup/projects
+*/10 * * * *      /usr/local/bin/zfsnap.sh snapshot -a 3d -r bup/bups
 
-# make a snapshot at midnight that is kept for 1 month
-0 0 * * *      /usr/local/bin/zfsnap.sh snapshot -a 30d -r bup
+# make a snapshot every hour, which gets kept for 5 days: 120*2 = 240 snapshots
+0 * * * *      /usr/local/bin/zfsnap.sh snapshot -a 5d -r bup/projects
+0 * * * *      /usr/local/bin/zfsnap.sh snapshot -a 5d -r bup/bups
 
-# make a snapshot at 3am that is kept for 3 months
-0 3 * * *      /usr/local/bin/zfsnap.sh snapshot -a 90d -r bup
+# make a snapshot at midnight that is kept for 1 month: 30*2 = 60 snapshots
+0 0 * * *      /usr/local/bin/zfsnap.sh snapshot -a 30d -r bup/projects
+0 0 * * *      /usr/local/bin/zfsnap.sh snapshot -a 30d -r bup/bups
+

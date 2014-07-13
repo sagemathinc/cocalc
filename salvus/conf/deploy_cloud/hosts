@@ -11,6 +11,7 @@
 10.1.1.2 dc1     kvm        cassandra1  cassandra
 10.1.1.3 dc1     kvm        web1  hub  nginx
 10.1.1.5 dc1     kvm        compute-2     compute1dc1
+10.1.1.11 compute1dc1b
 
 # DC1:RAC0   128.95.242.137 cloud2   # 07salvus
 10.1.2.1 dc1     kvm-host   edge        cloud2    cassandra-2
@@ -23,6 +24,8 @@
 10.1.3.2 dc1 kvm        cassandra3 cassandra
 10.1.3.3 dc1 kvm        hub nginx   web3
 10.1.3.5 dc1     kvm        compute-2     compute3dc1
+10.1.3.10 cassandra3b
+10.1.3.11 compute3dc1b
 
 # DC1:RAC0   128.95.224.230 cloud4
 10.1.4.1 dc1 kvm-host   edge        cloud4    cassandra-2
@@ -47,6 +50,9 @@
 10.1.7.2 dc1 kvm              cassandra7    cassandra
 10.1.7.3 dc1 kvm       hub nginx   web7
 10.1.7.5 dc1     kvm        compute-2     compute7dc1
+
+10.1.7.10 cassandra7b
+10.1.7.11 compute7dc1b
 
 
 # DC0:RAC0   cloud10

@@ -607,6 +607,8 @@ exports.parse_hashtags = (t) ->
             continue
         t = t.slice(i+1)
         # find next whitespace or non-alphanumeric or dash
+        # TODO: this lines means hashtags must be US ASCII --
+        #    see http://stackoverflow.com/questions/1661197/valid-characters-for-javascript-variable-names
         i = t.match(/\s|[^A-Za-z0-9_\-]/)
         if i
             i = i.index
