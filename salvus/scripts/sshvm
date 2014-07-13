@@ -10,20 +10,28 @@ else:
     user = ''
     host = n
 
+def dot():
+    sys.stdout.write('.'); sys.stdout.flush()
+
+print "waiting for ip address",
+sys.stdout.flush()
+
 while True:
     addr = os.popen('kvm_addresses.py %s'%host).read().strip()
     if addr:
         break
-    print "address not yet known..."
-    time.sleep(1)
+    dot()
+    time.sleep(2)
+
+print "\ntrying to ssh in:"
 
 while True:
     t = time.time()
-    s = "ssh %s%s"%(user, addr)
+    s = "ssh -o StrictHostKeyChecking=no %s%s"%(user, addr)
     print s
     os.system(s)
-    if time.time()-t > 5:
+    if time.time()-t > 3:
         break
     else:
-        time.sleep(3)
+        time.sleep(2)
 
