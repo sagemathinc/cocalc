@@ -495,18 +495,17 @@ class TaskList
         @elt_task_list.find('.salvus-task-desc').unhighlight()
 
         if search.length > 0
-            # Go through the DOM tree of tasks and highlight all the search terms for
-            # tasks that aren't currently being edited.
-
+            # Consider only tasks that *ARE NOT* currently being edited (since highlighting edited tasks is annoying)
+            e = @elt_task_list.find('.salvus-task-desc').not(".salvus-task-desc-editing")
             # First highlight hashtags --
             # Add the highlight-tag CSS class to every hashtag in the task list.
             # select searched-for hashtags by their special class:
             selector = ("."+tags.substring(1) for tags in search when tags[0] == "#").join(',')
-            @elt_task_list.find( selector ).addClass("highlight-tag")
+            e.find(selector).addClass("highlight-tag")
 
-            # Now highlight non hashtags --
+            # Highlight all the search terms for
             non_hashtag_search_terms = (t for t in search when t[0] != '#')
-            @elt_task_list.find('.salvus-task-desc').not(".salvus-task-desc-editing").highlight(non_hashtag_search_terms)
+            e.highlight(non_hashtag_search_terms)
 
         # show the "create a new task" link if no tasks.
         if count == 0
