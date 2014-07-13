@@ -1937,7 +1937,7 @@ def sh(code):
 
 import sage.interfaces.r
 def r_eval0(*args, **kwds):
-    return sage.interfaces.r.R.eval(sage.interfaces.r.r, *args, **kwds).strip()
+    return sage.interfaces.r.R.eval(sage.interfaces.r.r, *args, **kwds).strip('\n')
 
 r_dev_on = False
 def r_eval(code, *args, **kwds):
