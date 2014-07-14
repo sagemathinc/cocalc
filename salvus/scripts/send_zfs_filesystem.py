@@ -58,17 +58,30 @@ def send(filesystem, remote):
     # get list of snapshots remotely, sorted by time
     remote_snapshots = cmd("ssh %s '%s'"%(remote, ' '.join(s+[remote_filesystem]))).splitlines()
 
+    local_snapshot_names = set([x.split('@')[1] for x in local_snapshots])
+
     if len(remote_snapshots) == 0:
         # transfer up to first snapshot to remote
         first = local_snapshots[0]
         system('time zfs send -v %s | ssh %s "zfs recv -F  %s"'%(first, remote, remote_filesystem))
         start = first
     else:
-        start = remote_snapshots[-1]
+        # transfer starting with newest snapshot this available locally (destructively killing all older snapshots).
+        i = len(remote_snapshots)-1
+        while i>=0 and remote_snapshots[i].split('@')[1] not in local_snapshot_names:
+            i -= 1
+        if i == -1:
+            start = local_snapshots[0]
+        else:
+            start = remote_snapshots[i]
 
-    i = local_snapshots.index(start)
-    for j in range(i+1,len(local_snapshots)):
-        system('time zfs send -v -i %s %s | ssh %s "zfs recv  %s"'%(local_snapshots[j-1], local_snapshots[j], remote, remote_filesystem))
+    i = local_snapshots.index("%s@%s"%(local_filesystem, start.split('@')[1]))
+    v = range(i+1,len(local_snapshots))
+    n = 1
+    for j in v:
+        print "(%s/%s) sending %s"%(n, local_snapshots[j]
+        system('time zfs send -v -i %s %s | ssh %s "zfs recv -F %s"'%(local_snapshots[j-1], local_snapshots[j], remote, remote_filesystem))
+        n += 1
 
 
 if __name__ == "__main__":
