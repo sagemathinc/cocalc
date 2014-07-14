@@ -79,7 +79,7 @@ def send(filesystem, remote):
     v = range(i+1,len(local_snapshots))
     n = 1
     for j in v:
-        print "(%s/%s) sending %s"%(n, local_snapshots[j]
+        print "(%s/%s) sending %s"%(n, len(v), local_snapshots[j])
         system('time zfs send -v -i %s %s | ssh %s "zfs recv -F %s"'%(local_snapshots[j-1], local_snapshots[j], remote, remote_filesystem))
         n += 1
 
