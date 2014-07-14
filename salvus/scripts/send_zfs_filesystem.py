@@ -41,37 +41,41 @@ def system(c):
     raise RuntimeError('error running "%s" %s times'%(c, RETRIES))
 
 def send(filesystem, remote):
-    print "sending %s to %s"%(filesystem, remote)
+    if ':' in filesystem:
+        local_filesystem, remote_filesystem = filesystem.split(':')
+    else:
+        local_filesystem = remote_filesystem = filesystem
+    print "sending %s to %s on %s"%(local_filesystem, remote_filesystem, remote)
 
     # get list of snapshots locally, sorted by time.
-    s = ['zfs', 'list', '-r', '-H', '-t', 'snapshot', '-o', 'name', '-s', 'creation', filesystem]
-    local_snapshots = cmd(s).splitlines()
+    s = ['zfs', 'list', '-r', '-H', '-t', 'snapshot', '-o', 'name', '-s', 'creation']
+    local_snapshots = cmd(s+[local_filesystem]).splitlines()
 
     if len(local_snapshots) == 0:
         #TODO
-        raise RuntimeError("you must have a local snapshot of %s"%filesystem)
+        raise RuntimeError("you must have at least one local snapshot of %s"%local_filesystem)
 
     # get list of snapshots remotely, sorted by time
-    remote_snapshots = cmd("ssh %s '%s'"%(remote, ' '.join(s))).splitlines()
+    remote_snapshots = cmd("ssh %s '%s'"%(remote, ' '.join(s+[remote_filesystem]))).splitlines()
 
     if len(remote_snapshots) == 0:
         # transfer up to first snapshot to remote
         first = local_snapshots[0]
-        system('time zfs send -v %s | ssh %s "zfs recv %s"'%(first, remote, filesystem))
+        system('time zfs send -v %s | ssh %s "zfs recv -F  %s"'%(first, remote, remote_filesystem))
         start = first
     else:
         start = remote_snapshots[-1]
 
     i = local_snapshots.index(start)
     for j in range(i+1,len(local_snapshots)):
-        system('time zfs send -v -i %s %s | ssh %s "zfs recv %s"'%(local_snapshots[j-1], local_snapshots[j], remote, filesystem))
+        system('time zfs send -v -i %s %s | ssh %s "zfs recv  %s"'%(local_snapshots[j-1], local_snapshots[j], remote, remote_filesystem))
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Send ZFS filesystems")
     parser.add_argument("remote", help="remote machine's ip address/hostname", type=str)
-    parser.add_argument("filesystem", help="name of filesystem to send", type=str, nargs="+")
+    parser.add_argument("filesystem", help="name of filesystem to send or name_local:name_remote to send to a different remote name", type=str, nargs="+")
     args = parser.parse_args()
 
     for filesystem in args.filesystem:
