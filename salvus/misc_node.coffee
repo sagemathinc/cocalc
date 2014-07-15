@@ -186,7 +186,8 @@ exports.connect_to_locked_socket = (opts) ->
     timed_out = () ->
         m = "misc_node: timed out trying to connect to locked socket on port #{port}"
         winston.debug(m)
-        cb(m)
+        cb?(m)
+        cb = undefined  # NOTE: everywhere below we set cb to undefined after calling it, and only call it if defined, since the event and timer callback stuff is very hard to do right here without calling cb more than once (which is VERY bad to do).
         socket.end()
         timer = undefined
 
@@ -199,12 +200,14 @@ exports.connect_to_locked_socket = (opts) ->
             if data.toString() == 'y'
                 if timer?
                     clearTimeout(timer)
-                    cb(false, socket)
+                    cb?(false, socket)
+                    cb = undefined
             else
                 socket.destroy()
                 if timer?
                     clearTimeout(timer)
-                    cb("Permission denied (invalid secret token) when connecting to the local hub.")
+                    cb?("Permission denied (invalid secret token) when connecting to the local hub.")
+                    cb = undefined
         socket.on 'data', listener
         winston.debug("misc_node: connected, now sending secret token")
         socket.write(token)
@@ -213,7 +216,9 @@ exports.connect_to_locked_socket = (opts) ->
     socket.on "error", (err) =>
         if timer?
             clearTimeout(timer)
-        cb(err)
+        cb?(err)
+        cb = undefined
+
 
 
 # Compute a uuid v4 from the Sha-1 hash of data.
