@@ -60,6 +60,9 @@ chmod a+rx /bup
 
 """
 
+# How frequently bup watch dumps changes to disk.
+BUP_WATCH_SAVE_INTERVAL_MS=60000
+
 # If UNSAFE_MODE=False, we only provide a restricted subset of options.  When this
 # script will be run via sudo, it is useful to minimize what it is able to do, e.g.,
 # there is no reason it should have easy command-line options to overwrite any file
@@ -263,6 +266,7 @@ class Project(object):
             "--start",
             "--pidfile", os.path.join(self.bup_path, "watch.pid"),
             "--logfile", os.path.join(self.bup_path, "watch.log"),
+            "--save-interval", BUP_WATCH_SAVE_INTERVAL_MS,
             "--xdev"]
             + self.exclude(self.project_mnt, prog='bup')
             + [self.project_mnt]
