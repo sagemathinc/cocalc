@@ -1,0 +1,9 @@
+.salvus-course-editor {
+    overflow-y    : auto;
+    overflow-x    : hidden;
+    margin-bottom : 2em;
+    padding-right : 2em;
+    padding-left  : 2em;
+    background    : white;
+ 
+}
