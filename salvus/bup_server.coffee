@@ -430,7 +430,7 @@ idle_timeout = () ->
                     cb     : (err) ->
                         if err
                             dbg("WARNING: error stopping #{project_id} -- #{err}")
-                        c()
+                        cb()
             async.map(projects, f)
 
 start_tcp_server = (cb) ->
