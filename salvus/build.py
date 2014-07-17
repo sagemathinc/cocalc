@@ -63,6 +63,12 @@ Before building, do:
 
     Change this line in /etc/login.defs:  "UMASK           077"
 
+Up the number of watches (mainly for bup watch):
+
+    echo fs.inotify.max_user_watches=100000 | sudo tee -a /etc/sysctl.conf; sudo sysctl -p
+
+Install https://github.com/williamstein/python-inotify and https://github.com/williamstein/bup-1 systemwide.
+
 # ATLAS:
 
          apt-get install libatlas3gf-base liblapack-dev
