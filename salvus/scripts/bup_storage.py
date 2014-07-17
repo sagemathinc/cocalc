@@ -261,10 +261,16 @@ class Project(object):
         self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
 
     def start_file_watch(self):
+        pidfile = os.path.join(self.bup_path, "watch.pid")
+        try:
+            # there are a lot of valid reasons, e.g., due to sync/replication!, that this pidfile would be here when we do start.
+            os.unlink(pidfile)
+        except:
+            pass
         self.cmd([
             "/usr/bin/bup", "watch",
             "--start",
-            "--pidfile", os.path.join(self.bup_path, "watch.pid"),
+            "--pidfile", pidfile,
             "--logfile", os.path.join(self.bup_path, "watch.log"),
             "--save-interval", BUP_WATCH_SAVE_INTERVAL_MS,
             "--xdev"]
