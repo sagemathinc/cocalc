@@ -431,7 +431,8 @@ idle_timeout = () ->
                         if err
                             dbg("WARNING: error stopping #{project_id} -- #{err}")
                         cb()
-            async.map(projects, f)
+            async.map projects, f, (err) ->
+                dbg("finished checking for projects that need to be killed")
 
 start_tcp_server = (cb) ->
     winston.info("starting tcp server...")
