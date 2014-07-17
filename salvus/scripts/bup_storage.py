@@ -62,6 +62,7 @@ chmod a+rx /bup
 
 # How frequently bup watch dumps changes to disk.
 BUP_WATCH_SAVE_INTERVAL_MS=60000
+USE_BUP_WATCH = True
 
 # If UNSAFE_MODE=False, we only provide a restricted subset of options.  When this
 # script will be run via sudo, it is useful to minimize what it is able to do, e.g.,
@@ -267,6 +268,7 @@ class Project(object):
             os.unlink(pidfile)
         except:
             pass
+
         self.cmd([
             "/usr/bin/bup", "watch",
             "--start",
@@ -293,7 +295,9 @@ class Project(object):
         self.settings()
         self.ensure_conf_files()
         self.touch()
-        self.start_file_watch()
+        if USE_BUP_WATCH:
+            log("starting file watch for user with id %s"%self.uid)
+            self.start_file_watch()
         self.update_daemon_code()
         self.start_daemons()
         self.umount_snapshots()
@@ -445,8 +449,9 @@ class Project(object):
             if n == 0:
                 break
 
-        log("stopping file watch for user with id %s"%self.uid)
-        self.stop_file_watch()
+        if USE_BUP_WATCH:
+            log("stopping file watch for user with id %s"%self.uid)
+            self.stop_file_watch()
 
         # So crontabs, remote logins, etc., won't happen... and user can't just get more free time via crontab. Not sure.
         # We need another state, which is that the project is "on" but daemons are all stopped and not using RAM.
@@ -530,6 +535,11 @@ class Project(object):
         if sync:
             log("Doing first sync before save of the live files (ignoring any issues or errors)")
             self.sync(targets=targets, snapshots=False)
+
+        # We ignore_errors below because unfortunately bup will return a nonzero exit code ("WARNING")
+        # when it hits a fuse filesystem.   TODO: somehow be more careful that each
+        if not USE_BUP_WATCH:
+            self.cmd(["/usr/bin/bup", "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
 
         what_changed = self.cmd(["/usr/bin/bup", "index", '-m', path],verbose=0).splitlines()
         files_saved = max(0, len(what_changed) - 1)      # 1 since always includes the directory itself
