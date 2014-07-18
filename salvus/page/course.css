@@ -5,5 +5,13 @@
     padding-right : 2em;
     padding-left  : 2em;
     background    : white;
- 
+
+}
+
+.salvus-course-editor-description {
+    color : #888;
+}
+
+.salvus-course-editor-location {
+    color : #888;
 }

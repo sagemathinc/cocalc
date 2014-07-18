@@ -118,13 +118,22 @@ $.fn.extend
             opts = defaults opts,
                 onchange : undefined   # function that gets called with a diff when content changes
                 interval : 250         # milliseconds interval between sending update change events about content
+                one_line : false       # if true, blur when user presses the enter key
 
             t = $(this)
             t.attr('contenteditable', true)
-            t.data
-                raw  : t.html()
-                mode : 'view'
-            t.mathjax()
+
+            # set the text content; it will be subsequently processed by mathjax
+            set_value = (value) ->
+                t.data
+                    raw  : value
+                    mode : 'view'
+                t.text(value)
+                t.mathjax()
+
+            set_value(t.text())
+
+            t.data('set_value', set_value)
 
             t.on 'focus', ->
                 if t.data('mode') == 'edit'
@@ -132,7 +141,7 @@ $.fn.extend
                 t.data('mode', 'edit')
                 t = $(this)
                 x = t.data('raw')
-                t.html(x).data('before', x)
+                t.text(x).data('before', x)
                 #controls = $("<span class='editor-controls'><br><hr><a class='btn'>bold</a><a class='btn'>h1</a><a class='btn'>h2</a></span>")
                 #t.append(controls)
 
@@ -140,7 +149,7 @@ $.fn.extend
                 t = $(this)
                 #t.find('.editor-controls').remove()
                 t.data
-                    raw  : t.html()
+                    raw  : t.text()
                     mode : 'view'
                 t.mathjax()
 
@@ -152,7 +161,7 @@ $.fn.extend
                         t.data('change-timer', false)
                         before = t.data('before')
                         if t.data('mode') == 'edit'
-                            now = t.html()
+                            now = t.text()
                         else
                             now = t.data('raw')
                         if before isnt now
@@ -165,6 +174,11 @@ $.fn.extend
             t.on('paste', f)
             t.on('blur', f)
             t.on('keyup', f)
+
+            t.on 'keydown', (evt) ->
+                if evt.which == 27 or (opts.one_line and evt.which == 13)
+                    t.blur()
+                    return false
 
             return t
 
@@ -206,6 +220,7 @@ $.fn.icon_spin = (start) ->
             if t?
                 clearTimeout(t)
             elt.find("i.fa-spinner").remove()
+
 
 
 
