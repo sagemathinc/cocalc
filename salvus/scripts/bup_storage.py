@@ -292,7 +292,7 @@ class Project(object):
         self.create_home()
         self.delete_user()
         self.create_user()
-        self.kill
+        self.killall()
         self.settings()
         self.ensure_conf_files()
         self.touch()
