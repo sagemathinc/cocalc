@@ -62,7 +62,7 @@ chmod a+rx /bup
 
 # How frequently bup watch dumps changes to disk.
 BUP_WATCH_SAVE_INTERVAL_MS=60000
-USE_BUP_WATCH = True
+USE_BUP_WATCH = False
 
 # If UNSAFE_MODE=False, we only provide a restricted subset of options.  When this
 # script will be run via sudo, it is useful to minimize what it is able to do, e.g.,
