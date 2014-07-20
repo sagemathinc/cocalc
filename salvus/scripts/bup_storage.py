@@ -436,7 +436,7 @@ class Project(object):
                     log("hasn't been long enough -- not stopping")
                     return
 
-        self.killall()
+        self.killall(grace_s=grace_s)
 
         if USE_BUP_WATCH:
             log("stopping file watch for user with id %s"%self.uid)
@@ -448,7 +448,7 @@ class Project(object):
         self.unset_quota()
         self.umount_snapshots()
 
-    def killall(self):
+    def killall(self, grace_s=0.):
         log = self._log('killall')
         log("killing all processes by user with id %s"%self.uid)
         MAX_TRIES=10
