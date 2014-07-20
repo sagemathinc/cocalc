@@ -292,6 +292,7 @@ class Project(object):
         self.create_home()
         self.delete_user()
         self.create_user()
+        self.kill
         self.settings()
         self.ensure_conf_files()
         self.touch()
@@ -435,6 +436,20 @@ class Project(object):
                     log("hasn't been long enough -- not stopping")
                     return
 
+        self.killall()
+
+        if USE_BUP_WATCH:
+            log("stopping file watch for user with id %s"%self.uid)
+            self.stop_file_watch()
+
+        # So crontabs, remote logins, etc., won't happen... and user can't just get more free time via crontab. Not sure.
+        # We need another state, which is that the project is "on" but daemons are all stopped and not using RAM.
+        self.delete_user()
+        self.unset_quota()
+        self.umount_snapshots()
+
+    def killall(self):
+        log = self._log('killall')
         log("killing all processes by user with id %s"%self.uid)
         MAX_TRIES=10
         # we use both kill and pkill -- pkill seems better in theory, but I've definitely seen it get ignored.
@@ -447,17 +462,9 @@ class Project(object):
             n = self.num_procs()
             log("kill attempt left %s procs"%n)
             if n == 0:
-                break
+                return
+        log("WARNING: failed to kill all procs after %s tries"%MAX_TRIES)
 
-        if USE_BUP_WATCH:
-            log("stopping file watch for user with id %s"%self.uid)
-            self.stop_file_watch()
-
-        # So crontabs, remote logins, etc., won't happen... and user can't just get more free time via crontab. Not sure.
-        # We need another state, which is that the project is "on" but daemons are all stopped and not using RAM.
-        self.delete_user()
-        self.unset_quota()
-        self.umount_snapshots()
 
     def restart(self):
         self.stop()
