@@ -187,7 +187,7 @@ exports.connect_to_locked_socket = (opts) ->
         m = "misc_node: timed out trying to connect to locked socket on port #{port}"
         winston.debug(m)
         cb?(m)
-        cb = undefined  # NOTE: everywhere below we set cb to undefined after calling it, and only call it if defined, since the event and timer callback stuff is very hard to do right here without calling cb more than once (which is VERY bad to do).
+        cb = undefined  # NOTE: here and everywhere below we set cb to undefined after calling it, and only call it if defined, since the event and timer callback stuff is very hard to do right here without calling cb more than once (which is VERY bad to do).
         socket.end()
         timer = undefined
 

@@ -60,13 +60,17 @@ chmod a+rx /bup
 
 """
 
+# How frequently bup watch dumps changes to disk.
+BUP_WATCH_SAVE_INTERVAL_MS=60000
+USE_BUP_WATCH = False
+
 # If UNSAFE_MODE=False, we only provide a restricted subset of options.  When this
 # script will be run via sudo, it is useful to minimize what it is able to do, e.g.,
 # there is no reason it should have easy command-line options to overwrite any file
 # on the system with arbitrary content.
 UNSAFE_MODE=False
 
-import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd, codecs
+import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd, codecs, re
 from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
 
@@ -257,14 +261,44 @@ class Project(object):
     def start_daemons(self):
         self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
 
+    def start_file_watch(self):
+        pidfile = os.path.join(self.bup_path, "watch.pid")
+        try:
+            # there are a lot of valid reasons, e.g., due to sync/replication!, that this pidfile would be here when we do start.
+            os.unlink(pidfile)
+        except:
+            pass
+
+        self.cmd([
+            "/usr/bin/bup", "watch",
+            "--start",
+            "--pidfile", pidfile,
+            "--logfile", os.path.join(self.bup_path, "watch.log"),
+            "--save-interval", BUP_WATCH_SAVE_INTERVAL_MS,
+            "--xdev"]
+            + self.exclude(self.project_mnt, prog='bup')
+            + [self.project_mnt]
+            )
+
+    def stop_file_watch(self):
+        self.cmd([
+            "/usr/bin/bup", "watch",
+            "--stop",
+            "--pidfile", os.path.join(self.bup_path, "watch.pid")]
+            )
+
     def start(self):
         self.init()
         self.create_home()
         self.delete_user()
         self.create_user()
+        self.killall()
         self.settings()
         self.ensure_conf_files()
         self.touch()
+        if USE_BUP_WATCH:
+            log("starting file watch for user with id %s"%self.uid)
+            self.start_file_watch()
         self.update_daemon_code()
         self.start_daemons()
         self.umount_snapshots()
@@ -402,6 +436,20 @@ class Project(object):
                     log("hasn't been long enough -- not stopping")
                     return
 
+        self.killall(grace_s=grace_s)
+
+        if USE_BUP_WATCH:
+            log("stopping file watch for user with id %s"%self.uid)
+            self.stop_file_watch()
+
+        # So crontabs, remote logins, etc., won't happen... and user can't just get more free time via crontab. Not sure.
+        # We need another state, which is that the project is "on" but daemons are all stopped and not using RAM.
+        self.delete_user()
+        self.unset_quota()
+        self.umount_snapshots()
+
+    def killall(self, grace_s=0.):
+        log = self._log('killall')
         log("killing all processes by user with id %s"%self.uid)
         MAX_TRIES=10
         # we use both kill and pkill -- pkill seems better in theory, but I've definitely seen it get ignored.
@@ -414,13 +462,9 @@ class Project(object):
             n = self.num_procs()
             log("kill attempt left %s procs"%n)
             if n == 0:
-                break
+                return
+        log("WARNING: failed to kill all procs after %s tries"%MAX_TRIES)
 
-        # So crontabs, remote logins, etc., won't happen... and user can't just get more free time via crontab. Not sure.
-        # We need another state, which is that the project is "on" but daemons are all stopped and not using RAM.
-        self.delete_user()
-        self.unset_quota()
-        self.umount_snapshots()
 
     def restart(self):
         self.stop()
@@ -456,9 +500,22 @@ class Project(object):
         self.archive()
         shutil.rmtree(self.bup_path)
 
-    def exclude(self, prefix):
-        excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots']
-        return ['--exclude=%s'%(prefix+x) for x in excludes]
+    def exclude(self, prefix, prog='rsync'):
+        eprefix = re.escape(prefix)
+        excludes = ['.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots']
+        exclude_rxs = []
+        if prog == 'rsync':
+            excludes.append('*.sage-backup')
+        else: # prog == 'bup'
+            exclude_rxs.append(r'.*\.sage\-backup')
+
+        for i,x in enumerate(exclude_rxs):
+            # escape the prefix for the regexs
+            ex_len = len(re.escape(x))
+            exclude_rxs[i] = re.escape(os.path.join(prefix, x))
+            exclude_rxs[i] = exclude_rxs[i][:-ex_len]+x
+
+        return ['--exclude=%s'%os.path.join(prefix, x) for x in excludes] + ['--exclude-rx=%s'%x for x in exclude_rxs]
 
     def save(self, path=None, timestamp=None, branch=None, sync=True, mnt=True, targets=""):
         """
@@ -488,7 +545,8 @@ class Project(object):
 
         # We ignore_errors below because unfortunately bup will return a nonzero exit code ("WARNING")
         # when it hits a fuse filesystem.   TODO: somehow be more careful that each
-        self.cmd(["/usr/bin/bup", "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
+        if not USE_BUP_WATCH:
+            self.cmd(["/usr/bin/bup", "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
 
         what_changed = self.cmd(["/usr/bin/bup", "index", '-m', path],verbose=0).splitlines()
         files_saved = max(0, len(what_changed) - 1)      # 1 since always includes the directory itself
