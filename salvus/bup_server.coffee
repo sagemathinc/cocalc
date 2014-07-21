@@ -2252,6 +2252,7 @@ class GlobalClient
                                         # should usually be the same, but might not be in case of split brain, etc.
                                         project.source_id = project.bup_location
                                         t = project.bup_last_save[project.bup_location]
+                                        project.timestamp = t
                                     else
                                         times.sort()
                                         t = times[times.length-1]
