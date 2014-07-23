@@ -448,7 +448,7 @@ class Project(object):
         self.unset_quota()
         self.umount_snapshots()
 
-    def killall(self, grace_s=0.):
+    def killall(self, grace_s=0.5):
         log = self._log('killall')
         log("killing all processes by user with id %s"%self.uid)
         MAX_TRIES=10
