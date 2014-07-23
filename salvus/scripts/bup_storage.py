@@ -1057,6 +1057,92 @@ class Project(object):
         self.cmd(["fusermount", "-z", "-u", os.path.join(self.project_mnt, mount_point)])
 
 
+    def copy_path(self,
+                  path,                  # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
+                  target_hostname,       # list of hostnames (foo or foo:port) to copy files to
+                  target_project_id,     # project_id of destination for files
+                  target_path="",        # path into project; if "", defaults to path above.
+                  overwrite_newer=False, # if True, newer files in target are copied over (otherwise, uses rsync's --update)
+                  delete=False,          # if True, delete files in dest path not in source
+                  rsync_timeout=120,
+                  bwlimit=20000
+                 ):
+        """
+        Copy a path (directory or file) from one project to another.
+        """
+        #NOTES:
+        #  1. We assume that PROJECTS_PATH is constant across all machines.
+        #  2. We do the rsync, then change permissions.  This is either annoying or a feature,
+        #     depending on your perspective, since it means the files
+        #     aren't accessible until the copy completes.
+
+        log = self._log("copy_path")
+
+        if not target_hostname:
+            raise RuntimeError("the target hostname must be specified")
+        if not target_path:
+            target_path = path
+
+        # check that both UUID's are valid -- these will raise exception if there is a problem.
+        check_uuid(target_project_id)
+
+        project_id = self.project_id
+
+        # parse out target rsync port, if necessary
+        if ':' in target_hostname:
+            target_hostname, target_port = target_hostname.split(':')
+        else:
+            target_port = '22'
+
+        log("check that target is working (has ZFS mounts etc)")
+        if not self.remote_is_ready(target_hostname, target_port):
+            raise RuntimeError("remote machine %s:%s not ready to receive copy of path"%(target_hostname, target_port))
+
+        # determine canonical absolute path to source
+        project_path = os.path.join(PROJECTS_PATH, project_id)
+        src_abspath = os.path.abspath(os.path.join(project_path, path))
+        if not src_abspath.startswith(project_path):
+            raise RuntimeError("source path must be contained in project path %s"%project_path)
+
+        # determine canonical absolute path to target
+        target_project_path = os.path.join(PROJECTS_PATH, target_project_id)
+        target_abspath = os.path.abspath(os.path.join(target_project_path, target_path))
+        if not target_abspath.startswith(target_project_path):
+            raise RuntimeError("target path must be contained in target project path %s"%target_project_path)
+
+        # handle options
+        options = []
+        if not overwrite_newer:
+            options.append("--update")
+        if delete:
+            options.append("--delete")
+
+        if os.path.isdir(src_abspath):
+            src_abspath    += '/'
+            target_abspath += '/'
+
+        try:
+            # do the rsync
+            v = (['rsync'] + options +
+                     ['-zax',                      # compressed, archive mode (so leave symlinks, etc.), don't cross filesystem boundaries
+                      '--timeout', rsync_timeout,
+                      '--bwlimit', bwlimit,
+                      "--ignore-errors"] +
+                     self.exclude('') +
+                     ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%target_port,
+                      src_abspath,
+                      "%s:%s"%(target_hostname, target_abspath),
+                     ])
+            self.cmd(v)
+        except Exception, mesg:
+            log("rsync error: %s", mesg)
+            raise
+        finally:
+            # fix permissions no matter what
+            u = uid(target_project_id)
+            self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", '-p', target_port,
+                      target_hostname,
+                     'chown', '-R', '%s:%s'%(u,u), target_abspath])
 
 
 if __name__ == "__main__":
@@ -1112,6 +1198,34 @@ if __name__ == "__main__":
                                                        snapshots          = args.snapshots,
                                                        union              = args.union))
 
+    def do_copy_path(*args, **kwds):
+        try:
+            project.copy_path(*args, **kwds)
+        except Exception, mesg:
+            print json.dumps({"error":str(mesg)})
+        else:
+            print json.dumps({"ok":True})
+    parser_copy_path = subparsers.add_parser('copy_path', help='copy a path from one project to another')
+    parser_copy_path.add_argument("--target_hostname", help="REQUIRED: hostname of target machine for copy",
+                                  dest="target_hostname", default='', type=str)
+    parser_copy_path.add_argument("--target_project_id", help="REQUIRED: id of target project",
+                                   dest="target_project_id", default="", type=str)
+    parser_copy_path.add_argument("--path", help="relative path or filename in project",
+                                  dest="path", default='', type=str)
+    parser_copy_path.add_argument("--target_path", help="relative path into target project (defaults to --path)",
+                                   dest="target_path", default='', type=str)
+    parser_copy_path.add_argument("--overwrite_newer", help="if given, newer files in target are copied over",
+                                   dest="overwrite_newer", default=False, action="store_const", const=True)
+    parser_copy_path.add_argument("--delete", help="if given, delete files in dest path not in source",
+                                   dest="delete", default=False, action="store_const", const=True)
+    parser_copy_path.set_defaults(func=lambda args: do_copy_path(
+                                                       path              = args.path,
+                                                       target_hostname   = args.target_hostname,
+                                                       target_project_id = args.target_project_id,
+                                                       target_path       = args.target_path,
+                                                       overwrite_newer   = args.overwrite_newer,
+                                                       delete            = args.delete,
+                                                       ))
 
     parser_settings = subparsers.add_parser('settings', help='set settings for this user; also outputs settings in JSON')
     parser_settings.add_argument("--memory", dest="memory", help="memory settings in gigabytes",
