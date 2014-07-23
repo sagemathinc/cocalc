@@ -1504,17 +1504,12 @@ class CodeMirrorEditor extends FileEditor
         if @_saving
             return
         @_saving = true
-        #if not @save_button.hasClass('disabled')
-        changed = false
-        f = () -> changed = true
-        @codemirror.on 'change', f
-        @save_button.icon_spin(start:true, delay:1000)
+        before = @codemirror.getValue()
+        @save_button.icon_spin(start:true, delay:3000)
         @editor.save @filename, (err) =>
-            @codemirror.off(f)
             @save_button.icon_spin(false)
             @_saving = false
-            if not err and not changed
-                delete @_change_event
+            if not err and @codemirror.getValue() == before
                 @has_unsaved_changes(false)
         return false
 
