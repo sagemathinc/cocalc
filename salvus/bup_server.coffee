@@ -580,11 +580,12 @@ class GlobalProject
     # of that location.  If not running, return where it will next start.
     get_running_location_and_dc: (opts) =>
         opts = defaults opts,
-            cb: required    #cb(err, {server_id:?, dc:?})
+            cb: required    #cb(err, {server_id:?, dc:?, running:?})   # running:true if project is running
 
         dbg = (m) => winston.debug("GlobalProject.get_running_location_and_dc(#{@project_id}): #{m}")
         server_id = undefined
-        dc = undefined
+        dc        = undefined
+        running   = undefined
         async.series([
             (cb) =>
                 dbg("determine where this project is located")
@@ -594,12 +595,14 @@ class GlobalProject
                         server_id = s
                         if err
                             cb(err)
-                        else if not host_server_id?
+                        else if not server_id?
                             dbg("not running anywhere")
                             @get_location_pref (err, s) =>
                                 server_id = s
+                                running = false
                                 cb(err)
                         else
+                            running = true
                             cb()
             (cb) =>
                 dbg("get the data center of this project")
@@ -613,7 +616,7 @@ class GlobalProject
             if err
                 opts.cb(err)
             else
-                opts.cb(undefined, {server_id:server_id, dc:dc})
+                opts.cb(undefined, {server_id:server_id, dc:dc, running:running})
         )
 
     # starts project if necessary, waits until it is running, and
@@ -857,30 +860,14 @@ class GlobalProject
         resp = {host:{}, targets:{}}
         async.series([
             (cb) =>
-                dbg("figure out where/if project is running")
-                @get_host_where_running
-                    cb : (err, s) =>
-                        dbg("project server_id = #{s}")
-                        resp.host.server_id = s
+                dbg("get host, data center, and if project is running")
+                @get_running_location_and_dc
+                    cb : (err, x) =>
                         if err
                             cb(err)
-                        else if not resp.host.server_id?
-                            dbg("not running anywhere")
-                            @get_location_pref (err, s) =>
-                                resp.host.server_id = s
-                                resp.host.running = false
-                                cb(err)
                         else
-                            resp.host.running = true
+                            resp.host = x
                             cb()
-            (cb) =>
-                dbg("get the data center where this project is currently running")
-                @global_client.get_data_center
-                    server_id : resp.host.server_id
-                    cb : (err, dc) =>
-                        resp.host.dc = dc
-                        dbg("sync host: #{misc.to_json(resp.host)}")
-                        cb(err)
             (cb) =>
                 dbg("get the targets for replication")
                 @get_hosts
