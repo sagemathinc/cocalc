@@ -76,7 +76,7 @@ bup_storage = (opts) =>
                 opts.cb(undefined, if output.stdout then misc.from_json(output.stdout) else undefined)
 
 
-# A single project from the point of view of the storage server
+# A single project from the point of view of the storage server -- this runs on the compute machine
 class Project
     constructor: (opts) ->
         opts = defaults opts,
@@ -1067,15 +1067,78 @@ class GlobalProject
     # copy a path from this project to another project
     copy_path: (opts) =>
         opts = defaults opts,
-            path        : required  # relative path in this project
-            project_id  : required  # id of target project (or list of id's)
-            target_path : undefined # defaults to path
-        dbg = (m) => winston.debug("GlobalProject.copy_path(#{@project_id}, #{opts.path}, target=#{opts.project_id}:#{@opts.target_path}): #{m}")
+            path            : required  # relative path in this project
+            project_id      : required  # id of target project (or list of id's)
+            target_path     : undefined # defaults to path
+            overwrite_newer : false     # overwrite newer versions of file at destination (destructive)
+            delete_missing  : false     # delete files in dest that are missing from source (destructive)
+            timeout         : TIMEOUT
+            cb              : undefined  # cb(err)
 
-        # figure out address and port of target project, then do action
+        dbg = (m) => winston.debug("GlobalProject.copy_path(#{@project_id}, #{opts.path}, target=#{opts.project_id}:#{opts.target_path}): #{m}")
 
+        source_loc = undefined
+        target_loc = undefined
+        project    = undefined
 
+        target_project = @global_client.get_project(opts.project_id)
 
+        if not opts.target_path?
+            opts.target_path = opts.path
+
+        async.series([
+            (cb) =>
+                dbg("get coordinates (server_id, datacenter, addr) for source and target projects (in parallel)")
+                async.parallel([
+                    (cb) =>
+                        dbg("get coords of source project")
+                        @get_running_location_and_dc
+                            cb : (err, x) =>
+                                if err
+                                    cb(err)
+                                else
+                                    source_loc = x
+                                    @global_client.get_external_ssh
+                                        server_id : x.server_id
+                                        dc        : x.dc
+                                        cb        : (err, addr) =>
+                                            source_loc.addr = addr
+                                            dbg("source_loc=#{misc.to_json(source_loc)}")
+                                            cb(err)
+                    (cb) =>
+                        dbg("get coords of target project")
+                        target_project.get_running_location_and_dc
+                            cb : (err, x) =>
+                                if err
+                                    cb(err)
+                                else
+                                    target_loc = x
+                                    @global_client.get_external_ssh
+                                        server_id : x.server_id
+                                        dc        : x.dc
+                                        cb        : (err, addr) =>
+                                            target_loc.addr = addr
+                                            dbg("target_loc=#{misc.to_json(target_loc)}")
+                                            cb(err)
+                ], cb)
+
+            (cb) =>
+                dbg("get the project itself")
+                @project
+                    server_id : source_loc.server_id
+                    cb        : (err, p) =>
+                        project = p; cb(err)
+            (cb) =>
+                dbg("do the copy_path action")
+                project.copy_path
+                    target_hostname   : target_loc.addr
+                    target_project_id : opts.project_id
+                    path              : opts.path
+                    target_path       : opts.target_path
+                    overwrite_newer   : opts.overwrite_newer
+                    delete_missing    : opts.delete_missing
+                    cb                : cb
+        ], (err) => opts.cb?(err))
 
     # if some project is actually running, return it; otherwise undefined
     running_project: (opts) =>
@@ -2714,7 +2777,7 @@ storage_server_client = (opts) ->
         C = client_cache[key] = new Client(host:opts.host, port:opts.port, secret: opts.secret, verbose:opts.verbose, server_id:opts.server_id)
     return C
 
-# A client on a *particular* server
+# A client for a project on a *particular* server -- this runs on a client machine, not on the compute machine.
 class ClientProject
     constructor: (@client, @project_id) ->
         @dbg("constructor",[],"")
@@ -2895,6 +2958,29 @@ class ClientProject
             timeout : opts.timeout
             cb      : opts.cb
 
+    copy_path: (opts) =>
+        opts = defaults opts,
+            target_hostname   : required
+            target_project_id : required
+            path              : required
+            target_path       : required
+            overwrite_newer   : false
+            delete_missing    : false
+            timeout           : TIMEOUT
+            cb                : undefined
+        params = ["--target_hostname=#{opts.target_hostname}",
+                  "--target_project_id=#{opts.target_project_id}",
+                  "--path=#{opts.path}",
+                  "--target_path=#{opts.target_path}"]
+        if opts.overwrite_newer
+            params.push('--overwrite_newer')
+        if opts.delete_missing
+            params.push('--delete')
+        @action
+            action  : 'copy_path'
+            param   : params
+            timeout : opts.timeout
+            cb      : opts.cb
 
     mount_remote: (opts) =>
         opts = defaults opts,
