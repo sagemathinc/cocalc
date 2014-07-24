@@ -558,7 +558,7 @@ class GlobalProject
     constructor: (@project_id, @global_client) ->
         @database = @global_client.database
 
-    get_location_pref: (cb) =>   # db(err, server_id)
+    get_location_pref: (cb) =>   # cb(err, server_id)
         @database.select_one
             table   : "projects"
             columns : ["bup_location"]
@@ -575,6 +575,46 @@ class GlobalProject
             set   : {bup_location : server_id}
             where   : {project_id : @project_id}
             cb      : cb
+
+    # If the project is currently running, return its location *and* the datacenter
+    # of that location.  If not running, return where it will next start.
+    get_running_location_and_dc: (opts) =>
+        opts = defaults opts,
+            cb: required    #cb(err, {server_id:?, dc:?})
+
+        dbg = (m) => winston.debug("GlobalProject.get_running_location_and_dc(#{@project_id}): #{m}")
+        server_id = undefined
+        dc = undefined
+        async.series([
+            (cb) =>
+                dbg("determine where this project is located")
+                @get_host_where_running
+                    cb : (err, s) =>
+                        dbg("project server_id = #{s}")
+                        server_id = s
+                        if err
+                            cb(err)
+                        else if not host_server_id?
+                            dbg("not running anywhere")
+                            @get_location_pref (err, s) =>
+                                server_id = s
+                                cb(err)
+                        else
+                            cb()
+            (cb) =>
+                dbg("get the data center of this project")
+                @global_client.get_data_center
+                    server_id : server_id
+                    cb : (err, x) =>
+                        dc = x
+                        dbg("data center = #{dc}")
+                        cb(err)
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, {server_id:server_id, dc:dc})
+        )
 
     # starts project if necessary, waits until it is running, and
     # gets the hostname port where the local hub is serving.
@@ -812,7 +852,7 @@ class GlobalProject
     sync_topology: (opts) =>
         opts = defaults opts,
             cb        : required   # (err, {host:{dc:n, server_id:server_id, running:true or false}, targets:{'ip_address:port':target_id, ...}})
-        dbg = (m) => winston.debug("GlobalProject.sync_targets(#{opts.server_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.sync_topology(): #{m}")
 
         resp = {host:{}, targets:{}}
         async.series([
@@ -866,6 +906,22 @@ class GlobalProject
             else
                 opts.cb(undefined, resp)
         )
+
+    # Determine the hostname:port to use when making an ssh connection from the
+    # machine currently hosting this project to some other machine (given by its server_id).
+    # (similar to sync_topology above)
+    # **NOT DONE**
+    ssh_address: (opts) =>
+        opts = defaults opts,
+            server_id : required   # target machine's id
+            cb        : required   # (err, {address:?, port:?})
+
+        dbg = (m) => winston.debug("GlobalProject.ssh_address(#{opts.server_id}): #{m}")
+
+        host_server_id = undefined
+        async.series([
+            (cb) =>
+        ])
 
     save: (opts) =>
         opts = defaults opts,
@@ -1020,6 +1076,19 @@ class GlobalProject
             else
                 opts.cb?(undefined, result)
         )
+
+    # copy a path from this project to another project
+    copy_path: (opts) =>
+        opts = defaults opts,
+            path        : required  # relative path in this project
+            project_id  : required  # id of target project (or list of id's)
+            target_path : undefined # defaults to path
+        dbg = (m) => winston.debug("GlobalProject.copy_path(#{@project_id}, #{opts.path}, target=#{opts.project_id}:#{@opts.target_path}): #{m}")
+
+        # figure out address and port of target project, then do action
+
+
+
 
     # if some project is actually running, return it; otherwise undefined
     running_project: (opts) =>
@@ -1627,9 +1696,7 @@ class GlobalClient
                             else
                                 v = program.address.split('.')
                                 a = parseInt(v[1]); b = parseInt(v[3])
-                                if program.address == '10.1.15.7'  # devel
-                                    hosts = ["10.1.15.2", '10.1.16.2', '10.1.14.2']
-                                else if a == 1 and b>=1 and b<=7
+                                if a == 1 and b>=1 and b<=7
                                     hosts = ("10.1.#{i}.2" for i in [1..7])
                                 else if a == 1 and b>=10 and b<=21
                                     hosts = ("10.1.#{i}.2" for i in [10..21])
@@ -1640,7 +1707,7 @@ class GlobalClient
                                 hosts       : hosts
                                 keyspace    : if process.env.USER=='wstein' then 'test' else 'salvus'
                                 username    : if process.env.USER=='wstein' then 'salvus' else 'hub'
-                                consistency : 2
+                                consistency : cql.types.consistencies.localQuorum
                                 password    : password.toString().trim()
                                 cb          : cb
             (cb) =>
@@ -1892,6 +1959,7 @@ class GlobalClient
         @database.select_one
             table   : 'storage_servers'
             columns : ['dc']
+            consistency : 1
             where   : {dummy:true, server_id:opts.server_id}
             cb      : (err, result) =>
                 if err
@@ -2214,7 +2282,7 @@ class GlobalClient
             dryrun      : false       # if true, just return the projects that need sync; don't actually sync
             status      : []
             cb          : required    # cb(err, errors)
-        dbg = (m) => winston.debug("GlobalClient.repair(#{opts.project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalClient.repair(...): #{m}")
         dbg()
         projects = []
         errors = {}
@@ -2324,6 +2392,46 @@ class GlobalClient
                     opts.cb?()
         )
 
+    # I used this function to delete all deprecated content from columns in the projects table.
+    # This is *IMPORTANT* since queries on any column pull the whole document,
+    # and can easily timeout if the record is big for stupid reasons!
+    delete_old_project_columns: (opts) =>
+        opts = defaults opts,
+            limit       : 5           # number to do in parallel
+            qlimit      : 10          # limit on number of projects to pull from database -- make this much bigger when serious
+            cb          : required    # cb(err, errors)
+        dbg = (m) => winston.debug("GlobalClient.delete_old_project_columns(): #{m}")
+        dbg()
+        projects = []
+        async.series([
+            (cb) =>
+                dbg("querying database....")
+                @database.select
+                    table       : 'projects'
+                    columns     : ['project_id']
+                    objectify   : false
+                    limit       : opts.qlimit # TODO: change to use paging...
+                    consistency : 1
+                    cb          : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("got #{r.length} records")
+                            projects = (x[0] for x in r)
+                            projects.sort()
+                            #console.log("projects = ", projects)
+                            cb()
+            (cb) =>
+                dbg("deleting columns")
+                i = 0
+                f = (project_id, cb) =>
+                    i += 1
+                    if i % 100 == 0
+                        console.log(i, projects.length)
+                    query = "update projects set last_migrate2_error =null, last_migrate3_error=null, last_migrated=null, last_migrated2=null, last_migrated3=null, last_replication_error=null, last_snapshot=null, errors_zfs=null,  locations=null, modified_files=null where project_id=?"
+                    @database.cql(query, [project_id], 1, cb)
+                async.mapLimit(projects, opts.limit, f, (err) -> cb(err))
+        ], opts.cb)
 
 
     sync_union: (opts) =>

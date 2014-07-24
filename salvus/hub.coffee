@@ -57,6 +57,7 @@ misc    = require("misc")
 {defaults, required} = require('misc')
 message = require("message")     # salvus message protocol
 cass    = require("cassandra")
+cql     = require("node-cassandra-cql")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 
@@ -214,7 +215,7 @@ init_http_server = () ->
                                 hash = generate_hash(x[0], x[1], x[2], x[3])
                                 database.key_value_store(name: 'remember_me').get
                                     key         : hash
-                                    consistency : 1
+                                    consistency : cql.types.consistencies.one
                                     cb          : (err, signed_in_mesg) =>
                                         if err or not signed_in_mesg?
                                             cb('unable to get remember_me cookie from db -- cookie invalid'); return
@@ -306,7 +307,7 @@ init_http_proxy_server = () =>
                 hash = generate_hash(x[0], x[1], x[2], x[3])
                 database.key_value_store(name: 'remember_me').get
                     key         : hash
-                    consistency : 1
+                    consistency : cql.types.consistencies.one
                     cb          : (err, signed_in_mesg) =>
                         account_id = signed_in_mesg?.account_id
                         if err or not account_id?
@@ -567,7 +568,7 @@ class Client extends EventEmitter
                 hash = generate_hash(x[0], x[1], x[2], x[3])
                 @remember_me_db.get
                     key         : hash
-                    consistency : 1
+                    consistency : cql.types.consistencies.one
                     cb          : (error, signed_in_mesg) =>
                         if error
                             @remember_me_failed("error accessing database")
@@ -722,14 +723,14 @@ class Client extends EventEmitter
             key         : @hash_session_id
             value       : signed_in_mesg
             ttl         : ttl
-            consistency : 1
+            consistency : cql.types.consistencies.one
             cb          : (err) =>
                 # write to more replicas, just for good measure
                 @remember_me_db.set
                     key         : @hash_session_id
                     value       : signed_in_mesg
                     ttl         : ttl
-                    consistency : 2
+                    consistency : cql.types.consistencies.localQuorum
                     cb          : (err) =>
                         if err
                             winston.debug("WARNING: issue writing remember me cookie: #{err}")
@@ -2768,7 +2769,7 @@ user_has_write_access_to_project = (opts) ->
     opts = defaults opts,
         project_id  : required
         account_id  : undefined
-        consistency : 1
+        consistency : cql.types.consistencies.one
         cb          : required        # cb(err, true or false)
     if not opts.account_id?
         # we can have a client *without* account_id that is requesting access to a project.  Just say no.
@@ -2781,7 +2782,7 @@ user_has_read_access_to_project = (opts) ->
     opts = defaults opts,
         project_id  : required
         account_id  : required
-        consistency : 1
+        consistency : cql.types.consistencies.one
         cb          : required        # cb(err, true or false)
     opts.groups = ['owner', 'collaborator', 'viewer']
     database.user_is_in_project_group(opts)
@@ -2936,7 +2937,7 @@ sign_in = (client, mesg) =>
             database.count
                 table       : "failed_sign_ins_by_email_address"
                 where       : {email_address:mesg.email_address, time: {'>=':cass.minutes_ago(1)}}
-                consistency : 1
+                consistency : cql.types.consistencies.one
                 cb          : (error, count) ->
                     if error
                         sign_in_error(error)
@@ -2950,7 +2951,7 @@ sign_in = (client, mesg) =>
             database.count
                 table       : "failed_sign_ins_by_email_address"
                 where       : {email_address:mesg.email_address, time: {'>=':cass.hours_ago(1)}}
-                consistency : 1
+                consistency : cql.types.consistencies.one
                 cb          : (error, count) ->
                     if error
                         sign_in_error(error)
@@ -2965,7 +2966,7 @@ sign_in = (client, mesg) =>
             database.count
                 table       : "failed_sign_ins_by_ip_address"
                 where       : {ip_address:client.ip_address, time: {'>=':cass.minutes_ago(1)}}
-                consistency : 1
+                consistency : cql.types.consistencies.one
                 cb          : (error, count) ->
                     if error
                         sign_in_error(error)
@@ -2980,7 +2981,7 @@ sign_in = (client, mesg) =>
             database.count
                 table       : "failed_sign_ins_by_ip_address"
                 where       : {ip_address:client.ip_address, time: {'>=':cass.hours_ago(1)}}
-                consistency : 1
+                consistency : cql.types.consistencies.one
                 cb          : (error, count) ->
                     if error
                         sign_in_error(error)
@@ -3011,7 +3012,7 @@ sign_in = (client, mesg) =>
             # There is no security in not doing this, since the same information can be determined via the invite collaborators feature.
             database.get_account
                 email_address : mesg.email_address
-                consistency   : 1
+                consistency   : cql.types.consistencies.one
                 cb            : (error, account) ->
                     if error
                         record_sign_in
@@ -3070,18 +3071,18 @@ record_sign_in = (opts) ->
             table       : 'failed_sign_ins_by_ip_address'
             set         : {email_address:opts.email_address}
             where       : {time:cass.now(), ip_address:opts.ip_address}
-            consistency : 1
+            consistency : cql.types.consistencies.one
         database.update
             table       : 'failed_sign_ins_by_email_address'
             set         : {ip_address:opts.ip_address}
             where       : {time:cass.now(), email_address:opts.email_address}
-            consistency : 1
+            consistency : cql.types.consistencies.one
     else
         database.update
             table       : 'successful_sign_ins'
             set         : {ip_address:opts.ip_address, first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, remember_me:opts.remember_me}
             where       : {time:cass.now(), account_id:opts.account_id}
-            consistency : 1
+            consistency : cql.types.consistencies.one
 
 
 
@@ -4174,12 +4175,12 @@ connect_to_database = (cb) ->
             cb(err)
         else
             new cass.Salvus
-                hosts    : program.database_nodes.split(',')
-                keyspace : program.keyspace
-                username : 'hub'
-                password : password.toString().trim()
-                consistency : 2
-                cb       : (err, _db) ->
+                hosts       : program.database_nodes.split(',')
+                keyspace    : program.keyspace
+                username    : 'hub'
+                password    : password.toString().trim()
+                consistency : cql.types.consistencies.localQuorum
+                cb          : (err, _db) ->
                     if err
                         winston.debug("Error connecting to database")
                         cb(err)
