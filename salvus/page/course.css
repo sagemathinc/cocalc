@@ -8,10 +8,15 @@
 
 }
 
+.salvus-course-editor-title {
+    font-size:18pt;
+    font-weight: bold;
+}
+
 .salvus-course-editor-description {
-    color : #888;
+    font-size:12pt;
 }
 
 .salvus-course-editor-location {
-    color : #888;
+    font-size:12pt;
 }
