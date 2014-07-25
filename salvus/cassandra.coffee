@@ -1800,7 +1800,7 @@ class exports.Salvus extends exports.Cassandra
                     cb    : cb
         ], opts.cb)
 
-    undelete_project: (opts) ->
+    undelete_project: (opts) =>
         opts = defaults opts,
             project_id  : required
             cb          : undefined
@@ -1810,7 +1810,7 @@ class exports.Salvus extends exports.Cassandra
             where : {project_id : opts.project_id}
             cb    : opts.cb
 
-    delete_project: (opts) ->
+    delete_project: (opts) =>
         opts = defaults opts,
             project_id  : required
             cb          : undefined
@@ -1819,6 +1819,34 @@ class exports.Salvus extends exports.Cassandra
             set   : {deleted:true}
             where : {project_id : opts.project_id}
             cb    : opts.cb
+
+    hide_project_from_user: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            cb         : undefined
+        async.parallel([
+            (cb) =>
+                query = "UPDATE projects SET hide_from_accounts=hide_from_accounts+{?} WHERE project_id=?"
+                @cql(query, [opts.account_id, opts.project_id], cb)
+            (cb) =>
+                query = "UPDATE accounts SET hidden_projects=hidden_projects+{?} WHERE account_id=?"
+                @cql(query, [opts.project_id, opts.account_id], cb)
+        ], (err) => opts.cb?(err))
+
+    unhide_project_from_user: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            cb         : undefined
+        async.parallel([
+            (cb) =>
+                query = "UPDATE projects SET hide_from_accounts=hide_from_accounts-{?} WHERE project_id=?"
+                @cql(query, [opts.account_id, opts.project_id], cb)
+            (cb) =>
+                query = "UPDATE accounts SET hidden_projects=hidden_projects-{?} WHERE account_id=?"
+                @cql(query, [opts.project_id, opts.account_id], cb)
+        ], (err) => opts.cb?(err))
 
     # Make it so the user with given account id is listed as a(n invited) collaborator or viewer
     # on the given project.  This modifies a set collection on the project *and* modifies a
@@ -1944,29 +1972,63 @@ class exports.Salvus extends exports.Cassandra
                         v = v.concat(r)
                 opts.cb(false, v)
 
+    get_hidden_project_ids: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required    # cb(err, mapping with keys the project_ids and values true)
+        @select_one
+            table : 'accounts'
+            columns : ['hidden_projects']
+            where   : {account_id : opts.account_id}
+            cb      : (err, r) =>
+                if err
+                    opts.cb(err)
+                else
+                    v = {}
+                    for x in r[0]
+                        v[x] = true
+                    opts.cb(undefined, v)
+
     # gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets all data about them, not just id's
     get_projects_with_user: (opts) =>
         opts = defaults opts,
             account_id       : required
             collabs_as_names : true       # replace all account_id's of project collabs with their user names.
+            hidden           : false      # if true, get *ONLY* hidden projects; if false, don't include hidden projects
             cb               : required
 
-        ids = undefined
-        projects = undefined
+        ids                = undefined
+        projects           = undefined
+        hidden_project_ids = undefined
         async.series([
             (cb) =>
-                @get_project_ids_with_user
-                    account_id : opts.account_id
-                    cb         : (err, r) =>
-                        ids = r
-                        cb(err)
+                async.parallel([
+                    (cb) =>
+                        @get_project_ids_with_user
+                            account_id : opts.account_id
+                            cb         : (err, r) =>
+                                ids = r
+                                cb(err)
+                    (cb) =>
+                        @get_hidden_project_ids
+                            account_id : opts.account_id
+                            cb         : (err, r) =>
+                                hidden_project_ids = r
+                                cb(err)
+                ], cb)
+
             (cb) =>
+                if opts.hidden
+                    ids = (x for x in ids when hidden_projects_ids[x])
+                else
+                    ids = (x for x in ids when not hidden_projects_ids[x])
                 @get_projects_with_ids
                     ids : ids
                     cb  : (err, _projects) =>
                         projects = _projects
                         cb(err)
+
             (cb) =>
                 if not opts.collabs_as_names
                     cb(); return
@@ -1982,6 +2044,7 @@ class exports.Salvus extends exports.Cassandra
                         if err
                             cb(err); return
                         for p in projects
+                            p.hidden = opts.hidden
                             for group in PROJECT_GROUPS
                                 if p[group]?
                                     p[group] = ({first_name:usernames[id].first_name, last_name:usernames[id].last_name, account_id:id} for id in p[group] when usernames[id]?)

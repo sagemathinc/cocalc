@@ -1255,6 +1255,37 @@ class Client extends EventEmitter
                     else
                         @push_to_client(message.success(id:mesg.id))
 
+    mesg_hide_project_from_user: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to hide a project.")
+            return
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            project.hide_project_from_user
+                account_id : @account_id
+                cb         : (err, ok) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
+    mesg_unhide_project_from_user: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to unhide a project.")
+            return
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            project.unhide_project_from_user
+                account_id : @account_id
+                cb         : (err, ok) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
+
     mesg_move_project: (mesg) =>
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to move a project.")
@@ -1326,6 +1357,7 @@ class Client extends EventEmitter
 
         database.get_projects_with_user
             account_id : @account_id
+            hidden     : mesg.hidden
             cb         : (error, projects) =>
                 if error
                     @error_to_client(id: mesg.id, error: "Database error -- failed to obtain list of your projects.")
@@ -1646,7 +1678,7 @@ class Client extends EventEmitter
                     delete_missing  : mesg.delete_missing
                     timeout         : mesg.timeout
                     cb              : cb
-                    
+
         ], (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
@@ -2781,6 +2813,24 @@ class Project
         opts = defaults opts,
             cb : undefined
         database.undelete_project
+            project_id : @project_id
+            cb         : opts.cb
+
+    hide_project_from_user: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
+        database.hide_project_from_user
+            account_id : opts.account_id
+            project_id : @project_id
+            cb         : opts.cb
+
+    unhide_project_from_user: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
+        database.unhide_project_from_user
+            account_id : opts.account_id
             project_id : @project_id
             cb         : opts.cb
 

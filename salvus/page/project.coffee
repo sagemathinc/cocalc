@@ -2394,6 +2394,64 @@ class ProjectPage
                                     message : "Successfully undeleted project \"#{@project.title}\"."
             return false
 
+    init_hide_project: () =>
+        if @project.hidden
+            @container.find(".project-settings-hide").hide()
+        else
+            @container.find(".project-settings-hide").show()
+
+        link = @container.find("a[href=#hide-project]")
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  hide Project</h4>Are you sure you want to hide this project, so that you will not see it in your main project listing?<br><br><span class='lighten'>You can always unhide the project later.</span>"
+        link.click () =>
+            bootbox.confirm m, (result) =>
+                if result
+                    link.find(".spinner").show()
+                    salvus_client.hide_project_from_user
+                        project_id : @project.project_id
+                        cb         : (err) =>
+                            link.find(".spinner").hide()
+                            if err
+                                alert_message
+                                    type : "error"
+                                    message: "Error trying to hide project \"#{@project.title}\".   Please try again later. #{err}"
+                            else
+                                @close()
+                                alert_message
+                                    type : "info"
+                                    message : "Successfully hid project \"#{@project.title}\".  (If this was a mistake, you can unhide the project from the Projects tab.)"
+                                    timeout : 5
+            return false
+
+    init_unhide_project: () =>
+
+        if @project.hidden
+            @container.find(".project-settings-unhide").show()
+        else
+            @container.find(".project-settings-unhide").hide()
+
+        link = @container.find("a[href=#unhide-project]")
+
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Unhide Project</h4>Are you sure you want to unhide this project, so it appears in your default project listing?"
+        link.click () =>
+            bootbox.confirm m, (result) =>
+                if result
+                    link.find(".spinner").show()
+                    salvus_client.unhide_project_from_user
+                        project_id : @project.project_id
+                        cb         : (err) =>
+                            link.find(".spinner").hide()
+                            if err
+                                alert_message
+                                    type : "error"
+                                    message: "Error trying to unhide project.  Please try again later. #{err}"
+                            else
+                                link.hide()
+                                @container.find(".project-settings-unhide").hide()
+                                @container.find(".project-settings-hide").show()
+                                alert_message
+                                    type : "info"
+                                    message : "Successfully unhid project \"#{@project.title}\"."
+            return false
 
     init_make_public: () =>
         link = @container.find("a[href=#make-public]")
