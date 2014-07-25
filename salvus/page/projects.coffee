@@ -15,6 +15,10 @@ misc            = require('misc')
 templates = $(".salvus-projects-templates")
 
 project_list = undefined
+
+exports.get_project_list = () ->
+    return project_list
+
 project_hashtags = {}
 compute_search_data = () ->
     if project_list?
