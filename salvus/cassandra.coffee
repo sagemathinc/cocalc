@@ -1985,8 +1985,9 @@ class exports.Salvus extends exports.Cassandra
                     opts.cb(err)
                 else
                     v = {}
-                    for x in r[0]
-                        v[x] = true
+                    if r[0]?
+                        for x in r[0]
+                            v[x] = true
                     opts.cb(undefined, v)
 
     # gets all projects that the given account_id is a user on (owner,
@@ -2020,9 +2021,9 @@ class exports.Salvus extends exports.Cassandra
 
             (cb) =>
                 if opts.hidden
-                    ids = (x for x in ids when hidden_projects_ids[x])
+                    ids = (x for x in ids when hidden_project_ids[x])
                 else
-                    ids = (x for x in ids when not hidden_projects_ids[x])
+                    ids = (x for x in ids when not hidden_project_ids[x])
                 @get_projects_with_ids
                     ids : ids
                     cb  : (err, _projects) =>

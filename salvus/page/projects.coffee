@@ -143,6 +143,8 @@ $("#projects-all-button").click (event) ->
     only_hidden  = false
     select_filter_button('all')
     update_project_view()
+    update_project_list () ->
+        update_project_view()
 
 $("#projects-public-button").click (event) ->
     only_public  = true
@@ -151,6 +153,8 @@ $("#projects-public-button").click (event) ->
     only_hidden  = false
     select_filter_button('public')
     update_project_view()
+    update_project_list () ->
+        update_project_view()
 
 $("#projects-private-button").click (event) ->
     only_public  = false
@@ -159,6 +163,8 @@ $("#projects-private-button").click (event) ->
     only_hidden  = false
     select_filter_button('private')
     update_project_view()
+    update_project_list () ->
+        update_project_view()
 
 $("#projects-deleted-button").click (event) ->
     only_deleted = true
@@ -167,6 +173,8 @@ $("#projects-deleted-button").click (event) ->
     only_hidden  = false
     select_filter_button('deleted')
     update_project_view()
+    update_project_list () ->
+        update_project_view()
 
 $("#projects-hidden-button").click (event) ->
     only_deleted = false
@@ -175,6 +183,8 @@ $("#projects-hidden-button").click (event) ->
     only_hidden  = true
     select_filter_button('hidden')
     update_project_view()
+    update_project_list () ->
+        update_project_view()
 
 
 DEFAULT_MAX_PROJECTS = 50

@@ -698,7 +698,7 @@
                         </div>
                         <div class="row-fluid">
                             <div class="span6 well project-settings-well">
-                                <h4><i class="fa fa-refresh"> </i>&nbsp;&nbsp;  Restart...</h4>
+                                <h4><i class="fa fa-refresh"> </i>&nbsp;&nbsp;  Restart Server</h4>
 
                                 <div class="row-fluid">
                                     <div class="span8">
@@ -733,7 +733,36 @@
                                 </div>
                             </div>
                             <div class="span6 well project-settings-well">
-                                <h4><i class="fa fa-warning"> </i>&nbsp;&nbsp; Danger!</h4>
+                                <h4><i class="fa fa-warning"> </i>&nbsp;&nbsp; Hide and Delete</h4>
+
+                                <div class="row-fluid project-settings-hide">
+                                    <div class="span8">
+                                        Hide this project, so it does not show up in your default project listing.
+                                        This only impacts you, not your collaborators, and you can easily unhide it.
+                                    </div>
+                                    <div class="span4 pull-right">
+                                        <a href="#hide-project" class="btn  btn-warning  pull-right"
+                                            data-toggle="tooltip" data-placement="right" title="Hide this project.">
+                                            <i class="fa fa-eye-slash"> </i> Hide Project
+                                            <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
+                                        </a>
+                                    </div>
+                                    <br>
+                                </div>
+                                <div class="row-fluid project-settings-unhide hide">
+                                    <div class="span8">
+                                        Unhide this project, so it shows up in your default project listing.
+                                    </div>
+                                    <div class="span4 pull-right">
+                                        <a href="#unhide-project" class="btn btn-warning  pull-right"
+                                            data-toggle="tooltip" data-placement="right" title="Unhide this project.">
+                                            <i class="fa fa-eye"> </i> Unhide Project
+                                            <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
+                                        </a>
+                                    </div>
+                                    <br>
+                                </div>
+
                                 <div class="row-fluid project-settings-make-public hide">
                                     <div class="hide">
                                         <div class="span8">
@@ -748,8 +777,9 @@
                                             </a>
                                         </div>
                                     </div>
+                                    <br>
                                 </div>
-                                <br>
+
                                 <div class="hide row-fluid project-settings-make-private" style="margin-top:1ex">
                                     <div class="hide">
                                         <div class="span8">
@@ -763,13 +793,13 @@
                                             </a>
                                         </div>
                                     </div>
+                                    <br>
                                 </div>
-                                <br>
 
                                 <div class="row-fluid project-settings-delete hide"  style="margin-top:1ex">
                                     <!-- Delete the project -->
                                     <div class="span8">
-                                        Delete this project.
+                                        Delete this project for everyone. You can undo this.
                                     </div>
                                     <div class="span4 pull-right">
                                         <a href="#delete-project" class="btn  btn-danger  pull-right"
@@ -778,47 +808,22 @@
                                             <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
                                         </a>
                                     </div>
+                                    <br>
                                 </div>
                                 <div class="row-fluid project-settings-undelete hide" style="margin-top:1ex">
                                     <!-- Undelete the project -->
                                     <div class="span8">
-                                        Undelete this project.
+                                        Undelete this project for everyone.
                                     </div>
                                     <div class="span4 pull-right">
-                                        <a href="#undelete-project" class="btn btn-large btn-danger  pull-right"
+                                        <a href="#undelete-project" class="btn btn-danger  pull-right"
                                             data-toggle="tooltip" data-placement="right" title="Undelete this project.">
                                             <i class="fa fa-trash-o"> </i> Undelete Project
                                             <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
                                         </a>
                                     </div>
+                                    <br>
                                 </div>
-
-                                <div class="row-fluid project-settings-hide hide"  style="margin-top:1ex">
-                                    <div class="span8">
-                                        Hide this project.
-                                    </div>
-                                    <div class="span4 pull-right">
-                                        <a href="#hide-project" class="btn  btn-danger  pull-right"
-                                            data-toggle="tooltip" data-placement="right" title="Hide this project.">
-                                            <i class="fa fa-trash-o"> </i> Hide Project...
-                                            <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="row-fluid project-settings-unhide" style="margin-top:1ex">
-                                    <div class="span8">
-                                        Unhide this project.
-                                    </div>
-                                    <div class="span4 pull-right">
-                                        <a href="#unhide-project" class="btn btn-large btn-danger  pull-right"
-                                            data-toggle="tooltip" data-placement="right" title="Unhide this project.">
-                                            <i class="fa fa-trash-o"> </i> Unhide Project
-                                            <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
-                                        </a>
-                                    </div>
-                                </div>
-
-
                             </div>
                         </div>
                     </div>
