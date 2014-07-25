@@ -15,6 +15,11 @@ misc            = require('misc')
 templates = $(".salvus-projects-templates")
 
 project_list = undefined
+hidden_project_list = undefined
+
+exports.get_project_list = () ->
+    return project_list
+
 project_hashtags = {}
 compute_search_data = () ->
     if project_list?
@@ -29,6 +34,17 @@ compute_search_data = () ->
 
     # NOTE: create_project_item also adds to project.search, with info about the users of the projects
 
+compute_hidden_search_data = () ->
+    if hidden_project_list?
+        project_hashtags = {}  # reset global variable
+        for project in hidden_project_list
+            project.search = (project.title+' '+project.description).toLowerCase()
+            for k in misc.split(project.search)
+                if k[0] == '#'
+                    tag = k.slice(1).toLowerCase()
+                    project_hashtags[tag] = true
+                    project.search += " [#{k}] "
+
 project_list_spinner = $("a[href=#refresh-projects]").find('i')
 
 project_list_spin = () -> project_list_spinner.addClass('fa-spin')
@@ -39,12 +55,16 @@ update_project_list = exports.update_project_list = (cb) ->
     timer = setTimeout(project_list_spin, if project_list? then 2000 else 1)
 
     salvus_client.get_projects
+        hidden : only_hidden
         cb: (error, mesg) ->
             clearTimeout(timer)
             project_list_spin_stop()
 
             if not error and mesg.event == 'all_projects'
-                project_list = mesg.projects
+                if only_hidden
+                    hidden_project_list = mesg.projects
+                else
+                    project_list = mesg.projects
             else
                 alert_message(type:"error", message:"Problem getting updated list of projects. #{error}. #{misc.to_json(mesg)}")
 
@@ -54,11 +74,19 @@ update_project_list = exports.update_project_list = (cb) ->
                 #        console.log("loading project_list from cache")
                 #        project_list = misc.from_json(x)
 
-            if project_list?
+            if not only_hidden and project_list?
                 for p in project_list
                     if p.owner?
                         p.ownername = misc.make_valid_name(p.owner[0].first_name + p.owner[0].last_name)
                 compute_search_data()
+                update_hashtag_bar()
+                update_project_view()
+
+            if only_hidden and hidden_project_list?
+                for p in hidden_project_list
+                    if p.owner?
+                        p.ownername = misc.make_valid_name(p.owner[0].first_name + p.owner[0].last_name)
+                compute_hidden_search_data()
                 update_hashtag_bar()
                 update_project_view()
 
@@ -75,8 +103,6 @@ project_refresh_button = $("#projects").find("a[href=#refresh-projects]").click 
     update_project_list () ->
         project_list_spin_stop()
     return false
-
-
 
 
 # update caused by update happening on some other client
@@ -98,44 +124,67 @@ $(".projects-search-form-input-clear").click () =>
 #$(".projects").find(".form-search").find("button").click((event) -> update_project_view(); return false;)
 
 select_filter_button = (which) ->
-    for w in ['all', 'public', 'private', 'deleted']
+    for w in ['all', 'public', 'private', 'deleted', 'hidden']
         a = $("#projects-#{w}-button")
         if w == which
             a.removeClass("btn-info").addClass("btn-inverse")
         else
             a.removeClass("btn-inverse").addClass("btn-info")
 
-only_public = false
+only_public  = false
 only_private = false
 only_deleted = false
+only_hidden  = false
 
 $("#projects-all-button").click (event) ->
-    only_public = false
+    only_public  = false
     only_private = false
     only_deleted = false
+    only_hidden  = false
     select_filter_button('all')
     update_project_view()
+    update_project_list () ->
+        update_project_view()
 
 $("#projects-public-button").click (event) ->
-    only_public = true
+    only_public  = true
     only_private = false
     only_deleted = false
+    only_hidden  = false
     select_filter_button('public')
     update_project_view()
+    update_project_list () ->
+        update_project_view()
 
 $("#projects-private-button").click (event) ->
-    only_public = false
+    only_public  = false
     only_private = true
     only_deleted = false
+    only_hidden  = false
     select_filter_button('private')
     update_project_view()
+    update_project_list () ->
+        update_project_view()
 
 $("#projects-deleted-button").click (event) ->
     only_deleted = true
     only_private = false
-    only_public = false
+    only_public  = false
+    only_hidden  = false
     select_filter_button('deleted')
     update_project_view()
+    update_project_list () ->
+        update_project_view()
+
+$("#projects-hidden-button").click (event) ->
+    only_deleted = false
+    only_private = false
+    only_public  = false
+    only_hidden  = true
+    select_filter_button('hidden')
+    update_project_view()
+    update_project_list () ->
+        update_project_view()
 
 
 DEFAULT_MAX_PROJECTS = 50
@@ -209,6 +258,10 @@ create_project_item = (project) ->
 
 # query = string or array of project_id's
 exports.matching_projects = matching_projects = (query) ->
+    if only_hidden
+        v = hidden_project_list
+    else
+        v = project_list
 
     if typeof(query) == 'string'
         find_text = query
@@ -222,6 +275,8 @@ exports.matching_projects = matching_projects = (query) ->
             desc += "public projects "
         else if only_private
             desc += "private projects "
+        else if only_hidden
+            desc += "hidden projects "
         else
             desc += "projects "
         if find_text != ""
@@ -238,7 +293,7 @@ exports.matching_projects = matching_projects = (query) ->
             return true
 
         ans = {projects:[], desc:desc}
-        for project in project_list
+        for project in v
             if not match(project.search)
                 continue
 
@@ -263,13 +318,15 @@ exports.matching_projects = matching_projects = (query) ->
     else
 
         # array of project_id's
-        return {desc:'', projects:(p for p in project_list when p.project_id in query)}
+        return {desc:'', projects:(p for p in v when p.project_id in query)}
 
 
 # Update the list of projects in the projects tab.
 # TODO: don't actually make the change until mouse has stayed still for at least some amount of time. (?)
 update_project_view = (show_all=false) ->
-    if not project_list?
+    if not only_hidden and not project_list?
+        return
+    if only_hidden and not hidden_project_list?
         return
     X = $("#projects-project_list")
     X.empty()

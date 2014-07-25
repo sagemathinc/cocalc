@@ -57,6 +57,7 @@ misc    = require("misc")
 {defaults, required} = require('misc')
 message = require("message")     # salvus message protocol
 cass    = require("cassandra")
+cql     = require("node-cassandra-cql")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 
@@ -214,7 +215,7 @@ init_http_server = () ->
                                 hash = generate_hash(x[0], x[1], x[2], x[3])
                                 database.key_value_store(name: 'remember_me').get
                                     key         : hash
-                                    consistency : 1
+                                    consistency : cql.types.consistencies.one
                                     cb          : (err, signed_in_mesg) =>
                                         if err or not signed_in_mesg?
                                             cb('unable to get remember_me cookie from db -- cookie invalid'); return
@@ -306,7 +307,7 @@ init_http_proxy_server = () =>
                 hash = generate_hash(x[0], x[1], x[2], x[3])
                 database.key_value_store(name: 'remember_me').get
                     key         : hash
-                    consistency : 1
+                    consistency : cql.types.consistencies.one
                     cb          : (err, signed_in_mesg) =>
                         account_id = signed_in_mesg?.account_id
                         if err or not account_id?
@@ -567,7 +568,7 @@ class Client extends EventEmitter
                 hash = generate_hash(x[0], x[1], x[2], x[3])
                 @remember_me_db.get
                     key         : hash
-                    consistency : 1
+                    consistency : cql.types.consistencies.one
                     cb          : (error, signed_in_mesg) =>
                         if error
                             @remember_me_failed("error accessing database")
@@ -722,14 +723,14 @@ class Client extends EventEmitter
             key         : @hash_session_id
             value       : signed_in_mesg
             ttl         : ttl
-            consistency : 1
+            consistency : cql.types.consistencies.one
             cb          : (err) =>
                 # write to more replicas, just for good measure
                 @remember_me_db.set
                     key         : @hash_session_id
                     value       : signed_in_mesg
                     ttl         : ttl
-                    consistency : 2
+                    consistency : cql.types.consistencies.localQuorum
                     cb          : (err) =>
                         if err
                             winston.debug("WARNING: issue writing remember me cookie: #{err}")
@@ -1254,6 +1255,37 @@ class Client extends EventEmitter
                     else
                         @push_to_client(message.success(id:mesg.id))
 
+    mesg_hide_project_from_user: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to hide a project.")
+            return
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            project.hide_project_from_user
+                account_id : @account_id
+                cb         : (err, ok) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
+    mesg_unhide_project_from_user: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to unhide a project.")
+            return
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            project.unhide_project_from_user
+                account_id : @account_id
+                cb         : (err, ok) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
+
     mesg_move_project: (mesg) =>
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to move a project.")
@@ -1325,6 +1357,7 @@ class Client extends EventEmitter
 
         database.get_projects_with_user
             account_id : @account_id
+            hidden     : mesg.hidden
             cb         : (error, projects) =>
                 if error
                     @error_to_client(id: mesg.id, error: "Database error -- failed to obtain list of your projects.")
@@ -1592,6 +1625,66 @@ class Client extends EventEmitter
                             @error_to_client(id:mesg.id, error:err)
                         else
                             @push_to_client(message.success(id:mesg.id))
+
+
+
+    mesg_copy_path_between_projects: (mesg) =>
+        if not mesg.src_project_id?
+            @error_to_client(id:mesg.id, error:"src_project_id must be defined")
+            return
+        if not mesg.target_project_id?
+            @error_to_client(id:mesg.id, error:"target_project_id must be defined")
+            return
+        if not mesg.src_path?
+            @error_to_client(id:mesg.id, error:"src_path must be defined")
+            return
+
+        async.series([
+            (cb) =>
+                # check permissions for the source and target projects (in parallel)
+                async.parallel([
+                    (cb) =>
+                        user_has_write_access_to_project
+                            project_id : mesg.src_project_id
+                            account_id : @account_id
+                            cb         : (err, result) =>
+                                if err
+                                    cb(err)
+                                else if not result
+                                    cb("user must have write access to project #{mesg.src_project_id}")
+                                else
+                                    cb()
+                    (cb) =>
+                        user_has_write_access_to_project
+                            project_id : mesg.target_project_id
+                            account_id : @account_id
+                            cb         : (err, result) =>
+                                if err
+                                    cb(err)
+                                else if not result
+                                    cb("user must have write access to project #{mesg.target_project_id}")
+                                else
+                                    cb()
+                ], cb)
+
+            (cb) =>
+                # do the copy
+                project = bup_server.get_project(mesg.src_project_id)
+                project.copy_path
+                    path            : mesg.src_path
+                    project_id      : mesg.target_project_id
+                    target_path     : mesg.target_path
+                    overwrite_newer : mesg.overwrite_newer
+                    delete_missing  : mesg.delete_missing
+                    timeout         : mesg.timeout
+                    cb              : cb
+
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.success(id:mesg.id))
+        )
 
 
     ################################################
@@ -2723,6 +2816,24 @@ class Project
             project_id : @project_id
             cb         : opts.cb
 
+    hide_project_from_user: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
+        database.hide_project_from_user
+            account_id : opts.account_id
+            project_id : @project_id
+            cb         : opts.cb
+
+    unhide_project_from_user: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
+        database.unhide_project_from_user
+            account_id : opts.account_id
+            project_id : @project_id
+            cb         : opts.cb
+
     # Get current session information about this project.
     session_info: (cb) =>
         @call
@@ -2768,7 +2879,7 @@ user_has_write_access_to_project = (opts) ->
     opts = defaults opts,
         project_id  : required
         account_id  : undefined
-        consistency : 1
+        consistency : cql.types.consistencies.one
         cb          : required        # cb(err, true or false)
     if not opts.account_id?
         # we can have a client *without* account_id that is requesting access to a project.  Just say no.
@@ -2781,7 +2892,7 @@ user_has_read_access_to_project = (opts) ->
     opts = defaults opts,
         project_id  : required
         account_id  : required
-        consistency : 1
+        consistency : cql.types.consistencies.one
         cb          : required        # cb(err, true or false)
     opts.groups = ['owner', 'collaborator', 'viewer']
     database.user_is_in_project_group(opts)
@@ -2936,7 +3047,7 @@ sign_in = (client, mesg) =>
             database.count
                 table       : "failed_sign_ins_by_email_address"
                 where       : {email_address:mesg.email_address, time: {'>=':cass.minutes_ago(1)}}
-                consistency : 1
+                consistency : cql.types.consistencies.one
                 cb          : (error, count) ->
                     if error
                         sign_in_error(error)
@@ -2950,7 +3061,7 @@ sign_in = (client, mesg) =>
             database.count
                 table       : "failed_sign_ins_by_email_address"
                 where       : {email_address:mesg.email_address, time: {'>=':cass.hours_ago(1)}}
-                consistency : 1
+                consistency : cql.types.consistencies.one
                 cb          : (error, count) ->
                     if error
                         sign_in_error(error)
@@ -2965,7 +3076,7 @@ sign_in = (client, mesg) =>
             database.count
                 table       : "failed_sign_ins_by_ip_address"
                 where       : {ip_address:client.ip_address, time: {'>=':cass.minutes_ago(1)}}
-                consistency : 1
+                consistency : cql.types.consistencies.one
                 cb          : (error, count) ->
                     if error
                         sign_in_error(error)
@@ -2980,7 +3091,7 @@ sign_in = (client, mesg) =>
             database.count
                 table       : "failed_sign_ins_by_ip_address"
                 where       : {ip_address:client.ip_address, time: {'>=':cass.hours_ago(1)}}
-                consistency : 1
+                consistency : cql.types.consistencies.one
                 cb          : (error, count) ->
                     if error
                         sign_in_error(error)
@@ -3011,7 +3122,7 @@ sign_in = (client, mesg) =>
             # There is no security in not doing this, since the same information can be determined via the invite collaborators feature.
             database.get_account
                 email_address : mesg.email_address
-                consistency   : 1
+                consistency   : cql.types.consistencies.one
                 cb            : (error, account) ->
                     if error
                         record_sign_in
@@ -3070,18 +3181,18 @@ record_sign_in = (opts) ->
             table       : 'failed_sign_ins_by_ip_address'
             set         : {email_address:opts.email_address}
             where       : {time:cass.now(), ip_address:opts.ip_address}
-            consistency : 1
+            consistency : cql.types.consistencies.one
         database.update
             table       : 'failed_sign_ins_by_email_address'
             set         : {ip_address:opts.ip_address}
             where       : {time:cass.now(), email_address:opts.email_address}
-            consistency : 1
+            consistency : cql.types.consistencies.one
     else
         database.update
             table       : 'successful_sign_ins'
             set         : {ip_address:opts.ip_address, first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, remember_me:opts.remember_me}
             where       : {time:cass.now(), account_id:opts.account_id}
-            consistency : 1
+            consistency : cql.types.consistencies.one
 
 
 
@@ -4174,12 +4285,12 @@ connect_to_database = (cb) ->
             cb(err)
         else
             new cass.Salvus
-                hosts    : program.database_nodes.split(',')
-                keyspace : program.keyspace
-                username : 'hub'
-                password : password.toString().trim()
-                consistency : 2
-                cb       : (err, _db) ->
+                hosts       : program.database_nodes.split(',')
+                keyspace    : program.keyspace
+                username    : 'hub'
+                password    : password.toString().trim()
+                consistency : cql.types.consistencies.localQuorum
+                cb          : (err, _db) ->
                     if err
                         winston.debug("Error connecting to database")
                         cb(err)

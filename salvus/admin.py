@@ -1349,10 +1349,10 @@ class Monitor(object):
         self._services = services  # used for self-healing
 
     def attempt_to_heal_cassandra_server(self, host):
-        self._services.start('cassandra', host=host)
+        self._services.restart('cassandra', host=host)
 
     def attempt_to_heal_bup_server(self, host):
-        self._hosts(host,'cd salvus/salvus; . salvus-env; bup_server start')
+        self._hosts(host,'cd salvus/salvus; . salvus-env; bup_server restart')
 
     def cassandra(self):
         """

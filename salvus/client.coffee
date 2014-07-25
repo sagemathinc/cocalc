@@ -866,16 +866,18 @@ class exports.Connection extends EventEmitter
             title       : required
             description : required
             public      : required
+            hidden      : false
             cb          : undefined
         @call
-            message: message.create_project(title:opts.title, description:opts.description, public:opts.public)
+            message: message.create_project(title:opts.title, description:opts.description, public:opts.public, hidden:opts.hidden)
             cb     : opts.cb
 
     get_projects: (opts) ->
         opts = defaults opts,
+            hidden : false
             cb : required
         @call
-            message : message.get_projects()
+            message : message.get_projects(hidden:opts.hidden)
             cb      : opts.cb
 
     #################################################
@@ -954,6 +956,28 @@ class exports.Connection extends EventEmitter
                 message.undelete_project
                     project_id  : opts.project_id
             timeout : opts.timeout
+            cb : opts.cb
+
+    # hide the given project from this user
+    hide_project_from_user: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        @call
+            message :
+                message.hide_project_from_user
+                    project_id  : opts.project_id
+            cb : opts.cb
+
+    # unhide the given project from this user
+    unhide_project_from_user: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        @call
+            message :
+                message.unhide_project_from_user
+                    project_id  : opts.project_id
             cb : opts.cb
 
     move_project: (opts) =>
@@ -1140,8 +1164,31 @@ class exports.Connection extends EventEmitter
                         resp.error = "error inviting collaborators"
                     opts.cb(resp.error)
                 else
-                    opts.cb(false, resp)
+                    opts.cb(undefined, resp)
 
+    copy_path_between_projects: (opts) =>
+        opts = defaults opts,
+            src_project_id    : required    # id of source project
+            src_path          : required    # relative path of director or file in the source project
+            target_project_id : required    # if of target project
+            target_path       : undefined   # defaults to src_path
+            overwrite_newer   : false       # overwrite newer versions of file at destination (destructive)
+            delete_missing    : false       # delete files in dest that are missing from source (destructive)
+            timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
+            cb                : undefined   # cb(err)
+
+        cb = opts.cb
+        delete opts.cb
+
+        @call
+            message : message.copy_path_between_projects(opts)
+            cb      : (err, resp) =>
+                if err
+                    cb?(err)
+                else if resp.event == 'error'
+                    cb?(resp.error)
+                else
+                    cb?(undefined, resp)
 
     ######################################################################
     # Execute a program in a given project

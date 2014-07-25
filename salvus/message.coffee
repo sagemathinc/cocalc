@@ -831,6 +831,7 @@ message
     id         : undefined
     project_id : required
 
+
 #############################################################################
 
 # A hub sends this message to the project_server to request that the
@@ -1002,6 +1003,7 @@ message
     title      : required
     description: required
     public     : required
+    hidden     : false     # if true, project will be created hidden from its owner (e.g., a project for a student in a course)
 
 # client --> hub
 message
@@ -1033,6 +1035,18 @@ message
     id         : required
     project_id : required
 
+# client --> hub
+message
+    event      : 'hide_project_from_user'
+    id         : undefined
+    project_id : required
+
+# client --> hub
+message
+    event      : 'unhide_project_from_user'
+    id         : undefined
+    project_id : required
+
 
 
 # Get info about a single project (instead of all projects)
@@ -1056,6 +1070,8 @@ message
 message
     event      : 'get_projects'
     id         : undefined
+    hidden     : false
+
 
 # hub --> client
 message
@@ -1229,11 +1245,29 @@ message
     message        : required   # arbitrary message
 
 
+###########################################################
+#
+# Copy a path from one project to another.
+#
+###########################################################
+message
+    event             : 'copy_path_between_projects'
+    id                : undefined
+    src_project_id    : required    # id of source project
+    src_path          : required    # relative path of director or file in the source project
+    target_project_id : required    # if of target project
+    target_path       : undefined   # defaults to src_path
+    overwrite_newer   : false       # overwrite newer versions of file at destination (destructive)
+    delete_missing    : false       # delete files in dest that are missing from source (destructive)
+    timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
+
+
+
 
 
 ##########################################################
 #
-# Tasks
+# Tasks (ALL DEPRECATED -- delete all this)
 #
 ##########################################################
 
