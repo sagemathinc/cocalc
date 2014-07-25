@@ -1595,6 +1595,66 @@ class Client extends EventEmitter
                             @push_to_client(message.success(id:mesg.id))
 
 
+
+    mesg_copy_path_between_projects: (mesg) =>
+        if not mesg.src_project_id?
+            @error_to_client(id:mesg.id, error:"src_project_id must be defined")
+            return
+        if not mesg.target_project_id?
+            @error_to_client(id:mesg.id, error:"target_project_id must be defined")
+            return
+        if not mesg.src_path?
+            @error_to_client(id:mesg.id, error:"src_path must be defined")
+            return
+
+        async.series([
+            (cb) =>
+                # check permissions for the source and target projects (in parallel)
+                async.parallel([
+                    (cb) =>
+                        user_has_write_access_to_project
+                            project_id : mesg.src_project_id
+                            account_id : @account_id
+                            cb         : (err, result) =>
+                                if err
+                                    cb(err)
+                                else if not result
+                                    cb("user must have write access to project #{mesg.src_project_id}")
+                                else
+                                    cb()
+                    (cb) =>
+                        user_has_write_access_to_project
+                            project_id : mesg.target_project_id
+                            account_id : @account_id
+                            cb         : (err, result) =>
+                                if err
+                                    cb(err)
+                                else if not result
+                                    cb("user must have write access to project #{mesg.target_project_id}")
+                                else
+                                    cb()
+                ], cb)
+
+            (cb) =>
+                # do the copy
+                project = bup_server.get_project(mesg.src_project_id)
+                project.copy_path
+                    path            : mesg.src_path
+                    project_id      : mesg.target_project_id
+                    target_path     : mesg.target_path
+                    overwrite_newer : mesg.overwrite_newer
+                    delete_missing  : mesg.delete_missing
+                    timeout         : mesg.timeout
+                    cb              : cb
+                    
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.success(id:mesg.id))
+        )
+
+
     ################################################
     # Directly communicate with the local hub.  If the
     # client has write access to the local hub, there's no

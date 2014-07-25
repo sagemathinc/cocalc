@@ -7,6 +7,10 @@
 #
 #  NOT released under any open source license.
 #
+#  Interactive use:
+#
+#     x={};s=require('bup_server').global_client(cb:(err,c)->x.c=c;x.p=x.c.get_project('0069cdc2-3baa-4561-9c9e-17cb08e9b849'))
+#
 #################################################################
 
 async     = require('async')
@@ -2980,7 +2984,14 @@ class ClientProject
             action  : 'copy_path'
             param   : params
             timeout : opts.timeout
-            cb      : opts.cb
+            cb      : (err, resp) =>
+                if err
+                    opts.cb?(err)
+                else
+                    if resp.result?.error
+                        opts.cb?(resp.result.error)
+                    else
+                        opts.cb?()
 
     mount_remote: (opts) =>
         opts = defaults opts,
