@@ -63,9 +63,14 @@
 
             <a class="btn btn-large btn-success" href="#download-file"><i class="fa fa-cloud-download"> </i> Download</a>
 
+            <a class="btn btn-danger btn-large" href="#delete-file"><i class="fa fa-trash-o"> </i> Trash</a>
+
+        </span>
+        <br><br>
+        <span class=" btn-group">
             <a class="btn btn-large btn-primary" href="#copy-file"><i class="fa fa-copy"> </i> Copy</a>
 
-            <a class="btn btn-danger btn-large" href="#delete-file"><i class="fa fa-trash-o"> </i> Trash</a>
+            <a class="btn btn-large btn-primary" href="#copy-to-another-project"><i class="fa fa-send-o"> </i> To Another Project</a>
         </span>
     </div>
     <div class="modal-footer">
@@ -188,6 +193,41 @@
             <b>Note:</b> The copy is done using <pre class="salvus-rsync-command">rsync -rltgoDvxH --backup --backup-dir=.trash/ source dest</pre> so
             destination files that would be overwritten are instead copied to the trash.
         </span>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-large btn-close">Cancel</button>
+        <button class="btn btn-large btn-submit btn-primary">Copy File</button>
+    </div>
+</div>
+
+<div class="modal hide salvus-project-copy-to-another-project-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close btn-close" aria-hidden="true">
+            <span style="font-size:20pt;">×</span>
+        </button>
+        <h3 class="salvus-project-copy-file hide"><i class="fa fa-copy"> </i> Copy File to Another Project</h3>
+        <h3 class="salvus-project-copy-dir hide"><i class="fa fa-copy"> </i> Copy Directory to Another Project</h3>
+    </div>
+    <div class="well">
+        Copy<br>
+        <input type="text" style="width:100%" class="salvus-project-copy-src-path" value="">
+        to<br>
+        <input type="text" style="width:100%" class="salvus-project-copy-target-path" value="">
+        <br>
+        in the project<br>
+        <select class="salvus-project-target-project-id">
+        </select>
+
+        <br>
+        <label class="checkbox">
+            <input type="checkbox" class="salvus-project-overwrite-newer">
+            Overwrite newer versions of files
+        </label>
+        <label class="checkbox salvus-project-copy-dir hide">
+            <input type="checkbox" class="salvus-project-delete-missing">
+            Delete extra files in target directory
+        </label>
+        <hr>
     </div>
     <div class="modal-footer">
         <button class="btn btn-large btn-close">Cancel</button>
