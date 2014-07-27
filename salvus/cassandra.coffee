@@ -1207,7 +1207,8 @@ class exports.Salvus extends exports.Cassandra
                              'default_system', 'evaluate_key',
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
                              'connect_Github', 'connect_Google', 'connect_Dropbox',
-                             'autosave', 'terminal', 'editor_settings', 'other_settings']
+                             'autosave', 'terminal', 'editor_settings', 'other_settings',
+                             'groups']
 
         account = undefined
         if opts.email_address?
@@ -1249,6 +1250,8 @@ class exports.Salvus extends exports.Cassandra
                             cb("There is no account with account_id #{opts.account_id}.")
                         else
                             account = results[0]
+                            if not account.groups?
+                                account.groups = []  # make it an array in all cases.
                             cb()
         ], (err) =>
             opts.cb(err, account)

@@ -588,7 +588,6 @@ class Client extends EventEmitter
                                     @remember_me_db.delete(key : hash)
                                 else
                                     # good -- sign them in
-                                    signed_in_mesg.email_address = misc.lower_email_address(signed_in_mesg.email_address)  # delete in April 2014.
                                     signed_in_mesg.hub = program.host + ':' + program.port
                                     @hash_session_id = hash
                                     @signed_in(signed_in_mesg)
@@ -640,8 +639,6 @@ class Client extends EventEmitter
             remember_me   : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
             email_address : signed_in_mesg.email_address
             account_id    : signed_in_mesg.account_id
-            first_name    : signed_in_mesg.first_name
-            last_name     : signed_in_mesg.last_name
 
     # Return the full name if user has signed in; otherwise returns undefined.
     fullname: () =>
@@ -705,10 +702,8 @@ class Client extends EventEmitter
         #############################################################
 
         opts = defaults opts,
-            account_id    : required
-            first_name    : required
-            last_name     : required
             email_address : required
+            account_id    : required
 
         opts.hub = program.host
         opts.remember_me = true
@@ -3123,6 +3118,7 @@ sign_in = (client, mesg) =>
             database.get_account
                 email_address : mesg.email_address
                 consistency   : cql.types.consistencies.one
+                columns       : ['password_hash', 'account_id']
                 cb            : (error, account) ->
                     if error
                         record_sign_in
@@ -3144,8 +3140,6 @@ sign_in = (client, mesg) =>
                         signed_in_mesg = message.signed_in
                             id            : mesg.id
                             account_id    : account.account_id
-                            first_name    : account.first_name
-                            last_name     : account.last_name
                             email_address : mesg.email_address
                             remember_me   : false
                             hub           : program.host + ':' + program.port
@@ -3158,9 +3152,7 @@ sign_in = (client, mesg) =>
         (cb) ->
             if mesg.remember_me
                 client.remember_me
-                    account_id : signed_in_mesg.account_id
-                    first_name : signed_in_mesg.first_name
-                    last_name  : signed_in_mesg.last_name
+                    account_id    : signed_in_mesg.account_id
                     email_address : signed_in_mesg.email_address
             cb()
     ])
@@ -3172,8 +3164,6 @@ record_sign_in = (opts) ->
         ip_address    : required
         successful    : required
         email_address : required
-        first_name    : undefined
-        last_name     : undefined
         account_id    : undefined
         remember_me   : false
     if not opts.successful
@@ -3190,7 +3180,7 @@ record_sign_in = (opts) ->
     else
         database.update
             table       : 'successful_sign_ins'
-            set         : {ip_address:opts.ip_address, first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, remember_me:opts.remember_me}
+            set         : {ip_address:opts.ip_address, email_address:opts.email_address, remember_me:opts.remember_me}
             where       : {time:cass.now(), account_id:opts.account_id}
             consistency : cql.types.consistencies.one
 
@@ -3330,9 +3320,6 @@ create_account = (client, mesg) ->
                 id            : mesg.id
                 account_id    : account_id
                 remember_me   : false
-                first_name    : mesg.first_name
-                last_name     : mesg.last_name
-                email_address : mesg.email_address
                 hub           : program.host + ':' + program.port
             client.signed_in(mesg)
             client.push_to_client(mesg)

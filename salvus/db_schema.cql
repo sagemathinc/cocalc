@@ -107,6 +107,8 @@ CREATE TABLE accounts (
     invited_viewer       set<uuid>,   /* projects this user has been invited to view (but has not accepted)            */
 
     hidden_projects      set<uuid>,   /* projects that this user doesn't normally see by default (e.g., all students in their course) */
+
+    groups               set<varchar>,  /* groups that this account is a member of; e.g., 'admin', which grants extreme power */
 );
 
 CREATE TABLE email_address_to_account_id (

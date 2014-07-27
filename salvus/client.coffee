@@ -376,10 +376,12 @@ class exports.Connection extends EventEmitter
             when "signed_in"
                 @account_id = mesg.account_id
                 @_signed_in = true
-                localStorage['remember_me'] = mesg.email_address
+                if localStorage?
+                    localStorage['remember_me'] = mesg.account_id
                 @emit("signed_in", mesg)
             when "remember_me_failed"
-                delete localStorage['remember_me']
+                if localStorage?
+                    delete localStorage['remember_me']
                 @emit(mesg.event, mesg)
             when "project_list_updated", 'project_data_changed'
                 @emit(mesg.event, mesg)
