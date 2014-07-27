@@ -18,6 +18,8 @@ class Course
         @element.data('course', @)
         @init_syncdb () =>
             @init_edit_info()
+        @init_new_assignment()
+        @init_new_student()
 
     show: () =>
         if not IS_MOBILE
@@ -66,4 +68,19 @@ class Course
                         if not e.data('mode') != 'edit'  # don't change it while it is being edited
                             e.data('set_value')(new_val)
 
+    init_new_assignment: () =>
+        @element.find("a[href=#new-assignment]").click () =>
+            @add_new_assignment()
+            return false
+
+    add_new_assignment: () =>
+        @element.find(".salvus-course-assignments").append(templates.find(".salvus-course-assignment").clone())
+
+    init_new_student: () =>
+        @element.find("a[href=#new-student]").click () =>
+            @add_new_student()
+            return false
+
+    add_new_student: () =>
+        @element.find(".salvus-course-students").append(templates.find(".salvus-course-student").clone())
 

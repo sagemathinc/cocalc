@@ -2,11 +2,15 @@
 
 
     <div class="salvus-course-editor" >
-        <h3><i class="fa fa-graduation-cap"></i>  Course Management</h3>
         <div class="container">
             <div class="row">
+                <div class="span12">
+                    <h3><i class="fa fa-graduation-cap"></i>  Course Management</h3>
+                </div>
+            </div>
+            <div class="row">
                 <div class="span6">
-                    <div class="well" style="height:6em">
+                    <div class="well" style="height:10em">
                         <div class="row-fluid">
                             <div class="span3 lighten">
                                 Title
@@ -36,18 +40,61 @@
                     </div>
                 </div>
                 <div class="span6" >
-                    <div class="well"  style="height:6em">
-                        <h2>Assignments</h2>
+                    <div class="well"  style="height:10em">
+                        <h3>Assignments  <a class="btn" href="#new-assignment" style="margin-bottom: 1em;"><i class="fa fa-plus-circle"> </i> New</a></h3>
+                        <div class="salvus-course-assignments">
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="row">
                 <div class="span12">
                     <div class="well">
-                        <h2>Students </h2>
+                        <h3>Students  <a class="btn" href="#new-student" style="margin-bottom: 1em;"><i class="fa fa-plus-circle"> </i> New</a></h3>
+                        <div class="salvus-course-students">
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+
+    <div class="salvus-course-student">
+        <div class="row-fluid">
+            <div class="span2 salvus-course-student-name">
+                Name
+            </div>
+            <div class="span2 salvus-course-student-email">
+                Email
+            </div>
+            <div class="span2 salvus-course-student-other">
+                Other
+            </div>
+            <div class="span2 salvus-course-student-project">
+                Project
+            </div>
+            <div class="span4 salvus-course-student-grades">
+                Grades...
+            </div>
+        </div>
+    </div>
+
+    <div class="salvus-course-assignment" >
+        <div class="row-fluid">
+            <div class="span3 salvus-course-assignment-name">
+                Name
+            </div>
+            <div class="span3 salvus-course-assignment-date">
+                Due Date
+            </div>
+            <div class="span3 salvus-course-assignment-date">
+                Date Assigned
+            </div>
+            <div class="span3 salvus-course-assignment-name">
+                Directory
+            </div>
+        </div>
+    </div>
+
 </div>
