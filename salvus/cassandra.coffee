@@ -1218,7 +1218,7 @@ class exports.Salvus extends exports.Cassandra
                 if opts.account_id?
                     cb()
                 else if not opts.email_address?
-                    cb("either the email_address or account_id must be specified")
+                    cb("get_account -- the email_address or account_id must be specified")
                 else
                     @select
                         table       : 'email_address_to_account_id'
@@ -1263,8 +1263,8 @@ class exports.Salvus extends exports.Cassandra
             email_address : undefined
             account_id    : undefined
             cb            : required    # cb(err, true if banned; false if not banned)
-        if not opts.email_address? or opts.account_id?
-            opts.cb("at least one of email_address or account_id must be given")
+        if not opts.email_address? and not opts.account_id?
+            opts.cb("is_banned_user -- email_address or account_id must be given")
             return
         if opts.email_address?
             opts.email_address = misc.lower_email_address(opts.email_address)

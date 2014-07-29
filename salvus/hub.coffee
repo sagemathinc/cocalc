@@ -235,8 +235,8 @@ init_http_server = () ->
                                 user_has_write_access_to_project
                                     project_id     : project_id
                                     account_id     : account_id
-                                    account_groups : @groups
                                     cb             : (err, result) =>
+                                        #winston.debug("PROXY: #{project_id}, #{account_id}, #{err}, #{misc.to_json(result)}")
                                         if err
                                             cb(err)
                                         else if not result
@@ -298,42 +298,50 @@ init_http_proxy_server = () =>
             project_id  : required
             remember_me : required
             cb          : required    # cb(err, has_access)
-        account_id = undefined
+        dbg = (m) -> winston.debug("_remember_me_check_for_write_access_to_project: #{m}")
+        account_id       = undefined
+        email_address    = undefined
         has_write_access = false
-        hash = undefined
-        email_address = undefined
+        hash             = undefined
         async.series([
             (cb) ->
+                dbg("get remember_me message")
                 x    = opts.remember_me.split('$')
                 hash = generate_hash(x[0], x[1], x[2], x[3])
                 database.key_value_store(name: 'remember_me').get
                     key         : hash
                     consistency : cql.types.consistencies.one
                     cb          : (err, signed_in_mesg) =>
-                        account_id = signed_in_mesg?.account_id
-                        if err or not account_id?
-                            cb('unable to get remember_me cookie from db -- cookie invalid')
+                        if err or not signed_in_mesg?
+                            cb("unable to get remember_me from db -- #{err}")
+                            dbg("failed to get remember_me -- #{err}")
                         else
+                            account_id    = signed_in_mesg.account_id
                             email_address = signed_in_mesg.email_address
+                            dbg("account_id=#{account_id}, email_address=#{email_address}")
                             cb()
             (cb) ->
-                # check if user is banned
+                if not email_address?
+                    cb(); return
+                dbg("check if user is banned")
                 database.is_banned_user
                     email_address : email_address
                     cb            : (err, is_banned) ->
                         if err
                             cb(err); return
                         if is_banned
-                            # delete this auth key, since banned users are a waste of space.
+                            dbg("delete this auth key, since banned users are a waste of space.")
                             @remember_me_db.delete(key : hash)
                             cb('banned')
                         else
                             cb()
             (cb) ->
+                dbg("check if user has write access")
                 user_has_write_access_to_project
                     project_id : opts.project_id
                     account_id : account_id
                     cb         : (err, result) =>
+                        dbg("got: #{err}, #{result}")
                         if err
                             cb(err)
                         else if not result
@@ -361,7 +369,8 @@ init_http_proxy_server = () =>
             project_id  : opts.project_id
             remember_me : opts.remember_me
             cb          : (err, has_write_access) ->
-                # if cache gets huge for some *weird* reason (should never happen under normal conditions) just reset it to avoid any possibility of DOS-->RAM crash attach
+                # if cache gets huge for some *weird* reason (should never happen under normal conditions),
+                # just reset it to avoid any possibility of DOS-->RAM crash attach
                 if misc.len(_remember_me_cache) >= 100000
                     _remember_me_cache = {}
 
@@ -372,9 +381,9 @@ init_http_proxy_server = () =>
                 f = () ->
                     delete _remember_me_cache[key]
                 if has_write_access
-                    setTimeout(f, 1000*60*5)   # write access lasts 5 minutes (i.e., if you revoke privs to a user they could still hit the port for 5 minutes)
+                    setTimeout(f, 1000*60*5)    # write access lasts 5 minutes (i.e., if you revoke privs to a user they could still hit the port for 5 minutes)
                 else
-                    setTimeout(f, 1000*15)      # not having write access lasts 15 seconds
+                    setTimeout(f, 1000*60)      # not having write access lasts 1 minute
                 opts.cb(err, has_write_access)
 
     _target_cache = {}
@@ -2933,21 +2942,8 @@ user_is_in_project_group = (opts) ->
     access = false
     async.series([
         (cb) ->
-            if opts.account_groups?
-                cb()
-            else
-                database.get_account
-                    columns    : ['groups']
-                    account_id : @account_id
-                    cb         : (err, r) =>
-                        if err
-                            cb(err)
-                        else
-                            opts.account_groups = r['groups']
-                            cb()
-        (cb) ->
             #winston.debug("opts.account_groups = #{misc.to_json(opts.account_groups)}")
-            if 'admin' in opts.account_groups
+            if opts.account_groups? and 'admin' in opts.account_groups  # check also done below!
                 access = true
                 cb()
             else
@@ -2959,7 +2955,25 @@ user_is_in_project_group = (opts) ->
                     cb             : (err, x) ->
                         access = x
                         cb(err)
-        ], (err) =>
+        (cb) ->
+            if access
+                cb() # done
+            else if opts.account_groups?
+                # already decided above
+                cb()
+            else
+                # User does not have access in normal way and account_groups not provided, so
+                # we do an extra group check before denying user.
+                database.get_account
+                    columns    : ['groups']
+                    account_id : opts.account_id
+                    cb         : (err, r) ->
+                        if err
+                            cb(err)
+                        else
+                            access = 'admin' in r['groups']
+                            cb()
+        ], (err) ->
             opts.cb(err, access)
         )
 
