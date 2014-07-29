@@ -426,7 +426,7 @@ exports.open_project = open_project = (project, item) ->
     top_navbar.resize_open_project_tabs()
     top_navbar.switch_to_page(project.project_id)
 
-    if not (project.bup_location?)
+    if not project.bup_location?
         alert_message
             type:"info"
             message:"Opening project #{project.title}... (this takes about 30 seconds)"
@@ -532,32 +532,34 @@ exports.load_target = load_target = (target) ->
     update_project_list () ->
         if misc.is_valid_uuid_string(segments[0])
             t = segments.slice(1).join('/')
+            project_id = segments[0]
             for p in project_list
-                if p.project_id == segments[0]
+                if p.project_id == project_id
                     project = p
-                    break
-            if not project?
-                # have to get from database.
-                #console.log("loading project '#{segments[0]}' not implemented")
-                # TODO: this will just work via database lookup on public projects...
-                alert_message(type:"error", message:"You do not have access to the project with id #{segments[0]}.")
-                return
+                    open_project(p).load_target(t)
+                    return
+            # have to get from database.
+            salvus_client.project_info
+                project_id : project_id
+                cb         : (err, p) ->
+                    if err
+                        alert_message(type:"error", message:err)
+                    else
+                        open_project(p).load_target(t)
+        ###
         else
             t         = segments.slice(2).join('/')
             ownername = segments[0]
             name      = segments[1]
             for p in project_list
                 if p.ownername == ownername and p.name == name
-                    project = p
-                    break
-            if not project?
-                # have to get from database.
-                #console.log("loading project '#{owner}/#{projectname}' not implemented")
-                # TODO: this will just work via database lookup on public projects...
-                alert_message(type:"error", message:"You do not have access to the project '#{owner}/#{projectname}.")
-                return
+                    open_project(p).load_target(t)
+                    return
+            # have to get from database.
+            alert_message(type:"error", message:"You do not have access to the project '#{owner}/#{projectname}.")
+            return
+        ###
 
-        open_project(project).load_target(t)
 
 
 ################################################

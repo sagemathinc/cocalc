@@ -233,9 +233,10 @@ init_http_server = () ->
                             # auth user access to *write* to the project
                             (cb) ->
                                 user_has_write_access_to_project
-                                    project_id : project_id
-                                    account_id : account_id
-                                    cb         : (err, result) =>
+                                    project_id     : project_id
+                                    account_id     : account_id
+                                    account_groups : @groups
+                                    cb             : (err, result) =>
                                         if err
                                             cb(err)
                                         else if not result
@@ -642,8 +643,8 @@ class Client extends EventEmitter
 
     # Return the full name if user has signed in; otherwise returns undefined.
     fullname: () =>
-        if @signed_in_mesg?
-            return @signed_in_mesg.first_name + " " + @signed_in_mesg.last_name
+        if @account_settings?
+            return @account_settings.first_name + " " + @account_settings.last_name
 
     signed_out: () =>
         @account_id = undefined
@@ -1088,7 +1089,48 @@ class Client extends EventEmitter
         if @account_id != mesg.account_id
             @push_to_client(message.error(id:mesg.id, error:"Not signed in as user with id #{mesg.account_id}."))
         else
-            get_account_settings(mesg, @push_to_client)
+            database.get_account
+                account_id : @account_id
+                cb : (err, data) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        # delete password hash -- user doesn't want to see/know that.
+                        delete data['password_hash']
+
+                        # Set defaults for unset keys.  We do this so that in the
+                        # long run it will always be easy to migrate the database
+                        # forward (with new columns).
+                        for key, val of message.account_settings_defaults
+                            if not data[key]?
+                                data[key] = val
+
+                        # Cache the groups of this user, so we don't have to look
+                        # them up for other permissions.  Caveat: user may have to refresh
+                        # their browser to update group membership, in case their
+                        # groups change.  If this is an issue, make this property get
+                        # deleted automatically.
+                        @groups = data.groups
+                        @account_settings = data
+
+                        # Send account settings back to user.
+                        data.id = mesg.id
+                        @push_to_client(message.account_settings(data))
+
+    get_groups: (cb) =>
+        # see note above about our "infinite caching".  Maybe a bad idea.
+        if @groups?
+            cb(undefined, @groups)
+            return
+        database.get_account
+            columns    : ['groups']
+            account_id : @account_id
+            cb         : (err, r) =>
+                if err
+                    cb(err)
+                else
+                    @groups = r['groups']
+                    cb(undefined, @groups)
 
     mesg_account_settings: (mesg) =>
         if @account_id != mesg.account_id
@@ -1179,9 +1221,10 @@ class Client extends EventEmitter
                 switch permission
                     when 'read'
                         user_has_read_access_to_project
-                            project_id : mesg.project_id
-                            account_id : @account_id
-                            cb         : (err, result) =>
+                            project_id     : mesg.project_id
+                            account_id     : @account_id
+                            account_groups : @groups
+                            cb             : (err, result) =>
                                 if err
                                     cb("Internal error determining user permission -- #{err}")
                                 else if not result
@@ -1191,9 +1234,10 @@ class Client extends EventEmitter
                                     cb()
                     when 'write'
                         user_has_write_access_to_project
-                            project_id : mesg.project_id
-                            account_id : @account_id
-                            cb         : (err, result) =>
+                            project_id     : mesg.project_id
+                            account_groups : @groups
+                            account_id     : @account_id
+                            cb             : (err, result) =>
                                 if err
                                     cb("Internal error determining user permission -- #{err}")
                                 else if not result
@@ -1450,8 +1494,9 @@ class Client extends EventEmitter
             return
 
         user_has_write_access_to_project
-            project_id : mesg.project_id
-            account_id : @account_id
+            project_id     : mesg.project_id
+            account_id     : @account_id
+            account_groups : @groups
             cb: (error, ok) =>
                 winston.debug("mesg_update_project_data -- cb")
                 if error
@@ -1640,8 +1685,9 @@ class Client extends EventEmitter
                 async.parallel([
                     (cb) =>
                         user_has_write_access_to_project
-                            project_id : mesg.src_project_id
-                            account_id : @account_id
+                            project_id     : mesg.src_project_id
+                            account_id     : @account_id
+                            account_groups : @groups
                             cb         : (err, result) =>
                                 if err
                                     cb(err)
@@ -1651,9 +1697,10 @@ class Client extends EventEmitter
                                     cb()
                     (cb) =>
                         user_has_write_access_to_project
-                            project_id : mesg.target_project_id
-                            account_id : @account_id
-                            cb         : (err, result) =>
+                            project_id     : mesg.target_project_id
+                            account_id     : @account_id
+                            account_groups : @groups
+                            cb             : (err, result) =>
                                 if err
                                     cb(err)
                                 else if not result
@@ -1889,9 +1936,10 @@ class Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"invalid snap command '#{mesg.command}'")
             return
         user_has_write_access_to_project
-            project_id : mesg.project_id
-            account_id : @account_id
-            cb         : (err, result) =>
+            project_id     : mesg.project_id
+            account_id     : @account_id
+            account_groups : @groups
+            cb             : (err, result) =>
                 if err or not result
                     @error_to_client(id:mesg.id, error:"access to project #{mesg.project_id} denied")
                 else
@@ -2870,27 +2918,58 @@ user_owns_project = (opts) ->
     opts.groups = ['owner']
     database.user_is_in_project_group(opts)
 
-user_has_write_access_to_project = (opts) ->
+user_is_in_project_group = (opts) ->
     opts = defaults opts,
-        project_id  : required
-        account_id  : undefined
-        consistency : cql.types.consistencies.one
-        cb          : required        # cb(err, true or false)
+        project_id     : required
+        account_id     : undefined
+        account_groups : undefined
+        groups         : required
+        consistency    : cql.types.consistencies.one
+        cb             : required        # cb(err, true or false)
     if not opts.account_id?
         # we can have a client *without* account_id that is requesting access to a project.  Just say no.
-        opts.cb(false, false) # do not have access
+        opts.cb(undefined, false) # do not have access
         return
+    access = false
+    async.series([
+        (cb) ->
+            if opts.account_groups?
+                cb()
+            else
+                database.get_account
+                    columns    : ['groups']
+                    account_id : @account_id
+                    cb         : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            opts.account_groups = r['groups']
+                            cb()
+        (cb) ->
+            #winston.debug("opts.account_groups = #{misc.to_json(opts.account_groups)}")
+            if 'admin' in opts.account_groups
+                access = true
+                cb()
+            else
+                database.user_is_in_project_group
+                    project_id     : opts.project_id
+                    account_id     : opts.account_id
+                    groups         : opts.groups
+                    consistency    : cql.types.consistencies.one
+                    cb             : (err, x) ->
+                        access = x
+                        cb(err)
+        ], (err) =>
+            opts.cb(err, access)
+        )
+
+user_has_write_access_to_project = (opts) ->
     opts.groups = ['owner', 'collaborator']
-    database.user_is_in_project_group(opts)
+    user_is_in_project_group(opts)
 
 user_has_read_access_to_project = (opts) ->
-    opts = defaults opts,
-        project_id  : required
-        account_id  : required
-        consistency : cql.types.consistencies.one
-        cb          : required        # cb(err, true or false)
     opts.groups = ['owner', 'collaborator', 'viewer']
-    database.user_is_in_project_group(opts)
+    user_is_in_project_group(opts)
 
 
 ########################################
@@ -3152,7 +3231,7 @@ sign_in = (client, mesg) =>
         (cb) ->
             if mesg.remember_me
                 client.remember_me
-                    account_id    : signed_in_mesg.account_id
+                    account_id       : signed_in_mesg.account_id
                     email_address : signed_in_mesg.email_address
             cb()
     ])
@@ -3390,8 +3469,9 @@ change_password = (mesg, client_ip_address, push_to_client) ->
 
         # get account and validate the password
         (cb) ->
-            database.get_account(
+            database.get_account
               email_address : mesg.email_address
+              columns       : ['password_hash', 'account_id']
               cb : (error, result) ->
                 if error
                     push_to_client(message.changed_password(id:mesg.id, error:{other:error}))
@@ -3407,7 +3487,6 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                     cb(true)
                     return
                 cb()
-            )
 
         # check that new password is valid
         (cb) ->
@@ -3639,15 +3718,15 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                     cb()
 
         (cb) ->
-            database.get_account(
+            database.get_account
                 email_address : mesg.email_address
+                columns       : ['account_id']   # have to get something
                 cb            : (error, account) ->
                     if error # no such account
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"No account with e-mail address #{mesg.email_address}."))
                         cb(true); return
                     else
                         cb()
-            )
 
         # We now know that there is an account with this email address.
         # put entry in the password_reset uuid:value table with ttl of 15 minutes, and send an email
@@ -3749,41 +3828,6 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
                         push_to_client(message.reset_forgot_password_response(id:mesg.id)) # success
                         db.delete(uuid: mesg.reset_code)  # only allow successful use of this reset token once
                         cb()
-    ])
-
-# This function sends a message to the client (via push_to_client)
-# with the account settings for the account with given id.  We assume
-# that caller code has already determined that the user initiating
-# this request has the given account_id.
-get_account_settings = (mesg, push_to_client) ->
-    account_settings = null
-    async.series([
-        # 1. Get entry in the database corresponding to this account.
-        (cb) ->
-            database.get_account
-                account_id : mesg.account_id
-                cb : (error, data) ->
-                    if error
-                        push_to_client(message.error(id:mesg.id, error:error))
-                        cb(true) # bail
-                    else
-                        delete data['password_hash']
-
-                        # 2. Set defaults for unset keys.  We do this so that in the
-                        # long run it will always be easy to migrate the database
-                        # forward (with new columns).
-                        for key, val of message.account_settings_defaults
-                            if not data[key]?
-                                data[key] = val
-
-                        account_settings = data
-                        account_settings.id = mesg.id
-                        cb()
-
-        (cb) ->
-            # 3. Send result to client
-            push_to_client(message.account_settings(account_settings))
-            cb() # done!
     ])
 
 # mesg is an account_settings message.  We save everything in the
