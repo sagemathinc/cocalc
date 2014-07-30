@@ -376,10 +376,12 @@ class exports.Connection extends EventEmitter
             when "signed_in"
                 @account_id = mesg.account_id
                 @_signed_in = true
-                localStorage['remember_me'] = mesg.email_address
+                if localStorage?
+                    localStorage['remember_me'] = mesg.email_address
                 @emit("signed_in", mesg)
             when "remember_me_failed"
-                delete localStorage['remember_me']
+                if localStorage?
+                    delete localStorage['remember_me']
                 @emit(mesg.event, mesg)
             when "project_list_updated", 'project_data_changed'
                 @emit(mesg.event, mesg)
@@ -891,7 +893,12 @@ class exports.Connection extends EventEmitter
         @call
             message : message.get_project_info(project_id : opts.project_id)
             cb      : (err, resp) =>
-                opts.cb(err, resp?.info)
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(undefined, resp.info)
 
     # Return info about all sessions that have been started in this
     # project, since the local hub was started.

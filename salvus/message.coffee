@@ -453,9 +453,7 @@ message
     event          : 'signed_in'
     id             : undefined     # message uuid
     account_id     : required      # uuid of user's account
-    first_name     : required      # user's first name
-    last_name      : required      # user's last name
-    email_address  : required      # address they just signed in using
+    email_address  : required      # email address they signed in under
     remember_me    : required      # true if sign in accomplished via remember_me cookie; otherwise, false.
     hub            : required      # ip address (on vpn) of hub user connected to.
 
@@ -551,6 +549,7 @@ exports.restricted_account_settings =
     connect_Github       : undefined
     connect_Google       : undefined
     connect_Dropbox      : undefined
+    groups               : undefined  # only admins can actuall;y change this...
 
 # these can be changed without additional re-typing of the password
 # (of course, user must have somehow logged in):
@@ -578,6 +577,7 @@ exports.account_settings_defaults =
     connect_Google     : ''
     connect_Dropbox    : ''
     autosave           : 45
+    groups             : undefined
     other_settings     :
         confirm_close             : false
         mask_files                : true
