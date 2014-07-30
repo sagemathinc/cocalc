@@ -1,9 +1,19 @@
+###
+#
+# Course Management
+#
+###
+
 {IS_MOBILE} = require("feature")
 
 templates = $(".salvus-course-templates")
 
 {alert_message}   = require('alerts')
 {synchronized_db} = require('syncdb')
+
+misc = require('misc')
+{defaults, required} = require('misc')
+
 
 INFO = ['title', 'description', 'location']
 
@@ -18,6 +28,7 @@ class Course
         @element.data('course', @)
         @init_syncdb () =>
             @init_edit_info()
+            @init_students()
         @init_new_assignment()
         @init_new_student()
 
@@ -74,13 +85,91 @@ class Course
             return false
 
     add_new_assignment: () =>
-        @element.find(".salvus-course-assignments").append(templates.find(".salvus-course-assignment").clone())
+        @element.find(".salvus-course-assignments").prepend(templates.find(".salvus-course-assignment").clone())
 
     init_new_student: () =>
         @element.find("a[href=#new-student]").click () =>
             @add_new_student()
             return false
 
-    add_new_student: () =>
-        @element.find(".salvus-course-students").append(templates.find(".salvus-course-student").clone())
+    add_new_student: (opts) =>
+        opts = defaults opts,
+            name       : "Name"
+            email      : "Email"
+            other      : ""
+            project_id : undefined
+            grades     : []
+
+        student_id = misc.uuid()
+        @db.update
+            set   :
+                name   : opts.name
+                email  : opts.email
+                other  : opts.other
+                grades : opts.grades
+            where :
+                table      : 'students'
+                student_id : student_id
+        @db.save()
+        @render_student
+            student_id : student_id
+            name       : opts.name
+            email      : opts.email
+            other      : opts.other
+            grades     : opts.grades
+
+    init_students: () =>
+        for student in @db.select({table : 'students'})
+            delete student.table
+            @render_student(student)
+
+
+    render_student: (opts) =>
+        opts = defaults opts,
+            student_id : required
+            name       : "Name"
+            email      : "Email"
+            other      : ""
+            project_id : undefined
+            grades     : []
+
+        e = templates.find(".salvus-course-student").clone()
+        e.data('student_id', opts.student_id)
+
+        render_field = (field) =>
+            e.find(".salvus-course-student-#{field}").text(opts[field]).make_editable
+                one_line : true
+                interval : 1000
+                onchange : (e) =>
+                    s = {}
+                    s[field] = e.text().trim()
+                    @db.update
+                        set   : s
+                        where : {table : 'students', student_id : opts.student_id}
+                    @db.save()
+
+        for field in ['name', 'email', 'other']
+            render_field(field)
+
+        e.find("a[href=#create-project]").click () =>
+            console.log("create project not implemented")
+            return false
+
+        @element.find(".salvus-course-students").append(e)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
