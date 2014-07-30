@@ -79,13 +79,9 @@ class Course
                         if not e.data('mode') != 'edit'  # don't change it while it is being edited
                             e.data('set_value')(new_val)
 
-    init_new_assignment: () =>
-        @element.find("a[href=#new-assignment]").click () =>
-            @add_new_assignment()
-            return false
-
-    add_new_assignment: () =>
-        @element.find(".salvus-course-assignments").prepend(templates.find(".salvus-course-assignment").clone())
+    ###
+    # Students
+    ###
 
     init_new_student: () =>
         @element.find("a[href=#new-student]").click () =>
@@ -158,8 +154,22 @@ class Course
         @element.find(".salvus-course-students").append(e)
 
 
+    ###
+    # Assignment
+    ###
 
+    init_new_assignment: () =>
+        @element.find("a[href=#new-assignment]").click () =>
+            @add_new_assignment()
+            return false
 
+    add_new_assignment: () =>
+        @element.find(".salvus-course-assignments").prepend(templates.find(".salvus-course-assignment").clone())
+
+    init_assignments: () =>
+        for assignment in @db.select({table : 'assignments'})
+            delete assignment.table
+            @render_assignment(assignment)
 
 
 
