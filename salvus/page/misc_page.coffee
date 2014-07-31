@@ -133,7 +133,14 @@ $.fn.extend
 
             set_value(t.text())
 
+            get_value = () ->
+                if t.data('mode') == 'view'
+                    return t.data('raw')
+                else
+                    return t.text()
+
             t.data('set_value', set_value)
+            t.data('get_value', get_value)
 
             t.on 'focus', ->
                 if t.data('mode') == 'edit'

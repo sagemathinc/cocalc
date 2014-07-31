@@ -26,5 +26,14 @@
 
 .salvus-course-heading {
     font-weight: bold;
+    padding-left: 1ex;
     color : #666;
+}
+
+.salvus-course-field {
+    padding-left: 1ex;
+}
+
+.salvus-course-field:hover {
+    background : #efe;
 }

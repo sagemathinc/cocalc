@@ -71,7 +71,7 @@ class SynchronizedDB extends EventEmitter
                         data = {'corrupt':x}
                         is_valid = false
                     @_data[h] = {data:data, line:i}
-                    changes.push({insert:data})
+                    changes.push({insert:misc.deep_copy(data)})
             i += 1
         # delete anything that was deleted
         for h,v of @_data
@@ -79,7 +79,6 @@ class SynchronizedDB extends EventEmitter
                 changes.push({remove:v.data})
                 delete @_data[h]
         if changes.length > 0
-            #console.log('change', to_json(changes))
             @emit("change", changes)
         return is_valid
 
@@ -110,7 +109,7 @@ class SynchronizedDB extends EventEmitter
     save: (cb) =>
         @_doc.save(cb)
 
-    # change exactly *one* database entry that matches the given where criterion.
+    # change (or create) exactly *one* database entry that matches the given where criterion.
     update: (opts) =>
         opts = defaults opts,
             set   : required
