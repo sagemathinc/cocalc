@@ -7,6 +7,7 @@
     overflow-y    : auto;
     overflow-x    : hidden;
     margin-bottom : 2em;
+    margin-top    : 1em;
     background    : white;
     width         : 100%;
 }
@@ -14,15 +15,27 @@
 .salvus-course-editor-title {
     font-size:18pt;
     font-weight: bold;
+    color:#555;
 }
 
 .salvus-course-editor-description {
     font-size:12pt;
+    margin-left: 2em;
+    color:#555;
 }
 
 .salvus-course-editor-location {
     font-size:12pt;
+    margin-left: 2em;
 }
+
+
+.salvus-course-editor-website {
+    font-size:12pt;
+    margin-left: 2em;
+    color:#555;
+}
+
 
 .salvus-course-heading {
     font-weight: bold;
@@ -32,8 +45,13 @@
 
 .salvus-course-field {
     padding-left: 1ex;
+    color:#555;
 }
 
 .salvus-course-field:hover {
     background : #efe;
+}
+
+.salvus-course-student-email {
+    font-family: monospace;
 }

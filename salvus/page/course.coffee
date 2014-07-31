@@ -17,7 +17,7 @@ misc = require('misc')
 {defaults, required} = require('misc')
 
 
-INFO = ['title', 'description', 'location']
+INFO = ['title', 'description', 'location', 'website']
 
 exports.course = (project_id, filename) ->
     element = templates.find(".salvus-course-editor").clone()
@@ -28,6 +28,7 @@ exports.course = (project_id, filename) ->
 class Course
     constructor : (@project_id, @filename, @element) ->
         @element.data('course', @)
+        @init_page_buttons()
         @init_syncdb () =>
             @init_edit_info()
             @init_students()
@@ -51,23 +52,40 @@ class Course
                     #console.log("initialized syncdb")
                 cb()
 
+    init_page_buttons: () =>
+        PAGES =['students', 'assignments', 'info']
+        buttons = @element.find(".salvus-course-page-buttons")
+        for page in PAGES
+            buttons.find("a[href=##{page}]").data('page',page).click (e) =>
+                page = $(e.target).data('page')
+                for p in PAGES
+                    e = @element.find(".salvus-course-page-#{p}")
+                    btn = buttons.find("a[href=##{p}]")
+                    if p == page
+                        e.show()
+                        btn.addClass('btn-inverse')
+                    else
+                        e.hide()
+                        btn.removeClass('btn-inverse')
+                return false
+
+
     init_edit_info: () =>
         # make it so basic info about the course is editable.
         info = @db.select_one(table:'info')
         for prop in INFO
             e = @element.find(".salvus-course-editor-#{prop}").data('prop',prop)
-            e.text(if info?[prop]? then info[prop] else "Click to edit #{prop}")
             e.make_editable
                 one_line : true
                 interval : 1000
                 onchange : (e) =>
-                    if @db?
-                        s = {}
-                        s[e.data('prop')] = e.data('raw')
-                        @db.update
-                            set   : s
-                            where : {table : 'info'}
-                        @db.save()
+                    s = {}
+                    s[e.data('prop')] = e.data('get_value')()
+                    @db.update
+                        set   : s
+                        where : {table : 'info'}
+                    @db.save()
+            e.data('set_value')(if info?[prop]? then info[prop] else "#{prop}")
 
     handle_changes: (changes) =>
         for x in changes
@@ -97,7 +115,7 @@ class Course
         opts = defaults opts,
             name       : "Name"
             email      : "Email"
-            other      : ""
+            notes      : ""
             project_id : undefined
             grades     : []
 
@@ -106,7 +124,7 @@ class Course
             set   :
                 name   : opts.name
                 email  : opts.email
-                other  : opts.other
+                notes  : opts.notes
                 grades : opts.grades
             where :
                 table      : 'students'
@@ -116,7 +134,7 @@ class Course
             student_id : student_id
             name       : opts.name
             email      : opts.email
-            other      : opts.other
+            notes      : opts.notes
             grades     : opts.grades
 
     init_students: () =>
@@ -130,7 +148,7 @@ class Course
             student_id : required
             name       : "Name"
             email      : "Email"
-            other      : ""
+            notes      : ""
             project_id : undefined
             grades     : []
 
@@ -155,7 +173,7 @@ class Course
                             where : {table : 'students', student_id : opts.student_id}
                         @db.save()
 
-            for field in ['name', 'email', 'other']
+            for field in ['name', 'email', 'notes']
                 update_field(field)
 
             return
@@ -177,7 +195,7 @@ class Course
                         where : {table : 'students', student_id : opts.student_id}
                     @db.save()
 
-        for field in ['name', 'email', 'other']
+        for field in ['name', 'email', 'notes']
             render_field(field)
 
         e.find("a[href=#create-project]").click () =>
