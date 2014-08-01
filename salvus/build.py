@@ -820,7 +820,7 @@ class BuildSage(object):
                 return
         except Exception, msg:
             pass
-        cmd("/usr/bin/git clone https://github.com/matplotlib/basemap", "/tmp")
+        cmd("/usr/bin/git clone git@github.com:matplotlib/basemap.git", "/tmp")
         cmd("python setup.py install", "/tmp/basemap")
         shutil.rmtree("/tmp/basemap")
 
