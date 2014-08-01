@@ -646,15 +646,15 @@ class BuildSage(object):
 
     def octave_ext(self):
         """
-        The /usr/local/sage/current/local/share/sage/ext/octave must be writeable by all, which is
+        The /usr/local/sage/current/local/share/sage/ext must be writeable by all, which is
         a stupid horrible bug/shortcoming in Sage that people constantly hit.   As a workaround,
         we link it to a constrained filesystem for this purpose.
         """
-        target = self.path("local/share/sage/ext/octave")
-        src = "/pool/octave"
+        target = self.path("local/share/sage/ext")
+        src = "/pool/ext"
 
         if not (os.path.exists(src) and os.path.isdir(src)):
-            raise RuntimeError("please create a limited ZFS pool mounted as /pool/octave, with read-write access to all:\n\n\tzfs create pool/octave && chmod a+rwx /pool/octave && zfs set quota=1G pool/octave\n")
+            raise RuntimeError("please create a limited ZFS pool mounted as /pool/ext, with read-write access to all:\n\n\tzfs create pool/ext && chmod a+rwx /pool/ext && zfs set quota=1G pool/ext\n")
 
         if os.path.exists(target):
             try:
