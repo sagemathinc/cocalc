@@ -361,6 +361,7 @@ SAGE_PIP_PACKAGES = [
     'backports.ssl-match-hostname',   # a dependency of tornado (we don't install deps automatically right now)
     'tornado',            # used by IPython notebook
     'pandas',
+    'pandasql',
     'patsy',
     'statsmodels',
     'numexpr',
