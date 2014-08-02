@@ -6,9 +6,9 @@
             <div class="row" style="margin-bottom: 4px;">
                 <div class="span4">
                     <span class="btn-group salvus-course-page-buttons">
-                        <a class="btn btn-inverse btn-info" href="#students"><i class="fa fa-graduation-cap"> </i> Students</a>
-                        <a class="btn btn-info" href="#assignments"><i class="fa fa-pencil"> </i> Assignments</a>
-                        <a class="btn btn-info" href="#info"><i class="fa fa-info"> </i> Course Info</a>
+                        <a class="btn btn-inverse btn-info" href="#students"><i class="fa fa-graduation-cap"> </i>  Students <span class='salvus-course-students-count'></span></a>
+                        <a class="btn btn-info" href="#assignments"><i class="fa fa-pencil"> </i> Assignments <span class='salvus-course-assignments-count'></span></a>
+                        <a class="btn btn-info" href="#info"><i class="fa fa-info-circle"> </i> Course Info</a>
                     </span>
                 </div>
                 <div class="span8">
@@ -44,12 +44,13 @@
                 <div class="span12">
                     <div class="well">
                         <div class="row-fluid">
-                            <div class="span2">
-                                <a class="btn" href="#new-assignment" style="margin-bottom: 1em;"><i class="fa fa-plus-circle"> </i> New</a>
-                            </div>
                             <div class="span4">
                                 <input class="salvus-course-assignment-search search-query" style="width:82%" type="search" placeholder="Find...">
                                 <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
+                            </div>
+                            <div class="span4">
+                                <a class="btn" href="#new-assignment" style="margin-bottom: 1em;"><i class="fa fa-plus-circle"> </i> New</a>
+                                <a class="btn" href="#delete-assignments" style="margin-bottom: 1em;"><i class="fa fa-trash-o"> </i> Delete</a>
                             </div>
                         </div>
 
@@ -77,12 +78,18 @@
                 <div class="span12">
                     <div class="well">
                         <div class="row-fluid">
-                            <div class="span2">
-                                <a class="btn" href="#new-student" style="margin-bottom: 1em;"><i class="fa fa-plus-circle"> </i> New</a>
-                            </div>
                             <div class="span4">
                                 <input class="salvus-course-students-search search-query" style="width:82%" type="search" placeholder="Find...">
                                 <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
+                            </div>
+                            <div class="span4">
+                                <span class="btn-group">
+                                    <a class="btn" href="#new-student" style="margin-bottom: 1em;"><i class="fa fa-plus-circle"> </i> New</a>
+                                    <a class="btn" href="#import-students" style="margin-bottom: 1em;"><i class="fa fa-arrow-down"> </i> Import</a>
+                                    <a class="btn" href="#delete-students" style="margin-bottom: 1em;"><i class="fa fa-trash-o"> </i> Delete</a>
+                                    <a class="btn" href="#export-students" style="margin-bottom: 1em;"><i class="fa fa-external-link-square"> </i> Export</a>
+
+                                </span>
                             </div>
                         </div>
 

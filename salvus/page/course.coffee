@@ -114,6 +114,11 @@ class Course
             @add_new_student()
             return false
 
+    init_import_students: () =>
+        @element.find("a[href=#import-students]").click () =>
+            @import_students()
+            return false
+
     add_new_student: (opts) =>
         opts = defaults opts,
             name       : "Name"
@@ -143,6 +148,9 @@ class Course
             grades     : opts.grades
             append     : false
             focus      : true
+
+    import_students: () =>
+        console.log("not implemented")
 
     init_students: () =>
         v = @db.select({table : 'students'})
@@ -229,8 +237,11 @@ class Course
         else
             @element.find(".salvus-course-students").prepend(e)
 
+        @update_student_count()
 
 
+    update_student_count: () =>
+        @element.find(".salvus-course-students-count").text("(#{@element.find('.salvus-course-student').length})")
 
     ###
     # Assignment
@@ -246,6 +257,10 @@ class Course
 
     render_assignment: () =>
         @element.find(".salvus-course-assignments").prepend(templates.find(".salvus-course-assignment").clone())
+        @update_assignment_count()
+
+    update_assignment_count: () =>
+        @element.find(".salvus-course-assignments-count").text("(#{@element.find('.salvus-course-assignment').length})")
 
 
     init_assignments: () =>
