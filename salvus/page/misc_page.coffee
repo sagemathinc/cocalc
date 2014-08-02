@@ -128,16 +128,16 @@ $.fn.extend
                 t.data
                     raw  : value
                     mode : 'view'
-                t.text(value)
+                t.html(value)
                 t.mathjax()
 
-            set_value(t.text())
+            set_value(t.html())
 
             get_value = () ->
                 if t.data('mode') == 'view'
                     return t.data('raw')
                 else
-                    return t.text()
+                    return t.html()
 
             t.data('set_value', set_value)
             t.data('get_value', get_value)
@@ -148,7 +148,7 @@ $.fn.extend
                 t.data('mode', 'edit')
                 t = $(this)
                 x = t.data('raw')
-                t.text(x).data('before', x)
+                t.html(x).data('before', x)
                 #controls = $("<span class='editor-controls'><br><hr><a class='btn'>bold</a><a class='btn'>h1</a><a class='btn'>h2</a></span>")
                 #t.append(controls)
 
@@ -156,7 +156,7 @@ $.fn.extend
                 t = $(this)
                 #t.find('.editor-controls').remove()
                 t.data
-                    raw  : t.text()
+                    raw  : t.html()
                     mode : 'view'
                 t.mathjax()
 
@@ -168,7 +168,7 @@ $.fn.extend
                         t.data('change-timer', false)
                         before = t.data('before')
                         if t.data('mode') == 'edit'
-                            now = t.text()
+                            now = t.html()
                         else
                             now = t.data('raw')
                         if before isnt now

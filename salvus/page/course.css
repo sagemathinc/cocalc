@@ -2,6 +2,9 @@
     background : white;
 }
 
+.salvus-course-assignment {
+    background : white;
+}
 
 .salvus-course-editor {
     overflow-y    : auto;
@@ -20,32 +23,43 @@
 
 .salvus-course-editor-description {
     font-size:12pt;
-    margin-left: 2em;
+    padding: 1ex;
+    border-radius: 4px;
     color:#555;
+    background: white;
 }
 
 .salvus-course-editor-location {
     font-size:12pt;
-    margin-left: 2em;
+    padding: 1ex;
+    border-radius: 4px;
+    background: white;
 }
 
 
 .salvus-course-editor-website {
     font-size:12pt;
-    margin-left: 2em;
+    padding: 1ex;
+    border-radius: 4px;
     color:#555;
+    background: white;
+    font-family: monospace;
 }
 
 
 .salvus-course-heading {
     font-weight: bold;
     padding-left: 1ex;
+    font-size: 12pt;
     color : #666;
 }
 
 .salvus-course-field {
     padding-left: 1ex;
     color:#555;
+    height: 3em;
+    overflow-y: auto;
+    /* border: 1px solid #ddd; */
 }
 
 .salvus-course-field:hover {

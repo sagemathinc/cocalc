@@ -76,7 +76,7 @@ class Course
         for prop in INFO
             e = @element.find(".salvus-course-editor-#{prop}").data('prop',prop)
             e.make_editable
-                one_line : true
+                one_line : false
                 interval : 1000
                 onchange : (e) =>
                     s = {}
@@ -93,7 +93,7 @@ class Course
                 for prop in INFO
                     e = @element.find(".salvus-course-editor-#{prop}")
                     new_val = x.insert[prop]
-                    old_val = e.text()
+                    old_val = e.data('get_value')()
                     # TODO: this is hack-ish -- should apply a diff, etc.
                     if new_val != old_val
                         if not e.data('mode') != 'edit'  # don't change it while it is being edited
@@ -120,6 +120,7 @@ class Course
             grades     : []
 
         student_id = misc.uuid()
+
         @db.update
             set   :
                 name   : opts.name
@@ -130,15 +131,31 @@ class Course
                 table      : 'students'
                 student_id : student_id
         @db.save()
+
         @render_student
             student_id : student_id
             name       : opts.name
             email      : opts.email
             notes      : opts.notes
             grades     : opts.grades
+            append     : false
+            focus      : true
 
     init_students: () =>
-        for student in @db.select({table : 'students'})
+        v = @db.select({table : 'students'})
+        v.sort (a,b) =>
+            a = misc.split(a.name)
+            a = a[a.length-1].toLowerCase()
+            b = misc.split(b.name)
+            b = b[b.length-1].toLowerCase()
+            if a < b
+                return -1
+            else if a > b
+                return +1
+            else
+                return 0
+
+        for student in v
             delete student.table
             @render_student(student)
 
@@ -151,6 +168,8 @@ class Course
             notes      : ""
             project_id : undefined
             grades     : []
+            append     : true
+            focus      : false
 
         e = @element.find("[data-student_id='#{opts.student_id}']")
         if e.length > 0
@@ -202,7 +221,12 @@ class Course
             console.log("create project not implemented")
             return false
 
-        @element.find(".salvus-course-students").append(e)
+        if opts.append
+            @element.find(".salvus-course-students").append(e)
+        else
+            @element.find(".salvus-course-students").prepend(e)
+
+
 
 
     ###
