@@ -101,6 +101,9 @@ class Course
             else if x.insert?.table == "students"
                 delete x.insert.table
                 @render_student(x.insert)
+            else if x.insert?.table == "assignments"
+                delete x.insert.table
+                @render_assignment(x.insert)
 
     ###
     # Students
@@ -239,7 +242,11 @@ class Course
             return false
 
     add_new_assignment: () =>
+        @render_assignment()
+
+    render_assignment: () =>
         @element.find(".salvus-course-assignments").prepend(templates.find(".salvus-course-assignment").clone())
+
 
     init_assignments: () =>
         for assignment in @db.select({table : 'assignments'})
