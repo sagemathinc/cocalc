@@ -565,7 +565,7 @@ class BuildSage(object):
         self.install_R_packages()
         self.install_optional_packages()
         self.install_snappy()
-        self.install_enthought_packages()
+        #self.install_enthought_packages()
         self.install_quantlib()
         self.install_neuron()
         self.install_basemap()
@@ -750,7 +750,8 @@ class BuildSage(object):
         """
         self.cmd("python -m easy_install -U -f http://snappy.computop.org/get snappy")
 
-    def install_enthought_packages(self):
+    # deprecated because it now says: "The EPD subscriber repository is only available to subscribers."
+    def DEPRECATED_install_enthought_packages(self):
         """
         Like Sage does, Enthought has a bunch of packages that are not easily available
         from pypi...
