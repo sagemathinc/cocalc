@@ -109,6 +109,9 @@ class SynchronizedDB extends EventEmitter
     save: (cb) =>
         @_doc.save(cb)
 
+    sync: (cb) =>
+        @_doc.sync(cb)
+
     # change (or create) exactly *one* database entry that matches the given where criterion.
     update: (opts) =>
         opts = defaults opts,

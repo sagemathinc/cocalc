@@ -1,6 +1,9 @@
 {IS_MOBILE}    = require("feature")
 
-misc = require('misc')
+misc           = require('misc')
+
+{dmp}          = require('diffsync')
+
 
 templates = $("#salvus-misc-templates")
 
@@ -116,6 +119,7 @@ $.fn.extend
     make_editable: (opts={}) ->
         @each () ->
             opts = defaults opts,
+                value    : undefined   # defaults to what is already there
                 onchange : undefined   # function that gets called with a diff when content changes
                 interval : 250         # milliseconds interval between sending update change events about content
                 one_line : false       # if true, blur when user presses the enter key
@@ -123,15 +127,39 @@ $.fn.extend
             t = $(this)
             t.attr('contenteditable', true)
 
+            if not opts.value?
+                opts.value = t.html()
+
+            last_sync = opts.value
+
+            change_timer = undefined
+            report_change = () ->
+                if change_timer?
+                    clearTimeout(change_timer)
+                    change_timer = undefined
+                last_update = t.data('last_update')
+                if t.data('mode') == 'edit'
+                    now = t.html()
+                else
+                    now = t.data('raw')
+                if last_update isnt now
+                    #console.log("reporting change since '#{last_update}' != '#{now}'")
+                    opts.onchange(now, t)
+                    t.data('last_update', now)
+                    last_sync = now
+
+            set_change_timer = () ->
+                if opts.onchange? and not change_timer?
+                    change_timer = setTimeout(report_change, opts.interval)
+
             # set the text content; it will be subsequently processed by mathjax
             set_value = (value) ->
                 t.data
-                    raw  : value
-                    mode : 'view'
+                    raw         : value
+                    mode        : 'view'
                 t.html(value)
                 t.mathjax()
-
-            set_value(t.html())
+                set_change_timer()
 
             get_value = () ->
                 if t.data('mode') == 'view'
@@ -139,8 +167,22 @@ $.fn.extend
                 else
                     return t.html()
 
+            set_upstream = (upstream) ->
+                cur = get_value()
+                if cur != upstream
+                    last = last_sync
+                    p = dmp.patch_make(last, upstream)
+                    #console.log("syncing:\ncur='#{cur}'\nupstream='#{upstream}'\nlast='#{last}'\npatch='#{misc.to_json(p)}'")
+                    new_cur = dmp.patch_apply(p, cur)[0]
+                    last_sync = new_cur
+                    if new_cur != cur
+                        #console.log("new_cur='#{new_cur}'")
+                        set_value(new_cur)
+                        report_change()
+
             t.data('set_value', set_value)
             t.data('get_value', get_value)
+            t.data('set_upstream', set_upstream)
 
             t.on 'focus', ->
                 if t.data('mode') == 'edit'
@@ -148,45 +190,24 @@ $.fn.extend
                 t.data('mode', 'edit')
                 t = $(this)
                 x = t.data('raw')
-                t.html(x).data('before', x)
-                #controls = $("<span class='editor-controls'><br><hr><a class='btn'>bold</a><a class='btn'>h1</a><a class='btn'>h2</a></span>")
-                #t.append(controls)
 
             t.blur () ->
                 t = $(this)
-                #t.find('.editor-controls').remove()
                 t.data
                     raw  : t.html()
                     mode : 'view'
                 t.mathjax()
 
-            f = (evt) ->
-                t = $(this)
-                if opts.onchange? and not t.data('change-timer')
-                    t.data('change-timer', true)
-                    setTimeout( (() ->
-                        t.data('change-timer', false)
-                        before = t.data('before')
-                        if t.data('mode') == 'edit'
-                            now = t.html()
-                        else
-                            now = t.data('raw')
-                        if before isnt now
-                            opts.onchange(t, local_diff(before, now))
-                            t.data('before', now)
-                        ),
-                        opts.interval
-                    )
-
-            t.on('paste', f)
-            t.on('blur', f)
-            t.on('keyup', f)
-
+            t.on 'paste', set_change_timer
+            t.on 'blur', set_change_timer
+            t.on 'keyup', set_change_timer
             t.on 'keydown', (evt) ->
                 if evt.which == 27 or (opts.one_line and evt.which == 13)
                     t.blur()
                     return false
 
+            t.data('last_update', opts.value)
+            set_value(opts.value)
             return t
 
 
