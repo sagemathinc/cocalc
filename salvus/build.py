@@ -743,6 +743,9 @@ class BuildSage(object):
             # We have to do this (instead of use install_package) because Sage's install_package
             # command is completely broken in rc0 at least (April 27, 2014).
             self.cmd("sage -i %s"%package)
+        # We also have to do a "sage -b", since some optional packages don't get fully installed
+        # until rebuilding Cython modules.  I posted to sage-devel about this bug on Aug 4.
+        self.cmd("sage -b")
 
     def install_snappy(self):
         """
