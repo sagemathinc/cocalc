@@ -80,9 +80,9 @@ class Course
                 interval : SYNC_INTERVAL
                 value    : if info?[prop]? then info[prop] else "#{prop}"
                 onchange : (value, e) =>
-                    s = {}
                     #console.log("saving to db that #{e.data('prop')} = #{value}")
-                    @db.sync () =>
+                    #@db.sync () =>
+                        s = {}
                         s[e.data('prop')] = value
                         @db.update
                             set   : s
@@ -195,9 +195,9 @@ class Course
                 one_line : true
                 interval : SYNC_INTERVAL
                 onchange : (new_val) =>
-                    s = {}
-                    s[field] = new_val
-                    @db.sync () =>
+                    #@db.sync () =>
+                        s = {}
+                        s[field] = new_val
                         @db.update
                             set   : s
                             where : {table : 'students', student_id : opts.student_id}
