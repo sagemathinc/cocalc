@@ -1003,7 +1003,6 @@ message
     title      : required
     description: required
     public     : required
-    hidden     : false     # if true, project will be created hidden from its owner (e.g., a project for a student in a course)
 
 # client --> hub
 message

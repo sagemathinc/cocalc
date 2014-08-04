@@ -4,20 +4,23 @@
 #
 ###
 
-{IS_MOBILE} = require("feature")
+async                = require('async')
+{IS_MOBILE}          = require("feature")
+{alert_message}      = require('alerts')
+{synchronized_db}    = require('syncdb')
+{salvus_client}      = require('salvus_client')
+misc                 = require('misc')
+{defaults, required} = misc
 
 templates = $(".salvus-course-templates")
 
-{alert_message}   = require('alerts')
-{synchronized_db} = require('syncdb')
-
-
-misc = require('misc')
-{defaults, required} = require('misc')
-
 SYNC_INTERVAL = 500
 
-INFO = ['title', 'description', 'location', 'website']
+SETTINGS =
+    title       : "Course Title"
+    description : "Description of course"
+    location    : "Location of course"
+    website     : "http://your.coursewebsite.edu"
 
 exports.course = (project_id, filename) ->
     element = templates.find(".salvus-course-editor").clone()
@@ -30,7 +33,21 @@ class Course
         @element.data('course', @)
         @init_page_buttons()
         @init_syncdb () =>
-            @init_edit_info()
+            settings = @db.select_one(table:'settings')
+            need_update = false
+            if not settings?
+                settings = misc.copy(SETTINGS)
+                need_update = true
+            else
+                for k, v of SETTINGS # set defaults
+                    if not settings[k]?
+                        settings[k] = v
+                        need_update = true
+            if need_update
+                @db.update(set:settings, where:{table:'settings'})
+                @db.save()
+
+            @init_edit_settings()
             @init_students()
         @init_new_assignment()
         @init_new_student()
@@ -49,15 +66,14 @@ class Course
                 else
                     @db = db
                     @db.on 'change', @handle_changes
-                    #console.log("initialized syncdb")
                 cb()
 
     init_page_buttons: () =>
-        PAGES =['students', 'assignments', 'info']
+        PAGES =['students', 'teachers', 'assignments', 'settings']
         buttons = @element.find(".salvus-course-page-buttons")
         for page in PAGES
             buttons.find("a[href=##{page}]").data('page',page).click (e) =>
-                page = $(e.target).data('page')
+                page = $(e.delegateTarget).data('page')
                 for p in PAGES
                     e = @element.find(".salvus-course-page-#{p}")
                     btn = buttons.find("a[href=##{p}]")
@@ -70,15 +86,15 @@ class Course
                 return false
 
 
-    init_edit_info: () =>
-        # make it so basic info about the course is editable.
-        info = @db.select_one(table:'info')
-        for prop in INFO
+    init_edit_settings: () =>
+        # make it so basic settings about the course is editable.
+        settings = @db.select_one(table:'settings')
+        for prop in misc.keys(SETTINGS)
             e = @element.find(".salvus-course-editor-#{prop}").data('prop',prop)
             e.make_editable
                 one_line : false
                 interval : SYNC_INTERVAL
-                value    : if info?[prop]? then info[prop] else "#{prop}"
+                value    : if settings?[prop]? then settings[prop] else "#{prop}"
                 onchange : (value, e) =>
                     #console.log("saving to db that #{e.data('prop')} = #{value}")
                     #@db.sync () =>
@@ -86,15 +102,15 @@ class Course
                         s[e.data('prop')] = value
                         @db.update
                             set   : s
-                            where : {table : 'info'}
+                            where : {table : 'settings'}
                         @db.save (err) =>
                             #console.log("save got back -- #{err}")
 
     handle_changes: (changes) =>
         #console.log("handle_changes (#{misc.mswalltime()}): #{misc.to_json(changes)}")
         for x in changes
-            if x.insert?.table == "info"
-                for prop in INFO
+            if x.insert?.table == "settings"
+                for prop in misc.keys(SETTINGS)
                     @element.find(".salvus-course-editor-#{prop}").data('set_upstream')(x.insert[prop])
             else if x.insert?.table == "students"
                 delete x.insert.table
@@ -119,8 +135,8 @@ class Course
 
     add_new_student: (opts) =>
         opts = defaults opts,
-            name       : "Name"
-            email      : "Email"
+            name       : ""
+            email      : ""
             notes      : ""
             project_id : undefined
             grades     : []
@@ -168,28 +184,67 @@ class Course
             delete student.table
             @render_student(student)
 
+    update_student_view: (opts) =>
+        opts = defaults opts,
+            student_id : required
+        console.log("update_student_view -- #{opts.student_id}")
+
+        v = @db.select_one({student_id : opts.student_id, table : 'students'})
+        delete v.table
+        console.log("v=",v)
+        @render_student(v)
 
     render_student: (opts) =>
         opts = defaults opts,
             student_id : required
-            name       : "Name"
-            email      : "Email"
-            notes      : ""
+
+            name       : undefined
+            email      : undefined
+            notes      : undefined
             project_id : undefined
-            grades     : []
+            grades     : undefined
+
             append     : true
             focus      : false
 
         e = @element.find("[data-student_id='#{opts.student_id}']")
+
+        render_project_button = () =>
+            create_project_btn = e.find("a[href=#create-project]").show()
+            open_project_btn = e.find("a[href=#open-project]")
+            if not opts.project_id?
+                open_project_btn.hide()
+                create_project_btn.show()
+                if not create_project_btn.hasClass('salvus-initialized')
+                    create_project_btn.addClass('salvus-initialized').click () =>
+                        create_project_btn.icon_spin(start:true)
+                        @create_project
+                            student_id : opts.student_id
+                            cb         : (err, project_id) =>
+                                create_project_btn.icon_spin(false)
+                                if err
+                                    alert_message(type:"error", message:err)
+                        return false
+            else
+                create_project_btn.hide()
+                open_project_btn.show()
+                if not open_project_btn.hasClass('salvus-initialized')
+                    open_project_btn.addClass('salvus-initialized').click () =>
+                        require('projects').open_project(opts.project_id)
+
+
         if e.length > 0
             for field in ['name', 'email', 'notes']
                 e.find(".salvus-course-student-#{field}").data('set_upstream')(opts[field])
+            render_project_button()
             return
 
         e = templates.find(".salvus-course-student").clone()
         e.attr("data-student_id", opts.student_id)
 
         render_field = (field) =>
+            if not opts[field]?
+                return
             e.find(".salvus-course-student-#{field}").make_editable
                 value    : opts[field]
                 one_line : true
@@ -206,9 +261,7 @@ class Course
         for field in ['name', 'email', 'notes']
             render_field(field)
 
-        e.find("a[href=#create-project]").click () =>
-            console.log("create project not implemented")
-            return false
+        render_project_button()
 
         if opts.append
             @element.find(".salvus-course-students").append(e)
@@ -217,9 +270,74 @@ class Course
 
         @update_student_count()
 
+        if opts.focus
+            e.find(".salvus-course-student-email").focus_end()
+
 
     update_student_count: () =>
         @element.find(".salvus-course-students-count").text("(#{@element.find('.salvus-course-student').length})")
+
+    create_project: (opts) =>
+        opts = defaults opts,
+            student_id : required
+            cb         : undefined
+        # create project for the given student
+        console.log("create project for student=#{opts.student_id}")
+        where = {student_id : opts.student_id, table : 'students'}
+        v = @db.select_one(where)
+        if not v?
+            opts.cb?("tried to create project for non-existent student with id #{opts.student_id}")
+        else if v.project_id?
+            # nothing to do -- project already created
+            opts.cb?()
+        else
+            # create the project (hidden from creator) and add student and TA's as collaborator
+            {title, description} = @course_project_settings(opts.student_id)
+            project_id = undefined
+            async.series([
+                (cb) =>
+                    salvus_client.create_project
+                        title       : title
+                        description : description
+                        public      : false
+                        cb          : (err, resp) =>
+                            if resp.event == 'error'
+                                err = resp.error
+                            if err
+                                cb(err)
+                            else
+                                project_id = resp.project_id
+                                @db.update
+                                    set   : {project_id : project_id}
+                                    where : where
+                                @db.save()
+                                cb()
+                (cb) =>
+                    salvus_client.hide_project_from_user
+                        project_id : project_id
+                        cb         : cb
+                (cb) =>
+                    if v.account_id?
+                        salvus_client.project_invite_collaborator
+                            project_id : project_id
+                            account_id : v.account_id
+                            cb         : cb
+                    else
+                        salvus_client.invite_noncloud_collaborators
+                            to         : v.email
+                            email      : "Please create a SageMathCloud account using this email address so that you can use the project for #{title}."
+                            project_id : project_id
+                            cb         : cb
+                ], (err) =>
+                    @update_student_view(student_id:opts.student_id)
+                    opts.cb?(err)
+            )
+
+    course_project_settings: (student_id) =>
+        z = @db.select_one(table:'settings')
+        s = @db.select_one(table:'students', student_id:student_id)
+        return {title: "#{s.name} -- #{z.title}", description:"#{z.description} (#{z.location}) -- #{z.website}"}
+
 
     ###
     # Assignment

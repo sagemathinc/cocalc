@@ -9,8 +9,14 @@
 {"desc":"use cursor keys to move between student edit \"cells\"","position":0.75,"last_edited":1406790612274,"task_id":"b17cabb7-2387-403d-96dd-e16a9377d918"}
 {"desc":"create student project","position":-0.96875,"last_edited":1406872940615,"task_id":"6c5e86d9-8f08-4805-a5d6-3397fa741c30"}
 {"desc":"basic wiring for assignments (like for students)","position":0.9375,"last_edited":1406790633929,"task_id":"99b8f405-0744-4074-947b-9a212c4c892a"}
-{"desc":"link that opens student project","position":-0.984375,"last_edited":1406790705360,"task_id":"ff2ba6a1-2611-48ce-a830-e54a9ec6acb5"}
+{"desc":"link that opens student project","position":-0.984375,"last_edited":1407178538031,"task_id":"ff2ba6a1-2611-48ce-a830-e54a9ec6acb5","done":1407178537625}
 {"desc":"when saving a cell (for sync), have a style change to indicate a successful sync completed since the last changes.","position":-0.9375,"last_edited":1407011476757,"task_id":"9118c2ed-07b9-4e26-b930-0a4f44a400cd"}
 {"desc":"resort list of students when name edited.","position":0.84375,"last_edited":1407011823596,"task_id":"654aaeb0-3ff7-4b92-9901-3f97f89d6f70"}
 {"desc":"edit/save assignments:\n\n- [ ] name\n- [ ] due date","position":0.890625,"last_edited":1407011852724,"task_id":"28d87e4d-332b-41d2-b391-a0d2dcf71722"}
-{"desc":"never merge in and sync until 5 seconds after typing stopped.","position":-0.46875,"last_edited":1407169992368,"task_id":"112773b6-8053-416d-a94d-18a86626e943"}
+{"desc":"never merge in and sync until 5 seconds after typing stopped.","position":-0.46875,"last_edited":1407178533888,"task_id":"112773b6-8053-416d-a94d-18a86626e943","deleted":true}
+{"desc":"add teachers\n\n- [ ] ta's \n- [ ] professor","position":0.796875,"last_edited":1407178555635,"task_id":"6d1cdb88-50dd-4d93-83d0-7088a5d03102"}
+{"desc":"when editing title/course info, need to go through all course projects and edit title/desc.","position":0.8203125,"last_edited":1407178580816,"task_id":"fa520a5b-11d5-4fae-a83c-19df2108bb65"}
+{"desc":"when editing student email address, if it is an exact match, indicate that the user exists somehow.","position":-0.953125,"last_edited":1407180458184,"task_id":"3127908f-a78c-4cb6-bbc3-6c0ccef3af59"}
+{"desc":"being added to a project should result in a sendgrid email message.","position":-0.9453125,"last_edited":1407180750880,"task_id":"482916fb-0a47-4bba-84ed-605b02a30550"}
+{"desc":"check basic validity of email address before creating project","position":-0.94140625,"last_edited":1407181859375,"task_id":"8877b67a-e82e-455c-af2d-0265ac992a89"}
+{"desc":"record in local db state of each student project and relation to other people:\n\n - [ ] student invited\n - [ ] student created\n \n ","position":-0.939453125,"last_edited":1407181891833,"task_id":"b138d25e-a184-4231-ae2f-5a5113ac72cd"}

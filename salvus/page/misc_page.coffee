@@ -251,6 +251,23 @@ $.fn.icon_spin = (start) ->
 
 
 
+# from http://stackoverflow.com/questions/4233265/contenteditable-set-caret-at-the-end-of-the-text-cross-browser/4238971#4238971
+$.fn.focus_end = () ->
+    @each () ->
+        el = $(this).focus()
+        if window.getSelection? and document.createRange?
+            range = document.createRange()
+            range.selectNodeContents(this)
+            range.collapse(false)
+            sel = window.getSelection()
+            sel.removeAllRanges()
+            sel.addRange(range)
+        else if document.body.createTextRange?
+            textRange = document.body.createTextRange()
+            textRange.moveToElementText(this)
+            textRange.collapse(false)
+            textRange.select()
+
 
 ####################################
 # Codemirror Extensions

@@ -58,7 +58,7 @@
 .salvus-course-field {
     padding-left: 1ex;
     color:#555;
-    height: 3em;
+    /* /* height: 3em; */ */
     overflow-y: auto;
     /* border: 1px solid #ddd; */
 }
