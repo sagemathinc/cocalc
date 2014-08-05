@@ -4,7 +4,7 @@ import sys, time
 t0 = time.time()
 i = 0
 while True:
-     print int(time.time()-t0)-i,
+     print "%.3f"%(time.time()-t0-i),
      i += 1
      sys.stdout.flush()
      time.sleep(1)
