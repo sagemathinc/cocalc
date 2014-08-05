@@ -17,10 +17,9 @@ templates = $(".salvus-course-templates")
 SYNC_INTERVAL = 500
 
 SETTINGS =
-    title       : "Course Title"
-    description : "Description of course"
-    location    : "Location of course"
-    website     : "http://your.coursewebsite.edu"
+    title       : "Title of Course"
+    description : ""
+    location    : ""
 
 exports.course = (project_id, filename) ->
     element = templates.find(".salvus-course-editor").clone()
@@ -169,9 +168,17 @@ class Course
     init_students: () =>
         v = @db.select({table : 'students'})
         v.sort (a,b) =>
+            if not a.name?
+                return -1
+            if not b.name?
+                return 1
             a = misc.split(a.name)
+            if a.length == 0
+                return -1
             a = a[a.length-1].toLowerCase()
             b = misc.split(b.name)
+            if b.length == 0
+                return 1
             b = b[b.length-1].toLowerCase()
             if a < b
                 return -1
@@ -336,7 +343,7 @@ class Course
     course_project_settings: (student_id) =>
         z = @db.select_one(table:'settings')
         s = @db.select_one(table:'students', student_id:student_id)
-        return {title: "#{s.name} -- #{z.title}", description:"#{z.description} (#{z.location}) -- #{z.website}"}
+        return {title: "#{s.name} -- #{z.title}  (#{z.location})", description:z.description}
 
 
     ###

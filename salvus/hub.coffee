@@ -1419,6 +1419,12 @@ class Client extends EventEmitter
             if err
                 return
             else
+                process = (info) =>
+                    if info.hide_from_accounts?
+                        info.hidden = @account_id in info.hide_from_accounts
+                        delete info.hide_from_accounts
+                    return info
+
                 project.get_info (err, info) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
@@ -1435,9 +1441,9 @@ class Client extends EventEmitter
                                     if err
                                         @error_to_client(id:mesg.id, error:err)
                                     else
-                                        @push_to_client(message.project_info(id:mesg.id, info:info))
+                                        @push_to_client(message.project_info(id:mesg.id, info:process(info)))
                         else
-                            @push_to_client(message.project_info(id:mesg.id, info:info))
+                            @push_to_client(message.project_info(id:mesg.id, info:process(info)))
 
     mesg_project_session_info: (mesg) =>
         assert mesg.event == 'project_session_info'
