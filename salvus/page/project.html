@@ -63,9 +63,14 @@
 
             <a class="btn btn-large btn-success" href="#download-file"><i class="fa fa-cloud-download"> </i> Download</a>
 
+            <a class="btn btn-danger btn-large" href="#delete-file"><i class="fa fa-trash-o"> </i> Trash</a>
+
+        </span>
+        <br><br>
+        <span class=" btn-group">
             <a class="btn btn-large btn-primary" href="#copy-file"><i class="fa fa-copy"> </i> Copy</a>
 
-            <a class="btn btn-danger btn-large" href="#delete-file"><i class="fa fa-trash-o"> </i> Trash</a>
+            <a class="btn btn-large btn-primary" href="#copy-to-another-project"><i class="fa fa-send-o"> </i> To Another Project</a>
         </span>
     </div>
     <div class="modal-footer">
@@ -188,6 +193,41 @@
             <b>Note:</b> The copy is done using <pre class="salvus-rsync-command">rsync -rltgoDvxH --backup --backup-dir=.trash/ source dest</pre> so
             destination files that would be overwritten are instead copied to the trash.
         </span>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-large btn-close">Cancel</button>
+        <button class="btn btn-large btn-submit btn-primary">Copy File</button>
+    </div>
+</div>
+
+<div class="modal hide salvus-project-copy-to-another-project-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close btn-close" aria-hidden="true">
+            <span style="font-size:20pt;">×</span>
+        </button>
+        <h3 class="salvus-project-copy-file hide"><i class="fa fa-copy"> </i> Copy File to Another Project</h3>
+        <h3 class="salvus-project-copy-dir hide"><i class="fa fa-copy"> </i> Copy Directory to Another Project</h3>
+    </div>
+    <div class="well">
+        Copy<br>
+        <input type="text" style="width:100%" class="salvus-project-copy-src-path" value="">
+        to<br>
+        <input type="text" style="width:100%" class="salvus-project-copy-target-path" value="">
+        <br>
+        in the project<br>
+        <select class="salvus-project-target-project-id">
+        </select>
+
+        <br>
+        <label class="checkbox">
+            <input type="checkbox" class="salvus-project-overwrite-newer">
+            Overwrite newer versions of files
+        </label>
+        <label class="checkbox salvus-project-copy-dir hide">
+            <input type="checkbox" class="salvus-project-delete-missing">
+            Delete extra files in target directory
+        </label>
+        <hr>
     </div>
     <div class="modal-footer">
         <button class="btn btn-large btn-close">Cancel</button>
@@ -658,7 +698,7 @@
                         </div>
                         <div class="row-fluid">
                             <div class="span6 well project-settings-well">
-                                <h4><i class="fa fa-refresh"> </i>&nbsp;&nbsp;  Restart...</h4>
+                                <h4><i class="fa fa-refresh"> </i>&nbsp;&nbsp;  Restart Server</h4>
 
                                 <div class="row-fluid">
                                     <div class="span8">
@@ -693,7 +733,36 @@
                                 </div>
                             </div>
                             <div class="span6 well project-settings-well">
-                                <h4><i class="fa fa-warning"> </i>&nbsp;&nbsp; Danger!</h4>
+                                <h4><i class="fa fa-warning"> </i>&nbsp;&nbsp; Hide and Delete</h4>
+
+                                <div class="row-fluid project-settings-hide">
+                                    <div class="span8">
+                                        Hide this project, so it does not show up in your default project listing.
+                                        This only impacts you, not your collaborators, and you can easily unhide it.
+                                    </div>
+                                    <div class="span4 pull-right">
+                                        <a href="#hide-project" class="btn  btn-warning  pull-right"
+                                            data-toggle="tooltip" data-placement="right" title="Hide this project.">
+                                            <i class="fa fa-eye-slash"> </i> Hide Project
+                                            <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
+                                        </a>
+                                    </div>
+                                    <br>
+                                </div>
+                                <div class="row-fluid project-settings-unhide hide">
+                                    <div class="span8">
+                                        Unhide this project, so it shows up in your default project listing.
+                                    </div>
+                                    <div class="span4 pull-right">
+                                        <a href="#unhide-project" class="btn btn-warning  pull-right"
+                                            data-toggle="tooltip" data-placement="right" title="Unhide this project.">
+                                            <i class="fa fa-eye"> </i> Unhide Project
+                                            <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
+                                        </a>
+                                    </div>
+                                    <br>
+                                </div>
+
                                 <div class="row-fluid project-settings-make-public hide">
                                     <div class="hide">
                                         <div class="span8">
@@ -708,8 +777,9 @@
                                             </a>
                                         </div>
                                     </div>
+                                    <br>
                                 </div>
-                                <br>
+
                                 <div class="hide row-fluid project-settings-make-private" style="margin-top:1ex">
                                     <div class="hide">
                                         <div class="span8">
@@ -723,13 +793,13 @@
                                             </a>
                                         </div>
                                     </div>
+                                    <br>
                                 </div>
-                                <br>
 
                                 <div class="row-fluid project-settings-delete hide"  style="margin-top:1ex">
-                                <!-- Delete the project -->
+                                    <!-- Delete the project -->
                                     <div class="span8">
-                                        Delete this project.
+                                        Delete this project for everyone. You can undo this.
                                     </div>
                                     <div class="span4 pull-right">
                                         <a href="#delete-project" class="btn  btn-danger  pull-right"
@@ -738,19 +808,21 @@
                                             <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
                                         </a>
                                     </div>
+                                    <br>
                                 </div>
                                 <div class="row-fluid project-settings-undelete hide" style="margin-top:1ex">
                                     <!-- Undelete the project -->
                                     <div class="span8">
-                                        Undelete this project.
+                                        Undelete this project for everyone.
                                     </div>
                                     <div class="span4 pull-right">
-                                        <a href="#undelete-project" class="btn btn-large btn-danger  pull-right"
+                                        <a href="#undelete-project" class="btn btn-danger  pull-right"
                                             data-toggle="tooltip" data-placement="right" title="Undelete this project.">
                                             <i class="fa fa-trash-o"> </i> Undelete Project
                                             <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
                                         </a>
                                     </div>
+                                    <br>
                                 </div>
                             </div>
                         </div>
