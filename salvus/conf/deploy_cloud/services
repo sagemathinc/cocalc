@@ -13,7 +13,7 @@ web_cpu       = 2
 old_compute_ram = 2
 old_compute_cpu = 1
 
-compute_ram   = 64
+compute_ram   = 32
 compute_cpu   = 10   # DO *NOT* change compute_cpu willy-nilly; if you change it, you must rebuild ATLAS, which takes 12 hours.
                      # if you don't rebuild ATLAS, then it will crash on this benchmark
                      # sage: n=1000;import numpy; a=numpy.random.randn(n,n);
@@ -72,8 +72,8 @@ localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra:200', 'instance_type
 localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
 
 # web servers/hubs
-localhost    {'hostname':'web1dc3', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
-localhost    {'hostname':'web2dc3', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
+localhost    {'hostname':'web1dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+localhost    {'hostname':'web2dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
 
 
 #####################
