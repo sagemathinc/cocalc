@@ -13,7 +13,7 @@
 #########################################################################################
 
 
-import copy, os, sys
+import copy, os, sys, types
 
 # This reduces a lot of confusion for Sage worksheets -- people expect
 # to be able to import from the current working directory.
@@ -2077,6 +2077,10 @@ class Fork(object):
     The %fork block decorator evaluates its code in a forked subprocess
     that does not block the main process.
 
+    You may still use the @fork function decorator from Sage, as usual,
+    to run a function in a subprocess.  Type "sage.all.fork?" to see
+    the help for the @fork decorator.
+
     WARNING: This is highly experimental and possibly flakie. Use with
     caution.
 
@@ -2104,6 +2108,11 @@ class Fork(object):
         return dict(self._children)
 
     def __call__(self, s):
+
+        if isinstance(s, types.FunctionType): # check for decorator usage
+            import sage.parallel.decorate
+            return sage.parallel.decorate.fork(s)
+
         salvus._done = False
 
         id = salvus._id

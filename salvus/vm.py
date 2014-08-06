@@ -220,7 +220,8 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
     try:
         cmd = ['virt-install',
                '--connect', 'qemu:///system',
-               '--cpu', 'host',
+               '--cpu', 'core2duo,+wdt,+skinit,+osvw,+3dnowprefetch,+misalignsse,+sse4a,+abm,+cr8legacy,+extapic,+svm,+cmp_legacy,+lahf_lm,+rdtscp,+pdpe1gb,+fxsr_opt,+mmxext,+aes,+popcnt,+sse4.2,+sse4.1,+cx16,+ht',
+               #'--cpu', 'host',
                '--network', 'network:default,model=virtio',
                '--name', hostname,
                '--vcpus', vcpus,
