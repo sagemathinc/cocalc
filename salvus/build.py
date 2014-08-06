@@ -185,7 +185,7 @@ MaxStartups 128
 # Install Julia
 
    sudo su
-   umask 022  &&  cd /usr/local/ && git clone git://github.com/JuliaLang/julia.git  &&  cd julia  &&  make -j16 install  &&   cd /usr/local/bin  &&  ln -s /usr/local/julia/julia .
+   umask 022  &&  cd /usr/local/ && git clone git://github.com/JuliaLang/julia.git  &&  cd julia  &&  make -j16 install  &&   cd /usr/local/bin  &&  ln -sf /usr/local/julia/julia .
 
 Start Julia and type:
 
@@ -559,6 +559,7 @@ class BuildSage(object):
         self.patch_banner()
         self.patch_sage_env()
         self.octave_ext()
+        self.install_sloane()
         self.install_projlib()
         self.install_pip()
         self.install_pip_packages()
@@ -662,6 +663,14 @@ class BuildSage(object):
             except:
                 os.unlink(target)
         os.symlink(src, target)
+
+    def install_sloane(self):
+        """
+        Install the Sloane Encyclopaedia tables.  These used to be installed via an optioanl package,
+        but instead one must now run a command from within Sage.
+        """
+        from sage.all import SloaneEncyclopedia
+        SloaneEncyclopedia.install(overwrite=True)
 
     def install_projlib(self):
         """
