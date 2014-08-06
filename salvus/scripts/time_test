@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+import sys, time, os
+
+i = 0
+while True:
+     t = time.time()
+     time.sleep(.1)
+     if time.time() - t > 0.15:
+         i += 1
+         os.system('date')
+         print i; sys.stdout.flush()
+
+
+

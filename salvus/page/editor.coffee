@@ -1557,13 +1557,11 @@ class CodeMirrorEditor extends FileEditor
             @syncdoc.sync()
 
         @element.show()
-        @codemirror.refresh()
 
         if @opts.style_active_line
             @_style_active_line($(@codemirror.getWrapperElement()).css('background-color'))
 
         if @_split_view
-            @codemirror1.refresh()
             $(@codemirror1.getWrapperElement()).show()
         else
             $(@codemirror1.getWrapperElement()).hide()
@@ -1608,7 +1606,7 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : ht
                 width  : width
-            cm.refresh()
+            setTimeout((()=>cm.refresh()), 0)
 
         if chat
             chat_elt = @element.find(".salvus-editor-codemirror-chat")
