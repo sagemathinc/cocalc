@@ -1504,17 +1504,12 @@ class CodeMirrorEditor extends FileEditor
         if @_saving
             return
         @_saving = true
-        #if not @save_button.hasClass('disabled')
-        changed = false
-        f = () -> changed = true
-        @codemirror.on 'change', f
-        @save_button.icon_spin(start:true, delay:1000)
+        before = @codemirror.getValue()
+        @save_button.icon_spin(start:true, delay:3000)
         @editor.save @filename, (err) =>
-            @codemirror.off(f)
             @save_button.icon_spin(false)
             @_saving = false
-            if not err and not changed
-                delete @_change_event
+            if not err and @codemirror.getValue() == before
                 @has_unsaved_changes(false)
         return false
 
@@ -1555,13 +1550,11 @@ class CodeMirrorEditor extends FileEditor
             @syncdoc.sync()
 
         @element.show()
-        @codemirror.refresh()
 
         if @opts.style_active_line
             @_style_active_line($(@codemirror.getWrapperElement()).css('background-color'))
 
         if @_split_view
-            @codemirror1.refresh()
             $(@codemirror1.getWrapperElement()).show()
         else
             $(@codemirror1.getWrapperElement()).hide()
@@ -1606,7 +1599,7 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : ht
                 width  : width
-            cm.refresh()
+            setTimeout((()=>cm.refresh()), 0)
 
         if chat
             chat_elt = @element.find(".salvus-editor-codemirror-chat")
