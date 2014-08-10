@@ -1024,7 +1024,7 @@ def parse_groupfile(filename):
         if line: # ignore blank lines
             if line.startswith('import ') or '=' in line:
                 # import modules for use in assignments below
-                #print "exec ", line
+                print "exec ", line
                 exec line in namespace
                 continue
 
