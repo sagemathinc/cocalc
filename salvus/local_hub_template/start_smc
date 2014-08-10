@@ -20,7 +20,10 @@ def cmd(s):
 
 root_link = os.path.join(SAGEMATHCLOUD, "root")
 if not os.path.exists(root_link):
-    cmd("cd '%s'; ln -s / root"%SAGEMATHCLOUD)
+    try:
+        cmd("cd '%s'; ln -s / root"%SAGEMATHCLOUD)
+    except:
+        print "WARNING: problem making root link"
 
 cmd("cd '%s' && ./make_coffee"%SAGEMATHCLOUD)
 

@@ -398,7 +398,8 @@ SAGE_PIP_PACKAGES = [
     'greenlet',  # Lightweight in-process concurrent programming
     'gmpy2',
     'mmh3',
-    'joblib'
+    'joblib',
+    'colorpy'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}

@@ -1874,6 +1874,8 @@ class GlobalClient
         opts = defaults opts,
             timeout : 30           # timeout if scp fails after this much time -- will happen if a server down or stale...
             cb      : undefined    # cb(err)
+        if not @servers?
+            opts.cb?("@servers not yet initialized"); return
         console.log("starting...")
         dbg = (m) -> winston.info("push_servers_files: #{m}")
         dbg('starting... logged')
@@ -2067,6 +2069,9 @@ class GlobalClient
         opts = defaults opts,
             server_id : required
             cb        : required
+        if not @servers?
+            opts.cb?("@servers not yet initialized"); return
+
         if not @servers.by_id[opts.server_id]?
             opts.cb("server #{opts.server_id} unknown")
             return
@@ -2336,6 +2341,8 @@ class GlobalClient
             dryrun      : false       # if true, just return the projects that need sync; don't actually sync
             status      : []
             cb          : required    # cb(err, errors)
+        if not @servers?
+            opts.cb?("@servers not yet initialized"); return
         dbg = (m) => winston.debug("GlobalClient.repair(...): #{m}")
         dbg()
         projects = []
