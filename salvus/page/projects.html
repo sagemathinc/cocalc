@@ -1,33 +1,42 @@
-<div class="container hide" id="projects">
-
-    <div class="span11 well" style="margin-top:1em;">
-        <div class="row-fluid" style="padding-left:2em">
+<div class="container-fluid constrained hide" id="projects">
+    <div class="well row">
+        <div class="col-sm-12">
             <div class="row">
-                <div class="span3">
+                <div class="col-sm-3">
                     <h3> <a href="#refresh-projects"><i class="fa fa-refresh"> </i></a> Projects</h3>
-                    <button class="btn btn-primary btn-large" style="width:95%" type="submit" id="new_project-button"><i class="fa fa-plus-circle"> </i>  New Project...</button>
+                    <button class="btn btn-primary btn-lg" style="width:100%" type="submit" id="new_project-button"><i class="fa fa-plus-circle"> </i>  New Project...</button>
                 </div>
-                <div class="span9">
-                    <div class="row-fluid">
-                        <div class="row">
-                            <div class="span7">
-                                <span class="btn-group">
+                <div class="col-sm-9">
+                    <div class="row">
+                        <div class="col-sm-7">
+                            <span class="btn-group">
 
-                                    <button class="btn btn-inverse btn-small" id="projects-all-button"><i class="fa fa-tasks"></i> Default</button>
-                                    <!--
-                                    <button class="btn btn-info btn-small" id="projects-public-button"><i class="fa fa-eye"></i> Public</button>
-                                    <button class="btn btn-info btn-small" id="projects-private-button"><i class="fa fa-eye-slash"></i> Private</button>
--->
-                                    <button class="btn btn-info btn-small" id="projects-deleted-button"><i class="fa fa-trash-o"></i> Deleted</button>
-                                    <button class="btn btn-info btn-small" id="projects-hidden-button"><i class="fa fa-eye-slash"></i> Hidden</button>
-                                </span>
-                            </div>
-                            <div class="span5">
-                                <input class="projects-find-input search-query" type="search" placeholder="Find a project...">
-                                <i class="projects-search-form-input-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
-                            </div>
+                                <button class="btn btn-warning btn-sm" id="projects-all-button">
+                                    <i class="fa fa-tasks"></i> Default
+                                </button>
+                                <!--
+                                <button class="btn btn-info btn-sm" id="projects-public-button">
+                                    <i class="fa fa-eye"></i> Public
+                                </button>
+                                <button class="btn btn-info btn-sm" id="projects-private-button">
+                                    <i class="fa fa-eye-slash"></i> Private
+                                </button>
+                                -->
+                                <button class="btn btn-info btn-sm" id="projects-deleted-button">
+                                    <i class="fa fa-trash-o"></i> Deleted
+                                </button>
+                                <button class="btn btn-info btn-sm" id="projects-hidden-button">
+                                    <i class="fa fa-eye-slash"></i> Hidden
+                                </button>
+                            </span>
                         </div>
-                        <div class="row" style="margin-top: 1ex;">
+                        <div class="col-sm-5">
+                            <input class="projects-find-input search-query form-control" type="search" placeholder="Find a project...">
+                        <i class="projects-search-form-input-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
+                        </div>
+                    </div>
+                    <div class="row" style="margin-top: 1ex;">
+                        <div class="col-sm-12">
                             <span class="salvus-hashtag-buttons btn-group" style="white-space: normal">
                             </span>
                         </div>
@@ -36,22 +45,22 @@
             </div>
 
             <div class="row">
-                <div class="span12 lighten projects-describe-listing">
+                <div class="lighten projects-describe-listing col-sm-12">
                 </div>
             </div>
 
 
-            <div class="row well well-small  project-link hide" id="projects-project_list_item_template">
-                <div class="row-fluid">
-                    <div class="span1" style="font-size: 16pt;">
+            <div class="row well project-link hide projects-project_list_item_template">
+                <div class="row">
+                    <div class="col-sm-1" style="font-size: 16pt;">
                         <i class="fa fa-eye projects-public-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
                         <i class="fa fa-lock projects-private-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
                         <!--<span class="projects-active hide"><i class="fa fa-bolt"> </i></span>-->
                     </div>
-                    <div class="span3">
+                    <div class="col-sm-3">
                         <a href="" class="projects-title"></a>
                     </div>
-                    <div class="span2 smallish">
+                    <div class="smallish col-sm-2">
                         <span class="projects-last_edited">
                         </span>
                     </div>
@@ -59,8 +68,8 @@
                         <span class="projects-size">
                         </span>
                     </div>-->
-                    <div class="span3 projects-description"  style="margin-left:0px"></div>
-                    <div class="span3 projects-users">
+                    <div class="projects-description col-sm-3" style="margin-left:0px"></div>
+                    <div class="projects-users col-sm-3">
                         <a href="#projects-add-users"><i class="fa fa-user" style="font-size: 16pt;"> </i></a>
                         <span class="projects-users-list lighten">
                         </span>
@@ -74,74 +83,75 @@
 
             </div>
 
-            <div class="row span12">
+            <div class="row col-sm-12">
                 <br>
-                <button class="btn btn-info btn-large hide" id="projects-show_all">Show all matching projects...</button>
+                <button class="btn btn-info hide btn-lg" id="projects-show_all">Show all matching projects...</button>
             </div>
-
         </div>
     </div>
-
 </div>
 
 
 <div class="salvus-projects-templates hide">
-    <button class="btn btn-info btn-small salvus-hashtag-button"></button>
+    <button class="btn btn-info salvus-hashtag-button btn-sm"></button>
 </div>
 
 <div class="hide projects-location-states">
-    <span class="projects-location-deploying"><i class='fa fa-spinner fa fa-spin'> </i>restoring...</span>
-    <span class="projects-location-stored"><i class='fa fa-archive'> </i>stored</span>
+    <span class="projects-location-deploying"><i class="fa fa-spinner fa fa-spin"> </i>restoring...</span>
+    <span class="projects-location-stored"><i class="fa fa-archive"> </i>stored</span>
 </div>
 
 <!-- Create new project -->
-<div class="modal hide" id="projects-create_project"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-header big-only">
-        <button type="button" class="close" data-dismiss="modal">×</button>
-        <h2><i class="fa fa-plus-circle"> </i> Create a New Project</h2>
-        <div class="lighten">
-            A project is a complete self-contained collection of files and folders.
-            Sharing and collaboration occurs at the project level.
+<div class="modal" id="projects-create_project" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header hidden-xs">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h2><i class="fa fa-plus-circle"> </i> Create a New Project</h2>
+                <div class="lighten">
+                    A project is a complete self-contained collection of files and folders.
+                    Sharing and collaboration occurs at the project level.
+                </div>
+            </div>
+            <div class="modal-body">
+                <!-- title -->
+                <div>
+                    <h4 class="hidden-xs">Title</h4>
+                    <input type="text" style="width:95%" placeholder="Title (you can easily change this later)" id="projects-create_project-title" class="form-control">
+                </div>
+
+                <!-- description -->
+                <div>
+                    <h4 class="hidden-xs">Description</h4>
+                    <input type="text" style="width:95%" placeholder="No description" id="projects-create_project-description" class="form-control">
+                </div>
+
+                <div>
+                    <span class="hidden-xs lighten">You can change the title and description at any time later.</span>
+                </div>
+
+                <!-- public? -->
+                <div class="hide">
+                    <hr class="hidden-xs">
+                    <div class="checkbox"><label class="">
+                        <input type="radio" name="projects-create_project-public" value="public" id="projects-create_project-public">
+                        <span style="font-size:14pt; font-weight:bold"><i class="fa fa-eye"></i> Public (not yet available)</span><br>
+                        <span class="hidden-xs lighten">Anyone can see the contents of this project. You choose who can modify it.</span>
+                    </label></div>
+                    <div class="checkbox"><label class="">
+                        <input type="radio" name="projects-create_project-public" value="private" checked="">
+                        <span style="font-size:14pt; font-weight:bold"><i class="fa fa-lock"></i> Private</span><br>
+                        <span class="hidden-xs lighten">You choose who can see and modify contents of this project.</span>
+                    </label></div>
+                </div>
+            </div>
+            <!-- do it -->
+            <div class="modal-footer">
+                <button class="btn btn-default btn-md" id="projects-create_project-button-cancel">Cancel</button>
+                <button class="btn btn-primary btn-md" type="submit" id="projects-create_project-button-create_project">Create Project</button>
+            </div>
         </div>
     </div>
-    <div class="modal-body">
-        <!-- title -->
-        <div>
-            <h4 class="big-only">Title</h4>
-            <input type="text" style="width:95%" placeholder="Title (you can easily change this later)" id="projects-create_project-title">
-        </div>
-
-        <!-- description -->
-        <div>
-            <h4 class="big-only">Description</h4>
-            <input type="text" style="width:95%" placeholder="No description" id="projects-create_project-description">
-        </div>
-
-        <div>
-            <span class="big-only lighten">You can change the title and description at any time later.</span>
-        </div>
-
-        <!-- public? -->
-        <div class="hide">
-            <hr class="big-only">
-            <label class="radio">
-                <input type="radio" name="projects-create_project-public" value="public" id="projects-create_project-public">
-                <span style="font-size:14pt; font-weight:bold"><i class="fa fa-eye"></i> Public (not yet available)</span><br>
-                <span class="big-only lighten">Anyone can see the contents of this project. You choose who can modify it.</span>
-            </label>
-            <label class="radio">
-                <input type="radio" name="projects-create_project-public" value="private" checked>
-                <span style="font-size:14pt; font-weight:bold"><i class="fa fa-lock"></i> Private</span><br>
-                <span class="big-only lighten">You choose who can see and modify contents of this project.</span>
-            </label>
-        </div>
-    </div>
-    <!-- do it -->
-    <div class="modal-footer">
-        <button class="btn btn-large" id="projects-create_project-button-cancel">Cancel</button>
-        <button class="btn btn-primary btn-large" type="submit" id="projects-create_project-button-create_project">Create Project</button>
-    </div>
-
 </div>
 
 

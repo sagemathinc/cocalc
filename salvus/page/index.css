@@ -5,7 +5,6 @@
   src: local('Droid Sans Mono'), local('DroidSansMono'), url('fonts/droid/DroidSansMono.ttf') format('truetype');
 }
 
-
 help.css
 misc_page.css
 console.css
@@ -67,15 +66,28 @@ top_navbar.css
 }
 
 
-body { padding-top:41px; }
+body { padding-top:43px; }
 
 .not-big {
     display: none;
 }
 
-@media (max-width: 979px) {
-    body { padding-top: 0px !important; }    /* workaround responsive bootstrap menu issue */
+/* mezzo-small, larger than xs, smaller than sm, like the old tasklist button size */
+.btn-ms {
+    padding-bottom: 2px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 2px;
+    letter-spacing: normal;
+    line-height: 20px;
+    margin-bottom: 0px;
+    margin-left: -1px;
+    margin-right: 0px;
+    margin-top: 0px;
+    font-size: 11.9px;
+}
 
+@media (max-width: 767px) {
     .big-only {
         display:none;
     }
@@ -87,10 +99,6 @@ body { padding-top:41px; }
     .salvus-project {
         position: relative !important;
         top: 0px !important;
-    }
-
-    .project-pages, .file-pages {
-        margin-top: 10px;
     }
 }
 
@@ -120,6 +128,25 @@ body { padding-top:41px; }
     display:none;
   }
 }
+
+/* This is a hack to accurately determine if the screen is displaying in responsive mode.
+   When responsive mode, .responsive-mode will have a width of 767px and in full size the
+   width will be 10000px. */
+@media (max-width: 767px) {
+    .responsive-mode {
+        width: 767px;
+    }
+}
+
+@media (min-width: 768px) {
+    .responsive-mode {
+        width: 10000px;
+    }
+}
+
+
+
+
 
 .ui-pnotify-history-container {
     position: fixed;
@@ -166,4 +193,33 @@ code  {
 
 blockquote p {
     font-size: 15px;
+}
+
+.constrained {
+    max-width: 1170px;
+}
+
+.modal h3 {
+    margin: 0;
+}
+
+.modal-footer {
+    padding: 5px;
+}
+
+input[type="text"], select {
+    margin-bottom: 10px;
+}
+
+.btn {
+    white-space: normal;
+}
+
+.tooltip {
+    font-size: 11px;
+}
+
+.checkbox {
+    margin-top: 4px;
+    margin-bottom: 4px;
 }
