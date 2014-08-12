@@ -1,31 +1,31 @@
 <div class="salvus-tasks-templates hide">
 
-    <div class="salvus-tasks-editor" >
+    <div class="salvus-tasks-editor">
         <div class="row" style="margin-left:3px;margin-right:3px;">
-            <div class="row-fluid salvus-tasks-hashtags-row">
-                <div class="span12">
+            <div class="salvus-tasks-hashtags-row row">
+                <div class="col-sm-12">
                     <div class="well salvus-tasks-hashtags">
-                        <span class='btn-group salvus-tasks-hashtag-bar'  style="white-space: normal">
+                        <span class="btn-group salvus-tasks-hashtag-bar" style="white-space: normal">
                         </span>
                     </div>
                 </div>
             </div>
 
-            <div class="row-fluid"  style="width:98%;padding-top: 0.5ex;">
-                <div class="span4 lighten salvus-tasks-header">
-                    <input class="salvus-tasks-search search-query" style="width:82%" type="search" placeholder="Find...">
+            <div class="row" style="width:98%;padding-top: 0.5ex;">
+                <div class="lighten salvus-tasks-header col-sm-4">
+                    <input class="salvus-tasks-search projects-find-input form-control search-query" style="width:82%" type="search" placeholder="Find...">
                     <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
                 </div>
-                <div class="span2 lighten">
+                <div class="lighten col-sm-2">
                     <i class="fa fa-square-o salvus-task-icon-done-box salvus-task-search-done-icon salvus-task-search-not-done"> </i>
                     <i class="fa fa-check-square-o salvus-task-icon-done-box salvus-task-search-done-icon salvus-task-search-done hide"> </i>
                     Done&nbsp;&nbsp;&nbsp;
                     <i class="fa fa-square-o salvus-task-icon-done-box salvus-task-search-deleted-icon salvus-task-search-not-deleted"> </i>
                     <i class="fa fa-check-square-o salvus-task-icon-done-box salvus-task-search-deleted-icon salvus-task-search-deleted hide"> </i>
                     Deleted<br>
-                    <a class='btn btn-danger salvus-task-empty-trash'><i class="fa fa-trash-o"> </i> Empty Trash</a>
+                    <a class="btn btn-danger salvus-task-empty-trash"><i class="fa fa-trash-o"> </i> Empty Trash</a>
                 </div>
-                <div class="span6 lighten salvus-tasks-search-describe">
+                <div class="lighten salvus-tasks-search-describe col-sm-6">
                     Showing <span class="salvus-tasks-count">0 tasks</span>.
                     <h4 class="salvus-tasks-loading">Loading task list... <i class="fa fa-spin fa-spinner"> </i></h4>
                     <span class="salvus-tasks-search-contain hide">Only showing tasks that contain <b><i><span class="salvus-tasks-search-query"></span></i></b>. </span>
@@ -34,29 +34,29 @@
                 </div>
             </div>
 
-            <div class="row-fluid salvus-tasks-list-heading "  style="width:98%">
-                <div class="span6">
+            <div class="salvus-tasks-list-heading row" style="width:98%">
+                <div class="col-sm-6">
                     <span class="btn-group salvus-tasks-action-buttons">
-                        <a class="btn" href="#create-task"><i class="fa fa-plus-circle"> </i> New</a>
-                        <a class="btn salvus-tasks-buttons-pos-move" href="#move-task-to-top"><i class="fa fa-hand-o-up"> </i>  </a>
-                        <a class="btn salvus-tasks-buttons-pos-move" href="#move-task-to-bottom"><i class="fa fa-hand-o-down"> </i>  </a>
+                        <a class="btn btn-default" href="#create-task"><i class="fa fa-plus-circle"> </i> New</a>
+                        <a class="btn salvus-tasks-buttons-pos-move btn-default" href="#move-task-to-top"><i class="fa fa-hand-o-up"> </i>  </a>
+                        <a class="btn salvus-tasks-buttons-pos-move btn-default" href="#move-task-to-bottom"><i class="fa fa-hand-o-down"> </i>  </a>
                         <a class="btn btn-danger" href="#delete-task"><i class="fa fa-trash-o"> </i> </a>
                     </span>
                     <span class="btn-group" style="margin-left: 0px;">  <!-- margin left so looks better on mobile when responsively scrolls around -->
                         <a class="btn btn-success disabled" href="#save"><i class="fa fa-save"> </i> <span>Save</span></a>
-                        <a class='btn btn-info salvus-tasks-info'><i class="fa fa-question-circle"> </i> Help</a>
+                        <a class="btn btn-info salvus-tasks-info"><i class="fa fa-question-circle"> </i> Help</a>
                     </span>
                 </div>
 
-                <div class="span2 lighten salvus-tasks-header  salvus-task-sort-custom">
+                <div class="lighten salvus-tasks-header  salvus-task-sort-custom col-sm-2">
                     Custom Order
                     <i class="fa fa-sort-desc pull-right hide salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
                 </div>
-                <div class="span2 lighten salvus-tasks-header  salvus-task-sort-due">
+                <div class="lighten salvus-tasks-header  salvus-task-sort-due col-sm-2">
                     Due <span class="salvus-tasks-show-done hide"> / Done</span>
                     <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
                 </div>
-                <div class="span2 lighten salvus-tasks-header  salvus-task-sort-last-edited">
+                <div class="lighten salvus-tasks-header  salvus-task-sort-last-edited col-sm-2">
                     Changed <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
                 </div>
 
@@ -66,15 +66,15 @@
                 <div class="salvus-tasks-listing">
                 </div>
                 <h3 class="salvus-tasks-list-none hide">
-                    <a  href="#create-task"><i class="fa fa-plus-circle"> </i>   Create a New Task...</a>
+                    <a href="#create-task"><i class="fa fa-plus-circle"> </i>   Create a New Task...</a>
                 </h3>
                 <div style="height:5em"></div>
             </div>
         </div>
     </div>
 
-    <div class="row-fluid salvus-task">
-        <div class="span1">
+    <div class="salvus-task row">
+        <div class="col-sm-1 salvus-task-sort">
             <span class="salvus-task-toggle-icons">
                 <i class="fa fa-caret-right salvus-task-toggle-icon pull-right hide"> </i>
                 <i class="fa fa-caret-down salvus-task-toggle-icon pull-right"> </i>
@@ -82,18 +82,18 @@
             <i class="fa fa-reorder salvus-task-reorder-handle"> </i>
             <i class="fa fa-check-square-o salvus-task-viewer-done  salvus-task-icon-done-box hide"> </i>
             <i class="fa fa-square-o salvus-task-viewer-not-done salvus-task-icon-done-box"> </i>
-            <a class='btn btn-danger btn-small salvus-task-undelete hide'>Undelete</a>
+            <a class="btn btn-danger salvus-task-undelete hide btn-ms">Undelete</a>
         </div>
-        <div class="span7 salvus-tasks-desc-column">
+        <div class="salvus-tasks-desc-column col-sm-7">
             <div class="salvus-task-desc"></div>
         </div>
 
-        <div class="span2 salvus-task-due-div">
+        <div class="salvus-task-due-div col-sm-2">
             <span class="salvus-task-due">none</span>
             <i class="fa fa-times salvus-task-icon salvus-task-due-clear hide"> </i>
             <span class="salvus-task-done hide"><br>completed <span></span></span>
         </div>
-        <div class="span2">
+        <div class="col-sm-2">
             <span class="salvus-task-last-edited"></span>
         </div>
 
@@ -103,103 +103,102 @@
 
         <div class="salvus-tasks-desc-edit">
             <textarea></textarea>
-            <div class="row-fluid">
-                <div class="span6">
-                    <a class="btn" style="margin-bottom:1ex" href="#close"  data-toggle="tooltip" data-placement="bottom" title="or press shift+enter">Close</a>
+            <div class="row">
+                <div class="col-sm-6">
+                    <a class="btn btn-default" style="margin-bottom:1ex" href="#close" data-toggle="tooltip" data-placement="bottom" title="or press shift+enter">Close</a>
                 </div>
-                <!--<div class="span8">
+                <!--<div class="col-sm-8">
 <span style="color:#999">Use <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>, LaTeX, <tt>#tag</tt> to create hashtag labels, and [ ] and [x] to create checklists, then press shift+enter.</span>
 </div>
 -->
             </div>
         </div>
 
-        <div class="input-append salvus-tasks-due-edit pull-right">
-            <input data-format="MM/dd/yyyy HH:mm:ss PP" type="text" value=''>
-            <span class="add-on" style="cursor:pointer">
-                <i class='fa fa-calendar-o'>
+        <div class="input-group salvus-tasks-due-edit pull-right">
+            <input data-format="MM/dd/yyyy HH:mm:ss PP" type="text" value="" class="form-control">
+            <span class="input-group-addon" style="cursor:pointer">
+                <i class="fa fa-calendar-o">
                 </i>
             </span>
         </div>
     </div>
 
-    <button class="btn btn-info btn-small salvus-tasks-hashtag-button"></button>
+    <button class="btn btn-info salvus-tasks-hashtag-button btn-ms"></button>
 
-    <div class="modal salvus-tasks-help-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-header">
-            <button type="button" class="close btn-close">
-                <span style="font-size:20pt;">×</span>
-            </button>
-            <h3><i class="fa fa-question-circle"> </i>  Task Lists</h3>
-        </div>
-        <div class="modal-body">
-            Use task lists to help organize your work on a SageMathCloud project.
+    <div class="modal salvus-tasks-help-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close btn-close">
+                        <span style="font-size:20pt;">×</span>
+                    </button>
+                    <h3><i class="fa fa-question-circle"> </i>  Task Lists</h3>
+                </div>
+                <div class="modal-body">
+                    Use task lists to help organize your work on a SageMathCloud project.
 
-            <h4>Editing the Description (Markdown)</h4>
-            Click or use the cursor keys (and press enter) to edit a task, or create a new task.
-            Use <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>
-            to describe your task, use LaTeX to typeset mathematics (use <code>\$</code> for a dollar sign),
-            use <code>[ ]</code> and <code>[x]</code> to create checklists, and
-            press shift+enter to save your changes.
-            The editor respects the themes you
-            select in account settings, and
-            external links open in another browser tab.
-            You can toggle showing the full description or only everything up to the first blank line.
-            Of course simultaneous synchronized editing of tasks by multiple clients is fully supported.
+                    <h4>Editing the Description (Markdown)</h4>
+                    Click or use the cursor keys (and press enter) to edit a task, or create a new task.
+                    Use <a href="https://help.github.com/articles/github-flavored-markdown" target="_blank">Github style markdown</a>
+                    to describe your task, use LaTeX to typeset mathematics (use <code>\$</code> for a dollar sign),
+                    use <code>[ ]</code> and <code>[x]</code> to create checklists, and
+                    press shift+enter to save your changes.
+                    The editor respects the themes you
+                    select in account settings, and
+                    external links open in another browser tab.
+                    You can toggle showing the full description or only everything up to the first blank line.
+                    Of course simultaneous synchronized editing of tasks by multiple clients is fully supported.
 
-            <h4>Moving tasks</h4>
-            In custom order (the default) click and drag <i class="fa fa-reorder salvus-task-reorder-handle"> </i>
-            to change the order of the tasks.  You can also click <i class="fa fa-hand-o-up"> </i>
-            and <i class="fa fa-hand-o-down"> </i> to move
-            the currently selected task to the top or bottom of the currently visible task.
+                    <h4>Moving tasks</h4>
+                    In custom order (the default) click and drag <i class="fa fa-reorder salvus-task-reorder-handle"> </i>
+                    to change the order of the tasks.  You can also click <i class="fa fa-hand-o-up"> </i>
+                    and <i class="fa fa-hand-o-down"> </i> to move
+                    the currently selected task to the top or bottom of the currently visible task.
 
-            <h4>Due date</h4>
-            Each task has an optional due date (and time), which you can set by clicking on the due date
-            (or none).  You can see when the task is due, when you last edited it, and
-            click the due column to sort by due date.
-            View finished tasks by selecting the done checkbox.
+                    <h4>Due date</h4>
+                    Each task has an optional due date (and time), which you can set by clicking on the due date
+                    (or none).  You can see when the task is due, when you last edited it, and
+                    click the due column to sort by due date.
+                    View finished tasks by selecting the done checkbox.
 
-            <h4>Hashtags</h4>
-            Put <span class="salvus-tasks-hash"><tt>#tag</tt></span> anywhere in the description of a task to create a hashtag, with
-            <i>no space</i> between the hash symbol and the tag identifier.  A corresponding button
-            will appear at the top of the screen. Click
-            on the bottom or the hashtag in  a task to toggle showing only tasks with that hashtag.
+                    <h4>Hashtags</h4>
+                    Put <span class="salvus-tasks-hash"><tt>#tag</tt></span> anywhere in the description of a task to create a hashtag, with
+                    <i>no space</i> between the hash symbol and the tag identifier.  A corresponding button
+                    will appear at the top of the screen. Click
+                    on the bottom or the hashtag in  a task to toggle showing only tasks with that hashtag.
 
-            <h4>Search</h4>
-            Enter terms in the search box in the upper left to show only tasks containing
-            all search terms.
+                    <h4>Search</h4>
+                    Enter terms in the search box in the upper left to show only tasks containing
+                    all search terms.
 
-            <h4>Keyboard shortcuts</h4>
-            Let mod be any of control, alt, or command.
-            Use mod+s to save, mod+f to find, mod+n to make a new task, mod+space to toggle done state,
-            and mod+arrow to move a task up or down the list.
-            Use arrows (or j and k) to change which task is selected, enter to start editing a task description,
-            and shift+enter to stop editing.
+                    <h4>Keyboard shortcuts</h4>
+                    Let mod be any of control, alt, or command.
+                    Use mod+s to save, mod+f to find, mod+n to make a new task, mod+space to toggle done state,
+                    and mod+arrow to move a task up or down the list.
+                    Use arrows (or j and k) to change which task is selected, enter to start editing a task description,
+                    and shift+enter to stop editing.
 
-            <h4>File format</h4>
-            A task list is stored as a file with extension <tt>.tasks</tt> that contains one JSON line per task.
-            You can directly edit this file with other tools (e.g., vim on the command line)
-            and changes should appear in the task list within a few seconds.  You can
-            have many task lists, store them in revision control, recover them from snapshots, etc.
-            You can also create a task list by creating a file <code>foo.tasks</code> that has one
-            description per line (as a string):
-            <pre>
-            "the first task"
-            "another task"</pre>
-            Or, with one JSON line per task:
-            <pre>
-            {"desc":"the first task"}
-            {"desc":"another task"}</pre>
-            Additional optional fields are <code>position</code>, which is a float that determines sort order, <code>done</code>, <code>due</code>
-            and <code>last_edited</code>, which are the number of milliseconds since the epoch in the UTC time zone, and <code>task_id</code>
-            which is a v4 UUID.
+                    <h4>File format</h4>
+                    A task list is stored as a file with extension <tt>.tasks</tt> that contains one JSON line per task.
+                    You can directly edit this file with other tools (e.g., vim on the command line)
+                    and changes should appear in the task list within a few seconds.  You can
+                    have many task lists, store them in revision control, recover them from snapshots, etc.
+                    You can also create a task list by creating a file <code>foo.tasks</code> that has one
+                    description per line (as a string):
+                    <pre>            "the first task"
+                    "another task"</pre>
+                    Or, with one JSON line per task:
+                    <pre>            {"desc":"the first task"}
+                    {"desc":"another task"}</pre>
+                    Additional optional fields are <code>position</code>, which is a float that determines sort order, <code>done</code>, <code>due</code>
+                    and <code>last_edited</code>, which are the number of milliseconds since the epoch in the UTC time zone, and <code>task_id</code>
+                    which is a v4 UUID.
 
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-close">Close</button>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-close btn-default">Close</button>
+                </div>
+            </div>
         </div>
     </div>
-
 </div>
-
-
