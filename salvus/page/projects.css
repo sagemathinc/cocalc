@@ -1,3 +1,7 @@
+#projects {
+    margin-top: 1em;
+}
+
 .your-projects-title {
     font-size: 18pt;
     font-weight:bold;
@@ -8,7 +12,6 @@
     background-color:#ffffff;
     margin-top:0px;
     margin-bottom:0px;
-    margin-right:2em;
 
     padding-top: 1.5em;
     padding-bottom: 1.5em;
@@ -42,7 +45,13 @@
 }
 
 .projects-find-input {
-    width: 80%;
+    width: 95%;
+    display: inline-block;
+    border-radius: 15px;
+    padding-right: 14px;
+    padding-left: 14px;
+    margin-bottom: 0px;
+    height: 30px;
 }
 
 .projects-active {
@@ -65,4 +74,8 @@
     margin-left:0px;
     max-height: 7em;
     overflow-y: auto;
+}
+
+.projects-project_list_item_template {
+    word-wrap: break-word;
 }
