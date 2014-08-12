@@ -13,7 +13,7 @@ web_cpu       = 2
 old_compute_ram = 2
 old_compute_cpu = 1
 
-compute_ram   = 72 
+compute_ram   = 72
 compute_ram_med = 42
 compute_cpu   = 12   # DO *NOT* change compute_cpu willy-nilly; if you change it, you must rebuild ATLAS, which takes 12 hours.
                      # if you don't rebuild ATLAS, then it will crash on this benchmark
@@ -40,10 +40,10 @@ localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-hi
 localhost    {'hostname':'backup1dc2', 'disk':'backup1:4000', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
 
 # cassandra cluster
-localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
-localhost    {'hostname':'cassandra2dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
-localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
-localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra2dc2', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
 
 # web servers/hubs
 localhost    {'hostname':'web1dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
@@ -67,10 +67,10 @@ localhost     {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'n1-h
 #localhost    {'hostname':'compute4dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
 
 # cassandra cluster
-localhost    {'hostname':'cassandra1dc3', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
-localhost    {'hostname':'cassandra2dc3', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
-localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
-localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra1dc3', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra2dc3', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
 
 # web servers/hubs
 localhost    {'hostname':'web1dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
