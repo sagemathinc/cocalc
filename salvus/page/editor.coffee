@@ -155,9 +155,9 @@ file_associations['tasks'] =
     opts   : {}
 
 file_associations['sage-history'] =
- 	editor : 'history'
- 	icon   : 'fa-history'
- 	opts   : {}
+    editor : 'history'
+    icon   : 'fa-history'
+    opts   : {}
 
 # Multiplex'd worksheet mode
 
