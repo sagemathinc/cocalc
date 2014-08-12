@@ -559,7 +559,6 @@ class BuildSage(object):
         """
         self.unextend_sys_path()
         self.patch_sage_location()
-        self.patch_pexpect()
         self.patch_banner()
         self.patch_sage_env()
         self.octave_ext()
@@ -597,21 +596,6 @@ class BuildSage(object):
             if after not in f:
                 raise RuntimeError("unable to patch %s"%target)
             log.info("already patched %s"%target)
-
-
-    def patch_pexpect(self):
-        """
-        Patch around pexpect bug in sage -- see http://trac.sagemath.org/ticket/15178
-        """
-        path = self.path("local/lib/python2.7/site-packages/pexpect.py")
-        f = open(path).read()
-        before = "if os.access (filename, os.X_OK) and not os.path.isdir(f):"
-        after  = "if os.access (filename, os.X_OK) and not os.path.isdir(filename):"
-        if before in f:
-            log.info("pexpect still has bug: patching")
-            open(path,'w').write(f.replace(before, after))
-        else:
-            log.info("pexpect bug already patched")
 
     def patch_banner(self):
         """
