@@ -1,83 +1,91 @@
 <!-- Forgot password: dialog to request email be sent (and token placed in database) -->
 
-<div class="modal hide" id="account-forgot_password"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
-            <h3>Forgot your password?</h3>
-            Enter your email address to reset your password.
-            <div class="hide account-error-text" id="account-forgot_password-error"></div>
+<div class="modal" id="account-forgot_password" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
+                <h3>Forgot your password?</h3>
+                Enter your email address to reset your password.
+                <div class="hide account-error-text" id="account-forgot_password-error"></div>
+            </div>
+            <div class="modal-body">
+                <div class="hide account-error-text" id="account-forgot_password-error-email_address"></div>
+                <input class="offset1 form-control" type="email" placeholder="Email address" id="account-forgot_password-email_address">
+                <hr>
+                Not working?  Email me at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>.
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password-button-submit">Send email</button>
+                <button class="btn btn-default" data-dismiss="modal" id="account-forgot_password-button-cancel">Cancel</button>
+            </div>
         </div>
-        <div class="modal-body offset1">
-            <div class="hide account-error-text" id="account-forgot_password-error-email_address"></div>
-            <input class="span4 offset1" type="email" placeholder="Email address" id="account-forgot_password-email_address">
-            <hr>
-            Not working?  Email me at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>.
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password-button-submit">Send email</button>
-            <button class="btn" data-dismiss="modal" id="account-forgot_password-button-cancel">Cancel</button>
-        </div>
+    </div>
 </div>
 
 
-<div class="modal hide salvus-connection-info" data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
-            <h3><i class="fa fa-signal" style="margin-right:1em"></i> Connection</h3>
-        </div>
-        <div class="modal-body">
-            <div class="salvus-connection-hub">
-                <div class="row-fluid">
-                    <div class="span2">
-                        <h4>Hub</h4>
+<div class="modal salvus-connection-info" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
+                <h3><i class="fa fa-signal" style="margin-right:1em"></i> Connection</h3>
+            </div>
+            <div class="modal-body">
+                <div class="salvus-connection-hub">
+                    <div class="row">
+                        <div class="col-sm-2 col-md-2">
+                            <h4>Hub</h4>
+                        </div>
+                        <div class="col-sm-6 col-md-6">
+                            <pre></pre>
+                        </div>
+                        <div class="lighten col-sm-4 col-md-4">
+                            (Delete SERVERID cookie to change.)
+                        </div>
                     </div>
-                    <div class="span6">
+                    <div class="salvus-connection-nohub">
+                        Not connected to a hub.
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-2 col-md-2">
+                        <h4>Type</h4>
+                    </div>
+                    <div class="col-sm-6 col-md-6">
+                        <pre class="salvus-connection-type"></pre>
+                    </div>
+                    <div class="col-lg-offset-1 col-sm-3 col-md-3">
+                        <a href="#salvus-connection-reconnect" class="btn btn-warning" style="margin-top: .8ex;"><i class="fa fa-repeat"> </i> Reconnect</a>
+                    </div>
+                </div>
+                <div class="salvus-connection-ping row">
+                    <div class="col-sm-2 col-md-2">
+                        <h4>Ping</h4>
+                    </div>
+                    <div class="col-sm-6 col-md-6">
                         <pre></pre>
                     </div>
-                    <div class="span4 lighten">
-                        (Delete SERVERID cookie to change.)
-                    </div>
-                </div>
-                <div class="salvus-connection-nohub">
-                    Not connected to a hub.
                 </div>
             </div>
-            <div class="row-fluid">
-                <div class="span2">
-                    <h4>Type</h4>
-                </div>
-                <div class="span6">
-                    <pre class="salvus-connection-type"></pre>
-                </div>
-                <div class="span3 offset1">
-                    <a href="#salvus-connection-reconnect" class='btn btn-warning' style="margin-top: .8ex;"><i class="fa fa-repeat"> </i> Reconnect</a>
-                </div>
-            </div>
-            <div class="row-fluid salvus-connection-ping">
-                <div class="span2">
-                    <h4>Ping</h4>
-                </div>
-                <div class="span6">
-                    <pre></pre>
-                </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" data-dismiss="modal">Close</button>
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn" data-dismiss="modal">Close</button>
-        </div>
+    </div>
 </div>
 
 
-<div class="container" id="account" style="padding-top: 2em;">
+<div class="container-fluid constrained" id="account" style="padding-top: 1em;">
 
     <div class="row hide" id="account-sign_in">
-        <div class="span6">
+        <div class="col-sm-7 col-md-7">
             <h2><!--<i class="fa fa-cloud"> </i> -->
                 <img src="favicon-128.png" width="64" height="64" class="img img-rounded">
-                SageMathCloud&trade;</h2>
-            <!-- <h3 class="big-only">Computational mathematics in the cloud</h3>-->
+                SageMathCloud™</h2>
+            <!-- <h3 class="hidden-xs">Computational mathematics in the cloud</h3>-->
             <br>
-            <ul class="big-only">
+            <ul class="hidden-xs">
                 <li class="salvus-help-list">Use Sage, R, Octave, Python, Cython, GAP, Macaulay2, Singular, and much more</li>
                 <li class="salvus-help-list">Edit $\LaTeX$ documents with inverse and forward search and Sage mode</li>
                 <li class="salvus-help-list">Collaboratively edit IPython notebooks, Sage worksheets, and all other document types</li>
@@ -94,7 +102,7 @@
 
         </div>
         <!--
-<div class="span6 well well-cell">
+<div class="col-sm-6 well well-cell">
 <label class="checkbox">
 <input type="checkbox" id="create_account-agreed_to_terms">
 I agree to <a href="#link-terms">SageMathCloud Terms</a>
@@ -107,26 +115,24 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 <span class="account-cell0"></span>
 </div>
 -->
-        <div class="span4 well">
+        <div class="well col-sm-5 col-md-5">
             <div class="salvus-remember_me-message hide">
                 Loading <span></span>... <i class="fa fa-spin fa-refresh"></i>
             </div>
             <form class="salvus-sign_in-form">
-                <h4>Sign in (or <a href="#account-create_account">create an account</a>)</h4><br  class="big-only">
-                <!--<span class="big-only lighten">Email:</span>-->
-                <input class="span4" type="email" placeholder="Email" id="sign_in-email"><br class="big-only">
-                <!--<span class="big-only lighten">Password:</span>-->
-                <input class="span4" type="password" placeholder="Password"  id="sign_in-password"><br  class="big-only">
-                <br  class="big-only">
+                <h4>Sign in (or <a href="#account-create_account">create an account</a>)</h4>
+                <!--<span class="hidden-xs lighten">Email:</span>-->
+                <input class="form-control" type="email" placeholder="Email" id="sign_in-email">
+                <!--<span class="hidden-xs lighten">Password:</span>-->
+                <input class="form-control" type="password" placeholder="Password" id="sign_in-password">
                 <div class="row">
-                    <div class="span4">
-                        <button class="btn btn-primary btn-large" type="submit" id="sign_in-button">&nbsp;&nbsp;&nbsp;Sign in&nbsp;&nbsp;&nbsp;</button>
+                    <div class="col-sm-4 col-md-4">
+                        <button class="btn btn-primary btn-md" type="submit" id="sign_in-button">&nbsp;&nbsp;&nbsp;Sign in&nbsp;&nbsp;&nbsp;</button>
                     </div>
                 </div>
-                <br>
                 <div class="row">
-                    <div class="span4">
-                        <a href="#account-forgot_password" style='font-size:12pt'>Forgot your password?</a>
+                    <div class="col-sm-12 col-md-12">
+                        <a href="#account-forgot_password" style="font-size:12pt">Forgot your password?</a>
                     </div>
                 </div>
                 <hr>
@@ -137,13 +143,13 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
     </div>
 
     <div class="row hide" id="account-create_account">
-        <div class="span6">
+        <div class="col-sm-7 col-md-7">
 
-            <h2>Welcome to SageMathCloud&trade;!</h2>
-            <br class="big-only">
-            <!-- <img alt="Cloud picture" class="span4 img-rounded big-only" src="/art/cloud.png" style="width:110px">-->
+            <h2>Welcome to SageMathCloud™!</h2>
+            <br class="hidden-xs">
+            <!-- <img alt="Cloud picture" class="col-sm-4 img-rounded hidden-xs" src="/art/cloud.png" style="width:110px">-->
                 <!--
-            <div class="big-only">
+            <div class="hidden-xs">
                 <br>
                 <iframe width="90%" height="300" src="https://www.youtube.com/embed/eadnL5hDg9M" frameborder="0" allowfullscreen></iframe>
             </div>
@@ -151,27 +157,26 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 
 
         </div>
-        <div class="span4 well">
+        <div class="well col-sm-5 col-md-5">
             <h4>Create an account (or <a href="#account-sign_in">sign in</a>)</h4>
             <br>
 
-            <span class="big-only lighten">First name:</span>
-            <input class="span4" type="text" placeholder="First name (everyone can see this)" id="create_account-first_name"><br class="big-only">
-            <span class="big-only lighten">Last name:</span>
-            <input class="span4" type="text" placeholder="Last name (everyone can see this)" id="create_account-last_name"><br class="big-only">
-            <span class="big-only lighten">Email:</span>
-            <input class="span4" type="email" placeholder="Email (this is private)" id="create_account-email_address"><br class="big-only">
-            <span class="big-only lighten">Password:</span>
-            <input class="span4 salvus-password-meter" type="password" placeholder="Password" id="create_account-password">
-            <span class="big-only lighten">Retype Password:</span>
-            <input class="span4" type="password" placeholder="Retype password" id="create_account-retype_password">
+            <span class="hidden-xs lighten">First name:</span>
+            <input class="form-control" type="text" placeholder="First name (everyone can see this)" id="create_account-first_name">
+            <span class="hidden-xs lighten">Last name:</span>
+            <input class="form-control" type="text" placeholder="Last name (everyone can see this)" id="create_account-last_name">
+            <span class="hidden-xs lighten">Email:</span>
+            <input class="form-control" type="email" placeholder="Email (this is private)" id="create_account-email_address">
+            <span class="hidden-xs lighten">Password:</span>
+            <input class="salvus-password-meter form-control" type="password" placeholder="Password" id="create_account-password">
+            <span class="hidden-xs lighten">Retype Password:</span>
+            <input class="form-control" type="password" placeholder="Retype password" id="create_account-retype_password">
 
-            <label class="checkbox">
+            <div class="checkbox"><label class="">
                 <input type="checkbox" id="create_account-agreed_to_terms">
                 I agree to the <a href="#link-terms">SageMathCloud Terms</a>
-            </label>
-            <br  class="big-only">
-            <button class="btn btn-success btn-large" type="submit" id="create_account-button">Create account for free</button>
+            </label></div>
+            <button class="btn btn-success btn-lg" type="submit" id="create_account-button">Create account for free</button>
 
 
 
@@ -179,16 +184,16 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
     </div>
 
 
-    <div class="row span11 indent1 hide" id="account-settings">
+    <div class="row indent1 hide col-sm-12 col-md-12" id="account-settings">
 
 
         <div class="pull-right" style="margin-bottom: 1em;">
-            <button class="btn btn-primary" type="submit" id="account-settings-change-settings-button"><i class="fa fa-save"> </i> Save</button>
+            <button class="btn btn-success btn-sm" type="submit" id="account-settings-change-settings-button"><i class="fa fa-save"> </i> Save</button>
             <!--<button class="btn" id="account-settings-cancel-changes-button" style="margin-right:3em;">Cancel</button>-->
-            <a href="#sign-out" class="btn btn-success"><i class="fa fa-sign-out"> </i> Sign out</a>
+            <a href="#sign-out" class="btn btn-primary btn-sm"><i class="fa fa-sign-out"> </i> Sign out</a>
         </div>
 
-        <div class="alert alert-error" id="account-settings-error">
+        <div class="alert alert-d alert-warning alert-dismissable" id="account-settings-error">
             <button type="button" class="close" data-dismiss="alert">×</button>
             <i class="fa fa-info-circle"></i>
             There was an error loading your account settings from the database (<a href="#reload-account-settings">try again</a>).
@@ -205,76 +210,76 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                 <div class="row">
                     <!-- TODO: this is a temporary warning/note -- settings *should* take effect immediately, and there should be no save/cancel button. -->
                     <span class="lighten">
-                        <h4  style="margin-left: 2em;">NOTE: Editor and terminal settings only apply to newly (re-)opened files after saving settings.</h4>
+                        <h4 style="margin-left: 2em;">NOTE: Editor and terminal settings only apply to newly (re-)opened files after saving settings.</h4>
                     </span>
                 </div>
                 <div class="row">
-                    <div class="span5 well">
+                    <div class="well col-sm-6 col-md-6" id="account-settings-account">
                         <div class="row">
-                            <div class="row span5">
+                            <div class="col-sm-12 col-md-12">
                                 <h3>Account</h3>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="row span2">First name</div>
-                            <div class="row span3"><input class="span3" type="text" value="" id="account-settings-first_name"></div>
+                            <div class="col-sm-4 col-md-4">First name</div>
+                            <div class="col-sm-8 col-md-8"><input class="form-control" type="text" value="" id="account-settings-first_name"></div>
                         </div>
                         <div class="row">
-                            <div class="row span2">Last name</div>
-                            <div class="row span3"><input class="span3" type="text" value="" id="account-settings-last_name"></div>
+                            <div class="col-sm-4 col-md-4">Last name</div>
+                            <div class="col-sm-8 col-md-8"><input class="form-control" type="text" value="" id="account-settings-last_name"></div>
                         </div>
                         <br>
                         <div class="row">
-                            <div class="row span2">Password</div>
-                            <div class="row span3">
+                            <div class="col-sm-4 col-md-4">Password</div>
+                            <div class="col-sm-8 col-md-8">
                                 <a href="#account-change_password">Change password</a><br>
                                 <a href="#account-forgot_password">Forgot password</a>
                             </div>
                         </div>
                         <br>
                         <div class="row">
-                            <div class="row span2">Email</div>
-                            <div class="row span3"><span id="account-settings-email_address"></span> (<a href="#account-change_email_address">change</a>)</div>
+                            <div class="col-sm-4 col-md-4">Email</div>
+                            <div class="col-sm-8 col-md-8"><span id="account-settings-email_address"></span> (<a href="#account-change_email_address">change</a>)</div>
                         </div>
                     </div>
 
 
 
-                    <div class="span5 well account-settings-terminal">
+                    <div class="well col-sm-6 col-md-6" id="account-settings-terminal">
                         <div class="row">
-                            <div class="row span5">
+                            <div class="col-sm-12 col-md-12">
                                 <h3>Terminal</h3>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="row span2" rel="tooltip" title="The default font size for terminals.">
+                            <div class="col-sm-3 col-md-3" rel="tooltip" title="The default font size for terminals.">
                                 Font size (px)
                             </div>
-                            <div class="row span1">
-                                <input class="account-settings-terminal-font_size span1" type="text">
+                            <div class="col-sm-3 col-md-3">
+                                <input class="account-settings-terminal-font_size form-control" type="text">
                             </div>
-                            <div class="row span2">
+                            <div class="col-sm-6 col-md-6">
                                 <div class="account-settings-terminal-font_size-slider"></div>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="row span2" rel="tooltip" title="The font for terminals.">
+                            <div class="col-sm-3 col-md-3" rel="tooltip" title="The font for terminals.">
                                 Font family
                             </div>
-                            <div class="row span3">
-                                <select class="account-settings-terminal-font">
+                            <div class="col-sm-9 col-md-9">
+                                <select class="account-settings-terminal-font form-control">
                                     <option value="droid-sans-mono">Droid Sans Mono</option>
-                                    <option value='Courier New'>Courier New</option>
-                                    <option value='monospace'>Monospace (browser default)</option>
+                                    <option value="Courier New">Courier New</option>
+                                    <option value="monospace">Monospace (browser default)</option>
                                 </select>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="row span2" rel="tooltip" title="The color scheme for terminals.">
+                            <div class="col-sm-3 col-md-3" rel="tooltip" title="The color scheme for terminals.">
                                 Color scheme
                             </div>
-                            <div class="row span3">
-                                <select class="account-settings-terminal-color_scheme">
+                            <div class="col-sm-9 col-md-9">
+                                <select class="account-settings-terminal-color_scheme form-control">
                                 </select>
                             </div>
                         </div>
@@ -284,16 +289,16 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                 </div>
                 <div class="row">
 
-                    <div class="span5 well"  id="account-settings-editor_settings">
+                    <div class="well col-sm-6 col-md-6" id="account-settings-editor_settings">
                         <div class="row">
-                            <div class="row span5">
+                            <div class="col-sm-6 col-md-6">
                                 <h3>Editor</h3>
                             </div>
                         </div>
 
 
-                        <div class="hide row span2" rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
-                        <div class="hide row span3">
+                        <div class="hide col-sm-2 col-md-2" rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
+                        <div class="hide col-sm-4 col-md-4">
                             <select id="account-settings-default_system">
                                 <option value="sage">Sage</option>
                                 <option value="python">Python</option>
@@ -304,60 +309,60 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                         </div>
 
                         <div class="row">
-                            <div class="row span2" rel="tooltip" title="Your files will be automatically saved to disk every autosave seconds.  Past versions of files are retained, so you can undo a save. Set autosave to 0 to disable.">
+                            <div class="col-sm-4 col-md-4" rel="tooltip" title="Your files will be automatically saved to disk every autosave seconds.  Past versions of files are retained, so you can undo a save. Set autosave to 0 to disable.">
                                 Autosave seconds
                             </div>
-                            <div class="row span1">
-                                <input id="account-settings-autosave" type="text" class="span1">
+                            <div class="col-sm-2 col-md-2">
+                                <input id="account-settings-autosave" type="text" class="form-control">
                             </div>
-                            <div class="row span2">
-                                <div id="account-settings-autosave-slider"></div>
+                            <div class="col-sm-6 col-md-6">
+                                <div class="account-settings-autosave-slider"></div>
                             </div>
                         </div>
 
                         <div class="row hide">
-                            <div class="row span2" rel="tooltip" title="The default font size for editor.">
+                            <div class="col-sm-4 col-md-4" rel="tooltip" title="The default font size for editor.">
                                 Font size (px)
                             </div>
-                            <div class="row span1">
-                                <input class="account-settings-editor-font_size span1" type="text">
+                            <div class="col-sm-1 col-md-1">
+                                <input class="account-settings-editor-font_size form-control" type="text">
                             </div>
-                            <div class="row span2">
+                            <div class="col-sm-3 col-md-3">
                                 <div class="account-settings-editor-font_size-slider"></div>
                             </div>
                         </div>
 
                         <div class="row hide">
-                            <div class="row span2" rel="tooltip" title="How many spaces a block (whatever that means in the edited language) should be indented.">
+                            <div class="col-sm-2 col-md-2" rel="tooltip" title="How many spaces a block (whatever that means in the edited language) should be indented.">
                                 Indent spaces
                             </div>
-                            <div class="row span1">
-                                <input class="account-settings-editor-indent_unit span1" type="text">
+                            <div class="col-sm-1 col-md-1">
+                                <input class="account-settings-editor-indent_unit  form-control" type="text">
                             </div>
-                            <div class="row span2">
+                            <div class="col-sm-3 col-md-3">
                                 <div class="account-settings-editor-indent_unit-slider"></div>
                             </div>
                         </div>
 
                         <div class="row hide">
-                            <div class="row span2" rel="tooltip" title="The default font for text editors.">
+                            <div class="col-sm-2 col-md-2" rel="tooltip" title="The default font for text editors.">
                                 Font family
                             </div>
-                            <div class="row span3">
+                            <div class="col-sm-4 col-md-4">
                                 <select class="account-settings-editor-font">
                                     <option value="droid-sans-mono">Droid Sans Mono</option>
-                                    <option value='Courier New'>Courier New</option>
-                                    <option value='monospace'>Monospace (browser default)</option>
+                                    <option value="Courier New">Courier New</option>
+                                    <option value="monospace">Monospace (browser default)</option>
                                 </select>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="row span2" rel="tooltip" title="The default theme for newly opened text editors and worksheets.">
+                            <div class="col-sm-4 col-md-4" rel="tooltip" title="The default theme for newly opened text editors and worksheets.">
                                 Theme (<a href="http://codemirror.net/demo/theme.html" target="_blank">previews</a>)
                             </div>
-                            <div class="row span3">
-                                <select class="account-settings-editor-color_scheme">
+                            <div class="col-sm-6 col-md-6">
+                                <select class="account-settings-editor-color_scheme form-control">
                                     <option value="default">Default</option>
                                     <option value="3024-day">3024 day</option>
                                     <option value="3024-night">3024 night</option>
@@ -392,9 +397,9 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                         </div>
 
                         <div class="row">
-                            <div class="row span2" rel="tooltip" title="Set the keyboard bindings">Bindings</div>
-                            <div class="row span3">
-                                <select class="account-settings-editor-bindings">
+                            <div class="col-sm-4 col-md-4" rel="tooltip" title="Set the keyboard bindings">Bindings</div>
+                            <div class="col-sm-6 col-md-6">
+                                <select class="account-settings-editor-bindings form-control">
                                     <option value="standard">Standard</option>
                                     <option value="sublime">Sublime</option>
                                     <option value="vim">Vim</option>
@@ -404,92 +409,98 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                         </div>
 
                         <div class="row">
-                            <div class="row span5">
-                                <label class="checkbox"  rel="tooltip" title="Whether to scroll or wrap for long lines.">
-                                    <input type="checkbox" checked="checked"
-                                        class="account-settings-line_wrapping" rel="tooltip"
-                                        >Line wrapping: <span class="lighten">scroll or wrap long lines</span>
-                                </label>
+                            <div class="col-sm-12 col-md-12">
+                                <div class="checkbox"><label class="" rel="tooltip" title="Whether to scroll or wrap for long lines.">
+                                    <input type="checkbox" checked="checked" class="account-settings-line_wrapping" rel="tooltip">Line wrapping: <span class="lighten">scroll or wrap long lines</span>
+                                </label></div>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="row span5">
-                                <label class="checkbox" rel="tooltip"
-                                        title="Show line numbers to the left of the editor">
-                                    <input type="checkbox" checked="checked"
-                                        class="account-settings-line_numbers" rel="tooltip">Line numbers:
+                            <div class="col-sm-12 col-md-12">
+                                <div class="checkbox"><label class="" rel="tooltip" title="Show line numbers to the left of the editor">
+                                    <input type="checkbox" checked="checked" class="account-settings-line_numbers" rel="tooltip">Line numbers:
                                     <span class="lighten">show line numbers</span>
-                                </label>
+                                </label></div>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="row span5">
-                                <label class="checkbox" rel="tooltip" title="Whether to use the context sensitive indentation that the mode provides (or just indent the same as the line before).">
+                            <div class="col-sm-12 col-md-12">
+                                <div class="checkbox"><label class="" rel="tooltip" title="Whether to use the context sensitive indentation that the mode provides (or just indent the same as the line before).">
                                     <input type="checkbox" checked="checked" class="account-settings-smart_indent">Smart indent:
                                     <span class="lighten">context sensitive indentation</span>
-                                </label>
+                                </label></div>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="row span5">
-                                <label class="checkbox" rel="tooltip" title="Whether the editor should reindent the current line when a character is typed that might change its proper indentation (only works if the mode supports indentation).">
+                            <div class="col-sm-12 col-md-12">
+                                <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should reindent the current line when a character is typed that might change its proper indentation (only works if the mode supports indentation).">
                                     <input type="checkbox" checked="checked" class="account-settings-electric_chars">Electric characters:
                                     <span class="lighten">sometimes reindent current line</span>
-                                </label>
+                                </label></div>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="row span5">
-                                <label class="checkbox" rel="tooltip" title="Whether the editor should visually indicate matching brackets.">
+                            <div class="col-sm-12 col-md-12">
+                                <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should visually indicate matching brackets.">
                                     <input type="checkbox" checked="checked" class="account-settings-match_brackets">Match brackets:
                                     <span class="lighten">highlight matching brackets near cursor</span>
-                                </label>
+                                </label></div>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="row span5">
-                                <label class="checkbox" rel="tooltip" title="Whether the editor should automatically add the closing bracket.">
+                            <div class="col-sm-12 col-md-12">
+                                <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically add the closing bracket.">
                                     <input type="checkbox" checked="checked" class="account-settings-auto_close_brackets">Auto brackets:
                                     <span class="lighten">automatically close brackets</span>
-                                </label>
+                                </label></div>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="row span5">
-                                <label class="checkbox" rel="tooltip" title="If checked, trailing whitespace will be stripped from files when they are saved.">
+                            <div class="col-sm-12 col-md-12">
+                                <div class="checkbox"><label class="" rel="tooltip" title="If checked, trailing whitespace will be stripped from files when they are saved.">
                                     <input type="checkbox" checked="checked" class="account-settings-strip_trailing_whitespace">Delete trailing whitespace:
                                     <span class="lighten">remove whenever file is saved</span>
-                                </label>
+                                </label></div>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="row span5">
-                                <label class="checkbox" rel="tooltip" title="Show trailing whitespace at the ends of lines.">
+                            <div class="col-sm-12 col-md-12">
+                                <div class="checkbox"><label class="" rel="tooltip" title="Show trailing whitespace at the ends of lines.">
                                     <input type="checkbox" checked="checked" class="account-settings-show_trailing_whitespace">Show trailing whitespace:
                                     <span class="lighten">show spaces at ends of lines</span>
-                                </label>
+                                </label></div>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="row span5">
-                                <label class="checkbox" rel="tooltip" title="If checked, pressing tab inserts four spaces instead of a tab character.">
+                            <div class="col-sm-12 col-md-12">
+                                <div class="checkbox"><label class="" rel="tooltip" title="If checked, pressing tab inserts four spaces instead of a tab character.">
                                     <input type="checkbox" checked="checked" class="account-settings-spaces_instead_of_tabs">Spaces instead of tabs:
                                     <span class="lighten">send 4 spaces when the tab key is pressed</span>
-                                </label>
+                                </label></div>
                             </div>
                         </div>
+
+                       <div class="row">
+                            <div class="col-sm-12 col-md-12">
+                                <div class="checkbox"><label class="" rel="tooltip" title="If checked, the revision history of your files will be tracked from now on.">
+                                    <input type="checkbox" checked="checked" class="account-settings-track_revisions">Track revisions:
+                                    <span class="lighten">record the changes you make on a file</span>
+                                </label></div>
+                            </div>
+                        </div>
+
 
                         <hr>
                         <div class="row">
-                            <div class="row span5">
+                            <div class="col-sm-12 col-md-12">
                                 <!-- move this to a help dialog accessible from the editor -->
                                 <h4 class="lighten">Hints</h4>
                                 <ul>
@@ -503,18 +514,18 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 
 
 
-                    <div class="span5 well" id="account-settings-keyboard">
+                    <div class="well col-sm-6 col-md-6" id="account-settings-keyboard">
                         <div class="row">
-                            <div class="row span5">
+                            <div class="col-sm-6 col-md-6">
                                 <h3>Keyboard</h3>
                             </div>
                         </div>
 
 
                         <div class="row">
-                            <div class="row span2" rel="tooltip" title="Set which key combination causes code to be evaluated (only applies to newly opened worksheets).">Worksheet evaluate key</div>
-                            <div class="row span3">
-                                <select id="account-settings-evaluate_key">
+                            <div class="col-sm-6 col-md-6" rel="tooltip" title="Set which key combination causes code to be evaluated (only applies to newly opened worksheets).">Worksheet evaluate key</div>
+                            <div class="col-sm-6 col-md-6">
+                                <select id="account-settings-evaluate_key" class="form-control">
                                     <option value="Shift-Enter">Shift-Enter</option>
                                     <option value="Enter">Enter (Shift-Enter for newline)</option>
                                 </select>
@@ -525,29 +536,29 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 
                     </div>
 
-                    <div class="span5 well" id="account-settings-other_settings">
+                    <div class="well col-sm-6 col-md-6" id="account-settings-other_settings">
                         <div class="row">
-                            <div class="row span5">
+                            <div class="col-sm-6 col-md-6">
                                 <h3>Other</h3>
                             </div>
                         </div>
 
 
                         <div class="row">
-                            <div class="row span5">
-                                <label class="checkbox" rel="tooltip" title="Ask for confirmation before closing the SageMathCloud window.">
+                            <div class="col-sm-12 col-md-12">
+                                <div class="checkbox"><label class="" rel="tooltip" title="Ask for confirmation before closing the SageMathCloud window.">
                                     <input type="checkbox" class="account-settings-other_settings-confirm_close">Confirm:
                                     <span class="lighten">always ask for confirmation before closing the browser window (except on mobile)</span>
-                                </label>
+                                </label></div>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="row span5">
-                                <label class="checkbox" rel="tooltip" title="Grey-out compiled and hidden files in the files tab.">
+                            <div class="col-sm-12 col-md-12">
+                                <div class="checkbox"><label class="" rel="tooltip" title="Grey-out compiled and hidden files in the files tab.">
                                     <input type="checkbox" class="account-settings-other_settings-mask_files">Mask Files:
                                     <span class="lighten">grey-out files in the files viewer that you probably don't want to open.</span>
-                                </label>
+                                </label></div>
                             </div>
                         </div>
 
@@ -558,39 +569,39 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 
                 <!-- Hide for now, since no plan to implement ASAP -->
                 <div class="row hide">
-                    <div class="span5 well">
-                        <div class="row span5">
-                            <label class="checkbox">
-                                <input type="checkbox" checked="checked" id="account-settings-enable_tooltips"  rel="tooltip" title="Show tooltips like this one?">Show tooltips
-                            </label>
-                            <label class="checkbox" >
-                                <input type="checkbox" checked="checked" id="account-settings-email_new_features"  rel="tooltip" title="Salvus sends email when we add new features.">Email me about new features
-                            </label>
-                            <label class="checkbox">
-                                <input type="checkbox" checked="checked" id="account-settings-email_maintenance"  rel="tooltip" title="Salvus sends an email when it might be slow or down due to scheduled maintenance.">Email me about scheduled maintenance
-                            </label>
+                    <div class="well col-sm-6 col-md-6">
+                        <div class="col-sm-6 col-md-6">
+                            <div class="checkbox"><label class="">
+                                <input type="checkbox" checked="checked" id="account-settings-enable_tooltips" rel="tooltip" title="Show tooltips like this one?">Show tooltips
+                            </label></div>
+                            <div class="checkbox"><label class="">
+                                <input type="checkbox" checked="checked" id="account-settings-email_new_features" rel="tooltip" title="Salvus sends email when we add new features.">Email me about new features
+                            </label></div>
+                            <div class="checkbox"><label class="">
+                                <input type="checkbox" checked="checked" id="account-settings-email_maintenance" rel="tooltip" title="Salvus sends an email when it might be slow or down due to scheduled maintenance.">Email me about scheduled maintenance
+                            </label></div>
                         </div>
                     </div>
 
                     <!-- hide for now, since not implemented -->
-                    <div class="span5 offset1 well hide">
+                    <div class="well hide col-lg-offset-1 col-sm-5 col-md-5">
                         <div class="row">
-                            <div class="row span2" rel="tooltip" title="You can link your Salvus account with Github, so that a project can be synchronized with a Github repository.">Github</div>
-                            <div class="row span3">
+                            <div class="col-sm-2 col-md-2" rel="tooltip" title="You can link your Salvus account with Github, so that a project can be synchronized with a Github repository.">Github</div>
+                            <div class="col-sm-4 col-md-4">
                                 <a id="account-settings-connect_Github" href=""></a>
                             </div>
                         </div>
                         <br>
                         <div class="row">
-                            <div class="row span2" rel="tooltip" title="You can link your Salvus account with Google, so that some of your Salvus files are stored in Google drive.">Google</div>
-                            <div class="row span3">
+                            <div class="col-sm-2 col-md-2" rel="tooltip" title="You can link your Salvus account with Google, so that some of your Salvus files are stored in Google drive.">Google</div>
+                            <div class="col-sm-4 col-md-4">
                                 <a id="account-settings-connect_Google" href=""></a>
                             </div>
                         </div>
                         <br>
                         <div class="row">
-                            <div class="row span2" rel="tooltip" title="You can link your Salvus account with Dropbox, so that selected Salvus projects are mirrored to a Dropbox folder.">Dropbox</div>
-                            <div class="row span3">
+                            <div class="col-sm-2 col-md-2" rel="tooltip" title="You can link your Salvus account with Dropbox, so that selected Salvus projects are mirrored to a Dropbox folder.">Dropbox</div>
+                            <div class="col-sm-4 col-md-4">
                                 <a id="account-settings-connect_Dropbox" href=""></a>
                             </div>
                         </div>
@@ -603,35 +614,35 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 
             <div class="tab-pane" id="account-info-tab">
                 <div class="row">
-                    <div class="span10 well hide">
+                    <div class="well hide col-sm-12 col-md-12">
                         <div class="row">
-                            <div class="row span3"   rel="tooltip" title="Your account type determines the limits on your Salvus account.  In addition to the free plan, other more powerful plans are available.">Account type</div>
-                            <div class="row span7"><strong id="account-settings-plan_name"></strong> (<a href="#account-settings-upgrade">upgrade</a>)</div>
+                            <div class="col-sm-3 col-md-3" rel="tooltip" title="Your account type determines the limits on your Salvus account.  In addition to the free plan, other more powerful plans are available.">Account type</div>
+                            <div class="col-sm-7 col-md-7"><strong id="account-settings-plan_name"></strong> (<a href="#account-settings-upgrade">upgrade</a>)</div>
                         </div>
                         <br>
                         <div class="row">
-                            <div class="row span3"   rel="tooltip" title="Salvus limits the total space that your documents and data can occupy.">Storage</div>
-                            <div class="row span7"><span  id="account-settings-storage_limit"></span> MB</div>
+                            <div class="col-sm-4 col-md-4" rel="tooltip" title="Salvus limits the total space that your documents and data can occupy.">Storage</div>
+                            <div class="col-sm-8 col-md-8"><span id="account-settings-storage_limit"></span> MB</div>
                         </div>
                         <br>
                         <div class="row">
-                            <div class="row span3"   rel="tooltip" title="Salvus limits the maximum number of simultaneous compute sessions you can run at once, so that more people can use Salvus.">Session limit</div>
-                            <div class="row span7"><span  id="account-settings-session_limit"></span> simultaneous sessions</div>
+                            <div class="col-sm-4 col-md-4" rel="tooltip" title="Salvus limits the maximum number of simultaneous compute sessions you can run at once, so that more people can use Salvus.">Session limit</div>
+                            <div class="col-sm-8 col-md-8"><span id="account-settings-session_limit"></span> simultaneous sessions</div>
                         </div>
                         <br>
                         <div class="row">
-                            <div class="row span3"    rel="tooltip" title="Salvus compute sessions are automatically terminated after the maximum session time is reached, so that compute resources can be shared amongst more users.">Maximum session time</div>
-                            <div class="row span7"><span  id="account-settings-max_session_time"></span> minutes</div>
+                            <div class="col-sm-4 col-md-4" rel="tooltip" title="Salvus compute sessions are automatically terminated after the maximum session time is reached, so that compute resources can be shared amongst more users.">Maximum session time</div>
+                            <div class="col-sm-8 col-md-8"><span id="account-settings-max_session_time"></span> minutes</div>
                         </div>
                         <br>
                         <div class="row">
-                            <div class="row span3"   rel="tooltip" title="Salvus limits the amount of RAM you can use in a compute session.">RAM limit</div>
-                            <div class="row span7"><span  id="account-settings-ram_limit"></span> GB</div>
+                            <div class="col-sm-4 col-md-4" rel="tooltip" title="Salvus limits the amount of RAM you can use in a compute session.">RAM limit</div>
+                            <div class="col-sm-8 col-md-8"><span id="account-settings-ram_limit"></span> GB</div>
                         </div>
                         <br>
                         <div class="row">
-                            <div class="row span3"   rel="tooltip" title="">Support level</div>
-                            <div class="row span7"><b><span  id="account-settings-support_level"></span></b></div>
+                            <div class="col-sm-4 col-md-4" rel="tooltip" title="">Support level</div>
+                            <div class="col-sm-8 col-md-8"><b><span id="account-settings-support_level"></span></b></div>
                         </div>
                     </div>
                 </div>
@@ -649,62 +660,70 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 
 
 <!-- Change email address -->
-<div class="modal hide" id="account-change_email_address"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
-        <h3  class="big-only">Change email address</h3>
-        <div class="hide account-error-text" id="account-change_email_address-too_frequent">Wait<span></span>before trying to change your email address again.</div>
-    </div>
-    <div class="modal-body offset1">
-        <div class="hide account-error-text" id="account-change_email_address-email_already_taken">This e-mail address is already taken:</div>
-        <div class="hide account-error-text" id="account-change_email_address-email_invalid">This e-mail address is invalid:</div>
-        <label>
-            <b  class="big-only">New email</b>
-            <input class="span4 offset1" type="text" placeholder="New email" id="account-change_email_new_address">
-        </label>
-        <br>
-        <div class="hide account-error-text" id="account-change_email_address-invalid_password">Invalid password:</div>
-        <label>
-            <b class="big-only">Password</b>
-            <input class="span4 offset1" type="password" placeholder="Password"  id="account-change_email_password">
-        </label>
-    </div>
-    <div class="modal-footer">
-        <button class="btn btn-primary" data-dismiss="modal" id="account-change_email_address_button">Change email address</button>
-        <button class="btn" data-dismiss="modal" id="account-change_email_address_cancel_button">Cancel</button>
+<div class="modal" id="account-change_email_address" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
+                <h3 class="hidden-xs">Change email address</h3>
+                <div class="hide account-error-text" id="account-change_email_address-too_frequent">Wait<span></span>before trying to change your email address again.</div>
+            </div>
+            <div class="modal-body col-lg-offset-1">
+                <div class="hide account-error-text" id="account-change_email_address-email_already_taken">This e-mail address is already taken:</div>
+                <div class="hide account-error-text" id="account-change_email_address-email_invalid">This e-mail address is invalid:</div>
+                <label>
+                    <b class="hidden-xs">New email</b>
+                    <input class="form-control" type="text" placeholder="New email" id="account-change_email_new_address">
+                </label>
+                <br>
+                <div class="hide account-error-text" id="account-change_email_address-invalid_password">Invalid password:</div>
+                <label>
+                    <b class="hidden-xs">Password</b>
+                    <input class="form-control" type="password" placeholder="Password" id="account-change_email_password">
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" data-dismiss="modal" id="account-change_email_address_button">Change email address</button>
+                <button class="btn btn-default" data-dismiss="modal" id="account-change_email_address_cancel_button">Cancel</button>
+            </div>
+        </div>
     </div>
 </div>
 
 
 
 <!-- Change password -->
-<div class="modal hide" id="account-change_password"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
-        <h3 class="big-only">Change password</h3>
-        <div class="hide account-error-text" id="account-change_password-error"></div>
-    </div>
-    <div class="modal-body offset1">
-        <div class="hide account-error-text" id="account-change_password-error-old_password"></div>
-        <label>
-            <b class="big-only">Old password</b>
-            <input class="span4 offset1" type="password" placeholder="Old password" id="account-change_password-old_password">
-        </label>
-        <br>
-        <div class="hide account-error-text" id="account-change_password-error-new_password"></div>
-        <label>
-            <b class="big-only">New password</b>
-            <input class="span4 offset1 salvus-password-meter" type="password" placeholder="New password" id="account-change_password-new_password">
-        </label>
-        <br>
-        <label>
-            <b class="big-only">Retype password</b>
-            <input class="span4 offset1" type="password" placeholder="Retype password" id="account-change_password-new_password-retype">
-        </label>
-    </div>
-    <div class="modal-footer">
-        <button class="btn btn-primary" type="submit" data-dismiss="modal" id="account-change_password-button-submit">Change password</button>
-        <button class="btn" data-dismiss="modal" id="account-change_password-button-cancel">Cancel</button>
+<div class="modal" id="account-change_password" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
+                <h3 class="hidden-xs">Change password</h3>
+                <div class="hide account-error-text" id="account-change_password-error"></div>
+            </div>
+            <div class="modal-body col-lg-offset-1">
+                <div class="hide account-error-text" id="account-change_password-error-old_password"></div>
+                <label>
+                    <b class="hidden-xs">Old password</b>
+                    <input class="form-control" type="password" placeholder="Old password" id="account-change_password-old_password">
+                </label>
+                <br>
+                <div class="hide account-error-text" id="account-change_password-error-new_password"></div>
+                <label>
+                    <b class="hidden-xs">New password</b>
+                    <input class="salvus-password-meter form-control" type="password" placeholder="New password" id="account-change_password-new_password">
+                </label>
+                <br>
+                <label>
+                    <b class="hidden-xs">Retype password</b>
+                    <input class="form-control" type="password" placeholder="Retype password" id="account-change_password-new_password-retype">
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" type="submit" data-dismiss="modal" id="account-change_password-button-submit">Change password</button>
+                <button class="btn btn-default" data-dismiss="modal" id="account-change_password-button-cancel">Cancel</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -712,19 +731,23 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 
 
 <!-- Forgot password: reset -->
-<div class="modal hide" id="account-forgot_password_reset" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
-        <h3>Reset your password:</h3>
-        <br>Enter your new password.<br><br>
-        <div class="hide account-error-text" id="account-forgot_password_reset-error"></div>
-    </div>
-    <div class="modal-body offset1">
-        <div class="hide account-error-text" id="account-forgot_password_reset-error-new_password"></div>
-        <input class="span4 offset1  salvus-password-meter" type="password" placeholder="New password" id="account-forgot_password_reset-new_password">
-    </div>
-    <div class="modal-footer">
-        <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password_reset-button-submit">Change password</button>
-        <button class="btn" data-dismiss="modal" id="account-forgot_password_reset-button-cancel">Cancel</button>
+<div class="modal" id="account-forgot_password_reset" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
+                <h3>Reset your password:</h3>
+                <br>Enter your new password.<br><br>
+                <div class="hide account-error-text" id="account-forgot_password_reset-error"></div>
+            </div>
+            <div class="modal-body col-lg-offset-1">
+                <div class="hide account-error-text" id="account-forgot_password_reset-error-new_password"></div>
+                <input class="salvus-password-meter form-control" type="password" placeholder="New password" id="account-forgot_password_reset-new_password">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password_reset-button-submit">Change password</button>
+                <button class="btn btn-default" data-dismiss="modal" id="account-forgot_password_reset-button-cancel">Cancel</button>
+            </div>
+        </div>
     </div>
 </div>
