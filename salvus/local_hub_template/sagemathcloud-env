@@ -25,5 +25,5 @@ export SAGE_ATLAS_LIB=/usr/lib/
 # (but if that happens, email SMC support and we'll fix it).
 
 if [ -f $HOME/.sagemathcloud-env ]; then
-    source $HOME/.sagemathcloud-env
+    . $HOME/.sagemathcloud-env
 fi
