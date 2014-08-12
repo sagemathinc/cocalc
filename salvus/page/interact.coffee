@@ -74,8 +74,8 @@ class Interact
                     new_control.data('refresh')?()
         else
             # No controls with this name or even place to put it.
-            row       = $("<div class='row-fluid'></div>")
-            container = $("<div class='span12 salvus-interact-var-#{var0}'></div>")
+            row       = $("<div class='row'></div>")
+            container = $("<div class='salvus-interact-var-#{var0}'></div>")
             row.append(container)
             new_control = interact_control(control_desc, @element.data('update'))
             if new_control?
@@ -95,7 +95,7 @@ class Interact
         # Create the fluid bootstrap layout canvas.
         labels = {}
         for row in desc.layout
-            fluid_row = $("<div class='row-fluid'>")
+            fluid_row = $("<div class='row'>")
             if row.length == 0 # empty row -- user wants space
                 fluid_row.append($("<br>"))
             else
@@ -103,7 +103,7 @@ class Interact
                     arg = x[0]; span = x[1]; label = x[2]
                     if label?
                         labels[arg] = label
-                    t = $("<div class='span#{span} salvus-interact-var-#{arg}'></div>")
+                    t = $("<div class='col-sm-#{span} salvus-interact-var-#{arg}'></div>")
                     fluid_row.append(t)
             @element.append(fluid_row)
 
@@ -392,7 +392,7 @@ interact_control = (desc, update) ->
 
                 i = 0
                 for lbl in desc.lbls
-                    button = $("<a class='btn'>").data('value',i).text(lbl)
+                    button = $("<a class='btn btn-default'>").data('value',i).text(lbl)
                     if desc.button_classes != null
                         if typeof desc.button_classes == "string"
                             c = desc.button_classes
