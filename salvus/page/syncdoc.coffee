@@ -451,7 +451,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @opts = defaults opts,
             cursor_interval   : 1000
             sync_interval     : 750     # never send sync messages up stream more often than this
-            revision_tracking : false   # if true, save every revision in @.filename.sage-history
+            revision_tracking : account.account_settings.settings.editor_settings.track_revisions   # if true, save every revision in @.filename.sage-history
         @project_id = @editor.project_id
 
         @filename    = @editor.filename
@@ -593,7 +593,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                             if resp.event == 'error'
                                 err = resp.error
                             if err
-                                alert_message(type:"error", message:"error enabling revision saving -- #{err}")
+                                alert_message(type:"error", message:"error enabling revision saving -- #{err} -- #{@editor.filename}") 
 
     ui_loading: () =>
         @element.find(".salvus-editor-codemirror-loading").show()
@@ -736,7 +736,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @editor._chat_is_hidden = false
         @element.find(".salvus-editor-chat-show").hide()
         @element.find(".salvus-editor-chat-hide").show()
-        @element.find(".salvus-editor-codemirror-input-box").removeClass('span12').addClass('span9')
+        @element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-12').addClass('col-sm-9')
         @element.find(".salvus-editor-codemirror-chat-column").show()
         # see http://stackoverflow.com/questions/4819518/jquery-ui-resizable-does-not-support-position-fixed-any-recommendations
         # if you want to try to make this resizable
@@ -749,7 +749,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @editor._chat_is_hidden = true
         @element.find(".salvus-editor-chat-hide").hide()
         @element.find(".salvus-editor-chat-show").show()
-        @element.find(".salvus-editor-codemirror-input-box").removeClass('span9').addClass('span12')
+        @element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-9').addClass('col-sm-12')
         @element.find(".salvus-editor-codemirror-chat-column").hide()
         @editor.show()  # update size/display of editor (especially the width)
 
@@ -909,6 +909,18 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
 { MARKERS, FLAGS, ACTION_FLAGS } = diffsync
 
+class SynchronizedHistory extends AbstractSynchronizedDoc
+    constructor: (@editor, opts) ->
+        console.log("zabooma")
+        @opts = defaults opts,
+            project_id : required
+            filename   : required
+            sync_interval : 1000    # no matter what, we won't send sync messages back to the server more frequently than this (in ms)
+            cb         : required   # cb(err) once doc has connected to hub first time and got session info; will in fact keep trying until success
+        @project_id = @opts.project_id   # must also be set by derived classes that don't call this constructor!
+        @filename   = @opts.filename
+        @sync = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
+        
 class SynchronizedWorksheet extends SynchronizedDocument
     constructor: (@editor, opts) ->
         opts0 =
@@ -1919,8 +1931,4 @@ class Worksheet
 ################################
 exports.SynchronizedDocument = SynchronizedDocument
 exports.SynchronizedWorksheet = SynchronizedWorksheet
-
-
-
-
-
+exports.SynchronizedHistory = SynchronizedHistory
