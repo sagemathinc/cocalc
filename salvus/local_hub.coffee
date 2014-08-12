@@ -1472,17 +1472,22 @@ class CodeMirrorSession
     # enable or disable tracking all revisions of the document
     revision_tracking: (socket, mesg) =>
         winston.debug("revision_tracking for #{@path}: #{mesg.enable}")
+        d = (m) -> winston.debug("revision_tracking1 for #{@path}: #{m}")
         if mesg.enable
+            d("enable it")
             if @revision_tracking_doc?
+                d("already enabled")
                 # already enabled
                 socket.write_mesg('json', message.success(id:mesg.id))
             else
                 # need to enable
+                d("need to enabled")
                 codemirror_sessions.connect
                     mesg :
                         path       : revision_tracking_path(@path)
                         project_id : INFO.project_id      # todo -- won't need in long run
                     cb   : (err, session) =>
+                        d("got response -- #{err}")
                         if err
                             socket.write_mesg('json', message.error(id:mesg.id, error:err))
                         else
@@ -1490,6 +1495,7 @@ class CodeMirrorSession
                             socket.write_mesg('json', message.success(id:mesg.id))
                             @update_revision_tracking()
         else
+            d("disable it")
             delete @revision_tracking_doc
             socket.write_mesg('json', message.success(id:mesg.id))
 
@@ -1500,18 +1506,28 @@ class CodeMirrorSession
     update_revision_tracking: () =>
         if not @revision_tracking_doc?
             return
-        winston.debug("update revision tracking data")
+        winston.debug("update revision tracking data - #{@path}")
+
+        # @revision_tracking_doc.HEAD is the last version of the document we're tracking, as a string.
+        # In particular, it is NOT in JSON format.
+
         if not @revision_tracking_doc.HEAD?
+
+            # Initailize HEAD from the file
+
             if @revision_tracking_doc.content.length == 0
                 # brand new -- first time.
                 @revision_tracking_doc.HEAD = @content
                 @revision_tracking_doc.content = misc.to_json(@content)
             else
+                # we have tracked this file before.
                 i = @revision_tracking_doc.content.indexOf('\n')
                 if i == -1
-                    @revision_tracking_doc.HEAD = @revision_tracking_doc.content.slice(0,i)
+                    # weird special case: there's no history yet -- just the initial version
+                    @revision_tracking_doc.HEAD = misc.from_json(@revision_tracking_doc.content)
                 else
-                    @revision_tracking_doc.HEAD = @revision_tracking_doc.content
+                    # there is a potential longer history; this initial version is the first line:
+                    @revision_tracking_doc.HEAD = misc.from_json(@revision_tracking_doc.content.slice(0,i))
 
         if @revision_tracking_doc.HEAD != @content
             # compute diff that transforms @revision_tracking_doc.HEAD to @content
@@ -1525,7 +1541,7 @@ class CodeMirrorSession
             entry = {patch:patch, time:new Date() - 0}
             @revision_tracking_doc.content = misc.to_json(@content) + '\n' + \
                         misc.to_json(entry) + \
-                        @revision_tracking_doc.content.slice(i)
+                        (if i != -1 then @revision_tracking_doc.content.slice(i) else "")
 
         # now tell everybody
         @revision_tracking_doc._set_content_and_sync()
@@ -1536,7 +1552,6 @@ class CodeMirrorSession
                 delete @revision_tracking_save_timer
                 @revision_tracking_doc.sync_filesystem()
             @revision_tracking_save_timer = setInterval(f, REVISION_TRACKING_SAVE_INTERVAL)
-
 
 # Collection of all CodeMirror sessions hosted by this local_hub.
 
