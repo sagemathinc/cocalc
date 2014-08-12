@@ -514,7 +514,10 @@ exports.is_valid_date = (d) ->
         return not isNaN(d.getTime())
 
 
-
+# Bootstrap 3 modal fix
+$("html").on "hide.bs.modal", "body > .modal", (e) ->
+    $(@).remove()
+    return
 
 
 
