@@ -425,7 +425,10 @@ R_PACKAGES = [
     'fields',
     'circular',
     'glmnet',
-    'cairo'
+    'Cairo',
+    #'xlsx',
+    'XML',
+    'data.table'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
