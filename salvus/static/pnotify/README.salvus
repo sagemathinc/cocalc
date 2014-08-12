@@ -1,0 +1,3 @@
+jlee -- added the following CSS property to .ui-pnotify-history-container .ui-pnotify-history-pulldown because of conflicts with BS3 and pnotify BS3 patch:
+
+text-align: center;
