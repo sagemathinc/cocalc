@@ -1,0 +1,3 @@
+I -- jlee -- added the following three CSS properties to the datetimepicker widget:
+
+.bootstrap-datetimepicker-widget{display:block;top:25px;left:-60px;
