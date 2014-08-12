@@ -911,7 +911,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
 class SynchronizedHistory extends AbstractSynchronizedDoc
     constructor: (@editor, opts) ->
-        console.log("zabooma")
         @opts = defaults opts,
             project_id : required
             filename   : required
