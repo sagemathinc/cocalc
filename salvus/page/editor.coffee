@@ -2657,7 +2657,7 @@ class HistoryEditor extends FileEditor
                 @element.find(".salvus-editor-history-revision-time").text(new Date(JSON.parse(@log[1]).time).toLocaleString())
             @history_editor.codemirror.setValue(JSON.parse(@log[0]))
             @revision_num = @nlines
-            ext = misc.filename_extension(@filename[0..-14])
+            ext = misc.filename_extension(@filename[1..-14])
             if ext != "" and require('editor').file_associations[ext].opts.mode?
                 @history_editor.codemirror.setOption("mode", require('editor').file_associations[ext].opts.mode)
             @slider.slider
