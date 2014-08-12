@@ -26,8 +26,11 @@ conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
 # kvm -- via libvirt
 ###########################################
 
+qemu="system" 
+# qemu="session" 
+
 def virsh(command, name):
-    return run(['virsh', '--connect', 'qemu:///system', command, name], verbose=False, maxtime=600).strip()
+    return run(['virsh', '--connect', 'qemu:///%s'%qemu, command, name], verbose=False, maxtime=600).strip()
 
 def get_local_address(host, maxtime=120):
     t = time.time()
@@ -219,8 +222,10 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
     #################################
     try:
         cmd = ['virt-install',
-               '--connect', 'qemu:///system',
-               '--cpu', 'host',
+               '--connect', 'qemu:///%s'%qemu,
+               #'--cpu', 'core2duo', # definitely fails
+               #'--cpu', 'core2duo,+wdt,+skinit,+osvw,+3dnowprefetch,+misalignsse,+sse4a,+abm,+cr8legacy,+extapic,+svm,+cmp_legacy,+lahf_lm,+rdtscp,+pdpe1gb,+fxsr_opt,+mmxext,+aes,+popcnt,+sse4.2,+sse4.1,+cx16,+ht',  # definitely does NOT work
+               '--cpu', 'host',  # definitely fails
                '--network', 'network:default,model=virtio',
                '--name', hostname,
                '--vcpus', vcpus,

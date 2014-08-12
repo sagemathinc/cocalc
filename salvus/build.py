@@ -185,7 +185,7 @@ MaxStartups 128
 # Install Julia
 
    sudo su
-   umask 022  &&  cd /usr/local/ && git clone git://github.com/JuliaLang/julia.git  &&  cd julia  &&  make -j16 install  &&   cd /usr/local/bin  &&  ln -s /usr/local/julia/julia .
+   umask 022  &&  cd /usr/local/ && git clone git://github.com/JuliaLang/julia.git  &&  cd julia  &&  make -j16 install  &&   cd /usr/local/bin  &&  ln -sf /usr/local/julia/julia .
 
 Start Julia and type:
 
@@ -361,6 +361,7 @@ SAGE_PIP_PACKAGES = [
     'backports.ssl-match-hostname',   # a dependency of tornado (we don't install deps automatically right now)
     'tornado',            # used by IPython notebook
     'pandas',
+    'pandasql',
     'patsy',
     'statsmodels',
     'numexpr',
@@ -397,7 +398,8 @@ SAGE_PIP_PACKAGES = [
     'greenlet',  # Lightweight in-process concurrent programming
     'gmpy2',
     'mmh3',
-    'joblib'
+    'joblib',
+    'colorpy'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -423,7 +425,10 @@ R_PACKAGES = [
     'fields',
     'circular',
     'glmnet',
-    'cairo'
+    'Cairo',
+    #'xlsx',
+    'XML',
+    'data.table'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
@@ -554,17 +559,17 @@ class BuildSage(object):
         """
         self.unextend_sys_path()
         self.patch_sage_location()
-        self.patch_pexpect()
         self.patch_banner()
         self.patch_sage_env()
         self.octave_ext()
+        self.install_sloane()
         self.install_projlib()
         self.install_pip()
         self.install_pip_packages()
         self.install_R_packages()
         self.install_optional_packages()
         self.install_snappy()
-        self.install_enthought_packages()
+        #self.install_enthought_packages()
         self.install_quantlib()
         self.install_neuron()
         self.install_basemap()
@@ -591,21 +596,6 @@ class BuildSage(object):
             if after not in f:
                 raise RuntimeError("unable to patch %s"%target)
             log.info("already patched %s"%target)
-
-
-    def patch_pexpect(self):
-        """
-        Patch around pexpect bug in sage -- see http://trac.sagemath.org/ticket/15178
-        """
-        path = self.path("local/lib/python2.7/site-packages/pexpect.py")
-        f = open(path).read()
-        before = "if os.access (filename, os.X_OK) and not os.path.isdir(f):"
-        after  = "if os.access (filename, os.X_OK) and not os.path.isdir(filename):"
-        if before in f:
-            log.info("pexpect still has bug: patching")
-            open(path,'w').write(f.replace(before, after))
-        else:
-            log.info("pexpect bug already patched")
 
     def patch_banner(self):
         """
@@ -645,15 +635,15 @@ class BuildSage(object):
 
     def octave_ext(self):
         """
-        The /usr/local/sage/current/local/share/sage/ext/octave must be writeable by all, which is
+        The /usr/local/sage/current/local/share/sage/ext must be writeable by all, which is
         a stupid horrible bug/shortcoming in Sage that people constantly hit.   As a workaround,
         we link it to a constrained filesystem for this purpose.
         """
-        target = self.path("local/share/sage/ext/octave")
-        src = "/pool/octave"
+        target = self.path("local/share/sage/ext")
+        src = "/pool/ext"
 
         if not (os.path.exists(src) and os.path.isdir(src)):
-            raise RuntimeError("please create a limited ZFS pool mounted as /pool/octave, with read-write access to all:\n\n\tzfs create pool/octave && chmod a+rwx /pool/octave && zfs set quota=1G pool/octave\n")
+            raise RuntimeError("please create a limited ZFS pool mounted as /pool/ext, with read-write access to all:\n\n\tzfs create pool/ext && chmod a+rwx /pool/ext && zfs set quota=1G pool/ext\n")
 
         if os.path.exists(target):
             try:
@@ -661,6 +651,14 @@ class BuildSage(object):
             except:
                 os.unlink(target)
         os.symlink(src, target)
+
+    def install_sloane(self):
+        """
+        Install the Sloane Encyclopaedia tables.  These used to be installed via an optioanl package,
+        but instead one must now run a command from within Sage.
+        """
+        from sage.all import SloaneEncyclopedia
+        SloaneEncyclopedia.install(overwrite=True)
 
     def install_projlib(self):
         """
@@ -742,6 +740,9 @@ class BuildSage(object):
             # We have to do this (instead of use install_package) because Sage's install_package
             # command is completely broken in rc0 at least (April 27, 2014).
             self.cmd("sage -i %s"%package)
+        # We also have to do a "sage -b", since some optional packages don't get fully installed
+        # until rebuilding Cython modules.  I posted to sage-devel about this bug on Aug 4.
+        self.cmd("sage -b")
 
     def install_snappy(self):
         """
@@ -749,7 +750,8 @@ class BuildSage(object):
         """
         self.cmd("python -m easy_install -U -f http://snappy.computop.org/get snappy")
 
-    def install_enthought_packages(self):
+    # deprecated because it now says: "The EPD subscriber repository is only available to subscribers."
+    def DEPRECATED_install_enthought_packages(self):
         """
         Like Sage does, Enthought has a bunch of packages that are not easily available
         from pypi...
@@ -819,7 +821,7 @@ class BuildSage(object):
                 return
         except Exception, msg:
             pass
-        cmd("/usr/bin/git clone https://github.com/matplotlib/basemap", "/tmp")
+        cmd("/usr/bin/git clone git@github.com:matplotlib/basemap.git", "/tmp")
         cmd("python setup.py install", "/tmp/basemap")
         shutil.rmtree("/tmp/basemap")
 

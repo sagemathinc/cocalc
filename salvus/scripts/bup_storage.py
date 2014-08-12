@@ -32,11 +32,11 @@ Install script:
 
 Setup Pool:
 
-#zpool create -f bup XXXXX /dev/vdb
 
 export POOL=bup
 # export POOL=pool
 #zpool create -f $POOL /dev/sdb   # on gce
+#zpool create -f $POOL /dev/vdb
 zfs create $POOL/projects
 zfs set mountpoint=/projects $POOL/projects
 zfs set dedup=on $POOL/projects
@@ -106,6 +106,8 @@ DEFAULT_SETTINGS = {
     'inode'      : 200000,  # not used with ZFS
     'network'    : False
 }
+
+BWLIMIT = 200000
 
 FILESYSTEM = 'zfs'   # 'zfs' or 'ext4'
 
@@ -873,7 +875,7 @@ class Project(object):
         out = self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", '-p', port, 'root@'+remote, s], ignore_errors=True)
         return 'ext' not in out and 'zfs' in out  # properly mounted = mounted via ZFS in any way.
 
-    def _sync(self, remote, destructive=True, snapshots=True, union=False, union2=False, rsync_timeout=120, bwlimit=20000):
+    def _sync(self, remote, destructive=True, snapshots=True, union=False, union2=False, rsync_timeout=120, bwlimit=BWLIMIT):
         """
         NOTE: sync is by default destructive on live files; on snapshots it isn't by default.
 
@@ -1065,7 +1067,7 @@ class Project(object):
                   overwrite_newer=False, # if True, newer files in target are copied over (otherwise, uses rsync's --update)
                   delete=False,          # if True, delete files in dest path not in source
                   rsync_timeout=120,
-                  bwlimit=20000
+                  bwlimit=BWLIMIT
                  ):
         """
         Copy a path (directory or file) from one project to another.

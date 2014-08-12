@@ -17,7 +17,6 @@ set_account_tab_label = (signed_in, email_address) ->
     if signed_in
         top_navbar.pages['account'].icon = 'fa-cog'
         top_navbar.set_button_label("account", email_address)
-
     else
         # nothing
         top_navbar.set_button_label("account", "Sign in", "", false)
@@ -31,8 +30,6 @@ top_navbar.on "switch_to_page-account", () ->
     window.history.pushState("", "", window.salvus_base_url + '/settings')
     if not @account_id?
         $("#sign_in-email").focus()
-
-
 
 ################################################
 # Page Switching Control
@@ -327,8 +324,8 @@ signed_in = (mesg) ->
             account_settings.set_view()
             # change the view in the account page to the settings/sign out view
             show_page("account-settings")
-            # change the navbar title from "Sign in" to their email address
-            set_account_tab_label(true, mesg.email_address)
+            # change the navbar title from "Sign in" to their email address -- don't use the one from mesg, which may be out of date
+            set_account_tab_label(true, account_settings.settings.email_address)
             top_navbar.show_page_button("projects")
 
             #####

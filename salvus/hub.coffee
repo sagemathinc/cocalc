@@ -57,6 +57,7 @@ misc    = require("misc")
 {defaults, required} = require('misc')
 message = require("message")     # salvus message protocol
 cass    = require("cassandra")
+cql     = require("node-cassandra-cql")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 
@@ -214,7 +215,7 @@ init_http_server = () ->
                                 hash = generate_hash(x[0], x[1], x[2], x[3])
                                 database.key_value_store(name: 'remember_me').get
                                     key         : hash
-                                    consistency : 1
+                                    consistency : cql.types.consistencies.one
                                     cb          : (err, signed_in_mesg) =>
                                         if err or not signed_in_mesg?
                                             cb('unable to get remember_me cookie from db -- cookie invalid'); return
@@ -232,9 +233,10 @@ init_http_server = () ->
                             # auth user access to *write* to the project
                             (cb) ->
                                 user_has_write_access_to_project
-                                    project_id : project_id
-                                    account_id : account_id
-                                    cb         : (err, result) =>
+                                    project_id     : project_id
+                                    account_id     : account_id
+                                    cb             : (err, result) =>
+                                        #winston.debug("PROXY: #{project_id}, #{account_id}, #{err}, #{misc.to_json(result)}")
                                         if err
                                             cb(err)
                                         else if not result
@@ -296,42 +298,50 @@ init_http_proxy_server = () =>
             project_id  : required
             remember_me : required
             cb          : required    # cb(err, has_access)
-        account_id = undefined
+        dbg = (m) -> winston.debug("_remember_me_check_for_write_access_to_project: #{m}")
+        account_id       = undefined
+        email_address    = undefined
         has_write_access = false
-        hash = undefined
-        email_address = undefined
+        hash             = undefined
         async.series([
             (cb) ->
+                dbg("get remember_me message")
                 x    = opts.remember_me.split('$')
                 hash = generate_hash(x[0], x[1], x[2], x[3])
                 database.key_value_store(name: 'remember_me').get
                     key         : hash
-                    consistency : 1
+                    consistency : cql.types.consistencies.one
                     cb          : (err, signed_in_mesg) =>
-                        account_id = signed_in_mesg?.account_id
-                        if err or not account_id?
-                            cb('unable to get remember_me cookie from db -- cookie invalid')
+                        if err or not signed_in_mesg?
+                            cb("unable to get remember_me from db -- #{err}")
+                            dbg("failed to get remember_me -- #{err}")
                         else
+                            account_id    = signed_in_mesg.account_id
                             email_address = signed_in_mesg.email_address
+                            dbg("account_id=#{account_id}, email_address=#{email_address}")
                             cb()
             (cb) ->
-                # check if user is banned
+                if not email_address?
+                    cb(); return
+                dbg("check if user is banned")
                 database.is_banned_user
                     email_address : email_address
                     cb            : (err, is_banned) ->
                         if err
                             cb(err); return
                         if is_banned
-                            # delete this auth key, since banned users are a waste of space.
+                            dbg("delete this auth key, since banned users are a waste of space.")
                             @remember_me_db.delete(key : hash)
                             cb('banned')
                         else
                             cb()
             (cb) ->
+                dbg("check if user has write access")
                 user_has_write_access_to_project
                     project_id : opts.project_id
                     account_id : account_id
                     cb         : (err, result) =>
+                        dbg("got: #{err}, #{result}")
                         if err
                             cb(err)
                         else if not result
@@ -359,7 +369,8 @@ init_http_proxy_server = () =>
             project_id  : opts.project_id
             remember_me : opts.remember_me
             cb          : (err, has_write_access) ->
-                # if cache gets huge for some *weird* reason (should never happen under normal conditions) just reset it to avoid any possibility of DOS-->RAM crash attach
+                # if cache gets huge for some *weird* reason (should never happen under normal conditions),
+                # just reset it to avoid any possibility of DOS-->RAM crash attach
                 if misc.len(_remember_me_cache) >= 100000
                     _remember_me_cache = {}
 
@@ -370,9 +381,9 @@ init_http_proxy_server = () =>
                 f = () ->
                     delete _remember_me_cache[key]
                 if has_write_access
-                    setTimeout(f, 1000*60*5)   # write access lasts 5 minutes (i.e., if you revoke privs to a user they could still hit the port for 5 minutes)
+                    setTimeout(f, 1000*60*5)    # write access lasts 5 minutes (i.e., if you revoke privs to a user they could still hit the port for 5 minutes)
                 else
-                    setTimeout(f, 1000*15)      # not having write access lasts 15 seconds
+                    setTimeout(f, 1000*60)      # not having write access lasts 1 minute
                 opts.cb(err, has_write_access)
 
     _target_cache = {}
@@ -567,7 +578,7 @@ class Client extends EventEmitter
                 hash = generate_hash(x[0], x[1], x[2], x[3])
                 @remember_me_db.get
                     key         : hash
-                    consistency : 1
+                    consistency : cql.types.consistencies.one
                     cb          : (error, signed_in_mesg) =>
                         if error
                             @remember_me_failed("error accessing database")
@@ -587,7 +598,6 @@ class Client extends EventEmitter
                                     @remember_me_db.delete(key : hash)
                                 else
                                     # good -- sign them in
-                                    signed_in_mesg.email_address = misc.lower_email_address(signed_in_mesg.email_address)  # delete in April 2014.
                                     signed_in_mesg.hub = program.host + ':' + program.port
                                     @hash_session_id = hash
                                     @signed_in(signed_in_mesg)
@@ -639,13 +649,11 @@ class Client extends EventEmitter
             remember_me   : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
             email_address : signed_in_mesg.email_address
             account_id    : signed_in_mesg.account_id
-            first_name    : signed_in_mesg.first_name
-            last_name     : signed_in_mesg.last_name
 
     # Return the full name if user has signed in; otherwise returns undefined.
     fullname: () =>
-        if @signed_in_mesg?
-            return @signed_in_mesg.first_name + " " + @signed_in_mesg.last_name
+        if @account_settings?
+            return @account_settings.first_name + " " + @account_settings.last_name
 
     signed_out: () =>
         @account_id = undefined
@@ -704,10 +712,8 @@ class Client extends EventEmitter
         #############################################################
 
         opts = defaults opts,
-            account_id    : required
-            first_name    : required
-            last_name     : required
             email_address : required
+            account_id    : required
 
         opts.hub = program.host
         opts.remember_me = true
@@ -722,14 +728,14 @@ class Client extends EventEmitter
             key         : @hash_session_id
             value       : signed_in_mesg
             ttl         : ttl
-            consistency : 1
+            consistency : cql.types.consistencies.one
             cb          : (err) =>
                 # write to more replicas, just for good measure
                 @remember_me_db.set
                     key         : @hash_session_id
                     value       : signed_in_mesg
                     ttl         : ttl
-                    consistency : 2
+                    consistency : cql.types.consistencies.localQuorum
                     cb          : (err) =>
                         if err
                             winston.debug("WARNING: issue writing remember me cookie: #{err}")
@@ -1092,7 +1098,48 @@ class Client extends EventEmitter
         if @account_id != mesg.account_id
             @push_to_client(message.error(id:mesg.id, error:"Not signed in as user with id #{mesg.account_id}."))
         else
-            get_account_settings(mesg, @push_to_client)
+            database.get_account
+                account_id : @account_id
+                cb : (err, data) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        # delete password hash -- user doesn't want to see/know that.
+                        delete data['password_hash']
+
+                        # Set defaults for unset keys.  We do this so that in the
+                        # long run it will always be easy to migrate the database
+                        # forward (with new columns).
+                        for key, val of message.account_settings_defaults
+                            if not data[key]?
+                                data[key] = val
+
+                        # Cache the groups of this user, so we don't have to look
+                        # them up for other permissions.  Caveat: user may have to refresh
+                        # their browser to update group membership, in case their
+                        # groups change.  If this is an issue, make this property get
+                        # deleted automatically.
+                        @groups = data.groups
+                        @account_settings = data
+
+                        # Send account settings back to user.
+                        data.id = mesg.id
+                        @push_to_client(message.account_settings(data))
+
+    get_groups: (cb) =>
+        # see note above about our "infinite caching".  Maybe a bad idea.
+        if @groups?
+            cb(undefined, @groups)
+            return
+        database.get_account
+            columns    : ['groups']
+            account_id : @account_id
+            cb         : (err, r) =>
+                if err
+                    cb(err)
+                else
+                    @groups = r['groups']
+                    cb(undefined, @groups)
 
     mesg_account_settings: (mesg) =>
         if @account_id != mesg.account_id
@@ -1183,9 +1230,10 @@ class Client extends EventEmitter
                 switch permission
                     when 'read'
                         user_has_read_access_to_project
-                            project_id : mesg.project_id
-                            account_id : @account_id
-                            cb         : (err, result) =>
+                            project_id     : mesg.project_id
+                            account_id     : @account_id
+                            account_groups : @groups
+                            cb             : (err, result) =>
                                 if err
                                     cb("Internal error determining user permission -- #{err}")
                                 else if not result
@@ -1195,9 +1243,10 @@ class Client extends EventEmitter
                                     cb()
                     when 'write'
                         user_has_write_access_to_project
-                            project_id : mesg.project_id
-                            account_id : @account_id
-                            cb         : (err, result) =>
+                            project_id     : mesg.project_id
+                            account_groups : @groups
+                            account_id     : @account_id
+                            cb             : (err, result) =>
                                 if err
                                     cb("Internal error determining user permission -- #{err}")
                                 else if not result
@@ -1253,6 +1302,37 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         @push_to_client(message.success(id:mesg.id))
+
+    mesg_hide_project_from_user: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to hide a project.")
+            return
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            project.hide_project_from_user
+                account_id : @account_id
+                cb         : (err, ok) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
+    mesg_unhide_project_from_user: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to unhide a project.")
+            return
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            project.unhide_project_from_user
+                account_id : @account_id
+                cb         : (err, ok) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
 
     mesg_move_project: (mesg) =>
         if not @account_id?
@@ -1325,6 +1405,7 @@ class Client extends EventEmitter
 
         database.get_projects_with_user
             account_id : @account_id
+            hidden     : mesg.hidden
             cb         : (error, projects) =>
                 if error
                     @error_to_client(id: mesg.id, error: "Database error -- failed to obtain list of your projects.")
@@ -1422,8 +1503,9 @@ class Client extends EventEmitter
             return
 
         user_has_write_access_to_project
-            project_id : mesg.project_id
-            account_id : @account_id
+            project_id     : mesg.project_id
+            account_id     : @account_id
+            account_groups : @groups
             cb: (error, ok) =>
                 winston.debug("mesg_update_project_data -- cb")
                 if error
@@ -1592,6 +1674,68 @@ class Client extends EventEmitter
                             @error_to_client(id:mesg.id, error:err)
                         else
                             @push_to_client(message.success(id:mesg.id))
+
+
+
+    mesg_copy_path_between_projects: (mesg) =>
+        if not mesg.src_project_id?
+            @error_to_client(id:mesg.id, error:"src_project_id must be defined")
+            return
+        if not mesg.target_project_id?
+            @error_to_client(id:mesg.id, error:"target_project_id must be defined")
+            return
+        if not mesg.src_path?
+            @error_to_client(id:mesg.id, error:"src_path must be defined")
+            return
+
+        async.series([
+            (cb) =>
+                # check permissions for the source and target projects (in parallel)
+                async.parallel([
+                    (cb) =>
+                        user_has_write_access_to_project
+                            project_id     : mesg.src_project_id
+                            account_id     : @account_id
+                            account_groups : @groups
+                            cb         : (err, result) =>
+                                if err
+                                    cb(err)
+                                else if not result
+                                    cb("user must have write access to project #{mesg.src_project_id}")
+                                else
+                                    cb()
+                    (cb) =>
+                        user_has_write_access_to_project
+                            project_id     : mesg.target_project_id
+                            account_id     : @account_id
+                            account_groups : @groups
+                            cb             : (err, result) =>
+                                if err
+                                    cb(err)
+                                else if not result
+                                    cb("user must have write access to project #{mesg.target_project_id}")
+                                else
+                                    cb()
+                ], cb)
+
+            (cb) =>
+                # do the copy
+                project = bup_server.get_project(mesg.src_project_id)
+                project.copy_path
+                    path            : mesg.src_path
+                    project_id      : mesg.target_project_id
+                    target_path     : mesg.target_path
+                    overwrite_newer : mesg.overwrite_newer
+                    delete_missing  : mesg.delete_missing
+                    timeout         : mesg.timeout
+                    cb              : cb
+
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.success(id:mesg.id))
+        )
 
 
     ################################################
@@ -1801,9 +1945,10 @@ class Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"invalid snap command '#{mesg.command}'")
             return
         user_has_write_access_to_project
-            project_id : mesg.project_id
-            account_id : @account_id
-            cb         : (err, result) =>
+            project_id     : mesg.project_id
+            account_id     : @account_id
+            account_groups : @groups
+            cb             : (err, result) =>
                 if err or not result
                     @error_to_client(id:mesg.id, error:"access to project #{mesg.project_id} denied")
                 else
@@ -2723,6 +2868,24 @@ class Project
             project_id : @project_id
             cb         : opts.cb
 
+    hide_project_from_user: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
+        database.hide_project_from_user
+            account_id : opts.account_id
+            project_id : @project_id
+            cb         : opts.cb
+
+    unhide_project_from_user: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
+        database.unhide_project_from_user
+            account_id : opts.account_id
+            project_id : @project_id
+            cb         : opts.cb
+
     # Get current session information about this project.
     session_info: (cb) =>
         @call
@@ -2764,27 +2927,63 @@ user_owns_project = (opts) ->
     opts.groups = ['owner']
     database.user_is_in_project_group(opts)
 
-user_has_write_access_to_project = (opts) ->
+user_is_in_project_group = (opts) ->
     opts = defaults opts,
-        project_id  : required
-        account_id  : undefined
-        consistency : 1
-        cb          : required        # cb(err, true or false)
+        project_id     : required
+        account_id     : undefined
+        account_groups : undefined
+        groups         : required
+        consistency    : cql.types.consistencies.one
+        cb             : required        # cb(err, true or false)
     if not opts.account_id?
         # we can have a client *without* account_id that is requesting access to a project.  Just say no.
-        opts.cb(false, false) # do not have access
+        opts.cb(undefined, false) # do not have access
         return
+    access = false
+    async.series([
+        (cb) ->
+            #winston.debug("opts.account_groups = #{misc.to_json(opts.account_groups)}")
+            if opts.account_groups? and 'admin' in opts.account_groups  # check also done below!
+                access = true
+                cb()
+            else
+                database.user_is_in_project_group
+                    project_id     : opts.project_id
+                    account_id     : opts.account_id
+                    groups         : opts.groups
+                    consistency    : cql.types.consistencies.one
+                    cb             : (err, x) ->
+                        access = x
+                        cb(err)
+        (cb) ->
+            if access
+                cb() # done
+            else if opts.account_groups?
+                # already decided above
+                cb()
+            else
+                # User does not have access in normal way and account_groups not provided, so
+                # we do an extra group check before denying user.
+                database.get_account
+                    columns    : ['groups']
+                    account_id : opts.account_id
+                    cb         : (err, r) ->
+                        if err
+                            cb(err)
+                        else
+                            access = 'admin' in r['groups']
+                            cb()
+        ], (err) ->
+            opts.cb(err, access)
+        )
+
+user_has_write_access_to_project = (opts) ->
     opts.groups = ['owner', 'collaborator']
-    database.user_is_in_project_group(opts)
+    user_is_in_project_group(opts)
 
 user_has_read_access_to_project = (opts) ->
-    opts = defaults opts,
-        project_id  : required
-        account_id  : required
-        consistency : 1
-        cb          : required        # cb(err, true or false)
     opts.groups = ['owner', 'collaborator', 'viewer']
-    database.user_is_in_project_group(opts)
+    user_is_in_project_group(opts)
 
 
 ########################################
@@ -2936,7 +3135,7 @@ sign_in = (client, mesg) =>
             database.count
                 table       : "failed_sign_ins_by_email_address"
                 where       : {email_address:mesg.email_address, time: {'>=':cass.minutes_ago(1)}}
-                consistency : 1
+                consistency : cql.types.consistencies.one
                 cb          : (error, count) ->
                     if error
                         sign_in_error(error)
@@ -2950,7 +3149,7 @@ sign_in = (client, mesg) =>
             database.count
                 table       : "failed_sign_ins_by_email_address"
                 where       : {email_address:mesg.email_address, time: {'>=':cass.hours_ago(1)}}
-                consistency : 1
+                consistency : cql.types.consistencies.one
                 cb          : (error, count) ->
                     if error
                         sign_in_error(error)
@@ -2965,7 +3164,7 @@ sign_in = (client, mesg) =>
             database.count
                 table       : "failed_sign_ins_by_ip_address"
                 where       : {ip_address:client.ip_address, time: {'>=':cass.minutes_ago(1)}}
-                consistency : 1
+                consistency : cql.types.consistencies.one
                 cb          : (error, count) ->
                     if error
                         sign_in_error(error)
@@ -2980,7 +3179,7 @@ sign_in = (client, mesg) =>
             database.count
                 table       : "failed_sign_ins_by_ip_address"
                 where       : {ip_address:client.ip_address, time: {'>=':cass.hours_ago(1)}}
-                consistency : 1
+                consistency : cql.types.consistencies.one
                 cb          : (error, count) ->
                     if error
                         sign_in_error(error)
@@ -3011,7 +3210,8 @@ sign_in = (client, mesg) =>
             # There is no security in not doing this, since the same information can be determined via the invite collaborators feature.
             database.get_account
                 email_address : mesg.email_address
-                consistency   : 1
+                consistency   : cql.types.consistencies.one
+                columns       : ['password_hash', 'account_id']
                 cb            : (error, account) ->
                     if error
                         record_sign_in
@@ -3033,8 +3233,6 @@ sign_in = (client, mesg) =>
                         signed_in_mesg = message.signed_in
                             id            : mesg.id
                             account_id    : account.account_id
-                            first_name    : account.first_name
-                            last_name     : account.last_name
                             email_address : mesg.email_address
                             remember_me   : false
                             hub           : program.host + ':' + program.port
@@ -3047,9 +3245,7 @@ sign_in = (client, mesg) =>
         (cb) ->
             if mesg.remember_me
                 client.remember_me
-                    account_id : signed_in_mesg.account_id
-                    first_name : signed_in_mesg.first_name
-                    last_name  : signed_in_mesg.last_name
+                    account_id       : signed_in_mesg.account_id
                     email_address : signed_in_mesg.email_address
             cb()
     ])
@@ -3061,8 +3257,6 @@ record_sign_in = (opts) ->
         ip_address    : required
         successful    : required
         email_address : required
-        first_name    : undefined
-        last_name     : undefined
         account_id    : undefined
         remember_me   : false
     if not opts.successful
@@ -3070,18 +3264,18 @@ record_sign_in = (opts) ->
             table       : 'failed_sign_ins_by_ip_address'
             set         : {email_address:opts.email_address}
             where       : {time:cass.now(), ip_address:opts.ip_address}
-            consistency : 1
+            consistency : cql.types.consistencies.one
         database.update
             table       : 'failed_sign_ins_by_email_address'
             set         : {ip_address:opts.ip_address}
             where       : {time:cass.now(), email_address:opts.email_address}
-            consistency : 1
+            consistency : cql.types.consistencies.one
     else
         database.update
             table       : 'successful_sign_ins'
-            set         : {ip_address:opts.ip_address, first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, remember_me:opts.remember_me}
+            set         : {ip_address:opts.ip_address, email_address:opts.email_address, remember_me:opts.remember_me}
             where       : {time:cass.now(), account_id:opts.account_id}
-            consistency : 1
+            consistency : cql.types.consistencies.one
 
 
 
@@ -3219,9 +3413,6 @@ create_account = (client, mesg) ->
                 id            : mesg.id
                 account_id    : account_id
                 remember_me   : false
-                first_name    : mesg.first_name
-                last_name     : mesg.last_name
-                email_address : mesg.email_address
                 hub           : program.host + ':' + program.port
             client.signed_in(mesg)
             client.push_to_client(mesg)
@@ -3292,8 +3483,9 @@ change_password = (mesg, client_ip_address, push_to_client) ->
 
         # get account and validate the password
         (cb) ->
-            database.get_account(
+            database.get_account
               email_address : mesg.email_address
+              columns       : ['password_hash', 'account_id']
               cb : (error, result) ->
                 if error
                     push_to_client(message.changed_password(id:mesg.id, error:{other:error}))
@@ -3309,7 +3501,6 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                     cb(true)
                     return
                 cb()
-            )
 
         # check that new password is valid
         (cb) ->
@@ -3541,15 +3732,15 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                     cb()
 
         (cb) ->
-            database.get_account(
+            database.get_account
                 email_address : mesg.email_address
+                columns       : ['account_id']   # have to get something
                 cb            : (error, account) ->
                     if error # no such account
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"No account with e-mail address #{mesg.email_address}."))
                         cb(true); return
                     else
                         cb()
-            )
 
         # We now know that there is an account with this email address.
         # put entry in the password_reset uuid:value table with ttl of 15 minutes, and send an email
@@ -3651,41 +3842,6 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
                         push_to_client(message.reset_forgot_password_response(id:mesg.id)) # success
                         db.delete(uuid: mesg.reset_code)  # only allow successful use of this reset token once
                         cb()
-    ])
-
-# This function sends a message to the client (via push_to_client)
-# with the account settings for the account with given id.  We assume
-# that caller code has already determined that the user initiating
-# this request has the given account_id.
-get_account_settings = (mesg, push_to_client) ->
-    account_settings = null
-    async.series([
-        # 1. Get entry in the database corresponding to this account.
-        (cb) ->
-            database.get_account
-                account_id : mesg.account_id
-                cb : (error, data) ->
-                    if error
-                        push_to_client(message.error(id:mesg.id, error:error))
-                        cb(true) # bail
-                    else
-                        delete data['password_hash']
-
-                        # 2. Set defaults for unset keys.  We do this so that in the
-                        # long run it will always be easy to migrate the database
-                        # forward (with new columns).
-                        for key, val of message.account_settings_defaults
-                            if not data[key]?
-                                data[key] = val
-
-                        account_settings = data
-                        account_settings.id = mesg.id
-                        cb()
-
-        (cb) ->
-            # 3. Send result to client
-            push_to_client(message.account_settings(account_settings))
-            cb() # done!
     ])
 
 # mesg is an account_settings message.  We save everything in the
@@ -4174,12 +4330,12 @@ connect_to_database = (cb) ->
             cb(err)
         else
             new cass.Salvus
-                hosts    : program.database_nodes.split(',')
-                keyspace : program.keyspace
-                username : 'hub'
-                password : password.toString().trim()
-                consistency : 2
-                cb       : (err, _db) ->
+                hosts       : program.database_nodes.split(',')
+                keyspace    : program.keyspace
+                username    : 'hub'
+                password    : password.toString().trim()
+                consistency : cql.types.consistencies.localQuorum
+                cb          : (err, _db) ->
                     if err
                         winston.debug("Error connecting to database")
                         cb(err)

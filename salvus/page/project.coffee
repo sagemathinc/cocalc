@@ -201,6 +201,9 @@ class ProjectPage
         @init_delete_project()
         @init_undelete_project()
 
+        @init_hide_project()
+        @init_unhide_project()
+
         @init_make_public()
         @init_make_private()
 
@@ -1260,10 +1263,17 @@ class ProjectPage
         dialog.find(".btn-close").click () =>
             dialog.modal('hide')
             return false
+
         dialog.find("a[href=#copy-file]").click () =>
             dialog.modal('hide')
             @copy_file_dialog(obj.fullname, obj.isdir)
             return false
+
+        dialog.find("a[href=#copy-to-another-project]").click () =>
+            dialog.modal('hide')
+            @copy_to_another_project_dialog(obj.fullname, obj.isdir)
+            return false
+
         dialog.find("a[href=#move-file]").click () =>
             dialog.modal('hide')
             @move_file_dialog(obj.fullname)
@@ -1780,6 +1790,76 @@ class ProjectPage
                         cb(err)
         ], (err) => cb?(err))
 
+    copy_to_another_project_dialog: (path, isdir) =>
+        dialog = $(".salvus-project-copy-to-another-project-dialog").clone()
+        dialog.modal()
+
+        src_path          = undefined
+        target_project_id = undefined
+        target_project    = undefined
+        target_path       = undefined
+        overwrite_newer   = undefined
+        delete_missing    = undefined
+        async.series([
+            (cb) =>
+                if path.slice(0,'.snapshots/'.length) == '.snapshots/'
+                    dest = path.slice('.snapshots/master/2014-04-06-052506/'.length)
+                else
+                    dest = path
+                dialog.find(".salvus-project-copy-src-path").val(path)
+                dialog.find(".salvus-project-copy-target-path").val(path)
+                if isdir
+                    dialog.find(".salvus-project-copy-dir").show()
+                else
+                    dialog.find(".salvus-project-copy-file").show()
+                selector = dialog.find(".salvus-project-target-project-id")
+                v = ({project_id:x.project_id, title:x.title.slice(0,80)} for x in require('projects').get_project_list())
+                for project in v.slice(0,7)
+                    selector.append("<option value='#{project.project_id}'>#{project.title}</option>")
+                v.sort (a,b) ->
+                    if a.title < b.title
+                        return -1
+                    else if a.title > b.title
+                        return 1
+                    return 0
+                selector.append('<option class="select-dash" disabled="disabled">----</option>')
+                for project in v
+                    selector.append("<option value='#{project.project_id}'>#{project.title}</option>")
+
+                submit = (ok) =>
+                    dialog.modal('hide')
+                    if ok
+                        src_path          = dialog.find(".salvus-project-copy-src-path").val()
+                        target_project_id = dialog.find(".salvus-project-target-project-id").val()
+                        for p in v  # stupid linear search...
+                            if p.project_id == target_project_id
+                                target_project = p.title
+                        target_path       = dialog.find(".salvus-project-copy-target-path").val()
+                        overwrite_newer   = dialog.find(".salvus-project-overwrite-newer").is(":checked")
+                        delete_missing    = dialog.find(".salvus-project-delete-missing").is(":checked")
+                    cb()
+                    return false
+                dialog.find(".btn-close").click(()=>submit(false))
+                dialog.find(".btn-submit").click(()=>submit(true))
+            (cb) =>
+                if not src_path? or not target_path? or not target_project_id?
+                    cb(); return
+                alert_message(type:'info', message:"Copying #{src_path} to #{target_path} in #{target_project}...")
+                salvus_client.copy_path_between_projects
+                    src_project_id    : @project.project_id
+                    src_path          : src_path
+                    target_project_id : target_project_id
+                    target_path       : target_path
+                    overwrite_newer   : overwrite_newer
+                    delete_missing    : delete_missing
+                    timeout           : 120
+                    cb         : (err) =>
+                        if err
+                            alert_message(type:"error", message:"Error copying #{src_path} to #{target_path} in #{target_project} -- #{err}")
+                        else
+                            alert_message(type:"success", message:"Successfully copied #{src_path} to #{target_path} in #{target_project}")
+                        cb(err)
+        ], (err) => cb?(err))
 
     move_file_dialog:  (path, cb) =>
         dialog = $(".project-move-file-dialog").clone()
@@ -2317,6 +2397,57 @@ class ProjectPage
                                     message : "Successfully undeleted project \"#{@project.title}\"."
             return false
 
+    init_hide_project: () =>
+        if @project.hidden
+            @container.find(".project-settings-hide").hide()
+        else
+            @container.find(".project-settings-hide").show()
+
+        link = @container.find("a[href=#hide-project]")
+        link.click () =>
+            link.find(".spinner").show()
+            salvus_client.hide_project_from_user
+                project_id : @project.project_id
+                cb         : (err) =>
+                    link.find(".spinner").hide()
+                    if err
+                        alert_message
+                            type : "error"
+                            message: "Error trying to hide project \"#{@project.title}\".   Please try again later. #{err}"
+                    else
+                        @container.find(".project-settings-unhide").show()
+                        @container.find(".project-settings-hide").hide()
+                        alert_message
+                            type : "info"
+                            message : "Successfully hid project \"#{@project.title}\"."
+                            timeout : 5
+            return false
+
+    init_unhide_project: () =>
+
+        if @project.hidden
+            @container.find(".project-settings-unhide").show()
+        else
+            @container.find(".project-settings-unhide").hide()
+
+        link = @container.find("a[href=#unhide-project]")
+        link.click () =>
+            link.find(".spinner").show()
+            salvus_client.unhide_project_from_user
+                project_id : @project.project_id
+                cb         : (err) =>
+                    link.find(".spinner").hide()
+                    if err
+                        alert_message
+                            type : "error"
+                            message: "Error trying to unhide project.  Please try again later. #{err}"
+                    else
+                        @container.find(".project-settings-unhide").hide()
+                        @container.find(".project-settings-hide").show()
+                        alert_message
+                            type : "info"
+                            message : "Successfully unhid project \"#{@project.title}\"."
+            return false
 
     init_make_public: () =>
         link = @container.find("a[href=#make-public]")

@@ -68,44 +68,47 @@ CREATE TABLE log (
 // and account_settings_defaults in message.coffee.
 
 CREATE TABLE accounts (
-    account_id      uuid PRIMARY KEY,
+    account_id           uuid PRIMARY KEY,
 
-    first_name      varchar,
-    last_name       varchar,
-    email_address   varchar,
-    gitconfig       varchar,   // if empty or undefined, make simple default from first_name, last_name, email_address.
+    first_name           varchar,
+    last_name            varchar,
+    email_address        varchar,
+    gitconfig            varchar,   /* if empty or undefined, make simple default from first_name, last_name, email_address. */
 
-    password_hash   varchar,
-    password_change_wait_until  timestamp,
+    password_hash        varchar,
+    password_change_     wait_until  timestamp,
 
-    plan_id         uuid,
-    plan_starttime  timestamp,
+    plan_id              uuid,
+    plan_starttime       timestamp,
 
-    default_system  varchar,   // sage, python, octave, etc.
-    evaluate_key    varchar,   // shift-enter, enter, control-enter
+    default_system       varchar,   /* sage, python, octave, etc. */
+    evaluate_key         varchar,   /* shift-enter, enter, control-enter */
 
-    email_new_features boolean,
-    email_maintenance  boolean,
+    email_new_features   boolean,
+    email_maintenance    boolean,
 
-    connect_Github     varchar,
-    connect_Google     varchar,
-    connect_Dropbox    varchar,
+    connect_Github       varchar,
+    connect_Google       varchar,
+    connect_Dropbox      varchar,
 
-    autosave           int,
-    terminal           varchar, // JSON
+    autosave             int,
+    terminal             varchar, /* JSON */
 
-    editor_settings    varchar, // JSON
+    editor_settings      varchar, /* JSON */
 
-    other_settings     varchar, // JSON
+    other_settings       varchar, /* JSON */
 
-    enable_tooltips    boolean,
+    enable_tooltips      boolean,
 
-    owner                set<uuid>,   // projects that this user owns
-    collaborator         set<uuid>,   // projects this users is collaborating on
-    invited_collaborator set<uuid>,   // projects this user has been invited to collaborate on (but has not accepted)
-    viewer               set<uuid>,   // projects this user can view (but not change)
-    invited_viewer       set<uuid>    // projects this user has been invited to view (but has not accepted)
+    owner                set<uuid>,   /* projects that this user owns                                                  */
+    collaborator         set<uuid>,   /* projects this users is collaborating on                                       */
+    invited_collaborator set<uuid>,   /* projects this user has been invited to collaborate on (but has not accepted)  */
+    viewer               set<uuid>,   /* projects this user can view (but not change)                                  */
+    invited_viewer       set<uuid>,   /* projects this user has been invited to view (but has not accepted)            */
 
+    hidden_projects      set<uuid>,   /* projects that this user doesn't normally see by default (e.g., all students in their course) */
+
+    groups               set<varchar>,  /* groups that this account is a member of; e.g., 'admin', which grants extreme power */
 );
 
 CREATE TABLE email_address_to_account_id (
@@ -249,11 +252,13 @@ CREATE TABLE projects (
      size             int,      // total size in bytes at last save
      deleted          boolean,  // if true, user deleted the project, so nobody sees it.
 
-     owner                set<uuid>,   // owners of this project (will have some special perms)
-     collaborator         set<uuid>,   // all actual collaborators on this project
-     invited_collaborator set<uuid>,   // accounts that have been invited to collaborate
-     viewer               set<uuid>,   // accounts who are viewers
-     invited_viewer       set<uuid>,    // accounts who have been invited to view.
+     owner                set<uuid>,   /* owners of this project (will have some special perms) */
+     collaborator         set<uuid>,   /* all actual collaborators on this project              */
+     invited_collaborator set<uuid>,   /* accounts that have been invited to collaborate        */
+     viewer               set<uuid>,   /* accounts who are viewers                              */
+     invited_viewer       set<uuid>,   /* accounts who have been invited to view.               */
+
+     hide_from_accounts   set<uuid>,   /* accounts from which this project is hidden, e.g., all students in a course */
 
      abuser varchar,
 

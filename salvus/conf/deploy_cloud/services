@@ -4,17 +4,18 @@
 _running      = os.popen('virsh list').read()
 base          = os.path.splitext([_x for _x in sorted(os.listdir('/home/salvus/vm/images/base3')) if _x.split('.')[0] not in _running][-1])[0]
 
-cassandra_ram = 8
+cassandra_ram = 10
 cassandra_cpu = 2
 
-web_ram       = 4
+web_ram       = 10
 web_cpu       = 2
 
 old_compute_ram = 2
 old_compute_cpu = 1
 
-compute_ram   = 64
-compute_cpu   = 10   # DO *NOT* change compute_cpu willy-nilly; if you change it, you must rebuild ATLAS, which takes 12 hours.
+compute_ram   = 72
+compute_ram_med = 42
+compute_cpu   = 12   # DO *NOT* change compute_cpu willy-nilly; if you change it, you must rebuild ATLAS, which takes 12 hours.
                      # if you don't rebuild ATLAS, then it will crash on this benchmark
                      # sage: n=1000;import numpy; a=numpy.random.randn(n,n);
                      # sage: %timeit b=numpy.linalg.inv(a)
@@ -39,10 +40,10 @@ localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-hi
 localhost    {'hostname':'backup1dc2', 'disk':'backup1:4000', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
 
 # cassandra cluster
-localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
-localhost    {'hostname':'cassandra2dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
-localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
-localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra2dc2', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
 
 # web servers/hubs
 localhost    {'hostname':'web1dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
@@ -66,14 +67,14 @@ localhost     {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'n1-h
 #localhost    {'hostname':'compute4dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
 
 # cassandra cluster
-localhost    {'hostname':'cassandra1dc3', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
-localhost    {'hostname':'cassandra2dc3', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
-localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
-localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra:200', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra1dc3', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra2dc3', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
 
 # web servers/hubs
-localhost    {'hostname':'web1dc3', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
-localhost    {'hostname':'web2dc3', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
+localhost    {'hostname':'web1dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+localhost    {'hostname':'web2dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
 
 
 #####################
@@ -106,31 +107,26 @@ localhost    {'hostname':'web2dc3', 'instance_type':'g1-small', 'zone':'europe-w
 
 # database nodes
 cloud1    {'hostname':'cassandra1', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra1', 'vnc':13200}
-
-cloud2    {'hostname':'cassandra2', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/sdd1::none', 'vnc':13200}
-
+cloud2    {'hostname':'cassandra2', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra2', 'vnc':13200}
 cloud3    {'hostname':'cassandra3', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra3', 'vnc':13200}
-
 cloud4    {'hostname':'cassandra4', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra4', 'vnc':13200}
-
-
-cloud5    {'hostname':'cassandra5', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
-cloud6    {'hostname':'cassandra6', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
-
+cloud5    {'hostname':'cassandra5', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra5', 'vnc':13200}
+cloud6    {'hostname':'cassandra6', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra6', 'vnc':13200}
 cloud7    {'hostname':'cassandra7', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra7', 'vnc':13200}
 
-cloud10   {'hostname':'cassandra10', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
-cloud11   {'hostname':'cassandra11', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
-cloud12   {'hostname':'cassandra12', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
-cloud13   {'hostname':'cassandra13', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
-cloud14   {'hostname':'cassandra14', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
-cloud15   {'hostname':'cassandra15', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
-cloud16   {'hostname':'cassandra16', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
-cloud17   {'hostname':'cassandra17', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
-cloud18   {'hostname':'cassandra18', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
-cloud19   {'hostname':'cassandra19', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
-cloud20   {'hostname':'cassandra20', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
-cloud21   {'hostname':'cassandra21', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2,cassandra-zfs-2:150:none:qcow2', 'vnc':13200}
+cloud10   {'hostname':'cassandra10', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra10', 'vnc':13200}
+cloud11   {'hostname':'cassandra11', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra11', 'vnc':13200}
+cloud12   {'hostname':'cassandra12', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra12', 'vnc':13200}
+cloud13   {'hostname':'cassandra13', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra13', 'vnc':13200}
+cloud14   {'hostname':'cassandra14', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra14', 'vnc':13200}
+cloud15   {'hostname':'cassandra15', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra15', 'vnc':13200}
+cloud16   {'hostname':'cassandra16', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra16', 'vnc':13200}
+cloud17   {'hostname':'cassandra17', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra17', 'vnc':13200}
+cloud18   {'hostname':'cassandra18', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra18', 'vnc':13200}
+cloud19   {'hostname':'cassandra19', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra19', 'vnc':13200}
+cloud20   {'hostname':'cassandra20', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra20', 'vnc':13200}
+cloud21   {'hostname':'cassandra21', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/zvol/ssd/cassandra21', 'vnc':13200}
+
 
 # web/hub nodes
 cloud1   {'hostname':'web1',       'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'vnc':13300}
@@ -154,29 +150,27 @@ cloud20  {'hostname':'web20',      'vcpus':web_cpu,       'ram':web_ram,       '
 cloud21  {'hostname':'web21',      'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'vnc':13300}
 
 # compute vm's
-cloud1   {'hostname':'compute1dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'/dev/zvol/ssd/compute1dc1', 'vnc':13100}
 
-cloud2   {'hostname':'compute2dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'/dev/sdd2::none', 'vnc':13100}
-cloud3   {'hostname':'compute3dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'/dev/zvol/ssd/compute3dc1', 'vnc':13100}
+cloud1   {'hostname':'compute1dc1',  'vcpus':compute_cpu,   'ram':72,   'base':base, 'disk':'/dev/zvol/ssd/compute1dc1', 'vnc':13100}
+cloud2   {'hostname':'compute2dc1',  'vcpus':compute_cpu,   'ram':72,   'base':base, 'disk':'/dev/zvol/ssd/compute2dc1', 'vnc':13100}
+cloud3   {'hostname':'compute3dc1',  'vcpus':compute_cpu,   'ram':72,   'base':base, 'disk':'/dev/zvol/ssd/compute3dc1', 'vnc':13100}
+cloud4   {'hostname':'compute4dc1',  'vcpus':compute_cpu,   'ram':72,   'base':base, 'disk':'/dev/zvol/ssd/compute4dc1', 'vnc':13100}
+cloud5   {'hostname':'compute5dc1',  'vcpus':compute_cpu,   'ram':72,   'base':base, 'disk':'/dev/zvol/ssd/compute5dc1', 'vnc':13100}
+cloud6   {'hostname':'compute6dc1',  'vcpus':compute_cpu,   'ram':72,   'base':base, 'disk':'/dev/zvol/ssd/compute6dc1', 'vnc':13100}
+cloud7   {'hostname':'compute7dc1',  'vcpus':compute_cpu,   'ram':72,   'base':base, 'disk':'/dev/zvol/ssd/compute7dc1', 'vnc':13100}
 
-cloud4   {'hostname':'compute4dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'/dev/zvol/ssd/compute4dc1', 'vnc':13100}
-
-cloud5   {'hostname':'compute5dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud6   {'hostname':'compute6dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud7   {'hostname':'compute7dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'/dev/zvol/ssd/compute7dc1', 'vnc':13100}
-
-cloud10  {'hostname':'compute10dc0',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud11  {'hostname':'compute11dc0',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud12  {'hostname':'compute12dc0',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud13  {'hostname':'compute13dc0',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud14  {'hostname':'compute14dc0',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud15  {'hostname':'compute15dc0',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud16  {'hostname':'compute16dc0',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud17  {'hostname':'compute17dc0',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud18  {'hostname':'compute18dc0',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud19  {'hostname':'compute19dc0',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud20  {'hostname':'compute20dc0',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
-cloud21  {'hostname':'compute21dc0',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
+cloud10  {'hostname':'compute10dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute10dc0', 'vnc':13100}
+cloud11  {'hostname':'compute11dc0',  'vcpus':compute_cpu,   'ram':compute_ram_med, 'base':base, 'disk':'/dev/zvol/ssd/compute11dc0', 'vnc':13100}
+cloud12  {'hostname':'compute12dc0',  'vcpus':compute_cpu,   'ram':compute_ram_med, 'base':base, 'disk':'/dev/zvol/ssd/compute12dc0', 'vnc':13100}
+cloud13  {'hostname':'compute13dc0',  'vcpus':compute_cpu,   'ram':compute_ram_med, 'base':base, 'disk':'/dev/zvol/ssd/compute13dc0', 'vnc':13100}
+cloud14  {'hostname':'compute14dc0',  'vcpus':compute_cpu,   'ram':compute_ram_med, 'base':base, 'disk':'/dev/zvol/ssd/compute14dc0', 'vnc':13100}
+cloud15  {'hostname':'compute15dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute15dc0', 'vnc':13100}
+cloud16  {'hostname':'compute16dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute16dc0', 'vnc':13100}
+cloud17  {'hostname':'compute17dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute17dc0', 'vnc':13100}
+cloud18  {'hostname':'compute18dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute18dc0', 'vnc':13100}
+cloud19  {'hostname':'compute19dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute19dc0', 'vnc':13100}
+cloud20  {'hostname':'compute20dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute20dc0', 'vnc':13100}
+cloud21  {'hostname':'compute21dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute21dc0', 'vnc':13100}
 
 # Cassandra nodes
 [cassandra] {'auto_bootstrap':True, 'timeout':60, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer', 'incremental_backups':True}
