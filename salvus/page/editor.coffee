@@ -1530,7 +1530,6 @@ class CodeMirrorEditor extends FileEditor
         return false
 
     click_history_button: () =>
-        console.log("clicked history1")
         @editor.project_page.open_file
             path : "." + @filename + ".sage-history"
             foreground : true
@@ -2659,7 +2658,7 @@ class HistoryEditor extends FileEditor
             @history_editor.codemirror.setValue(JSON.parse(@log[0]))
             @revision_num = @nlines
             ext = misc.filename_extension(@filename[0..-14])
-            if require('editor').file_associations[ext].opts.mode?
+            if ext != "" and require('editor').file_associations[ext].opts.mode?
                 @history_editor.codemirror.setOption("mode", require('editor').file_associations[ext].opts.mode)
             @slider.slider
                 animate : false
