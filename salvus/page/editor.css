@@ -422,8 +422,8 @@ Editor for files in a project
  
 /*Style for the slider button*/
 .salvus-editor-history-slider > .ui-slider-handle {
-    width: 24px;
-    height: 12px;
+    width: 12px;
+    height: 24px;
     position: absolute;
     top: -8px;
     margin-left: -12px;
