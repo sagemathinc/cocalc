@@ -1,11 +1,10 @@
 .salvus-project {
-    width: 98%;
-    padding-left: 2%;  /* 2+98=100 */
-
     padding-top: 0;
     margin-top: 0;
-    top: 40px;
+    top: 43px; /* Top navbar height = 42px */
+    width: 100%;
 }
+
 .first-entry {
     background-color: #08c;
 }
@@ -16,46 +15,28 @@
 }
 
 .project-activity-well {
-    background-color:white;
+    background-color: white;
 }
 
 .project-activity-log {
-    overflow-y:auto;
+    overflow-y: auto;
 }
 
 .project-activity-entry {
     border-bottom: 1px solid #bbb;
-    padding: 1ex 0 0 1ex;
+    padding: 1ex 0 1ex 1ex;
 }
 
 .project-activity-type-button:focus {
     outline: 0
 }
+
 .project-disk_usage {
-    background-color:white;
+    background-color: white;
 }
 
 .project-settings-well {
-    background-color:white;
-}
-
-.project-add-collaborator-button {
-    float: right;
-}
-
-.project-add-collaborator-input {
-    vertical-align: top !important;
-    margin-bottom: 1ex !important;
-    width: 100%;
-}
-
-.project-add-collaborator-input-container {
-    overflow: hidden;
-    padding-right: 40px;
-}
-
-.project-add-collaborator-select {
-    width:100% !important;
+    background-color: white;
 }
 
 .project-add-linked-project-input {
@@ -64,12 +45,7 @@
 }
 
 .project-add-linked-project-select {
-    width:100%;
-}
-
-.project-file-listing {
-    margin-left  : 3em;
-    margin-right : 3em;
+    width: 100%;
 }
 
 .project-file-listing-container {
@@ -77,7 +53,11 @@
     overflow-x: hidden; */
 }
 
-.project-file-listing, .project-new-file, .project-activity, .project-settings, .project-search {
+.project-file-listing,
+.project-new-file,
+.project-activity,
+.project-settings,
+.project-search {
     clear: both;
 }
 
@@ -92,15 +72,14 @@
     background-color: #eee;
 }
 
-
 .project-file-listing-current_path {
-    margin-top:12px;
-    margin-bottom:12px;
+    margin-top: 12px;
+    margin-bottom: 12px;
 }
 
 .project-file-top-current-path-display {
     font-size: 14px;
-    top: 38px;
+    top: 78px;
     position: absolute;
     left: 10px;
 }
@@ -115,12 +94,28 @@
     cursor           : pointer;
 }
 
-@media (max-width: 979px) {
+@media (max-width: 767px) {
     .project-file-link-style {
-        min-height:40px;
+        min-height: 40px;
+    }
+
+    .project-pages {
+        float: none !important;
+    }
+
+    .project-pages > li {
+        width: 19.3%;
+        text-align: center;
+    }
+
+    .file-pages {
+        float: none;
+    }
+
+    .salvus-project-activity-search {
+        width: 98% !important;
     }
 }
-
 
 .project-file-link-style:hover {
     background-color:#efe;
@@ -164,12 +159,11 @@
     background-color:#efe;
 }
 
-@media (max-width: 979px) {
+@media (max-width: 767px) {
     .project-directory-link-style {
         min-height:40px;
     }
 }
-
 
 .project-project_title {
     font-size:18pt;
@@ -181,6 +175,11 @@
 
 .project-pages {
     float: left;
+    margin-bottom: 20px;
+}
+
+.project-pages > li > a {
+    padding: 8px 10px; /* BS3 increased this, which is no good */
 }
 
 .salvus-project-status-indicator-button {
@@ -189,21 +188,14 @@
 }
 
 .project-pages-button {
-    cursor    : pointer;
-    margin-right:-.15em;
-}
-
-.project-search-form-input {
-    width:50%;
+    cursor: pointer;
 }
 
 .project-search-output  {
-    background-color : white;
-    font-family      : monospace;
-    /* overflow-y       : auto; */
-    position         : absolute;
-    height           : 100%;
-    margin-left       : 3em;
+    background-color: white;
+    font-family: monospace;
+    /* overflow-y: auto; */
+    height: 100%;
 }
 
 .project-search-output-command {
@@ -325,6 +317,10 @@
     margin-left:0px;
 }
 
+.project-activity-chat {
+    resize: vertical;
+}
+
 .project-command-line-stdout {
     margin:0;
     padding:2px;
@@ -394,20 +390,21 @@
 }
 
 .project-commit-command-output {
-    background-color:#fff;
-    color:#222;
-    padding:1em;
+    background-color: #fff;
+    color: #222;
+    padding: 1em;
     border: solid 1px blue;
-    width:100%;
+    width: 100%;
 }
 
 
 .project-file-list-sort-order {
-     margin-left:2em;
+     margin-left: 2em;
 }
 
 .salvus-project-search-for-file-input {
-    width:80%;
+    width: 80%;
+    display: inline-block;
 }
 
 .project-listing-search-include {
@@ -416,19 +413,25 @@
 }
 
 .project-listing-search-exclude {
-    opacity : .3;
-    overflow : hidden;
-    height  : 12px;
+    opacity: .3;
+    overflow: hidden;
+    height: 12px;
     font-size: 9px;
-    margin  : 0;
-    padding : 0;
+    margin: 0;
+    padding: 0;
     margin-top: -13px;  /* So they overlap */
 }
 
 .project-search-output-further-results {
-    font-size:14px;
     font-weight: bold;
-    margin-left:4em;
+}
+
+.project-search-result {
+    word-wrap: break-word;
+}
+
+.project-search-result:hover {
+    background-color: #efe;
 }
 
 .project-new-file-path {
@@ -448,6 +451,7 @@
     border: 2px solid #ccc;
     box-shadow: 4px 4px 2px #bbb;
     border-radius: 5px;
+    padding: 0;
 }
 
 .project-connection {
@@ -489,11 +493,11 @@
 }
 
 .salvus-file-action {
-    color : #888;
+    color: #888;
 }
 
 .salvus-file-action:hover {
-    color : #000;
+    color: #000;
 }
 .project-home-icon {
     font-size: 16pt;
@@ -510,18 +514,18 @@
 }
 
 .salvus-project-replica {
-    background-color:  white;
+    background-color: white;
     border: 1px solid lightgrey;
     padding: 5px;
     cursor: pointer;
 }
 
 .salvus-project-replica-clickable:hover {
-    background-color:#efe;
+    background-color: #efe;
 }
 
 .salvus-project-replica-current {
-    background-color:#FFFACD;
+    background-color: #FFFACD;
 }
 
 .salvus-project-replica-datacenter {
@@ -546,3 +550,15 @@
     font-size: 14pt;
 }
 
+.salvus-project-activity-search {
+    display: inline-block;
+    width: 85%;
+}
+@media (min-width: 768px) {
+    .project-settings-well, .project-heading-well {
+        margin-left: 10px;
+        margin-right: 10px;
+        width: 46.5%;
+        width: calc(50% - 21px);
+    }
+}
