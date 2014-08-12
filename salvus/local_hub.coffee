@@ -1513,7 +1513,7 @@ class CodeMirrorSession
 
         if not @revision_tracking_doc.HEAD?
 
-            # Initailize HEAD from the file
+            # Initialize HEAD from the file
 
             if @revision_tracking_doc.content.length == 0
                 # brand new -- first time.
