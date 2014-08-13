@@ -7,7 +7,7 @@ Administration and Launch control of salvus components
 ####################
 # Standard imports
 ####################
-import json, logging, os, shutil, signal, socket, stat, subprocess, tempfile, time
+import json, logging, os, shutil, signal, socket, stat, subprocess, sys, tempfile, time
 
 from string import Template
 
