@@ -40,3 +40,7 @@ salvus/src/*.tgz
 .*swp
 
 .*sage-chat
+
+salvus/conf/tinc_hosts/
+
+
