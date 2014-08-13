@@ -123,10 +123,6 @@
     font-weight: bold;
 }
 
-.salvus-tasks-search {
-    margin-bottom: 4px;
-}
-
 .salvus-tasks-list {
     overflow-y:auto;
     overflow-x:hidden;

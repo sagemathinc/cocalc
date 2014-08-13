@@ -910,15 +910,18 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 { MARKERS, FLAGS, ACTION_FLAGS } = diffsync
 
 class SynchronizedWorksheet extends SynchronizedDocument
-    constructor: (@editor, opts) ->
-        opts0 =
-            cursor_interval : opts.cursor_interval
-            sync_interval   : opts.sync_interval
-        super @editor, opts0, () =>
-            @process_sage_updates()
+    constructor: (@editor, @opts) ->
+        if not @opts.history_browser
+            opts0 =
+                cursor_interval : @opts.cursor_interval
+                sync_interval   : @opts.sync_interval
+            super @editor, opts0, () =>
+                @process_sage_updates()
 
-        @init_worksheet_buttons()
-        @on 'sync', @process_sage_updates
+            @init_worksheet_buttons()
+            @on 'sync', @process_sage_updates
+
+        @codemirror = @editor.codemirror
 
         @editor.on 'show', (height) =>
             w = @cm_lines().width()
@@ -931,7 +934,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         elt.css('width', (w-25) + 'px')
                     else if elt.hasClass('sagews-input')
                         elt.css('width', w + 'px')
-
 
         @codemirror.on 'beforeChange', (instance, changeObj) =>
             #console.log("beforeChange: #{misc.to_json(changeObj)}")
@@ -1026,6 +1028,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 opts.cb?(err)
 
     introspect: () =>
+        if @opts.history_browser
+            return
         # TODO: obviously this wouldn't work in both sides of split worksheet.
         pos  = @codemirror.getCursor()
         line = @codemirror.getLine(pos.line).slice(0, pos.ch)
@@ -1089,6 +1093,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         return @_cm_lines = @cm_wrapper().find(".CodeMirror-lines")
 
     pad_bottom_with_newlines: (n) =>
+        if @opts.history_browser
+            return
         cm = @codemirror
         m = cm.lineCount()
         if m <= 13  # don't bother until worksheet gets big
@@ -1143,31 +1149,32 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     if not mark.flagstring?
                         mark.flagstring = ''
                     # only do something if the flagstring changed.
-                    elt = @elt_at_mark(mark)
-                    if FLAGS.execute in flagstring
-                        elt.data('execute',FLAGS.execute)
-                        g = () ->  #ugly use of closure -- ok for now -- TODO: clean up
-                            # execute requested
-                            elt0 = elt
-                            f = () ->
-                                if elt0.data('execute') not in ['done', FLAGS.running]
-                                    elt0.spin(true)
-                            setTimeout(f, 1000)
-                        g()
-                    else if FLAGS.running in flagstring
-                        elt.data('execute',FLAGS.running)
-                        g = () ->   #ugly use of closure -- ok for now -- TODO: clean up
-                            elt0 = elt
-                            f = () ->
-                                if elt0.data('execute') not in ['done', FLAGS.execute]
-                                    elt0.spin(color:'green')
-                            # code is running on remote local hub.
-                            setTimeout(f, 1000)
-                        g()
-                    else
-                        elt.data('execute','done')
-                        # code is not running
-                        elt.spin(false)
+                    if not @opts.history_browser
+                        elt = @elt_at_mark(mark)
+                        if FLAGS.execute in flagstring
+                            elt.data('execute',FLAGS.execute)
+                            g = () ->  #ugly use of closure -- ok for now -- TODO: clean up
+                                # execute requested
+                                elt0 = elt
+                                f = () ->
+                                    if elt0.data('execute') not in ['done', FLAGS.running]
+                                        elt0.spin(true)
+                                setTimeout(f, 1000)
+                            g()
+                        else if FLAGS.running in flagstring
+                            elt.data('execute',FLAGS.running)
+                            g = () ->   #ugly use of closure -- ok for now -- TODO: clean up
+                                elt0 = elt
+                                f = () ->
+                                    if elt0.data('execute') not in ['done', FLAGS.execute]
+                                        elt0.spin(color:'green')
+                                # code is running on remote local hub.
+                                setTimeout(f, 1000)
+                            g()
+                        else
+                            elt.data('execute','done')
+                            # code is not running
+                            elt.spin(false)
                     if FLAGS.hide_input in flagstring and FLAGS.hide_input not in mark.flagstring
                         @hide_input(line)
                     else if FLAGS.hide_input in mark.flagstring and FLAGS.hide_input not in flagstring

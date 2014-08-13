@@ -44,16 +44,6 @@
     overflow-y: auto;
 }
 
-.projects-find-input {
-    width: 95%;
-    display: inline-block;
-    border-radius: 15px;
-    padding-right: 14px;
-    padding-left: 14px;
-    margin-bottom: 0px;
-    height: 30px;
-}
-
 .projects-active {
     color:red;
     font-size:13pt;

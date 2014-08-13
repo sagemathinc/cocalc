@@ -1531,8 +1531,13 @@ class CodeMirrorEditor extends FileEditor
         return false
 
     click_history_button: () =>
+        p = misc.path_split(@filename)
+        if p.head
+            path = "#{p.head}/.#{p.tail}.sage-history"
+        else
+            path = ".#{p.tail}.sage-history"
         @editor.project_page.open_file
-            path : "." + @filename + ".sage-history"
+            path       : path
             foreground : true
 
     init_change_event: () =>
@@ -2558,19 +2563,20 @@ class HistoryEditor extends FileEditor
         # create history editor
         @element = templates.find(".salvus-editor-history").clone()
         @history_editor = codemirror_session_editor(@editor, @filename, opts)
-        @ext = misc.filename_extension(@filename[1..-14])
+        fname = misc.path_split(@filename).tail
+        @ext = misc.filename_extension(fname[1..-14])
 
         @element.find(".salvus-editor-history-history_editor").append(@history_editor.element)
         @history_editor.codemirror.setOption("readOnly", true)
         @history_editor.show()
 
         if @ext == "sagews"
-            if false
-                # not finished yet
-                opts.allow_javascript_eval = false
-                @history_editor.syncdoc = new (syncdoc.SynchronizedWorksheet)(@history_editor, opts)
-            else
-                @element.find(".salvus-editor-history-type-warning").show()
+            # not finished yet
+            opts0 =
+                allow_javascript_eval : false
+                history_browser       : true
+                read_only             : true
+            @worksheet = new (syncdoc.SynchronizedWorksheet)(@history_editor, opts0)
 
         @slider = @element.find(".salvus-editor-history-slider")
         @forward_button = @element.find("a[href=#forward]")
@@ -2597,7 +2603,7 @@ class HistoryEditor extends FileEditor
             return false
 
     init_history: () =>
-        @element.find(".regular-btn-group").children().not(".btn-history").hide()
+        @element.find(".editor-btn-group").children().not(".btn-history").hide()
         @element.find(".salvus-editor-save-group").hide()
         @element.find(".salvus-editor-chat-title").hide()
         @element.find(".salvus-editor-history-controls").show()
@@ -2651,16 +2657,19 @@ class HistoryEditor extends FileEditor
             @forward_button.addClass("disabled")
         else
             @forward_button.removeClass("disabled")
-        #if @ext == 'sagews'
-        #    @history_editor.syncdoc.process_sage_updates()
+        if @ext == 'sagews'
+            @worksheet.process_sage_updates()
 
-    invert_patch: (patch) ->
+    invert_patch: (patch) =>
+        # Beware of potential bugs in the following code -- I have only tried it, not proved it correct.
+        # I conjecture that this correctly computes the "inverse" of a DMP patch, assuming the patch applies cleanly.  -- Jonathan Lee
         for i in [0..patch.patch.length-1]
             temp = patch.patch[i].length1
             patch.patch[i].length1 = patch.patch[i].length2
             patch.patch[i].length2 = temp
             for j in [0..patch.patch[i].diffs.length-1]
                 patch.patch[i].diffs[j][0] = -patch.patch[i].diffs[j][0]
+        patch.patch = patch.patch.reverse()
         return patch
 
     render_history: (first) =>
@@ -2688,10 +2697,15 @@ class HistoryEditor extends FileEditor
             @slider.slider
                 max : @nlines
             @forward_button.removeClass("disabled")
+        if @ext == 'sagews'
+            @worksheet.process_sage_updates()
 
     show: () =>
         @element?.show()
         @history_editor?.show()
+        if @ext == 'sagews'
+            @worksheet.process_sage_updates()
+
 
 class LatexEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->

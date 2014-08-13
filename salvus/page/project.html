@@ -375,8 +375,14 @@
                 <div class="row">
 
                     <div class="col-sm-3">
-                        <input class="salvus-project-search-for-file-input projects-find-input search-query form-control" type="search" placeholder="Choose files...">
-                        <i class="salvus-project-search-for-file-input-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
+                        <div class="input-group salvus-project-search-for-file-input-container">
+                            <input class="salvus-project-search-for-file-input search-query form-control" type="search" placeholder="Choose files...">
+                            <span class="input-group-btn">
+                                <button class="btn btn-default salvus-project-search-for-file-input-clear" type="button">
+                                    <i class="fa fa-times-circle"></i>
+                                </button>
+                            </span>
+                        </div>
                         <div class="hide lighten salvus-project-search-describe">Showing <b><i>only</i></b> files that contain '<span></span>'.</div>
                     </div>
 
@@ -529,8 +535,14 @@
                     <div class="well col-sm-12">
                         <div class="row form-group">
                             <div class="col-sm-3">
-                                <input class="salvus-project-activity-search projects-find-input search-query form-control" style="width:90%" type="search" placeholder="Search...">
-                                 <i class="salvus-project-activity-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
+                                <div class="input-group">
+                                    <input class="salvus-project-activity-search search-query form-control" type="search" placeholder="Search log...">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-default salvus-project-activity-search-clear" type="button">
+                                            <i class="fa fa-times-circle"></i>
+                                        </button>
+                                    </span>
+                                </div>
                             </div>
                             <div class="col-sm-9">
                                 <textarea rows="1" placeholder="Enter a log message..." class="project-activity-well form-control project-activity-chat" style="width:98%"></textarea>
@@ -860,8 +872,14 @@
                 </div>
                 <div class="row well">
                     <div class="col-sm-8">
-                        <input class="project-search-form-input projects-find-input form-control search-query" type="search" placeholder="Search files in the current directory...">
-                        <i class="project-search-form-input-clear lighten fa fa-times-circle project-searchbox-x" style="cursor:pointer; margin-left: -2em;"></i>
+                        <div class="input-group">
+                            <input class="project-search-form-input search-query form-control" type="search" placeholder="Search files in the current directory...">
+                            <span class="input-group-btn">
+                                <button class="btn btn-default project-search-form-input-clear" type="button">
+                                    <i class="fa fa-times-circle"></i>
+                                </button>
+                            </span>
+                        </div>
 
                         <div class="project-search-output-path-heading hide">
                             <span class="lighten"><a href="#project-file-listing">Navigate to a different folder</a> to search in it.</span>

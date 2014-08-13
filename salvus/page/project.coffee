@@ -551,7 +551,7 @@ class ProjectPage
             @search($(input_boxes[0]).val())
 
         @container.find(".project-search-form-input-clear").click () =>
-            input_boxes.val('')
+            input_boxes.val('').focus()
             return false
 
     search: (query) =>
@@ -2121,7 +2121,7 @@ class ProjectPage
                     first.find(".project-activity-open-filename").click()
 
         @container.find(".salvus-project-activity-search-clear").click () =>
-            @container.find(".salvus-project-activity-search").val('')
+            @container.find(".salvus-project-activity-search").val('').focus()
             @_project_activity_log_page = 0
             @render_project_activity_log()
 

@@ -115,10 +115,6 @@
     .file-pages {
         float: none;
     }
-
-    .salvus-project-activity-search {
-        width: 98% !important;
-    }
 }
 
 .project-file-link-style:hover {
@@ -402,7 +398,7 @@
      margin-left: 2em;
 }
 
-.salvus-project-search-for-file-input {
+.salvus-project-search-for-file-input-container {
     margin-top: 1em;
 }
 
@@ -549,10 +545,6 @@
     font-size: 14pt;
 }
 
-.salvus-project-activity-search {
-    display: inline-block;
-    width: 85%;
-}
 @media (min-width: 768px) {
     .project-settings-well, .project-heading-well {
         margin-left: 10px;

@@ -321,7 +321,7 @@ interact_control = (desc, update) ->
             if desc.hide_box
                 input.parent().width('1px')
             else
-                input.parent().width('20ex')
+                input.parent().width('9em')
 
         when 'slider'
             content = control.find(".salvus-interact-control-content")

@@ -11,10 +11,16 @@
                 </div>
             </div>
 
-            <div class="row" style="width:98%;padding-top: 0.5ex;">
+            <div class="row" style="padding-top: 0.5ex;">
                 <div class="lighten salvus-tasks-header col-sm-4">
-                    <input class="salvus-tasks-search projects-find-input form-control search-query" type="search" placeholder="Find...">
-                    <i class="salvus-tasks-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
+                    <div class="input-group">
+                        <input class="salvus-tasks-search search-query form-control" type="search" placeholder="Find task...">
+                        <span class="input-group-btn">
+                            <button class="btn btn-default salvus-tasks-search-clear" type="button">
+                                <i class="fa fa-times-circle"></i>
+                            </button>
+                        </span>
+                    </div>
                 </div>
                 <div class="lighten col-sm-2">
                     <i class="fa fa-square-o salvus-task-icon-done-box salvus-task-search-done-icon salvus-task-search-not-done"> </i>
@@ -34,7 +40,7 @@
                 </div>
             </div>
 
-            <div class="salvus-tasks-list-heading row" style="width:98%">
+            <div class="salvus-tasks-list-heading row" style="padding-top: 0.5ex;">
                 <div class="col-sm-6">
                     <span class="btn-group salvus-tasks-action-buttons">
                         <a class="btn btn-default" href="#create-task"><i class="fa fa-plus-circle"> </i> New</a>

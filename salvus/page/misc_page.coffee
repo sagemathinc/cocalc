@@ -519,6 +519,11 @@ $("html").on "hide.bs.modal", "body > .modal", (e) ->
     $(@).remove()
     return
 
+# Bootstrap 3 tooltip fix
+$("body").on "show.bs.tooltip", (e) ->
+  setTimeout (->
+    $(e.target).parent().find(".tooltip").tooltip "hide"
+  ), 3000
 
 # returns true if the page is currently displayed in responsive mode (the window is less than 768px)
 # Use this because CSS and JS display different widths due to scrollbar

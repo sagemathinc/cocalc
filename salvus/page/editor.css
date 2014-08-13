@@ -36,6 +36,7 @@ Editor for files in a project
     display: inline-block;
     height: 25px;
     padding: 4px 6px;
+    margin-top: 3px;
 }
 
 .salvus-editor-filename-pill {
@@ -436,17 +437,6 @@ Editor for files in a project
     z-index: 200;
     outline: none;
 }
-
-.salvus-editor-history-type-warning {
-    color: white;
-    background: red;
-    margin-top: 1ex;
-    margin-right: 2em;
-    padding-left: 1em;
-    padding-right: 1em;
-    border-radius: 5px;
-}
-
 
 /* Undo various bootstrap madness (which makes scaling markdown very painful) */
 li {
