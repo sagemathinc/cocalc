@@ -175,7 +175,6 @@
 
 .project-pages {
     float: left;
-    margin-bottom: 20px;
 }
 
 .project-pages > li > a {
@@ -311,9 +310,6 @@
 .project-command-line-output {
     width:100%;
     z-index: 1;
-    border: 1px solid #ddd;
-    box-shadow: 4px 4px 2px #eee;
-    border-radius: 5px;
     margin-left:0px;
 }
 
@@ -405,6 +401,7 @@
 .salvus-project-search-for-file-input {
     width: 80%;
     display: inline-block;
+    margin-top: 1em;
 }
 
 .project-listing-search-include {
