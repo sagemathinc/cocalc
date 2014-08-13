@@ -2628,7 +2628,7 @@ class HistoryEditor extends FileEditor
             for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
                 @diffsync.patch_in_place(@invert_patch(JSON.parse(patch))['patch'])
         @revision_num = num
-        if @revision_num == 1
+        if @revision_num == 0
             @back_button.addClass("disabled")
         else
             @back_button.removeClass("disabled")
