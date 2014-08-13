@@ -54,32 +54,4 @@ index f106f79..43a5711 100644
 
 -----------------------------------------------------------------------------------------------
 
-* Changes to addon/search/search.js to make it bootstrap3 compatible (done by Andy):
-
-~/devel/william/salvus/static/codemirror4$ git diff addon/search/search.js
-diff --git a/salvus/static/codemirror4/addon/search/search.js b/salvus/static/codemirror4/addon/search/search.js
-index b177dce..818f64a 100644
---- a/salvus/static/codemirror4/addon/search/search.js
-+++ b/salvus/static/codemirror4/addon/search/search.js
-@@ -71,7 +71,7 @@
-     return query;
-   }
-   var queryDialog =
--    'Search: <input type="text" style="width: 10em"/> <span style="color: #888">(Use /re/ syntax for regexp search)</span>';
-+    'Search: <input type="text" style="width: 10em" class="form-control salvus-editor-find"/> <span style="color: #888">(Use /re/ syntax for regexp search)</span>';
-   function doSearch(cm, rev) {
-     var state = getSearchState(cm);
-     if (state.query) return findNext(cm, rev);
-@@ -106,9 +106,9 @@
-   });}
-
-   var replaceQueryDialog =
--    'Replace: <input type="text" style="width: 10em"/> <span style="color: #888">(Use /re/ syntax for regexp search)</span>';
--  var replacementQueryDialog = 'With: <input type="text" style="width: 10em"/>';
--  var doReplaceConfirm = "Replace? <button>Yes</button> <button>No</button> <button>Stop</button>";
-+    'Replace: <input type="text" style="width: 10em" class="form-control salvus-editor-find"/> <span style="color: #888">(Use /re/ syntax for regexp search)</span>';
-+  var replacementQueryDialog = 'With: <input type="text" style="width: 10em" class="form-control salvus-editor-find"/>';
-+  var doReplaceConfirm = 'Replace? <button style="" class="btn btn-default">Yes</button> <button style="" class="btn btn-default">No</button> <button style="" class="btn btn-default">Stop</but
-   function replace(cm, all) {
-     if (cm.getOption("readOnly")) return;
-     dialog(cm, replaceQueryDialog, "Replace:", cm.getSelection(), function(query) {
+* There are numerous changes to addon/search/search.js to make it bootstrap3 compatible (done by Andy).

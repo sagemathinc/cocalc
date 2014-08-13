@@ -1514,6 +1514,8 @@ class CodeMirrorEditor extends FileEditor
             @history_button = @element.find(".salvus-editor-history-button")
             @history_button.click(@click_history_button)
             @history_button.show()
+            @history_button.css
+                display: 'inline-block'  # this is needed due to subtleties of jQuery show().
 
     click_save_button: () =>
         if @_saving
@@ -1620,7 +1622,10 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : ht
                 width  : width
+            # we do this twice since very rarely the first one doesn't suffice. I think the
+            # only drawback is that the browser has to do a little extra work.
             setTimeout((()=>cm.refresh()), 0)
+            setTimeout((()=>cm.refresh()), 500)
 
         if chat
             chat_elt = @element.find(".salvus-editor-codemirror-chat")
@@ -2545,16 +2550,27 @@ class PDF_PreviewEmbed extends FileEditor
     hide: () =>
         @element.hide()
 
+
 class HistoryEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts.mode = ''
 
         # create history editor
         @element = templates.find(".salvus-editor-history").clone()
-        @history_editor = codemirror_session_editor(@editor, filename, opts)
+        @history_editor = codemirror_session_editor(@editor, @filename, opts)
+        @ext = misc.filename_extension(@filename[1..-14])
+
         @element.find(".salvus-editor-history-history_editor").append(@history_editor.element)
         @history_editor.codemirror.setOption("readOnly", true)
         @history_editor.show()
+
+        if @ext == "sagews"
+            if false
+                # not finished yet
+                opts.allow_javascript_eval = false
+                @history_editor.syncdoc = new (syncdoc.SynchronizedWorksheet)(@history_editor, opts)
+            else
+                @element.find(".salvus-editor-history-type-warning").show()
 
         @slider = @element.find(".salvus-editor-history-slider")
         @forward_button = @element.find("a[href=#forward]")
@@ -2635,6 +2651,8 @@ class HistoryEditor extends FileEditor
             @forward_button.addClass("disabled")
         else
             @forward_button.removeClass("disabled")
+        #if @ext == 'sagews'
+        #    @history_editor.syncdoc.process_sage_updates()
 
     invert_patch: (patch) ->
         for i in [0..patch.patch.length-1]
@@ -2656,9 +2674,8 @@ class HistoryEditor extends FileEditor
                 @element.find(".salvus-editor-history-revision-time").text(new Date(JSON.parse(@log[1]).time).toLocaleString())
             @history_editor.codemirror.setValue(JSON.parse(@log[0]))
             @revision_num = @nlines
-            ext = misc.filename_extension(@filename[1..-14])
-            if ext != "" and require('editor').file_associations[ext].opts.mode?
-                @history_editor.codemirror.setOption("mode", require('editor').file_associations[ext].opts.mode)
+            if @ext != "" and require('editor').file_associations[@ext].opts.mode?
+                @history_editor.codemirror.setOption("mode", require('editor').file_associations[@ext].opts.mode)
             @slider.slider
                 animate : false
                 min     : 0

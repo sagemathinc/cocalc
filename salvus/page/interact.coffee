@@ -319,9 +319,9 @@ interact_control = (desc, update) ->
                 input.val(val)
                 sample.css("background-color", val)
             if desc.hide_box
-                input.width(0)
+                input.parent().width('1px')
             else
-                input.width('8ex')
+                input.parent().width('20ex')
 
         when 'slider'
             content = control.find(".salvus-interact-control-content")

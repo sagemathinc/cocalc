@@ -425,16 +425,26 @@ Editor for files in a project
     margin-left: 10px;
     margin-right: 10px;
 }
- 
+
 /*Style for the slider button*/
 .salvus-editor-history-slider > .ui-slider-handle {
     width: 12px;
     height: 24px;
     position: absolute;
     top: -8px;
-    margin-left: -12px;
+    margin-left: -6px;
     z-index: 200;
     outline: none;
+}
+
+.salvus-editor-history-type-warning {
+    color: white;
+    background: red;
+    margin-top: 1ex;
+    margin-right: 2em;
+    padding-left: 1em;
+    padding-right: 1em;
+    border-radius: 5px;
 }
 
 

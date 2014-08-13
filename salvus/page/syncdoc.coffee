@@ -593,7 +593,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                             if resp.event == 'error'
                                 err = resp.error
                             if err
-                                alert_message(type:"error", message:"error enabling revision saving -- #{err} -- #{@editor.filename}") 
+                                alert_message(type:"error", message:"error enabling revision saving -- #{err} -- #{@editor.filename}")
 
     ui_loading: () =>
         @element.find(".salvus-editor-codemirror-loading").show()
@@ -909,17 +909,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
 { MARKERS, FLAGS, ACTION_FLAGS } = diffsync
 
-class SynchronizedHistory extends AbstractSynchronizedDoc
-    constructor: (@editor, opts) ->
-        @opts = defaults opts,
-            project_id : required
-            filename   : required
-            sync_interval : 1000    # no matter what, we won't send sync messages back to the server more frequently than this (in ms)
-            cb         : required   # cb(err) once doc has connected to hub first time and got session info; will in fact keep trying until success
-        @project_id = @opts.project_id   # must also be set by derived classes that don't call this constructor!
-        @filename   = @opts.filename
-        @sync = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
-        
 class SynchronizedWorksheet extends SynchronizedDocument
     constructor: (@editor, opts) ->
         opts0 =
@@ -1326,8 +1315,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
         output = opts.element
         # mesg = object
         # output = jQuery wrapped element
-
-        #console.log("new output: ", mesg)
 
         if mesg.clear? and mesg.clear
             output.empty()
@@ -1930,4 +1917,3 @@ class Worksheet
 ################################
 exports.SynchronizedDocument = SynchronizedDocument
 exports.SynchronizedWorksheet = SynchronizedWorksheet
-exports.SynchronizedHistory = SynchronizedHistory

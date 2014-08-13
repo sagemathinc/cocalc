@@ -105,7 +105,6 @@ Editor for files in a project
                     <a href="#print" class="btn btn-sm btn-default" data-container="body" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
                 </span>
 
-                <span>&nbsp;</span>
                 <span class="salvus-editor-save-group">
                     <a href="#save" class="hidden-xs btn btn-sm btn-success" data-container="body" data-toggle="tooltip" data-placement="bottom" title="Save file to disk (file is constantly sync'd with server).">
                         <i class="fa fa-save"></i>
@@ -121,10 +120,12 @@ Editor for files in a project
                         <i class="fa fa-spinner"></i> load…
                     </span>
                 </span>
-                <a href="#history" class="hidden-xs btn btn-sm btn-info salvus-editor-history-button hide" data-container="body" data-toggle="tooltip" data-placement="bottom" title="View the history of this file." style="display: inline-block !important;">
-                    <i class="fa fa-history"></i>
-                    <span>History</span>
-                </a>
+                <span class="hidden-xs">
+                    <a href="#history" class="btn btn-sm btn-info salvus-editor-history-button hide" data-container="body" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
+                        <i class="fa fa-history"></i>
+                        <span>History</span>
+                    </a>
+                </span>
                 <span class="salvus-editor-history-controls hide">
                     <span class="salvus-editor-history-control-button-container btn-group">
                         <a href="#back" class="btn btn-default btn-sm" data-container="body" data-toggle="tooltip" data-placement="bottom" title="Back"><i class="fa fa-step-backward"></i></a>
@@ -132,6 +133,7 @@ Editor for files in a project
                     </span>
                     <span class="salvus-editor-history-revision-number"></span>
                     <span class="salvus-editor-history-revision-time"></span>
+                    <span class="salvus-editor-history-type-warning pull-right hide">WARNING: rendering of Sage Worksheets not implemented</span>
                 </span>
                 <div class="salvus-editor-history-slider hide"></div>
 

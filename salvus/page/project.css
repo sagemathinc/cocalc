@@ -72,6 +72,10 @@
     background-color: #eee;
 }
 
+.project-file-listing {
+    margin-top: 10px;
+}
+
 .project-file-listing-current_path {
     margin-top: 12px;
     margin-bottom: 12px;
@@ -399,8 +403,6 @@
 }
 
 .salvus-project-search-for-file-input {
-    width: 80%;
-    display: inline-block;
     margin-top: 1em;
 }
 

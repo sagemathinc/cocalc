@@ -1461,7 +1461,7 @@ class ProjectPage
                     t.find("a").tooltip
                         trigger : 'hover'
                         delay   : { show: 500, hide: 100 }
-                    t.find(".fa-move").tooltip
+                    t.find(".fa-arrows").tooltip
                         trigger : 'hover'
                         delay   : { show: 500, hide: 100 }
 
@@ -1553,7 +1553,7 @@ class ProjectPage
                     t.find("a").tooltip
                         trigger : 'hover'
                         delay   : { show: 500, hide: 100 }
-                    t.find(".fa-move").tooltip
+                    t.find(".fa-arrows").tooltip
                         trigger : 'hover'
                         delay   : { show: 500, hide: 100 }
 

@@ -108,7 +108,7 @@
   var replaceQueryDialog =
     'Replace: <input type="text" style="width: 10em" class="form-control salvus-editor-find"/> <span style="color: #888">(Use /re/ syntax for regexp search)</span>';
   var replacementQueryDialog = 'With: <input type="text" style="width: 10em" class="form-control salvus-editor-find"/>';
-  var doReplaceConfirm = 'Replace? <button style="" class="btn btn-default">Yes</button> <button style="" class="btn btn-default">No</button> <button style="" class="btn btn-default">Stop</button>';
+  var doReplaceConfirm = 'Replace? <button style="font-size: 100%; padding: 2px 6px" class="btn btn-default">Yes</button> <button style="font-size: 100%; padding: 2px 6px" class="btn btn-default">No</button> <button style="font-size: 100%; padding: 2px 6px" class="btn btn-default">Stop</button>';
   function replace(cm, all) {
     if (cm.getOption("readOnly")) return;
     dialog(cm, replaceQueryDialog, "Replace:", cm.getSelection(), function(query) {
