@@ -520,7 +520,10 @@ $("html").on "hide.bs.modal", "body > .modal", (e) ->
     return
 
 
-
+# returns true if the page is currently displayed in responsive mode (the window is less than 768px)
+# Use this because CSS and JS display different widths due to scrollbar
+exports.is_responsive_mode = () ->
+    return $(".salvus-responsive-mode-test").width() < 768
 
 
 

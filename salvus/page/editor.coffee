@@ -780,8 +780,7 @@ class exports.Editor
         if x.length == 0
             return
 
-        # This hidden div will have a width of 767 if the page is in responsive mode
-        if $(".responsive-mode").width() < 768
+        if misc_page.is_responsive_mode()
             # responsive mode
             @project_page.destroy_sortable_file_list()
             width = "49%"
@@ -2628,7 +2627,7 @@ class HistoryEditor extends FileEditor
             for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
                 @diffsync.patch_in_place(@invert_patch(JSON.parse(patch))['patch'])
         @revision_num = num
-        if @revision_num == 1
+        if @revision_num == 0
             @back_button.addClass("disabled")
         else
             @back_button.removeClass("disabled")
