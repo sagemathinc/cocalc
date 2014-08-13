@@ -32,6 +32,12 @@ Editor for files in a project
     /* font-size: 10pt; */
 }
 
+.salvus-editor-find {
+    display: inline-block;
+    height: 25px;
+    padding: 4px 6px;
+}
+
 .salvus-editor-filename-pill {
     width: 32%;
     cursor: pointer;
