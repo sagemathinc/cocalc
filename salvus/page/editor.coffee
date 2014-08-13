@@ -780,8 +780,7 @@ class exports.Editor
         if x.length == 0
             return
 
-        # This hidden div will have a width of 767 if the page is in responsive mode
-        if $(".responsive-mode").width() < 768
+        if misc_page.is_responsive_mode()
             # responsive mode
             @project_page.destroy_sortable_file_list()
             width = "49%"

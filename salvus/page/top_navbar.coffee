@@ -11,6 +11,7 @@ $(document).on 'keydown', (ev) =>
         return false
 
 misc = require("misc")
+misc_page = require('misc_page')
 to_json = misc.to_json
 defaults = misc.defaults
 required = defaults.required
@@ -206,8 +207,7 @@ class TopNavbar  extends EventEmitter
         if x.length == 0
             return
 
-        # This hidden div will have a width of 767 if the page is in responsive mode
-        if $(".responsive-mode").width() < 768
+        if misc_page.is_responsive_mode()
            # responsive mode
             @destroy_sortable_project_list()
             width = "100%"

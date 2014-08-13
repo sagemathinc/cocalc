@@ -130,16 +130,16 @@ body { padding-top:43px; }
 }
 
 /* This is a hack to accurately determine if the screen is displaying in responsive mode.
-   When responsive mode, .responsive-mode will have a width of 767px and in full size the
+   When responsive mode, .salvus-responsive-mode-test will have a width of 767px and in full size the
    width will be 10000px. */
 @media (max-width: 767px) {
-    .responsive-mode {
+    .salvus-responsive-mode-test {
         width: 767px;
     }
 }
 
 @media (min-width: 768px) {
-    .responsive-mode {
+    .salvus-responsive-mode-test {
         width: 10000px;
     }
 }
