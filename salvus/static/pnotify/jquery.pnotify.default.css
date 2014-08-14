@@ -80,6 +80,7 @@ width: 100%;
 .ui-pnotify-history-container .ui-pnotify-history-pulldown {
 display: block;
 margin: 0 auto;
+text-align: center;
 }
 /* Alternate stack initial positioning. */
 .ui-pnotify.stack-topleft, .ui-pnotify.stack-bottomleft {

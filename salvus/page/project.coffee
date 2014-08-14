@@ -305,9 +305,8 @@ class ProjectPage
 
     init_sortable_file_list: () =>
         # make the list of open files user-sortable.
-        if @_init_sortable_file_list
+        if @_file_list_is_sortable
             return
-        @_init_sortable_file_list = true
         @container.find(".file-pages").sortable
             axis                 : 'x'
             delay                : 50
@@ -315,6 +314,13 @@ class ProjectPage
             tolerance            : 'pointer'
             placeholder          : 'file-tab-placeholder'
             forcePlaceholderSize : true
+        @_file_list_is_sortable = true
+
+    destroy_sortable_file_list: () =>
+        if not @_file_list_is_sortable
+            return
+        @container.find(".file-pages").sortable("destroy")
+        @_file_list_is_sortable = false
 
     push_state: (url) =>
         #console.log("push_state: ", url)
@@ -545,7 +551,7 @@ class ProjectPage
             @search($(input_boxes[0]).val())
 
         @container.find(".project-search-form-input-clear").click () =>
-            input_boxes.val('')
+            input_boxes.val('').focus()
             return false
 
     search: (query) =>
@@ -843,7 +849,7 @@ class ProjectPage
     display_tab: (name) =>
         @container.find(".project-pages").children().removeClass('active')
         @container.find(".file-pages").children().removeClass('active')
-        @container.css(position: 'absolute')
+        @container.css(position: 'static')
         for tab in @tabs
             if tab.name == name
                 @current_tab = tab
@@ -1459,7 +1465,7 @@ class ProjectPage
                     t.find("a").tooltip
                         trigger : 'hover'
                         delay   : { show: 500, hide: 100 }
-                    t.find(".fa-move").tooltip
+                    t.find(".fa-arrows").tooltip
                         trigger : 'hover'
                         delay   : { show: 500, hide: 100 }
 
@@ -1551,7 +1557,7 @@ class ProjectPage
                     t.find("a").tooltip
                         trigger : 'hover'
                         delay   : { show: 500, hide: 100 }
-                    t.find(".fa-move").tooltip
+                    t.find(".fa-arrows").tooltip
                         trigger : 'hover'
                         delay   : { show: 500, hide: 100 }
 
@@ -2119,7 +2125,7 @@ class ProjectPage
                     first.find(".project-activity-open-filename").click()
 
         @container.find(".salvus-project-activity-search-clear").click () =>
-            @container.find(".salvus-project-activity-search").val('')
+            @container.find(".salvus-project-activity-search").val('').focus()
             @_project_activity_log_page = 0
             @render_project_activity_log()
 
@@ -2633,6 +2639,7 @@ class ProjectPage
         select  = @container.find(".project-add-collaborator-select")
         collabs = @container.find(".project-collaborators")
         collabs_button = @container.find(".project-add-collaborator-button")
+        collabs_search_loaded = @container.find(".project-collaborator-search-loaded")
         collabs_search_loading = @container.find(".project-collaborator-search-loading")
         collabs_loading = @container.find(".project-collaborators-loading")
 
@@ -2716,6 +2723,7 @@ class ProjectPage
                 @container.find(".project-add-collaborator").hide()
                 return
             @_last_query_id = if @_last_query_id? then @_last_query_id + 1 else 0
+            collabs_search_loaded.hide()
             collabs_search_loading.show()
             salvus_client.user_search
                 query    : x
@@ -2725,6 +2733,7 @@ class ProjectPage
                     # Ignore any query that is not the most recent
                     if query_id == @_last_query_id
                         collabs_search_loading.hide()
+                        collabs_search_loaded.show()
                         select.html("")
                         result = (r for r in result when not already_collab[r.account_id]?)   # only include not-already-collabs
                         if result.length > 0

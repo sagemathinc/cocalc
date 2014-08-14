@@ -2,7 +2,12 @@
       // Handle Comments
       if (ch == "#"  || ch == "\uFE21") {
 
+-----------------------------------------------------------------------------------------------
+
 * The theme/solarized.css file looks like *CRAP* -- I had to remove the weird background image and shadow text.  Come on.
+
+
+-----------------------------------------------------------------------------------------------
 
 
 * I make this patch to codemirror.js to *remove* some hack that actually messes up line widgets and totally breaks worksheets
@@ -21,12 +26,15 @@ index 104ccd7..2ac716d 100644
      var builder = {pre: elt("pre", [content]), content: content, col: 0, pos: 0, cm: cm};
      lineView.measure = {};
 
+-----------------------------------------------------------------------------------------------
 
 * Add modes:
 
 cp -rv ../codemirror4.orig/mode/less mode/
 cp -rv ../codemirror4.orig/mode/pari mode/
 cp -rv ../codemirror4.orig/mode/ocaml mode/
+
+-----------------------------------------------------------------------------------------------
 
 * Workaround bug in codemirror that codemirror devs can't easily reproduce -- without this
 workaround, copying text out, then back in (after changing tabs back and forth)
@@ -42,3 +50,8 @@ index f106f79..43a5711 100644
        var range = doc.sel.primary();
 -      minimal = hasCopyEvent &&
 +      minimal = false && hasCopyEvent &&
+
+
+-----------------------------------------------------------------------------------------------
+
+* There are numerous changes to addon/search/search.js to make it bootstrap3 compatible (done by Andy).

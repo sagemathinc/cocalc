@@ -4,6 +4,8 @@
     border:1px solid #ccc;
     border-radius:3px;
     margin: 1ex;
+    padding-left:20px;
+    padding-right:20px;
 }
 
 .salvus-interact-control-grid {

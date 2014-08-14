@@ -592,6 +592,7 @@ exports.account_settings_defaults =
         auto_close_brackets       : true
         spaces_instead_of_tabs    : true
         multiple_cursors          : true
+        track_revisions           : false
         first_line_number         : 1
         indent_unit               : 4
         tab_size                  : 4
@@ -1347,8 +1348,3 @@ message
     task_list_id : required
     task_id      : required
     task         : undefined    # if task is created or edited this is given with new version; if deleted this is undefined
-
-
-
-
-

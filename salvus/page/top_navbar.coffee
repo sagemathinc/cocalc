@@ -1,4 +1,4 @@
-########################################################################
+#########################################################################
 #  top_navbar -- the top level navbar
 #########################################################################
 
@@ -11,6 +11,7 @@ $(document).on 'keydown', (ev) =>
         return false
 
 misc = require("misc")
+misc_page = require('misc_page')
 to_json = misc.to_json
 defaults = misc.defaults
 required = defaults.required
@@ -54,14 +55,14 @@ class TopNavbar  extends EventEmitter
         else
             @buttons.append(button)
         @pages[opts.id] =
-            page    : opts.page
-            button  : button
-            onclose : opts.onclose
-            onshow  : opts.onshow
-            onblur  : opts.onblur
+            page         : opts.page
+            button       : button
+            onclose      : opts.onclose
+            onshow       : opts.onshow
+            onblur       : opts.onblur
             onfullscreen : opts.onfullscreen
-            divider : divider
-            icon    : opts.icon
+            divider      : divider
+            icon         : opts.icon
 
         a = button.find("a")
         a.data("id", opts.id)
@@ -183,7 +184,7 @@ class TopNavbar  extends EventEmitter
 
     # Makes the project list sortable by the user
     init_sortable_project_list: () =>
-        if @_init_sortable_project_list
+        if @_project_list_is_sortable
             return
         @navbar.find(".nav.projects").sortable
             axis                 : 'x'
@@ -192,7 +193,13 @@ class TopNavbar  extends EventEmitter
             tolerance            : 'pointer'
             placeholder          : 'nav-projects-placeholder'
             forcePlaceholderSize : true
-        @_init_sortable_project_list = true
+        @_project_list_is_sortable = true
+
+    destroy_sortable_project_list: () =>
+        if not @_project_list_is_sortable
+            return
+        @navbar.find(".nav.projects").sortable("destroy")
+        @_project_list_is_sortable = false
 
     resize_open_project_tabs: () =>
         # Make a list of the open project tabs
@@ -200,13 +207,14 @@ class TopNavbar  extends EventEmitter
         if x.length == 0
             return
 
-        # Determine the width
-        if $(window).width() <= 962
-            # responsive mode
+        if misc_page.is_responsive_mode()
+           # responsive mode
+            @destroy_sortable_project_list()
             width = "100%"
         else
+            @init_sortable_project_list()
             n = x.length
-            width = Math.min(200, (@projects.width() - 2*n)/n) # subtracts n to prevent rounding problems
+            width = Math.min(200, (@projects.width() - 25)/n) # subtract to prevent rounding problems
             if width < 0
                 width = 0
         for a in x
@@ -282,12 +290,13 @@ $("#account").top_navbar
 
 $(window).resize () ->
     $("body").css
-        'padding-top': ($(".salvus-top_navbar").height()) + 'px'
+        'padding-top': ($(".salvus-top_navbar").height()) + 1 + 'px'
     top_navbar.resize_open_project_tabs()
 
 $(".salvus-fullscreen-activate").click () ->
     salvus_client.in_fullscreen_mode(true)
-    $(".salvus-fullscreen").toggle()
+    $(".salvus-fullscreen-activate").hide()
+    $(".salvus-fullscreen-deactivate").show()
     $(".salvus-top_navbar").hide()
     top_navbar.fullscreen(true)
     $("body").css('padding-top':0)
@@ -295,10 +304,11 @@ $(".salvus-fullscreen-activate").click () ->
 
 $(".salvus-fullscreen-deactivate").click () ->
     salvus_client.in_fullscreen_mode(false)
-    $(".salvus-fullscreen").toggle()
+    $(".salvus-fullscreen-activate").show()
+    $(".salvus-fullscreen-deactivate").hide()
     $(".salvus-top_navbar").show()
     top_navbar.fullscreen(false)
-    $("body").css('padding-top': ($(".salvus-top_navbar").height()) + 'px')
+    $("body").css('padding-top': ($(".salvus-top_navbar").height()) + 1 + 'px')
     return false
 
 

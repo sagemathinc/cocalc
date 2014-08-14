@@ -13,7 +13,7 @@
 window.onbeforeunload = (e) ->
     mesg = undefined
     if not unsynced_docs()
-        if require('account').account_settings.settings.other_settings?.confirm_close
+        if require('account').account_settings.settings?.other_settings?.confirm_close
             mesg = "Your data is saved, but you asked for confirmation before leaving SageMathCloud."
         else
             return

@@ -436,6 +436,7 @@ Terminal.prototype.open = function() {
 
   this.element = document.createElement('div');
   this.element.className = 'salvus-console-terminal';
+  this.element.setAttribute('spellcheck', 'false');
   this.children = [];
 
   for (; i < this.rows; i++) {

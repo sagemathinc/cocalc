@@ -121,15 +121,16 @@ $(".projects-search-form-input-clear").click () =>
 
 # search when you click a button (which must be uncommented in projects.html):
 #$(".projects-find-input").change((event) -> update_project_view())
+# This comment has been preserved, though the "form-search" class is deprecated
 #$(".projects").find(".form-search").find("button").click((event) -> update_project_view(); return false;)
 
 select_filter_button = (which) ->
     for w in ['all', 'public', 'private', 'deleted', 'hidden']
         a = $("#projects-#{w}-button")
         if w == which
-            a.removeClass("btn-info").addClass("btn-inverse")
+            a.removeClass("btn-info").addClass("btn-warning")
         else
-            a.removeClass("btn-inverse").addClass("btn-info")
+            a.removeClass("btn-warning").addClass("btn-info")
 
 only_public  = false
 only_private = false
@@ -190,7 +191,7 @@ $("#projects-hidden-button").click (event) ->
 DEFAULT_MAX_PROJECTS = 50
 
 $("#projects-show_all").click( (event) -> update_project_view(true) )
-template = $("#projects-project_list_item_template")
+template = $(".projects-project_list_item_template")
 
 template_project_stored = $(".projects-location-states").find(".projects-location-restoring")
 template_project_deploying = $(".projects-location-states").find(".projects-locatin-deploying")
@@ -366,10 +367,10 @@ hashtag_button_template = templates.find(".salvus-hashtag-button")
 toggle_hashtag_button = (button) ->
     tag = button.text()
     if button.hasClass('btn-info')
-        button.removeClass('btn-info').addClass('btn-inverse')
+        button.removeClass('btn-info').addClass('btn-warning')
         localStorage["projects-hashtag-#{tag}"] = true
     else
-        button.removeClass('btn-inverse').addClass('btn-info')
+        button.removeClass('btn-warning').addClass('btn-info')
         delete localStorage["projects-hashtag-#{tag}"]
 
 # Return list of strings '#foo', for each currently selected hashtag
@@ -377,7 +378,7 @@ selected_hashtags = () ->
     v = []
     for button in hashtag_bar.children()
         b = $(button)
-        if b.hasClass('btn-inverse')
+        if b.hasClass('btn-warning')
             v.push(b.text())
     return v
 
@@ -560,7 +561,7 @@ exports.load_target = load_target = (target) ->
             name      = segments[1]
             for p in project_list
                 if p.ownername == ownername and p.name == name
-                    open_project(p).load_target(t)
+                                        open_project(p).load_target(t)
                     return
             # have to get from database.
             alert_message(type:"error", message:"You do not have access to the project '#{owner}/#{projectname}.")
