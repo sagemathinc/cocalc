@@ -2679,6 +2679,7 @@ class HistoryEditor extends FileEditor
             @element.find(".salvus-editor-history-revision-number").text("Revision " + @nlines)
             if @nlines == 0
                 @element.find(".salvus-editor-history-revision-time").text("")
+                @back_button.addClass("disabled")
             else
                 @element.find(".salvus-editor-history-revision-time").text(new Date(JSON.parse(@log[1]).time).toLocaleString())
             @history_editor.codemirror.setValue(JSON.parse(@log[0]))
