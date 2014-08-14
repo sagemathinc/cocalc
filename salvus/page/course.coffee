@@ -78,10 +78,10 @@ class Course
                     btn = buttons.find("a[href=##{p}]")
                     if p == page
                         e.show()
-                        btn.addClass('btn-inverse')
+                        btn.addClass('btn-warning')
                     else
                         e.hide()
-                        btn.removeClass('btn-inverse')
+                        btn.removeClass('btn-warning')
                 return false
 
 
