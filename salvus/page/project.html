@@ -434,9 +434,9 @@
                 </div>
                 <!-- List of files -->
                 <div class="row project-file-listing-container">
-                    <div class="project-file-listing-file-list"></div>
-                    <div class="project-file-listing-spinner hide"></div>
-                    <div class="project-file-listing-no-files hide">
+                    <div class="col-sm-12 project-file-listing-file-list"></div>
+                    <div class="col-sm-12 project-file-listing-spinner hide"></div>
+                    <div class="col-sm-12 project-file-listing-no-files hide">
                         <br><br>
                         <h3 style="margin-left:3em;">
                             <a href="#project-new-file" data-toggle="tooltip" data-placement="bottom" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon fa fa-plus-circle"> </i> Create or Import a File, Worksheet, Terminal or Directory...</a>
@@ -545,7 +545,7 @@
                                 </div>
                             </div>
                             <div class="col-sm-9">
-                                <textarea rows="1" placeholder="Enter a log message..." class="project-activity-well form-control project-activity-chat" style="width:98%"></textarea>
+                                <textarea rows="1" placeholder="Enter a log message..." class="project-activity-well form-control project-activity-chat"></textarea>
                             </div>
                             <!--
                             <div class="col-sm-2  well  project-activity-well project-activity-current-users">
@@ -553,15 +553,17 @@
                             -->
                         </div>
                         <div class="row">
-                            <div class="btn-group" style="padding-right: 0">
-                                <a class="btn project-activity-newer disabled btn-default"> <i class="fa fa-angle-double-left"> </i> Newer </a>
-                                <a class="btn project-activity-older btn-default"> Older <i class="fa fa-angle-double-right"> </i></a>
+                            <div class="col-sm-12">
+                                <div class="btn-group">
+                                    <a class="btn project-activity-newer disabled btn-default"> <i class="fa fa-angle-double-left"> </i> Newer </a>
+                                    <a class="btn project-activity-older btn-default"> Older <i class="fa fa-angle-double-right"> </i></a>
+                                </div>
+                                <span class="project-activity-type-buttons btn-group" style="white-space: normal">
+                                    <button class="btn btn-warning project-activity-type-button" id="project-activity-type-file"><i class="fa fa-folder-open-o"></i> Files</button>
+                                    <button class="btn btn-warning project-activity-type-button" id="project-activity-type-project"><i class="fa fa-tasks"></i> Project</button>
+                                    <button class="btn btn-warning project-activity-type-button" id="project-activity-type-messages"><i class="fa fa-comment"></i> Messages</button>
+                                </span>
                             </div>
-                            <span class="project-activity-type-buttons btn-group" style="white-space: normal">
-                                <button class="btn btn-warning project-activity-type-button" id="project-activity-type-file"><i class="fa fa-folder-open-o"></i> Files</button>
-                                <button class="btn btn-warning project-activity-type-button" id="project-activity-type-project"><i class="fa fa-tasks"></i> Project</button>
-                                <button class="btn btn-warning project-activity-type-button" id="project-activity-type-messages"><i class="fa fa-comment"></i> Messages</button>
-                            </span>
                             <br><br>
                         </div>
                         <div class="row">
