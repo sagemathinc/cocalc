@@ -1,3 +1,7 @@
+.navbar-btn {
+    margin-right: 5px;
+}
+
 .close-button-x {
     font-size: 18px;
     position: relative;
@@ -36,8 +40,15 @@
 }
 
 .nav.projects {
-    float: none;
+    float: none !important; /* override Bootstrap 3 */
     overflow: hidden;
+}
+
+.navbar .divider-vertical {
+    height: 42px;
+    margin: 0 9px;
+    border-right: 1px solid #ffffff;
+    border-left: 1px solid #f2f2f2;
 }
 
 .salvus-connection-status {
@@ -55,6 +66,8 @@
 
 .salvus-top_navbar {
     font-size: 14px;
+    margin-bottom: 0;
+    min-height: 0;
 }
 
 .salvus-fullscreen-activate {
@@ -99,11 +112,10 @@
 
 
 .salvus-connection-status-connecting {
-    background-color : red;
-    color            : white;
-    padding          : 1ex;
-    z-index          : 100001;
-
+    background-color: red;
+    color: white;
+    padding: 1ex;
+    z-index: 100001;
 }
 
 .salvus-connection-status:hover {
@@ -112,9 +124,37 @@
 
 .top_navbar-button-link {
     overflow: hidden;
+    padding: 10px 8px !important;
     text-overflow: ellipsis;
 }
 
 .top_navbar-button-template {
     white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+    .navbar-nav.pull-right, .navbar-nav.pull-left {
+        float: none !important;
+        font-weight: bold;
+        margin: 0;
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+
+    .navbar-nav li > a {
+        font-weight: bold;
+        border-radius: 3px;
+    }
+
+    .navbar .nav > .active > a {
+        box-shadow: inset 0 3px 8px rgba(0,0,0,0.125);
+    }
+
+    .salvus-top_navbar {
+        position: static;
+    }
+
+    body {
+        padding-top: 0 !important;
+    }
 }

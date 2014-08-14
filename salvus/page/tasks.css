@@ -15,8 +15,10 @@
     cursor : pointer;
     border: 2px solid transparent;
     border-radius: 1ex;
-    width: 98%;
+    width: 99%;
     margin-top: 3px;
+    margin-left: 0px;
+    margin-right: 0px;
 }
 
 .highlight-tag {
@@ -260,10 +262,22 @@
     opacity:1;
 }
 
+.salvus-task-sort {
+    padding-left: 0;
+}
+
 .salvus-tasks-loading {
     font-size: 16pt;
 }
 
 .salvus-tasks-list-none {
     margin-left:3em;
+}
+
+.salvus-task-search-deleted-icon {
+    margin-bottom: 4px;
+}
+
+.bootstrap-datetimepicker-widget > ul {
+    padding: 0;
 }

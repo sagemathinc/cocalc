@@ -154,6 +154,11 @@ file_associations['tasks'] =
     icon   : 'fa-tasks'
     opts   : {}
 
+file_associations['sage-history'] =
+    editor : 'history'
+    icon   : 'fa-history'
+    opts   : {}
+
 # Multiplex'd worksheet mode
 
 diffsync = require('diffsync')
@@ -630,6 +635,8 @@ class exports.Editor
                 editor = new Image(@, filename, content, extra_opts)
             when 'latex'
                 editor = new LatexEditor(@, filename, content, extra_opts)
+            when 'history'
+                editor = new HistoryEditor(@, filename, content, extra_opts)
             when 'pdf'
                 editor = new PDF_PreviewEmbed(@, filename, content, extra_opts)
             when 'tasks'
@@ -773,11 +780,12 @@ class exports.Editor
         if x.length == 0
             return
 
-        # Determine the width
-        if $(window).width() <= 979
+        if misc_page.is_responsive_mode()
             # responsive mode
-            width = 204
+            @project_page.destroy_sortable_file_list()
+            width = "49%"
         else
+            @project_page.init_sortable_file_list()
             n = x.length
             width = Math.min(250, parseInt((x[0].parent().width() - 25) / n)) # floor to prevent rounding problems
             if width < 0
@@ -1093,6 +1101,7 @@ class CodeMirrorEditor extends FileEditor
             style_active_line         : 15    # editor_settings.style_active_line  # (a number between 0 and 127)
             bindings                  : editor_settings.bindings  # 'standard', 'vim', or 'emacs'
             theme                     : editor_settings.theme
+            track_revisions           : editor_settings.track_revisions
 
             # I'm making the times below very small for now.  If we have to adjust these to reduce load, due to lack
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
@@ -1111,6 +1120,7 @@ class CodeMirrorEditor extends FileEditor
         @element.data('editor', @)
 
         @init_save_button()
+        @init_history_button()
         @init_edit_buttons()
 
         @init_close_button()
@@ -1361,8 +1371,7 @@ class CodeMirrorEditor extends FileEditor
         focus = () =>
             @focus()
             cm.focus()
-
-        dialog = templates.find(".salvus-goto-line-dialog")
+        dialog = templates.find(".salvus-goto-line-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
             dialog.modal('hide')
@@ -1500,6 +1509,14 @@ class CodeMirrorEditor extends FileEditor
         @save_button = @element.find("a[href=#save]").tooltip().click(@click_save_button)
         @save_button.find(".spinner").hide()
 
+    init_history_button: () =>
+        if require('account').account_settings.settings.editor_settings.track_revisions and @filename.slice(@filename.length-13) != '.sage-history'
+            @history_button = @element.find(".salvus-editor-history-button")
+            @history_button.click(@click_history_button)
+            @history_button.show()
+            @history_button.css
+                display: 'inline-block'  # this is needed due to subtleties of jQuery show().
+
     click_save_button: () =>
         if @_saving
             return
@@ -1512,6 +1529,16 @@ class CodeMirrorEditor extends FileEditor
             if not err and @codemirror.getValue() == before
                 @has_unsaved_changes(false)
         return false
+
+    click_history_button: () =>
+        p = misc.path_split(@filename)
+        if p.head
+            path = "#{p.head}/.#{p.tail}.sage-history"
+        else
+            path = ".#{p.tail}.sage-history"
+        @editor.project_page.open_file
+            path       : path
+            foreground : true
 
     init_change_event: () =>
         @codemirror.on 'changes', () =>
@@ -1550,6 +1577,7 @@ class CodeMirrorEditor extends FileEditor
             @syncdoc.sync()
 
         @element.show()
+        window.codemirror = @codemirror
 
         if @opts.style_active_line
             @_style_active_line($(@codemirror.getWrapperElement()).css('background-color'))
@@ -1599,7 +1627,10 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : ht
                 width  : width
+            # we do this twice since very rarely the first one doesn't suffice. I think the
+            # only drawback is that the browser has to do a little extra work.
             setTimeout((()=>cm.refresh()), 0)
+            setTimeout((()=>cm.refresh()), 500)
 
         if chat
             chat_elt = @element.find(".salvus-editor-codemirror-chat")
@@ -1643,6 +1674,8 @@ codemirror_session_editor = exports.codemirror_session_editor = (editor, filenam
             E.action_key = E.syncdoc.action
             E.interrupt_key = E.syncdoc.interrupt
             E.tab_nothing_selected = () => E.syncdoc.introspect()
+        when "sage-history"
+            # temporary
         else
             E.syncdoc = new (syncdoc.SynchronizedDocument)(E, opts)
     return E
@@ -2523,6 +2556,158 @@ class PDF_PreviewEmbed extends FileEditor
         @element.hide()
 
 
+class HistoryEditor extends FileEditor
+    constructor: (@editor, @filename, content, opts) ->
+        opts.mode = ''
+
+        # create history editor
+        @element = templates.find(".salvus-editor-history").clone()
+        @history_editor = codemirror_session_editor(@editor, @filename, opts)
+        fname = misc.path_split(@filename).tail
+        @ext = misc.filename_extension(fname[1..-14])
+
+        @element.find(".salvus-editor-history-history_editor").append(@history_editor.element)
+        @history_editor.codemirror.setOption("readOnly", true)
+        @history_editor.show()
+
+        if @ext == "sagews"
+            # not finished yet
+            opts0 =
+                allow_javascript_eval : false
+                history_browser       : true
+                read_only             : true
+            @worksheet = new (syncdoc.SynchronizedWorksheet)(@history_editor, opts0)
+
+        @slider = @element.find(".salvus-editor-history-slider")
+        @forward_button = @element.find("a[href=#forward]")
+        @back_button = @element.find("a[href=#back]")
+
+        @init_history()
+
+        @diffsync = new syncdoc.DiffSyncDoc
+            cm          : @history_editor.codemirror
+            readonly    : true
+
+        @forward_button.click () =>
+            if @forward_button.hasClass("disabled")
+                return false
+            @slider.slider("option", "value", @revision_num + 1)
+            @goto_revision(@revision_num + 1)
+            return false
+
+        @back_button.click () =>
+            if @back_button.hasClass("disabled")
+                return false
+            @slider.slider("option", "value", @revision_num - 1)
+            @goto_revision(@revision_num - 1)
+            return false
+
+    init_history: () =>
+        @element.find(".editor-btn-group").children().not(".btn-history").hide()
+        @element.find(".salvus-editor-save-group").hide()
+        @element.find(".salvus-editor-chat-title").hide()
+        @element.find(".salvus-editor-history-controls").show()
+        @slider.show()
+        async.series([
+            (cb) =>
+                require('syncdoc').synchronized_string
+                    project_id : @editor.project_id
+                    filename   : @filename
+                    cb         : (err, doc) =>
+                        @file_history = doc
+                        cb(err)
+            (cb) =>
+                @file_history.on 'sync', () =>
+                    @render_history(false)
+                @render_history(true)
+        ])
+
+    @revision_num = -1
+
+    goto_revision: (num) ->
+        @element.find(".salvus-editor-history-revision-number").text("Revision " + num)
+        if num == 0
+            @element.find(".salvus-editor-history-revision-time").text("")
+        else
+            @element.find(".salvus-editor-history-revision-time").text(new Date(JSON.parse(@log[@nlines-num+1]).time).toLocaleString())
+        if @revision_num - num > 2
+            text = @history_editor.codemirror.getValue()
+            text_old = text
+            for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
+                text = diffsync.dmp.patch_apply(JSON.parse(patch)['patch'],text)[0]
+            @diffsync.patch_in_place(diffsync.dmp.patch_make(text_old, text))
+        else if @revision_num > num
+            for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
+                @diffsync.patch_in_place(JSON.parse(patch)['patch'])
+        else if num - @revision_num > 2
+            text = @history_editor.codemirror.getValue()
+            text_old = text
+            for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
+                text = diffsync.dmp.patch_apply(@invert_patch(JSON.parse(patch))['patch'],text)[0]
+            @diffsync.patch_in_place(diffsync.dmp.patch_make(text_old, text))
+        else
+            for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
+                @diffsync.patch_in_place(@invert_patch(JSON.parse(patch))['patch'])
+        @revision_num = num
+        if @revision_num == 0
+            @back_button.addClass("disabled")
+        else
+            @back_button.removeClass("disabled")
+        if @revision_num == @nlines
+            @forward_button.addClass("disabled")
+        else
+            @forward_button.removeClass("disabled")
+        if @ext == 'sagews'
+            @worksheet.process_sage_updates()
+
+    invert_patch: (patch) =>
+        # Beware of potential bugs in the following code -- I have only tried it, not proved it correct.
+        # I conjecture that this correctly computes the "inverse" of a DMP patch, assuming the patch applies cleanly.  -- Jonathan Lee
+        for i in [0..patch.patch.length-1]
+            temp = patch.patch[i].length1
+            patch.patch[i].length1 = patch.patch[i].length2
+            patch.patch[i].length2 = temp
+            for j in [0..patch.patch[i].diffs.length-1]
+                patch.patch[i].diffs[j][0] = -patch.patch[i].diffs[j][0]
+        patch.patch = patch.patch.reverse()
+        return patch
+
+    render_history: (first) =>
+        @log = @file_history.live().split("\n")
+        @nlines = @log.length - 1
+        if first
+            @element.find(".salvus-editor-history-revision-number").text("Revision " + @nlines)
+            if @nlines == 0
+                @element.find(".salvus-editor-history-revision-time").text("")
+                @back_button.addClass("disabled")
+            else
+                @element.find(".salvus-editor-history-revision-time").text(new Date(JSON.parse(@log[1]).time).toLocaleString())
+            @history_editor.codemirror.setValue(JSON.parse(@log[0]))
+            @revision_num = @nlines
+            if @ext != "" and require('editor').file_associations[@ext].opts.mode?
+                @history_editor.codemirror.setOption("mode", require('editor').file_associations[@ext].opts.mode)
+            @slider.slider
+                animate : false
+                min     : 0
+                max     : @nlines
+                step    : 1
+                value   : @revision_num
+                slide  : (event, ui) =>
+                    @goto_revision(ui.value)
+        else
+            @slider.slider
+                max : @nlines
+            @forward_button.removeClass("disabled")
+        if @ext == 'sagews'
+            @worksheet.process_sage_updates()
+
+    show: () =>
+        @element?.show()
+        @history_editor?.show()
+        if @ext == 'sagews'
+            @worksheet.process_sage_updates()
+
+
 class LatexEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         # The are three components:
@@ -3315,7 +3500,6 @@ class Worksheet extends FileEditor
 
             @worksheet = @element.data("worksheet")
             @worksheet.save(@filename)
-            @element   = @worksheet.element
             @worksheet.on 'save', (new_filename) =>
                 if new_filename != @filename
                     @editor.change_tab_filename(@filename, new_filename)
@@ -3421,6 +3605,7 @@ class Image extends FileEditor
 
     show: () =>
         @element.show()
+        @element.css(top:@editor.editor_top_position())
         @element.maxheight()
 
 

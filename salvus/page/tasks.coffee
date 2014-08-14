@@ -1002,6 +1002,7 @@ class TaskList
             cm.execCommand('goDocEnd')
 
     edit_due_date: (task) =>
+        $(".bootstrap-datetimepicker-widget:visible").remove()
         @set_current_task(task)
         e = task.element
         elt_due = e.find(".salvus-task-due")
@@ -1026,11 +1027,12 @@ class TaskList
             'height'    : '24pt'
             'background': 'white'
 
+        elt_due.parent().append(datetime)
         close = () =>
             elt.data('datetimepicker').destroy()
             elt.remove()
 
-        done = $('<a class="btn pull-right">Close</a>')
+        done = $('<a class="btn btn-default pull-right">Close</a>')
         done.click(close)
         x.parent().before(done)
 
@@ -1475,21 +1477,16 @@ $(window).keydown (evt) =>
             return false
 
 
-
-
 help_dialog_element = templates.find(".salvus-tasks-help-dialog")
-
+help_dialog_modal = templates.find(".salvus-tasks-help-dialog")
 help_dialog_open = false
 
 help_dialog = () ->
+    help_dialog_modal = help_dialog_element.clone()
     help_dialog_open = true
-    help_dialog_element.modal()
+    help_dialog_modal.modal()
+    help_dialog_modal.find(".btn-close").click(close_help_dialog)
 
 close_help_dialog = () ->
     help_dialog_open = false
-    help_dialog_element.modal('hide')
-
-help_dialog_element.find(".btn-close").click(close_help_dialog)
-
-
-
+    help_dialog_modal.modal('hide')

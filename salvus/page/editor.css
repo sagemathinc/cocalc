@@ -17,7 +17,7 @@ Editor for files in a project
 .salvus-editor-close-button-x {
     font-size: 14px;
     margin-top: 9px;
-    margin-right: 10px;
+    margin-right: 15px;
     width: 2%;
 }
 
@@ -25,40 +25,41 @@ Editor for files in a project
     color: #f00;
 }
 
-
 .salvus-editor-tab-filename {
     overflow: hidden;
     display: block;
     white-space: nowrap;
     /* font-size: 10pt; */
-    padding-right: 1em;
-    padding-bottom: 1px;
-    padding-top: 6px;
+}
+
+.salvus-editor-find {
+    display: inline-block;
+    height: 25px;
+    padding: 4px 6px;
+    margin-top: 3px;
 }
 
 .salvus-editor-filename-pill {
-    width:32%;
+    width: 32%;
     cursor: pointer;
 }
 
-@media (max-width: 979px)
-{
+@media (max-width: 767px) {
     .salvus-editor-filename-pill {
-        width:50%;
+        width: 50%;
     }
 }
 
-@media (max-width: 480px)
-{
+@media (max-width: 480px) {
     .salvus-editor-filename-pill {
-        width:100%;
+        width: 100%;
     }
 }
 
 .salvus-editor-codemirror {
-    position:fixed;
-    width:100%;
-    padding:0px;
+    position: fixed;
+    width: 100%;
+    padding: 0px;
 }
 
 .salvus-editor-codemirror-button-row {
@@ -66,49 +67,49 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror-filename {
-    margin-left:3em;
+    margin-left: 3em;
     margin-right: 5em;
     font-size: 10pt;
     font-weight: bold;
-    color:#555;
+    color: #555;
 }
 
 .salvus-editor-pdf-title {
-    margin-left:3em;
+    margin-left: 3em;
     margin-right: 5em;
     font-size: 10pt;
     font-weight: bold;
-    color:#555;
+    color: #555;
 }
 
 .salvus-editor-codemirror-cursor {
     position: absolute;
-    width:15em;
+    width: 15em;
     z-index: 5;
 }
 
 .salvus-editor-codemirror-cursor-inside {
-    position:absolute;
-    top:-1.3em;
-    left:.5ex;
-    height:1.15em;
-    width:.1ex;
+    position: absolute;
+    top: -1.3em;
+    left: .5ex;
+    height: 1.15em;
+    width: .1ex;
     border-left: 2px solid black;
     border: 1px solid #aaa;
-    opacity:.7;
+    opacity: .7;
 }
 
 .salvus-editor-codemirror-cursor-label {
-    position:absolute;
-    top:-2.9em;
-    left:1.5ex;
-    font-size:8pt;
-    font-family:serif;
-    background-color:rgba(255,255,255,0.7)
+    position: absolute;
+    top: -2.9em;
+    left: 1.5ex;
+    font-size: 8pt;
+    font-family: serif;
+    background-color: rgba(255,255,255,0.7)
 }
 
 .salvus-editor-recent-files {
-    margin-bottom : 0em;
+    margin-bottom: 0em;
 }
 
 .salvus-editor-codemirror-input-box {
@@ -117,12 +118,12 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror-sync {
-    font-size:8pt;
-    color:#bbb;
+    font-size: 8pt;
+    color: #bbb;
 }
 
 .salvus-editor-latex-png-preview {
-    padding-top:2px;
+    padding-top: 2px;
 }
 
 .salvus-editor-latex-errors {
@@ -130,11 +131,11 @@ Editor for files in a project
 }
 
 .salvus-latex-errors-counter {
-     color:#a00;
+     color: #a00;
 }
 
 .salvus-latex-warnings-counter {
-     color:#FDB600;
+     color: #FDB600;
 }
 
 .salvus-editor-latex-mesg-template {
@@ -144,13 +145,13 @@ Editor for files in a project
 }
 
 .salvus-editor-latex-mesg-template-error {
-    border : 2px solid #a00;
+    border: 2px solid #a00;
 }
 .salvus-editor-latex-mesg-template-warning {
-    border : 2px solid #FDB600;
+    border: 2px solid #FDB600;
 }
 .salvus-editor-latex-mesg-template-typesetting {
-    border : 2px solid #FDB600;
+    border: 2px solid #FDB600;
 }
 
 .salvus-latex-mesg-message {
@@ -231,6 +232,7 @@ Editor for files in a project
     background-color: white;
     right: 0px;
     width: 35ex;
+    padding: 0;
 }
 
 .salvus-editor-codemirror-chat {
@@ -255,7 +257,7 @@ Editor for files in a project
 .salvus-editor-codemirror-chat-output {
     padding:1ex;
     margin:0ex;
-    width:93%;
+    width:100%;
     position: absolute;
     overflow-y:auto;
     overflow-x:hidden;
@@ -266,9 +268,10 @@ Editor for files in a project
 .salvus-editor-codemirror-chat-input {
     padding:2%;
     margin:0px;
-    height:5em;
+    height:5em !important;
     width:100%;
     position : absolute;
+    resize: none;
 }
 
 .salvus-chat-entry {
@@ -410,6 +413,30 @@ Editor for files in a project
     background: red;
 }
 
+.salvus-editor-history-history_editor .salvus-editor-codemirror-input-box {
+    width: 100%;
+}
+
+/*the slider background*/
+.salvus-editor-history-slider {
+    height: 11px;
+    position: relative;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+/*Style for the slider button*/
+.salvus-editor-history-slider > .ui-slider-handle {
+    width: 12px;
+    height: 24px;
+    position: absolute;
+    top: -8px;
+    margin-left: -6px;
+    z-index: 200;
+    outline: none;
+}
 
 /* Undo various bootstrap madness (which makes scaling markdown very painful) */
 li {
@@ -436,7 +463,9 @@ code {
 }
 
 .file-pages > li > a {
-    border-radius: 5px 5px 0px 0px;
+    position: static; /* Bootstrap 3 has this as relative ?? */
+    padding: 13px 15px 7px;
+    border-radius: 5px 5px 0px 0px; /* Flatten bottom corners like tabs */
 }
 
 .file-tab-placeholder {
@@ -450,5 +479,3 @@ code {
 .file-pages li.active.ui-sortable-helper > a {
     background-color: #08c;
 }
-
-

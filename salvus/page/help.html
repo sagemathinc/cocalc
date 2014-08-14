@@ -1,12 +1,11 @@
-<div class="container hide" id="salvus-help">
-
-    <div class="row" style="padding:1em;">
-        <div class="span11 well" >
+<div class="container-fluid constrained hide" id="salvus-help">
+    <div class="row">
+        <div class="well col-sm-12">
             <h2><!--<i class="fa fa-cloud"> </i>-->
                 <img src="favicon-128.png" width="64" height="64" style="margin-right:1ex;" class="img img-rounded">SageMathCloud&trade;
             </h2>
 
-            <h3 class="not-small">Support</h3>
+            <h3 class="hidden-xs">Support</h3>
 
             <ul>
                 <li class="salvus-help-list"> In case of problems, immediately email me (William Stein) at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>.  I want to know if anything isn't working! </li>
@@ -15,12 +14,12 @@
                 <li class="salvus-help-list">  Join <a target="_blank" href="https://groups.google.com/forum/?fromgroups#!forum/sage-cloud">cloud the mailing list</a> to get help, discuss features and report bugs
                 </li>
                 <li class="salvus-help-list">  To receive occassional announcements, subscribe to <a href="https://groups.google.com/forum/#!forum/sage-cloud-announce" target="_blank">the newsletter</a> by
-sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegroups.com">sage-cloud-announce+subscribe@googlegroups.com</a></li>
-                <li  class="salvus-help-list"> <a href="#how-do-i">Cloud specific help topics</a> and <a target="_blank" href="https://github.com/sagemath/cloud/wiki/FAQ">FAQ</a> [github]</li>
+    sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegroups.com">sage-cloud-announce+subscribe@googlegroups.com</a></li>
+                <li class="salvus-help-list"> <a href="#how-do-i">Cloud specific help topics</a> and <a target="_blank" href="https://github.com/sagemath/cloud/wiki/FAQ">FAQ</a> [github]</li>
                 <li class="salvus-help-list"> <a target="_blank" href="https://github.com/sagemath/cloud/issues">Issue tracker</a> [github] </li>
 
-                <li  class="salvus-help-list"> <a target="_blank" href="http://www.sagemath.org/help.html">General Sage help and support</a> </li>
-                <li  class="salvus-help-list hide salvus-chrome-only"> <a href="https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb" target="_blank">Install the Chrome App</a><br></li>
+                <li class="salvus-help-list"> <a target="_blank" href="http://www.sagemath.org/help.html">General Sage help and support</a> </li>
+                <li class="salvus-help-list hide salvus-chrome-only"> <a href="https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb" target="_blank">Install the Chrome App</a><br></li>
 
                 <li class="salvus-help-list"><a href="#link-terms">Terms of Usage</a></li>
 
@@ -29,7 +28,7 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
             <div class="salvus-stats">
                 <h3>Status <a href="#refresh-status"><i class="fa fa-refresh"> </i></a></h3>
                 <ul>
-                    <li  class="salvus-help-list">
+                    <li class="salvus-help-list">
                         There are <b><span class="salvus-stats-number-of-clients"></span> clients</b> connected right now who are actively
                         modifying <b><span class="salvus-stats-active_projects"></span> projects</b>.   They
                         modified <span class="salvus-stats-last_day_projects"></span> projects in the last day and <span class="salvus-stats-last_week_projects"></span> projects in the last week.
@@ -59,48 +58,48 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
 
                 </ul>
             </div>
-            <div  id="how-do-i"></div>
+            <div id="how-do-i"></div>
             <h3>Documentation</h3>
 
             <ul>
-                <li  class="salvus-help-list"> <a href="#help-create-an-account">Create an account</a></li>
-                <li  class="salvus-help-list"> <a href="#help-change-my-username">Change your username, email address, or password</a></li>
-                <li  class="salvus-help-list"> <a href="#help-examples">Get a bunch of examples</a></li>
-                <li  class="salvus-help-list"> <a href="#help-latex">Using LaTeX</a></li>
-                <li  class="salvus-help-list"> <a href="#help-r">Using R Worksheets</a></li>
-                <li  class="salvus-help-list"> <a href="#help-ipython">Using IPython Notebooks</a></li>
+                <li class="salvus-help-list"> <a href="#help-create-an-account">Create an account</a></li>
+                <li class="salvus-help-list"> <a href="#help-change-my-username">Change your username, email address, or password</a></li>
+                <li class="salvus-help-list"> <a href="#help-examples">Get a bunch of examples</a></li>
+                <li class="salvus-help-list"> <a href="#help-latex">Using LaTeX</a></li>
+                <li class="salvus-help-list"> <a href="#help-r">Using R Worksheets</a></li>
+                <li class="salvus-help-list"> <a href="#help-ipython">Using IPython Notebooks</a></li>
                 <li class="salvus-help-list"> <a href="#help-proxy">Run a web service from a project</a></li>
                 <li class="salvus-help-list"> <a target="_blank" href="https://github.com/sagemath/cloud/wiki/FAQ">More...</a> [github] </li>
 
 
-                <!--
-<li  class="salvus-help-list"> <a href="#help-use-sage-command-prompt">Use Python, Sage, Octave, Macaulay2, etc., on the command line?</a></li>
-<li  class="salvus-help-list"> <a href="#help-cpp-program">Create and run a C++ program?</a></li>
-- Draw 2d graphics and save them to a file on my computer?
-- Compute a symbolic integral?
-- Compute the rank of a matrix?
-- Collaborate on a project with somebody else?
-- Recover a file or directory that I deleted?
-- Do Sage development and make worksheets that use my own custom copy of Sage?
-- Upload files into a project?
-- Download files from a project?
-- Copy a repository from github into a SageMathCloud project?
-- Leave something running in a worksheet or terminal, and come back to it later?
-- Move or rename a file or directory?
-- See how much disk space my project is using?
-- Change the color scheme of my terminal?
-- Change the title and description of a project?
-- Support this project financially?
-- Report bugs or suggest features?
-- Create interactive wdigets that run code?
--->
+                    <!--
+    <li  class="salvus-help-list"> <a href="#help-use-sage-command-prompt">Use Python, Sage, Octave, Macaulay2, etc., on the command line?</a></li>
+    <li  class="salvus-help-list"> <a href="#help-cpp-program">Create and run a C++ program?</a></li>
+    - Draw 2d graphics and save them to a file on my computer?
+    - Compute a symbolic integral?
+    - Compute the rank of a matrix?
+    - Collaborate on a project with somebody else?
+    - Recover a file or directory that I deleted?
+    - Do Sage development and make worksheets that use my own custom copy of Sage?
+    - Upload files into a project?
+    - Download files from a project?
+    - Copy a repository from github into a SageMathCloud project?
+    - Leave something running in a worksheet or terminal, and come back to it later?
+    - Move or rename a file or directory?
+    - See how much disk space my project is using?
+    - Change the color scheme of my terminal?
+    - Change the title and description of a project?
+    - Support this project financially?
+    - Report bugs or suggest features?
+    - Create interactive wdigets that run code?
+    -->
             </ul>
 
             <div id="help-create-an-account">
                 <br><br>
                 <div class="salvus-help-answer">
-                    <div class="row-fluid">
-                        <div class="span12">
+                    <div class="row">
+                        <div class="col-sm-12">
                             <h3>Create an account (<a href="https://www.youtube.com/embed/eadnL5hDg9M" target="_blank">video</a>)</h3>
                             Navigate to <a href="https://cloud.sagemath.com" target="_blank">https://cloud.sagemath.com</a>.
                             If you're already signed in, first sign out
@@ -112,7 +111,7 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
                             at any time later, and also reset your password in case you forget it.
                         </div>
                     </div>
-                    <div  class="lighten">
+                    <div class="lighten">
                         <h4>Technical Notes</h4>
                         <ul>
                             <li> If you want to associate multiple accounts to the same email address, e.g.,
@@ -128,7 +127,7 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
                                 use a strong password, especially when you start using the SageMathCloud frequently.</li>
                             <li> Only the hash of your password is stored by the server, which uses 1000 iterations
                                 of the sha-512 hash function, with a salt length of 32.  This makes it much more
-                                difficult for a hacker to bruteforce your password, even if they have the database of
+                                difficult for a hacker to brute-force your password, even if they have the database of
                                 password hashes, since every guess takes much more work to make.
                             </li>
 
@@ -140,8 +139,8 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
             <div id="help-change-my-username">
                 <br><br>
                 <div class="salvus-help-answer">
-                    <div class="row-fluid">
-                        <div class="span12">
+                    <div class="row">
+                        <div class="col-sm-12">
                             <h3>Change your name, email address, or password (<a href="https://www.youtube.com/embed/A9zltIsU2cM" target="_blank">video</a>)</h3>
                             <p>
                                 Log into <a href="https://cloud.sagemath.com" target="_blank">https://cloud.sagemath.com</a>,
@@ -163,14 +162,14 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
                         </div>
                     </div>
 
-                    <div  class="lighten">
+                    <div class="lighten">
                         <h4>Technical Notes</h4>
                         <ul class="lighten">
                             <li>Changing your first or last name at any time is pretty harmless, since it
                                 only changes the name other people see when collaborating with
                                 you on projects.
                             </li>
-                            <li>The primary purpose of providing an email address to is that you
+                            <li>The primary purpose of providing an email address is that you
                                 can use it to reset your password when you forget it.
                             </li>
                         </ul>
@@ -181,17 +180,17 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
             <div id="help-examples">
                 <br><br>
                 <div class="salvus-help-answer">
-                    <div class="row-fluid">
-                        <div class="span8">
+                    <div class="row">
+                        <div class="col-sm-8">
                             <h3>Get a bunch of examples</h3>
 
                             To easily copy our collection of examples into a project, just click "+New", paste in this link<pre>https://github.com/sagemath/cloud-examples.git</pre> and click "From Web".  In a few seconds you'll find a directory <pre>sage-cloud-templates</pre> in your project, full of examples.
                         </div>
-                        <div class="span4">
+                        <div class="col-sm-4">
                             <img class="pull-right" width="252" src="/art/templates.png" alt="templates">
                         </div>
                     </div>
-                    <div  class="lighten">
+                    <div class="lighten">
                         <h4>Technical Notes</h4>
                         <ul class="lighten">
                             <li>The collection of examples is a <a target="_blank" href="https://github.com/haraldschilly/sage-cloud-templates">Github repository</a>, which we regularly update.
@@ -210,8 +209,8 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
             <div id="help-latex">
                 <br><br>
                 <div class="salvus-help-answer">
-                    <div class="row-fluid">
-                        <div class="span12">
+                    <div class="row">
+                        <div class="col-sm-12">
                             <h3>Using $\LaTeX$ (<a href="https://www.youtube.com/embed/IaachWg4IEQ" target="_blank">video1</a>, <a href="https://www.youtube.com/embed/cXhnX3UtizI" target="_blank">video2</a>)</h3>
 
                             <a href="http://www.latex-project.org/" target="_blank">$LaTeX$</a> is a system for creating
@@ -226,7 +225,7 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
                                     <a href="http://www.mathjax.org/" target="_blank">MathJax</a>) when
                                     you submit them.  In addition to dollar
                                     signs, you can use the other standard latex equation wrappers
-                                    \&shy;[ \] and \&shy;(  \).
+                                    \­[ \] and \­(  \).
                                     In worksheets, if f is some object, you can type <span class="tt">show(f)</span>
                                     to see f nicely typeset using the latex generated by <span class="tt">latex(f)</span>.
                                     In a worksheet, type <span class="tt">typeset_mode(True)</span> to show the nicely
@@ -249,7 +248,7 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
                                     <a href="http://www.sagemath.org/doc/tutorial/sagetex.html" target="_blank">use
                                         SageTex</a> (which should "just work"), make any of those programs re-run, and customize the
                                     latex build command.  If necessary, you can do extremely sophisticated processing of tex files
-                                    in a Terminal (<span class="salvus-a"><i class="fa fa-plus-circle"></i> New</span>  --> Terminal).
+                                    in a Terminal (<span class="salvus-a"><i class="fa fa-plus-circle"></i> New</span>  --&gt; Terminal).
                                 </li>
                             </ol>
                         </div>
@@ -261,8 +260,8 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
             <div id="help-r">
                 <br><br>
                 <div class="salvus-help-answer">
-                    <div class="row-fluid">
-                        <div class="span12">
+                    <div class="row">
+                        <div class="col-sm-12">
                             <h3>Use R in Worksheets (<a href="https://www.youtube.com/embed/JtVuX4yb70A" target="_blank">video</a>)</h3>
                             In a project, click <span class="salvus-a"><i class="fa fa-plus-circle"></i> New</span> then the
                             "Sage" button.  In the worksheet that appears, type <pre>%default_mode r</pre>
@@ -279,8 +278,8 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
             <div id="help-ipython">
                 <br><br>
                 <div class="salvus-help-answer">
-                    <div class="row-fluid">
-                        <div class="span12">
+                    <div class="row">
+                        <div class="col-sm-12">
                             <h3>Use IPython Notebooks (<a href="https://www.youtube.com/embed/sDBbt8U4aJw" target="_blank">video</a>)</h3>
                             In a project, click <span class="salvus-a"><i class="fa fa-plus-circle"></i> New</span> then the
                             "IPython" button, or just open an ipynb file.
@@ -295,12 +294,12 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
                         </div>
                     </div>
 
-                    <div  class="lighten">
+                    <div class="lighten">
                         <h4>Technical Notes</h4>
                         <ul class="lighten">
                             <li>You can also run a normal version of the IPython notebook server (no sync, not integrated into cloud)
                                 using the <span class="tt">ipython-notebook</span> command in a terminal.  You'll get a url that looks like
-                                <span class="tt">https://cloud.sagemath.com/1234601d-9fbc-4e4e-b7ab-c10a79e34d3b/port/11769/</span>; any collaborator
+                                <span class="tt" style="word-wrap: break-word">https://cloud.sagemath.com/1234601d-9fbc-4e4e-b7ab-c10a79e34d3b/port/11769/</span>; any collaborator
                                 on your project can securly use the IPython notebook server by visiting this link, but nobody else
                                 can (not even other users on localhost on the same virtual machine!).
                             </li>
@@ -313,43 +312,38 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
             <div id="help-proxy">
                 <br><br>
                 <div class="salvus-help-answer">
-                    <div class="row-fluid">
-                        <div class="span12">
+                    <div class="row">
+                        <div class="col-sm-12">
                             <h3>Run a web service from a project</h3>
 
                             <ol>
-                                <li  class="salvus-help-list">Start the web service listening on the IP address associated to the tun0 interface on
+                                <li class="salvus-help-list">Start the web service listening on the IP address associated to the tun0 interface on
                                     some port above 1024. Your service can listen on all interfaces if you're not worried about security
                                     (other users on the same project server could access your service by connecting to localhost).
                                     To see the tun0 ip address, type <span class="tt">ifconfig tun0</span>.
                                 </li>
-                                <li  class="salvus-help-list">Your web service will be proxied to:
-                                    <pre>https://cloud.sagemath.com/project_id/port/&lt;port number>/</pre>
-                                    You have to configure your web service so that the base url is <span class="tt">/project_id/port/&lt;port number>/</span>
+                                <li class="salvus-help-list">Your web service will be proxied to:
+                                    <pre>https://cloud.sagemath.com/project_id/port/&lt;port number&gt;/</pre>
+                                    You have to configure your web service so that the base url is <span class="tt">/project_id/port/&lt;port number&gt;/</span>
                                     or you may find that things don't work.  This may be either easy or impossibly hard.
                                     Websockets should be proxied fine.  Note -- the project_id can be read from <tt>~/.sagemathcloud/info.json</tt>.
                                 </li>
                             </ol>
 
-                            <p><p>
-                            Only project collaborators will be able to access your web service, so you do not have to worry
-                            about authentication or running web services that provide local shell access (e.g., a sage cell
-                            server).  All access to the web service is encrypted.  (If you are lazy and allow your service
-                            to listen on localhost, then you should require authentication.)
-                            <p><P>
-                            This feature is not designed for making a web service that is accessible to the general public,
-                            since it is limited to project collaborators.   It's designed for use by a small group of trusted users.
-                            </div>
+                            <p>
+                                Only project collaborators will be able to access your web service, so you do not have to worry
+                                about authentication or running web services that provide local shell access (e.g., a sage cell
+                                server).  All access to the web service is encrypted.  (If you are lazy and allow your service
+                                to listen on localhost, then you should require authentication.)
+                            </p>
+                            <p>
+                                This feature is not designed for making a web service that is accessible to the general public,
+                                since it is limited to project collaborators.   It's designed for use by a small group of trusted users.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
-
-
-
-
-            <!-- blank space -->
-            <div style="margin-top:50em;"></div>
-
             <!-- <br>We use SendGrid for email. --> <!-- temporary, to prove ownership -->
         </div>
     </div>
