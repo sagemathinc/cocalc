@@ -1695,7 +1695,7 @@ class exports.Connection extends EventEmitter
     in_fullscreen_mode: (state) =>
         if state?
             @_fullscreen_mode = state
-        return $(window).width() <= 979 or @_fullscreen_mode
+        return $(window).width() <= 767 or @_fullscreen_mode
 
     #################################################
     # Tasks
@@ -1939,4 +1939,3 @@ exports.html_to_text = (html) ->
     handler = new htmlparser.DefaultHandler((error, dom) ->)
     (new htmlparser.Parser(handler)).parseComplete(html)
     return dom_to_text(handler.dom)
-
