@@ -1349,3 +1349,26 @@ message
     task_list_id : required
     task_id      : required
     task         : undefined    # if task is created or edited this is given with new version; if deleted this is undefined
+
+############################################
+# Admin Functionality
+#############################################
+
+# client --> hub;  will result in an error if the user is not in the admin group.
+message
+    event        : 'project_set_quota'
+    id           : undefined
+    project_id   : required     # the id of the project's id to set.
+    memory       : undefined    # RAM in gigabytes
+    cpu_shares   : undefined    # fair sharing with everybody is 256, not 1 !!!
+    cores        : undefined    # integer max number of cores user can use (>=1)
+    disk         : undefined    # disk quota in megabytes
+    scratch      : undefined    # disk quota in megabytes
+    inode        : undefined    # not actually used, since ZFS doesn't have an inode quota
+    mintime      : undefined    # time in **seconds** until idle projects are terminated
+    login_shell  : undefined    # not used right now (??)
+    network      : undefined    # true or false; if true, full access to outside networ
+
+
+
+

@@ -1985,6 +1985,33 @@ class Client extends EventEmitter
                 @push_to_client(mesg)
 
     ################################################
+    # Administration functionality
+    ################################################
+    user_is_in_group: (group) =>
+        return @groups? and 'admin' in @groups
+
+    mesg_project_set_quota: (mesg) =>
+        if not @user_is_in_group('admin')
+            @error_to_client(id:mesg.id, error:"must be logged in and in the admin group to set project quotas")
+        else
+            bup_server.get_project(mesg.project_id).set_settings
+                memory     : mesg.memeory
+                cpu_shares : mesg.cpu_shares
+                cores      : mesg.cores
+                disk       : mesg.disk
+                scratch    : mesg.scratch
+                inode      : mesg.inode
+                mintime    : mesg.mintime
+                login_shell: mesg.login_shell
+                network    : mesg.network
+                cb         : (err) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:"problem setting quota -- #{err}")
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
+
+    ################################################
     # Task list messages..
     ################################################
     # The code below all work(ed) when written, but I had not

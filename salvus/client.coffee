@@ -1197,6 +1197,36 @@ class exports.Connection extends EventEmitter
                 else
                     cb?(undefined, resp)
 
+    # Set a quota parameter for a given project.
+    # As of now, only user in the admin group can make these changes.
+    project_set_quota: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            memory     : undefined    # see message.coffee for the units, etc., for all these settings
+            cpu_shares : undefined
+            cores      : undefined
+            disk       : undefined
+            scratch    : undefined
+            inode      : undefined
+            mintime    : undefined
+            login_shell: undefined
+            network    : undefined
+            cb         : undefined
+        cb = opts.cb
+        delete opts.cb
+
+        @call
+            message : message.project_set_quota(opts)
+            cb      : (err, resp) =>
+                if err
+                    cb?(err)
+                else if resp.event == 'error'
+                    cb?(resp.error)
+                else
+                    cb?(undefined, resp)
+
+
+
     ######################################################################
     # Execute a program in a given project
     ######################################################################
