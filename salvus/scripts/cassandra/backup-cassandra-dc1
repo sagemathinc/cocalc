@@ -3,4 +3,5 @@ from backup_cassandra import *
 
 backup_cassandra(1, ['10.1.%s.2'%i for i in range(1,8)])
 
-cmd2("time rsync -axvH --delete %s/ disk.math.washington.edu:cassandra/cassandra-dc1/"%os.environ['BUP_DIR'])
+# disk.math isn't encrypted
+#cmd2("time rsync -axvH --delete %s/ disk.math.washington.edu:cassandra/cassandra-dc1/"%os.environ['BUP_DIR'])
