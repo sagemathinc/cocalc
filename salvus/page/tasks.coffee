@@ -381,7 +381,7 @@ class TaskList
         # Determine the search criteria, which restricts what is visible
         search = @selected_hashtags()
         # TODO: exact string searching surrounded by quotes -- add a function misc.search_split...
-        for x in misc.split(@element.find(".salvus-tasks-search").val().toLowerCase())
+        for x in misc.search_split(@element.find(".salvus-tasks-search").val().toLowerCase())
             x = $.trim(x).toLowerCase()
             if x != '#'
                 search.push(x)
@@ -1322,11 +1322,8 @@ class TaskList
 
 
         @element.find(".salvus-tasks-search-clear").click () =>
-            e = @element.find(".salvus-tasks-search")
-            a = $.trim(e.val())
-            if a.length > 0
-                e.val("")
-                @render_task_list()
+            search_box.val('').focus()
+            @render_task_list()
 
     init_sort: () =>
         for s in HEADINGS
