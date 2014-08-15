@@ -9,8 +9,8 @@
                 <div class="col-sm-6 ">
                     <span class="btn-group salvus-course-page-buttons pull-right">
                         <a class="btn btn-warning btn-info" href="#students"><i class="fa fa-user"> </i>  Students <span class="salvus-course-students-count"></span></a>
-                        <a class="btn btn-info" href="#teachers"><i class="fa fa-users"> </i> Teachers <span class="salvus-course-teachers-count"></span></a>
-                        <a class="btn btn-info" href="#assignments"><i class="fa fa-pencil"> </i> Assignments <span class="salvus-course-assignments-count"></span></a>
+                        <a class="hide btn btn-info" href="#assignments"><i class="fa fa-pencil"> </i> Assignments <span class="salvus-course-assignments-count"></span></a>
+                        <a class="btn btn-info" href="#shares"><i class="fa fa-paper-plane-o"> </i> Shared Files <span class="salvus-course-shares-count"></span></a>
                         <a class="btn btn-info" href="#settings"><i class="fa fa-wrench"> </i> Settings</a>
                     </span>
                 </div>
@@ -24,13 +24,6 @@
                         </h4>
                         <div class="salvus-course-editor-description">
                         </div>
-                        <br>
-                        <h4>
-                            <i class="fa fa-map-marker"> </i> Location
-                        </h4>
-                        <div class="salvus-course-editor-location">
-                        </div>
-                        <br>
                     </div>
                 </div>
             </div>
@@ -83,7 +76,7 @@
                 <div class="col-sm-12 ">
                     <div class="well">
                         <div class="row">
-                            <div class="col-sm-4 ">
+                            <div class="col-sm-4">
                                 <div class="input-group">
                                     <input class="salvus-course-students-search search-query form-control" type="search" placeholder="Find students...">
                                     <span class="input-group-btn">
@@ -94,44 +87,38 @@
                                 </div>
                             </div>
                             <div class="col-sm-8 ">
-                                <span class="btn-group pull-right" style="margin-right:3em">
+                                <span class="pull-right">
                                     <a class="btn btn-default" href="#new-student" style="margin-bottom: 1em;"><i class="fa fa-plus-circle"> </i> New</a>
-                                    <a class="btn btn-default" href="#import-students" style="margin-bottom: 1em;"><i class="fa fa-rotate-180 fa-external-link-square"> </i> Import</a>
-                                    <a class="btn btn-default" href="#export-students" style="margin-bottom: 1em;"><i class="fa fa-external-link-square"> </i> Export</a>
-
                                 </span>
+                                <!--
+                                <span class="pull-right" style="margin-right:3em">
+                                    <a class="btn btn-default" href="#new-student" style="margin-bottom: 1em;"><i class="fa fa-plus-circle"> </i> New</a>
+                                    <a class="hide btn btn-default" href="#import-students" style="margin-bottom: 1em;"><i class="fa fa-rotate-180 fa-external-link-square"> </i> Import</a>
+                                    <a class="hide btn btn-default" href="#export-students" style="margin-bottom: 1em;"><i class="fa fa-external-link-square"> </i> Export</a>
+                                </span>
+                                -->
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="salvus-course-heading col-sm-3 ">
-                                Email
+                        <div class=" panel panel-primary">
+                            <div class="panel-heading">
+                                <h3 class="panel-title">Students</h3>
                             </div>
-                            <div class="salvus-course-heading col-sm-3 ">
-                                Name
+                            <div class="panel-body salvus-course-students">
                             </div>
-                            <div class="salvus-course-heading col-sm-3 ">
-                                Project
-                            </div>
-                            <div class="salvus-course-heading col-sm-3 ">
-                                Notes
-                            </div>
-                        </div>
-
-                        <div class="salvus-course-students">
                         </div>
                     </div>
                 </div>
             </div>
 
 
-            <div class="row hide salvus-course-page-teachers">
+            <div class="row hide salvus-course-page-shares">
                 <div class="col-sm-12 ">
                     <div class="well">
                         <div class="row">
                             <div class="col-sm-4 ">
                                 <div class="input-group">
-                                    <input class="salvus-course-teachers-search search-query form-control" type="search" placeholder="Find teachers...">
+                                    <input class="salvus-course-shares-search search-query form-control" type="search" placeholder="Find shares...">
                                     <span class="input-group-btn">
 
                                         <button class="btn btn-default salvus-tasks-search-clear" type="button">
@@ -142,26 +129,22 @@
                             </div>
                             <div class="col-sm-8 ">
                                 <span class="btn-group pull-right" style="margin-right:3em">
-                                    <a class="btn btn-default" href="#new-teacher" style="margin-bottom: 1em;"><i class="fa fa-plus-circle"> </i> New</a>
+                                    <a class="btn btn-default" href="#new-share" style="margin-bottom: 1em;"><i class="fa fa-plus-circle"> </i> New</a>
                                 </span>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="salvus-course-heading col-sm-3 ">
-                                Email
+                            <div class="salvus-course-heading col-sm-9 ">
+                                Path
                             </div>
                             <div class="salvus-course-heading col-sm-3 ">
-                                Name
-                            </div>
-                            <div class="salvus-course-heading col-sm-3 ">
-                                Role (professor, TA, etc.)
-                            </div>
-                            <div class="salvus-course-heading col-sm-3 ">
+                                <a class="btn btn-default" href="#copy-to-students" style="margin-bottom: 1em;"><i class="fa fa-bolt"> </i> Copy to Students</a>
                             </div>
                         </div>
 
-                        <div class="salvus-course-teachers">
+                        <div class="salvus-course-shares">
+
                         </div>
                     </div>
                 </div>
@@ -174,23 +157,15 @@
 
     <div class="salvus-course-student">
         <div class="row">
-            <div class="salvus-course-field col-sm-3 " spellcheck="false">
+            <div class="salvus-course-field col-sm-6" spellcheck="false">
                 <!--<a href="#open-student" style="margin-right:1em"><i class="fa fa-user"> </i></a>-->
                 <span class="salvus-course-student-email" spellcheck="false">
-                    Email
+                    Student
                 </span>
             </div>
-            <div class="salvus-course-field col-sm-3 ">
-                <span class="salvus-course-student-name" spellcheck="false">
-                    Name
-                </span>
-            </div>
-            <div class="salvus-course-student-project salvus-course-field col-sm-3 ">
+            <div class="salvus-course-student-project salvus-course-field col-sm-6 ">
                 <a href="#create-project" class="btn btn-primary hide"><i class="fa fa-plus-circle"> </i>  Create Project</a>
-                <a href="#open-project" class="hide"><i class="fa fa-external-link"> </i>  Open</a>
-            </div>
-            <div class="salvus-course-student-notes salvus-course-field col-sm-3 ">
-                Notes
+                <a href="#open-project" class="btn btn-default hide"><i class="fa fa-external-link"> </i>  Open Project</a>
             </div>
         </div>
     </div>

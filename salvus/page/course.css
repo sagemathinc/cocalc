@@ -57,11 +57,9 @@
 
 .salvus-course-field {
     color:#555;
-    /* /* height: 3em; */ */
     overflow-y: auto;
-    /* border: 1px solid #ddd; */
-    padding-left: 1ex;
-    padding-right: 1ex;
+    padding-top: 1ex;
+    padding-bottom: 1ex;
 }
 
 .salvus-course-field:hover {

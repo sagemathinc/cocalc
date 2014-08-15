@@ -17,9 +17,8 @@ templates = $(".salvus-course-templates")
 SYNC_INTERVAL = 500
 
 SETTINGS =
-    title       : "Title of Course"
-    description : ""
-    location    : ""
+    title       : "Click to edit this title"
+    description : "Description of course"
 
 exports.course = (project_id, filename) ->
     element = templates.find(".salvus-course-editor").clone()
@@ -68,7 +67,7 @@ class Course
                 cb()
 
     init_page_buttons: () =>
-        PAGES =['students', 'teachers', 'assignments', 'settings']
+        PAGES =['students', 'shares', 'assignments', 'settings']
         buttons = @element.find(".salvus-course-page-buttons")
         for page in PAGES
             buttons.find("a[href=##{page}]").data('page',page).click (e) =>
@@ -237,12 +236,15 @@ class Course
                 open_project_btn.show()
                 if not open_project_btn.hasClass('salvus-initialized')
                     open_project_btn.addClass('salvus-initialized').click () =>
-                        require('projects').open_project(opts.project_id)
+                        f = () =>
+                            require('projects').open_project(opts.project_id)
+                        setTimeout(f, 1) # ugly hack Jon suggests for now.
+                        return false
 
 
         if e.length > 0
-            for field in ['name', 'email', 'notes']
-                e.find(".salvus-course-student-#{field}").data('set_upstream')(opts[field])
+            for field in ['email']
+                e.find(".salvus-course-student-#{field}").data('set_upstream')?(opts[field])
             render_project_button()
             return
 
@@ -343,7 +345,7 @@ class Course
     course_project_settings: (student_id) =>
         z = @db.select_one(table:'settings')
         s = @db.select_one(table:'students', student_id:student_id)
-        return {title: "#{s.name} -- #{z.title}  (#{z.location})", description:z.description}
+        return {title: "#{s.name} -- #{z.title}", description:z.description}
 
 
     ###
