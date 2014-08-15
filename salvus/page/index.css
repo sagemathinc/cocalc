@@ -66,10 +66,8 @@ top_navbar.css
 }
 
 
-body { padding-top:43px; }
-
-.not-big {
-    display: none;
+body {
+    padding-top:43px;
 }
 
 /* mezzo-small, larger than xs, smaller than sm, like the old tasklist button size */
@@ -88,14 +86,6 @@ body { padding-top:43px; }
 }
 
 @media (max-width: 767px) {
-    .big-only {
-        display:none;
-    }
-
-    .not-big {
-        display:inline;
-    }
-
     .salvus-project {
         position: relative !important;
         top: 0px !important;
@@ -103,30 +93,10 @@ body { padding-top:43px; }
 }
 
 /* so on iOS scroll-into-view modals work */
-@media (max-width: 480px)
-{
+@media (max-width: 480px) {
     .modal.fade.in {
         top: 10px;
-  }
-}
-
-/* Use small-only for content that should only be shown on very small
-   devices, e.g., smart phones, and use big-only for content that is
-   only shown on tablets and desktops */
-
-@media (max-width: 480px) {
-  .big-only {
-    display:none;
-  }
-  .not-small {
-    display:none;
-  }
-}
-
-@media (min-width: 481px) {
-  .small-only {
-    display:none;
-  }
+    }
 }
 
 /* This is a hack to accurately determine if the screen is displaying in responsive mode.
@@ -143,10 +113,6 @@ body { padding-top:43px; }
         width: 10000px;
     }
 }
-
-
-
-
 
 .ui-pnotify-history-container {
     position: fixed;
@@ -213,6 +179,12 @@ input[type="text"], select {
 
 .btn {
     white-space: normal;
+}
+
+.btn-black {
+    color: #fff;
+    background-color: #000000;
+    border-color: #000000;
 }
 
 .tooltip {
