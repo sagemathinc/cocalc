@@ -160,6 +160,15 @@ init_http_server = () ->
                         res.end("internal error: #{err}")
                     else
                         res.end(misc.to_json(stats))
+            when "registration"
+                database.key_value_store(name:'global_admin_settings').get
+                    key : 'account_creation_token'
+                    cb  : (err, token) ->
+                        if err or not token
+                            res.end(misc.to_json({}))
+                        else
+                            res.end(misc.to_json({token:true}))
+
             when "blobs"
                 #winston.debug("serving a blob: #{misc.to_json(query)}")
                 if not query.uuid?
@@ -1054,7 +1063,8 @@ class Client extends EventEmitter
     ######################################################
     # Messages: Account creation, sign in, sign out
     ######################################################
-    mesg_create_account: (mesg) => create_account(@, mesg)
+    mesg_create_account: (mesg) =>
+        create_account(@, mesg)
 
     mesg_sign_in: (mesg) => sign_in(@,mesg)
 
@@ -1983,6 +1993,63 @@ class Client extends EventEmitter
                 @error_to_client(id:mesg.id, error:err)
             else
                 @push_to_client(mesg)
+
+    ################################################
+    # Administration functionality
+    ################################################
+    user_is_in_group: (group) =>
+        return @groups? and 'admin' in @groups
+
+    mesg_project_set_quota: (mesg) =>
+        if not @user_is_in_group('admin')
+            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to set project quotas")
+        else
+            bup_server.get_project(mesg.project_id).set_settings
+                memory     : mesg.memory
+                cpu_shares : mesg.cpu_shares
+                cores      : mesg.cores
+                disk       : mesg.disk
+                scratch    : mesg.scratch
+                inode      : mesg.inode
+                mintime    : mesg.mintime
+                login_shell: mesg.login_shell
+                network    : mesg.network
+                cb         : (err) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:"problem setting quota -- #{err}")
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
+    mesg_set_account_creation_token: (mesg) =>
+        if not @user_is_in_group('admin')
+            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to set account creation token")
+        else
+            s = database.key_value_store(name:'global_admin_settings')
+            s.set
+                key   : 'account_creation_token'
+                value : mesg.token
+                cb    : (err) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:"problem setting account creation token -- #{err}")
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
+
+    mesg_get_account_creation_token: (mesg) =>
+        if not @user_is_in_group('admin')
+            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to get account creation token")
+        else
+            s = database.key_value_store(name:'global_admin_settings')
+            s.get
+                key   : 'account_creation_token'
+                cb    : (err, val) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:"problem getting account creation token -- #{err}")
+                    else
+                        if not val?
+                            val = ''
+                        @push_to_client(message.get_account_creation_token(id:mesg.id, token:val))
+
 
     ################################################
     # Task list messages..
@@ -3245,7 +3312,7 @@ sign_in = (client, mesg) =>
         (cb) ->
             if mesg.remember_me
                 client.remember_me
-                    account_id       : signed_in_mesg.account_id
+                    account_id    : signed_in_mesg.account_id
                     email_address : signed_in_mesg.email_address
             cb()
     ])
@@ -3309,9 +3376,10 @@ is_valid_password = (password) ->
 create_account = (client, mesg) ->
     id = mesg.id
     account_id = null
+    dbg = (m) -> winston.debug("create_account (#{mesg.email_address}): #{m}")
     async.series([
-        # run tests on generic validity of input
         (cb) ->
+            dbg("run tests on generic validity of input")
             issues = client_lib.issues_with_create_account(mesg)
 
             # Do not allow *really* stupid passwords.
@@ -3319,7 +3387,7 @@ create_account = (client, mesg) ->
             if not valid
                 issues['password'] = reason
 
-            # TODO -- only uncomment this for easy testing, allow any password choice
+            # TODO -- only uncomment this for easy testing to allow any password choice.
             # the client test suite will then fail, which is good, so we are reminded to comment this out before release!
             # delete issues['password']
 
@@ -3334,6 +3402,7 @@ create_account = (client, mesg) ->
         # evils, but still allow for demo registration behind a wifi
         # router -- say)
         (cb) ->
+            dbg("ip_tracker test")
             ip_tracker = database.key_value_store(name:'create_account_ip_tracker')
             ip_tracker.get(
                 key : client.ip_address
@@ -3356,8 +3425,8 @@ create_account = (client, mesg) ->
                         cb(true)
             )
 
-        # query database to determine whether the email address is available
         (cb) ->
+            dbg("query database to determine whether the email address is available")
             database.is_email_address_available(mesg.email_address, (error, available) ->
                 if error
                     client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
@@ -3368,8 +3437,8 @@ create_account = (client, mesg) ->
                 else
                     cb()
             )
-        # check that account is not banned
         (cb) ->
+            dbg("check that account is not banned")
             database.is_banned_user
                 email_address : mesg.email_address
                 cb            : (err, is_banned) ->
@@ -3381,8 +3450,21 @@ create_account = (client, mesg) ->
                         cb(true)
                     else
                         cb()
-        # create new account
         (cb) ->
+            dbg("check if a registration token is required")
+            database.key_value_store(name:'global_admin_settings').get
+                key : 'account_creation_token'
+                cb  : (err, token) =>
+                    if not token
+                        cb()
+                    else
+                        if token != mesg.token
+                            client.push_to_client(message.account_creation_failed(id:id, reason:{token:"Incorrect registration token."}))
+                            cb(true)
+                        else
+                            cb()
+        (cb) ->
+            dbg("create new account")
             database.create_account
                 first_name:    mesg.first_name
                 last_name:     mesg.last_name
@@ -3400,29 +3482,31 @@ create_account = (client, mesg) ->
                         value : {account_id:account_id, first_name:mesg.first_name, last_name:mesg.last_name, email_address:mesg.email_address}
                     cb()
 
-        # check for account creation actions
         (cb) ->
+            dbg("check for account creation actions")
             account_creation_actions
                 email_address : mesg.email_address
                 account_id    : account_id
                 cb            : cb
 
-        # send message back to user that they are logged in as the new user
         (cb) ->
+            dbg("send message back to user that they are logged in as the new user")
             mesg = message.signed_in
                 id            : mesg.id
                 account_id    : account_id
+                email_address : mesg.email_address
+                first_name    : mesg.first_name
+                last_name     : mesg.last_name
                 remember_me   : false
                 hub           : program.host + ':' + program.port
             client.signed_in(mesg)
             client.push_to_client(mesg)
-            # Set remember_me cookie so that proxy server will allow user to connect and
+            dbg("set remember_me cookie...")
+            # so that proxy server will allow user to connect and
             # download images, etc., the very first time right after they make a new account.
             client.remember_me
-                account_id    : account_id
-                first_name    : mesg.first_name
-                last_name     : mesg.last_name
                 email_address : mesg.email_address
+                account_id    : account_id
             cb()
     ])
 
@@ -3432,13 +3516,14 @@ account_creation_actions = (opts) ->
         email_address : required
         account_id    : required
         cb            : required
+    winston.debug("account_creation_actions for #{opts.email_address}")
     database.account_creation_actions
         email_address : opts.email_address
         cb            : (err, actions) ->
             if err
                 cb(err); return
             for action in actions
-                winston.debug("action = #{misc.to_json(action)}")
+                winston.debug("account_creation_actions: action = #{misc.to_json(action)}")
                 if action.action == 'add_to_project'
                     database.add_user_to_project
                         project_id : action.project_id

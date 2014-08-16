@@ -412,6 +412,7 @@ message
     email_address  : required
     password       : required
     agreed_to_terms: required
+    token          : undefined   # only required when token is set.
 
 # hub --> client
 message
@@ -452,10 +453,12 @@ message
 message
     event          : 'signed_in'
     id             : undefined     # message uuid
-    account_id     : required      # uuid of user's account
-    email_address  : required      # email address they signed in under
     remember_me    : required      # true if sign in accomplished via remember_me cookie; otherwise, false.
     hub            : required      # ip address (on vpn) of hub user connected to.
+    account_id     : required      # uuid of user's account
+    email_address  : undefined     # email address they signed in under
+    first_name     : undefined
+    last_name      : undefined
 
 # client --> hub
 message
@@ -1349,3 +1352,36 @@ message
     task_list_id : required
     task_id      : required
     task         : undefined    # if task is created or edited this is given with new version; if deleted this is undefined
+
+############################################
+# Admin Functionality
+#############################################
+
+# client --> hub;  will result in an error if the user is not in the admin group.
+message
+    event        : 'project_set_quota'
+    id           : undefined
+    project_id   : required     # the id of the project's id to set.
+    memory       : undefined    # RAM in gigabytes
+    cpu_shares   : undefined    # fair sharing with everybody is 256, not 1 !!!
+    cores        : undefined    # integer max number of cores user can use (>=1)
+    disk         : undefined    # disk quota in megabytes
+    scratch      : undefined    # disk quota in megabytes
+    inode        : undefined    # not actually used, since ZFS doesn't have an inode quota
+    mintime      : undefined    # time in **seconds** until idle projects are terminated
+    login_shell  : undefined    # not used right now (??)
+    network      : undefined    # true or false; if true, full access to outside networ
+
+# client --> hub: admins can set a token that anybody creating an account must
+# know to be allowed to create an account.  For now there is just one global token.
+message
+    event        : 'set_account_creation_token'
+    id           : undefined
+    token        : required     # a string
+
+# client <--> hub
+message
+    event        : 'get_account_creation_token'
+    id           : undefined
+    token        : undefined  # comes back in here
+
