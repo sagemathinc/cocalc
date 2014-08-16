@@ -107,7 +107,7 @@ DEFAULT_SETTINGS = {
     'network'    : False
 }
 
-BWLIMIT = 200000
+BWLIMIT = 20000
 
 FILESYSTEM = 'zfs'   # 'zfs' or 'ext4'
 
