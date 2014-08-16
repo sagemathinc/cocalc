@@ -57,6 +57,13 @@ show_page("account-sign_in")
 top_navbar.on("show_page_account", (() -> $("##{focus[current_account_page]}").focus()))
 
 $("a[href='#account-create_account']").click (event) ->
+    $.get "/registration", (val, status) ->
+        if status == 'success'
+            obj = misc.from_json(val)
+            if obj.token  # registration token is required, so show the field
+                $(".salvus-create_account-token").show()
+
+
     show_page("account-create_account")
     return false
 
@@ -183,7 +190,7 @@ disable_tooltips = () ->
 # Account creation
 ################################################
 
-create_account_fields = ['first_name', 'last_name', 'email_address', 'password', 'agreed_to_terms']
+create_account_fields = ['token', 'first_name', 'last_name', 'email_address', 'password', 'agreed_to_terms']
 
 destroy_create_account_tooltips = () ->
     for field in create_account_fields
@@ -514,6 +521,9 @@ class AccountSettings
             element.val(value)
             element.text(value)
 
+        if @settings.groups? and 'admin' in @settings.groups
+            $("#account-settings-admin-settings").show()
+
         for prop, value of @settings
             def = message.account_settings_defaults[prop]
             if typeof(def) == "object"
@@ -603,6 +613,37 @@ editor_theme = $(".account-settings-editor-color_scheme").on 'change', () ->
         $(x).data("editor")?.set_theme(val)
     account_settings.save_to_server()
 
+
+
+################################################
+# Admin settings
+################################################
+save_account_creation_token_button = $("a[href=#save-account_creation-token]").click () ->
+    save_account_creation_token_button.icon_spin(start:true)
+    salvus_client.set_account_creation_token
+        token : $("#admin-settings-account_creation-token").val()
+        cb    : (err) ->
+            save_account_creation_token_button.icon_spin(false)
+            if err
+                alert_message(type:"error", message:err)
+            else
+                edit_account_creation_token_button.show()
+                $("#admin-settings-account_creation-token").hide()
+                save_account_creation_token_button.hide()
+    return false
+
+edit_account_creation_token_button = $("a[href=#edit-account_creation-token]").click () ->
+    edit_account_creation_token_button.icon_spin(start:true)
+    salvus_client.get_account_creation_token
+        cb : (err, token) ->
+            edit_account_creation_token_button.icon_spin(false)
+            if err
+                alert_message(type:"error", message:err)
+            else
+                edit_account_creation_token_button.hide()
+                $("#admin-settings-account_creation-token").val(token).show()
+                save_account_creation_token_button.show()
+    return false
 
 ################################################
 # Change Email Address
