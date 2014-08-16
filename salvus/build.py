@@ -16,7 +16,7 @@ The components are:
     * sage -- we do *not* build or include Sage; it must be available system-wide or for
       user in order for worksheets to work (everything but worksheets should work without Sage).
 
-Supported Platform: Ubuntu 14.04
+Supported Platform:  Ubuntu 14.04
 
 Steps:
 
@@ -455,6 +455,7 @@ SAGE_OPTIONAL_PACKAGES = [
     'kash3',
     'lie',
     'lrs',
+    'mcqd',
     'nauty',
     'normaliz',
     'nose',
