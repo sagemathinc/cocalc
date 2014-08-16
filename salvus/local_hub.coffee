@@ -1586,12 +1586,14 @@ class CodeMirrorSessions
             session = @_sessions.by_uuid[mesg.session_uuid]
             if session?
                 finish(session)
+                opts.cb?(undefined, session)
                 return
 
         if mesg.path?
             session = @_sessions.by_path[mesg.path]
             if session?
                 finish(session)
+                opts.cb?(undefined, session)
                 return
 
         mesg.session_uuid = uuid.v4()
