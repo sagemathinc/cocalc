@@ -1,3 +1,4 @@
+
 .popover-create-account {
     width: 200px;
     background-color: #ff0077;
@@ -29,4 +30,23 @@
 .salvus-remember_me-message {
     font-size:16pt;
 
+}
+
+#sign_in-email, #sign_in-password, #sign_in-button {
+    margin-bottom: 7px;    
+}
+
+input[id^="create_account-"] {
+    margin-bottom: 2px;
+}
+@media (min-width: 768px) {
+    div[id^="account-settings-"].well {
+        margin-left: 10px;
+        margin-right: 10px;
+        width: 45.8333%;
+        width: calc(50% - 21px);
+    }
+}
+#link-terms {
+    top: 0;
 }

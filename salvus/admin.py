@@ -7,7 +7,7 @@ Administration and Launch control of salvus components
 ####################
 # Standard imports
 ####################
-import json, logging, os, shutil, signal, socket, stat, subprocess, tempfile, time
+import json, logging, os, shutil, signal, socket, stat, subprocess, sys, tempfile, time
 
 from string import Template
 
@@ -1024,7 +1024,7 @@ def parse_groupfile(filename):
         if line: # ignore blank lines
             if line.startswith('import ') or '=' in line:
                 # import modules for use in assignments below
-                #print "exec ", line
+                print "exec ", line
                 exec line in namespace
                 continue
 
@@ -1349,7 +1349,7 @@ class Monitor(object):
         self._services = services  # used for self-healing
 
     def attempt_to_heal_cassandra_server(self, host):
-        self._services.restart('cassandra', host=host)
+        self._services.start('cassandra', host=host)
 
     def attempt_to_heal_bup_server(self, host):
         self._hosts(host,'cd salvus/salvus; . salvus-env; bup_server restart')
@@ -1688,16 +1688,19 @@ class Monitor(object):
                         # update the external static ip address in the database every so often.
                         try:
                             self._services.update_ssh_storage_server_access()
-                        except Exception, msg:
-                            print "ERROR updating ssh storage server access! -- %s"%msg
+                        except:
+                            print sys.exc_info()[:2]
+                            print "ERROR updating ssh storage server access!"
                     last_time = now
                     try:
                         self._go()
                     except:
+                        print sys.exc_info()[:2]
                         print "ERROR"
                         try:
                             self._go()
                         except:
+                            print sys.exc_info()[:2]
                             print "ERROR"
             time.sleep(20)
 

@@ -381,7 +381,7 @@ class TaskList
         # Determine the search criteria, which restricts what is visible
         search = @selected_hashtags()
         # TODO: exact string searching surrounded by quotes -- add a function misc.search_split...
-        for x in misc.split(@element.find(".salvus-tasks-search").val().toLowerCase())
+        for x in misc.search_split(@element.find(".salvus-tasks-search").val().toLowerCase())
             x = $.trim(x).toLowerCase()
             if x != '#'
                 search.push(x)
@@ -1002,6 +1002,7 @@ class TaskList
             cm.execCommand('goDocEnd')
 
     edit_due_date: (task) =>
+        $(".bootstrap-datetimepicker-widget:visible").remove()
         @set_current_task(task)
         e = task.element
         elt_due = e.find(".salvus-task-due")
@@ -1026,11 +1027,12 @@ class TaskList
             'height'    : '24pt'
             'background': 'white'
 
+        elt_due.parent().append(datetime)
         close = () =>
             elt.data('datetimepicker').destroy()
             elt.remove()
 
-        done = $('<a class="btn pull-right">Close</a>')
+        done = $('<a class="btn btn-default pull-right">Close</a>')
         done.click(close)
         x.parent().before(done)
 
@@ -1320,11 +1322,8 @@ class TaskList
 
 
         @element.find(".salvus-tasks-search-clear").click () =>
-            e = @element.find(".salvus-tasks-search")
-            a = $.trim(e.val())
-            if a.length > 0
-                e.val("")
-                @render_task_list()
+            search_box.val('').focus()
+            @render_task_list()
 
     init_sort: () =>
         for s in HEADINGS
@@ -1475,21 +1474,16 @@ $(window).keydown (evt) =>
             return false
 
 
-
-
 help_dialog_element = templates.find(".salvus-tasks-help-dialog")
-
+help_dialog_modal = templates.find(".salvus-tasks-help-dialog")
 help_dialog_open = false
 
 help_dialog = () ->
+    help_dialog_modal = help_dialog_element.clone()
     help_dialog_open = true
-    help_dialog_element.modal()
+    help_dialog_modal.modal()
+    help_dialog_modal.find(".btn-close").click(close_help_dialog)
 
 close_help_dialog = () ->
     help_dialog_open = false
-    help_dialog_element.modal('hide')
-
-help_dialog_element.find(".btn-close").click(close_help_dialog)
-
-
-
+    help_dialog_modal.modal('hide')

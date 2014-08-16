@@ -411,7 +411,7 @@ class SynchronizedDocument
         @editor._chat_is_hidden = false
         @element.find(".salvus-editor-chat-show").hide()
         @element.find(".salvus-editor-chat-hide").show()
-        @element.find(".salvus-editor-codemirror-input-box").removeClass('span12').addClass('span9')
+        @element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-12').addClass('col-sm-9')
         @element.find(".salvus-editor-codemirror-chat-column").show()
         # see http://stackoverflow.com/questions/4819518/jquery-ui-resizable-does-not-support-position-fixed-any-recommendations
         # if you want to try to make this resizable
@@ -425,7 +425,7 @@ class SynchronizedDocument
         @editor._chat_is_hidden = true
         @element.find(".salvus-editor-chat-hide").hide()
         @element.find(".salvus-editor-chat-show").show()
-        @element.find(".salvus-editor-codemirror-input-box").removeClass('span9').addClass('span12')
+        @element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-9').addClass('col-sm-12')
         @element.find(".salvus-editor-codemirror-chat-column").hide()
         @editor.show()  # update size/display of editor (especially the width)
 

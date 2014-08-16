@@ -1,34 +1,27 @@
+.navbar-btn {
+    margin-right: 5px;
+}
+
 .close-button-x {
-    font-size: 18px;
     position: relative;
 }
 
 .close-button-x:hover {
     color: #fff;
-    font-size: 18px;
 }
 
 .navbar-big {
     font-size:18px;
 }
 
-.nav.buttons {
-    margin: 0;
-}
-
 .nav-projects-placeholder {
-    -webkit-box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
-    -moz-box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
-    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
+    /* No more box shadow */
 }
 
 .nav.projects li.ui-sortable-helper {
     color: #555555;
     text-decoration: none;
     background-color: #ffffff;
-    -webkit-box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
-    -moz-box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
-    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.125);
 }
 
 .nav.pull-right {
@@ -36,8 +29,15 @@
 }
 
 .nav.projects {
-    float: none;
+    float: none !important; /* override Bootstrap 3 */
     overflow: hidden;
+}
+
+.navbar .divider-vertical {
+    height: 42px;
+    margin: 0 9px;
+    border-right: 1px solid #ffffff;
+    border-left: 1px solid #f2f2f2;
 }
 
 .salvus-connection-status {
@@ -55,6 +55,8 @@
 
 .salvus-top_navbar {
     font-size: 14px;
+    margin-bottom: 0;
+    min-height: 0;
 }
 
 .salvus-fullscreen-activate {
@@ -71,7 +73,6 @@
 .salvus-fullscreen-activate:hover {
     color: #222;
 }
-
 
 .salvus-fullscreen-deactivate {
     position:fixed;
@@ -97,13 +98,11 @@
     position: relative;
 }
 
-
 .salvus-connection-status-connecting {
-    background-color : red;
-    color            : white;
-    padding          : 1ex;
-    z-index          : 100001;
-
+    background-color: red;
+    color: white;
+    padding: 1ex;
+    z-index: 100001;
 }
 
 .salvus-connection-status:hover {
@@ -112,9 +111,31 @@
 
 .top_navbar-button-link {
     overflow: hidden;
+    padding: 10px 8px !important;
     text-overflow: ellipsis;
 }
 
 .top_navbar-button-template {
     white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+    .navbar-nav.pull-right, .navbar-nav.pull-left {
+        float: none !important;
+        font-weight: bold;
+        margin: 0;
+    }
+
+    .navbar-nav li > a {
+        font-weight: bold;
+        border-radius: 3px;
+    }
+
+    .salvus-top_navbar {
+        position: static;
+    }
+
+    body {
+        padding-top: 0 !important;
+    }
 }

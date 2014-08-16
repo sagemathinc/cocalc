@@ -451,7 +451,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @opts = defaults opts,
             cursor_interval   : 1000
             sync_interval     : 750     # never send sync messages up stream more often than this
-            revision_tracking : false   # if true, save every revision in @.filename.sage-history
+            revision_tracking : account.account_settings.settings.editor_settings.track_revisions   # if true, save every revision in @.filename.sage-history
         @project_id = @editor.project_id
 
         @filename    = @editor.filename
@@ -593,7 +593,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                             if resp.event == 'error'
                                 err = resp.error
                             if err
-                                alert_message(type:"error", message:"error enabling revision saving -- #{err}")
+                                alert_message(type:"error", message:"error enabling revision saving -- #{err} -- #{@editor.filename}")
 
     ui_loading: () =>
         @element.find(".salvus-editor-codemirror-loading").show()
@@ -736,7 +736,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @editor._chat_is_hidden = false
         @element.find(".salvus-editor-chat-show").hide()
         @element.find(".salvus-editor-chat-hide").show()
-        @element.find(".salvus-editor-codemirror-input-box").removeClass('span12').addClass('span9')
+        @element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-12').addClass('col-sm-9')
         @element.find(".salvus-editor-codemirror-chat-column").show()
         # see http://stackoverflow.com/questions/4819518/jquery-ui-resizable-does-not-support-position-fixed-any-recommendations
         # if you want to try to make this resizable
@@ -749,7 +749,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @editor._chat_is_hidden = true
         @element.find(".salvus-editor-chat-hide").hide()
         @element.find(".salvus-editor-chat-show").show()
-        @element.find(".salvus-editor-codemirror-input-box").removeClass('span9').addClass('span12')
+        @element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-9').addClass('col-sm-12')
         @element.find(".salvus-editor-codemirror-chat-column").hide()
         @editor.show()  # update size/display of editor (especially the width)
 
@@ -910,15 +910,18 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 { MARKERS, FLAGS, ACTION_FLAGS } = diffsync
 
 class SynchronizedWorksheet extends SynchronizedDocument
-    constructor: (@editor, opts) ->
-        opts0 =
-            cursor_interval : opts.cursor_interval
-            sync_interval   : opts.sync_interval
-        super @editor, opts0, () =>
-            @process_sage_updates()
+    constructor: (@editor, @opts) ->
+        if not @opts.history_browser
+            opts0 =
+                cursor_interval : @opts.cursor_interval
+                sync_interval   : @opts.sync_interval
+            super @editor, opts0, () =>
+                @process_sage_updates()
 
-        @init_worksheet_buttons()
-        @on 'sync', @process_sage_updates
+            @init_worksheet_buttons()
+            @on 'sync', @process_sage_updates
+
+        @codemirror = @editor.codemirror
 
         @editor.on 'show', (height) =>
             w = @cm_lines().width()
@@ -931,7 +934,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         elt.css('width', (w-25) + 'px')
                     else if elt.hasClass('sagews-input')
                         elt.css('width', w + 'px')
-
 
         @codemirror.on 'beforeChange', (instance, changeObj) =>
             #console.log("beforeChange: #{misc.to_json(changeObj)}")
@@ -1026,6 +1028,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 opts.cb?(err)
 
     introspect: () =>
+        if @opts.history_browser
+            return
         # TODO: obviously this wouldn't work in both sides of split worksheet.
         pos  = @codemirror.getCursor()
         line = @codemirror.getLine(pos.line).slice(0, pos.ch)
@@ -1089,6 +1093,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         return @_cm_lines = @cm_wrapper().find(".CodeMirror-lines")
 
     pad_bottom_with_newlines: (n) =>
+        if @opts.history_browser
+            return
         cm = @codemirror
         m = cm.lineCount()
         if m <= 13  # don't bother until worksheet gets big
@@ -1143,31 +1149,32 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     if not mark.flagstring?
                         mark.flagstring = ''
                     # only do something if the flagstring changed.
-                    elt = @elt_at_mark(mark)
-                    if FLAGS.execute in flagstring
-                        elt.data('execute',FLAGS.execute)
-                        g = () ->  #ugly use of closure -- ok for now -- TODO: clean up
-                            # execute requested
-                            elt0 = elt
-                            f = () ->
-                                if elt0.data('execute') not in ['done', FLAGS.running]
-                                    elt0.spin(true)
-                            setTimeout(f, 1000)
-                        g()
-                    else if FLAGS.running in flagstring
-                        elt.data('execute',FLAGS.running)
-                        g = () ->   #ugly use of closure -- ok for now -- TODO: clean up
-                            elt0 = elt
-                            f = () ->
-                                if elt0.data('execute') not in ['done', FLAGS.execute]
-                                    elt0.spin(color:'green')
-                            # code is running on remote local hub.
-                            setTimeout(f, 1000)
-                        g()
-                    else
-                        elt.data('execute','done')
-                        # code is not running
-                        elt.spin(false)
+                    if not @opts.history_browser
+                        elt = @elt_at_mark(mark)
+                        if FLAGS.execute in flagstring
+                            elt.data('execute',FLAGS.execute)
+                            g = () ->  #ugly use of closure -- ok for now -- TODO: clean up
+                                # execute requested
+                                elt0 = elt
+                                f = () ->
+                                    if elt0.data('execute') not in ['done', FLAGS.running]
+                                        elt0.spin(true)
+                                setTimeout(f, 1000)
+                            g()
+                        else if FLAGS.running in flagstring
+                            elt.data('execute',FLAGS.running)
+                            g = () ->   #ugly use of closure -- ok for now -- TODO: clean up
+                                elt0 = elt
+                                f = () ->
+                                    if elt0.data('execute') not in ['done', FLAGS.execute]
+                                        elt0.spin(color:'green')
+                                # code is running on remote local hub.
+                                setTimeout(f, 1000)
+                            g()
+                        else
+                            elt.data('execute','done')
+                            # code is not running
+                            elt.spin(false)
                     if FLAGS.hide_input in flagstring and FLAGS.hide_input not in mark.flagstring
                         @hide_input(line)
                     else if FLAGS.hide_input in mark.flagstring and FLAGS.hide_input not in flagstring
@@ -1315,8 +1322,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
         output = opts.element
         # mesg = object
         # output = jQuery wrapped element
-
-        #console.log("new output: ", mesg)
 
         if mesg.clear? and mesg.clear
             output.empty()
@@ -1919,8 +1924,3 @@ class Worksheet
 ################################
 exports.SynchronizedDocument = SynchronizedDocument
 exports.SynchronizedWorksheet = SynchronizedWorksheet
-
-
-
-
-

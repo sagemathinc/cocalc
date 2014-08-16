@@ -149,7 +149,6 @@ class Console extends EventEmitter
 
         # this object (=@) is needed by the custom renderer, if it is used.
         @terminal.salvus_console = @
-
         that = @
 
         # Select the renderer

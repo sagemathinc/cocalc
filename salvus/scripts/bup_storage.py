@@ -32,11 +32,11 @@ Install script:
 
 Setup Pool:
 
-#zpool create -f bup XXXXX /dev/vdb
 
 export POOL=bup
 # export POOL=pool
 #zpool create -f $POOL /dev/sdb   # on gce
+#zpool create -f $POOL /dev/vdb
 zfs create $POOL/projects
 zfs set mountpoint=/projects $POOL/projects
 zfs set dedup=on $POOL/projects
@@ -106,6 +106,8 @@ DEFAULT_SETTINGS = {
     'inode'      : 200000,  # not used with ZFS
     'network'    : False
 }
+
+BWLIMIT = 20000
 
 FILESYSTEM = 'zfs'   # 'zfs' or 'ext4'
 
@@ -392,7 +394,7 @@ class Project(object):
             self.chown(self.project_mnt)
         else:
             src = os.path.join(self.snap_mnt, self.branch, snapshot)+'/'
-            self.cmd(['rsync', '-axH', '--delete-excluded', '--delete', self.exclude(src), src, self.project_mnt+'/'])
+            self.cmd(['rsync', '-saxH', '--delete-excluded', '--delete', self.exclude(src), src, self.project_mnt+'/'])
 
     def umount_snapshots(self):
         self.cmd(['fusermount', '-uz', self.snap_mnt], ignore_errors=True)
@@ -873,7 +875,7 @@ class Project(object):
         out = self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", '-p', port, 'root@'+remote, s], ignore_errors=True)
         return 'ext' not in out and 'zfs' in out  # properly mounted = mounted via ZFS in any way.
 
-    def _sync(self, remote, destructive=True, snapshots=True, union=False, union2=False, rsync_timeout=120, bwlimit=20000):
+    def _sync(self, remote, destructive=True, snapshots=True, union=False, union2=False, rsync_timeout=120, bwlimit=BWLIMIT):
         """
         NOTE: sync is by default destructive on live files; on snapshots it isn't by default.
 
@@ -901,7 +903,7 @@ class Project(object):
 
         if union:
             log("union stage 1: gather files from outside")
-            self.cmd(['rsync', '--update', '-zaxH', '--timeout', rsync_timeout, '--bwlimit', bwlimit, "--ignore-errors"] + self.exclude('') +
+            self.cmd(['rsync', '--update', '-zsaxH', '--timeout', rsync_timeout, '--bwlimit', bwlimit, "--ignore-errors"] + self.exclude('') +
                           ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           "root@%s:%s/"%(remote, self.project_mnt),
                           self.project_mnt+'/'
@@ -916,7 +918,7 @@ class Project(object):
 
         if union2:
             log("union stage 2: push back to form union")
-            self.cmd(['rsync', '--update', '-zaxH', '--timeout', rsync_timeout, '--bwlimit', bwlimit, "--ignore-errors"] + self.exclude('') +
+            self.cmd(['rsync', '--update', '-zsaxH', '--timeout', rsync_timeout, '--bwlimit', bwlimit, "--ignore-errors"] + self.exclude('') +
                           ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           self.project_mnt+'/',
                           "root@%s:%s/"%(remote, self.project_mnt)
@@ -976,11 +978,11 @@ class Project(object):
                 a, b = x.split(':')[-2:]
                 remote_heads.append((os.path.split(a)[-1], b))
         log("sync from local to remote")
-        self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port, '--timeout', rsync_timeout, '--bwlimit', bwlimit,
+        self.cmd(["rsync", "-saxH", "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port, '--timeout', rsync_timeout, '--bwlimit', bwlimit,
                   self.bup_path + '/', "root@%s:%s/"%(remote, remote_bup_path)])
         log("sync from remote back to local")
         # the -v is important below!
-        back = self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port, '--timeout', rsync_timeout, '--bwlimit', bwlimit,
+        back = self.cmd(["rsync", "-saxH", "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port, '--timeout', rsync_timeout, '--bwlimit', bwlimit,
                          "root@%s:%s/"%(remote, remote_bup_path), self.bup_path + "/"]).splitlines()
         if remote_heads and len([x for x in back if x.endswith('.pack')]) > 0:
             log("there were remote packs possibly not available locally, so make tags that points to them")
@@ -996,7 +998,7 @@ class Project(object):
                     open(path,'w').write(id)
             if tag is not None:
                 log("sync back any tags")
-                self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port,
+                self.cmd(["rsync", "-saxH", "-e", 'ssh -o StrictHostKeyChecking=no -p %s'%port,
                           '--timeout', rsync_timeout, '--bwlimit', bwlimit, self.bup_path+'/', 'root@'+remote+'/'])
 
     def mount_remote(self, remote_host, project_id, mount_point='', remote_path='', read_only=False):
@@ -1056,7 +1058,6 @@ class Project(object):
         # the -z forces unmount even if filesystem is busy
         self.cmd(["fusermount", "-z", "-u", os.path.join(self.project_mnt, mount_point)])
 
-
     def copy_path(self,
                   path,                  # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
                   target_hostname,       # list of hostnames (foo or foo:port) to copy files to
@@ -1065,7 +1066,7 @@ class Project(object):
                   overwrite_newer=False, # if True, newer files in target are copied over (otherwise, uses rsync's --update)
                   delete=False,          # if True, delete files in dest path not in source
                   rsync_timeout=120,
-                  bwlimit=20000
+                  bwlimit=BWLIMIT
                  ):
         """
         Copy a path (directory or file) from one project to another.
@@ -1121,12 +1122,15 @@ class Project(object):
             src_abspath    += '/'
             target_abspath += '/'
 
+        u = uid(target_project_id)
         try:
             # do the rsync
             v = (['rsync'] + options +
-                     ['-zax',                      # compressed, archive mode (so leave symlinks, etc.), don't cross filesystem boundaries
+                     ['-zsax',                      # compressed, archive mode (so leave symlinks, etc.), don't cross filesystem boundaries
                       '--timeout', rsync_timeout,
                       '--bwlimit', bwlimit,
+                      '--usermap=*:%s'%u,
+                      '--groupmap=*:%s'%u,
                       "--ignore-errors"] +
                      self.exclude('') +
                      ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%target_port,
@@ -1137,13 +1141,6 @@ class Project(object):
         except Exception, mesg:
             log("rsync error: %s", mesg)
             raise
-        finally:
-            # fix permissions no matter what
-            u = uid(target_project_id)
-            self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", '-p', target_port,
-                      target_hostname,
-                     'chown', '-R', '%s:%s'%(u,u), target_abspath])
-
 
 if __name__ == "__main__":
 

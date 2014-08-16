@@ -1,48 +1,42 @@
-<i class="salvus-fullscreen salvus-fullscreen-activate fa fa-expand big-only"></i>
-<i class="salvus-fullscreen salvus-fullscreen-deactivate fa fa-compress hide big-only"></i>
+<i class="salvus-fullscreen salvus-fullscreen-activate fa fa-expand hidden-xs"></i>
+<i class="salvus-fullscreen salvus-fullscreen-deactivate fa fa-compress hidden-xs" style="display: none;"></i>
 
-<div class="navbar navbar-fixed-top salvus-top_navbar">
-    <div class="navbar-inner" >
-        <div class="container" style="margin-right:0; margin-left:3px; width:100%; ">
+<div class="navbar navbar-fixed-top salvus-top_navbar navbar-default">
+    <span class="visible-xs"><span class="navbar-brand"><i class="fa fa-cloud"> </i> SageMathCloud</span></span>
 
-            <span class="not-big"><span class="brand"><i class="fa fa-cloud"> </i> SageMathCloud</span></span>
+    <div class="salvus_client_warning salvus_client_version_warning hide" style="margin-top:1em"><i class="fa fa-refresh"> </i> New Version Available: upgrade by <a href="/" style="color: white; font-weight: bold;">refreshing this page</a> <span class="hidden-xs">while holding the shift key</span> <i class="fa fa-times"> </i> </div>
 
-            <div class="salvus_client_warning salvus_client_version_warning hide" style="margin-top:1em"><i class="fa fa-refresh"> </i> New Version Available: upgrade by <a href="/" style="color: white; font-weight: bold;">refreshing this page</a> <span class="big-only">while holding the shift key</span> <i class="fa fa-times"> </i> </div>
+    <div class="salvus_client_warning salvus_client_browser_warning hide" style="margin-top:1em"><i class="fa fa-exclamation-triangle"> </i> You are using an old web browser: upgrade to a modern one in order to use SageMathCloud. <i class="fa fa-times"> </i> </div>
 
-            <div class="salvus_client_warning salvus_client_browser_warning hide" style="margin-top:1em"><i class="fa fa-exclamation-triangle"> </i> You are using an old web browser: upgrade to a modern one in order to use SageMathCloud. <i class="fa fa-times"> </i> </div>
+    <a class="btn navbar-btn btn-default visible-xs pull-right" data-toggle="collapse" data-target=".navbar-collapse">
+        <i class="fa fa-reorder salvus-topbar-responsive-button">
+        </i>
+    </a>
+    <div class="collapse navbar-collapse" style="margin: 0; clear: both;">
+        <ul class="nav pull-right navbar-nav">
+            <li class="divider-vertical hidden-xs"></li>
+            <li>
+                <div class="salvus-connection-status lighten">
+                    <span class="salvus-connection-status-connecting">connecting...</span>
+                    <span class="salvus-connection-status-protocol" data-toggle="tooltip" data-placement="bottom" title="Type of connection with server; the optimal connection type is 'websocket'."></span>
+                    <span class="salvus-connection-status-ping-time" data-toggle="tooltip" data-placement="left" title="Most recently recorded roundtrip time to message the server."></span>
+                </div>
+            </li>
+        </ul>
+        <ul class="nav buttons pull-left navbar-nav">
+        </ul>
+        <ul class="nav projects pull-left navbar-nav">
+        </ul>
 
-            <a class="btn btn-navbar " data-toggle="collapse" data-target=".nav-collapse">
-                <i class="fa fa-reorder salvus-topbar-responsive-button">
-                </i>
-            </a>
-            <div class="nav-collapse collapse">
-                <ul class="nav pull-right">
-                    <li class="divider-vertical"></li>
-                    <li>
-                        <div class="salvus-connection-status lighten">
-                            <span class="salvus-connection-status-connecting">connecting...</span>
-                            <span class="salvus-connection-status-protocol" data-toggle="tooltip" data-placement="left" title="Type of connection with server; the optimal connection type is 'websocket'."></span>
-                            <span class="salvus-connection-status-ping-time" data-toggle="tooltip" data-placement="left" title="Most recently recorded roundtrip time to message the server."></span>
-                        </div>
-                    </li>
-                </ul>
-                <ul class="nav buttons pull-left">
-                </ul>
-                <ul class="nav projects pull-left">
-                </ul>
-
-            </div>
-        </div>
     </div>
-
 </div>
 
 <ul class="hide">
     <li class="top_navbar-button-template" style="cursor:pointer;">
-        <a class="top_navbar-button-link" style="padding-left:8px;padding-right:8px;height:20px;">
+        <a class="top_navbar-button-link" style="padding-left:8px;padding-right:8px;">
             <span class="close-button pull-right">
-                <span class="close-button-x big-only">×</span>
-                <span class="close-button-x btn-warning not-big btn btn-large pull-right" style="margin-top: -5px;">× Close</span>
+                <span class="close-button-x hidden-xs"><i class="fa fa-times"></i></span>
+                <span class="close-button-x btn-warning visible-xs btn pull-right btn-xs" style="font-size: 18px; margin-top: -5px;"><i class="fa fa-times"></i> Close</span>
             </span>
             <span class="button-label"></span>
         </a>

@@ -84,7 +84,7 @@ $("#account-settings-tab").find("form").click((event) -> return false)
 #############
 # Autosave
 #############
-$("#account-settings-autosave-slider").slider
+$(".account-settings-autosave-slider").slider
     animate : true
     min     : 10
     max     : 300
@@ -114,7 +114,7 @@ $("#account-settings-autosave").keyup () ->
         s = 10
     if s >= 300
         s = 300
-    $("#account-settings-autosave-slider").slider('value', s)
+    $(".account-settings-autosave-slider").slider('value', s)
 
     # Set the form to whatever value we got via normalizing above (moving the slider changes the form value)
     t.val(s)
@@ -255,16 +255,14 @@ $("#create_account-button").click (event) ->
 #     input   -- jQuery wrapped <input> element where password is typed
 password_strength_meter = (input) ->
     # TODO: move this html into account.html
-    display = $('<div class="progress progress-striped"><div class="bar"></div>&nbsp;<font size=-1></font></div>')
+    display = $('<div class="progress progress-striped"><div class="progress-bar"></div>&nbsp;<font size=-1></font></div>')
     input.after(display)
-    colors = ['red', 'yellow', 'orange', 'lightgreen', 'green']
     score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
     input.bind 'change keypress paste focus textInput input', () ->
         if input.val()
             result = zxcvbn(input.val(), ['sagemath'])  # explicitly ban some words.
-            display.find(".bar").css("width", "#{13*(result.score+1)}%")
+            display.find(".progress-bar").css("width", "#{13*(result.score+1)}%")
             display.find("font").html(score[result.score])
-            display.css("background-color", colors[result.score])
     return input
 
 $.fn.extend
@@ -396,7 +394,8 @@ EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
                               'match_brackets',
                               'auto_close_brackets',
                               'electric_chars',
-                              'spaces_instead_of_tabs']
+                              'spaces_instead_of_tabs',
+                              'track_revisions']
 
 OTHER_SETTINGS_CHECKBOXES = ['confirm_close',
                              'mask_files']
@@ -546,7 +545,7 @@ class AccountSettings
                     element.text(value)
                     $("#feedback-support-level").text(value)
                 when 'autosave'
-                    $("#account-settings-autosave-slider").slider('value', value)
+                    $(".account-settings-autosave-slider").slider('value', value)
                     $("#account-settings-autosave").val(value)
                 when 'terminal'
                     if value.font_size?
