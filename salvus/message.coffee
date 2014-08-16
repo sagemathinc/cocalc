@@ -412,6 +412,7 @@ message
     email_address  : required
     password       : required
     agreed_to_terms: required
+    token          : undefined   # only required when token is set.
 
 # hub --> client
 message
@@ -452,10 +453,12 @@ message
 message
     event          : 'signed_in'
     id             : undefined     # message uuid
-    account_id     : required      # uuid of user's account
-    email_address  : required      # email address they signed in under
     remember_me    : required      # true if sign in accomplished via remember_me cookie; otherwise, false.
     hub            : required      # ip address (on vpn) of hub user connected to.
+    account_id     : required      # uuid of user's account
+    email_address  : undefined     # email address they signed in under
+    first_name     : undefined
+    last_name      : undefined
 
 # client --> hub
 message
@@ -1369,6 +1372,16 @@ message
     login_shell  : undefined    # not used right now (??)
     network      : undefined    # true or false; if true, full access to outside networ
 
+# client --> hub: admins can set a token that anybody creating an account must
+# know to be allowed to create an account.  For now there is just one global token.
+message
+    event        : 'set_account_creation_token'
+    id           : undefined
+    token        : required     # a string
 
-
+# client <--> hub
+message
+    event        : 'get_account_creation_token'
+    id           : undefined
+    token        : undefined  # comes back in here
 

@@ -36,6 +36,16 @@
     background-color: white;
 }
 
+.project-disk_usage li {
+    margin-bottom: 3px;
+}
+
+.project-disk_usage div {
+    display: inline-block;
+    min-width: 10px;
+    padding: 3px;
+}
+
 .project-settings-well {
     background-color: white;
 }
@@ -60,6 +70,7 @@
 .project-settings,
 .project-search {
     clear: both;
+
 }
 
 .project-connections {

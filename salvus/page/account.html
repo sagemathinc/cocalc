@@ -167,6 +167,8 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
             <input class="form-control" type="text" placeholder="Last name (everyone can see this)" id="create_account-last_name">
             <span class="hidden-xs lighten">Email:</span>
             <input class="form-control" type="email" placeholder="Email (this is private)" id="create_account-email_address">
+            <span class="hidden-xs lighten salvus-create_account-token hide">Token:</span>
+            <input class="form-control salvus-create_account-token hide" type="text" placeholder="Secret token that the site admin gave you" id="create_account-token">
             <span class="hidden-xs lighten">Password:</span>
             <input class="salvus-password-meter form-control" type="password" placeholder="Password" id="create_account-password">
             <span class="hidden-xs lighten">Retype Password:</span>
@@ -561,9 +563,30 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                 </label></div>
                             </div>
                         </div>
-
-
                     </div>
+
+                    <div class="well col-sm-6 hide" id="account-settings-admin-settings">
+                        <div class="row">
+                            <div class="col-sm-12 ">
+                                <h3>Administrative/Server Settings</h3>
+                            </div>
+                        </div>
+
+
+                        <div class="row">
+                            <div class="col-sm-12">Secret Account Creation Token: <span class="lighten">users must know this to create an account</span></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <a class="btn btn-default" href="#edit-account_creation-token">Edit Token</a>
+                                <a class="btn btn-success hide" href="#save-account_creation-token">Save Token</a>
+                            </div>
+                            <div class="col-sm-9">
+                                <input class="form-control hide" type="text" value="" id="admin-settings-account_creation-token">
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
 

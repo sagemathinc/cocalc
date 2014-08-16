@@ -318,14 +318,14 @@ class Project(object):
                 except Exception, err:
                     log("WARNING: %s"%err)
 
-    def get_zfs_status(self):
+    def get_zfs_status(self):  # output is in BYTES!
         q = {}
         if not QUOTAS_ENABLED or QUOTAS_OVERRIDE:
             return q
         try:
             for x in ['userquota', 'userused']:
                 for y in ['projects', 'scratch']:
-                    q['%s-%s'%(x,y)] = cmd(['zfs', 'get', '-H', '%s@%s'%(x,self.uid), '%s/%s'%(ZPOOL,y)]).split()[2]
+                    q['%s-%s'%(x,y)] = int(cmd(['zfs', 'get', '-Hp', '%s@%s'%(x,self.uid), '%s/%s'%(ZPOOL,y)]).split()[2]) #//(2**20)
             return q
         except RuntimeError:
             return None
