@@ -32,7 +32,8 @@
 {"desc":"#v0\nhelp button with modal.","position":-0.9522857666015625,"last_edited":1408303139255,"task_id":"08bc9515-55fa-4ab9-9f0a-86c8a92352a1","done":1408303138847}
 {"desc":"#v1\n\nchat functionality.","position":-0.9522781372070312,"last_edited":1408238861183,"task_id":"fe79768f-7245-47f7-b222-a5106c24c3b1"}
 {"desc":"#v0\nhelp modal text","position":-0.9522933959960938,"last_edited":1408303142933,"task_id":"afed25fb-e6b6-4d43-88f4-e48cf7326526"}
-{"desc":"#v0\nadd student by email address","position":-0.9522895812988281,"last_edited":1408303150658,"task_id":"836fa16c-2052-451c-9f44-591e927b66de"}
+{"desc":"#v0\nadd student by email address (and only new addresses allowed)","position":-0.9522895812988281,"last_edited":1408305568577,"task_id":"836fa16c-2052-451c-9f44-591e927b66de"}
 {"desc":"#v0\ndelete student\n\n- [ ] clicking on x deletes student (database setting)\n- [ ] option in settings to show deleted students (a line through them)","position":-0.9522876739501953,"last_edited":1408303217248,"task_id":"9444d232-f196-42a8-a95c-9a7d731963a2"}
 {"desc":"#v0\n","position":-0.9522867202758789,"last_edited":1408303188491,"task_id":"90f4303c-52a2-4739-a6bd-8cfce403e919","deleted":true}
-{"desc":"#v0\nonly add new students","position":-0.9522871971130371,"last_edited":1408304594200,"task_id":"fd65042d-6a36-41e4-96e9-0cfd8f8b6787"}
+{"desc":"#v0\nonly list new students in list","position":-0.9522871971130371,"last_edited":1408305572163,"task_id":"fd65042d-6a36-41e4-96e9-0cfd8f8b6787","done":1408305571753}
+{"desc":"#v0\nwhen creating a project, add all collaborators on owner of course to the project as collabs.","position":-0.952286958694458,"last_edited":1408305552737,"task_id":"13c28f56-e450-4e86-9755-28d46d3c7bc5"}

@@ -119,6 +119,7 @@ class Course
                     @element.find(".salvus-course-editor-#{prop}").data('set_upstream')(x.insert[prop])
             else if x.insert?.table == "students"
                 delete x.insert.table
+                x.insert.append = false
                 @render_student(x.insert)
             else if x.insert?.table == "assignments"
                 delete x.insert.table
@@ -215,7 +216,14 @@ class Course
                         return
                     select.html("")
                     last_result = result
-                    #result = (r for r in result when not already_student[r.account_id]?)   # only include not-already-students
+
+                    # only include not-already-students
+                    already_student = {}
+                    for z in @db.select({table : 'students'})
+                        if z.account_id?
+                            already_student[z.account_id] = true
+                    result = (r for r in result when not already_student[r.account_id])
+
                     if result.length > 0
                         noncloud_button.hide()
                         noncloud_hint.hide()
