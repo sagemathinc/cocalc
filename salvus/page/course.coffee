@@ -47,7 +47,7 @@ class Course
 
             @init_edit_settings()
             @init_students()
-        @init_new_assignment()
+
         @init_new_student()
         @init_help()
 
@@ -84,10 +84,10 @@ class Course
                     btn = buttons.find("a[href=##{p}]")
                     if p == page
                         e.show()
-                        btn.addClass('btn-warning')
+                        btn.addClass('btn-primary')
                     else
                         e.hide()
-                        btn.removeClass('btn-warning')
+                        btn.removeClass('btn-primary')
                 return false
 
 
@@ -129,14 +129,99 @@ class Course
     ###
 
     init_new_student: () =>
-        @element.find("a[href=#new-student]").click () =>
-            @add_new_student()
+        input_box  = @element.find(".salvus-course-students-add")
+        add_button = @element.find(".salvus-course-add-button")
+        select     = @element.find(".salvus-course-add-student-select")
+        loading    = @element.find(".salvus-course-add-student-loading")
+        noncloud_button = @element.find(".salvus-course-add-noncloud-student")
+        cloud_button = @element.find(".salvus-course-add-cloud-student")
+        noncloud_hint = @element.find(".salvus-course-add-noncloud-hint")
+        last_result = undefined
+
+        input_box.keyup (evt) =>
+            if evt.which == 13
+                update_select(input_box.val())
+                return
+
+        add_button.click () =>
+            update_select(input_box.val())
             return false
 
-    init_import_students: () =>
-        @element.find("a[href=#import-students]").click () =>
-            @import_students()
-            return false
+        noncloud_button.click () =>
+            alert_message(type:"error", message:'add non-cloud collab not implemented')
+
+        cloud_button.click () =>
+            account_id = select.val()
+            if not account_id
+                return
+            console.log('add student with id ', account_id)
+
+        select.click () =>
+            account_id = select.val()
+            if not account_id or not last_result?
+                cloud_button.addClass('disabled')
+            else
+                cloud_button.removeClass('disabled')
+                for r in last_result
+                    if r.account_id == account_id
+                        cloud_button.find("span").text(r.first_name + ' ' + r.last_name)
+
+        last_query_id = 0
+        num_loading = 0
+        update_select = (x) =>
+            if x == ""
+                select.html("").hide()
+                return
+            select.show()
+            last_query_id += 1
+            num_loading += 1
+            loading.show()
+            noncloud_hint.hide()
+            salvus_client.user_search
+                query    : x
+                limit    : 30
+                query_id : last_query_id
+                cb       : (err, result, query_id) =>
+                    num_loading -= 1
+                    if num_loading <= 0
+                        loading.hide()
+                    if err
+                        alert_message(type:"error", message:"error searching for students -- #{err}")
+                        select.html("").hide()
+                        return
+                    if query_id != last_query_id
+                        # ignore any query that is not the most recent
+                        return
+                    select.html("")
+                    last_result = result
+                    #result = (r for r in result when not already_student[r.account_id]?)   # only include not-already-students
+                    if result.length > 0
+                        noncloud_button.hide()
+                        noncloud_hint.hide()
+                        console.log(result.length)
+                        if result.length > 1
+                            select.html('').show()
+                            select.attr(size:Math.min(10, result.length))
+                            for r in result
+                                name = r.first_name + ' ' + r.last_name
+                                select.append($("<option>").attr(value:r.account_id, label:name).text(name))
+                            cloud_button.show().addClass('disabled').find("span").text("selected student")
+                        else
+                            # exactly one result
+                            select.hide()
+                            r = result[0]
+                            cloud_button.show().removeClass('disabled').find("span").text(r.first_name + ' ' + r.last_name)
+
+                    else
+                        # no results
+                        select.hide()
+                        if require('client').is_valid_email_address(x)
+                            noncloud_button.show()
+                        else
+                            noncloud_hint.show()
+                        cloud_button.hide()
+
+
 
     add_new_student: (opts) =>
         opts = defaults opts,

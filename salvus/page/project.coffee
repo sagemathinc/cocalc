@@ -2696,7 +2696,6 @@ class ProjectPage
             else
                 add_button.removeClass('disabled')
 
-
         remove_collaborator = (c) =>
             # c = {first_name:? , last_name:?, account_id:?}
             m = "Are you sure that you want to <b>remove</b> #{c.first_name} #{c.last_name} as a collaborator on '#{@project.title}'?"
