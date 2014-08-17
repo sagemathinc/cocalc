@@ -27,3 +27,7 @@
 {"desc":"#v0\ntemporarily hide export and import buttons","position":-0.9522705078125,"last_edited":1408062350894,"task_id":"3b1340c2-9327-4ec4-924d-37c17336987d","done":1408062350484}
 {"desc":"#v0\nclean up share files html","position":-0.95245361328125,"last_edited":1408062570716,"task_id":"57e99d8d-e3d2-4ab2-bea1-099868c50352"}
 {"desc":"#v0\nmake it so creating project works again","position":-0.9525146484375,"last_edited":1408063375611,"task_id":"2ef67fd2-8929-4833-af85-bb90cf912a54","done":1408063375196}
+{"desc":"#v0\ndon't show \"Create Project\" button until student selected.","position":-0.95233154296875,"last_edited":1408234399277,"task_id":"65dcd240-a00c-4eca-b8b4-e5ad413b0f68"}
+{"desc":"#v0\nif there are no students, display a line suggesting to add students.\n\n- [ ] how to add students\n- [ ] edit title\n- [ ] edit description\n- [ ] projects","position":-0.952301025390625,"last_edited":1408238659211,"task_id":"fd08065b-a041-44a0-b5ca-14242f15d87e"}
+{"desc":"#v0\nhelp button with modal.","position":-0.9522857666015625,"last_edited":1408238664288,"task_id":"08bc9515-55fa-4ab9-9f0a-86c8a92352a1"}
+{"desc":"#v1\n\nchat functionality.","position":-0.9522781372070312,"last_edited":1408238861183,"task_id":"fe79768f-7245-47f7-b222-a5106c24c3b1"}

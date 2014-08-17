@@ -17,8 +17,8 @@ templates = $(".salvus-course-templates")
 SYNC_INTERVAL = 500
 
 SETTINGS =
-    title       : "Click to edit this title"
-    description : "Description of course"
+    title       : "Course Title"
+    description : "Course description"
 
 exports.course = (project_id, filename) ->
     element = templates.find(".salvus-course-editor").clone()
@@ -49,6 +49,7 @@ class Course
             @init_students()
         @init_new_assignment()
         @init_new_student()
+        @init_help()
 
     show: () =>
         if not IS_MOBILE
@@ -65,6 +66,12 @@ class Course
                     @db = db
                     @db.on 'change', @handle_changes
                 cb()
+
+    init_help: () =>
+        @element.find("a[href=#help]").click () =>
+            help_dialog()
+            return false
+
 
     init_page_buttons: () =>
         PAGES =['students', 'shares', 'assignments', 'settings']
@@ -379,7 +386,19 @@ class Course
 
 
 
+help_dialog_element = templates.find(".salvus-course-help-dialog")
+help_dialog_modal   = templates.find(".salvus-course-help-dialog")
+help_dialog_open    = false
 
+help_dialog = () ->
+    help_dialog_modal = help_dialog_element.clone()
+    help_dialog_open = true
+    help_dialog_modal.modal()
+    help_dialog_modal.find(".btn-close").click(close_help_dialog)
+
+close_help_dialog = () ->
+    help_dialog_open = false
+    help_dialog_modal.modal('hide')
 
 
 

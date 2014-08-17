@@ -20,6 +20,10 @@
     font-weight: bold;
     color:#555;
     margin-top: 6px;
+    padding: 1ex;
+    background:white;
+    -webkit-appearance: textfield;
+    -moz-appearance: textfield;
 }
 
 .salvus-course-editor-description {
@@ -27,24 +31,9 @@
     padding: 1ex;
     border-radius: 4px;
     color:#555;
-    background: white;
-}
-
-.salvus-course-editor-location {
-    font-size:12pt;
-    padding: 1ex;
-    border-radius: 4px;
-    background: white;
-}
-
-
-.salvus-course-editor-website {
-    font-size:12pt;
-    padding: 1ex;
-    border-radius: 4px;
-    color:#555;
-    background: white;
-    font-family: monospace;
+    background:white;
+    -webkit-appearance: textfield;
+    -moz-appearance: textfield;
 }
 
 
