@@ -791,11 +791,11 @@ class exports.Editor
         if misc_page.is_responsive_mode()
             # responsive mode
             @project_page.destroy_sortable_file_list()
-            width = "49%"
+            width = "50%"
         else
             @project_page.init_sortable_file_list()
             n = x.length
-            width = Math.min(250, parseInt((x[0].parent().width() - 25) / n)) # floor to prevent rounding problems
+            width = Math.min(250, parseInt((x[0].parent().width() - 25) / n + 2)) # floor to prevent rounding problems
             if width < 0
                 width = 0
 

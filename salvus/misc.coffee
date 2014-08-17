@@ -59,6 +59,24 @@ exports.split = (s) ->
     else
         return []
 
+# Like the exports.split method, but quoted terms are grouped together for an exact search. Like bing.
+exports.search_split = (search) ->
+
+    terms = []
+    search = search.split('"')
+    length = search.length
+    for element, i in search
+        element = element.trim()
+        if element.length != 0
+            # the even elements lack quotation
+            # if there are an even number of elements that means there is an unclosed quote,
+            # so the last element shouldn't be grouped.
+            if i % 2 == 0 or (i == length - 1 and length % 2 == 0)
+                terms.push(element.split(" ")...)
+            else
+                terms.push(element)
+    return terms
+
 # Count number of occurrences of m in s-- see http://stackoverflow.com/questions/881085/count-the-number-of-occurences-of-a-character-in-a-string-in-javascript
 
 exports.count = (str, strsearch) ->

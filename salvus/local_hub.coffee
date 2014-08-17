@@ -1472,7 +1472,7 @@ class CodeMirrorSession
     # enable or disable tracking all revisions of the document
     revision_tracking: (socket, mesg) =>
         winston.debug("revision_tracking for #{@path}: #{mesg.enable}")
-        d = (m) -> winston.debug("revision_tracking1 for #{@path}: #{m}")
+        d = (m) -> winston.debug("revision_tracking for #{@path}: #{m}")
         if mesg.enable
             d("enable it")
             if @revision_tracking_doc?
@@ -1480,8 +1480,12 @@ class CodeMirrorSession
                 # already enabled
                 socket.write_mesg('json', message.success(id:mesg.id))
             else
+                if @readonly
+                    # nothing to do -- silently don't enable (is this a good choice?)
+                    socket.write_mesg('json', message.success(id:mesg.id))
+                    return
                 # need to enable
-                d("need to enabled")
+                d("need to enable")
                 codemirror_sessions.connect
                     mesg :
                         path       : revision_tracking_path(@path)
@@ -1494,6 +1498,7 @@ class CodeMirrorSession
                             @revision_tracking_doc = session
                             socket.write_mesg('json', message.success(id:mesg.id))
                             @update_revision_tracking()
+
         else
             d("disable it")
             delete @revision_tracking_doc
@@ -1581,12 +1586,14 @@ class CodeMirrorSessions
             session = @_sessions.by_uuid[mesg.session_uuid]
             if session?
                 finish(session)
+                opts.cb?(undefined, session)
                 return
 
         if mesg.path?
             session = @_sessions.by_path[mesg.path]
             if session?
                 finish(session)
+                opts.cb?(undefined, session)
                 return
 
         mesg.session_uuid = uuid.v4()

@@ -1119,7 +1119,7 @@ class GlobalProject
                                     target_loc = x
                                     @global_client.get_external_ssh
                                         server_id : x.server_id
-                                        dc        : x.dc
+                                        dc        : source_loc.dc   # data center of the *source* project!
                                         cb        : (err, addr) =>
                                             target_loc.addr = addr
                                             dbg("target_loc=#{misc.to_json(target_loc)}")

@@ -654,22 +654,24 @@ class exports.Connection extends EventEmitter
     # Account Management
     #################################################
     create_account: (opts) =>
-        opts = defaults(opts,
+        opts = defaults opts,
             first_name     : required
             last_name      : required
             email_address  : required
             password       : required
             agreed_to_terms: required
+            token          : undefined       # only required if an admin set the account creation token.
             timeout        : DEFAULT_TIMEOUT # seconds
             cb             : required
-        )
-        mesg = message.create_account(
-            first_name     : opts.first_name
-            last_name      : opts.last_name
-            email_address  : opts.email_address
-            password       : opts.password
-            agreed_to_terms: opts.agreed_to_terms
-        )
+
+        mesg = message.create_account
+            first_name      : opts.first_name
+            last_name       : opts.last_name
+            email_address   : opts.email_address
+            password        : opts.password
+            agreed_to_terms : opts.agreed_to_terms
+            token           : opts.token
+
         @call(message:mesg, timeout:opts.timeout, cb:opts.cb)
 
     sign_in: (opts) ->
@@ -1196,6 +1198,36 @@ class exports.Connection extends EventEmitter
                 else
                     cb?(undefined, resp)
 
+    # Set a quota parameter for a given project.
+    # As of now, only user in the admin group can make these changes.
+    project_set_quota: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            memory     : undefined    # see message.coffee for the units, etc., for all these settings
+            cpu_shares : undefined
+            cores      : undefined
+            disk       : undefined
+            scratch    : undefined
+            inode      : undefined
+            mintime    : undefined
+            login_shell: undefined
+            network    : undefined
+            cb         : undefined
+        cb = opts.cb
+        delete opts.cb
+
+        @call
+            message : message.project_set_quota(opts)
+            cb      : (err, resp) =>
+                if err
+                    cb?(err)
+                else if resp.event == 'error'
+                    cb?(resp.error)
+                else
+                    cb?(undefined, resp)
+
+
+
     ######################################################################
     # Execute a program in a given project
     ######################################################################
@@ -1695,6 +1727,30 @@ class exports.Connection extends EventEmitter
         if state?
             @_fullscreen_mode = state
         return $(window).width() <= 767 or @_fullscreen_mode
+
+    #################################################
+    # Administrative functionality
+    #################################################
+    set_account_creation_token: (opts) =>
+        opts = defaults opts,
+            token : required    # string
+            cb    : required
+        @call
+            message : message.set_account_creation_token(token:opts.token)
+            cb      : opts.cb
+
+    get_account_creation_token: (opts) =>
+        opts = defaults opts,
+            cb    : required
+        @call
+            message : message.get_account_creation_token()
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(undefined, resp.token)
 
     #################################################
     # Tasks

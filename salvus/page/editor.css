@@ -479,3 +479,7 @@ code {
 .file-pages li.active.ui-sortable-helper > a {
     background-color: #08c;
 }
+
+.nav-pills>li+li {
+    margin-left: 0 !important;
+}

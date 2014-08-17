@@ -688,46 +688,45 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="project-collaborators-loading hide row">
-                                    <div class="col-lg-offset-4 col-sm-8">
-                                        Loading collaborators... <i class="fa fa-spinner fa fa-spin"> </i>
-                                    </div>
+                                <div class="col-sm-12 project-collaborators-loading hide">
+                                    Loading collaborators... <i class="fa fa-spinner fa-spin"> </i>
                                 </div>
-                                <div class="project-collaborators project-connections  lighten">
+                                <div class="col-sm-12 well well-sm project-collaborators project-connections lighten">
                                 </div>
                             </div>
                         </div>
 
-                        <div class="well project-settings-well col-sm-6">
+                        <div class="well project-settings-well col-sm-6 project-settings-static">
+                            <a class="btn btn-default btn-sm project-quota-edit hide pull-right"> <i class="fa fa-pencil"> </i> Edit</a>
                             <h4><i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Quota</h4>
-                            <span class="project-disk_usage">
+                                <span class="project-disk_usage">
                                 <ul>
                                     <li class="salvus-zfs-quotas"> Disk usage:
-                                        <b><span class="salvus-userused-projects">(loading...)</span></b> of <b><span class="salvus-userquota-projects"></span></b>
+                                        <b><span class="salvus-userused-projects">(loading...)</span> MB</b> of <b><div class="salvus-userquota-projects"></div> MB</b>
                                     </li>
 
                                     <li class="salvus-zfs-quotas"> <tt>/scratch</tt> disk usage:
 
-                                        <b><span class="salvus-userused-scratch">(loading...)</span></b> of <b><span class="salvus-userquota-scratch"></span></b>
+                                        <b><span class="salvus-userused-scratch">(loading...)</span> MB</b> of <b><div class="salvus-userquota-scratch"></div> MB</b>
                                     </li>
                                     <li>
-                                        CPU cores: <b><span class="salvus-project-settings-cores">(loading...)</span></b> (shared)
-                                    </li>
-
-                                    <li>
-                                        RAM: <b><span class="salvus-project-settings-memory">(loading...)</span></b> (shared)
+                                        CPU cores: <b><div class="salvus-project-settings-cores">(loading...)</div></b> (shared)
                                     </li>
 
                                     <li>
-                                        Timeout: <b><span class="salvus-project-settings-mintime">(loading...)</span> hours</b> of inactivity
+                                        RAM: <b><div class="salvus-project-settings-memory">(loading...)</div> GB</b> (shared)
                                     </li>
 
                                     <li>
-                                        CPU share: <b><span class="salvus-project-settings-cpu_shares">(loading...)</span></b>
+                                        Timeout: <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <div class="salvus-project-settings-mintime">(loading...)</div> hours</b> of inactivity
                                     </li>
 
                                     <li>
-                                        Network access: <b><span class="salvus-project-settings-network">(loading...)</span></b>
+                                        CPU share: <b><div class="salvus-project-settings-cpu_shares">(loading...)</div></b>
+                                    </li>
+
+                                    <li>
+                                        Network access: <b><input type="checkbox" class="project-settings-network-access-checkbox hide"> <div class="salvus-project-settings-network">(loading...)</div></b>
                                     </li>
 
                                 </ul>

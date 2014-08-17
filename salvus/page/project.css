@@ -20,6 +20,7 @@
 
 .project-activity-log {
     overflow-y: auto;
+    word-wrap: break-word;
 }
 
 .project-activity-entry {
@@ -33,6 +34,16 @@
 
 .project-disk_usage {
     background-color: white;
+}
+
+.project-disk_usage li {
+    margin-bottom: 3px;
+}
+
+.project-disk_usage div {
+    display: inline-block;
+    min-width: 10px;
+    padding: 3px;
 }
 
 .project-settings-well {
@@ -59,16 +70,13 @@
 .project-settings,
 .project-search {
     clear: both;
+
 }
 
 .project-connections {
     line-height: 2.2em;
     max-height: 13em;
     overflow-y: auto;
-    border: 1px solid grey;
-    border-radius: 4px;
-    margin-left: 2em;
-    margin-top: 1em;
     background-color: #eee;
 }
 
@@ -108,7 +116,7 @@
     }
 
     .project-pages > li {
-        width: 19.3%;
+        width: 20%;
         text-align: center;
     }
 
@@ -335,7 +343,6 @@
 
 .project-id {
     color:#666;
-    margin-right:2ex;
     font-size:10pt;
     font-family:monospace;
 }
@@ -445,11 +452,10 @@
 }
 
 .project-connection {
-    margin-right: 1em;
     border-radius: 6px;
     background-color: #08c;
     padding: 6px;
-    margin: 1ex;
+    margin-bottom: 1ex;
     color: #fff;
 }
 
