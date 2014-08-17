@@ -280,21 +280,21 @@ class Course
     init_students: () =>
         v = @db.select({table : 'students'})
         v.sort (a,b) =>
-            if not a.name?
-                return -1
-            if not b.name?
+            if a.deleted and not b.deleted
                 return 1
-            a = misc.split(a.name)
-            if a.length == 0
+            if b.deleted and not a.deleted
                 return -1
-            a = a[a.length-1].toLowerCase()
-            b = misc.split(b.name)
-            if b.length == 0
-                return 1
-            b = b[b.length-1].toLowerCase()
-            if a < b
+            if a.last_name?
+                a_name = "#{a.last_name} #{a.first_name}".toLowerCase()
+            else
+                a_name = a.email_address
+            if b.last_name?
+                b_name = "#{b.last_name} #{b.first_name}".toLowerCase()
+            else
+                b_name = b.email_address
+            if a_name < b_name
                 return -1
-            else if a > b
+            else if a_name > b_name
                 return +1
             else
                 return 0
@@ -310,14 +310,21 @@ class Course
         delete v.table
         @render_student(v)
 
-    click_create_project_button: (student_id) =>
-            if not opts.project_id?
-                open_project_btn.hide()
-                create_project_btn.show()
-                if not create_project_btn.hasClass('salvus-initialized')
-                    create_project_btn.addClass('salvus-initialized').click () =>
+    delete_student: (opts) =>
+        opts = defaults opts,
+            student_id : required
+        @db.update
+            set   : {deleted : true}
+            where : {student_id : opts.student_id, table : 'students'}
+        @db.save()
 
-            else
+    undelete_student: (opts) =>
+        opts = defaults opts,
+            student_id : required
+        @db.update
+            set   : {deleted : false}
+            where : {student_id : opts.student_id, table : 'students'}
+        @db.save()
 
     render_student: (opts) =>
         opts = defaults opts,
@@ -327,13 +334,20 @@ class Course
             email_address : undefined
             project_id    : undefined
             account_id    : undefined
+            deleted       : false
             append        : true
-
+        console.log('render_student', opts)
         e = @element.find("[data-student_id='#{opts.student_id}']")
 
         if e.length == 0
             e = templates.find(".salvus-course-student").clone()
             e.attr("data-student_id", opts.student_id).attr("data-account_id", opts.account_id)
+            e.find("a[href=#delete]").click () =>
+                @delete_student(student_id: opts.student_id)
+                return false
+            e.find("a[href=#undelete]").click () =>
+                @undelete_student(student_id: opts.student_id)
+                return false
             e.find("a[href=#create-project]").click () =>
                 create_project_btn.addClass('disabled').icon_spin(start:true)
                 @create_project
@@ -376,7 +390,19 @@ class Course
             create_project_btn.hide()
         else
             open_project_btn.hide()
-            create_project_btn.show()
+            if not opts.deleted
+                create_project_btn.show()
+            else
+                create_project_btn.hide()
+
+        if opts.deleted
+            e.find(".salvus-course-student-props").addClass('salvus-course-student-deleted')
+            e.find("a[href=#undelete]").show()
+            e.find("a[href=#delete]").hide()
+        else
+            e.find(".salvus-course-student-props").removeClass('salvus-course-student-deleted')
+            e.find("a[href=#undelete]").hide()
+            e.find("a[href=#delete]").show()
 
     update_student_count: () =>
         @element.find(".salvus-course-students-count").text("(#{@element.find('.salvus-course-student').length})")
@@ -466,11 +492,6 @@ class Course
         for assignment in @db.select({table : 'assignments'})
             delete assignment.table
             @render_assignment(assignment)
-
-
-
-
-
 
 
 help_dialog_element = templates.find(".salvus-course-help-dialog")

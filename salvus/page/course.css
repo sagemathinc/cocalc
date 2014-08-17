@@ -50,6 +50,11 @@
     padding-bottom: 1ex;
 }
 
+.salvus-course-student-deleted {
+    text-decoration: line-through;
+    color:#888;
+}
+
 .salvus-course-student-first_name {
 }
 .salvus-course-student-last_name {
