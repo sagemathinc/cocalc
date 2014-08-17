@@ -97,10 +97,15 @@
                                     </div>
                                 </div>
                                 <div class="col-sm-2">
+                                    <!--
+                                    <div class="pull-right">
+                                        <a href="#delete" class="btn btn-danger"><i class="fa fa-trash-o"> </i> Delete...</a>
+                                    </div>
+                                    -->
                                 </div>
                                 <div class="col-sm-4">
                                     <div class="input-group">
-                                        <input class="salvus-course-students-add search-query form-control" type="search" placeholder="Add student (search by name or email address)...">
+                                        <input class="salvus-course-students-add search-query form-control" type="search" placeholder="Add student (name or email address)...">
                                         <span class="input-group-btn">
                                             <button class="btn btn-default salvus-course-add-button" type="button">
                                                 <i class="fa fa-search"></i>
@@ -169,19 +174,29 @@
         </div>
     </div>
 
-
-
     <div class="salvus-course-student">
         <div class="row">
-            <div class="salvus-course-field col-sm-6" spellcheck="false">
-                <!--<a href="#open-student" style="margin-right:1em"><i class="fa fa-user"> </i></a>-->
-                <span class="salvus-course-student-email" spellcheck="false">
-                    Student
+            <div class="salvus-course-field col-sm-3" spellcheck="false">
+                <span class="salvus-course-student-first_name">
+                    <span></span>
+                </span>
+                <span class="salvus-course-student-last_name">
+                    <span></span>
+                </span>
+                <span class="salvus-course-student-email_address">
+                    (<span></span>)
                 </span>
             </div>
-            <div class="salvus-course-student-project salvus-course-field col-sm-6 ">
+            <div class="salvus-course-student-project salvus-course-field col-sm-3 ">
                 <a href="#create-project" class="btn btn-primary hide"><i class="fa fa-plus-circle"> </i>  Create Project</a>
-                <a href="#open-project" class="btn btn-default hide"><i class="fa fa-external-link"> </i>  Open Project</a>
+                <a href="#open-project" class="btn btn-default hide"><i class="fa fa-edit"> </i>  Open Project</a>
+            </div>
+            <div class="col-sm-5">
+            </div>
+            <div class="col-sm-1">
+                <div class="pull-right">
+                    <a href="#delete" style="color: #888;font-size: 12pt;"><i class="fa fa-times"> </i></a>
+                </div>
             </div>
         </div>
     </div>

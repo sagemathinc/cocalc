@@ -138,7 +138,17 @@ class Course
         noncloud_hint = @element.find(".salvus-course-add-noncloud-hint")
         last_result = undefined
 
+        clear = () =>
+            input_box.val('')
+            noncloud_button.hide()
+            cloud_button.hide()
+            noncloud_hint.hide()
+            select.hide()
+
         input_box.keyup (evt) =>
+            if input_box.val() == ""
+                noncloud_button.hide()
+                cloud_button.hide()
             if evt.which == 13
                 update_select(input_box.val())
                 return
@@ -149,22 +159,33 @@ class Course
 
         noncloud_button.click () =>
             alert_message(type:"error", message:'add non-cloud collab not implemented')
+            clear()
 
         cloud_button.click () =>
-            account_id = select.val()
-            if not account_id
-                return
-            console.log('add student with id ', account_id)
+            console.log('cloud_button clicked')
+            r = cloud_button.data('target')
+            console.log('add student: ', r)
+            @add_new_student
+                account_id    : r.account_id
+                first_name    : r.first_name
+                last_name     : r.last_name
+                email_address : r.email
+            clear()
+
+        set_cloud_button_target = (target) =>
+            cloud_button.find("span").text(target.first_name + ' ' + target.last_name)
+            cloud_button.show().data('target', target)
 
         select.click () =>
             account_id = select.val()
             if not account_id or not last_result?
-                cloud_button.addClass('disabled')
+                cloud_button.show().addClass('disabled')
             else
-                cloud_button.removeClass('disabled')
+                cloud_button.show().removeClass('disabled')
                 for r in last_result
                     if r.account_id == account_id
-                        cloud_button.find("span").text(r.first_name + ' ' + r.last_name)
+                        set_cloud_button_target(r)
+                        break
 
         last_query_id = 0
         num_loading = 0
@@ -198,7 +219,6 @@ class Course
                     if result.length > 0
                         noncloud_button.hide()
                         noncloud_hint.hide()
-                        console.log(result.length)
                         if result.length > 1
                             select.html('').show()
                             select.attr(size:Math.min(10, result.length))
@@ -210,7 +230,7 @@ class Course
                             # exactly one result
                             select.hide()
                             r = result[0]
-                            cloud_button.show().removeClass('disabled').find("span").text(r.first_name + ' ' + r.last_name)
+                            set_cloud_button_target(r)
 
                     else
                         # no results
@@ -225,33 +245,34 @@ class Course
 
     add_new_student: (opts) =>
         opts = defaults opts,
-            name       : ""
-            email      : ""
-            notes      : ""
-            project_id : undefined
-            grades     : []
+            account_id    : undefined
+            first_name    : undefined
+            last_name     : undefined
+            email_address : undefined
+            project_id    : undefined
+
+        # TODO: check that no student with given account_id or email is already in db first
 
         student_id = misc.uuid()
-
         @db.update
             set   :
-                name   : opts.name
-                email  : opts.email
-                notes  : opts.notes
-                grades : opts.grades
+                account_id    : opts.account_id
+                first_name    : opts.first_name
+                last_name     : opts.last_name
+                email_address : opts.email_address
+                project_id    : opts.project_id
             where :
-                table      : 'students'
-                student_id : student_id
+                table         : 'students'
+                student_id    : student_id
         @db.save()
 
         @render_student
-            student_id : student_id
-            name       : opts.name
-            email      : opts.email
-            notes      : opts.notes
-            grades     : opts.grades
-            append     : false
-            focus      : true
+            student_id    : student_id
+            first_name    : opts.first_name
+            last_name     : opts.last_name
+            email_address : opts.email_address
+            project_id    : opts.project_id
+            append        : false
 
     import_students: () =>
         console.log("not implemented")
@@ -285,95 +306,77 @@ class Course
     update_student_view: (opts) =>
         opts = defaults opts,
             student_id : required
-        console.log("update_student_view -- #{opts.student_id}")
-
         v = @db.select_one({student_id : opts.student_id, table : 'students'})
         delete v.table
-        console.log("v=",v)
         @render_student(v)
 
-    render_student: (opts) =>
-        opts = defaults opts,
-            student_id : required
-
-            name       : undefined
-            email      : undefined
-            notes      : undefined
-            project_id : undefined
-            grades     : undefined
-
-            append     : true
-            focus      : false
-
-        e = @element.find("[data-student_id='#{opts.student_id}']")
-
-        render_project_button = () =>
-            create_project_btn = e.find("a[href=#create-project]").show()
-            open_project_btn = e.find("a[href=#open-project]")
+    click_create_project_button: (student_id) =>
             if not opts.project_id?
                 open_project_btn.hide()
                 create_project_btn.show()
                 if not create_project_btn.hasClass('salvus-initialized')
                     create_project_btn.addClass('salvus-initialized').click () =>
-                        create_project_btn.icon_spin(start:true)
-                        @create_project
-                            student_id : opts.student_id
-                            cb         : (err, project_id) =>
-                                create_project_btn.icon_spin(false)
-                                if err
-                                    alert_message(type:"error", message:err)
-                        return false
+
             else
-                create_project_btn.hide()
-                open_project_btn.show()
-                if not open_project_btn.hasClass('salvus-initialized')
-                    open_project_btn.addClass('salvus-initialized').click () =>
-                        f = () =>
-                            require('projects').open_project(opts.project_id)
-                        setTimeout(f, 1) # ugly hack Jon suggests for now.
-                        return false
 
+    render_student: (opts) =>
+        opts = defaults opts,
+            student_id    : required
+            first_name    : undefined
+            last_name     : undefined
+            email_address : undefined
+            project_id    : undefined
+            account_id    : undefined
+            append        : true
 
-        if e.length > 0
-            for field in ['email']
-                e.find(".salvus-course-student-#{field}").data('set_upstream')?(opts[field])
-            render_project_button()
-            return
+        e = @element.find("[data-student_id='#{opts.student_id}']")
 
-        e = templates.find(".salvus-course-student").clone()
-        e.attr("data-student_id", opts.student_id)
+        if e.length == 0
+            e = templates.find(".salvus-course-student").clone()
+            e.attr("data-student_id", opts.student_id).attr("data-account_id", opts.account_id)
+            e.find("a[href=#create-project]").click () =>
+                create_project_btn.addClass('disabled').icon_spin(start:true)
+                @create_project
+                    student_id : opts.student_id
+                    cb         : (err, project_id) =>
+                        create_project_btn.removeClass('disabled').icon_spin(false)
+                        if err
+                            alert_message(type:"error", message:"error creating project -- #{err}")
+                return false
+            e.find("a[href=#open-project]").click () =>
+                v = @db.select_one({student_id : opts.student_id, table : 'students'})
+                project_id = v.project_id
+                if not project_id?
+                    alert_message(type:"error", message:"no project defined for #{v.first_name} #{v.last_name}")
+                else
+                    f = () => require('projects').open_project(project_id)
+                    setTimeout(f, 1) # ugly hack Jon suggests for now.
+                return false
+            if opts.append
+                @element.find(".salvus-course-students").append(e)
+            else
+                @element.find(".salvus-course-students").prepend(e)
+            @update_student_count()
+
+        create_project_btn = e.find("a[href=#create-project]")
+        open_project_btn   = e.find("a[href=#open-project]")
 
         render_field = (field) =>
+            f = e.find(".salvus-course-student-#{field}")
             if not opts[field]?
-                return
-            e.find(".salvus-course-student-#{field}").make_editable
-                value    : opts[field]
-                one_line : true
-                interval : SYNC_INTERVAL
-                onchange : (new_val) =>
-                    #@db.sync () =>
-                        s = {}
-                        s[field] = new_val
-                        @db.update
-                            set   : s
-                            where : {table : 'students', student_id : opts.student_id}
-                        @db.save()
+                f.hide()
+            else
+                f.show().find("span").text(opts[field])
 
-        for field in ['name', 'email', 'notes']
+        for field in ['email_address', 'first_name', 'last_name']
             render_field(field)
 
-        render_project_button()
-
-        if opts.append
-            @element.find(".salvus-course-students").append(e)
+        if opts.project_id?
+            open_project_btn.show()
+            create_project_btn.hide()
         else
-            @element.find(".salvus-course-students").prepend(e)
-
-        @update_student_count()
-
-        if opts.focus
-            e.find(".salvus-course-student-email").focus_end()
-
+            open_project_btn.hide()
+            create_project_btn.show()
 
     update_student_count: () =>
         @element.find(".salvus-course-students-count").text("(#{@element.find('.salvus-course-student').length})")
@@ -383,7 +386,6 @@ class Course
             student_id : required
             cb         : undefined
         # create project for the given student
-        console.log("create project for student=#{opts.student_id}")
         where = {student_id : opts.student_id, table : 'students'}
         v = @db.select_one(where)
         if not v?
@@ -425,8 +427,8 @@ class Course
                             cb         : cb
                     else
                         salvus_client.invite_noncloud_collaborators
-                            to         : v.email
-                            email      : "Please create a SageMathCloud account using this email address so that you can use the project for #{title}."
+                            to         : v.email_address
+                            email      : "Please create a SageMathCloud account using this email address so that you can use the project for #{title}.\n\n#{description}"
                             project_id : project_id
                             cb         : cb
                 ], (err) =>
@@ -437,7 +439,7 @@ class Course
     course_project_settings: (student_id) =>
         z = @db.select_one(table:'settings')
         s = @db.select_one(table:'students', student_id:student_id)
-        return {title: "#{s.name} -- #{z.title}", description:z.description}
+        return {title: "#{s.first_name} #{s.last_name} -- #{z.title}", description:z.description}
 
 
     ###
