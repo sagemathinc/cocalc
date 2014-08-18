@@ -123,15 +123,15 @@ class Course
                 interval : SYNC_INTERVAL
                 value    : if settings?[prop]? then settings[prop] else "#{prop}"
                 onchange : (value, e) =>
-                    #console.log("saving to db that #{e.data('prop')} = #{value}")
-                    #@db.sync () =>
-                        s = {}
-                        s[e.data('prop')] = value
-                        @db.update
-                            set   : s
-                            where : {table : 'settings'}
-                        @db.save (err) =>
-                            #console.log("save got back -- #{err}")
+                    s = {}
+                    s[e.data('prop')] = value
+                    @db.update
+                        set   : s
+                        where : {table : 'settings'}
+                    @db.save (err) =>
+                        if not err
+                            if e.data('prop') in ['title', 'description']
+                                @update_student_project_settings(prop:e.data('prop'))
 
     handle_changes: (changes) =>
         #console.log("handle_changes (#{misc.mswalltime()}): #{misc.to_json(changes)}")
@@ -541,6 +541,40 @@ class Course
                         opts.cb?()
             )
 
+    # return project_id's of students who have not been deleted.
+    ##student_project_ids: () =>
+    ##    return (x.project_id for x in @db.select({table : 'students'}) when x.project_id? and not x.deleted)
+
+    # return non-deleted students
+    students: () =>
+        return (student for student in @db.select({table : 'students'}) when not student.deleted)
+
+    # TODO: this is *incredibly* stupid/inefficient and needs to be rewritten more cleverly.
+    update_student_project_settings: (opts) =>
+        opts = defaults opts,
+            prop : required   # 'title' or 'description'
+            cb   : undefined
+        console.log("update_student_project_settings: #{opts.prop}")
+        if opts.prop not in ['title', 'description']
+            cb("unknown property #{opts.prop}")
+            return
+
+        f = (student, cb) =>
+            if not student.project_id?
+                cb() # no project
+            else
+                {title, description} = @course_project_settings(student.student_id)
+                if opts.prop == 'title'
+                    data = {'title': title}
+                else if opts.prop == 'description'
+                    data = {'description': description}
+                salvus_client.update_project_data
+                    project_id : student.project_id
+                    data       : data
+                    cb         : cb
+        # use mapLimit to avoid running afoul of backend message rate limiter.
+        async.mapLimit(@students(), 10, f, (err) => opts.cb?(err))
+
     # Ensure that everybody who is a collaborator on the project owning this .course
     # file is also a collaborator on the student project.  If anybody is being added
     # as a collaborator, add them so the project is hidden from their normal listing.
@@ -588,7 +622,7 @@ class Course
                                 account_id : account_id
                                 cb         : c
                     ], cb)
-                async.map(to_invite, f, (err) => cb(err))
+                async.mapLimit(to_invite, 10, f, (err) => cb(err))
         ], opts.cb)
 
     course_project_settings: (student_id) =>
