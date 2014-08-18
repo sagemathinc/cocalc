@@ -30,28 +30,40 @@ class Course
     constructor : (@project_id, @filename, @element) ->
         @element.data('course', @)
         @init_page_buttons()
-        @init_syncdb () =>
-            settings = @db.select_one(table:'settings')
-            need_update = false
-            if not settings?
-                settings = misc.copy(SETTINGS)
-                need_update = true
-            else
-                for k, v of SETTINGS # set defaults
-                    if not settings[k]?
-                        settings[k] = v
-                        need_update = true
-            if need_update
-                @db.update(set:settings, where:{table:'settings'})
-                @db.save()
-
-            @init_edit_settings()
-            @update_students()
-
         @init_student_search()
         @init_view_options()
         @init_new_student()
         @init_help()
+        async.series([
+            (cb) =>
+                @init_syncdb(cb)
+            (cb) =>
+                @default_settings(cb)
+            (cb) =>
+                @init_edit_settings()
+                @update_students()
+                @init_collaborators(cb)
+        ], (err) =>
+            if err
+                alert_message(type:"error", message:"error initializing course (try re-opening the course) -- #{err}")
+        )
+
+    default_settings: (cb) =>
+        settings = @db.select_one(table:'settings')
+        need_update = false
+        if not settings?
+            settings = misc.copy(SETTINGS)
+            need_update = true
+        else
+            for k, v of SETTINGS # set defaults
+                if not settings[k]?
+                    settings[k] = v
+                    need_update = true
+        if need_update
+            @db.update(set:settings, where:{table:'settings'})
+            @db.save(cb)
+        else
+            cb()
 
     show: () =>
         if not IS_MOBILE
@@ -607,19 +619,24 @@ class Course
         opts = defaults opts,
             project_id : required
             update     : true     # if true, we assume project was created a while ago and lookup collaborators; otherwise add *all* collabs.
+            course_collabs : undefined
             cb         : required
 
-        course_collabs  = undefined
+        course_collabs  = opts.course_collabs
         project_collabs = {}
         async.series([
             (cb) =>
-                # get collaborators on course owner project
+                if course_collabs?
+                    cb(); return
+                # get collaborators on course owner's project
                 salvus_client.project_users
                     project_id : @project_id
                     cb         : (err, users) =>
+                        if err
+                            cb(err); return
                         v = users.collaborator.concat(users.invited_collaborator)  # invited_collab isn't used yet, but just in case
                         course_collabs = (x.account_id for x in v)
-                        cb(err)
+                        cb()
             (cb) =>
                 if not opts.update
                     cb()
@@ -628,9 +645,11 @@ class Course
                 salvus_client.project_users
                     project_id : opts.project_id
                     cb         : (err, users) =>
+                        if err
+                            cb(err); return
                         for x in users.collaborator.concat(users.invited_collaborator)
                             project_collabs[x.account_id] = true
-                        cb(err)
+                        cb()
             (cb) =>
                 # add each person in course_collabs not in project_collabs, and hide project from that person.
                 to_invite = (x for x in course_collabs when not project_collabs[x])
@@ -649,6 +668,54 @@ class Course
                     ], cb)
                 async.mapLimit(to_invite, 10, f, (err) => cb(err))
         ], opts.cb)
+
+    init_collaborators: (cb) =>
+        course_collabs = undefined
+        to_add = undefined
+        # get collaborators on course owner's project
+        salvus_client.project_users
+            project_id : @project_id
+            cb         : (err, users) =>
+                if err
+                    cb?(err)
+                    return
+                v = users.collaborator.concat(users.invited_collaborator)  # invited_collab isn't used yet, but just in case
+                course_collabs = (x.account_id for x in v)
+                if course_collabs.indexOf(require('account').account_settings.account_id()) != -1
+                    # person opening course project is not the owner, so don't do this.
+                    cb?()
+                    #console.log("not owner -- skipping")
+                    return
+
+                #console.log("owner -- updating")
+                course_collabs.sort()
+
+                # check if changed from last load
+                last = @db.select_one(table:'collaborators')?.collabs  # map with keys the collabs
+                if not last?
+                    last = {}
+                to_add = (account_id for account_id in course_collabs when not last[account_id]?)
+                if to_add.length == 0
+                    cb?()
+                    return
+                # add all new collaborators to all projects
+                f = (student, cb) =>
+                    @add_course_collaborators_to_project
+                        project_id     : student.project_id
+                        update         : true
+                        course_collabs : to_add
+                        cb             : cb
+                async.mapLimit @students(), 10, f, (err) =>
+                    if err
+                        cb?(err)
+                    else
+                        collabs = {}
+                        for x in course_collabs
+                            collabs[x] = true
+                        @db.update
+                            set   : {collabs:collabs}
+                            where : {table:'collaborators'}
+                        @db.save(cb)
 
     course_project_settings: (student_id) =>
         z = @db.select_one(table:'settings')
