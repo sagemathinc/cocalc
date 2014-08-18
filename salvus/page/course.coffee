@@ -46,8 +46,9 @@ class Course
                 @db.save()
 
             @init_edit_settings()
-            @init_students()
+            @update_students()
 
+        @init_student_search()
         @init_view_options()
         @init_new_student()
         @init_help()
@@ -78,10 +79,12 @@ class Course
             @update_student_count()
 
     init_syncdb: (cb) =>
+        @element.find(".salvus-course-loading").show()
         synchronized_db
             project_id : @project_id
             filename   : @filename
             cb         : (err, db) =>
+                @element.find(".salvus-course-loading").hide()
                 if err
                     alert_message(type:"error", message:"unable to open #{@filename}")
                 else
@@ -319,7 +322,7 @@ class Course
         @update_student_count()
 
 
-    init_students: () =>
+    update_students: () =>
         v = @db.select({table : 'students'})
         v.sort (a,b) =>
             if a.deleted and not b.deleted
@@ -340,11 +343,24 @@ class Course
                 return +1
             else
                 return 0
-
         for student in v
             @render_student(student)
         @update_student_count()
 
+    init_student_search: () =>
+        @student_search_box = @element.find(".salvus-course-students-search")
+        update = () =>
+            v = @student_search_box.val()
+            if v
+                @element.find(".salvus-course-search-contain").show().find(".salvus-course-search-query").text(v)
+            else
+                @element.find(".salvus-course-search-contain").hide()
+            @update_students()
+        @student_search_box.keyup(update)
+        @element.find(".salvus-course-search-clear").click () =>
+            @student_search_box.val('').focus()
+            update()
+            return false
 
     update_student_view: (opts) =>
         opts = defaults opts,
@@ -424,11 +440,13 @@ class Course
         create_project_btn = e.find("a[href=#create-project]")
         open_project_btn   = e.find("a[href=#open-project]")
 
+        search_text = ''
         render_field = (field) =>
             f = e.find(".salvus-course-student-#{field}")
             if not opts[field]?
                 f.hide()
             else
+                search_text += ' ' + opts[field].toLowerCase()
                 f.show().find("span").text(opts[field])
 
         for field in ['email_address', 'first_name', 'last_name']
@@ -452,6 +470,13 @@ class Course
             e.find(".salvus-course-student-props").removeClass('salvus-course-student-deleted')
             e.find("a[href=#undelete]").hide()
             e.find("a[href=#delete]").show()
+
+        search = @student_search_box.val()
+        if search?
+            for x in search.toLowerCase().split(' ')
+                if search_text.indexOf(x) == -1
+                    e.hide()
+                    break
 
     update_student_count: () =>
         v = @db.select({table : 'students'})

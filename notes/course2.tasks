@@ -44,6 +44,6 @@
 {"desc":"#v0 (1:00?) (0:30)\nre-set all project title/desc whenever title/desc is edited.","position":-0.9522959589958191,"last_edited":1408371327432,"task_id":"d405857c-41b4-4f3d-a49f-fdcb9e1a15be","done":1408371327013}
 {"desc":"#v0\n(2:00?) ability to share a path with all non-deleted student projects","position":-0.9522957801818848,"last_edited":1408328157167,"task_id":"649e29aa-d219-4f1a-8306-eb7fb034dbd2"}
 {"desc":"#v0\n(1:00?) \noption in settings to update collaborators on projects, if the collaborators on owner project changes.","position":-0.9522950649261475,"last_edited":1408328163982,"task_id":"78d470ed-24df-4d21-a898-f2a724190851"}
-{"desc":"#v0\n(1:00?) implement finding students (left search box) -- pretty easy.","position":-0.9522954225540161,"last_edited":1408328151527,"task_id":"64236453-1a45-4efd-b111-1b28ec74acbd"}
+{"desc":"#v0\n(1:00?) (0:24) implement finding students (left search box) -- pretty easy.","position":-0.9522958248853683,"last_edited":1408373514104,"task_id":"64236453-1a45-4efd-b111-1b28ec74acbd","done":1408373513687}
 {"desc":"#v1\noptimization (?): make `salvus_client.project_users` cache its result for 30 seconds?","position":-0.9522961378097534,"last_edited":1408366654523,"task_id":"31735c04-3caa-4ae7-983e-f79188f4a559"}
 {"desc":"#v1\nupdate_student_project_settings -- it's absurdly inefficient.  \n\n- [ ] every viewer also does the update\n- [ ] does update with every keystroke -- !\n","position":-0.9522958695888519,"last_edited":1408371318993,"task_id":"eba2d454-21e0-4e0f-ae2f-8fbe7ac5f6c7"}
