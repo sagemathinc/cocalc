@@ -493,10 +493,6 @@ class Course
                                 cb("error creating project -- #{err}")
                             else
                                 project_id = _project_id
-                                @db.update
-                                    set   : {project_id : project_id}
-                                    where : where
-                                @db.save()
                                 cb()
                 (cb) =>
                     salvus_client.hide_project_from_user
@@ -506,6 +502,13 @@ class Course
                                 cb("error hiding project from user -- #{err}")
                             else
                                 cb()
+                (cb) =>
+                    # Make everybody who is a collaborator on the project owning this .course file
+                    # also a collaborator on the student project.
+                    @add_course_collaborators_to_project
+                        project_id : project_id
+                        update     : false
+                        cb         : cb
                 (cb) =>
                     if v.account_id?
                         salvus_client.project_invite_collaborator
@@ -527,9 +530,66 @@ class Course
                                 else
                                     cb()
                 ], (err) =>
-                    @update_student_view(student_id:opts.student_id)
-                    opts.cb?(err)
+                    if err
+                        opts.cb?(err)
+                    else
+                        @db.update
+                            set   : {project_id : project_id}
+                            where : where
+                        @db.save()
+                        @update_student_view(student_id:opts.student_id)
+                        opts.cb?()
             )
+
+    # Ensure that everybody who is a collaborator on the project owning this .course
+    # file is also a collaborator on the student project.  If anybody is being added
+    # as a collaborator, add them so the project is hidden from their normal listing.
+    add_course_collaborators_to_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            update     : true     # if true, we assume project was created a while ago and lookup collaborators; otherwise add *all* collabs.
+            cb         : required
+
+        course_collabs  = undefined
+        project_collabs = {}
+        async.series([
+            (cb) =>
+                # get collaborators on course owner project
+                salvus_client.project_users
+                    project_id : @project_id
+                    cb         : (err, users) =>
+                        v = users.collaborator.concat(users.invited_collaborator)  # invited_collab isn't used yet, but just in case
+                        course_collabs = (x.account_id for x in v)
+                        cb(err)
+            (cb) =>
+                if not opts.update
+                    cb()
+                    return
+                # get collaborators on the project
+                salvus_client.project_users
+                    project_id : opts.project_id
+                    cb         : (err, users) =>
+                        for x in users.collaborator.concat(users.invited_collaborator)
+                            project_collabs[x.account_id] = true
+                        cb(err)
+            (cb) =>
+                # add each person in course_collabs not in project_collabs, and hide project from that person.
+                to_invite = (x for x in course_collabs when not project_collabs[x])
+                f = (account_id, cb) =>
+                    async.series([
+                        (c) =>
+                            salvus_client.project_invite_collaborator
+                                project_id : opts.project_id
+                                account_id : account_id
+                                cb         : c
+                        (c) =>
+                            salvus_client.hide_project_from_user
+                                project_id : opts.project_id
+                                account_id : account_id
+                                cb         : c
+                    ], cb)
+                async.map(to_invite, f, (err) => cb(err))
+        ], opts.cb)
 
     course_project_settings: (student_id) =>
         z = @db.select_one(table:'settings')

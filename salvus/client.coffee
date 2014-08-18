@@ -976,22 +976,26 @@ class exports.Connection extends EventEmitter
     hide_project_from_user: (opts) =>
         opts = defaults opts,
             project_id : required
+            account_id : undefined   # if given hide from this user -- only owner can hide projects from other users
             cb         : undefined
         @call
             message :
                 message.hide_project_from_user
                     project_id  : opts.project_id
+                    account_id  : opts.account_id
             cb : opts.cb
 
     # unhide the given project from this user
     unhide_project_from_user: (opts) =>
         opts = defaults opts,
             project_id : required
+            account_id : undefined   # if given hide from this user -- only owner can hide projects from other users
             cb         : undefined
         @call
             message :
                 message.unhide_project_from_user
                     project_id  : opts.project_id
+                    account_id  : opts.account_id
             cb : opts.cb
 
     move_project: (opts) =>

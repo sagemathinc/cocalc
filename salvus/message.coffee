@@ -1043,13 +1043,14 @@ message
     event      : 'hide_project_from_user'
     id         : undefined
     project_id : required
+    account_id : undefined   # owner can optionally hide project from other users
 
 # client --> hub
 message
     event      : 'unhide_project_from_user'
     id         : undefined
     project_id : required
-
+    account_id : undefined   # owner can optionally unhide project for other users
 
 
 # Get info about a single project (instead of all projects)

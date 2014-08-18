@@ -1315,34 +1315,73 @@ class Client extends EventEmitter
 
     mesg_hide_project_from_user: (mesg) =>
         if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to hide a project.")
+            @error_to_client(id: mesg.id, error: "you must be signed in to hide a project")
             return
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-            project.hide_project_from_user
-                account_id : @account_id
-                cb         : (err, ok) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
+            async.series([
+                (cb) =>
+                    if mesg.account_id? and mesg.account_id != @account_id
+                        # trying to hide project from another user -- @account_id must be owner of project
+                        user_owns_project
+                            project_id : mesg.project_id
+                            account_id : @account_id
+                            cb         : (err, is_owner) =>
+                                if err
+                                    cb(err)
+                                else if not is_owner
+                                    cb("only the owner of a project may hide it from collaborators")
+                                else
+                                    cb()
                     else
-                        @push_to_client(message.success(id:mesg.id))
+                        mesg.account_id = @account_id
+                        cb()
+                (cb) =>
+                    project.hide_project_from_user
+                        account_id : mesg.account_id
+                        cb         : cb
+            ], (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
+            )
 
     mesg_unhide_project_from_user: (mesg) =>
         if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to unhide a project.")
+            @error_to_client(id: mesg.id, error: "you must be signed in to unhide a project")
             return
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-            project.unhide_project_from_user
-                account_id : @account_id
-                cb         : (err, ok) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
+            async.series([
+                (cb) =>
+                    if mesg.account_id? and mesg.account_id != @account_id
+                        # trying to unhide project from another user -- @account_id must be owner of project
+                        user_owns_project
+                            project_id : mesg.project_id
+                            account_id : @account_id
+                            cb         : (err, is_owner) =>
+                                if err
+                                    cb(err)
+                                else if not is_owner
+                                    cb("only the owner of a project may unhide it from collaborators")
+                                else
+                                    cb()
                     else
-                        @push_to_client(message.success(id:mesg.id))
-
+                        mesg.account_id = @account_id
+                        cb()
+                (cb) =>
+                    project.unhide_project_from_user
+                        account_id : mesg.account_id
+                        cb         : cb
+            ], (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
+            )
 
     mesg_move_project: (mesg) =>
         if not @account_id?
