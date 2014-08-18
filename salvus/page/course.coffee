@@ -10,6 +10,7 @@ async                = require('async')
 {synchronized_db}    = require('syncdb')
 {salvus_client}      = require('salvus_client')
 misc                 = require('misc')
+misc_page            = require('misc_page')
 {defaults, required} = misc
 
 templates = $(".salvus-course-templates")
@@ -33,6 +34,7 @@ class Course
         @init_student_search()
         @init_view_options()
         @init_new_student()
+        @init_new_file_share()
         @init_help()
         async.series([
             (cb) =>
@@ -74,14 +76,8 @@ class Course
         return local_storage(@project_id, @filename, key, value)
 
     init_view_options: () =>
-        @_show_deleted_file_shares = @element.find(".salvus-course-show-deleted-file-shares")
         @_show_deleted_students = @element.find(".salvus-course-show-deleted-students")
-
-        @_show_deleted_file_shares.prop("checked", @local_storage("show_deleted_file_shares"))
         @_show_deleted_students.prop("checked", @local_storage("show_deleted_students"))
-        @_show_deleted_file_shares.change () =>
-            @local_storage("show_deleted_file_shares", @_show_deleted_file_shares.is(":checked"))
-            # TODO: re-render all deleted file shares
         @_show_deleted_students.change () =>
             @local_storage("show_deleted_students", @_show_deleted_students.is(":checked"))
             # now re-render all deleted students
@@ -111,7 +107,7 @@ class Course
 
 
     init_page_buttons: () =>
-        PAGES =['students', 'shares', 'assignments', 'settings']
+        PAGES =['students', 'share', 'collect', 'assignments', 'settings']
         buttons = @element.find(".salvus-course-page-buttons")
         for page in PAGES
             @element.find("a[href=##{page}]").data('page',page).click (e) =>
@@ -170,7 +166,7 @@ class Course
 
     init_new_student: () =>
         input_box  = @element.find(".salvus-course-students-add")
-        add_button = @element.find(".salvus-course-add-button")
+        add_button = @element.find(".salvus-course-add-student-button")
         select     = @element.find(".salvus-course-add-student-select")
         loading    = @element.find(".salvus-course-add-student-loading")
         already_match   = @element.find(".salvus-course-add-student-already-match")
@@ -369,7 +365,7 @@ class Course
                 @element.find(".salvus-course-search-contain").hide()
             @update_students()
         @student_search_box.keyup(update)
-        @element.find(".salvus-course-search-clear").click () =>
+        @element.find(".salvus-course-page-students").find(".salvus-course-search-clear").click () =>
             @student_search_box.val('').focus()
             update()
             return false
@@ -731,6 +727,78 @@ class Course
 
 
     ###
+    # File Share
+    ###
+    init_new_file_share: () =>
+        input_box     = @element.find(".salvus-course-share-add")
+        search_button = @element.find(".salvus-course-search-share-button")
+        select        = @element.find(".salvus-course-add-share-select")
+        loading       = @element.find(".salvus-course-add-share-loading")
+        share_button  = @element.find(".salvus-course-add-share-button")
+
+        clear = () =>
+            input_box.val('')
+            select.hide()
+            share_button.hide().find("span").text('')
+
+        input_box.keyup (evt) =>
+            if input_box.val() == ""
+                share_button.hide()
+                select.hide()
+            if evt.which == 13
+                update_select(input_box.val())
+                return
+        search_button.click () =>
+            update_select(input_box.val())
+            return false
+        share_button.click () =>
+            clear()
+            @share_folder(share_button.data('path'))
+
+
+        last_query = undefined
+        num_loading = 0
+        update_select = (query) =>
+            loading.show()
+            select.hide()
+            last_query = "*#{query}*"
+            salvus_client.find_directories
+                project_id : @project_id
+                query      : last_query
+                cb         : (err, resp) =>
+                    if err
+                        alert_message(type:'error', message:"error searching for paths containing #{query}")
+                        return
+                    if resp.query != last_query
+                        # ignore all but the most recent query
+                        return
+                    loading.hide()
+                    select.html('').show()
+                    select.attr(size:Math.min(10, resp.directories.length))
+                    for path in resp.directories
+                        select.append($("<option>").attr(value:path, label:path).text(path))
+                    share_button.show().addClass('disabled').find("span").text("selected path")
+
+        select.click () =>
+            path = select.val()
+            share_button.removeClass('disabled').find("span").text(path).data('path', path)
+
+
+    init_share_search: () =>
+        @share_search_box = @element.find(".salvus-course-share-search")
+        @element.find(".salvus-course-page-share").find(".salvus-course-search-clear").click () =>
+            @share_search_box.val('').focus()
+            update()
+            return false
+
+    share_folder: (path) =>
+        # make a new row
+        # have an editable column for the destination folder
+        # have a button to do (or redo) the share for all students
+        # a multi-select to do share for a specific subset of student projects
+        console.log("todo: share folder #{path}")
+
+    ###
     # Assignment
     ###
 
@@ -754,6 +822,8 @@ class Course
         for assignment in @db.select({table : 'assignments'})
             delete assignment.table
             @render_assignment(assignment)
+
+
 
 
 help_dialog_element = templates.find(".salvus-course-help-dialog")

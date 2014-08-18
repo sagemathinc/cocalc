@@ -5,9 +5,10 @@
             <div class="row" style="margin-bottom: 4px;">
                 <div class="col-sm-12 ">
                     <span class="btn-group salvus-course-page-buttons">
-                        <a class="btn btn-primary btn-default" href="#students"><i class="fa fa-user"> </i>  Students <span class="salvus-course-students-count"></span></a>
+                        <a class="btn btn-primary btn-default" href="#students"><i class="fa fa-users"> </i>  Students <span class="salvus-course-students-count"></span></a>
                         <a class="hide btn btn-default" href="#assignments"><i class="fa fa-pencil"> </i> Assignments <span class="salvus-course-assignments-count"></span></a>
-                        <a class="btn btn-default" href="#shares"><i class="fa fa-paper-plane-o"> </i> Shared Files <span class="salvus-course-shares-count"></span></a>
+                        <a class="btn btn-default" href="#share"><i class="fa fa-share-square-o"> </i> Share <span class="salvus-course-share-count"></span></a>
+                        <a class="btn btn-default" href="#collect"><i class="fa  fa-folder-open-o"> </i> Collect <span class="salvus-course-share-count"></span></a>
                         <a class="btn btn-default" href="#settings"><i class="fa fa-wrench"> </i> Settings</a>
                         <a class="btn btn-info" href="#help"><i class="fa fa-question-circle"> </i> Help</a>
                     </span>
@@ -118,7 +119,7 @@
                                     <div class="input-group">
                                         <input class="salvus-course-students-add search-query form-control" type="search" placeholder="Add student (name or email address)...">
                                         <span class="input-group-btn">
-                                            <button class="btn btn-default salvus-course-add-button" type="button">
+                                            <button class="btn btn-default salvus-course-add-student-button" type="button">
                                                 <i class="fa fa-search"></i>
                                             </button>
                                         </span>
@@ -158,30 +159,71 @@
             </div>
 
 
-            <div class="row hide salvus-course-page-shares">
+            <div class="row hide salvus-course-page-share">
                 <div class="col-sm-12 ">
                     <div class=" panel panel-default">
                         <div class="panel-heading">
                             <div class="row">
-                                <div class="col-sm-2">
-                                    <h3 class="panel-title">Share Files <span class="salvus-course-shares-count"></span></h3>
-                                </div>
-                                <div class="col-sm-4 ">
+                                <div class="col-sm-5 ">
                                     <div class="input-group">
-                                        <input class="salvus-course-shares-search search-query form-control" type="search" placeholder="Find...">
+                                        <input class="salvus-course-share-search search-query form-control" type="search" placeholder="Find...">
                                         <span class="input-group-btn">
 
-                                            <button class="btn btn-default salvus-tasks-search-clear" type="button">
+                                            <button class="btn btn-default salvus-course-search-clear" type="button">
                                                 <i class="fa fa-times-circle"></i>
                                             </button>
                                         </span>
                                     </div>
                                 </div>
                                 <div class="col-sm-2">
+                                    Choose folder to share:
                                 </div>
-                                <div class="col-sm-4 ">
+                                <div class="col-sm-5 ">
                                     <div class="input-group">
-                                        <input class="salvus-course-shares-add search-query form-control" type="search" placeholder="Add share (search by directory name)...">
+                                        <input class="salvus-course-share-add search-query form-control" type="search" placeholder="Search by directory name...">
+                                        <span class="input-group-btn">
+                                            <button class="btn btn-default salvus-course-search-share-button" type="button">
+                                                <i class="fa fa-search"></i>
+                                            </button>
+                                        </span>
+                                    </div>
+                                    <div    class="salvus-course-add-share-loading hide" style="margin-top:1ex">Loading...</div>
+                                    <select class="salvus-course-add-share-select form-control hide"></select>
+                                    <a class="btn btn-lg btn-primary btn-submit hide salvus-course-add-share-button" style="margin-top: 1ex;"> <i class="fa fa-user"> </i>  Share <span></span></a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="salvus-course-share">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="row hide salvus-course-page-collect">
+                <div class="col-sm-12 ">
+                    <div class=" panel panel-default">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-sm-5 ">
+                                    <div class="input-group">
+                                        <input class="salvus-course-collect-search search-query form-control" type="search" placeholder="Find...">
+                                        <span class="input-group-btn">
+
+                                            <button class="btn btn-default salvus-course-search-collect-button" type="button">
+                                                <i class="fa fa-times-circle"></i>
+                                            </button>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-2">
+                                    Choose destination folder:
+                                </div>
+                                <div class="col-sm-5 ">
+                                    <div class="input-group">
+                                        <input class="salvus-course-collect-add search-query form-control" type="search" placeholder="Search by directory name...">
                                         <span class="input-group-btn">
                                             <button class="btn btn-default salvus-course-search-clear" type="button">
                                                 <i class="fa fa-search"></i>
@@ -192,8 +234,7 @@
                             </div>
                         </div>
                         <div class="panel-body">
-                            <div class="salvus-course-shares">
-
+                            <div class="salvus-course-collect">
                             </div>
                         </div>
                     </div>

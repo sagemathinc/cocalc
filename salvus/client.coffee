@@ -1300,6 +1300,38 @@ class exports.Connection extends EventEmitter
             args       : ['-rf', opts.path]
             cb         : opts.cb
 
+    # find directories and subdirectories matching a given query
+    find_directories: (opts) =>
+        opts = defaults opts,
+            project_id     : required
+            query          : '*'   # see the -iname option to the UNIX find command.
+            path           : '.'
+            include_hidden : false
+            cb             : required      # cb(err, object describing result (see code below))
+
+        @exec
+            project_id : opts.project_id
+            command    : "find"
+            timeout    : 15
+            args       : [opts.path, '-xdev', '-type', 'd', '-iname', opts.query]
+            bash       : false
+            cb         : (err, result) =>
+                if err
+                    opts.cb?(err); return
+                if result.event == 'error'
+                    opts.cb?(result.error); return
+                n = opts.path.length + 1
+                v = result.stdout.split('\n')
+                if not opts.include_hidden
+                    v = (x for x in v when x.indexOf('/.') == -1)
+                v = (x.slice(n) for x in v when x.length > n)
+                ans =
+                    query       : opts.query
+                    path        : opts.path
+                    project_id  : opts.project_id
+                    directories : v
+                opts.cb?(undefined, ans)
+
     #################################################
     # Git Commands
     # TODO: this is all deprecated (?).
