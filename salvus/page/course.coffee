@@ -48,12 +48,34 @@ class Course
             @init_edit_settings()
             @init_students()
 
+        @init_view_options()
         @init_new_student()
         @init_help()
 
     show: () =>
         if not IS_MOBILE
             @element.maxheight()
+
+    local_storage: (key, value) =>
+        {local_storage}   = require('editor')
+        return local_storage(@project_id, @filename, key, value)
+
+    init_view_options: () =>
+        @_show_deleted_file_shares = @element.find(".salvus-course-show-deleted-file-shares")
+        @_show_deleted_students = @element.find(".salvus-course-show-deleted-students")
+
+        @_show_deleted_file_shares.prop("checked", @local_storage("show_deleted_file_shares"))
+        @_show_deleted_students.prop("checked", @local_storage("show_deleted_students"))
+        @_show_deleted_file_shares.change () =>
+            @local_storage("show_deleted_file_shares", @_show_deleted_file_shares.is(":checked"))
+            # TODO: re-render all deleted file shares
+        @_show_deleted_students.change () =>
+            @local_storage("show_deleted_students", @_show_deleted_students.is(":checked"))
+            # now re-render all deleted students
+            for student in @db.select({table : 'students'})
+                if student.deleted
+                    @render_student(student)
+            @update_student_count()
 
     init_syncdb: (cb) =>
         synchronized_db
@@ -77,7 +99,7 @@ class Course
         PAGES =['students', 'shares', 'assignments', 'settings']
         buttons = @element.find(".salvus-course-page-buttons")
         for page in PAGES
-            buttons.find("a[href=##{page}]").data('page',page).click (e) =>
+            @element.find("a[href=##{page}]").data('page',page).click (e) =>
                 page = $(e.delegateTarget).data('page')
                 for p in PAGES
                     e = @element.find(".salvus-course-page-#{p}")
@@ -124,6 +146,8 @@ class Course
             else if x.insert?.table == "assignments"
                 delete x.insert.table
                 @render_assignment(x.insert)
+        @update_student_count()
+
 
     ###
     # Students
@@ -163,9 +187,7 @@ class Course
             clear()
 
         cloud_button.click () =>
-            console.log('cloud_button clicked')
             r = cloud_button.data('target')
-            console.log('add student: ', r)
             @add_new_student
                 account_id    : r.account_id
                 first_name    : r.first_name
@@ -281,9 +303,8 @@ class Course
             email_address : opts.email_address
             project_id    : opts.project_id
             append        : false
+        @update_student_count()
 
-    import_students: () =>
-        console.log("not implemented")
 
     init_students: () =>
         v = @db.select({table : 'students'})
@@ -308,15 +329,14 @@ class Course
                 return 0
 
         for student in v
-            delete student.table
             @render_student(student)
+        @update_student_count()
+
 
     update_student_view: (opts) =>
         opts = defaults opts,
             student_id : required
-        v = @db.select_one({student_id : opts.student_id, table : 'students'})
-        delete v.table
-        @render_student(v)
+        @render_student(@db.select_one({student_id : opts.student_id, table : 'students'}))
 
     delete_student: (opts) =>
         opts = defaults opts,
@@ -344,7 +364,8 @@ class Course
             account_id    : undefined
             deleted       : false
             append        : true
-        console.log('render_student', opts)
+            table         : undefined   # ignored
+
         e = @element.find("[data-student_id='#{opts.student_id}']")
 
         if e.length == 0
@@ -378,7 +399,14 @@ class Course
                 @element.find(".salvus-course-students").append(e)
             else
                 @element.find(".salvus-course-students").prepend(e)
-            @update_student_count()
+
+        if opts.deleted
+            if @_show_deleted_students.is(":checked")
+                e.show()
+            else
+                e.hide()
+        else
+            e.show()
 
         create_project_btn = e.find("a[href=#create-project]")
         open_project_btn   = e.find("a[href=#open-project]")
@@ -413,7 +441,17 @@ class Course
             e.find("a[href=#delete]").show()
 
     update_student_count: () =>
-        @element.find(".salvus-course-students-count").text("(#{@element.find('.salvus-course-student').length})")
+        v = @db.select({table : 'students'})
+        if @_show_deleted_students.is(":checked")
+            n = v.length
+        else
+            n = (x for x in v when not x.deleted).length
+        @element.find(".salvus-course-students-count").text("(#{n})")
+        if n == 0
+            @element.find(".salvus-course-students-none").show()
+            @element.find(".salvus-course-students-add").focus()
+        else
+            @element.find(".salvus-course-students-none ").hide()
 
     create_project: (opts) =>
         opts = defaults opts,

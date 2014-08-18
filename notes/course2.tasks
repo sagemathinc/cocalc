@@ -28,12 +28,15 @@
 {"desc":"#v0\nclean up share files html","position":-0.95245361328125,"last_edited":1408240986180,"task_id":"57e99d8d-e3d2-4ab2-bea1-099868c50352","done":1408240985770}
 {"desc":"#v0\nmake it so creating project works again","position":-0.9525146484375,"last_edited":1408063375611,"task_id":"2ef67fd2-8929-4833-af85-bb90cf912a54","done":1408063375196}
 {"desc":"#v0\ndon't show \"Create Project\" button until student selected.","position":-0.95233154296875,"last_edited":1408303126797,"task_id":"65dcd240-a00c-4eca-b8b4-e5ad413b0f68","done":1408303126387}
-{"desc":"#v0\nif there are no students, display a line suggesting to add students.\n\n- [ ] how to add students\n- [ ] edit title\n- [ ] edit description\n- [ ] projects","position":-0.952301025390625,"last_edited":1408238659211,"task_id":"fd08065b-a041-44a0-b5ca-14242f15d87e"}
+{"desc":"#v0\nif there are no students, display a line suggesting to add students.\n\n- [x] how to add students\n- [x] edit title\n- [x] edit description\n- [ ] projects","position":-0.952301025390625,"last_edited":1408323136222,"task_id":"fd08065b-a041-44a0-b5ca-14242f15d87e","done":1408323135804}
 {"desc":"#v0\nhelp button with modal.","position":-0.9522857666015625,"last_edited":1408303139255,"task_id":"08bc9515-55fa-4ab9-9f0a-86c8a92352a1","done":1408303138847}
 {"desc":"#v1\n\nchat functionality.","position":-0.9522781372070312,"last_edited":1408238861183,"task_id":"fe79768f-7245-47f7-b222-a5106c24c3b1"}
 {"desc":"#v0\nhelp modal text","position":-0.9522933959960938,"last_edited":1408303142933,"task_id":"afed25fb-e6b6-4d43-88f4-e48cf7326526"}
 {"desc":"#v0\nadd student by email address (and only new addresses allowed)","position":-0.9522895812988281,"last_edited":1408305568577,"task_id":"836fa16c-2052-451c-9f44-591e927b66de"}
-{"desc":"#v0\ndelete student\n\n- [ ] clicking on x deletes student (database setting)\n- [ ] option in settings to show deleted students (a line through them)","position":-0.9522876739501953,"last_edited":1408303217248,"task_id":"9444d232-f196-42a8-a95c-9a7d731963a2"}
+{"desc":"#v0\ndelete student\n\n- [x] clicking on x deletes student (database setting)\n- [x] option in settings to show deleted students (a line through them)","position":-0.9522876739501953,"last_edited":1408317289828,"task_id":"9444d232-f196-42a8-a95c-9a7d731963a2","done":1408317289420}
 {"desc":"#v0\n","position":-0.9522867202758789,"last_edited":1408303188491,"task_id":"90f4303c-52a2-4739-a6bd-8cfce403e919","deleted":true}
 {"desc":"#v0\nonly list new students in list","position":-0.9522871971130371,"last_edited":1408305572163,"task_id":"fd65042d-6a36-41e4-96e9-0cfd8f8b6787","done":1408305571753}
 {"desc":"#v0\nwhen creating a project, add all collaborators on owner of course to the project as collabs.","position":-0.952286958694458,"last_edited":1408305552737,"task_id":"13c28f56-e450-4e86-9755-28d46d3c7bc5"}
+{"desc":"#v0\nscrolling list of students","position":-0.9522874355316162,"last_edited":1408317445436,"task_id":"be0029c5-e33f-4bc6-8848-a12039ab520f","done":1408317445020}
+{"desc":"#v0\nchange counter to only include non-deleted entries","position":-0.9522873163223267,"last_edited":1408317282586,"task_id":"b6f00dca-fb0c-4780-921c-54dd0d008215","done":1408317282176}
+{"desc":"#v0 #security #bug\nit turns out that email address is in the result of user search -- get rid of it.","position":-0.9522886276245117,"last_edited":1408317374665,"task_id":"e75afdef-b84a-40a2-ae0b-a912c14c559b"}
