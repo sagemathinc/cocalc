@@ -158,6 +158,7 @@ class Course
         add_button = @element.find(".salvus-course-add-button")
         select     = @element.find(".salvus-course-add-student-select")
         loading    = @element.find(".salvus-course-add-student-loading")
+        already_match   = @element.find(".salvus-course-add-student-already-match")
         noncloud_button = @element.find(".salvus-course-add-noncloud-student")
         cloud_button = @element.find(".salvus-course-add-cloud-student")
         noncloud_hint = @element.find(".salvus-course-add-noncloud-hint")
@@ -168,12 +169,14 @@ class Course
             noncloud_button.hide()
             cloud_button.hide()
             noncloud_hint.hide()
+            already_match.hide()
             select.hide()
 
         input_box.keyup (evt) =>
             if input_box.val() == ""
                 noncloud_button.hide()
                 cloud_button.hide()
+                already_match.hide()
             if evt.which == 13
                 update_select(input_box.val())
                 return
@@ -183,7 +186,9 @@ class Course
             return false
 
         noncloud_button.click () =>
-            alert_message(type:"error", message:'add non-cloud collab not implemented')
+            email_address = noncloud_button.data('target')
+            @add_new_student
+                email_address : email_address
             clear()
 
         cloud_button.click () =>
@@ -213,6 +218,7 @@ class Course
         last_query_id = 0
         num_loading = 0
         update_select = (x) =>
+            noncloud_hint.hide()
             if x == ""
                 select.html("").hide()
                 return
@@ -220,7 +226,6 @@ class Course
             last_query_id += 1
             num_loading += 1
             loading.show()
-            noncloud_hint.hide()
             salvus_client.user_search
                 query    : x
                 limit    : 30
@@ -244,11 +249,14 @@ class Course
                     for z in @db.select({table : 'students'})
                         if z.account_id?
                             already_student[z.account_id] = true
+                        if z.email_address?
+                            already_student[z.email_address] = true
                     result = (r for r in result when not already_student[r.account_id])
 
                     if result.length > 0
                         noncloud_button.hide()
                         noncloud_hint.hide()
+                        already_match.hide()
                         if result.length > 1
                             select.html('').show()
                             select.attr(size:Math.min(10, result.length))
@@ -266,7 +274,10 @@ class Course
                         # no results
                         select.hide()
                         if require('client').is_valid_email_address(x)
-                            noncloud_button.show()
+                            if not already_student[x]
+                                noncloud_button.show().data('target', x)
+                            else
+                                already_match.show()
                         else
                             noncloud_hint.show()
                         cloud_button.hide()
@@ -282,6 +293,8 @@ class Course
             project_id    : undefined
 
         # TODO: check that no student with given account_id or email is already in db first
+
+        opts.email_address = misc.lower_email_address(opts.email_address)
 
         student_id = misc.uuid()
         @db.update
@@ -384,7 +397,7 @@ class Course
                     cb         : (err, project_id) =>
                         create_project_btn.removeClass('disabled').icon_spin(false)
                         if err
-                            alert_message(type:"error", message:"error creating project -- #{err}")
+                            alert_message(type:"error", message:"error creating project -- #{misc.to_json(err)}")
                 return false
             e.find("a[href=#open-project]").click () =>
                 v = @db.select_one({student_id : opts.student_id, table : 'students'})
@@ -475,13 +488,11 @@ class Course
                         title       : title
                         description : description
                         public      : false
-                        cb          : (err, resp) =>
-                            if resp.event == 'error'
-                                err = resp.error
+                        cb          : (err, _project_id) =>
                             if err
-                                cb(err)
+                                cb("error creating project -- #{err}")
                             else
-                                project_id = resp.project_id
+                                project_id = _project_id
                                 @db.update
                                     set   : {project_id : project_id}
                                     where : where
@@ -490,19 +501,31 @@ class Course
                 (cb) =>
                     salvus_client.hide_project_from_user
                         project_id : project_id
-                        cb         : cb
+                        cb         : (err) =>
+                            if err
+                                cb("error hiding project from user -- #{err}")
+                            else
+                                cb()
                 (cb) =>
                     if v.account_id?
                         salvus_client.project_invite_collaborator
                             project_id : project_id
                             account_id : v.account_id
-                            cb         : cb
+                            cb         : (err) =>
+                                if err
+                                    cb("error inviting student as collaborator -- #{err}")
+                                else
+                                    cb()
                     else
                         salvus_client.invite_noncloud_collaborators
                             to         : v.email_address
                             email      : "Please create a SageMathCloud account using this email address so that you can use the project for #{title}.\n\n#{description}"
                             project_id : project_id
-                            cb         : cb
+                            cb         : (err) =>
+                                if err
+                                    cb("error inviting #{v.email_address} to collaborate on a course project -- #{misc.to_json(err)}")
+                                else
+                                    cb()
                 ], (err) =>
                     @update_student_view(student_id:opts.student_id)
                     opts.cb?(err)
@@ -511,7 +534,14 @@ class Course
     course_project_settings: (student_id) =>
         z = @db.select_one(table:'settings')
         s = @db.select_one(table:'students', student_id:student_id)
-        return {title: "#{s.first_name} #{s.last_name} -- #{z.title}", description:z.description}
+        if s.first_name? and s.last_name?
+            name = "#{s.first_name} #{s.last_name}"
+        else if s.email_address?
+            name = s.email_address
+        else
+            name = ""
+        name += ' -- '
+        return {title: "#{name} #{z.title}", description:z.description}
 
 
     ###

@@ -865,7 +865,7 @@ class exports.Connection extends EventEmitter
     #################################################
     # Project Management
     #################################################
-    create_project: (opts) ->
+    create_project: (opts) =>
         opts = defaults opts,
             title       : required
             description : required
@@ -873,7 +873,13 @@ class exports.Connection extends EventEmitter
             cb          : undefined
         @call
             message: message.create_project(title:opts.title, description:opts.description, public:opts.public)
-            cb     : opts.cb
+            cb     : (err, resp) =>
+                if err
+                    opts.cb?(err)
+                else if resp.event == 'error'
+                    opts.cb?(resp.error)
+                else
+                    opts.cb?(undefined, resp.project_id)
 
     get_projects: (opts) ->
         opts = defaults opts,

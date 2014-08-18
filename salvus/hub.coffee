@@ -1909,7 +1909,7 @@ class Client extends EventEmitter
                                 group      : 'collaborator'
                                 cb         : cb
                         else
-                            winston.debug("user #{email_address} doesn't have an account yet -- send email")
+                            winston.debug("user #{email_address} doesn't have an account yet -- will send email")
                             # create trigger so that when user eventually makes an account,
                             # they will be added to the project.
                             database.account_creation_actions
@@ -3985,7 +3985,8 @@ get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
 nodemailer   = require("nodemailer")
 email_server = undefined
 
-# here's how I test this function:  require('hub').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@uw.edu', cb:console.log)
+# here's how I test this function:
+#    require('hub').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@uw.edu', cb:console.log)
 exports.send_email = send_email = (opts={}) ->
     opts = defaults opts,
         subject : required
@@ -3995,15 +3996,19 @@ exports.send_email = send_email = (opts={}) ->
         cc      : ''
         cb      : undefined
 
+    dbg = (m) -> winston.debug("send_email(to:#{opts.to}) -- #{m}")
+    dbg(opts.body)
+
     async.series([
         (cb) ->
             if email_server?
                 cb(); return
+            dbg("starting sendgrid client")
             filename = 'data/secrets/sendgrid_email_password'
             fs.readFile filename, 'utf8', (error, password) ->
                 if error
                     err = "unable to read the file '#{filename}', which is needed to send emails."
-                    winston.info(err)
+                    dbg(err)
                     cb(err)
                 else
                     email_server = nodemailer.createTransport "SMTP",
@@ -4012,6 +4017,7 @@ exports.send_email = send_email = (opts={}) ->
                         auth    :
                             user: "wstein",
                             pass: require('fs').readFileSync('data/secrets/sendgrid_email_password').toString().trim()
+                    dbg("started email server")
                     cb()
         (cb) ->
             email_server.sendMail
@@ -4020,11 +4026,19 @@ exports.send_email = send_email = (opts={}) ->
                 text    : opts.body
                 subject : opts.subject
                 cc      : opts.cc,
-                cb      : cb
+                cb      : (err) =>
+                    if err
+                        dbg("sendMail -- error = #{err}")
+                    cb(err)
+
     ], (err, message) ->
         if err
             # so next time it will try fresh to connect to email server, rather than being wrecked forever.
             email_server = undefined
+            err = "error sending email -- #{misc.to_json(err)}"
+            dbg(err)
+        else
+            dbg("successfully sent email")
         opts.cb?(err, message)
     )
 
