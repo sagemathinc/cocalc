@@ -45,14 +45,14 @@ Editor for files in a project
     <!-- Template for the codemirror text editor -->
     <div class="salvus-editor-codemirror well">
         <div class="salvus-editor-codemirror-button-row">
-            <div class="hidden-xs salvus-editor-chat-title pull-right">
-                <i class="fa fa-caret-down salvus-editor-chat-hide"></i>
-                <i class="fa fa-caret-left hide salvus-editor-chat-show"></i>
-                <i class="fa fa-comments-o salvus-editor-chat-new-chats hide"></i>
-                <i class="fa fa-comment salvus-editor-chat-no-new-chats"> </i>
-                &nbsp;
-            </div>
             <div class="salvus-editor-codemirror-button-container">
+                <div class="hidden-xs salvus-editor-chat-title pull-right">
+                    <i class="fa fa-caret-down salvus-editor-chat-hide"></i>
+                    <i class="fa fa-caret-left hide salvus-editor-chat-show"></i>
+                    <i class="fa fa-comments-o salvus-editor-chat-new-chats hide"></i>
+                    <i class="fa fa-comment salvus-editor-chat-no-new-chats"> </i>
+                    &nbsp;
+                </div>
                 <span class="visible-xs">
                     <span class="btn-group">
                         <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> <span>Files...</span></a>
@@ -79,7 +79,7 @@ Editor for files in a project
                         <span class="btn-group">
                             <a href="#execute" class="btn btn-sm btn-success" data-container="body" data-toggle="tooltip" data-placement="right" title="Execute current or selected cells."><i class="fa fa-play"></i> Run</a>
                             <a href="#interrupt" class="btn btn-sm btn-warning" data-container="body" data-toggle="tooltip" data-placement="right" title="Interrupt the running Sage process."><i class="fa fa-stop"></i> Stop</a>
-                            <a href="#kill" class="btn btn-sm btn-warning" data-container="body" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process."><i class="fa fa-refresh"></i> Restart</a>
+                            <a href="#kill" class="btn btn-sm btn-warning" data-container="body" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process."><i class="fa fa-refresh"></i> <span class="hidden-sm">Restart</span></a>
                         </span>
                         <span class="btn-group">
                             <a href="#toggle-input" class="btn btn-sm btn-default" data-container="body" data-toggle="tooltip" data-placement="right" title="Toggle display of input of selected cells."><i class="fa fa-eye-slash"></i></a>

@@ -158,7 +158,7 @@ file_associations['course'] =
     editor : 'course'
     icon   : 'fa-graduation-cap'
     opts   : {}
- 
+
 
 file_associations['sage-history'] =
     editor : 'history'
@@ -4468,7 +4468,7 @@ course = require('course')
 
 class Course extends FileEditorWrapper
     init_wrapped: () ->
-        @element = course.course(@editor.project_id, @filename)
+        @element = course.course(@editor, @filename)
         @wrapped = @element.data('course')
 
 

@@ -64,6 +64,10 @@
     font-family: monospace;
 }
 
+.salvus-course-share-path {
+    font-family: monospace;
+    cursor: pointer;
+}
 
 .salvus-course-search-describe {
     margin-top: 4px;

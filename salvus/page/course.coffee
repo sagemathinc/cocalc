@@ -18,18 +18,20 @@ templates = $(".salvus-course-templates")
 SYNC_INTERVAL = 500
 
 SETTINGS =
-    title       : "Course Title"
+    title       : "Course title"
     description : "Course description"
 
-exports.course = (project_id, filename) ->
+exports.course = (editor, filename) ->
     element = templates.find(".salvus-course-editor").clone()
-    new Course(project_id, filename, element)
+    new Course(editor, filename, element)
     return element
 
 
 class Course
-    constructor : (@project_id, @filename, @element) ->
+    constructor : (@editor, @filename, @element) ->
+        @project_id = @editor.project_id
         @element.data('course', @)
+
         @init_page_buttons()
         @init_student_search()
         @init_view_options()
@@ -44,6 +46,7 @@ class Course
             (cb) =>
                 @init_edit_settings()
                 @update_students()
+                @init_shares()
                 @init_collaborators(cb)
         ], (err) =>
             if err
@@ -107,7 +110,7 @@ class Course
 
 
     init_page_buttons: () =>
-        PAGES =['students', 'share', 'collect', 'assignments', 'settings']
+        PAGES =['students', 'share', 'settings']
         buttons = @element.find(".salvus-course-page-buttons")
         for page in PAGES
             @element.find("a[href=##{page}]").data('page',page).click (e) =>
@@ -151,12 +154,9 @@ class Course
                 for prop in misc.keys(SETTINGS)
                     @element.find(".salvus-course-editor-#{prop}").data('set_upstream')(x.insert[prop])
             else if x.insert?.table == "students"
-                delete x.insert.table
-                x.insert.append = false
                 @render_student(x.insert)
-            else if x.insert?.table == "assignments"
-                delete x.insert.table
-                @render_assignment(x.insert)
+            else if x.insert?.table == "shares"
+                @render_share(x.insert)
         @update_student_count()
 
 
@@ -775,13 +775,17 @@ class Course
                     loading.hide()
                     select.html('').show()
                     select.attr(size:Math.min(10, resp.directories.length))
+                    existing_shares = {}
+                    for x in @db.select(table:'shares')
+                        existing_shares[x.path] = true
                     for path in resp.directories
-                        select.append($("<option>").attr(value:path, label:path).text(path))
+                        if not existing_shares[path]
+                            select.append($("<option>").attr(value:path, label:path).text(path))
                     share_button.show().addClass('disabled').find("span").text("selected path")
 
         select.click () =>
             path = select.val()
-            share_button.removeClass('disabled').find("span").text(path).data('path', path)
+            share_button.data('path', path).removeClass('disabled').find("span").text(path)
 
 
     init_share_search: () =>
@@ -792,11 +796,57 @@ class Course
             return false
 
     share_folder: (path) =>
-        # make a new row
-        # have an editable column for the destination folder
-        # have a button to do (or redo) the share for all students
-        # a multi-select to do share for a specific subset of student projects
-        console.log("todo: share folder #{path}")
+        # - make a new row
+        # - have a button to do (or redo) the share for all students
+        # - collect: gets all the files from all students (or updates it) -- select a local folder as destination and click button
+        # - have a column with dropdown to jump to gathered version of files
+        console.log("create share folder #{path}")
+        share_id = misc.uuid()
+        @db.update
+            set :
+                path : path
+            where :
+                table    : 'shares'
+                share_id : share_id
+        @db.save()
+        @render_share
+            share_id : share_id
+            append   : false
+
+    init_shares: () =>
+        @shares_elt = @element.find(".salvus-course-shares")
+        for share in @db.select(table:'shares')
+            try
+                @render_share(share)
+            catch e
+                console.log("ERROR rendering share=#{misc.to_json(share)}")
+
+    render_share: (opts) =>
+        opts = defaults opts,
+            share_id : required
+            path     : required
+            append   : true
+            table    : undefined  # ignored
+
+        console.log("render share #{opts.share_id}: #{misc.to_json(opts)}")
+
+        e = @shares_elt.find("[data-share_id='#{opts.share_id}']")
+        if e.length == 0
+            e = templates.find(".salvus-course-share").clone()
+            e.attr("data-share_id", opts.share_id)
+            if opts.append
+                @shares_elt.append(e)
+            else
+                @shares_elt.prepend(e)
+            e.find(".salvus-course-share-path").click () =>
+                @open_directory(opts.path)
+                return false
+
+        e.find(".salvus-course-share-path").text(opts.path)
+
+    open_directory: (path) =>
+        @editor.project_page.chdir(path)
+        @editor.project_page.display_tab("project-file-listing")
 
     ###
     # Assignment
