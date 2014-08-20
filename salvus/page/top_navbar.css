@@ -57,6 +57,7 @@
     font-size: 14px;
     margin-bottom: 0;
     min-height: 0;
+    opacity: .9;   /* avoid confusion when project scrolls up and is covered by top bar */
 }
 
 .salvus-fullscreen-activate {
