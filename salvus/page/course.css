@@ -69,6 +69,11 @@
     cursor: pointer;
 }
 
+.salvus-course-collect-path {
+    font-family: monospace;
+    cursor: pointer;
+}
+
 .salvus-course-search-describe {
     margin-top: 4px;
     font-size: 11pt;

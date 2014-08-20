@@ -156,7 +156,7 @@ class Course
             else if x.insert?.table == "students"
                 @render_student(x.insert)
             else if x.insert?.table == "shares"
-                @render_share(x.insert)
+                @render_share(share:x.insert)
         @update_student_count()
 
 
@@ -802,56 +802,115 @@ class Course
         # - have a column with dropdown to jump to gathered version of files
         console.log("create share folder #{path}")
         share_id = misc.uuid()
+
+        # default is same level as course file in collect subdir
+        p = misc.path_split(@filename).head
+        if p
+            p += '/'
+        collect_path  = p + 'collect/' + path
+        target_path = path
         @db.update
             set :
-                path : path
+                path         : path
+                target_path  : target_path
+                collect_path : collect_path
             where :
                 table    : 'shares'
                 share_id : share_id
         @db.save()
         @render_share
-            share_id : share_id
-            path     : path
+            share :
+                share_id     : share_id
+                path         : path
+                target_path  : target_path
+                collect_path : collect_path
             append   : false
 
     init_shares: () =>
         @shares_elt = @element.find(".salvus-course-shares")
-        for share in @db.select(table:'shares')
+        v = @db.select(table:'shares')
+        v.sort (a,b) =>
+            if a.path < b.path
+                return -1
+            else if a.path > b.path
+                return 1
+            return 0
+
+        for share in v
             try
-                @render_share(share)
+                @render_share(share : share)
             catch e
                 console.log("ERROR rendering share=#{misc.to_json(share)}")
 
     render_share: (opts) =>
         opts = defaults opts,
-            share_id : required
-            path     : required
-            append   : true
-            table    : undefined  # ignored
+            share  : required
+            append : true
 
-        console.log("render share #{opts.share_id}: #{misc.to_json(opts)}")
+        share = opts.share
+        console.log("render share #{share.share_id}: #{misc.to_json(share)}")
 
-        e = @shares_elt.find("[data-share_id='#{opts.share_id}']")
+        e = @shares_elt.find("[data-share_id='#{share.share_id}']")
         if e.length == 0
             e = templates.find(".salvus-course-share").clone()
-            e.attr("data-share_id", opts.share_id)
+            e.attr("data-share_id", share.share_id)
             if opts.append
                 @shares_elt.append(e)
             else
                 @shares_elt.prepend(e)
             e.find(".salvus-course-share-path").click () =>
-                @open_directory(opts.path)
+                @open_directory(share.path)
+                return false
+            e.find(".salvus-course-collect-path").click () =>
+                # TODO: need to lookup current path
+                @open_directory(share.collect_path)
                 return false
             share_button = e.find("a[href=#share-files]").click () =>
                 share_button.icon_spin(start:true)
                 @share_path_with_students
-                    share_id : opts.share_id
+                    share_id : share.share_id
                     cb       : (err) =>
                         share_button.icon_spin(false)
                         if err
                             alert_message(type:'error', message:"error sharing files with students - #{err}")
+            collect_button = e.find("a[href=#collect-files]").click () =>
+                collect_button.icon_spin(start:true)
+                @collect_path_from_students
+                    share_id : share.share_id
+                    cb       : (err) =>
+                        collect_button.icon_spin(false)
 
-        e.find(".salvus-course-share-path").text(opts.path)
+
+        e.find(".salvus-course-share-path").text(share.path)
+        e.find(".salvus-course-collect-path").text(share.collect_path)
+
+    collect_path_from_students: (opts) =>
+        opts = defaults opts,
+            share_id : required
+            students : undefined  # if given, collect from the specified students; otherwise, collect from all students
+            cb       : required
+
+        if not opts.students?
+            opts.students = @students()
+
+        share = @db.select_one(table:'shares', share_id:opts.share_id)
+        if not share.last_collect?
+            share.last_collect = {}
+        collect_from = (student, cb) =>
+            console.log("collecting '#{share.path}' from #{student.email_address}")
+            salvus_client.copy_path_between_projects
+                src_project_id    : student.project_id
+                src_path          : share.target_path
+                target_project_id : @project_id
+                target_path       : share.collect_path + '/' + student.student_id
+                overwrite_newer   : share.collect_overwrite_newer
+                delete_missing    : share.collect_delete_missing
+                timeout           : share.timeout
+                cb                : (err) =>
+                    console.log("finished collect with with #{student.email_address} -- err=#{err}")
+                    share.last_collect[student.student_id] = {time:misc.mswalltime(), error:err}
+                    cb(err)
+        async.mapLimit(opts.students, 10, collect_from, (err) => opts.cb(err))
 
     # share the files for the given share_id with the given students
     share_path_with_students: (opts) =>

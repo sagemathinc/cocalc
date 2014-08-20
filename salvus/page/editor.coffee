@@ -1628,6 +1628,7 @@ class CodeMirrorEditor extends FileEditor
             v = [@codemirror]
             ht = cm_height
 
+        console.log("refreshing cm editors -- #{@filename} -- #{new Date()}")
         for cm in v
             scroller = $(cm.getScrollerElement())
             scroller.css('height':ht)
@@ -1635,10 +1636,11 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : ht
                 width  : width
-            # we do this twice since very rarely the first one doesn't suffice. I think the
-            # only drawback is that the browser has to do a little extra work.
             setTimeout((()=>cm.refresh()), 0)
-            setTimeout((()=>cm.refresh()), 500)
+            setTimeout((()=>cm.refresh()), 3000)
+            if not window.cm?
+                window.cm = []
+            window.cm.push(cm)
 
         if chat
             chat_elt = @element.find(".salvus-editor-codemirror-chat")

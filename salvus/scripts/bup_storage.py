@@ -1078,7 +1078,7 @@ class Project(object):
         project_path = os.path.join(PROJECTS_PATH, project_id)
         abspath = os.path.abspath(os.path.join(project_path, path))
         if not abspath.startswith(project_path):
-            raise RuntimeError("path must be contained in project path %s"%project_path)
+            raise RuntimeError("path (=%s) must be contained in project path %s"%(path, project_path))
         if not os.path.exists(abspath):
             self.makedirs(abspath)
 
@@ -1138,7 +1138,7 @@ class Project(object):
         if os.path.isdir(src_abspath):
             src_abspath    += '/'
             target_abspath += '/'
-            
+
         # handle options
         options = []
         if not overwrite_newer:
