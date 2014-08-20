@@ -1198,6 +1198,9 @@ class exports.Connection extends EventEmitter
         cb = opts.cb
         delete opts.cb
 
+        if not opts.target_path?
+            opts.target_path = opts.src_path
+
         @call
             message : message.copy_path_between_projects(opts)
             cb      : (err, resp) =>

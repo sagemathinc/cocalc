@@ -646,9 +646,22 @@ class Project(object):
             os.unlink(path)
         if not os.path.exists(path):
             log("creating %s"%path)
-            os.makedirs(path, mode=0700)
-        if chown and USERNAME == "root":
-            os.chown(path, self.uid, self.gid)
+            def makedirs(name):  # modified from os.makedirs to chown each newly created path segment
+                head, tail = os.path.split(name)
+                if not tail:
+                    head, tail = os.path.split(head)
+                if head and tail and not os.path.exists(head):
+                    try:
+                        makedirs(head)
+                    except OSError, e:
+                        # be happy if someone already created the path
+                        if e.errno != errno.EEXIST:
+                            raise
+                    if tail == os.curdir:           # xxx/newdir/. exists if xxx/newdir exists
+                        return
+                os.mkdir(name, 0700)
+                os.chown(name, self.uid, self.gid)
+            makedirs(path)
 
     def update_daemon_code(self):
         log = self._log('update_daemon_code')
@@ -1060,6 +1073,15 @@ class Project(object):
         # the -z forces unmount even if filesystem is busy
         self.cmd(["fusermount", "-z", "-u", os.path.join(self.project_mnt, mount_point)])
 
+    def mkdir(self, path):               # relative path in project; must resolve to be under PROJECTS_PATH/project_id
+        project_id = self.project_id
+        project_path = os.path.join(PROJECTS_PATH, project_id)
+        abspath = os.path.abspath(os.path.join(project_path, path))
+        if not abspath.startswith(project_path):
+            raise RuntimeError("path must be contained in project path %s"%project_path)
+        if not os.path.exists(abspath):
+            self.makedirs(abspath)
+
     def copy_path(self,
                   path,                  # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
                   target_hostname,       # list of hostnames (foo or foo:port) to copy files to
@@ -1113,16 +1135,16 @@ class Project(object):
         if not target_abspath.startswith(target_project_path):
             raise RuntimeError("target path must be contained in target project path %s"%target_project_path)
 
+        if os.path.isdir(src_abspath):
+            src_abspath    += '/'
+            target_abspath += '/'
+            
         # handle options
         options = []
         if not overwrite_newer:
             options.append("--update")
         if delete:
             options.append("--delete")
-
-        if os.path.isdir(src_abspath):
-            src_abspath    += '/'
-            target_abspath += '/'
 
         u = uid(target_project_id)
         try:
@@ -1131,8 +1153,7 @@ class Project(object):
                      ['-zsax',                      # compressed, archive mode (so leave symlinks, etc.), don't cross filesystem boundaries
                       '--timeout', rsync_timeout,
                       '--bwlimit', bwlimit,
-                      '--usermap=*:%s'%u,
-                      '--groupmap=*:%s'%u,
+                      '--chown=%s:%s'%(u,u),
                       "--ignore-errors"] +
                      self.exclude('') +
                      ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%target_port,
@@ -1225,6 +1246,18 @@ if __name__ == "__main__":
                                                        overwrite_newer   = args.overwrite_newer,
                                                        delete            = args.delete,
                                                        ))
+
+    def do_mkdir(*args, **kwds):
+        try:
+            project.mkdir(*args, **kwds)
+        except Exception, mesg:
+            print json.dumps({"error":str(mesg)})
+        else:
+            print json.dumps({"ok":True})
+    parser_mkdir = subparsers.add_parser('mkdir', help='make a path in a project')
+    parser_mkdir.add_argument("--path", help="relative path in project", dest="path", default='', type=str)
+    parser_mkdir.set_defaults(func=lambda args: do_mkdir(path = args.path))
+
 
     parser_settings = subparsers.add_parser('settings', help='set settings for this user; also outputs settings in JSON')
     parser_settings.add_argument("--memory", dest="memory", help="memory settings in gigabytes",

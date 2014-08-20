@@ -1068,12 +1068,41 @@ class GlobalProject
                 opts.cb?(undefined, result)
         )
 
+    # make a directory in this project
+    mkdir: (opts) =>
+        opts = defaults opts,
+            path      : required
+            server_id : undefined
+            timeout   : TIMEOUT
+            cb        : undefined
+        dbg = (m) => winston.debug("GlobalProject.mkdir(#{@project_id}, #{opts.path}: #{m}")
+        dbg()
+        if opts.path == '' or opts.path=='.'
+            opts.cb?()
+            return
+        project = undefined
+        async.series([
+            (cb) =>
+                dbg("get the project")
+                @project
+                    server_id : opts.server_id
+                    cb        : (err, p) =>
+                        project = p; cb(err)
+            (cb) =>
+                dbg("do the mkdir action")
+                project.mkdir
+                    path    : opts.path
+                    timeout : opts.timeout
+                    cb      : cb
+        ], (err) => opts.cb?(err))
+
+
     # copy a path from this project to another project
     copy_path: (opts) =>
         opts = defaults opts,
             path            : required  # relative path in this project
             project_id      : required  # id of target project (or list of id's)
-            target_path     : undefined # defaults to path
+            target_path     : undefined # default to be same as source
             overwrite_newer : false     # overwrite newer versions of file at destination (destructive)
             delete_missing  : false     # delete files in dest that are missing from source (destructive)
             timeout         : TIMEOUT
@@ -1093,12 +1122,19 @@ class GlobalProject
 
         async.series([
             (cb) =>
+                dbg("ensure target's containing directory exists")
+                target_project.mkdir
+                    path : misc.path_split(opts.target_path).head
+                    cb   : cb
+            (cb) =>
                 dbg("get coordinates (server_id, datacenter, addr) for source and target projects (in parallel)")
                 async.parallel([
                     (cb) =>
                         dbg("get coords of source project")
                         @get_running_location_and_dc
                             cb : (err, x) =>
+                                if not err and not x
+                                    err = "unable to determine coords of source project"
                                 if err
                                     cb(err)
                                 else
@@ -1110,9 +1146,12 @@ class GlobalProject
                                         cb        : (err, addr) =>
                                             if not err and not addr?
                                                 err = "unable to determine ip address of source server #{x.server_id} from dc #{dc}"
-                                            source_loc.addr = addr
-                                            dbg("source_loc=#{misc.to_json(source_loc)}")
-                                            cb(err)
+                                            if err
+                                                cb(err)
+                                            else
+                                                source_loc.addr = addr
+                                                dbg("source_loc=#{misc.to_json(source_loc)}")
+                                                cb()
                     (cb) =>
                         dbg("get coords of target project")
                         target_project.get_running_location_and_dc
@@ -1127,9 +1166,12 @@ class GlobalProject
                                         cb        : (err, addr) =>
                                             if not err and not addr?
                                                 err = "unable to determine ip address of target server #{x.server_id} from dc #{dc}"
-                                            target_loc.addr = addr
-                                            dbg("target_loc=#{misc.to_json(target_loc)}")
-                                            cb(err)
+                                            if err
+                                                cb(err)
+                                            else
+                                                target_loc.addr = addr
+                                                dbg("target_loc=#{misc.to_json(target_loc)}")
+                                                cb()
                 ], cb)
 
             (cb) =>
@@ -2974,6 +3016,24 @@ class ClientProject
             param   : params
             timeout : opts.timeout
             cb      : opts.cb
+
+    mkdir: (opts) =>
+        opts = defaults opts,
+            path    : required
+            timeout : TIMEOUT
+            cb      : undefined
+        @action
+            action  : 'mkdir'
+            param   : ["--path=#{opts.path}"]
+            timeout : opts.timeout
+            cb      : (err, resp) =>
+                if err
+                    opts.cb?(err)
+                else
+                    if resp.result?.error
+                        opts.cb?(resp.result.error)
+                    else
+                        opts.cb?()
 
     copy_path: (opts) =>
         opts = defaults opts,
