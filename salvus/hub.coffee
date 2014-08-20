@@ -4584,12 +4584,13 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
 console.log(program._name)
 if program._name.slice(0,3) == 'hub'
     # run as a server/daemon (otherwise, is being imported as a library)
-    if program.rawArgs[1] in ['start', 'restart']
-        process.addListener "uncaughtException", (err) ->
-            winston.debug("BUG ****************************************************************************")
-            winston.debug("Uncaught exception: " + err)
-            winston.debug(new Error().stack)
-            winston.debug("BUG ****************************************************************************")
+
+    #if program.rawArgs[1] in ['start', 'restart']
+    process.addListener "uncaughtException", (err) ->
+        winston.debug("BUG ****************************************************************************")
+        winston.debug("Uncaught exception: " + err)
+        winston.debug(new Error().stack)
+        winston.debug("BUG ****************************************************************************")
 
     if program.passwd
         console.log("Resetting password")

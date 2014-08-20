@@ -107,9 +107,11 @@ exports.defaults = (obj1, obj2, allow_extra) ->
         obj1 = {}
     error  = () ->
         try
-            "(obj1=#{exports.to_json(obj1)}, obj2=#{exports.to_json(obj2)})"
+            s = "(obj1=#{exports.to_json(obj1)}, obj2=#{exports.to_json(obj2)})"
+            console.log(s)
+            return s
         catch error
-            ""
+            return ""
     if typeof(obj1) != 'object'
         # We put explicit traces before the errors in this function,
         # since otherwise they can be very hard to debug.

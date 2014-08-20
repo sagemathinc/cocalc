@@ -127,7 +127,9 @@ BASH_PROFILE_TEMPLATE  = "/home/salvus/salvus/salvus/scripts/skel/.bash_profile"
 
 #SSH_ACCESS_PUBLIC_KEY  = "/home/salvus/salvus/salvus/scripts/skel/.ssh/authorized_keys2"
 
-def log(m):
+def log(m, *args):
+    if len(args):
+        m = m%args
     sys.stderr.write(str(m)+'\n')
     sys.stderr.flush()
 
@@ -230,9 +232,9 @@ class Project(object):
     def __repr__(self):
         return "Project(%s)"%project_id
 
-    def _log(self, funcname, **kwds):
-        def f(mesg=''):
-            log("%s(project_id=%s,%s): %s"%(funcname, self.project_id, kwds, mesg))
+    def _log(self, funcname,**kwds):
+        def f(mesg='',*args):
+            log("%s(project_id=%s,%s): %s"%(funcname, self.project_id, kwds, mesg), *args)
         f()
         return f
 

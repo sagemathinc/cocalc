@@ -1084,6 +1084,7 @@ class GlobalProject
         source_loc = undefined
         target_loc = undefined
         project    = undefined
+        dc         = undefined
 
         target_project = @global_client.get_project(opts.project_id)
 
@@ -1102,10 +1103,13 @@ class GlobalProject
                                     cb(err)
                                 else
                                     source_loc = x
+                                    dc         = x.dc
                                     @global_client.get_external_ssh
                                         server_id : x.server_id
-                                        dc        : x.dc
+                                        dc        : dc
                                         cb        : (err, addr) =>
+                                            if not err and not addr?
+                                                err = "unable to determine ip address of source server #{x.server_id} from dc #{dc}"
                                             source_loc.addr = addr
                                             dbg("source_loc=#{misc.to_json(source_loc)}")
                                             cb(err)
@@ -1119,8 +1123,10 @@ class GlobalProject
                                     target_loc = x
                                     @global_client.get_external_ssh
                                         server_id : x.server_id
-                                        dc        : source_loc.dc   # data center of the *source* project!
+                                        dc        : dc   # data center of the *source* project!
                                         cb        : (err, addr) =>
+                                            if not err and not addr?
+                                                err = "unable to determine ip address of target server #{x.server_id} from dc #{dc}"
                                             target_loc.addr = addr
                                             dbg("target_loc=#{misc.to_json(target_loc)}")
                                             cb(err)

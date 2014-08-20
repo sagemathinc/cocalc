@@ -811,6 +811,7 @@ class Course
         @db.save()
         @render_share
             share_id : share_id
+            path     : path
             append   : false
 
     init_shares: () =>
@@ -841,8 +842,46 @@ class Course
             e.find(".salvus-course-share-path").click () =>
                 @open_directory(opts.path)
                 return false
+            share_button = e.find("a[href=#share-files]").click () =>
+                share_button.icon_spin(start:true)
+                @share_path_with_students
+                    share_id : opts.share_id
+                    cb       : (err) =>
+                        share_button.icon_spin(false)
+                        if err
+                            alert_message(type:'error', message:"error sharing files with students - #{err}")
 
         e.find(".salvus-course-share-path").text(opts.path)
+
+    # share the files for the given share_id with the given students
+    share_path_with_students: (opts) =>
+        opts = defaults opts,
+            share_id : required
+            students : undefined  # if given, share with the given students; otherwise, share with all students
+            cb       : required
+
+        if not opts.students?
+            opts.students = @students()
+
+        share = @db.select_one(table:'shares', share_id:opts.share_id)
+        if not share.last_share?
+            share.last_share = {}
+        share_with = (student, cb) =>
+            console.log("sharing '#{share.path}' with #{student.email_address}")
+            salvus_client.copy_path_between_projects
+                src_project_id    : @project_id
+                src_path          : share.path
+                target_project_id : student.project_id
+                target_path       : share.target_path
+                overwrite_newer   : share.overwrite_newer
+                delete_missing    : share.delete_missing
+                timeout           : share.timeout
+                cb                : (err) =>
+                    console.log("finished share with with #{student.email_address} -- err=#{err}")
+                    share.last_share[student.student_id] = {time:misc.mswalltime(), error:err}
+                    cb(err)
+        async.mapLimit(opts.students, 10, share_with, (err) => opts.cb(err))
+
 
     open_directory: (path) =>
         @editor.project_page.chdir(path)
