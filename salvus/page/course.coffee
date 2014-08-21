@@ -34,6 +34,7 @@ class Course
 
         @init_page_buttons()
         @init_student_search()
+        @init_shares_search()
         @init_view_options()
         @init_new_student()
         @init_new_file_share()
@@ -47,6 +48,7 @@ class Course
                 @init_edit_settings()
                 @update_students()
                 @init_shares()
+                @update_shares()
                 @init_collaborators(cb)
         ], (err) =>
             if err
@@ -158,6 +160,8 @@ class Course
             else if x.insert?.table == "shares"
                 @render_share(share:x.insert)
         @update_student_count()
+        @update_share_count()
+
 
 
     ###
@@ -360,9 +364,9 @@ class Course
         update = () =>
             v = @student_search_box.val()
             if v
-                @element.find(".salvus-course-search-contain").show().find(".salvus-course-search-query").text(v)
+                @element.find(".salvus-course-student-search-contain").show().find(".salvus-course-search-query").text(v)
             else
-                @element.find(".salvus-course-search-contain").hide()
+                @element.find(".salvus-course-student-search-contain").hide()
             @update_students()
         @student_search_box.keyup(update)
         @element.find(".salvus-course-page-students").find(".salvus-course-search-clear").click () =>
@@ -788,13 +792,6 @@ class Course
             share_button.data('path', path).removeClass('disabled').find("span").text(path)
 
 
-    init_share_search: () =>
-        @share_search_box = @element.find(".salvus-course-share-search")
-        @element.find(".salvus-course-page-share").find(".salvus-course-search-clear").click () =>
-            @share_search_box.val('').focus()
-            update()
-            return false
-
     share_folder: (path) =>
         # - make a new row
         # - have a button to do (or redo) the share for all students
@@ -818,6 +815,7 @@ class Course
                 table    : 'shares'
                 share_id : share_id
         @db.save()
+        @update_share_count()
         @render_share
             share :
                 share_id     : share_id
@@ -828,19 +826,6 @@ class Course
 
     init_shares: () =>
         @shares_elt = @element.find(".salvus-course-shares")
-        v = @db.select(table:'shares')
-        v.sort (a,b) =>
-            if a.path < b.path
-                return -1
-            else if a.path > b.path
-                return 1
-            return 0
-
-        for share in v
-            try
-                @render_share(share : share)
-            catch e
-                console.log("ERROR rendering share=#{misc.to_json(share)}")
 
     render_share: (opts) =>
         opts = defaults opts,
@@ -883,6 +868,27 @@ class Course
 
         e.find(".salvus-course-share-path").text(share.path)
         e.find(".salvus-course-collect-path").text(share.collect_path)
+
+        # NOTE: for now we just put everything -- visible or not -- in the DOM.  This is less
+        # scalable -- but the number of shares is likely <= 30...
+        contain = @element.find(".salvus-course-page-share").find(".salvus-course-search-contain")
+        if @shares_search_box?
+            v = @shares_search_box.val().trim()
+            if v
+                contain.show().find(".salvus-course-search-query").text(v)
+                search = share.path + share.collect_path
+                hide = false
+                for x in v.split(' ')
+                    if search.indexOf(x) == -1
+                        hide = true
+                        break
+                if hide
+                    e.hide()
+                else
+                    e.show()
+            else
+                contain.hide()
+                e.show()
 
     collect_path_from_students: (opts) =>
         opts = defaults opts,
@@ -946,30 +952,47 @@ class Course
         @editor.project_page.chdir(path)
         @editor.project_page.display_tab("project-file-listing")
 
-    ###
-    # Assignment
-    ###
-
-    init_new_assignment: () =>
-        @element.find("a[href=#new-assignment]").click () =>
-            @add_new_assignment()
+    init_shares_search: () =>
+        e = @element.find(".salvus-course-page-share")
+        @shares_search_box = e.find(".salvus-course-shares-search")
+        update = () =>
+            v = @shares_search_box.val()
+            if v
+                e.find(".salvus-course-search-contain").show().find(".salvus-course-search-query").text(v)
+            else
+                e.find(".salvus-course-search-contain").hide()
+            @update_shares()
+        @shares_search_box.keyup(update)
+        e.find(".salvus-course-search-clear").click () =>
+            @shares_search_box.val('').focus()
+            update()
             return false
 
-    add_new_assignment: () =>
-        @render_assignment()
+    update_shares: () =>
+        console.log("update_shares")
+        v = @shares()
+        v.sort (a,b) =>
+            if a.deleted and not b.deleted
+                return 1
+            if b.deleted and not a.deleted
+                return -1
+            if a.path < b.path
+                return -1
+            else if a.path > b.path
+                return +1
+            else
+                return 0
+        for share in v
+            @render_share(share:share)
+        @update_share_count()
 
-    render_assignment: () =>
-        @element.find(".salvus-course-assignments").prepend(templates.find(".salvus-course-assignment").clone())
-        @update_assignment_count()
+    shares: () =>
+        @db.select({table : 'shares'})
 
-    update_assignment_count: () =>
-        @element.find(".salvus-course-assignments-count").text("(#{@element.find('.salvus-course-assignment').length})")
+    update_share_count: () =>
+        @element.find(".salvus-course-share-count").text("(#{@shares().length})")
 
 
-    init_assignments: () =>
-        for assignment in @db.select({table : 'assignments'})
-            delete assignment.table
-            @render_assignment(assignment)
 
 
 

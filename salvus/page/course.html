@@ -6,8 +6,7 @@
                 <div class="col-sm-12 ">
                     <span class="btn-group salvus-course-page-buttons">
                         <a class="btn btn-primary btn-default" href="#students"><i class="fa fa-users"> </i>  Students <span class="salvus-course-students-count"></span></a>
-                        <a class="hide btn btn-default" href="#assignments"><i class="fa fa-pencil"> </i> Assignments <span class="salvus-course-assignments-count"></span></a>
-                        <a class="btn btn-default" href="#share"><i class="fa fa-share-square-o"> </i> Share <span class="salvus-course-share-count"></span></a>
+                        <a class="btn btn-default" href="#share"><i class="fa fa-share-square-o"> </i> Assignments <span class="salvus-course-share-count"></span></a>
                         <a class="btn btn-default" href="#settings"><i class="fa fa-wrench"> </i> Settings</a>
                         <a class="btn btn-info" href="#help"><i class="fa fa-question-circle"> </i> Help</a>
                     </span>
@@ -137,7 +136,7 @@
                                 <div class="lighten salvus-course-search-describe col-sm-6">
                                     <!-- Showing <span class="salvus-course-count">0 students</span>.-->
                                     <h4 class="salvus-course-loading">Loading student list... <i class="fa fa-spin fa-spinner"> </i></h4>
-                                    <span class="salvus-course-search-contain hide">Only showing students that contain <b><i><span class="salvus-course-search-query"></span></i></b>. </span>
+                                    <span class="salvus-course-student-search-contain hide">Only showing students that contain <b><i><span class="salvus-course-search-query"></span></i></b>. </span>
                                 </div>
                             </div>
                         </div>
@@ -165,7 +164,7 @@
                             <div class="row">
                                 <div class="col-sm-5 ">
                                     <div class="input-group">
-                                        <input class="salvus-course-share-search search-query form-control" type="search" placeholder="Find...">
+                                        <input class="salvus-course-shares-search search-query form-control" type="search" placeholder="Find...">
                                         <span class="input-group-btn">
 
                                             <button class="btn btn-default salvus-course-search-clear" type="button">
@@ -175,7 +174,7 @@
                                     </div>
                                 </div>
                                 <div class="col-sm-2">
-                                    Choose folder to share:
+                                    Choose folder that contains assignment:
                                 </div>
                                 <div class="col-sm-5 ">
                                     <div class="input-group">
@@ -188,7 +187,12 @@
                                     </div>
                                     <div    class="salvus-course-add-share-loading hide" style="margin-top:1ex">Loading...</div>
                                     <select class="salvus-course-add-share-select form-control hide"></select>
-                                    <a class="btn btn-lg btn-primary btn-submit hide salvus-course-add-share-button" style="margin-top: 1ex;"> <i class="fa fa-user"> </i>  Share <span></span></a>
+                                    <a class="btn btn-lg btn-primary btn-submit hide salvus-course-add-share-button" style="margin-top: 1ex;"> <i class="fa fa-user"> </i>  Add <span></span></a>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="lighten salvus-course-search-describe col-sm-6">
+                                    <span class="salvus-course-search-contain hide">Only showing folders that contain <b><i><span class="salvus-course-search-query"></span></i></b>. </span>
                                 </div>
                             </div>
                         </div>
@@ -274,21 +278,19 @@
 
     <div class="salvus-course-share">
         <div class="row">
-            <div class="salvus-course-field  col-sm-3" spellcheck="false">
-                <a class="salvus-course-share-path">
+            <div class="salvus-course-field  col-sm-2" spellcheck="false">
+                <a class="salvus-course-share-path project-file-name">
                 </a>
             </div>
             <div class="salvus-course-field col-sm-2 ">
-                <a href="#share-files" class="btn btn-default"><i class="fa fa-share-square-o"> </i>  Share Files</a>
+                <a href="#share-files" class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Send</a>
             </div>
-            <div class="salvus-course-field col-sm-2">
-            </div>
-            <div class="salvus-course-field  col-sm-3" spellcheck="false">
-                <a class="salvus-course-collect-path">
+            <div class="salvus-course-field  col-sm-2" spellcheck="false">
+                <a class="salvus-course-collect-path project-file-name">
                 </a>
             </div>
             <div class="salvus-course-field col-sm-2">
-                <a href="#collect-files" class="btn btn-default"><i class="fa fa-files-o"> </i>  Collect Files</a>
+                <a href="#collect-files" class="btn btn-default"><i class="fa fa-files-o"> </i>  Collect</a>
             </div>
             <!--
             <div class="salvus-course-field col-sm-2">
