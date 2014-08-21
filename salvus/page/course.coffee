@@ -800,11 +800,9 @@ class Course
         console.log("create share folder #{path}")
         share_id = misc.uuid()
 
-        # default is same level as course file in collect subdir
-        p = misc.path_split(@filename).head
-        if p
-            p += '/'
-        collect_path  = p + 'collect/' + path
+        # default is derived from course filename
+        i = @filename.lastIndexOf('.')
+        collect_path = @filename.slice(0,i) + '-collect'
         target_path = path
         @db.update
             set :
@@ -904,6 +902,10 @@ class Course
             share.last_collect = {}
         collect_from = (student, cb) =>
             console.log("collecting '#{share.path}' from #{student.email_address}")
+            if not student.project_id?
+                console.log("can't collect from #{student.email_address} -- no project")
+                cb()
+                return
             salvus_client.copy_path_between_projects
                 src_project_id    : student.project_id
                 src_path          : share.target_path
@@ -933,6 +935,10 @@ class Course
             share.last_share = {}
         share_with = (student, cb) =>
             console.log("sharing '#{share.path}' with #{student.email_address}")
+            if not student.project_id?
+                console.log("can't share with #{student.email_address} -- no project")
+                cb()
+                return
             salvus_client.copy_path_between_projects
                 src_project_id    : @project_id
                 src_path          : share.path
@@ -942,7 +948,7 @@ class Course
                 delete_missing    : share.delete_missing
                 timeout           : share.timeout
                 cb                : (err) =>
-                    console.log("finished share with with #{student.email_address} -- err=#{err}")
+                    console.log("finished share with #{student.email_address} -- err=#{err}")
                     share.last_share[student.student_id] = {time:misc.mswalltime(), error:err}
                     cb(err)
         async.mapLimit(opts.students, 10, share_with, (err) => opts.cb(err))
