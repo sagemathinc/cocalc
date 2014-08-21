@@ -833,7 +833,7 @@ class Course
             append : true
 
         share = opts.share
-        console.log("render share #{share.share_id}: #{misc.to_json(share)}")
+        #console.log("render share #{share.share_id}: #{misc.to_json(share)}")
 
         e = @shares_elt.find("[data-share_id='#{share.share_id}']")
         if e.length == 0
@@ -969,7 +969,6 @@ class Course
             return false
 
     update_shares: () =>
-        console.log("update_shares")
         v = @shares()
         v.sort (a,b) =>
             if a.deleted and not b.deleted
@@ -990,10 +989,13 @@ class Course
         @db.select({table : 'shares'})
 
     update_share_count: () =>
-        @element.find(".salvus-course-share-count").text("(#{@shares().length})")
-
-
-
+        n = @shares().length
+        @element.find(".salvus-course-share-count").text("(#{n})")
+        if n == 0
+            @element.find(".salvus-course-shares-none").show()
+            @element.find(".salvus-course-shares-add").focus()
+        else
+            @element.find(".salvus-course-shares-none").hide()
 
 
 
