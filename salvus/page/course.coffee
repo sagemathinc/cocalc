@@ -17,6 +17,9 @@ templates = $(".salvus-course-templates")
 
 SYNC_INTERVAL = 500
 
+# How many rsync-related operations to do in parallel (with async.map)
+MAP_LIMIT = 1
+
 SETTINGS =
     title       : "Course title"
     description : "Course description"
@@ -34,10 +37,10 @@ class Course
 
         @init_page_buttons()
         @init_student_search()
-        @init_shares_search()
+        @init_assignments_search()
         @init_view_options()
         @init_new_student()
-        @init_new_file_share()
+        @init_new_file_assignment()
         @init_help()
         async.series([
             (cb) =>
@@ -47,8 +50,8 @@ class Course
             (cb) =>
                 @init_edit_settings()
                 @update_students()
-                @init_shares()
-                @update_shares()
+                @init_assignments()
+                @update_assignments()
                 @init_collaborators(cb)
         ], (err) =>
             if err
@@ -112,7 +115,7 @@ class Course
 
 
     init_page_buttons: () =>
-        PAGES =['students', 'share', 'settings']
+        PAGES =['students', 'assignment', 'settings']
         buttons = @element.find(".salvus-course-page-buttons")
         for page in PAGES
             @element.find("a[href=##{page}]").data('page',page).click (e) =>
@@ -157,10 +160,10 @@ class Course
                     @element.find(".salvus-course-editor-#{prop}").data('set_upstream')(x.insert[prop])
             else if x.insert?.table == "students"
                 @render_student(x.insert)
-            else if x.insert?.table == "shares"
-                @render_share(share:x.insert)
+            else if x.insert?.table == "assignments"
+                @render_assignment(assignment:x.insert)
         @update_student_count()
-        @update_share_count()
+        @update_assignment_count()
 
 
 
@@ -610,7 +613,7 @@ class Course
                     data       : data
                     cb         : cb
         # use mapLimit to avoid running afoul of backend message rate limiter.
-        async.mapLimit(@students(), 10, f, (err) => opts.cb?(err))
+        async.mapLimit(@students(), MAP_LIMIT, f, (err) => opts.cb?(err))
 
     # Ensure that everybody who is a collaborator on the project owning this .course
     # file is also a collaborator on the student project.  If anybody is being added
@@ -666,7 +669,7 @@ class Course
                                 account_id : account_id
                                 cb         : c
                     ], cb)
-                async.mapLimit(to_invite, 10, f, (err) => cb(err))
+                async.mapLimit(to_invite, MAP_LIMIT, f, (err) => cb(err))
         ], opts.cb)
 
     init_collaborators: (cb) =>
@@ -705,7 +708,7 @@ class Course
                         update         : true
                         course_collabs : to_add
                         cb             : cb
-                async.mapLimit @students(), 10, f, (err) =>
+                async.mapLimit @students(), MAP_LIMIT, f, (err) =>
                     if err
                         cb?(err)
                     else
@@ -731,23 +734,23 @@ class Course
 
 
     ###
-    # File Share
+    # Assignment
     ###
-    init_new_file_share: () =>
-        input_box     = @element.find(".salvus-course-share-add")
-        search_button = @element.find(".salvus-course-search-share-button")
-        select        = @element.find(".salvus-course-add-share-select")
-        loading       = @element.find(".salvus-course-add-share-loading")
-        share_button  = @element.find(".salvus-course-add-share-button")
+    init_new_file_assignment: () =>
+        input_box     = @element.find(".salvus-course-assignment-add")
+        search_button = @element.find(".salvus-course-search-assignment-button")
+        select        = @element.find(".salvus-course-add-assignment-select")
+        loading       = @element.find(".salvus-course-add-assignment-loading")
+        assignment_button  = @element.find(".salvus-course-add-assignment-button")
 
         clear = () =>
             input_box.val('')
             select.hide()
-            share_button.hide().find("span").text('')
+            assignment_button.hide().find("span").text('')
 
         input_box.keyup (evt) =>
             if input_box.val() == ""
-                share_button.hide()
+                assignment_button.hide()
                 select.hide()
             if evt.which == 13
                 update_select(input_box.val())
@@ -755,9 +758,9 @@ class Course
         search_button.click () =>
             update_select(input_box.val())
             return false
-        share_button.click () =>
+        assignment_button.click () =>
             clear()
-            @share_folder(share_button.data('path'))
+            @assignment_folder(assignment_button.data('path'))
 
 
         last_query = undefined
@@ -779,30 +782,30 @@ class Course
                     loading.hide()
                     select.html('').show()
                     select.attr(size:Math.min(10, resp.directories.length))
-                    existing_shares = {}
-                    for x in @db.select(table:'shares')
-                        existing_shares[x.path] = true
+                    existing_assignments = {}
+                    for x in @db.select(table:'assignments')
+                        existing_assignments[x.path] = true
                     for path in resp.directories
-                        if not existing_shares[path]
+                        if not existing_assignments[path]
                             select.append($("<option>").attr(value:path, label:path).text(path))
-                    share_button.show().addClass('disabled').find("span").text("selected path")
+                    assignment_button.show().addClass('disabled').find("span").text("selected path")
 
         select.click () =>
             path = select.val()
-            share_button.data('path', path).removeClass('disabled').find("span").text(path)
+            assignment_button.data('path', path).removeClass('disabled').find("span").text(path)
 
 
-    share_folder: (path) =>
+    assignment_folder: (path) =>
         # - make a new row
-        # - have a button to do (or redo) the share for all students
+        # - have a button to do (or redo) the assignment for all students
         # - collect: gets all the files from all students (or updates it) -- select a local folder as destination and click button
         # - have a column with dropdown to jump to gathered version of files
-        console.log("create share folder #{path}")
-        share_id = misc.uuid()
+        console.log("create assignment: #{path}")
+        assignment_id = misc.uuid()
 
-        # default is derived from course filename
+        # default collection path is derived from course filename
         i = @filename.lastIndexOf('.')
-        collect_path = @filename.slice(0,i) + '-collect'
+        collect_path = @filename.slice(0,i) + '-collect/' + path
         target_path = path
         @db.update
             set :
@@ -810,71 +813,70 @@ class Course
                 target_path  : target_path
                 collect_path : collect_path
             where :
-                table    : 'shares'
-                share_id : share_id
+                table    : 'assignments'
+                assignment_id : assignment_id
         @db.save()
-        @update_share_count()
-        @render_share
-            share :
-                share_id     : share_id
+        @update_assignment_count()
+        @render_assignment
+            assignment :
+                assignment_id     : assignment_id
                 path         : path
                 target_path  : target_path
                 collect_path : collect_path
             append   : false
 
-    init_shares: () =>
-        @shares_elt = @element.find(".salvus-course-shares")
+    init_assignments: () =>
+        @assignments_elt = @element.find(".salvus-course-assignments")
 
-    render_share: (opts) =>
+    render_assignment: (opts) =>
         opts = defaults opts,
-            share  : required
+            assignment  : required
             append : true
 
-        share = opts.share
-        #console.log("render share #{share.share_id}: #{misc.to_json(share)}")
+        assignment = opts.assignment
 
-        e = @shares_elt.find("[data-share_id='#{share.share_id}']")
+        e = @assignments_elt.find("[data-assignment_id='#{assignment.assignment_id}']")
         if e.length == 0
-            e = templates.find(".salvus-course-share").clone()
-            e.attr("data-share_id", share.share_id)
+            e = templates.find(".salvus-course-assignment").clone()
+            e.attr("data-assignment_id", assignment.assignment_id)
             if opts.append
-                @shares_elt.append(e)
+                @assignments_elt.append(e)
             else
-                @shares_elt.prepend(e)
-            e.find(".salvus-course-share-path").click () =>
-                @open_directory(share.path)
+                @assignments_elt.prepend(e)
+            e.find(".salvus-course-assignment-path").click () =>
+                @open_directory(assignment.path)
                 return false
             e.find(".salvus-course-collect-path").click () =>
                 # TODO: need to lookup current path
-                @open_directory(share.collect_path)
+                @open_directory(assignment.collect_path)
                 return false
-            share_button = e.find("a[href=#share-files]").click () =>
-                share_button.icon_spin(start:true)
-                @share_path_with_students
-                    share_id : share.share_id
+            assignment_button = e.find("a[href=#assignment-files]").click () =>
+                assignment_button.icon_spin(start:true)
+                @assignment_path_with_students
+                    assignment_id : assignment.assignment_id
                     cb       : (err) =>
-                        share_button.icon_spin(false)
+                        assignment_button.icon_spin(false)
                         if err
                             alert_message(type:'error', message:"error sharing files with students - #{err}")
             collect_button = e.find("a[href=#collect-files]").click () =>
                 collect_button.icon_spin(start:true)
                 @collect_path_from_students
-                    share_id : share.share_id
+                    assignment_id : assignment.assignment_id
                     cb       : (err) =>
                         collect_button.icon_spin(false)
 
 
-        e.find(".salvus-course-share-path").text(share.path)
-        e.find(".salvus-course-collect-path").text(share.collect_path)
+        e.find(".salvus-course-assignment-path").text(assignment.path)
+        e.find(".salvus-course-collect-path").text(assignment.collect_path)
 
         # NOTE: for now we just put everything -- visible or not -- in the DOM.  This is less
-        # scalable -- but the number of shares is likely <= 30...
-        contain = @element.find(".salvus-course-page-share").find(".salvus-course-search-contain")
-        if @shares_search_box?
-            v = @shares_search_box.val().trim()
+        # scalable -- but the number of assignments is likely <= 30...
+        contain = @element.find(".salvus-course-page-assignment").find(".salvus-course-search-contain")
+        if @assignments_search_box?
+            v = @assignments_search_box.val().trim()
             if v
                 contain.show().find(".salvus-course-search-query").text(v)
-                search = share.path + share.collect_path
+                search = assignment.path + assignment.collect_path
                 hide = false
                 for x in v.split(' ')
                     if search.indexOf(x) == -1
@@ -890,92 +892,92 @@ class Course
 
     collect_path_from_students: (opts) =>
         opts = defaults opts,
-            share_id : required
+            assignment_id : required
             students : undefined  # if given, collect from the specified students; otherwise, collect from all students
             cb       : required
 
         if not opts.students?
             opts.students = @students()
 
-        share = @db.select_one(table:'shares', share_id:opts.share_id)
-        if not share.last_collect?
-            share.last_collect = {}
+        assignment = @db.select_one(table:'assignments', assignment_id:opts.assignment_id)
+        if not assignment.last_collect?
+            assignment.last_collect = {}
         collect_from = (student, cb) =>
-            console.log("collecting '#{share.path}' from #{student.email_address}")
+            console.log("collecting '#{assignment.path}' from #{student.email_address}")
             if not student.project_id?
                 console.log("can't collect from #{student.email_address} -- no project")
                 cb()
                 return
             salvus_client.copy_path_between_projects
                 src_project_id    : student.project_id
-                src_path          : share.target_path
+                src_path          : assignment.target_path
                 target_project_id : @project_id
-                target_path       : share.collect_path + '/' + student.student_id
-                overwrite_newer   : share.collect_overwrite_newer
-                delete_missing    : share.collect_delete_missing
-                timeout           : share.timeout
+                target_path       : assignment.collect_path + '/' + student.student_id
+                overwrite_newer   : assignment.collect_overwrite_newer
+                delete_missing    : assignment.collect_delete_missing
+                timeout           : assignment.timeout
                 cb                : (err) =>
                     console.log("finished collect with with #{student.email_address} -- err=#{err}")
-                    share.last_collect[student.student_id] = {time:misc.mswalltime(), error:err}
+                    assignment.last_collect[student.student_id] = {time:misc.mswalltime(), error:err}
                     cb(err)
-        async.mapLimit(opts.students, 10, collect_from, (err) => opts.cb(err))
+        async.mapLimit(opts.students, MAP_LIMIT, collect_from, (err) => opts.cb(err))
 
-    # share the files for the given share_id with the given students
-    share_path_with_students: (opts) =>
+    # assignment the files for the given assignment_id with the given students
+    assignment_path_with_students: (opts) =>
         opts = defaults opts,
-            share_id : required
-            students : undefined  # if given, share with the given students; otherwise, share with all students
+            assignment_id : required
+            students : undefined  # if given, assignment with the given students; otherwise, assignment with all students
             cb       : required
 
         if not opts.students?
             opts.students = @students()
 
-        share = @db.select_one(table:'shares', share_id:opts.share_id)
-        if not share.last_share?
-            share.last_share = {}
-        share_with = (student, cb) =>
-            console.log("sharing '#{share.path}' with #{student.email_address}")
+        assignment = @db.select_one(table:'assignments', assignment_id:opts.assignment_id)
+        if not assignment.last_assignment?
+            assignment.last_assignment = {}
+        assignment_with = (student, cb) =>
+            console.log("sharing '#{assignment.path}' with #{student.email_address}")
             if not student.project_id?
-                console.log("can't share with #{student.email_address} -- no project")
+                console.log("can't assignment with #{student.email_address} -- no project")
                 cb()
                 return
             salvus_client.copy_path_between_projects
                 src_project_id    : @project_id
-                src_path          : share.path
+                src_path          : assignment.path
                 target_project_id : student.project_id
-                target_path       : share.target_path
-                overwrite_newer   : share.overwrite_newer
-                delete_missing    : share.delete_missing
-                timeout           : share.timeout
+                target_path       : assignment.target_path
+                overwrite_newer   : assignment.overwrite_newer
+                delete_missing    : assignment.delete_missing
+                timeout           : assignment.timeout
                 cb                : (err) =>
-                    console.log("finished share with #{student.email_address} -- err=#{err}")
-                    share.last_share[student.student_id] = {time:misc.mswalltime(), error:err}
+                    console.log("finished assignment with #{student.email_address} -- err=#{err}")
+                    assignment.last_assignment[student.student_id] = {time:misc.mswalltime(), error:err}
                     cb(err)
-        async.mapLimit(opts.students, 10, share_with, (err) => opts.cb(err))
+        async.mapLimit(opts.students, MAP_LIMIT, assignment_with, (err) => opts.cb(err))
 
 
     open_directory: (path) =>
         @editor.project_page.chdir(path)
         @editor.project_page.display_tab("project-file-listing")
 
-    init_shares_search: () =>
-        e = @element.find(".salvus-course-page-share")
-        @shares_search_box = e.find(".salvus-course-shares-search")
+    init_assignments_search: () =>
+        e = @element.find(".salvus-course-page-assignment")
+        @assignments_search_box = e.find(".salvus-course-assignments-search")
         update = () =>
-            v = @shares_search_box.val()
+            v = @assignments_search_box.val()
             if v
                 e.find(".salvus-course-search-contain").show().find(".salvus-course-search-query").text(v)
             else
                 e.find(".salvus-course-search-contain").hide()
-            @update_shares()
-        @shares_search_box.keyup(update)
+            @update_assignments()
+        @assignments_search_box.keyup(update)
         e.find(".salvus-course-search-clear").click () =>
-            @shares_search_box.val('').focus()
+            @assignments_search_box.val('').focus()
             update()
             return false
 
-    update_shares: () =>
-        v = @shares()
+    update_assignments: () =>
+        v = @assignments()
         v.sort (a,b) =>
             if a.deleted and not b.deleted
                 return 1
@@ -987,21 +989,21 @@ class Course
                 return +1
             else
                 return 0
-        for share in v
-            @render_share(share:share)
-        @update_share_count()
+        for assignment in v
+            @render_assignment(assignment:assignment)
+        @update_assignment_count()
 
-    shares: () =>
-        @db.select({table : 'shares'})
+    assignments: () =>
+        @db.select({table : 'assignments'})
 
-    update_share_count: () =>
-        n = @shares().length
-        @element.find(".salvus-course-share-count").text("(#{n})")
+    update_assignment_count: () =>
+        n = @assignments().length
+        @element.find(".salvus-course-assignment-count").text("(#{n})")
         if n == 0
-            @element.find(".salvus-course-shares-none").show()
-            @element.find(".salvus-course-shares-add").focus()
+            @element.find(".salvus-course-assignments-none").show()
+            @element.find(".salvus-course-assignments-add").focus()
         else
-            @element.find(".salvus-course-shares-none").hide()
+            @element.find(".salvus-course-assignments-none").hide()
 
 
 

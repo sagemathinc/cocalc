@@ -2,10 +2,6 @@
     background : white;
 }
 
-.salvus-course-assignment {
-    background : white;
-}
-
 .salvus-course-editor {
     overflow-y    : auto;
     overflow-x    : hidden;
@@ -64,7 +60,7 @@
     font-family: monospace;
 }
 
-.salvus-course-share-path {
+.salvus-course-assignment-path {
     cursor: pointer;
 }
 
