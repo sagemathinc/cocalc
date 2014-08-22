@@ -1628,7 +1628,7 @@ class CodeMirrorEditor extends FileEditor
             v = [@codemirror]
             ht = cm_height
 
-        console.log("refreshing cm editors -- #{@filename} -- #{new Date()}")
+        #console.log("refreshing cm editors -- #{@filename} -- #{new Date()}")
         for cm in v
             scroller = $(cm.getScrollerElement())
             scroller.css('height':ht)

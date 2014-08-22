@@ -14,11 +14,12 @@ misc_page            = require('misc_page')
 {defaults, required} = misc
 
 templates = $(".salvus-course-templates")
+template_student_collected = templates.find(".salvus-course-collected-assignment-student")
 
 SYNC_INTERVAL = 500
 
 # How many rsync-related operations to do in parallel (with async.map)
-MAP_LIMIT = 1
+MAP_LIMIT = 10
 
 SETTINGS =
     title       : "Course title"
@@ -29,6 +30,25 @@ exports.course = (editor, filename) ->
     new Course(editor, filename, element)
     return element
 
+compare_students = (a,b) =>
+    if a.deleted and not b.deleted
+        return 1
+    if b.deleted and not a.deleted
+        return -1
+    if a.last_name?
+        a_name = "#{a.last_name} #{a.first_name}".toLowerCase()
+    else
+        a_name = a.email_address
+    if b.last_name?
+        b_name = "#{b.last_name} #{b.first_name}".toLowerCase()
+    else
+        b_name = b.email_address
+    if a_name < b_name
+        return -1
+    else if a_name > b_name
+        return +1
+    else
+        return 0
 
 class Course
     constructor : (@editor, @filename, @element) ->
@@ -339,25 +359,7 @@ class Course
 
     update_students: () =>
         v = @db.select({table : 'students'})
-        v.sort (a,b) =>
-            if a.deleted and not b.deleted
-                return 1
-            if b.deleted and not a.deleted
-                return -1
-            if a.last_name?
-                a_name = "#{a.last_name} #{a.first_name}".toLowerCase()
-            else
-                a_name = a.email_address
-            if b.last_name?
-                b_name = "#{b.last_name} #{b.first_name}".toLowerCase()
-            else
-                b_name = b.email_address
-            if a_name < b_name
-                return -1
-            else if a_name > b_name
-                return +1
-            else
-                return 0
+        v.sort(compare_students)
         for student in v
             @render_student(student)
         @update_student_count()
@@ -587,7 +589,9 @@ class Course
 
     # return non-deleted students
     students: () =>
-        return (student for student in @db.select({table : 'students'}) when not student.deleted)
+        v = (student for student in @db.select({table : 'students'}) when not student.deleted)
+        v.sort(compare_students)
+        return v
 
     # TODO: this is *incredibly* stupid/inefficient and needs to be rewritten more cleverly.
     update_student_project_settings: (opts) =>
@@ -720,6 +724,9 @@ class Course
                             where : {table:'collaborators'}
                         @db.save(cb)
 
+    student_name: (student) =>
+        return "#{student.first_name} #{student.last_name} (#{student.email_address})"
+
     course_project_settings: (student_id) =>
         z = @db.select_one(table:'settings')
         s = @db.select_one(table:'students', student_id:student_id)
@@ -846,10 +853,9 @@ class Course
             e.find(".salvus-course-assignment-path").click () =>
                 @open_directory(assignment.path)
                 return false
-            e.find(".salvus-course-collect-path").click () =>
-                # TODO: need to lookup current path
-                @open_directory(assignment.collect_path)
-                return false
+            #e.find(".salvus-course-collect-path").click () =>
+            #    @open_directory(assignment.collect_path)
+            #    return false
             assignment_button = e.find("a[href=#assignment-files]").click () =>
                 assignment_button.icon_spin(start:true)
                 @assignment_path_with_students
@@ -860,14 +866,28 @@ class Course
                             alert_message(type:'error', message:"error sharing files with students - #{err}")
             collect_button = e.find("a[href=#collect-files]").click () =>
                 collect_button.icon_spin(start:true)
-                @collect_path_from_students
+                @collect_assignment_from_students
                     assignment_id : assignment.assignment_id
                     cb       : (err) =>
                         collect_button.icon_spin(false)
 
-
         e.find(".salvus-course-assignment-path").text(assignment.path)
         e.find(".salvus-course-collect-path").text(assignment.collect_path)
+
+        if assignment.last_collect?
+            # TODO: doing this every time is inefficient!
+            student_dropdown = e.find(".salvus-course-collected-assignment-students").empty()
+            for student in @students()
+                a = assignment.last_collect[student.student_id]
+                if a?.time?
+                    t = template_student_collected.clone()
+                    t.find("a").text("#{@student_name(student)} #{new Date(a.time)}")
+                    t.click () =>
+                        @open_collected_assignment
+                            assignment : assignment
+                            student    : student
+                        return false
+                    student_dropdown.append(t)
 
         # NOTE: for now we just put everything -- visible or not -- in the DOM.  This is less
         # scalable -- but the number of assignments is likely <= 30...
@@ -890,7 +910,7 @@ class Course
                 contain.hide()
                 e.show()
 
-    collect_path_from_students: (opts) =>
+    collect_assignment_from_students: (opts) =>
         opts = defaults opts,
             assignment_id : required
             students : undefined  # if given, collect from the specified students; otherwise, collect from all students
@@ -899,7 +919,8 @@ class Course
         if not opts.students?
             opts.students = @students()
 
-        assignment = @db.select_one(table:'assignments', assignment_id:opts.assignment_id)
+        where = {table:'assignments', assignment_id:opts.assignment_id}
+        assignment = @db.select_one(where)
         if not assignment.last_collect?
             assignment.last_collect = {}
         collect_from = (student, cb) =>
@@ -919,7 +940,13 @@ class Course
                 cb                : (err) =>
                     console.log("finished collect with with #{student.email_address} -- err=#{err}")
                     assignment.last_collect[student.student_id] = {time:misc.mswalltime(), error:err}
-                    cb(err)
+                    if err
+                        cb(err)
+                    else
+                        @db.update
+                            set   : {last_collect:assignment.last_collect}
+                            where : where
+                        @db.save(cb)
         async.mapLimit(opts.students, MAP_LIMIT, collect_from, (err) => opts.cb(err))
 
     # assignment the files for the given assignment_id with the given students
@@ -959,6 +986,12 @@ class Course
     open_directory: (path) =>
         @editor.project_page.chdir(path)
         @editor.project_page.display_tab("project-file-listing")
+
+    open_collected_assignment: (opts) =>
+        opts = defaults opts,
+            assignment : required
+            student    : required
+        @open_directory(opts.assignment.collect_path + '/' + opts.student.student_id)
 
     init_assignments_search: () =>
         e = @element.find(".salvus-course-page-assignment")

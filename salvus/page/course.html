@@ -208,14 +208,27 @@
                 </a>
             </div>
             <div class="salvus-course-field col-sm-2 ">
-                <a href="#assignment-files" class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Send</a>
+                <a href="#assignment-files" class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Assign</a>
             </div>
+            <!--
             <div class="salvus-course-field  col-sm-2" spellcheck="false">
-                <a class="salvus-course-collect-path project-file-name">
-                </a>
+                <a class="salvus-course-collect-path project-file-name"></a>
             </div>
-            <div class="salvus-course-field col-sm-2">
-                <a href="#collect-files" class="btn btn-warning"><i class="fa fa-share-square-o fa-rotate-180"> </i>  Collect</a>
+            -->
+            <div class="col-sm-3">
+                <div class="btn-group">
+                    <a href="#collect-files" class="btn btn-warning"><i class="fa fa-share-square-o fa-rotate-180"> </i>  Collect</a>
+                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                        <i class="fa fa-eye"> </i> Grade <span class="caret"></span>
+                        <span class="sr-only">Toggle Dropdown</span>
+                    </button>
+                    <ul class="dropdown-menu salvus-course-collected-assignment-students" role="menu">
+                        <!-- <li><a href="#">Andy Blah</a></li>-->
+                    </ul>
+                </div>
+            </div>
+            <div class="salvus-course-field col-sm-2 ">
+                <a href="#return-graded" class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Return Graded</a>
             </div>
             <!--
             <div class="salvus-course-field col-sm-2">
@@ -246,4 +259,6 @@
             </div>
         </div>
     </div>
+
+    <li class="salvus-course-collected-assignment-student"><a></a></li>
 </div>
