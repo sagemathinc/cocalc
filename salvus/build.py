@@ -182,14 +182,12 @@ MaxStartups 128
 
 
 
-# Install Julia
+# Install Julia stable (from http://julialang.org/downloads/)
 
-   sudo su
-   umask 022  &&  cd /usr/local/ && git clone git://github.com/JuliaLang/julia.git  &&  cd julia  &&  make -j16 install  &&   cd /usr/local/bin  &&  ln -sf /usr/local/julia/julia .
-
-Start Julia and type:
-
-   Pkg.add("IJulia")
+    sudo add-apt-repository ppa:staticfloat/juliareleases
+    sudo add-apt-repository ppa:staticfloat/julia-deps
+    sudo apt-get update
+    sudo apt-get install julia
 
 # FEnICS -- automated solution of differential equations by finite element methods
   (Test with "import dolfin".)

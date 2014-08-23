@@ -62,18 +62,13 @@ while True:
 print """
 You probably want to do something like this:
 
-    ssh %s
-    cd salvus/salvus
-    . salvus-env
-    git pull
-    ./make_coffee
+    sshvm %s
     sudo su
+    ./update_salvus
     apt-get update; apt-get upgrade
 
-    # Build new sage; if so, delete notebook() line from local/bin/sage-banner
-
     reboot -h now
-    ssh %s
+    sshvm %s
     sudo shutdown -h now
 
  Then
@@ -82,4 +77,4 @@ You probably want to do something like this:
     cd vm/images/base/
     ./push
 
-"""%(ip, ip, next)
+"""%(next, next, next)
