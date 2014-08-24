@@ -1313,6 +1313,27 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # Call jQuery plugin to make it all happen.
         interact_elt.sage_interact(desc:desc, execute_code:@execute_code, process_output_mesg:@process_output_mesg)
 
+    jump_to_output_matching_jquery_selector: (selector) =>
+        cm = @codemirror
+        for x in cm.getAllMarks()
+            t = $(x.replacedWith).find(selector)
+            console.log(t)
+            if t.length > 0
+                cm.scrollIntoView(x.find().from)
+                return
+
+    process_html_output: (e) =>
+        e.find("table").addClass('table')   # makes bootstrap tables look MUCH nicer
+        a = e.find('a')
+        a.attr("target","_blank") # make all links open in a new tab
+        that = @
+        for x in a
+            y = $(x)
+            if y.attr('href')[0] == '#'  # target is internal anchor to id
+                y.click (t) ->
+                    that.jump_to_output_matching_jquery_selector($(t.target).attr('href'))
+                    return false
+
     process_output_mesg: (opts) =>
         opts = defaults opts,
             mesg    : required
@@ -1335,8 +1356,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if mesg.html?
             e = $("<span class='sagews-output-html'>").html(mesg.html).mathjax()
             output.append(e)
-            e.find('a').attr("target","_blank") # make all links open in a new tab
-            e.find("table").addClass('table')   # makes bootstrap tables look MUCH nicer
+            @process_html_output(e)
 
         if mesg.interact?
             @interact(output, mesg.interact)
@@ -1347,9 +1367,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
             t = $('<span class="sagews-output-md">').html(x.s)
             if x.has_mathjax
                 t.mathjax()
-            t.find('a').attr("target","_blank")
-            t.find("table").addClass('table')  # makes bootstrap tables look MUCH nicer -- and gfm has nice tables
             output.append(t)
+            @process_html_output(t)
 
         if mesg.tex?
             # latex
