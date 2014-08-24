@@ -1317,7 +1317,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
         cm = @codemirror
         for x in cm.getAllMarks()
             t = $(x.replacedWith).find(selector)
-            console.log(t)
             if t.length > 0
                 cm.scrollIntoView(x.find().from)
                 return
@@ -1329,7 +1328,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         that = @
         for x in a
             y = $(x)
-            if y.attr('href')[0] == '#'  # target is internal anchor to id
+            if y.attr('href')?[0] == '#'  # target is internal anchor to id
                 y.click (t) ->
                     that.jump_to_output_matching_jquery_selector($(t.target).attr('href'))
                     return false
