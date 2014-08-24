@@ -56,14 +56,20 @@ def send(filesystem, remote):
         raise RuntimeError("you must have at least one local snapshot of %s"%local_filesystem)
 
     # get list of snapshots remotely, sorted by time
-    remote_snapshots = cmd("ssh %s '%s'"%(remote, ' '.join(s+[remote_filesystem]))).splitlines()
+    if remote == 'localhost':
+        remote_snapshots = cmd(' '.join(s+[remote_filesystem])).splitlines()
+    else:
+        remote_snapshots = cmd("ssh %s '%s'"%(remote, ' '.join(s+[remote_filesystem]))).splitlines()
 
     local_snapshot_names = set([x.split('@')[1] for x in local_snapshots])
 
     if len(remote_snapshots) == 0:
         # transfer up to first snapshot to remote
         first = local_snapshots[0]
-        system('time zfs send -v %s | ssh %s "zfs recv -F  %s"'%(first, remote, remote_filesystem))
+        if remote == 'localhost':
+            system('time zfs send -v %s | zfs recv -F  %s'%(first, remote_filesystem))
+        else:
+            system('time zfs send -v %s | ssh %s "zfs recv -F  %s"'%(first, remote, remote_filesystem))
         start = first
     else:
         # transfer starting with newest snapshot this available locally (destructively killing all older snapshots).
@@ -80,14 +86,17 @@ def send(filesystem, remote):
     n = 1
     for j in v:
         print "(%s/%s) sending %s"%(n, len(v), local_snapshots[j])
-        system('time zfs send -v -i %s %s | ssh %s "zfs recv -F %s"'%(local_snapshots[j-1], local_snapshots[j], remote, remote_filesystem))
+        if remote == 'localhost':
+            system('time zfs send -v -i %s %s | zfs recv -F %s'%(local_snapshots[j-1], local_snapshots[j], remote_filesystem))
+        else:
+            system('time zfs send -v -i %s %s | ssh %s "zfs recv -F %s"'%(local_snapshots[j-1], local_snapshots[j], remote, remote_filesystem))
         n += 1
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Send ZFS filesystems")
-    parser.add_argument("remote", help="remote machine's ip address/hostname", type=str)
+    parser.add_argument("remote", help="remote machine's ip address/hostname (or localhost)", type=str)
     parser.add_argument("filesystem", help="name of filesystem to send or name_local:name_remote to send to a different remote name", type=str, nargs="+")
     args = parser.parse_args()
 

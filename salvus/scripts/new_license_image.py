@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse, os, sys, time
-VM_PATH = os.path.join(os.environ['HOME'], 'vm/images/base3/')
+VM_PATH = os.path.join(os.environ['HOME'], 'vm/images/license/')
 
 def cmd(s):
     print s
@@ -20,11 +20,11 @@ next = args.next
 
 if prev == "":
    # make it the most recent image
-   prev = os.popen("ls -1t %s/*.img|head -1"%VM_PATH).read().strip().rstrip('.img')
+   prev = os.popen("ls -1t %s/*.qcow2|head -1"%VM_PATH).read().strip().rstrip('.qcow2')
 
 if next == "":
-   # make image name salvus-date
-   next = time.strftime("salvus-%Y-%m-%d-%H%M")
+   # make image name sagemathcloud-date
+   next = time.strftime("sagemathcloud-%Y-%m-%d-%H%M")
 
 
 defined_machines = os.popen("virsh_list").read()
@@ -34,8 +34,8 @@ for machine in [prev, next]:
         print "%s is currently defined.  Please undefine it before proceeding further, in order to avoid any possible corruption."%machine
         sys.exit(1)
 
-prev_path = os.path.join(VM_PATH, prev + '.img')
-next_path = os.path.join(VM_PATH, next + '.img')
+prev_path = os.path.join(VM_PATH, prev + '.qcow2')
+next_path = os.path.join(VM_PATH, next + '.qcow2')
 
 if not os.path.exists(prev_path):
     raise ValueError("previous vm image doesn't exist -- " + prev_path)
@@ -46,7 +46,7 @@ if os.path.exists(next_path):
 cmd("qemu-img create -b %s -f qcow2 %s"%(prev_path, next_path))
 cmd("chgrp kvm %s; chmod g+rw %s"%(next_path, next_path))
 
-cmd("virt-install --connect qemu:///system --cpu host --network network:default,model=virtio --name %s --vcpus=12 --ram 8000 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole --graphics vnc,port=12101"%(next,next_path))
+cmd("virt-install --connect qemu:///system --cpu host --network network:default,model=virtio --name %s --vcpus=4 --ram 16000 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole --graphics vnc,port=12505"%(next,next_path))
 
 print "Booting..."
 
@@ -68,7 +68,7 @@ You probably want to do something like this:
     apt-get update; apt-get upgrade
 
     reboot -h now
-    sshvm %s
+    sshvm
     sudo shutdown -h now
 
  Then
