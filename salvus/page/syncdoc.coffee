@@ -1317,7 +1317,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
         cm = @codemirror
         for x in cm.getAllMarks()
             t = $(x.replacedWith).find(selector)
-            console.log(t)
             if t.length > 0
                 cm.scrollIntoView(x.find().from)
                 return
