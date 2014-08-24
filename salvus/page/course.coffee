@@ -598,7 +598,7 @@ class Course
         opts = defaults opts,
             prop : required   # 'title' or 'description'
             cb   : undefined
-        console.log("update_student_project_settings: #{opts.prop}")
+        #console.log("update_student_project_settings: #{opts.prop}")
         if opts.prop not in ['title', 'description']
             cb("unknown property #{opts.prop}")
             return
@@ -807,18 +807,24 @@ class Course
         # - have a button to do (or redo) the assignment for all students
         # - collect: gets all the files from all students (or updates it) -- select a local folder as destination and click button
         # - have a column with dropdown to jump to gathered version of files
-        console.log("create assignment: #{path}")
+        #console.log("create assignment: #{path}")
         assignment_id = misc.uuid()
 
-        # default collection path is derived from course filename
+        # default paths derived from course filename
         i = @filename.lastIndexOf('.')
+        # where we collect homework that students have done (in teacher project)
         collect_path = @filename.slice(0,i) + '-collect/' + path
+
+        # folder that we return graded homework to (in student project)
+        graded_path = path + '-graded'
+
         target_path = path
         @db.update
             set :
                 path         : path
                 target_path  : target_path
                 collect_path : collect_path
+                graded_path  : graded_path
             where :
                 table    : 'assignments'
                 assignment_id : assignment_id
@@ -858,7 +864,7 @@ class Course
             #    return false
             assignment_button = e.find("a[href=#assignment-files]").click () =>
                 assignment_button.icon_spin(start:true)
-                @assignment_path_with_students
+                @assign_files_to_students
                     assignment_id : assignment.assignment_id
                     cb       : (err) =>
                         assignment_button.icon_spin(false)
@@ -870,6 +876,13 @@ class Course
                     assignment_id : assignment.assignment_id
                     cb       : (err) =>
                         collect_button.icon_spin(false)
+            return_button = e.find("a[href=#return-graded]").click () =>
+                return_button.icon_spin(start:true)
+                @return_graded_to_students
+                    assignment_id : assignment.assignment_id
+                    cb       : (err) =>
+                        return_button.icon_spin(false)
+
 
         e.find(".salvus-course-assignment-path").text(assignment.path)
         e.find(".salvus-course-collect-path").text(assignment.collect_path)
@@ -880,14 +893,15 @@ class Course
             for student in @students()
                 a = assignment.last_collect[student.student_id]
                 if a?.time?
-                    t = template_student_collected.clone()
-                    t.find("a").text("#{@student_name(student)} #{new Date(a.time)}")
-                    t.click () =>
-                        @open_collected_assignment
-                            assignment : assignment
-                            student    : student
-                        return false
-                    student_dropdown.append(t)
+                    f = () =>
+                        which = {student:student, assignment:assignment}  # use a closure to save params
+                        t = template_student_collected.clone()
+                        t.find("a").text("#{@student_name(student)} #{new Date(a.time)}")
+                        t.click () =>
+                            @open_collected_assignment(which)
+                            return false
+                        student_dropdown.append(t)
+                    f()
 
         # NOTE: for now we just put everything -- visible or not -- in the DOM.  This is less
         # scalable -- but the number of assignments is likely <= 30...
@@ -924,9 +938,9 @@ class Course
         if not assignment.last_collect?
             assignment.last_collect = {}
         collect_from = (student, cb) =>
-            console.log("collecting '#{assignment.path}' from #{student.email_address}")
+            #console.log("collecting '#{assignment.path}' from #{student.email_address}")
             if not student.project_id?
-                console.log("can't collect from #{student.email_address} -- no project")
+                #console.log("can't collect from #{student.email_address} -- no project")
                 cb()
                 return
             salvus_client.copy_path_between_projects
@@ -938,7 +952,7 @@ class Course
                 delete_missing    : assignment.collect_delete_missing
                 timeout           : assignment.timeout
                 cb                : (err) =>
-                    console.log("finished collect with with #{student.email_address} -- err=#{err}")
+                    #console.log("finished collect with with #{student.email_address} -- err=#{err}")
                     assignment.last_collect[student.student_id] = {time:misc.mswalltime(), error:err}
                     if err
                         cb(err)
@@ -949,8 +963,8 @@ class Course
                         @db.save(cb)
         async.mapLimit(opts.students, MAP_LIMIT, collect_from, (err) => opts.cb(err))
 
-    # assignment the files for the given assignment_id with the given students
-    assignment_path_with_students: (opts) =>
+    # copy the files for the given assignment_id to the given students
+    assign_files_to_students: (opts) =>
         opts = defaults opts,
             assignment_id : required
             students : undefined  # if given, assignment with the given students; otherwise, assignment with all students
@@ -963,9 +977,9 @@ class Course
         if not assignment.last_assignment?
             assignment.last_assignment = {}
         assignment_with = (student, cb) =>
-            console.log("sharing '#{assignment.path}' with #{student.email_address}")
+            #console.log("assigning '#{assignment.path}' to #{student.email_address}")
             if not student.project_id?
-                console.log("can't assignment with #{student.email_address} -- no project")
+                #console.log("can't assign to #{student.email_address} -- no project")
                 cb()
                 return
             salvus_client.copy_path_between_projects
@@ -977,8 +991,41 @@ class Course
                 delete_missing    : assignment.delete_missing
                 timeout           : assignment.timeout
                 cb                : (err) =>
-                    console.log("finished assignment with #{student.email_address} -- err=#{err}")
+                    #console.log("finished sending assignment to #{student.email_address} -- err=#{err}")
                     assignment.last_assignment[student.student_id] = {time:misc.mswalltime(), error:err}
+                    cb(err)
+        async.mapLimit(opts.students, MAP_LIMIT, assignment_with, (err) => opts.cb(err))
+
+    return_graded_to_students: (opts) =>
+        opts = defaults opts,
+            assignment_id : required
+            students      : undefined  # if given, assignment with the given students; otherwise, assignment with all students
+            cb            : required
+
+        if not opts.students?
+            opts.students = @students()
+
+        assignment = @db.select_one(table:'assignments', assignment_id:opts.assignment_id)
+        if not assignment.last_return_graded?
+            assignment.last_return_graded = {}
+        assignment_with = (student, cb) =>
+            #console.log("returning '#{assignment.path}' to #{student.email_address}")
+            if not student.project_id?
+                #console.log("can't return assignment to #{student.email_address} -- no project")
+                cb()
+                return
+            #console.log("target_path = ", assignment.graded_path)
+            salvus_client.copy_path_between_projects
+                src_project_id    : @project_id
+                src_path          : assignment.collect_path + '/' + student.student_id
+                target_project_id : student.project_id
+                target_path       : assignment.graded_path
+                overwrite_newer   : assignment.overwrite_newer
+                delete_missing    : assignment.delete_missing
+                timeout           : assignment.timeout
+                cb                : (err) =>
+                    #console.log("finished returning assignment to #{student.email_address} -- err=#{err}")
+                    assignment.last_return_graded[student.student_id] = {time:misc.mswalltime(), error:err}
                     cb(err)
         async.mapLimit(opts.students, MAP_LIMIT, assignment_with, (err) => opts.cb(err))
 
