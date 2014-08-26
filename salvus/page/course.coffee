@@ -457,17 +457,9 @@ class Course
         create_project_btn = e.find("a[href=#create-project]")
         open_project_btn   = e.find("a[href=#open-project]")
 
-        search_text = ''
-        render_field = (field) =>
-            f = e.find(".salvus-course-student-#{field}")
-            if not opts[field]?
-                f.hide()
-            else
-                search_text += ' ' + opts[field].toLowerCase()
-                f.show().find("span").text(opts[field])
-
-        for field in ['email_address', 'first_name', 'last_name']
-            render_field(field)
+        name = @student_name(opts)
+        e.find(".salvus-course-student-name").text(name)
+        search_text = name.toLowerCase()
 
         if opts.project_id?
             open_project_btn.show()
@@ -725,7 +717,14 @@ class Course
                         @db.save(cb)
 
     student_name: (student) =>
-        return "#{student.first_name} #{student.last_name} (#{student.email_address})"
+        first_name = last_name = email_address = ''
+        if student.first_name? then first_name = student.first_name
+        if student.last_name? then last_name = student.last_name
+        if student.email_address? then email_address = student.email_address
+        if first_name or last_name
+            return first_name + ' ' + last_name
+        else
+            return email_address
 
     course_project_settings: (student_id) =>
         z = @db.select_one(table:'settings')
