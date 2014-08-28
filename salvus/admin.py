@@ -108,7 +108,7 @@ def zfs_size(s):
 ####################
 # Running a subprocess
 ####################
-def run(args, maxtime=60, verbose=True):
+def run(args, maxtime=300, verbose=True):
     """
     Run the command line specified by args (using subprocess.Popen)
     and return the stdout and stderr, killing the subprocess if it

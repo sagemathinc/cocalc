@@ -46,7 +46,7 @@ if os.path.exists(next_path):
 cmd("qemu-img create -b %s -f qcow2 %s"%(prev_path, next_path))
 cmd("chgrp kvm %s; chmod g+rw %s"%(next_path, next_path))
 
-cmd("virt-install --connect qemu:///system --cpu host --network network:default,model=virtio --name %s --vcpus=4 --ram 16000 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole --graphics vnc,port=12505"%(next,next_path))
+cmd("virt-install --connect qemu:///system --cpu host --network network:default,model=virtio --name %s --vcpus=4 --ram 4000 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole --graphics vnc,port=12505"%(next,next_path))
 
 print "Booting..."
 
@@ -68,7 +68,7 @@ You probably want to do something like this:
     apt-get update; apt-get upgrade
 
     reboot -h now
-    sshvm
+    sshvm %s
     sudo shutdown -h now
 
  Then
