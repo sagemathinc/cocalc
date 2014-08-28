@@ -865,16 +865,21 @@ class exports.Connection extends EventEmitter
     #################################################
     # Project Management
     #################################################
-    create_project: (opts) ->
+    create_project: (opts) =>
         opts = defaults opts,
             title       : required
             description : required
             public      : required
-            hidden      : false
             cb          : undefined
         @call
-            message: message.create_project(title:opts.title, description:opts.description, public:opts.public, hidden:opts.hidden)
-            cb     : opts.cb
+            message: message.create_project(title:opts.title, description:opts.description, public:opts.public)
+            cb     : (err, resp) =>
+                if err
+                    opts.cb?(err)
+                else if resp.event == 'error'
+                    opts.cb?(resp.error)
+                else
+                    opts.cb?(undefined, resp.project_id)
 
     get_projects: (opts) ->
         opts = defaults opts,
@@ -971,22 +976,26 @@ class exports.Connection extends EventEmitter
     hide_project_from_user: (opts) =>
         opts = defaults opts,
             project_id : required
+            account_id : undefined   # if given hide from this user -- only owner can hide projects from other users
             cb         : undefined
         @call
             message :
                 message.hide_project_from_user
                     project_id  : opts.project_id
+                    account_id  : opts.account_id
             cb : opts.cb
 
     # unhide the given project from this user
     unhide_project_from_user: (opts) =>
         opts = defaults opts,
             project_id : required
+            account_id : undefined   # if given hide from this user -- only owner can hide projects from other users
             cb         : undefined
         @call
             message :
                 message.unhide_project_from_user
                     project_id  : opts.project_id
+                    account_id  : opts.account_id
             cb : opts.cb
 
     move_project: (opts) =>
@@ -1189,6 +1198,9 @@ class exports.Connection extends EventEmitter
         cb = opts.cb
         delete opts.cb
 
+        if not opts.target_path?
+            opts.target_path = opts.src_path
+
         @call
             message : message.copy_path_between_projects(opts)
             cb      : (err, resp) =>
@@ -1290,6 +1302,38 @@ class exports.Connection extends EventEmitter
             command    : 'rm'
             args       : ['-rf', opts.path]
             cb         : opts.cb
+
+    # find directories and subdirectories matching a given query
+    find_directories: (opts) =>
+        opts = defaults opts,
+            project_id     : required
+            query          : '*'   # see the -iname option to the UNIX find command.
+            path           : '.'
+            include_hidden : false
+            cb             : required      # cb(err, object describing result (see code below))
+
+        @exec
+            project_id : opts.project_id
+            command    : "find"
+            timeout    : 15
+            args       : [opts.path, '-xdev', '-type', 'd', '-iname', opts.query]
+            bash       : false
+            cb         : (err, result) =>
+                if err
+                    opts.cb?(err); return
+                if result.event == 'error'
+                    opts.cb?(result.error); return
+                n = opts.path.length + 1
+                v = result.stdout.split('\n')
+                if not opts.include_hidden
+                    v = (x for x in v when x.indexOf('/.') == -1)
+                v = (x.slice(n) for x in v when x.length > n)
+                ans =
+                    query       : opts.query
+                    path        : opts.path
+                    project_id  : opts.project_id
+                    directories : v
+                opts.cb?(undefined, ans)
 
     #################################################
     # Git Commands

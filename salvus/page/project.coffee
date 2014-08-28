@@ -1159,6 +1159,10 @@ class ProjectPage
             create_file('tasks')
             return false
 
+        @new_file_tab.find("a[href=#new-course]").click () =>
+            create_file('course')
+            return false
+
         BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws']
 
         create_file = (ext) =>
@@ -2691,7 +2695,6 @@ class ProjectPage
                 add_button.addClass('disabled')
             else
                 add_button.removeClass('disabled')
-
 
         remove_collaborator = (c) =>
             # c = {first_name:? , last_name:?, account_id:?}

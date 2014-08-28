@@ -418,7 +418,14 @@ exports.open_project = open_project = (project, item) ->
                 x = p
                 break
         if not x?
-            alert_message(type:"error", message:"Unknown project with id '#{project}'")
+            # have to get from database.
+            salvus_client.project_info
+                project_id : project
+                cb         : (err, p) ->
+                    if err
+                        alert_message(type:"error", message:"Unknown project with id '#{project}'")
+                    else
+                        open_project(p)
             return
         else
             project = x

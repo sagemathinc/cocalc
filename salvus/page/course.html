@@ -1,0 +1,258 @@
+<div class="salvus-course-templates hide">
+
+    <div class="salvus-course-editor">
+        <div class="container-fluid">
+            <div class="row" style="margin-bottom: 4px;">
+                <div class="col-sm-12 ">
+                    <span class="btn-group salvus-course-page-buttons">
+                        <a class="btn btn-primary btn-default" href="#students"><i class="fa fa-users"> </i>  Students <span class="salvus-course-students-count"></span></a>
+                        <a class="btn btn-default" href="#assignment"><i class="fa fa-share-square-o"> </i> Assignments <span class="salvus-course-assignment-count"></span></a>
+                        <a class="btn btn-default" href="#settings"><i class="fa fa-wrench"> </i> Settings</a>
+                        <a class="btn btn-info" href="#help"><i class="fa fa-question-circle"> </i> Help</a>
+                    </span>
+                </div>
+            </div>
+
+            <div class="row hide salvus-course-page-settings">
+                <div class="col-sm-6">
+                    <div class=" panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Title and Description</h3>
+                        </div>
+                        <div class="panel-body">
+                            <h4>
+                                <span class="salvus-course-editor-title"></span>
+                            </h4>
+
+                            <br>
+
+                            <div class="salvus-course-editor-description">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class=" panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Options</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="checkbox">
+                                <label>
+                                    <input type="checkbox" class="salvus-course-show-deleted-students">Show deleted students
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row salvus-course-page-students">
+                <div class="col-sm-12 ">
+                    <div class=" panel panel-default">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-sm-5">
+                                    <div class="input-group">
+                                        <input class="salvus-course-students-search search-query form-control" type="search" placeholder="Find...">
+                                        <span class="input-group-btn">
+                                            <button class="btn btn-default salvus-course-search-clear" type="button">
+                                                <i class="fa fa-times-circle"></i>
+                                            </button>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-2">
+                                    <!--
+                                    <div class="pull-right">
+                                        <a href="#delete" class="btn btn-danger"><i class="fa fa-trash-o"> </i> Delete...</a>
+                                    </div>
+                                    -->
+                                </div>
+                                <div class="col-sm-5">
+                                    <div class="input-group">
+                                        <input class="salvus-course-students-add search-query form-control" type="search" placeholder="Add student (email address)...">
+                                        <span class="input-group-btn">
+                                            <button class="btn btn-default salvus-course-add-student-button" type="button">
+                                                <i class="fa fa-search"></i>
+                                            </button>
+                                        </span>
+                                    </div>
+
+                                    <select class="salvus-course-add-student-select form-control hide"></select>
+
+                                    <div class="salvus-course-add-student-loading hide" style="margin-top:1ex">Loading...</div>
+                                    <a class="btn btn-lg btn-primary btn-submit hide salvus-course-add-noncloud-student" style="margin-top: 1ex;"> <i class="fa fa-user"> </i>  No matches. Invite student...</a>
+                                    <div class="salvus-course-add-student-already-match lighten hide" style="margin-top:1ex">Student already added</div>
+                                    <a class="btn btn-lg btn-primary btn-submit hide salvus-course-add-cloud-student" style="margin-top: 1ex;"> <i class="fa fa-user"> </i>  Add <span>selected student</span></a>
+                                    <div class="salvus-course-add-noncloud-hint lighten hide"  style="margin-top:1ex">Enter an email address to invite a student who does not have an account.</div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="lighten salvus-course-search-describe col-sm-6">
+                                    <!-- Showing <span class="salvus-course-count">0 students</span>.-->
+                                    <h4 class="salvus-course-loading">Loading student list... <i class="fa fa-spin fa-spinner"> </i></h4>
+                                    <span class="salvus-course-student-search-contain hide">Only showing students that contain <b><i><span class="salvus-course-search-query"></span></i></b>. </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="salvus-course-students">
+                            </div>
+                            <div class="salvus-course-students-none hide lighten">
+                                Add new students to this course by entering their email address (or name) in the
+                                box above to the right and clicking the
+                                <i class="fa fa-search"></i> button.
+
+                                <br><br>
+                                Edit the title and description of the course in <a href="#settings">settings</a>.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="row hide salvus-course-page-assignment">
+                <div class="col-sm-12 ">
+                    <div class=" panel panel-default">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-sm-5 ">
+                                    <div class="input-group">
+                                        <input class="salvus-course-assignments-search search-query form-control" type="search" placeholder="Find...">
+                                        <span class="input-group-btn">
+
+                                            <button class="btn btn-default salvus-course-search-clear" type="button">
+                                                <i class="fa fa-times-circle"></i>
+                                            </button>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-2">
+                                    Choose folder that contains assignment:
+                                </div>
+                                <div class="col-sm-5 ">
+                                    <div class="input-group">
+                                        <input class="salvus-course-assignment-add search-query form-control" type="search" placeholder="Search by directory name (or hit enter)...">
+                                        <span class="input-group-btn">
+                                            <button class="btn btn-default salvus-course-search-assignment-button" type="button">
+                                                <i class="fa fa-search"></i>
+                                            </button>
+                                        </span>
+                                    </div>
+                                    <div    class="salvus-course-add-assignment-loading hide" style="margin-top:1ex">Loading...</div>
+                                    <select class="salvus-course-add-assignment-select form-control hide"></select>
+                                    <a class="btn btn-lg btn-primary btn-submit hide salvus-course-add-assignment-button" style="margin-top: 1ex;"> <i class="fa fa-user"> </i>  Add <span></span></a>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="lighten salvus-course-search-describe col-sm-6">
+                                    <span class="salvus-course-search-contain hide">Only showing folders that contain <b><i><span class="salvus-course-search-query"></span></i></b>. </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="salvus-course-assignments">
+                            </div>
+                            <div class="salvus-course-assignments-none hide lighten">
+                                Create a folder using <i class="fa fa-plus-circle"></i> New (upper left) that contains materials for an assignment.
+                                Then search for that folder in the
+                                <i class="fa fa-search"></i>  box above to the right.
+
+                                <br><br>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+        </div>
+    </div>
+
+    <div class="salvus-course-student">
+        <div class="row">
+            <div class="salvus-course-field salvus-course-student-props col-sm-3" spellcheck="false">
+                <span class="salvus-course-student-name">
+                    <span></span>
+                </span>
+            </div>
+            <div class="salvus-course-student-project salvus-course-field col-sm-3 ">
+                <a href="#create-project" class="btn btn-warning hide"><i class="fa fa-plus-circle"> </i>  Create Project</a>
+                <a href="#open-project" class="btn btn-primary hide"><i class="fa fa-edit"> </i>  Open Project</a>
+            </div>
+            <div class="col-sm-4">
+            </div>
+            <div class="col-sm-2">
+                <div class="pull-right">
+                    <a href="#undelete" class="btn btn-default btn-sm hide"><i class="fa fa-trash-o"> </i> Undelete</a>
+                    <a href="#delete" style="color: #888;font-size: 10pt;"><i class="fa fa-times"> </i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="salvus-course-assignment">
+        <div class="row">
+            <div class="salvus-course-field  col-sm-2" spellcheck="false">
+                <a class="salvus-course-assignment-path project-file-name">
+                </a>
+            </div>
+            <div class="salvus-course-field col-sm-2 ">
+                <a href="#assignment-files" class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Assign</a>
+            </div>
+            <!--
+            <div class="salvus-course-field  col-sm-2" spellcheck="false">
+                <a class="salvus-course-collect-path project-file-name"></a>
+            </div>
+            -->
+            <div class="col-sm-3">
+                <div class="btn-group">
+                    <a href="#collect-files" class="btn btn-warning"><i class="fa fa-share-square-o fa-rotate-180"> </i>  Collect</a>
+                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                        <i class="fa fa-eye"> </i> Grade <span class="caret"></span>
+                        <span class="sr-only">Toggle Dropdown</span>
+                    </button>
+                    <ul class="dropdown-menu salvus-course-collected-assignment-students" role="menu">
+                        <!-- <li><a href="#">Andy Blah</a></li>-->
+                    </ul>
+                </div>
+            </div>
+            <div class="salvus-course-field col-sm-2 ">
+                <a href="#return-graded" class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Return Graded</a>
+            </div>
+            <!--
+            <div class="salvus-course-field col-sm-2">
+                <div class="pull-right">
+                    <a href="#undelete" class="btn btn-default btn-sm hide"><i class="fa fa-trash-o"> </i> Undelete</a>
+                    <a href="#delete" style="color: #888;font-size: 10pt;"><i class="fa fa-times"> </i></a>
+                </div>
+            </div>-->
+        </div>
+    </div>
+
+    <div class="modal salvus-course-help-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close btn-close">
+                        <span style="font-size:20pt;">×</span>
+                    </button>
+                    <h3><i class="fa fa-question-circle"> </i>  Course Help</h3>
+                </div>
+                <div class="modal-body">
+                    Use courses to manage a group of students, their projects, and assignments.
+
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-close btn-default">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <li class="salvus-course-collected-assignment-student"><a></a></li>
+</div>

@@ -90,7 +90,7 @@ exports.inet_to_str = (r) -> [r[0], r[1], r[2], r[3]].join('.')
 
 #########################################################################
 
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'task_list_id'].concat(PROJECT_GROUPS)
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'task_list_id', 'hide_from_accounts'].concat(PROJECT_GROUPS)
 
 exports.create_schema = (conn, cb) ->
     t = misc.walltime()
@@ -1369,7 +1369,7 @@ class exports.Salvus extends exports.Cassandra
                     if err
                         opts.cb(err)
                     else
-                        opts.cb(false, (misc.from_json(r[0]) for r in results))
+                        opts.cb(false, (misc.from_json(r) for r in results))
 
     update_account_settings: (opts={}) ->
         opts = defaults opts,

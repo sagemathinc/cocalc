@@ -154,6 +154,12 @@ file_associations['tasks'] =
     icon   : 'fa-tasks'
     opts   : {}
 
+file_associations['course'] =
+    editor : 'course'
+    icon   : 'fa-graduation-cap'
+    opts   : {}
+
+
 file_associations['sage-history'] =
     editor : 'history'
     icon   : 'fa-history'
@@ -641,6 +647,8 @@ class exports.Editor
                 editor = new PDF_PreviewEmbed(@, filename, content, extra_opts)
             when 'tasks'
                 editor = new TaskList(@, filename, content, extra_opts)
+            when 'course'
+                editor = new Course(@, filename, content, extra_opts)
             when 'ipynb'
                 editor = new IPythonNotebook(@, filename, content, extra_opts)
             else
@@ -1620,6 +1628,7 @@ class CodeMirrorEditor extends FileEditor
             v = [@codemirror]
             ht = cm_height
 
+        #console.log("refreshing cm editors -- #{@filename} -- #{new Date()}")
         for cm in v
             scroller = $(cm.getScrollerElement())
             scroller.css('height':ht)
@@ -1627,10 +1636,11 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : ht
                 width  : width
-            # we do this twice since very rarely the first one doesn't suffice. I think the
-            # only drawback is that the browser has to do a little extra work.
             setTimeout((()=>cm.refresh()), 0)
-            setTimeout((()=>cm.refresh()), 500)
+            setTimeout((()=>cm.refresh()), 3000)
+            if not window.cm?
+                window.cm = []
+            window.cm.push(cm)
 
         if chat
             chat_elt = @element.find(".salvus-editor-codemirror-chat")
@@ -4395,21 +4405,22 @@ class IPythonNotebook extends FileEditor
         w = $(window).width()
         @iframe?.attr('width',w).maxheight()
 
-###
-# Todo list
-###
-tasks = require('tasks')
-class TaskList extends FileEditor
+
+
+class FileEditorWrapper extends FileEditor
     constructor: (@editor, @filename) ->
-        @element = tasks.task_list(@editor.project_id, @filename)
-        @task_list = @element.data('task_list')
+        @init_wrapped()
         @init_autosave()
 
+    init_wrapped: () =>
+        # Define @element and @wrapped in derived class
+        throw "must define in derived class"
+
     save: () =>
-        @task_list.save()
+        @wrapped.save?()
 
     has_unsaved_changes: (val) =>
-        return @task_list.has_unsaved_changes(val)
+        return @wrapped.has_unsaved_changes?(val)
 
     _get: () =>
         # TODO
@@ -4424,21 +4435,44 @@ class TaskList extends FileEditor
 
     remove: () =>
         @element.remove()
-        @task_list.destroy()
+        @wrapped.destroy?()
 
     show: () =>
         @element.show()
         if not IS_MOBILE
-            @element.css(top:@editor.editor_top_position(), width:'100%', position:'fixed')
+            @element.css(top:@editor.editor_top_position(), position:'fixed')
         else
-            # TODO: this is a terrible HACK!
+            # TODO: this is a terrible HACK for position the top of the editor.
             @element.closest(".salvus-editor-content").css(position:'relative', top:'0')
             @element.css(position:'relative', top:'0')
-        @task_list.show()
+        @wrapped.show?()
 
     hide: () =>
         @element.hide()
-        @task_list.hide()
+        @wrapped.hide?()
+
+###
+# Task list
+###
+
+tasks = require('tasks')
+
+class TaskList extends FileEditorWrapper
+    init_wrapped: () ->
+        @element = tasks.task_list(@editor.project_id, @filename)
+        @wrapped = @element.data('task_list')
+
+
+###
+# A Course one is managing (or taking?)
+###
+course = require('course')
+
+class Course extends FileEditorWrapper
+    init_wrapped: () ->
+        @element = course.course(@editor, @filename)
+        @wrapped = @element.data('course')
+
 
 
 #**************************************************

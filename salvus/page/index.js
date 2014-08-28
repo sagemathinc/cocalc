@@ -24,6 +24,7 @@ account.coffee
 syncdoc.coffee
 syncdb.coffee
 tasks.coffee
+course.coffee
 
 editor.coffee
 

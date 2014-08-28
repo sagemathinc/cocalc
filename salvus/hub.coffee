@@ -1315,34 +1315,73 @@ class Client extends EventEmitter
 
     mesg_hide_project_from_user: (mesg) =>
         if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to hide a project.")
+            @error_to_client(id: mesg.id, error: "you must be signed in to hide a project")
             return
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-            project.hide_project_from_user
-                account_id : @account_id
-                cb         : (err, ok) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
+            async.series([
+                (cb) =>
+                    if mesg.account_id? and mesg.account_id != @account_id
+                        # trying to hide project from another user -- @account_id must be owner of project
+                        user_owns_project
+                            project_id : mesg.project_id
+                            account_id : @account_id
+                            cb         : (err, is_owner) =>
+                                if err
+                                    cb(err)
+                                else if not is_owner
+                                    cb("only the owner of a project may hide it from collaborators")
+                                else
+                                    cb()
                     else
-                        @push_to_client(message.success(id:mesg.id))
+                        mesg.account_id = @account_id
+                        cb()
+                (cb) =>
+                    project.hide_project_from_user
+                        account_id : mesg.account_id
+                        cb         : cb
+            ], (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
+            )
 
     mesg_unhide_project_from_user: (mesg) =>
         if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to unhide a project.")
+            @error_to_client(id: mesg.id, error: "you must be signed in to unhide a project")
             return
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-            project.unhide_project_from_user
-                account_id : @account_id
-                cb         : (err, ok) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
+            async.series([
+                (cb) =>
+                    if mesg.account_id? and mesg.account_id != @account_id
+                        # trying to unhide project from another user -- @account_id must be owner of project
+                        user_owns_project
+                            project_id : mesg.project_id
+                            account_id : @account_id
+                            cb         : (err, is_owner) =>
+                                if err
+                                    cb(err)
+                                else if not is_owner
+                                    cb("only the owner of a project may unhide it from collaborators")
+                                else
+                                    cb()
                     else
-                        @push_to_client(message.success(id:mesg.id))
-
+                        mesg.account_id = @account_id
+                        cb()
+                (cb) =>
+                    project.unhide_project_from_user
+                        account_id : mesg.account_id
+                        cb         : cb
+            ], (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
+            )
 
     mesg_move_project: (mesg) =>
         if not @account_id?
@@ -1429,6 +1468,12 @@ class Client extends EventEmitter
             if err
                 return
             else
+                process = (info) =>
+                    if info.hide_from_accounts?
+                        info.hidden = @account_id in info.hide_from_accounts
+                        delete info.hide_from_accounts
+                    return info
+
                 project.get_info (err, info) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
@@ -1445,9 +1490,9 @@ class Client extends EventEmitter
                                     if err
                                         @error_to_client(id:mesg.id, error:err)
                                     else
-                                        @push_to_client(message.project_info(id:mesg.id, info:info))
+                                        @push_to_client(message.project_info(id:mesg.id, info:process(info)))
                         else
-                            @push_to_client(message.project_info(id:mesg.id, info:info))
+                            @push_to_client(message.project_info(id:mesg.id, info:process(info)))
 
     mesg_project_session_info: (mesg) =>
         assert mesg.event == 'project_session_info'
@@ -1903,7 +1948,7 @@ class Client extends EventEmitter
                                 group      : 'collaborator'
                                 cb         : cb
                         else
-                            winston.debug("user #{email_address} doesn't have an account yet -- send email")
+                            winston.debug("user #{email_address} doesn't have an account yet -- will send email")
                             # create trigger so that when user eventually makes an account,
                             # they will be added to the project.
                             database.account_creation_actions
@@ -3979,34 +4024,40 @@ get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
 nodemailer   = require("nodemailer")
 email_server = undefined
 
-# here's how I test this function:  require('hub').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@uw.edu', cb:console.log)
+# here's how I test this function:
+#    require('hub').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@uw.edu', cb:console.log)
 exports.send_email = send_email = (opts={}) ->
-    opts = defaults(opts,
+    opts = defaults opts,
         subject : required
         body    : required
         from    : 'wstein@uw.edu'          # obviously change this at some point.  But it is the best "reply to right now"
         to      : required
         cc      : ''
-        cb      : undefined)
+        cb      : undefined
+
+    dbg = (m) -> winston.debug("send_email(to:#{opts.to}) -- #{m}")
+    dbg(opts.body)
 
     async.series([
         (cb) ->
-            if not email_server?
-                filename = 'data/secrets/sendgrid_email_password'
-                require('fs').readFile(filename, 'utf8', (error, password) ->
-                    if error
-                        winston.info("Unable to read the file '#{filename}', which is needed to send emails.")
-                        opts.cb(error)
+            if email_server?
+                cb(); return
+            dbg("starting sendgrid client")
+            filename = 'data/secrets/sendgrid_email_password'
+            fs.readFile filename, 'utf8', (error, password) ->
+                if error
+                    err = "unable to read the file '#{filename}', which is needed to send emails."
+                    dbg(err)
+                    cb(err)
+                else
                     email_server = nodemailer.createTransport "SMTP",
                         service : "SendGrid"
                         port    : 2525
                         auth    :
                             user: "wstein",
                             pass: require('fs').readFileSync('data/secrets/sendgrid_email_password').toString().trim()
+                    dbg("started email server")
                     cb()
-                )
-            else
-                cb()
         (cb) ->
             email_server.sendMail
                 from    : opts.from
@@ -4014,11 +4065,19 @@ exports.send_email = send_email = (opts={}) ->
                 text    : opts.body
                 subject : opts.subject
                 cc      : opts.cc,
-                cb
+                cb      : (err) =>
+                    if err
+                        dbg("sendMail -- error = #{err}")
+                    cb(err)
+
     ], (err, message) ->
         if err
             # so next time it will try fresh to connect to email server, rather than being wrecked forever.
             email_server = undefined
+            err = "error sending email -- #{misc.to_json(err)}"
+            dbg(err)
+        else
+            dbg("successfully sent email")
         opts.cb?(err, message)
     )
 
@@ -4525,12 +4584,13 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
 console.log(program._name)
 if program._name.slice(0,3) == 'hub'
     # run as a server/daemon (otherwise, is being imported as a library)
-    if program.rawArgs[1] in ['start', 'restart']
-        process.addListener "uncaughtException", (err) ->
-            winston.debug("BUG ****************************************************************************")
-            winston.debug("Uncaught exception: " + err)
-            winston.debug(new Error().stack)
-            winston.debug("BUG ****************************************************************************")
+
+    #if program.rawArgs[1] in ['start', 'restart']
+    process.addListener "uncaughtException", (err) ->
+        winston.debug("BUG ****************************************************************************")
+        winston.debug("Uncaught exception: " + err)
+        winston.debug(new Error().stack)
+        winston.debug("BUG ****************************************************************************")
 
     if program.passwd
         console.log("Resetting password")

@@ -1007,7 +1007,6 @@ message
     title      : required
     description: required
     public     : required
-    hidden     : false     # if true, project will be created hidden from its owner (e.g., a project for a student in a course)
 
 # client --> hub
 message
@@ -1044,13 +1043,14 @@ message
     event      : 'hide_project_from_user'
     id         : undefined
     project_id : required
+    account_id : undefined   # owner can optionally hide project from other users
 
 # client --> hub
 message
     event      : 'unhide_project_from_user'
     id         : undefined
     project_id : required
-
+    account_id : undefined   # owner can optionally unhide project for other users
 
 
 # Get info about a single project (instead of all projects)
