@@ -34,24 +34,24 @@ def get_input(prompt):
     except EOFError:
         return None
 
-def strip_leading_prompts(code, prompts=['sage:', '....:', '...:', '>>>', '...']):
-    code, literals, state = strip_string_literals(code)
-    code2 = []
-    for line in code.splitlines():
-        line2 = line.lstrip()
-        for p in prompts:
-            if line2.startswith(p):
-                line2 = line2[len(p):]
-                if p[0] != '.':
-                    line2 = line2.lstrip()
-                break
-        code2.append(line2)
-    code = ('\n'.join(code2))%literals
-    return code
+#def strip_leading_prompts(code, prompts=['sage:', '....:', '...:', '>>>', '...']):
+#    code, literals, state = strip_string_literals(code)
+#    code2 = []
+#    for line in code.splitlines():
+#        line2 = line.lstrip()
+#        for p in prompts:
+#            if line2.startswith(p):
+#                line2 = line2[len(p):]
+#                if p[0] != '.':
+#                    line2 = line2.lstrip()
+#                break
+#        code2.append(line2)
+#    code = ('\n'.join(code2))%literals
+#    return code
 
 def preparse_code(code):
     import sage.all_cmdline
-    return sage.all_cmdline.preparse(code)
+    return sage.all_cmdline.preparse(code, ignore_prompts=True)
 
 def strip_string_literals(code, state=None):
     new_code = []

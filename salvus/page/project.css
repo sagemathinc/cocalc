@@ -202,7 +202,6 @@
     background-color: white;
     font-family: monospace;
     /* overflow-y: auto; */
-    height: 100%;
 }
 
 .project-search-output-command {
@@ -421,6 +420,7 @@
 
 .project-search-output-further-results {
     font-weight: bold;
+    background: white;
 }
 
 .project-search-result {
