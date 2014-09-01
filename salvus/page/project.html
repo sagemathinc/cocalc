@@ -868,47 +868,62 @@
 
             <!-- Search -->
             <div class="project-search col-sm-12 hide">
-                <h1 class="project-pages-header">Find in Files</h1>
+                <h1 class="project-pages-header">Search Files<span class="hidden-xs"> and Filenames in Current Directory</span></h1>
                 <div class="project-search-spinner hide">
                 </div>
                 <div class="row well">
-                    <div class="col-sm-8">
-                        <div class="input-group">
-                            <input class="project-search-form-input search-query form-control" type="search" placeholder="Search files in the current directory...">
-                            <span class="input-group-btn">
-                                <button class="btn btn-default project-search-form-input-clear" type="button">
-                                    <i class="fa fa-times-circle"></i>
-                                </button>
-                            </span>
-                        </div>
+                    <div class="row">
+                        <div class="col-sm-8">
+                            <div class="input-group">
+                                <input class="project-search-form-input search-query form-control" type="search" placeholder="Search files in the current directory...">
+                                <span class="input-group-btn">
+                                    <button class="btn btn-default project-search-form-input-clear" type="button">
+                                        <i class="fa fa-times-circle"></i>
+                                    </button>
+                                </span>
+                            </div>
 
-                        <div class="project-search-output-path-heading hide">
-                            <span class="lighten"><a href="#project-file-listing">Navigate to a different folder</a> to search in it.</span>
-                            <br><br>
-                            <h4>
-                                Results of searching in <span class="project-search-output-path"></span>
-                                for "<span class="project-search-output-terms"></span>"
-                            </h4>
+                            <div class="project-search-output-path-heading hide">
+                                <span class="lighten"><a href="#project-file-listing">Navigate to a different folder</a> to search in it.</span>
+                                <br><br>
+                                <h4>
+                                    Results of searching in <span class="project-search-output-path"></span>
+                                    for "<span class="project-search-output-terms"></span>"
+                                    <span class="project-search-output-command"></span>
+                                </h4>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <label style="font-size:16px; margin-bottom:1ex;">
+                                <input type="checkbox" class="project-search-output-recursive">
+                                Include subdirectories
+                            </label>
+                            <br>
+                            <label style="font-size:16px;">
+                                <input type="checkbox" class="project-search-output-case-sensitive">
+                                Case sensitive
+                            </label>
+                            <br>
+                            <label style="font-size:16px;">
+                                <input type="checkbox" class="project-search-output-hidden">
+                                Hidden files <span class="lighten">(start with .)</span>
+                            </label>
+                            <br>
+                            <label style="font-size:16px;">
+                                <input type="checkbox" class="project-search-output-show-command">
+                                Show command
+                            </label>
                         </div>
                     </div>
-                    <div class="col-sm-4">
-                        <label style="font-size:16px; margin-bottom:1ex;">
-                            <input type="checkbox" class="project-search-output-recursive">
-                            Subdirectories
-                        </label>
-                        <br>
-                        <label style="font-size:16px;">
-                            <input type="checkbox" class="project-search-output-case-sensitive">
-                            Case sensitive
-                        </label>
-                    </div>
-                    <div class="col-sm-12">
-                        <div class="project-search-output-further-results hide well">There were more results than displayed below.  Try making your search more specific.</div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="project-search-output-further-results hide well">There were more results than displayed below.  Try making your search more specific.</div>
 
-                        <div class="project-search-output hide"></div>
 
-                        <!-- command is currently not visible due to positioning -->
-                        <div class="project-search-output-command well hide"></div>
+                            <div class="project-search-output well hide">
+                            </div>
+
+                        </div>
                     </div>
                 </div>
             </div>
@@ -980,7 +995,7 @@
     </span>
 
 
-    <div class="project-search-result col-sm-12">
+    <div class="project-search-result">
         <b><a style="cursor:pointer"></a></b>
         <span></span>
     </div>

@@ -262,7 +262,7 @@ Editor for files in a project
     overflow-y:auto;
     overflow-x:hidden;
     overflow-wrap: break-word;
-    background-color:#eee;
+    background-color:#fff;
 }
 
 .salvus-editor-codemirror-chat-input {
