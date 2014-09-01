@@ -669,7 +669,7 @@ class exports.Cassandra extends EventEmitter
                     # The 'any of its parents' is because often when the server is loaded it rejects requests sometimes
                     # with "no permissions. ... any of its parents".
                     if error? and ("#{error}".indexOf("peration timed out") != -1 or "#{error}".indexOf("any of its parents") != -1)
-                        winston.error("... so probably re-doing query after re-connecting")
+                        winston.error("... so (probably) re-doing query after reconnecting")
                         @connect () =>
                             c(error)
                     else
@@ -685,10 +685,11 @@ class exports.Cassandra extends EventEmitter
 
         f = (c) =>
             failed = () =>
-                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying"
+                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying after reconnecting"
                 winston.error(m)
-                c(m)
-                c = undefined # ensure only called once
+                @connect () =>
+                    c(m)
+                    c = undefined # ensure only called once
             _timer = setTimeout(failed, 1000*@query_timeout_s)
             g (err) =>
                 clearTimeout(_timer)
