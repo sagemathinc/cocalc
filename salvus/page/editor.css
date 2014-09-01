@@ -353,11 +353,12 @@ Editor for files in a project
 }
 
 .sagews-output-tex {
-
+    background: white;  /* so that tex is visible */
 }
 
 .sagews-output-image {
     cursor:pointer;
+    background: white;  /* so that, e.g., latex with transparent background is visible */tex is visible 
 }
 
 

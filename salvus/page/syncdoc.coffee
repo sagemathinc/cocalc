@@ -1372,7 +1372,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if mesg.tex?
             # latex
             val = mesg.tex
-            elt = $("<span class='sagews-output-tex'>")
+            elt = $("<div class='sagews-output-tex'>")
             arg = {tex:val.tex}
             if val.display
                 arg.display = true
