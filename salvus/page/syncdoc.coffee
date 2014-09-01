@@ -685,7 +685,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             show_spinner = () =>
                 @element.find(".salvus-editor-codemirror-not-synced").show()
                 #@element.find(".salvus-editor-codemirror-synced").hide()
-            @_ui_synced_timer = setTimeout(show_spinner, 4*@opts.sync_interval)
+            @_ui_synced_timer = setTimeout(show_spinner, 8*@opts.sync_interval)
 
     init_cursorActivity_event: () =>
         @codemirror.on 'cursorActivity', (instance) =>
