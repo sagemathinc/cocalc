@@ -1114,7 +1114,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # starts with a cell or output marker and is not already marked.
         # If not marked, mark it appropriately, and possibly process any
         # changes to that line.
-        cm = @codemirror
+        @_process_sage_updates(@codemirror, start)
+        if @editor._split_view
+            @_process_sage_updates(@editor.codemirror1, start)
+
+    _process_sage_updates: (cm, start) =>
+
         if not start?
             start = 0
 
@@ -1125,8 +1130,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
             if x[0] == MARKERS.cell
                 marks = cm.findMarksAt({line:line, ch:1})
-                if marks.length == 0
-                    @mark_cell_start(line)
+                if not marks? or marks.length == 0
+                    @mark_cell_start(cm, line)
                 else
                     first = true
                     for mark in marks
@@ -1140,7 +1145,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         m = mark.find()
                         if m.from.line != m.to.line
                             mark.clear()
-                            @mark_cell_start(line)
+                            @mark_cell_start(cm, line)
                 flagstring = x.slice(37, x.length-1)
                 mark = cm.findMarksAt({line:line, ch:1})[0]
                 # It's possible mark isn't defined above, in case of some weird file corruption (say
@@ -1190,15 +1195,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
             else if x[0] == MARKERS.output
                 marks = cm.findMarksAt({line:line, ch:1})
                 if marks.length == 0
-                    @mark_output_line(line)
+                    @mark_output_line(cm, line)
                 mark = cm.findMarksAt({line:line, ch:1})[0]
                 uuid = cm.getRange({line:line,ch:1}, {line:line,ch:37})
-                if mark.uuid != uuid # uuid changed -- completely new output
+                if mark? and mark.uuid != uuid # uuid changed -- completely new output
                     #console.log("uuid change: new x = ", x)
                     mark.processed = 38
                     mark.uuid = uuid
                     @elt_at_mark(mark).html('')
-                if mark.processed < x.length
+                if mark? and mark.processed < x.length
                     #console.log("length change; x = ", x)
                     # new output to process
                     t = x.slice(mark.processed, x.length-1)
@@ -1482,11 +1487,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     )()
 
 
-    mark_cell_start: (line) =>
+    mark_cell_start: (cm, line) =>
         # Assuming the proper text is in the document for a new cell at this line,
         # mark it as such. This hides control codes and places a cell separation
         # element, which may be clicked to create a new cell.
-        cm  = @codemirror
         if line >= cm.lineCount()-1
             # If at bottom, insert blank lines.
             cm.replaceRange("\n\n\n", {line:line+1, ch:0})
@@ -1520,12 +1524,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
         mark.type = MARKERS.cell
         return mark
 
-    mark_output_line: (line) =>
+    mark_output_line: (cm, line) =>
         # Assuming the proper text is in the document for output to be displayed at this line,
         # mark it as such.  This hides control codes and creates a div into which output will
         # be placed as it appears.
-
-        cm = @codemirror
 
         # WARNING: Having a max-height that is SMALLER than the containing codemirror editor was *critical*
         # before Codemirror 3.14, due to a bug.
@@ -1864,7 +1866,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm.replaceRange('\n',{line:line+1,ch:0})
         uuid = misc.uuid()
         cm.replaceRange(MARKERS.cell + uuid + MARKERS.cell + '\n', {line:line, ch:0})
-        return {marker:@mark_cell_start(line), created:true}
+        return {marker:@mark_cell_start(cm, line), created:true}
 
     remove_cell_flags_from_changeObj: (changeObj, flags) =>
         # Remove cell flags from *contiguous* text in the changeObj.
