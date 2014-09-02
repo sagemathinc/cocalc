@@ -945,8 +945,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 # since we just canceled the change.
                 @remove_cell_flags_from_changeObj(changeObj, ACTION_FLAGS)
                 @_apply_changeObj(changeObj)
-                @sync () =>
-                    @process_sage_updates()
+                @process_sage_updates()
+                @sync()
 
     init_worksheet_buttons: () =>
         buttons = @element.find(".salvus-editor-codemirror-worksheet-buttons")
