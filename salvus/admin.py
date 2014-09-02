@@ -108,7 +108,9 @@ def zfs_size(s):
 ####################
 # Running a subprocess
 ####################
-def run(args, maxtime=60, verbose=True):
+MAXTIME_S=300
+
+def run(args, maxtime=MAXTIME_S, verbose=True):
     """
     Run the command line specified by args (using subprocess.Popen)
     and return the stdout and stderr, killing the subprocess if it
@@ -143,7 +145,7 @@ def run(args, maxtime=60, verbose=True):
 #      sh['list', 'of', ..., 'arguments'] to run a shell command
 
 class SH(object):
-    def __init__(self, maxtime=60):
+    def __init__(self, maxtime=MAXTIME_S):
         self.maxtime = maxtime
     def __getitem__(self, args):
         return run([args] if isinstance(args, str) else list(args), maxtime=self.maxtime)

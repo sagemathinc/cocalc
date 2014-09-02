@@ -46,7 +46,7 @@ if os.path.exists(next_path):
 cmd("qemu-img create -b %s -f qcow2 %s"%(prev_path, next_path))
 cmd("chgrp kvm %s; chmod g+rw %s"%(next_path, next_path))
 
-cmd("virt-install --connect qemu:///system --cpu host --network network:default,model=virtio --name %s --vcpus=12 --ram 8000 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole --graphics vnc,port=12101"%(next,next_path))
+cmd("virt-install --connect qemu:///system --cpu host --network network:default,model=virtio --name %s --vcpus=12 --ram 4000 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole --graphics vnc,port=12101"%(next,next_path))
 
 print "Booting..."
 
