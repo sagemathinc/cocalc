@@ -359,7 +359,8 @@ class exports.Editor
         if salvus_client.in_fullscreen_mode()
             return 0
         else
-            return @element.find(".salvus-editor-content").position().top
+            e = @project_page.container
+            return e.position().top + e.height()
 
     refresh: () =>
         @_window_resize_while_editing()
@@ -2188,6 +2189,7 @@ class PDF_Preview extends FileEditor
         @_first_output = true
         @_needs_update = true
 
+
     zoom: (opts) =>
         opts = defaults opts,
             delta : undefined
@@ -2504,6 +2506,10 @@ class PDF_PreviewEmbed extends FileEditor
             @update()
             return false
 
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
+
     focus: () =>
 
     update: (cb) =>
@@ -2544,6 +2550,8 @@ class PDF_PreviewEmbed extends FileEditor
             height : undefined
 
         @element.show()
+        if not geometry.top?
+            @element.css(top:@editor.editor_top_position())
 
         if geometry.height?
             @element.height(geometry.height)
