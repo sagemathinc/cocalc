@@ -11,8 +11,6 @@ for i in range(1, len(sys.argv)):
     if sys.argv[i] == '--id':
         id = sys.argv[i+1]
         del sys.argv[i]
-        del sys.argv[i]
-        break
         break
 
 # node node_modules/hub.js $@
