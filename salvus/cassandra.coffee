@@ -403,7 +403,16 @@ class exports.Cassandra extends EventEmitter
         @consistency = opts.consistency  # the default consistency (for now)
 
         #winston.debug("connect using: #{JSON.stringify(opts)}")  # DEBUG ONLY!! output contains sensitive info (the password)!!!
+        @_opts = opts
+        @connect()
 
+    connect: (cb) =>
+        winston.debug("connect: connecting to the database server")
+        console.log("connecting...")
+        opts = @_opts
+        if @conn?
+            @conn.shutdown?()
+            delete @conn
         @conn = new Client
             hosts      : opts.hosts
             keyspace   : opts.keyspace
@@ -430,6 +439,10 @@ class exports.Cassandra extends EventEmitter
             # database connection gets dropped, e.g., due to restarting the database,
             # network issues, etc.
             opts.cb = undefined
+
+            # this callback is for convenience when re-connecting
+            cb?()
+            cb=undefined
 
     _where: (where_key, vals, json=[]) ->
         where = "";
@@ -653,11 +666,12 @@ class exports.Cassandra extends EventEmitter
                     if error
                         winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
                     # TODO - this test for "ResponseError: Operation timed out" is HORRIBLE.
-                    # The any of its parents is because often when the server is loaded it rejects requests sometimes
+                    # The 'any of its parents' is because often when the server is loaded it rejects requests sometimes
                     # with "no permissions. ... any of its parents".
                     if error? and ("#{error}".indexOf("peration timed out") != -1 or "#{error}".indexOf("any of its parents") != -1)
-                        winston.error("... so probably re-doing query")
-                        c(error)
+                        winston.error("... so (probably) re-doing query after reconnecting")
+                        @connect () =>
+                            c(error)
                     else
                         cb?(error, results?.rows)
                         cb = undefined  # ensure is only called once
@@ -671,10 +685,11 @@ class exports.Cassandra extends EventEmitter
 
         f = (c) =>
             failed = () =>
-                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying"
+                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying after reconnecting"
                 winston.error(m)
-                c(m)
-                c = undefined # ensure only called once
+                @connect () =>
+                    c(m)
+                    c = undefined # ensure only called once
             _timer = setTimeout(failed, 1000*@query_timeout_s)
             g (err) =>
                 clearTimeout(_timer)

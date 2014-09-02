@@ -262,7 +262,7 @@ Editor for files in a project
     overflow-y:auto;
     overflow-x:hidden;
     overflow-wrap: break-word;
-    background-color:#eee;
+    background-color:#fff;
 }
 
 .salvus-editor-codemirror-chat-input {
@@ -353,11 +353,12 @@ Editor for files in a project
 }
 
 .sagews-output-tex {
-
+    background: white;  /* so that tex is visible */
 }
 
 .sagews-output-image {
     cursor:pointer;
+    background: white;  /* so that, e.g., latex with transparent background is visible */tex is visible
 }
 
 
@@ -482,4 +483,19 @@ code {
 
 .nav-pills>li+li {
     margin-left: 0 !important;
+}
+
+.btn-group .btn + .btn,
+.btn-group .btn + .btn-group,
+.btn-group .btn-group + .btn,
+.btn-group .btn-group + .btn-group {
+    margin-left: 0 !important;
+}
+
+
+.salvus-editor-codemirror-not-synced {
+    background: red;
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
 }

@@ -2594,6 +2594,17 @@ def dynamic(*args, **kwds):
 
 
 import sage.all
+
+def var0(*args, **kwds):
+    G = salvus.namespace
+    v = sage.all.SR.var(*args, **kwds)
+    if isinstance(v, tuple):
+        for x in v:
+            G[repr(x)] = x
+    else:
+        G[repr(v)] = v
+    return v
+
 def var(*args, **kwds):
     """
     Create symbolic variables and inject them into the global namespace.
@@ -2604,23 +2615,24 @@ def var(*args, **kwds):
         %var a,b,theta          # separate with commas
         %var x y z t            # separate with spaces
 
+    Multicolored variables made using the %var line decorator:
+
+        %var(latex_name=r"{\color{green}{\theta}}") theta
+        %var(latex_name=r"{\color{red}{S_{u,i}}}") sui
+        show(expand((sui + x^3 + theta)^2))
+
     Here is the docstring for var in Sage:
 
     """
-    if len(args)==1:
-        name = args[0]
+    if len(args) > 0 and isinstance(args[0], (str, unicode)):
+        return var0(*args, **kwds)
     else:
-        name = args
-    G = salvus.namespace
-    v = sage.all.SR.var(name, **kwds)
-    if isinstance(v, tuple):
-        for x in v:
-            G[repr(x)] = x
-    else:
-        G[repr(v)] = v
-    return v
+        def f(s):
+            return var0(s, *args, **kwds)
+        return f
 
 var.__doc__ += sage.all.var.__doc__
+
 
 
 #############################################

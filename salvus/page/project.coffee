@@ -545,10 +545,9 @@ class ProjectPage
                     console.log(e)
                 return false
 
-        @container.find(".project-search-output-recursive").change () =>
-            @search($(input_boxes[0]).val())
-        @container.find(".project-search-output-case-sensitive").change () =>
-            @search($(input_boxes[0]).val())
+        for x in ['recursive', 'case-sensitive', 'hidden', 'show-command']
+            @container.find(".project-search-output-#{x}").change () =>
+                @search($(input_boxes[0]).val())
 
         @container.find(".project-search-form-input-clear").click () =>
             input_boxes.val('').focus()
@@ -563,6 +562,8 @@ class ProjectPage
         search_output = @container.find(".project-search-output").show().empty()
         recursive   = @container.find(".project-search-output-recursive").is(':checked')
         insensitive = not @container.find(".project-search-output-case-sensitive").is(':checked')
+        hidden      = @container.find(".project-search-output-hidden").is(':checked')
+        show_command= @container.find(".project-search-output-show-command").is(':checked')
         max_results = 1000
         max_output  = 110*max_results  # just in case
         if insensitive
@@ -571,9 +572,15 @@ class ProjectPage
             ins = ""
         query = '"' + query.replace(/"/g, '\\"') + '"'
         if recursive
-            cmd = "find * -type f | grep #{ins} #{query}; rgrep -H #{ins} #{query} * "
+            if hidden
+                cmd = "find . -xdev | grep #{ins} #{query}; rgrep -H --exclude-dir=.sagemathcloud --exclude-dir=.snapshots #{ins} #{query} * .*"
+            else
+                cmd = "find . -xdev \! -wholename '*/.*'  | grep #{ins} #{query}; rgrep -H  --exclude-dir='.*' --exclude='.*' #{ins} #{query} *"
         else
-            cmd = "ls -1 | grep #{ins} #{query}; grep -H #{ins} #{query} * "
+            if hidden
+                cmd = "ls -a1 | grep #{ins} #{query}; grep -H #{ins} #{query} .* *"
+            else
+                cmd = "ls -1 | grep #{ins} #{query}; grep -H #{ins} #{query} *"
 
         # Exclude worksheet input cell markers
         cmd += " | grep -v #{diffsync.MARKERS.cell}"
@@ -584,7 +591,10 @@ class ProjectPage
         if path_prefix != ''
             path_prefix += '/'
 
-        @container.find(".project-search-output-command").text(cmd)
+        if show_command
+            @container.find(".project-search-output-command").show().text(" (search command: '#{cmd}')")
+        else
+            @container.find(".project-search-output-command").hide()
         if @project.location?.path?
             @container.find(".project-search-output-path").text(@project.location.path + '/' + path)
         else
@@ -623,6 +633,8 @@ class ProjectPage
                     if i == -1
                         # the find part
                         filename = line
+                        if filename.slice(0,2) == "./"
+                            filename = filename.slice(2)
                         r = search_result.clone()
                         r.find("a").text(filename).data(filename: path_prefix + filename).mousedown (e) ->
                             that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or (e.ctrlKey or e.metaKey)))
@@ -631,6 +643,8 @@ class ProjectPage
                     else
                         # the rgrep part
                         filename = line.slice(0,i)
+                        if filename.slice(0,2) == "./"
+                            filename = filename.slice(2)
                         context = line.slice(i+1)
                         # strip codes in worksheet output
                         if context.length > 0 and context[0] == diffsync.MARKERS.output
