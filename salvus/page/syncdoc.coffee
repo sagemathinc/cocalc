@@ -464,9 +464,10 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         @editor.save = @save
         @codemirror  = @editor.codemirror
+        @codemirror1 = @editor.codemirror1
         @editor._set("Loading...")
         @codemirror.setOption('readOnly', true)
-        @editor.codemirror1.setOption('readOnly', true)
+        @codemirror1.setOption('readOnly', true)
         @element     = @editor.element
 
         @init_cursorActivity_event()
@@ -510,6 +511,15 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             # Done initializing and have got content.
             cb?()
 
+    codemirrors: () =>
+        v = [@codemirror]
+        if @editor._split_view
+            v.push(@codemirror1)
+        return v
+
+    focused_codemirror: () =>
+        return @editor.codemirror_with_last_focus
+
     _sync: (cb) =>
         if not @dsync_client?
             cb("not initialized")
@@ -545,7 +555,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     @editor.set_readonly_ui()
 
                 @codemirror.setOption('readOnly', @readonly)
-                @editor.codemirror1.setOption('readOnly', @readonly)
+                @codemirror1.setOption('readOnly', @readonly)
                 if @_last_sync?
                     # We have sync'd before.
                     synced_before = true
@@ -556,13 +566,13 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     synced_before = false
                     @editor._set(resp.content)
                     @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
-                    @editor.codemirror1.clearHistory()
+                    @codemirror1.clearHistory()
                     # I saw one case once where the above clearHistory didn't work -- i.e., we were
                     # still able to undo to the empty document; I don't understand how that is possible,
                     # since it should be totally synchronous.  So just in case, I'm doing another clearHistory
                     # 1 second after the document loads -- this means everything the user types
                     # in the first 1 second of editing can't be undone, which seems acceptable.
-                    setTimeout( ( () => @codemirror.clearHistory(); @editor.codemirror1.clearHistory() ), 1000)
+                    setTimeout( ( () => @codemirror.clearHistory(); @codemirror1.clearHistory() ), 1000)
 
                 @dsync_client = codemirror_diffsync_client(@, resp.content)
                 @dsync_server = new DiffSyncHub(@)
@@ -688,9 +698,10 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             @_ui_synced_timer = setTimeout(show_spinner, 8*@opts.sync_interval)
 
     init_cursorActivity_event: () =>
-        @codemirror.on 'cursorActivity', (instance) =>
-            @send_cursor_info_to_hub_soon()
-            @editor.local_storage('cursor', @codemirror.getCursor())
+        for cm in [@codemirror, @codemirror1]
+            cm.on 'cursorActivity', (instance) =>
+                @send_cursor_info_to_hub_soon()
+                @editor.local_storage('cursor', cm.getCursor())
 
     init_chat: () =>
         chat = @element.find(".salvus-editor-codemirror-chat")
@@ -829,7 +840,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         delete @_waiting_to_send_cursor
         if not @session_uuid # not yet connected to a session
             return
-        @broadcast_cursor_pos(@codemirror.getCursor())
+        if @editor.codemirror_with_last_focus?
+            @broadcast_cursor_pos(@editor.codemirror_with_last_focus.getCursor())
 
     send_cursor_info_to_hub_soon: () =>
         if @_waiting_to_send_cursor?
@@ -888,7 +900,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             return
         do_refresh = () =>
             delete @_refresh_soon
-            @codemirror.refresh()
+            for cm in [@codemirror, @codemirror1]
+                cm.refresh()
         @_refresh_soon = setTimeout(do_refresh, wait)
 
     interrupt: () =>
@@ -925,15 +938,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         @editor.on 'show', (height) =>
             w = @cm_lines().width()
-            for mark in @codemirror.getAllMarks()
-                elt = @elt_at_mark(mark)
-                if elt?
-                    if elt.hasClass('sagews-output')
-                        # Setting the max height was mainly to deal with Codemirror< 3.14 bugs.
-                        #elt.css('max-height', (height*.9) + 'px')
-                        elt.css('width', (w-25) + 'px')
-                    else if elt.hasClass('sagews-input')
-                        elt.css('width', w + 'px')
+            for cm in @codemirrors()
+                for mark in cm.getAllMarks()
+                    elt = @elt_at_mark(mark)
+                    if elt?
+                        if elt.hasClass('sagews-output')
+                            elt.css('width', (w-25) + 'px')
+                        else if elt.hasClass('sagews-input')
+                            elt.css('width', w + 'px')
 
         @codemirror.on 'beforeChange', (instance, changeObj) =>
             #console.log("beforeChange: #{misc.to_json(changeObj)}")
@@ -1002,10 +1014,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
     kill: () =>
         @close_on_action()
         # Set any running cells to not running.
-        for marker in @codemirror.getAllMarks()
-            if marker.type == MARKERS.cell
-                for flag in ACTION_FLAGS
-                    @remove_cell_flag(marker, flag)
+        for cm in [@codemirror, @codemirror1]
+            for marker in cm.getAllMarks()
+                if marker.type == MARKERS.cell
+                    for flag in ACTION_FLAGS
+                        @remove_cell_flag(marker, flag)
         @process_sage_updates()
         @send_signal(signal:3)
         setTimeout(( () => @send_signal(signal:9) ), 500 )
@@ -1031,13 +1044,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if @opts.history_browser
             return
         # TODO: obviously this wouldn't work in both sides of split worksheet.
-        pos  = @codemirror.getCursor()
-        line = @codemirror.getLine(pos.line).slice(0, pos.ch)
+        cm = @focused_codemirror()
+        pos  = cm.getCursor()
+        line = cm.getLine(pos.line).slice(0, pos.ch)
         if pos.ch == 0 or line[pos.ch-1] in ")]}'\"\t "
             if @editor.opts.spaces_instead_of_tabs
-                @codemirror.tab_as_space()
+                cm.tab_as_space()
             else
-                CodeMirror.commands.defaultTab(@codemirror)
+                CodeMirror.commands.defaultTab(cm)
             return
         @introspect_line
             line : line
@@ -1051,7 +1065,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     elt = undefined
                     switch mesg.event
                         when 'introspect_completions'
-                            @codemirror.showCompletions
+                            cm.showCompletions
                                 from             : from
                                 to               : pos
                                 completions      : mesg.completions
@@ -1059,14 +1073,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                 completions_size : @editor.opts.completions_size
 
                         when 'introspect_docstring'
-                            elt = @codemirror.showIntrospect
+                            elt = cm.showIntrospect
                                 from      : from
                                 content   : mesg.docstring
                                 target    : mesg.target
                                 type      : "docstring"
 
                         when 'introspect_source_code'
-                            elt = @codemirror.showIntrospect
+                            elt = cm.showIntrospect
                                 from      : from
                                 content   : mesg.source_code
                                 target    : mesg.target
@@ -1114,6 +1128,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # starts with a cell or output marker and is not already marked.
         # If not marked, mark it appropriately, and possibly process any
         # changes to that line.
+        @pad_bottom_with_newlines(10)
         @_process_sage_updates(@codemirror, start)
         if @editor._split_view
             @_process_sage_updates(@editor.codemirror1, start)
@@ -1122,8 +1137,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         if not start?
             start = 0
-
-        @pad_bottom_with_newlines(10)
 
         for line in [start...cm.lineCount()]
             x = cm.getLine(line)
@@ -1252,34 +1265,32 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         #hide = $("<div>")
         opts =
-            shared         : false
+            shared         : true
             inclusiveLeft  : true
             inclusiveRight : true
             atomic         : true
             #replacedWith   : hide[0]
-            collapsed      : true   # yeah, collapsed now works right in CodeMirror 3.14
+            collapsed      : true
         marker = cm.markText({line:line, ch:0}, {line:end-1, ch:cm.getLine(end-1).length}, opts)
         marker.type = 'hide_input'
-        @editor.show()
+        for c in @codemirrors()
+            c.refresh()
 
     show_input: (line) =>
-        cm = @codemirror
-        for marker in cm.findMarksAt({line:line+1, ch:0})
-            if marker.type == 'hide_input'
-                marker.clear()
-                @editor.show()
+        for cm in [@codemirror, @codemirror1]
+            for marker in cm.findMarksAt({line:line+1, ch:0})
+                if marker.type == 'hide_input'
+                    marker.clear()
 
     hide_output: (line) =>
         mark = @find_output_mark(line)
         if mark?
             @elt_at_mark(mark).addClass('sagews-output-hide')
-            @editor.show()
 
     show_output: (line) =>
         mark = @find_output_mark(line)
         if mark?
             @elt_at_mark(mark).removeClass('sagews-output-hide')
-            @editor.show()
 
     execute_code: (opts) ->
         opts = defaults opts,
@@ -1319,7 +1330,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         interact_elt.sage_interact(desc:desc, execute_code:@execute_code, process_output_mesg:@process_output_mesg)
 
     jump_to_output_matching_jquery_selector: (selector) =>
-        cm = @codemirror
+        cm = @focused_codemirror()
         for x in cm.getAllMarks()
             t = $(x.replacedWith).find(selector)
             if t.length > 0
@@ -1562,7 +1573,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
     find_output_line: (line) =>
         # Given a line number in the editor, return the nearest (greater or equal) line number that
         # is an output line, or undefined if there is no output line before the next cell.
-        cm = @codemirror
+        cm = @focused_codemirror()
         if cm.getLine(line)[0] == MARKERS.output
             return line
         line += 1
@@ -1580,7 +1591,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # Same as find_output_line, but returns the actual mark (or undefined).
         n = @find_output_line(line)
         if n?
-            for mark in @codemirror.findMarksAt({line:n, ch:0})
+            for mark in @focused_codemirror().findMarksAt({line:n, ch:0})
                 if mark.type == MARKERS.output
                     return mark
         return undefined
@@ -1588,7 +1599,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
     # Returns start and end lines of the current input block (if line is undefined),
     # or of the block that contains the given line number.
     current_input_block: (line) =>
-        cm = @codemirror
+        cm = @focused_codemirror()
         if not line?
             line = cm.getCursor().line
 
@@ -1616,7 +1627,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             toggle_input  : false  # if true; toggle whether input is displayed; ranges all toggle same as first
             toggle_output : false  # if true; toggle whether output is displayed; ranges all toggle same as first
             delete_output : false  # if true; delete all the the output in the range
-            cm      : @codemirror
+            cm      : @focused_codemirror()
         if opts.pos?
             pos = opts.pos
         else
@@ -1715,7 +1726,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             start = block.start
             # skip blank lines and the input uuid line:
             while start <= block.end
-                s = @codemirror.getLine(start).trim()
+                s = @focused_codemirror().getLine(start).trim()
                 if s.length == 0 or s[0] == MARKERS.cell
                     start += 1
                 else
@@ -1749,7 +1760,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             block     : required
             mode_line : required
             marker    : required
-        cm = @codemirror
+        cm = @focused_codemirror()
         block = opts.block
 
         # get the input text -- after the mode line
@@ -1805,7 +1816,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     # returns the line number where the previous cell ends
     move_cursor_to_next_cell: () =>
-        cm = @codemirror
+        cm = @focused_codemirror()
         line = cm.getCursor().line + 1
         while line < cm.lineCount()
             x = cm.getLine(line)
@@ -1826,15 +1837,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
     ##########################################
     get_cell_flagstring: (marker) =>
         pos = marker.find()
-        return @codemirror.getRange({line:pos.from.line,ch:37},{line:pos.from.line, ch:pos.to.ch-1})
+        return @focused_codemirror().getRange({line:pos.from.line,ch:37},{line:pos.from.line, ch:pos.to.ch-1})
 
     set_cell_flagstring: (marker, value) =>
         pos = marker.find()
-        @codemirror.replaceRange(value, {line:pos.from.line,ch:37}, {line:pos.to.line, ch:pos.to.ch-1})
+        @focused_codemirror().replaceRange(value, {line:pos.from.line,ch:37}, {line:pos.to.line, ch:pos.to.ch-1})
 
     get_cell_uuid: (marker) =>
         pos = marker.find()
-        return @codemirror.getLine(pos.line).slice(1,38)
+        return @focused_codemirror().getLine(pos.line).slice(1,38)
 
     set_cell_flag: (marker, flag) =>
         s = @get_cell_flagstring(marker)
@@ -1849,15 +1860,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     insert_new_cell: (line) =>
         pos = {line:line, ch:0}
-        @codemirror.replaceRange('\n', pos)
-        @codemirror.focus()
-        @codemirror.setCursor(pos)
+        @focused_codemirror().replaceRange('\n', pos)
+        @focused_codemirror().focus()
+        @focused_codemirror().setCursor(pos)
         @cell_start_marker(line)
         @process_sage_updates()
         @sync()
 
     cell_start_marker: (line) =>
-        cm = @codemirror
+        cm = @focused_codemirror()
         x = cm.findMarksAt(line:line, ch:1)
         if x.length > 0 and x[0].type == MARKERS.cell
             # already properly marked
