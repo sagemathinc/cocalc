@@ -546,6 +546,12 @@
     font-size: 14pt;
 }
 
+.project-file-listing-show_all {
+   margin-left   : 1em;
+   margin-right  : 1em;
+   margin-bottom : 1em;
+}
+
 @media (min-width: 768px) {
     .project-settings-well, .project-heading-well {
         margin-left: 10px;
