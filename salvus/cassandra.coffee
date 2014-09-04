@@ -15,7 +15,7 @@
 #
 # fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['localhost:8403'], username:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
 #
-# fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['localhost'], cb:console.log)
+# a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['localhost'], cb:console.log)
 #
 #########################################################################
 
@@ -37,7 +37,7 @@ misc_node = require('misc_node')
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
-{to_json, from_json, to_iso, defaults} = misc
+{to_json, from_json, defaults} = misc
 required = defaults.required
 
 fs      = require('fs')
@@ -74,10 +74,10 @@ higher_consistency = (consistency) ->
 
 
 # the time right now, in iso format ready to insert into the database:
-now = exports.now = () -> to_iso(new Date())
+now = exports.now = () -> new Date()
 
 # the time ms milliseconds ago, in iso format ready to insert into the database:
-exports.milliseconds_ago = (ms) -> to_iso(new Date(new Date() - ms))
+exports.milliseconds_ago = (ms) -> new Date(new Date() - ms)
 exports.seconds_ago      = (s)  -> exports.milliseconds_ago(1000*s)
 exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
 exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
@@ -1566,8 +1566,8 @@ class exports.Salvus extends exports.Cassandra
             set   :
                 filename : opts.filename
             where :
-                day        : date.toISOString().slice(0,10)
-                timestamp  : to_iso(date)
+                day        : date.toISOString().slice(0,10) # this is a string
+                timestamp  : date
                 project_id : opts.project_id
                 account_id : opts.account_id
             cb : opts.cb
@@ -2824,7 +2824,7 @@ class ChunkedStorage
                             cb()
             (cb) =>
                 f = (r, c) =>
-                    if to_iso(new Date(r.timestamp)) > tm
+                    if new Date(r.timestamp) > tm
                         dbg("skipping: #{r.id}/#{r.name} -- too new")
                         c(); return
                     dbg("lost file: #{r.id}/#{r.name} -- #{r.chunk_ids.length} chunks")
