@@ -532,8 +532,8 @@ class exports.Cassandra extends EventEmitter
             table : required
             delta : 1
             cb    : required
-        query = "update counts set count=count+? where table_name=?"
-        @cql query, [opts.delta, opts.table], opts.cb
+        query = "UPDATE counts SET count=count+? where table_name=?"
+        @cql query, [new cql.types.Long(opts.delta), opts.table], opts.cb
 
     # Get count of entries in a table for which we manually maintain the count.
     get_table_counter: (opts) =>
@@ -1372,8 +1372,8 @@ class exports.Salvus extends exports.Cassandra
                 ttl = "USING ttl #{opts.ttl}"
             else
                 ttl = ""
-            query = "UPDATE account_creation_actions #{ttl} SET actions=actions+{?} WHERE email_address=?"
-            @cql(query, [misc.to_json(opts.action), opts.email_address], opts.cb)
+            query = "UPDATE account_creation_actions #{ttl} SET actions=actions+{'#{misc.to_json(opts.action)}'} WHERE email_address=?"
+            @cql(query, [opts.email_address], opts.cb)
         else
             @select
                 table     : 'account_creation_actions'
@@ -1845,11 +1845,11 @@ class exports.Salvus extends exports.Cassandra
             cb         : undefined
         async.parallel([
             (cb) =>
-                query = "UPDATE projects SET hide_from_accounts=hide_from_accounts+{?} WHERE project_id=?"
-                @cql(query, [opts.account_id, opts.project_id], cb)
+                query = "UPDATE projects SET hide_from_accounts=hide_from_accounts+{#{opts.account_id}} WHERE project_id=?"
+                @cql(query, [opts.project_id], cb)
             (cb) =>
-                query = "UPDATE accounts SET hidden_projects=hidden_projects+{?} WHERE account_id=?"
-                @cql(query, [opts.project_id, opts.account_id], cb)
+                query = "UPDATE accounts SET hidden_projects=hidden_projects+{#{opts.project_id}} WHERE account_id=?"
+                @cql(query, [opts.account_id], cb)
         ], (err) => opts.cb?(err))
 
     unhide_project_from_user: (opts) =>
@@ -1859,11 +1859,11 @@ class exports.Salvus extends exports.Cassandra
             cb         : undefined
         async.parallel([
             (cb) =>
-                query = "UPDATE projects SET hide_from_accounts=hide_from_accounts-{?} WHERE project_id=?"
-                @cql(query, [opts.account_id, opts.project_id], cb)
+                query = "UPDATE projects SET hide_from_accounts=hide_from_accounts-{#{opts.account_id}} WHERE project_id=?"
+                @cql(query, [opts.project_id], cb)
             (cb) =>
-                query = "UPDATE accounts SET hidden_projects=hidden_projects-{?} WHERE account_id=?"
-                @cql(query, [opts.project_id, opts.account_id], cb)
+                query = "UPDATE accounts SET hidden_projects=hidden_projects-{#{opts.project_id}} WHERE account_id=?"
+                @cql(query, [opts.account_id], cb)
         ], (err) => opts.cb?(err))
 
     # Make it so the user with given account id is listed as a(n invited) collaborator or viewer
@@ -1892,12 +1892,12 @@ class exports.Salvus extends exports.Cassandra
         async.series([
             # add account_id to the project's set of users (for the given group)
             (cb) =>
-                query = "UPDATE projects SET #{opts.group}=#{opts.group}+{?} WHERE project_id=?"
-                @cql(query, [opts.account_id, opts.project_id], cb)
+                query = "UPDATE projects SET #{opts.group}=#{opts.group}+{#{opts.account_id}} WHERE project_id=?"
+                @cql(query, [opts.project_id], cb)
             # add project_id to the set of projects (for the given group) for the user's account
             (cb) =>
-                query = "UPDATE accounts SET #{opts.group}=#{opts.group}+{?} WHERE account_id=?"
-                @cql(query, [opts.project_id, opts.account_id], cb)
+                query = "UPDATE accounts SET #{opts.group}=#{opts.group}+{#{opts.project_id}} WHERE account_id=?"
+                @cql(query, [opts.account_id], cb)
         ], opts.cb)
 
     remove_user_from_project: (opts) =>
@@ -1912,12 +1912,12 @@ class exports.Salvus extends exports.Cassandra
         async.series([
             # remove account_id from the project's set of users (for the given group)
             (cb) =>
-                query = "UPDATE projects SET #{opts.group}=#{opts.group}-{?} WHERE project_id=?"
-                @cql(query, [opts.account_id, opts.project_id], cb)
+                query = "UPDATE projects SET #{opts.group}=#{opts.group}-{#{opts.account_id}} WHERE project_id=?"
+                @cql(query, [opts.project_id], cb)
             # remove project_id from the set of projects (for the given group) for the user's account
             (cb) =>
-                query = "UPDATE accounts SET #{opts.group}=#{opts.group}-{?} WHERE account_id=?"
-                @cql(query, [opts.project_id, opts.account_id], cb)
+                query = "UPDATE accounts SET #{opts.group}=#{opts.group}-{#{opts.project_id}} WHERE account_id=?"
+                @cql(query, [opts.account_id], cb)
         ], opts.cb)
 
     # SINGLE USE ONLY:
