@@ -36,6 +36,35 @@ component_to_hex = (c) ->
 
 rgb_to_hex = (r, g, b) -> "#" + component_to_hex(r) + component_to_hex(g) + component_to_hex(b)
 
+_loading_threejs_callbacks = []
+load_threejs = (cb) ->
+    _loading_threejs_callbacks.push(cb)
+    #console.log("load_threejs")
+    if _loading_threejs_callbacks.length > 1
+        #console.log("load_threejs: already loading...")
+        return
+
+    load = (script, cb) -> $.getScript(script).done(()=>cb()).fail(()=>cb("error loading"))
+
+    async.series([
+        (cb) -> load("/static/threejs/r59/three.min.js",cb)
+        (cb) -> load("/static/threejs/r59/TrackballControls.js",cb)
+        (cb) -> load("/static/threejs/Detector.js",cb)
+        (cb) ->
+            f = () ->
+                if THREE?
+                    cb()
+                else
+                    #console.log("load_threejs: waiting for THREEJS...")
+                    setTimeout(f, 100)
+            f()
+    ], (err) ->
+        #console.log("load_threejs: done loading")
+        for cb in _loading_threejs_callbacks
+            cb(err)
+        _loading_threejs_callbacks = []
+    )
+
 class SalvusThreeJS
     constructor: (opts) ->
         @opts = defaults opts,
@@ -49,21 +78,7 @@ class SalvusThreeJS
             foreground      : undefined
             camera_distance : 10
 
-        load = (script, cb) -> $.getScript(script).done(()=>cb()).fail(()=>cb("error loading"))
-        if not THREE?
-            async.series([
-                (cb) -> load("/static/threejs/r59/three.min.js",cb)
-                (cb) -> load("/static/threejs/r59/TrackballControls.js",cb)
-                (cb) -> load("/static/threejs/Detector.js",cb)
-            ], (err) =>
-                if not err
-                    @init()
-                else
-                    # TODO -- not sure what to do at this point...
-                    console.log("Error loading THREE.js")
-            )
-        else
-            @init()
+        @init()
 
     init: () =>
         @scene = new THREE.Scene()
@@ -488,7 +503,16 @@ $.fn.salvus_threejs = (opts={}) ->
         e = $(".salvus-3d-templates .salvus-3d-viewer").clone()
         elt.empty().append(e)
         opts.element = e
-        elt.data('salvus-threejs', new SalvusThreeJS(opts))
+        f = () -> elt.data('salvus-threejs', new SalvusThreeJS(opts))
+        if not THREE?
+            load_threejs (err) =>
+                if not err
+                    f()
+                else
+                    # TODO -- not sure what to do at this point...
+                    console.log("Error loading THREE.js")
+        else
+            f()
 
 
 
