@@ -37,6 +37,11 @@ component_to_hex = (c) ->
 rgb_to_hex = (r, g, b) -> "#" + component_to_hex(r) + component_to_hex(g) + component_to_hex(b)
 
 _loading_threejs_callbacks = []
+
+VERSION = '59'
+#VERSION = '68'
+$.ajaxSetup(cache: true) # when using getScript, cache result.
+
 load_threejs = (cb) ->
     _loading_threejs_callbacks.push(cb)
     #console.log("load_threejs")
@@ -44,12 +49,12 @@ load_threejs = (cb) ->
         #console.log("load_threejs: already loading...")
         return
 
-    load = (script, cb) -> $.getScript(script).done(()=>cb()).fail(()=>cb("error loading"))
+    load = (script, cb) -> $.getScript(script).done((script, textStatus)=>cb()).fail((jqxhr, settings, exception )=>cb("error loading -- #{exception}"))
 
     async.series([
-        (cb) -> load("/static/threejs/r59/three.min.js",cb)
-        (cb) -> load("/static/threejs/r59/TrackballControls.js",cb)
-        (cb) -> load("/static/threejs/Detector.js",cb)
+        (cb) -> load("/static/threejs/r#{VERSION}/three.min.js",cb)
+        (cb) -> load("/static/threejs/r#{VERSION}/TrackballControls.js",cb)
+        (cb) -> load("/static/threejs/r#{VERSION}/Detector.js",cb)
         (cb) ->
             f = () ->
                 if THREE?
@@ -82,7 +87,14 @@ class SalvusThreeJS
 
     init: () =>
         @scene = new THREE.Scene()
-        @opts.width  = if opts.width? then opts.width else $(window).width()*.9
+        # IMPORTANT: There is a major bug in three.js -- if you make the width below more than .5 of the window
+        # width, then after 8 3d renders, things get foobared in WebGL mode.  This happens even with the simplest
+        # demo using the basic cube example from their site with R68.
+        if opts.width
+            @opts.width = Math.min(opts.width, $(window).width()*.5)
+        else
+            @opts.width  = $(window).width()*.5
+
         @opts.height = if opts.height? then opts.height else $(window).height()*.6
 
         if not @opts.renderer?
@@ -468,7 +480,7 @@ class SalvusThreeJS
     render_scene: (force=false) =>
         #console.log('render', @opts.element.length)
         @opts.element.show()
-        
+
         if @controls?
             @controls?.update()
         else
