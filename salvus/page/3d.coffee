@@ -442,6 +442,7 @@ class SalvusThreeJS
             mouseover : true
         #console.log('anim', @opts.element.length, @opts.element.is(":visible"))
 
+        @opts.element.show()
         if not @opts.element.is(":visible")
             # check again after a delay
             setTimeout((() => @animate(opts)), 1500)
@@ -466,6 +467,8 @@ class SalvusThreeJS
 
     render_scene: (force=false) =>
         #console.log('render', @opts.element.length)
+        @opts.element.show()
+        
         if @controls?
             @controls?.update()
         else
@@ -500,7 +503,7 @@ class SalvusThreeJS
 $.fn.salvus_threejs = (opts={}) ->
     @each () ->
         elt = $(this)
-        e = $(".salvus-3d-templates .salvus-3d-viewer").clone()
+        e = $(".salvus-3d-templates .salvus-3d-viewer").clone().hide()
         elt.empty().append(e)
         opts.element = e
         f = () -> elt.data('salvus-threejs', new SalvusThreeJS(opts))
