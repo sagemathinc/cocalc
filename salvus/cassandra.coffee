@@ -46,7 +46,7 @@ async   = require('async')
 winston = require('winston')                    # https://github.com/flatiron/winston
 
 cql     = require("node-cassandra-cql")
-Client  = cql.Client  # https://github.com/jorgebay/node-cassandra-cql
+Client  = cql.Client  # https://github.com/jorgebay/node-cassandra-cql; https://github.com/jorgebay/node-cassandra-cql/issues/81
 uuid    = require('node-uuid')
 {EventEmitter} = require('events')
 
@@ -390,7 +390,9 @@ class exports.Cassandra extends EventEmitter
             query_max_retry : 10    # max number of retries
             consistency     : undefined
             verbose         : false # quick hack for debugging...
-            conn_timeout_ms : 5000  # Maximum time in milliseconds to wait for a connection from the pool.
+            conn_timeout_ms : 20000  # Maximum time in milliseconds to wait for a connection from the pool.
+            latency_limit   : 500
+            pool_size       : 2
 
         @keyspace = opts.keyspace
         @query_timeout_s = opts.query_timeout_s
@@ -414,11 +416,13 @@ class exports.Cassandra extends EventEmitter
             @conn.shutdown?()
             delete @conn
         @conn = new Client
-            hosts      : opts.hosts
-            keyspace   : opts.keyspace
-            username   : opts.username
-            password   : opts.password
+            hosts                 : opts.hosts
+            keyspace              : opts.keyspace
+            username              : opts.username
+            password              : opts.password
             getAConnectionTimeout : opts.conn_timeout_ms
+            latencyLimit          : opts.latency_limit
+            poolSize              : opts.pool_size
 
         if opts.verbose
             @conn.on 'log', (level, message) =>
