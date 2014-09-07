@@ -1,0 +1,9 @@
+.salvus-3d-container {
+    border: 1px solid grey;
+    width: 60%;
+    border-radius: 4px;
+    margin-left: 3em;
+    background: #fcfcfc;
+    box-shadow: 3px 3px 2px #888;
+    padding: 1em;
+}

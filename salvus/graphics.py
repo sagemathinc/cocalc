@@ -58,7 +58,7 @@ class ThreeJS(object):
         self._id       = uuid()
         self._selector = "$('#%s')"%self._id
         self._obj      = "%s.data('salvus-threejs')"%self._selector
-        self._salvus.html("<div id=%s style='border:1px solid grey'></div>"%self._id)
+        self._salvus.html("<div id=%s class='salvus-3d-container'></div>"%self._id)
         self._salvus.javascript("%s.salvus_threejs(obj)"%self._selector, once=False,
                                 obj={'renderer':renderer,
                                      'width':noneint(width),
