@@ -423,6 +423,7 @@ class exports.Cassandra extends EventEmitter
             getAConnectionTimeout : opts.conn_timeout_ms
             latencyLimit          : opts.latency_limit
             poolSize              : opts.pool_size
+            pageSize              : 10000000  # TODO!!
 
         if opts.verbose
             @conn.on 'log', (level, message) =>
