@@ -1493,11 +1493,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                          code = mesg.code
                          if mesg.coffeescript
                              code = CoffeeScript.compile(code)
-                         try
-                             obj = JSON.parse(mesg.obj)
-                         catch e
-                             console.log("ERROR '#{e}' parsing obj='#{mesg.obj}'")
-                             return
+                         obj = JSON.parse(mesg.obj)
                          eval(code)
                     )()
 
