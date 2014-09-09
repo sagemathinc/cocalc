@@ -625,6 +625,9 @@ class SalvusThreeJS
         if @controls?
             @controls?.update()
 
+        if not @camera?
+            return # nothing to do
+
         pos = @camera.position
         if not @_last_pos?
             new_pos = true
