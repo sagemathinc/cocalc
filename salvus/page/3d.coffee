@@ -429,8 +429,6 @@ class SalvusThreeJS
             draw      : true
 
         @_frame_params = o
-        #console.log("official set_frame=#{misc.to_json(o)}")
-
         eps = 0.1
         if Math.abs(o.xmax-o.xmin)<eps
             o.xmax += 1
@@ -442,41 +440,30 @@ class SalvusThreeJS
             o.zmax += 1
             o.zmin -= 1
 
+        mx = (o.xmin+o.xmax)/2
+        my = (o.ymin+o.ymax)/2
+        mz = (o.zmin+o.zmax)/2
+        @_center = new THREE.Vector3(mx,my,mz)
+
         if o.draw
             if @frame?
                 # remove existing frame
                 for x in @frame
                     @scene.remove(x)
                 delete @frame
-
-            # Draw the frame.  We can't just make a wireframe, since it would have diagonals all over (because the
-            # box would be made out of triangles), so instead we follow the suggestion at
-            # http://stackoverflow.com/questions/22321447/cubegeometry-diagonal-issue-in-three-js
-
-            # make the frame itself
-            geometry = new THREE.BoxGeometry(o.xmax-o.xmin, o.ymax-o.ymin, o.zmax-o.zmin)
-
-            material = new THREE.MeshLambertMaterial
-                color               : 0xff0000
-                polygonOffset       : true
-                polygonOffsetFactor : 1
-                polygonOffsetUnits  : 1
-                shading             : THREE.FlatShading
-                transparent         : true
-                opacity             : 0
-                overdraw            : 0.1 # needed for canvasRenderer only
-
-            mesh = new THREE.Mesh(geometry, material)
-            # The above code makes a box *centered at the origin*, so we have to move it.
-            mesh.position.set(o.xmin + (o.xmax-o.xmin)/2, o.ymin + (o.ymax-o.ymin)/2, o.zmin + (o.zmax-o.zmin)/2)
-            @scene.add(mesh)
-
-            helper = new THREE.BoxHelper(mesh)
-            helper.material.color.set(o.color)
-            helper.material.linewidth = o.thickness
-            @scene.add(helper)
-
-            @frame = [helper, mesh]
+            @frame = []
+            x0 = o.xmin; x1 = o.xmax; y0 = o.ymin; y1 = o.ymax; z0 = o.zmin; z1 = o.zmax
+            v = [[[x0,y0,z0], [x1,y0,z0], [x1,y1,z0], [x0,y1,z0], [x0,y0,z0],
+                  [x0,y0,z1], [x1,y0,z1], [x1,y1,z1], [x0,y1,z1], [x0,y0,z1]],
+                 [[x1,y0,z0], [x1,y0,z1]],
+                 [[x0,y1,z0], [x0,y1,z1]],
+                 [[x1,y1,z0], [x1,y1,z1]]]
+            for points in v
+                line = @add_line
+                    points    : points
+                    color     : o.color
+                    thickness : o.thickness
+                @frame.push(line)
 
         if o.draw and o.labels
 
@@ -498,11 +485,6 @@ class SalvusThreeJS
                 @_frame_labels.push(@add_text(pos:[x,y,z], text:text, fontsize:o.fontsize, color:o.color, constant_size:false))
 
             offset = 0.075
-            mx = (o.xmin+o.xmax)/2
-            my = (o.ymin+o.ymax)/2
-            mz = (o.zmin+o.zmax)/2
-            @_center = new THREE.Vector3(mx,my,mz)
-
             if o.draw
                 e = (o.ymax - o.ymin)*offset
                 txt(o.xmax,o.ymin-e,o.zmin, l(o.zmin))
