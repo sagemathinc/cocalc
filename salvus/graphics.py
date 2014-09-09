@@ -48,7 +48,7 @@ noneint = lambda n : n if n is None else int(n)
 
 class ThreeJS(object):
     def __init__(self, renderer=None, width=None, height=None,
-                 frame=True, camera_distance=10.0, background=None, foreground=None, **ignored):
+                 frame=True, background=None, foreground=None, spin=False, viewer=None, **ignored):
         """
         INPUT:
 
@@ -56,25 +56,34 @@ class ThreeJS(object):
         - width    -- None (automatic) or an integer
         - height   -- None (automatic) or an integer
         - frame    -- bool (default: True); draw a frame that includes every object.
-        - camera_distance -- float (default: 10); default camera distance.
         - background -- None (transparent); otherwise a color such as 'black' or 'white'
         - foreground -- None (automatic = black if transparent; otherwise opposite of background);
            or a color; this is used for drawing the frame and axes labels.
+        - spin -- False; if True, spins plot when cursor in viewer; if a number determines speed (60=one rotation per second)
+        - viewer -- synonym for renderer
         """
+        if viewer is not None and renderer is None:
+            renderer = viewer
+        if renderer not in [None, 'webgl', 'canvas', 'canvas2d']:
+            raise ValueError("unknown renderer='%s'; it must be None, webgl, or canvas2d"%renderer)
         self._frame    = frame
         self._salvus   = sage_salvus.salvus  # object for this cell
         self._id       = uuid()
         self._selector = "$('#%s')"%self._id
         self._obj      = "%s.data('salvus-threejs')"%self._selector
         self._salvus.html("<div id=%s class='salvus-3d-container'></div>"%self._id)
+        if not isinstance(spin, bool):
+            spin = json_float(spin)
+
         self._salvus.javascript("%s.salvus_threejs(obj)"%self._selector, once=False,
-                                obj={'renderer':renderer,
-                                     'width':noneint(width),
-                                     'height':noneint(height),
-                                     'camera_distance':json_float(camera_distance),
-                                     'background':background,
-                                     'foreground':foreground
+                                obj={'renderer'        : renderer,
+                                     'width'           : noneint(width),
+                                     'height'          : noneint(height),
+                                     'background'      : background,
+                                     'foreground'      : foreground,
+                                     'spin'            : spin
                                      })
+
         self._graphics = []
 
     def _call(self, s, obj=None):
@@ -119,11 +128,14 @@ class ThreeJS(object):
                       'zmin':json_float(zmin), 'zmax':json_float(zmax), 'color':color, 'draw':draw})
 
 def show_3d_plot_using_threejs(g, **kwds):
-    b = g.bounding_box()
-    if 'camera_distance' not in kwds:
-        kwds['camera_distance'] = 2 * max([abs(x) for x in list(b[0])+list(b[1])])
+    for k in ['spin', 'renderer', 'viewer', 'frame', 'height', 'width', 'background', 'foreground']:
+        if k in g._extra_kwds and k not in kwds:
+            kwds[k] = g._extra_kwds[k]
+    if 'camera_distance' in kwds:
+        del kwds['camera_distance'] # deprecated
     t = ThreeJS(**kwds)
-    t.set_frame(b[0][0],b[1][0],b[0][1],b[1][1],b[0][2],b[1][2],draw=False)
+    b = g.bounding_box()
+    t.set_frame(b[0][0],b[1][0],b[0][1],b[1][1],b[0][2],b[1][2], draw=False)
     t.add(g, **kwds)
     t.animate()
     return t
@@ -348,7 +360,7 @@ def graphics3d_to_jsonable(p):
                  'constant_size':constant_size,
                  'fontsize':fontsize}
         obj_list.append(myobj)
- 
+
     def convert_line(p):
         if isinstance(p, sage.plot.plot3d.base.TransformGroup):
             # converting a transformed line

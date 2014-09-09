@@ -78,8 +78,8 @@ load_threejs = (cb) ->
 
     async.series([
         (cb) -> load("/static/threejs/r#{VERSION}/three.min.js", 'THREE', cb)
-        (cb) -> load("/static/threejs/r#{VERSION}/TrackballControls.js", cb)
-        (cb) -> load("/static/threejs/r#{VERSION}/Detector.js", cb)
+        (cb) -> load("/static/threejs/r#{VERSION}/OrbitControls.min.js", cb)
+        (cb) -> load("/static/threejs/r#{VERSION}/Detector.min.js", cb)
         (cb) ->
             f = () ->
                 if THREE?
@@ -108,6 +108,7 @@ class SalvusThreeJS
             light           : true
             background      : undefined
             foreground      : undefined
+            spin            : false      # if true, image spins by itself when mouse is over it.
             camera_distance : 10
 
         @init()
@@ -117,7 +118,8 @@ class SalvusThreeJS
 
         # IMPORTANT: There is a major bug in three.js -- if you make the width below more than .5 of the window
         # width, then after 8 3d renders, things get foobared in WebGL mode.  This happens even with the simplest
-        # demo using the basic cube example from their site with R68.
+        # demo using the basic cube example from their site with R68.  It even sometimes happens with this workaround, but
+        # at least retrying a few times can fix it.
         if @opts.width
             @opts.width = Math.min(@opts.width, $(window).width()*.5)
         else
@@ -137,12 +139,13 @@ class SalvusThreeJS
                 antialias             : true
                 preserveDrawingBuffer : true
                 alpha                 : true
-        else
+        else if @opts.renderer.slice(0,6) == 'canvas'
             @opts.element.find(".salvus-3d-viewer-renderer").text("canvas2d")
             @renderer = new THREE.CanvasRenderer
                 antialias : true
                 alpha     : true
-
+        else
+            throw "unknown renderer: #{@opts.renderer}"
 
         @renderer.setClearColor(0xffffff, 1)
         @renderer.setSize(@opts.width, @opts.height)
@@ -176,10 +179,23 @@ class SalvusThreeJS
     set_trackball_controls: () =>
         if @controls?
             return
+
         # set up camera controls
-        @controls = new THREE.TrackballControls(@camera, @renderer.domElement)
+        @controls = new THREE.OrbitControls(@camera, @renderer.domElement)
+        @controls.damping = 2
+        @controls.noKeys = true
+        @controls.zoomSpeed = 0.4
         if @_center?
             @controls.target = @_center
+        if @opts.spin
+            if typeof(@opts.spin) == "boolean"
+                @controls.autoRotateSpeed = 2.0
+            else
+                @controls.autoRotateSpeed = @opts.spin
+            @controls.autoRotate = true
+
+        @controls.addEventListener('change', ()=>@renderer.render(@scene, @camera))
+
         @render_scene(true)
 
 
@@ -430,20 +446,26 @@ class SalvusThreeJS
 
         @_frame_params = o
         eps = 0.1
-        if Math.abs(o.xmax-o.xmin)<eps
-            o.xmax += 1
-            o.xmin -= 1
-        if Math.abs(o.ymax-o.ymin)<eps
-            o.ymax += 1
-            o.ymin -= 1
-        if Math.abs(o.zmax-o.zmin)<eps
-            o.zmax += 1
-            o.zmin -= 1
+        x0 = o.xmin; x1 = o.xmax; y0 = o.ymin; y1 = o.ymax; z0 = o.zmin; z1 = o.zmax
 
-        mx = (o.xmin+o.xmax)/2
-        my = (o.ymin+o.ymax)/2
-        mz = (o.zmin+o.zmax)/2
+        if Math.abs(x1-x0)<eps
+            x1 += 1
+            x0 -= 1
+        if Math.abs(y1-y0)<eps
+            y1 += 1
+            y0 -= 1
+        if Math.abs(z1-z0)<eps
+            z1 += 1
+            z0 -= 1
+
+        mx = (x0+x1)/2
+        my = (y0+y1)/2
+        mz = (z0+z1)/2
         @_center = new THREE.Vector3(mx,my,mz)
+
+        if @camera?
+            d = Math.max [x1-x0,y1-y0,z1-z0]...
+            @camera.position.set(mx+d,my+d,mz+d)
 
         if o.draw
             if @frame?
@@ -452,7 +474,6 @@ class SalvusThreeJS
                     @scene.remove(x)
                 delete @frame
             @frame = []
-            x0 = o.xmin; x1 = o.xmax; y0 = o.ymin; y1 = o.ymax; z0 = o.zmin; z1 = o.zmax
             v = [[[x0,y0,z0], [x1,y0,z0], [x1,y1,z0], [x0,y1,z0], [x0,y0,z0],
                   [x0,y0,z1], [x1,y0,z1], [x1,y1,z1], [x0,y1,z1], [x0,y0,z1]],
                  [[x1,y0,z0], [x1,y0,z1]],
@@ -486,20 +507,20 @@ class SalvusThreeJS
 
             offset = 0.075
             if o.draw
-                e = (o.ymax - o.ymin)*offset
-                txt(o.xmax,o.ymin-e,o.zmin, l(o.zmin))
-                txt(o.xmax,o.ymin-e,mz, "z=#{l(o.zmin,o.zmax)}")
-                txt(o.xmax,o.ymin-e,o.zmax,l(o.zmax))
+                e = (y1 - y0)*offset
+                txt(x1,y0-e,z0, l(z0))
+                txt(x1,y0-e,mz, "z=#{l(z0,z1)}")
+                txt(x1,y0-e,z1,l(z1))
 
-                e = (o.xmax - o.xmin)*offset
-                txt(o.xmax+e,o.ymin,o.zmin,l(o.ymin))
-                txt(o.xmax+e,my,o.zmin, "y=#{l(o.ymin,o.ymax)}")
-                txt(o.xmax+e,o.ymax,o.zmin,l(o.ymax))
+                e = (x1 - x0)*offset
+                txt(x1+e,y0,z0,l(y0))
+                txt(x1+e,my,z0, "y=#{l(y0,y1)}")
+                txt(x1+e,y1,z0,l(y1))
 
-                e = (o.ymax - o.ymin)*offset
-                txt(o.xmax,o.ymax+e,o.zmin,l(o.xmax))
-                txt(mx,o.ymax+e,o.zmin, "x=#{l(o.xmin,o.xmax)}")
-                txt(o.xmin,o.ymax+e,o.zmin,l(o.xmin))
+                e = (y1 - y0)*offset
+                txt(x1,y1+e,z0,l(x1))
+                txt(mx,y1+e,z0, "x=#{l(x0,x1)}")
+                txt(x0,y1+e,z0,l(x0))
 
         v = new THREE.Vector3(mx, my, mz)
         @camera.lookAt(v)
