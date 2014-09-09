@@ -25,12 +25,20 @@
 
 
 
-import json
+import json, math
+import sage_salvus
+
 from uuid import uuid4
 def uuid():
     return str(uuid4())
-import sage_salvus
 
+def json_float(t):
+    t = float(t)
+    # Neither of nan or inf get JSON'd in a way that works properly, for some reason.  I don't understand why.
+    if math.isnan(t) or math.isinf(t):
+        return None
+    else:
+        return t
 
 #######################################################
 # Three.js based plotting
@@ -63,7 +71,7 @@ class ThreeJS(object):
                                 obj={'renderer':renderer,
                                      'width':noneint(width),
                                      'height':noneint(height),
-                                     'camera_distance':float(camera_distance),
+                                     'camera_distance':json_float(camera_distance),
                                      'background':background,
                                      'foreground':foreground
                                      })
@@ -86,7 +94,7 @@ class ThreeJS(object):
 
     def add_text(self, pos, text, fontsize=18, fontface='Arial', sprite_alignment='topLeft'):
         self._call('add_text(obj)',
-                   obj={'pos':[float(pos[0]), float(pos[1]), float(pos[2])],'text':str(text),
+                   obj={'pos':[json_float(pos[0]), json_float(pos[1]), json_float(pos[2])],'text':str(text),
                         'fontsize':int(fontsize),'fontface':str(fontface), 'sprite_alignment':str(sprite_alignment)})
 
     def animate(self, fps=None, stop=None, mouseover=True):
@@ -106,9 +114,9 @@ class ThreeJS(object):
                       min(b[0][2],zmin), max(b[1][2],zmax))
 
         self._call('set_frame(obj)', obj={
-                      'xmin':float(xmin), 'xmax':float(xmax),
-                      'ymin':float(ymin), 'ymax':float(ymax),
-                      'zmin':float(zmin), 'zmax':float(zmax), 'color':color, 'draw':draw})
+                      'xmin':json_float(xmin), 'xmax':json_float(xmax),
+                      'ymin':json_float(ymin), 'ymax':json_float(ymax),
+                      'zmin':json_float(zmin), 'zmax':json_float(zmax), 'color':color, 'draw':draw})
 
 def show_3d_plot_using_threejs(g, **kwds):
     b = g.bounding_box()
@@ -128,7 +136,7 @@ from sage.structure.element import Element
 
 def jsonable(x):
     if isinstance(x, Element):
-        return float(x)
+        return json_float(x)
     return x
 
 def graphics3d_to_jsonable(p):
@@ -236,7 +244,7 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 for t in tmp.split():
                     try:
-                        ambient.append(float(t))
+                        ambient.append(json_float(t))
                     except ValueError:
                         pass
 
@@ -244,7 +252,7 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 for t in tmp.split():
                     try:
-                        specular.append(float(t))
+                        specular.append(json_float(t))
                     except ValueError:
                         pass
 
@@ -252,7 +260,7 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 for t in tmp.split():
                     try:
-                        diffuse.append(float(t))
+                        diffuse.append(json_float(t))
                     except ValueError:
                         pass
 
@@ -260,7 +268,7 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 for t in tmp.split():
                     try:
-                        illum_list.append(float(t))
+                        illum_list.append(json_float(t))
                     except ValueError:
                         pass
 
@@ -270,7 +278,7 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 for t in tmp.split():
                     try:
-                        shininess_list.append(float(t))
+                        shininess_list.append(json_float(t))
                     except ValueError:
                         pass
 
@@ -278,7 +286,7 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 for t in tmp.split():
                     try:
-                        opacity_diffuse.append(float(t))
+                        opacity_diffuse.append(json_float(t))
                     except ValueError:
                         pass
 
@@ -310,7 +318,7 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 for t in tmp.split():
                     try:
-                        vertex_geometry.append(float(t))
+                        vertex_geometry.append(json_float(t))
                     except ValueError:
                         pass
         myobj = {"face_geometry":face_geometry,"type":'index_face_set',"vertex_geometry":vertex_geometry,"material":material}
@@ -351,7 +359,7 @@ def graphics3d_to_jsonable(p):
     def convert_point(p):
         obj_list.append({"type" : "point",
                          "loc"  : p.loc,
-                         "size" : float(p.size),
+                         "size" : json_float(p.size),
                          "color" : "#" + p.get_texture().hex_rgb()})
 
     def convert_combination(p):
