@@ -2489,7 +2489,7 @@
     if (cm.somethingSelected()) {
       cm.display.prevInput = "";
       var range = doc.sel.primary();
-      minimal = hasCopyEvent &&
+      minimal = false && hasCopyEvent &&
         (range.to().line - range.from().line > 100 || (selected = cm.getSelection()).length > 1000);
       var content = minimal ? "-" : selected || cm.getSelection();
       cm.display.input.value = content;
