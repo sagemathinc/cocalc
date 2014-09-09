@@ -25,12 +25,23 @@
 
 
 
-import json
+import json, math
+
 from uuid import uuid4
 def uuid():
     return str(uuid4())
 import sage_salvus
 
+
+def json_float(t):
+    try:
+        t = float(t)
+        if math.isnan(t):
+            return None
+        else:
+            return t
+    except ValueError:
+        return None
 
 #######################################################
 # Three.js based plotting
@@ -235,52 +246,32 @@ def graphics3d_to_jsonable(p):
             if "Ka" in item:
                 tmp = str(item.strip())
                 for t in tmp.split():
-                    try:
-                        ambient.append(float(t))
-                    except ValueError:
-                        pass
+                    ambient.append(json_float(t))
 
             if "Ks" in item:
                 tmp = str(item.strip())
                 for t in tmp.split():
-                    try:
-                        specular.append(float(t))
-                    except ValueError:
-                        pass
+                    specular.append(json_float(t))
 
             if "Kd" in item:
                 tmp = str(item.strip())
                 for t in tmp.split():
-                    try:
-                        diffuse.append(float(t))
-                    except ValueError:
-                        pass
+                    diffuse.append(json_float(t))
 
             if "illum" in item:
                 tmp = str(item.strip())
                 for t in tmp.split():
-                    try:
-                        illum_list.append(float(t))
-                    except ValueError:
-                        pass
-
-
+                    illum_list.append(json_float(t))
 
             if "Ns" in item:
                 tmp = str(item.strip())
                 for t in tmp.split():
-                    try:
-                        shininess_list.append(float(t))
-                    except ValueError:
-                        pass
+                    shininess_list.append(json_float(t))
 
             if "d" in item:
                 tmp = str(item.strip())
                 for t in tmp.split():
-                    try:
-                        opacity_diffuse.append(float(t))
-                    except ValueError:
-                        pass
+                    opacity_diffuse.append(json_float(t))
 
         try:
             color = list(p.all[0].texture.color.rgb())
@@ -309,10 +300,7 @@ def graphics3d_to_jsonable(p):
             if "v" in item:
                 tmp = str(item.strip())
                 for t in tmp.split():
-                    try:
-                        vertex_geometry.append(float(t))
-                    except ValueError:
-                        pass
+                    vertex_geometry.append(json_float(t))
         myobj = {"face_geometry":face_geometry,"type":'index_face_set',"vertex_geometry":vertex_geometry,"material":material}
         for e in ['wireframe', 'mesh']:
             if p._extra_kwds is not None:
@@ -390,7 +378,7 @@ def graphics3d_to_jsonable(p):
             raise NotImplementedError("unhandled type ", type(p))
 
 
-    handler(p)(p)
+    handler(p)(p) 
 
     return obj_list
 
