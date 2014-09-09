@@ -1,0 +1,3 @@
+wget http://threejs.org/build/three.min.js
+wget http://threejs.org/examples/js/controls/TrackballControls.js
+wget http://threejs.org/examples/js/Detector.js
