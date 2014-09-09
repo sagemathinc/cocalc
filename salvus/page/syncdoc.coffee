@@ -1837,6 +1837,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
     ##########################################
     get_cell_flagstring: (marker) =>
         pos = marker.find()
+        if not pos?
+            return ''
         return @focused_codemirror().getRange({line:pos.from.line,ch:37},{line:pos.from.line, ch:pos.to.ch-1})
 
     set_cell_flagstring: (marker, value) =>
@@ -1845,6 +1847,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     get_cell_uuid: (marker) =>
         pos = marker.find()
+        if not pos?
+            return ''
         return @focused_codemirror().getLine(pos.line).slice(1,38)
 
     set_cell_flag: (marker, flag) =>
