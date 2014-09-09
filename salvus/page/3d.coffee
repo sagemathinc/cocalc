@@ -104,16 +104,20 @@ class SalvusThreeJS
             width           : undefined
             height          : undefined
             renderer        : undefined  # 'webgl', 'canvas2d', or undefined = "webgl if available; otherwise, canvas2d"
-            trackball       : true
+            orbit_controls  : true
             light           : true
             background      : undefined
             foreground      : undefined
             spin            : false      # if true, image spins by itself when mouse is over it.
             camera_distance : 10
+            stop_when_gone  : undefined  # if given, animation, etc., stops when this html element (not jquery!) is no longer in the DOM
 
         @init()
 
     init: () =>
+        if @_init
+            return
+        @_init = true
         @scene = new THREE.Scene()
 
         # IMPORTANT: There is a major bug in three.js -- if you make the width below more than .5 of the window
@@ -164,19 +168,19 @@ class SalvusThreeJS
             z = (255-parseInt(a) for a in c.slice(4,i).split(','))
             @opts.foreground = rgb_to_hex(z[0], z[1], z[2])
 
-        @add_camera(distance:@opts.camera_distance)
-
         if @opts.light
             @set_light()
 
     show_canvas: () =>
-        @opts.element.find(".salvus-3d-canvas").show()
         @opts.element.find(".salvus-3d-note").hide()
+        @opts.element.find(".salvus-3d-canvas").show()
+        @add_camera(distance:@opts.camera_distance)
+
 
     data_url: (type='png') =>   # 'png' or 'jpeg'
         return @renderer.domElement.toDataURL("image/#{type}")
 
-    set_trackball_controls: () =>
+    set_orbit_controls: () =>
         if @controls?
             return
 
@@ -198,10 +202,12 @@ class SalvusThreeJS
 
         @render_scene(true)
 
-
     add_camera: (opts) =>
         opts = defaults opts,
             distance : 10
+
+        if @camera?
+            return
 
         view_angle = 45
         aspect     = @opts.width/@opts.height
@@ -213,6 +219,9 @@ class SalvusThreeJS
         @camera.position.set(opts.distance, opts.distance, opts.distance)
         @camera.lookAt(@scene.position)
         @camera.up = new THREE.Vector3(0,0,1)
+
+        if @opts.orbit_controls
+            @set_orbit_controls()
 
     set_light: (color= 0xffffff) =>
 
@@ -244,7 +253,7 @@ class SalvusThreeJS
             # WARNING: if constant_size, don't remove text from scene (or if you do, note that it is slightly inefficient still.)
 
         #console.log("add_text: #{misc.to_json(o)}")
-
+        @show_canvas()
         # make an HTML5 2d canvas on which to draw text
         width   = 300  # this determines max text width; beyond this, text is cut off.
         height  = 150
@@ -296,6 +305,8 @@ class SalvusThreeJS
             thickness  : 1
             color      : "#000000"
             arrow_head : false  # TODO
+        @show_canvas()
+
         geometry = new THREE.Geometry()
         for a in o.points
             geometry.vertices.push(new THREE.Vector3(a[0],a[1],a[2]))
@@ -309,6 +320,7 @@ class SalvusThreeJS
             color: "#000000"
             sizeAttenuation : false
         #console.log("rendering a point", o)
+        @show_canvas()
 
         material = new THREE.ParticleBasicMaterial
             color           : o.color
@@ -333,6 +345,8 @@ class SalvusThreeJS
         @scene.add(particle)
 
     add_obj: (myobj)=>
+        @show_canvas()
+
         vertices = myobj.vertex_geometry
         for objects in [0...myobj.face_geometry.length]
             #console.log("object=", misc.to_json(myobj))
@@ -443,11 +457,12 @@ class SalvusThreeJS
             labels    : true  # whether to draw three numerical labels along each of the x, y, and z axes.
             fontsize  : 14
             draw      : true
+        @show_canvas()
 
         @_frame_params = o
         eps = 0.1
         x0 = o.xmin; x1 = o.xmax; y0 = o.ymin; y1 = o.ymax; z0 = o.zmin; z1 = o.zmax
-
+        # console.log("set_frame: #{misc.to_json(o)}")
         if Math.abs(x1-x0)<eps
             x1 += 1
             x0 -= 1
@@ -532,6 +547,8 @@ class SalvusThreeJS
         opts = defaults opts,
             obj       : required
             wireframe : undefined
+            set_frame : undefined
+        @show_canvas()
 
         for o in opts.obj
             switch o.type
@@ -560,20 +577,30 @@ class SalvusThreeJS
                 else
                     console.log("ERROR: no renderer for model number = #{o.id}")
                     return
+
+        if opts.set_frame?
+            @set_frame(opts.set_frame)
+
         @render_scene(true)
+
 
     animate: (opts={}) =>
         opts = defaults opts,
-            fps  : undefined
-            stop : false
+            fps       : undefined
+            stop      : false
             mouseover : true
-        #console.log('anim', @opts.element.length, @opts.element.is(":visible"))
 
-        @show_canvas()
+        # console.log("anim", @opts.element.length, @opts.element.is(":visible"))
 
         if not @opts.element.is(":visible")
-            # check again after a delay
-            setTimeout((() => @animate(opts)), 1500)
+            if @opts.stop_when_gone? and not $.contains(document, @opts.stop_when_gone)
+                # console.log("stop_when_gone removed from document -- quit animation completely")
+            else if not $.contains(document, @opts.element[0])
+                # console.log("element removed from document; wait 5 seconds")
+                setTimeout((() => @animate(opts)), 5000)
+            else
+                # console.log("check again after a second")
+                setTimeout((() => @animate(opts)), 1000)
             return
 
         if opts.stop
@@ -595,13 +622,8 @@ class SalvusThreeJS
 
     render_scene: (force=false) =>
         #console.log('render', @opts.element.length)
-        @show_canvas()
-
         if @controls?
             @controls?.update()
-        else
-            if @opts.trackball
-                @set_trackball_controls()
 
         pos = @camera.position
         if not @_last_pos?
@@ -636,6 +658,10 @@ $.fn.salvus_threejs = (opts={}) ->
         elt.empty().append(e)
         e.find(".salvus-3d-canvas").hide()
         opts.element = e
+
+        # TODO/NOTE -- this explicit reference is brittle -- it is just an animation efficiency, but still...
+        opts.stop_when_gone = e.closest(".salvus-editor-codemirror")[0]
+
         f = () -> elt.data('salvus-threejs', new SalvusThreeJS(opts))
         if not THREE?
             load_threejs (err) =>

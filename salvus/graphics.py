@@ -59,7 +59,7 @@ class ThreeJS(object):
         - background -- None (transparent); otherwise a color such as 'black' or 'white'
         - foreground -- None (automatic = black if transparent; otherwise opposite of background);
            or a color; this is used for drawing the frame and axes labels.
-        - spin -- False; if True, spins plot when cursor in viewer; if a number determines speed (60=one rotation per second)
+        - spin -- False; if True, spins 3d plot; if a number determines speed (60=one rotation per second)
         - viewer -- synonym for renderer
         """
         if viewer is not None and renderer is None:
@@ -69,34 +69,56 @@ class ThreeJS(object):
         self._frame    = frame
         self._salvus   = sage_salvus.salvus  # object for this cell
         self._id       = uuid()
-        self._selector = "$('#%s')"%self._id
-        self._obj      = "%s.data('salvus-threejs')"%self._selector
+        self._selector = "#%s"%self._id
+        self._obj      = "$('%s').data('salvus-threejs')"%self._selector
         self._salvus.html("<div id=%s class='salvus-3d-container'></div>"%self._id)
         if not isinstance(spin, bool):
             spin = json_float(spin)
 
-        self._salvus.javascript("%s.salvus_threejs(obj)"%self._selector, once=False,
-                                obj={'renderer'        : renderer,
+        self._salvus.javascript("$('%s').salvus_threejs(obj)"%self._selector,
+                                once = False,
+                                obj  = {
+                                     'renderer'        : renderer,
                                      'width'           : noneint(width),
                                      'height'          : noneint(height),
                                      'background'      : background,
                                      'foreground'      : foreground,
                                      'spin'            : spin
                                      })
-
         self._graphics = []
+        self._call('init()')
 
     def _call(self, s, obj=None):
         cmd = 'misc.eval_until_defined({code:"%s", cb:(function(err, __t__) { __t__ != null ? __t__.%s:void 0 })})'%(
                 self._obj, s)
         self._salvus.execute_javascript(cmd, obj=obj)
 
+    def bounding_box(self):
+        if not self._graphics:
+            return -1,1,-1,1,-1,1
+        b = self._graphics[0].bounding_box()
+        xmin, xmax, ymin, ymax, zmin, zmax = b[0][0], b[1][0], b[0][1], b[1][1], b[0][2], b[1][2]
+        for g in self._graphics[1:]:
+            b = g.bounding_box()
+            xmin, xmax, ymin, ymax, zmin, zmax = (
+                  min(xmin,b[0][0]), max(b[1][0],xmax),
+                  min(b[0][1],ymin), max(b[1][1],ymax),
+                  min(b[0][2],zmin), max(b[1][2],zmax))
+        v = xmin, xmax, ymin, ymax, zmin, zmax
+        return [json_float(x) for x in v]
+
+    def frame_options(self):
+        xmin, xmax, ymin, ymax, zmin, zmax = self.bounding_box()
+        return {'xmin':xmin, 'xmax':xmax, 'ymin':ymin, 'ymax':ymax, 'zmin':zmin, 'zmax':zmax,
+                'draw' : self._frame}
+
     def add(self, graphics3d, **kwds):
         kwds = graphics3d._process_viewing_options(kwds)
-        self._frame = kwds.get('frame',False)
         self._graphics.append(graphics3d)
-        self._call('add_3dgraphics_obj(obj)', obj={'obj':graphics3d_to_jsonable(graphics3d), 'wireframe':jsonable(kwds.get('wireframe'))})
-        self.set_frame(draw = self._frame)  # update the frame
+        obj = {'obj'       : graphics3d_to_jsonable(graphics3d),
+               'wireframe' : jsonable(kwds.get('wireframe')),
+               'set_frame' : self.frame_options()}
+        self._call('add_3dgraphics_obj(obj)', obj=obj)
 
     def render_scene(self, force=True):
         self._call('render_scene(obj)', obj={'force':force})
@@ -109,24 +131,6 @@ class ThreeJS(object):
     def animate(self, fps=None, stop=None, mouseover=True):
         self._call('animate(obj)', obj={'fps':noneint(fps), 'stop':stop, 'mouseover':mouseover})
 
-    def set_frame(self, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None, color=None, draw=True):
-        if not self._graphics:
-            xmin, xmax, ymin, ymax, zmin, zmax = -1,1,-1,1,-1,1
-        else:
-            b = self._graphics[0].bounding_box()
-            xmin, xmax, ymin, ymax, zmin, zmax = b[0][0], b[1][0], b[0][1], b[1][1], b[0][2], b[1][2]
-            for g in self._graphics[1:]:
-                b = g.bounding_box()
-                xmin, xmax, ymin, ymax, zmin, zmax = (
-                      min(xmin,b[0][0]), max(b[1][0],xmax),
-                      min(b[0][1],ymin), max(b[1][1],ymax),
-                      min(b[0][2],zmin), max(b[1][2],zmax))
-
-        self._call('set_frame(obj)', obj={
-                      'xmin':json_float(xmin), 'xmax':json_float(xmax),
-                      'ymin':json_float(ymin), 'ymax':json_float(ymax),
-                      'zmin':json_float(zmin), 'zmax':json_float(zmax), 'color':color, 'draw':draw})
-
 def show_3d_plot_using_threejs(g, **kwds):
     for k in ['spin', 'renderer', 'viewer', 'frame', 'height', 'width', 'background', 'foreground']:
         if k in g._extra_kwds and k not in kwds:
@@ -134,10 +138,9 @@ def show_3d_plot_using_threejs(g, **kwds):
     if 'camera_distance' in kwds:
         del kwds['camera_distance'] # deprecated
     t = ThreeJS(**kwds)
-    b = g.bounding_box()
-    t.set_frame(b[0][0],b[1][0],b[0][1],b[1][1],b[0][2],b[1][2], draw=False)
     t.add(g, **kwds)
-    t.animate()
+    if kwds.get('spin', False):
+        t.animate(mouseover=False)
     return t
 
 import sage.plot.plot3d.index_face_set

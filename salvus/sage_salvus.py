@@ -2226,7 +2226,7 @@ def show(obj, svg=True, **kwds):
 
        - renderer: (default: 'webgl'); for 3d graphics, try to use 'webgl' (faster); otherwise use 'canvas2d' (slower)
 
-       - spin: (default: False); if True or a number (controls speed) spin 3d graphic when mouse is over
+       - spin: (default: False); spin 3d graphic; True or a number that controls the speed (bigger=faster)
 
        - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
