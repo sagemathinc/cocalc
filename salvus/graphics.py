@@ -1,5 +1,5 @@
 ###############################################################################
-# Copyright (c) 2013, William Stein
+# Copyright (c) 2013, 2014 by William Stein
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -157,13 +157,13 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 face_num = len(tmp.split())
                 for t in tmp.split():
-                    if(face_num ==4):
+                    if face_num == 4:
                         try:
                             face3.append(int(t))
                         except ValueError:
                             pass
 
-                    elif(face_num ==6):
+                    elif face_num == 6:
                         try:
                             face5.append(int(t))
                         except ValueError:

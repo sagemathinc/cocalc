@@ -38,8 +38,8 @@ rgb_to_hex = (r, g, b) -> "#" + component_to_hex(r) + component_to_hex(g) + comp
 
 _loading_threejs_callbacks = []
 
-VERSION = '59'
-#VERSION = '68'
+#VERSION = '59'
+VERSION = '68'
 $.ajaxSetup(cache: true) # when using getScript, cache result.
 
 load_threejs = (cb) ->
@@ -49,12 +49,35 @@ load_threejs = (cb) ->
         #console.log("load_threejs: already loading...")
         return
 
-    load = (script, cb) -> $.getScript(script).done((script, textStatus)=>cb()).fail((jqxhr, settings, exception )=>cb("error loading -- #{exception}"))
+    load = (script, name, cb) ->
+        if typeof(name) != 'string'
+            cb = name
+            name = undefined
+
+        m = (msg) -> #console.log("load('#{script}'): #{msg}")
+        m()
+
+        if name? and not window.module?
+            window.module = {exports:{}}  # ugly hack around THREE.js now supporting modules
+
+        g = $.getScript(script)
+        g.done (script, textStatus) ->
+            if name?
+                window[name] = window.module.exports
+                delete window.module
+            # console.log("THREE=", THREE?)
+            m("done: #{textStatus}")
+            cb()
+        g.fail (jqxhr, settings, exception) ->
+            m("fail: #{exception}")
+            if name?
+                delete window.module
+            cb("error loading -- #{exception}")
 
     async.series([
-        (cb) -> load("/static/threejs/r#{VERSION}/three.min.js",cb)
-        (cb) -> load("/static/threejs/r#{VERSION}/TrackballControls.js",cb)
-        (cb) -> load("/static/threejs/r#{VERSION}/Detector.js",cb)
+        (cb) -> load("/static/threejs/r#{VERSION}/three.min.js", 'THREE', cb)
+        (cb) -> load("/static/threejs/r#{VERSION}/TrackballControls.js", cb)
+        (cb) -> load("/static/threejs/r#{VERSION}/Detector.js", cb)
         (cb) ->
             f = () ->
                 if THREE?
@@ -69,6 +92,8 @@ load_threejs = (cb) ->
             cb(err)
         _loading_threejs_callbacks = []
     )
+
+window.load_threejs = load_threejs
 
 class SalvusThreeJS
     constructor: (opts) ->
@@ -87,15 +112,16 @@ class SalvusThreeJS
 
     init: () =>
         @scene = new THREE.Scene()
+
         # IMPORTANT: There is a major bug in three.js -- if you make the width below more than .5 of the window
         # width, then after 8 3d renders, things get foobared in WebGL mode.  This happens even with the simplest
         # demo using the basic cube example from their site with R68.
-        if opts.width
-            @opts.width = Math.min(opts.width, $(window).width()*.5)
+        if @opts.width
+            @opts.width = Math.min(@opts.width, $(window).width()*.5)
         else
             @opts.width  = $(window).width()*.5
 
-        @opts.height = if opts.height? then opts.height else $(window).height()*.6
+        @opts.height = if @opts.height? then @opts.height else $(window).height()*.6
 
         if not @opts.renderer?
             if Detector.webgl
@@ -108,10 +134,15 @@ class SalvusThreeJS
             @renderer = new THREE.WebGLRenderer
                 antialias             : true
                 preserveDrawingBuffer : true
+                alpha                 : true
         else
             @opts.element.find(".salvus-3d-viewer-renderer").text("canvas2d")
-            @renderer = new THREE.CanvasRenderer(antialias:true)
+            @renderer = new THREE.CanvasRenderer
+                antialias : true
+                alpha     : true
 
+
+        @renderer.setClearColor( 0xffffff, 1)
         @renderer.setSize(@opts.width, @opts.height)
 
         if not @opts.background?
@@ -133,13 +164,17 @@ class SalvusThreeJS
         if @opts.light
             @set_light()
 
+    show_canvas: () =>
+        @opts.element.find(".salvus-3d-canvas").show()
+        @opts.element.find(".salvus-3d-note").hide()
+
     data_url: (type='png') =>   # 'png' or 'jpeg'
         return @renderer.domElement.toDataURL("image/#{type}")
 
     set_trackball_controls: () =>
         if @controls?
             return
-        #setting up camera controls
+        # set up camera controls
         @controls = new THREE.TrackballControls(@camera, @renderer.domElement)
         if @_center?
             @controls.target = @_center
@@ -180,33 +215,54 @@ class SalvusThreeJS
             fontsize         : 12
             fontface         : 'Arial'
             color            : "#000000"   # anything that is valid to canvas context, e.g., "rgba(249,95,95,0.7)" is also valid.
-            border_thickness : 0
-            sprite_alignment : 'topLeft'
             constant_size    : true  # if true, then text is automatically resized when the camera moves;
             # WARNING: if constant_size, don't remove text from scene (or if you do, note that it is slightly inefficient still.)
 
-        o.sprite_alignment = THREE.SpriteAlignment[o.sprite_alignment]
-        canvas  = document.createElement("canvas")
+        #console.log("add_text: #{misc.to_json(o)}")
+
+        # make an HTML5 2d canvas on which to draw text
+        width   = 300  # this determines max text width; beyond this, text is cut off.
+        height  = 150
+        canvas  = $("<canvas style='border:1px solid black' width=#{width} height=#{height}>")[0]
+
+        # get the drawing context
         context = canvas.getContext("2d")
+
+        # set the fontsize and fix for our text.
         context.font = "Normal " + o.fontsize + "px " + o.fontface
+        context.textAlign = 'center'
+
+        # set the color of our text
         context.fillStyle = o.color
-        context.fillText(o.text, o.border_thickness, o.fontsize + o.border_thickness)
+
+        # actually draw the text -- right in the middle of the canvas.
+        context.fillText(o.text, width/2, height/2)
+
+        # Make THREE.js texture from our canvas.
         texture = new THREE.Texture(canvas)
         texture.needsUpdate = true
-        spriteMaterial = new THREE.SpriteMaterial
-            map                  : texture
-            useScreenCoordinates : false
-            alignment            : o.sprite_alignment,
-            sizeAttenuation      : true
+
+        # Make a material out of our texture.
+        spriteMaterial = new THREE.SpriteMaterial(map: texture)
+
+        # Make the sprite itself.  (A sprite is a 3d plane that always faces the camera.)
         sprite = new THREE.Sprite(spriteMaterial)
+
+        # Move the sprite to its position
         p = o.pos
         sprite.position.set(p[0],p[1],p[2])
+
+        # If the text is supposed to stay constant size, add it to the list of constant size text,
+        # which gets resized on scene update.
         if o.constant_size
             if not @_text?
                 @_text = [sprite]
             else
                 @_text.push(sprite)
+
+        # Finally add the sprite to our scene
         @scene.add(sprite)
+
         return sprite
 
     add_line : (opts) =>
@@ -218,7 +274,7 @@ class SalvusThreeJS
         geometry = new THREE.Geometry()
         for a in o.points
             geometry.vertices.push(new THREE.Vector3(a[0],a[1],a[2]))
-        line = new THREE.Line(geometry, new THREE.LineBasicMaterial(color:opts.color, linewidth:o.thickness))
+        line = new THREE.Line(geometry, new THREE.LineBasicMaterial(color:o.color, linewidth:o.thickness))
         @scene.add(line)
 
     add_point: (opts) =>
@@ -227,11 +283,13 @@ class SalvusThreeJS
             size : 1
             color: "#000000"
             sizeAttenuation : false
-        console.log("rendering a point", o)
+        #console.log("rendering a point", o)
+
         material = new THREE.ParticleBasicMaterial
-                  color           : o.color
-                  size            : o.size
-                  sizeAttenuation : o.sizeAttenuation
+            color           : o.color
+            size            : o.size
+            sizeAttenuation : o.sizeAttenuation
+
         switch @opts.renderer
             when 'webgl'
                 geometry = new THREE.Geometry()
@@ -251,27 +309,49 @@ class SalvusThreeJS
 
     add_obj: (myobj)=>
         vertices = myobj.vertex_geometry
-        for objects in [0..myobj.face_geometry.length-1]
+        for objects in [0...myobj.face_geometry.length]
+            #console.log("object=", misc.to_json(myobj))
             face3 = myobj.face_geometry[objects].face3
             face4 = myobj.face_geometry[objects].face4
             face5 = myobj.face_geometry[objects].face5
+
             geometry = new THREE.Geometry()
-            geometry.vertices.push(new THREE.Vector3(vertices[i],
-            vertices[i+1],vertices[i+2])) for i in [0..(vertices.length-1)] by 3
-            geometry.faces.push(new THREE.Face4(face4[k]-1,face4[k+1]-1,face4[k+2]-1,
-            face4[k+3]-1)) for k in [0..(face4.length-1)] by 4
-            geometry.faces.push(new THREE.Face3(face3[k]-1,face3[k+1]-1,face3[k+2]-1)) for k in [0..(face3.length-1)] by 3
-            geometry.faces.push(new THREE.Face4(face5[k]-1,face5[k+1]-1,face5[k+2]-1,
-            face5[k+4]-1)) + geometry.faces.push(new THREE.Face4(face5[k]-1,face5[k+1]-1,face5[k+2]-1,
-            face5[k+3]-1)) + geometry.faces.push(new THREE.Face4(face5[k]-1,face5[k+1]-1,face5[k+2]-1,
-            face5[k+4]-1)) + geometry.faces.push(new THREE.Face4(face5[k]-1,face5[k+2]-1,face5[k+3]-1,
-            face5[k+4]-1)) + geometry.faces.push(new THREE.Face4(face5[k+1]-1,face5[k+2]-1,face5[k+3]-1,
-            face5[k+4]-1))for k in [0..(face5.length-1)] by 5
+
+            for k in [0...vertices.length] by 3
+                geometry.vertices.push(new THREE.Vector3(vertices[k], vertices[k+1], vertices[k+2]))
+
+            # console.log("vertices=",misc.to_json(geometry.vertices))
+
+            push_face3 = (a,b,c) =>
+                geometry.faces.push(new THREE.Face3(a-1,b-1,c-1))
+
+            # include all faces defined by 3 vertices (triangles)
+            for k in [0...face3.length] by 3
+                push_face3(face3[k], face3[k+1], face3[k+2])
+
+            # include all faces defined by 4 vertices (squares), which for THREE.js we must define using two triangles
+            push_face4 = (a,b,c,d) =>
+                push_face3(a,b,c)
+                push_face3(a,c,d)
+
+            for k in [0...face4.length] by 4
+                push_face4(face4[k], face4[k+1], face4[k+2], face4[k+3])
+
+            # include all faces defined by 5 vertices (???), which for THREE.js we must define using ten triangles (?)
+            for k in [0...face5.length] by 5
+                push_face4(face5[k],   face5[k+1], face5[k+2], face5[k+4])
+                push_face4(face5[k],   face5[k+1], face5[k+2], face5[k+3])
+                push_face4(face5[k],   face5[k+1], face5[k+2], face5[k+4])
+                push_face4(face5[k],   face5[k+2], face5[k+3], face5[k+4])
+                push_face4(face5[k+1], face5[k+2], face5[k+3], face5[k+4])
+           # console.log("faces=",misc.to_json(geometry.faces))
+
             geometry.mergeVertices()
-            geometry.computeCentroids()
+            #geometry.computeCentroids()
             geometry.computeFaceNormals()
             #geometry.computeVertexNormals()
             geometry.computeBoundingSphere()
+
             #finding material key(mk)
             name = myobj.face_geometry[objects].material_name
             mk = 0
@@ -280,7 +360,7 @@ class SalvusThreeJS
                     mk = item
                     break
 
-            if opts.wireframe or myobj.wireframe
+            if @opts.wireframe or myobj.wireframe
                 if myobj.color
                     color = myobj.color
                 else
@@ -288,8 +368,8 @@ class SalvusThreeJS
                     color = "rgb(#{c[0]*255},#{c[1]*255},#{c[2]*255})"
                 if typeof myobj.wireframe == 'number'
                     line_width = myobj.wireframe
-                else if typeof opts.wireframe == 'number'
-                    line_width = opts.wireframe
+                else if typeof @opts.wireframe == 'number'
+                    line_width = @opts.wireframe
                 else
                     line_width = 1
 
@@ -297,25 +377,26 @@ class SalvusThreeJS
                     wireframe          : true
                     color              : color
                     wireframeLinewidth : line_width
+                    side               : THREE.DoubleSide
             else if not myobj.material[mk]?
                 console.log("BUG -- couldn't get material for ", myobj)
                 material = new THREE.MeshBasicMaterial
                     wireframe : false
                     color     : "#000000"
             else
+
+                m = myobj.material[mk]
+
                 material =  new THREE.MeshPhongMaterial
                     shininess   : "1"
                     ambient     : 0x0ffff
                     wireframe   : false
-                    transparent : myobj.material[mk].opacity < 1
+                    transparent : m.opacity < 1
 
-                material.color.setRGB(myobj.material[mk].color[0],
-                                            myobj.material[mk].color[1],myobj.material[mk].color[2])
-                material.ambient.setRGB(myobj.material[mk].ambient[mk],
-                                              myobj.material[mk].ambient[1],myobj.material[0].ambient[2])
-                material.specular.setRGB(myobj.material[mk].specular[0],
-                                               myobj.material[mk].specular[1],myobj.material[mk].specular[2])
-                material.opacity = myobj.material[mk].opacity
+                material.color.setRGB(m.color[0],    m.color[1],    m.color[2])
+                material.ambient.setRGB(m.ambient[0],  m.ambient[1],  m.ambient[2])
+                material.specular.setRGB(m.specular[0], m.specular[1], m.specular[2])
+                material.opacity = m.opacity
 
             mesh = new THREE.Mesh(geometry, material)
             mesh.position.set(0,0,0)
@@ -326,19 +407,20 @@ class SalvusThreeJS
     # actually *see* a frame.
     set_frame: (opts) =>
         o = defaults opts,
-            xmin : required
-            xmax : required
-            ymin : required
-            ymax : required
-            zmin : required
-            zmax : required
+            xmin      : required
+            xmax      : required
+            ymin      : required
+            ymax      : required
+            zmin      : required
+            zmax      : required
             color     : @opts.foreground
             thickness : .4
             labels    : true  # whether to draw three numerical labels along each of the x, y, and z axes.
             fontsize  : 14
-            draw   : true
+            draw      : true
 
         @_frame_params = o
+        # console.log("set_frame=#{misc.to_json(o)}")
 
         eps = 0.1
         if Math.abs(o.xmax-o.xmin)<eps
@@ -353,20 +435,39 @@ class SalvusThreeJS
 
         if @frame?
             # remove existing frame
-            @scene.remove(@frame)
-            @frame = undefined
+            for x in @frame
+                @scene.remove(x)
+            delete @frame
 
         if o.draw
-            geometry = new THREE.CubeGeometry(o.xmax-o.xmin, o.ymax-o.ymin, o.zmax-o.zmin)
-            material = new THREE.MeshBasicMaterial
-                color              : o.color
-                wireframe          : true
-                wireframeLinewidth : o.thickness
+            # Draw the frame.  We can't just make a wireframe, since it would have diagonals all over (because the
+            # box would be made out of triangles), so instead we follow the suggestion at
+            # http://stackoverflow.com/questions/22321447/cubegeometry-diagonal-issue-in-three-js
 
-            # This makes a cube *centered at the origin*, so we have to move it.
-            @frame = new THREE.Mesh(geometry, material)
-            @frame.position.set(o.xmin + (o.xmax-o.xmin)/2, o.ymin + (o.ymax-o.ymin)/2, o.zmin + (o.zmax-o.zmin)/2)
-            @scene.add(@frame)
+            # make the frame itself
+            geometry = new THREE.BoxGeometry(o.xmax-o.xmin, o.ymax-o.ymin, o.zmax-o.zmin)
+
+            material = new THREE.MeshLambertMaterial
+                color               : 0xff0000
+                polygonOffset       : true
+                polygonOffsetFactor : 1
+                polygonOffsetUnits  : 1
+                shading             : THREE.FlatShading
+                transparent         : true
+                opacity             : 0
+                overdraw            : 0.1 # needed for canvasRenderer only
+
+            mesh = new THREE.Mesh(geometry, material)
+            # The above code makes a box *centered at the origin*, so we have to move it.
+            mesh.position.set(o.xmin + (o.xmax-o.xmin)/2, o.ymin + (o.ymax-o.ymin)/2, o.zmin + (o.zmax-o.zmin)/2)
+            @scene.add(mesh)
+
+            helper = new THREE.BoxHelper(mesh)
+            helper.material.color.set(o.color)
+            helper.material.linewidth = o.thickness
+            @scene.add(helper)
+
+            @frame = [helper, mesh]
 
         if o.labels
 
@@ -418,19 +519,21 @@ class SalvusThreeJS
     add_3dgraphics_obj: (opts) =>
         opts = defaults opts,
             obj       : required
-            wireframe : false
+            wireframe : undefined
 
         for o in opts.obj
             switch o.type
                 when 'text'
                     @add_text
-                        pos:o.pos
-                        text:o.text
-                        color:o.color
-                        fontsize:o.fontsize
-                        fontface:o.fontface
-                        constant_size:o.constant_size
+                        pos           : o.pos
+                        text          : o.text
+                        color         : o.color
+                        fontsize      : o.fontsize
+                        fontface      : o.fontface
+                        constant_size : o.constant_size
                 when 'index_face_set'
+                    if opts.wireframe?
+                        o.wireframe = opts.wireframe
                     @add_obj(o)
                     if o.mesh and not o.wireframe  # draw a wireframe mesh on top of the surface we just drew.
                         o.color='#000000'
@@ -446,10 +549,6 @@ class SalvusThreeJS
                     console.log("ERROR: no renderer for model number = #{o.id}")
                     return
         @render_scene(true)
-
-    show_canvas: () =>
-        @opts.element.find(".salvus-3d-canvas").show()
-        @opts.element.find(".salvus-3d-note").hide()
 
     animate: (opts={}) =>
         opts = defaults opts,
@@ -519,6 +618,7 @@ class SalvusThreeJS
 
 $.fn.salvus_threejs = (opts={}) ->
     @each () ->
+        #console.log("applying .salvus_threejs2 plugin")
         elt = $(this)
         e = $(".salvus-3d-templates .salvus-3d-viewer").clone()
         elt.empty().append(e)
@@ -534,6 +634,4 @@ $.fn.salvus_threejs = (opts={}) ->
                     console.log("Error loading THREE.js")
         else
             f()
-
-
 
