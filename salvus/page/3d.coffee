@@ -23,9 +23,11 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-{defaults, required} = require('misc')
 
 async = require('async')
+
+misc = require('misc')
+{defaults, required} = misc
 
 component_to_hex = (c) ->
     hex = c.toString(16);
@@ -142,7 +144,7 @@ class SalvusThreeJS
                 alpha     : true
 
 
-        @renderer.setClearColor( 0xffffff, 1)
+        @renderer.setClearColor(0xffffff, 1)
         @renderer.setSize(@opts.width, @opts.height)
 
         if not @opts.background?
@@ -197,16 +199,23 @@ class SalvusThreeJS
         @camera.up = new THREE.Vector3(0,0,1)
 
     set_light: (color= 0xffffff) =>
-        ambient = new THREE.AmbientLight( )
-        @scene.add( ambient )
-        directionalLight = new THREE.DirectionalLight( 0xffffff )
-        directionalLight.position.set( 100, 100, 100 ).normalize()
-        @scene.add( directionalLight )
-        directionalLight = new THREE.DirectionalLight( 0xffffff )
-        directionalLight.position.set( -100, -100, -100 ).normalize()
-        @scene.add( directionalLight )
-        @light = new THREE.PointLight(0xffffff)
-        @light.position.set(0,10,0)
+
+        ambient = new THREE.AmbientLight(0x404040)
+        @scene.add(ambient)
+
+        color = 0xffffff
+        d     = 100  # TODO: scary
+
+        directionalLight = new THREE.DirectionalLight(color)
+        directionalLight.position.set(d, d, d).normalize()
+        @scene.add(directionalLight)
+
+        directionalLight = new THREE.DirectionalLight(color)
+        directionalLight.position.set(-d,-d,-d).normalize()
+        @scene.add(directionalLight)
+
+        @light = new THREE.PointLight(color)
+        @light.position.set(0,d,0)
 
     add_text: (opts) =>
         o = defaults opts,
@@ -420,7 +429,7 @@ class SalvusThreeJS
             draw      : true
 
         @_frame_params = o
-        # console.log("set_frame=#{misc.to_json(o)}")
+        #console.log("official set_frame=#{misc.to_json(o)}")
 
         eps = 0.1
         if Math.abs(o.xmax-o.xmin)<eps
@@ -433,13 +442,13 @@ class SalvusThreeJS
             o.zmax += 1
             o.zmin -= 1
 
-        if @frame?
-            # remove existing frame
-            for x in @frame
-                @scene.remove(x)
-            delete @frame
-
         if o.draw
+            if @frame?
+                # remove existing frame
+                for x in @frame
+                    @scene.remove(x)
+                delete @frame
+
             # Draw the frame.  We can't just make a wireframe, since it would have diagonals all over (because the
             # box would be made out of triangles), so instead we follow the suggestion at
             # http://stackoverflow.com/questions/22321447/cubegeometry-diagonal-issue-in-three-js
@@ -469,7 +478,7 @@ class SalvusThreeJS
 
             @frame = [helper, mesh]
 
-        if o.labels
+        if o.draw and o.labels
 
             if @_frame_labels?
                 for x in @_frame_labels
@@ -618,7 +627,7 @@ class SalvusThreeJS
 
 $.fn.salvus_threejs = (opts={}) ->
     @each () ->
-        #console.log("applying .salvus_threejs2 plugin")
+        # console.log("applying official .salvus_threejs plugin")
         elt = $(this)
         e = $(".salvus-3d-templates .salvus-3d-viewer").clone()
         elt.empty().append(e)
