@@ -348,13 +348,26 @@ def graphics3d_to_jsonable(p):
                  'constant_size':constant_size,
                  'fontsize':fontsize}
         obj_list.append(myobj)
-
+ 
     def convert_line(p):
+        if isinstance(p, sage.plot.plot3d.base.TransformGroup):
+            # converting a transformed line
+            assert len(p.all) == 1, "not implemented"
+            g = p.all[0]
+            points = g.points
+            # apply transformation
+            T = p.get_transformation()
+            points = [T.transform_point(point) for point in points]
+        else:
+            # a regular line (not transformed)
+            points = p.points
+            g = p
+
         obj_list.append({"type"       : "line",
-                         "points"     : p.points,
-                         "thickness"  : jsonable(p.thickness),
-                         "color"      : "#" + p.get_texture().hex_rgb(),
-                         "arrow_head" : bool(p.arrow_head)})
+                         "points"     : points,
+                         "thickness"  : jsonable(g.thickness),
+                         "color"      : "#" + g.get_texture().hex_rgb(),
+                         "arrow_head" : bool(g.arrow_head)})
 
     def convert_point(p):
         obj_list.append({"type" : "point",
