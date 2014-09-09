@@ -614,6 +614,7 @@ class TaskList
             task.changed = true
 
         t = task.element
+        t.show()
 
         if t.hasClass('salvus-task-editing-desc')
             cm = t.data('cm')
