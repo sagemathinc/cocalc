@@ -968,7 +968,7 @@ class GlobalProject
                         if not err and r? and r.timestamp? and r.files_saved > 0
                             dbg("record info about saving #{r.files_saved} files in database")
                             last_save = {}
-                            last_save[server_id] = r.timestamp*1000
+                            last_save[server_id] = new Date(r.timestamp*1000)
                             if r.sync?
                                 for x in r.sync
                                     if x.host == '' # special case - the server hosting the project
@@ -976,7 +976,7 @@ class GlobalProject
                                     else
                                         s = targets[x.host]
                                     if not x.error?
-                                        last_save[s] = r.timestamp*1000
+                                        last_save[s] = new Date(r.timestamp*1000)
                                     else
                                         # this replication failed
                                         errors.push("replication to #{s} failed -- #{x.error}")

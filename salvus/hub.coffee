@@ -150,6 +150,9 @@ init_http_server = () ->
                             winston.debug("possible issue -- requested to set cookie #{query.set}, but cookie not defined")
                 res.end('')
             when "alive"
+                if not database_is_working
+                    # this will stop haproxy from routing traffic to us until db connection starts working again.
+                    res.writeHead(404, {'Content-Type':'text/plain'})
                 res.end('')
             when "proxy"
                 res.end("testing the proxy server -- #{pathname}")
@@ -2221,7 +2224,7 @@ update_server_stats = () ->
                 _server_stats_cache = stats
 
 
-
+database_is_working = false
 register_hub = (cb) ->
     database.update
         table : 'hub_servers'
@@ -2230,8 +2233,10 @@ register_hub = (cb) ->
         ttl   : 2*REGISTER_INTERVAL_S
         cb    : (err) ->
             if err
+                database_is_working = false
                 winston.debug("Error registering with database - #{err}")
             else
+                database_is_working = true
                 winston.debug("Successfully registered with database.")
             cb?(err)
 
@@ -2665,9 +2670,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                             # database.touch_project(project_id:opts.project_id)
                             socket.history += data
                             n = socket.history.length
-                            if n > 400000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
-                                # take last 300000 characters
-                                socket.history = socket.history.slice(socket.history.length-300000)
+                            if n > 200000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
+                                # take last 100000 characters
+                                socket.history = socket.history.slice(socket.history.length-100000)
 
                         socket.on 'end', () =>
                             @dbg("console session #{opts.session_uuid} -- socket connection to local_hub closed")

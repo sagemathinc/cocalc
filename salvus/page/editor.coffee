@@ -359,7 +359,8 @@ class exports.Editor
         if salvus_client.in_fullscreen_mode()
             return 0
         else
-            return @element.find(".salvus-editor-content").position().top
+            e = @project_page.container
+            return e.position().top + e.height()
 
     refresh: () =>
         @_window_resize_while_editing()
@@ -2188,6 +2189,7 @@ class PDF_Preview extends FileEditor
         @_first_output = true
         @_needs_update = true
 
+
     zoom: (opts) =>
         opts = defaults opts,
             delta : undefined
@@ -2504,6 +2506,10 @@ class PDF_PreviewEmbed extends FileEditor
             @update()
             return false
 
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
+
     focus: () =>
 
     update: (cb) =>
@@ -2544,6 +2550,8 @@ class PDF_PreviewEmbed extends FileEditor
             height : undefined
 
         @element.show()
+        if not geometry.top?
+            @element.css(top:@editor.editor_top_position())
 
         if geometry.height?
             @element.height(geometry.height)
@@ -3794,13 +3802,27 @@ class IPythonNotebook extends FileEditor
             (cb) =>
                 @status("Ensuring synchronization file exists")
                 @editor.project_page.ensure_file_exists
-                    path : @syncdoc_filename
-                    cb   : cb
+                    path  : @syncdoc_filename
+                    alert : false
+                    cb    : (err) =>
+                        if err
+                            # unable to create syncdoc file -- open in non-sync read-only mode.
+                            @readonly = true
+                        else
+                            @readonly = false
+                        #console.log("ipython: readonly=#{@readonly}")
+                        cb()
             (cb) =>
                 @initialize(cb)
             (cb) =>
-                @_init_doc(cb)
-                @init_autosave()
+                if @readonly
+                    # TODO -- change UI to say *READONLY*
+                    @iframe.animate(opacity:1)
+                    @save_button.text('Readonly').addClass('disabled')
+                    cb()
+                else
+                    @_init_doc(cb)
+                    @init_autosave()
         ], (err) =>
             @con.show().icon_spin(false).hide()
             @_setting_up = false
@@ -3933,8 +3955,8 @@ class IPythonNotebook extends FileEditor
 
 
     broadcast_cursor_pos: () =>
-        if not @nb?
-            # no point -- reloading or loading
+        if not @nb? or @readonly
+            # no point -- reloading or loading or read-only
             return
         index = @nb.get_selected_index()
         cell  = @nb.get_cell(index)
@@ -4050,6 +4072,9 @@ class IPythonNotebook extends FileEditor
                             @nb._save_checkpoint = @nb.save_checkpoint
                             @nb.save_checkpoint = @save
 
+                            if @readonly
+                                @frame.$("#save_widget").append($("<b style='background: red;color: white;padding-left: 1ex; padding-right: 1ex;'>This is a READONLY document that can't be saved.</b>"))
+
                             # Ipython doesn't consider a load (e.g., snapshot restore) "dirty" (for obvious reasons!)
                             @nb._load_notebook_success = @nb.load_notebook_success
                             @nb.load_notebook_success = (data,status,xhr) =>
@@ -4086,6 +4111,8 @@ class IPythonNotebook extends FileEditor
                             @reload() # -- only thing we can do, really
 
     autosync: () =>
+        if @readonly
+            return
         @check_for_moved_server()  # only bother if document being changed.
         if @frame?.IPython?.notebook?.dirty and not @_reloading
             #console.log("causing sync")
@@ -4094,6 +4121,8 @@ class IPythonNotebook extends FileEditor
             @nb.dirty = false
 
     sync: () =>
+        if @readonly
+            return
         @save_button.icon_spin(start:true,delay:1000)
         @doc.sync () =>
             @save_button.icon_spin(false)
@@ -4102,7 +4131,7 @@ class IPythonNotebook extends FileEditor
         return not @save_button.hasClass('disabled')
 
     save: (cb) =>
-        if not @nb?
+        if not @nb? or @readonly
             cb?(); return
         @save_button.icon_spin(start:true, delay:1000)
         @nb._save_checkpoint?()

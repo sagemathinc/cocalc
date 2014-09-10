@@ -462,7 +462,9 @@ exports.open_project = open_project = (project, item) ->
 ################################################
 # Create a New Project
 ################################################
-$("#new_project-button").click((event) -> create_project.modal('show'))
+$("#new_project-button").click () ->
+    create_project.modal('show')
+    create_project.find("#projects-create_project-title").focus()
 
 create_project = $("#projects-create_project")
 title_input = $("#projects-create_project-title")

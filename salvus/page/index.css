@@ -197,3 +197,10 @@ input[type="text"], select {
     margin-top: 4px;
     margin-bottom: 4px;
 }
+
+
+/* Make math visible even when there is a dark background.  Since mathjax is always black, this
+   helps a lot.  Obviously, it isn't perfect, but it is better than USELESS. '*/
+.MathJax_SVG_Display {
+    background: white;
+}

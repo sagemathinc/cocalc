@@ -1,0 +1,15 @@
+.salvus-3d-container {
+    border        : 1px solid grey;
+    width         : 60%;
+    border-radius : 4px;
+    margin-left   : 3em;
+    background    : #f8f8f8;
+    box-shadow    : 2px 1px 1px #888;
+    padding       : 1em;
+    cursor        : pointer;
+}
+
+.salvus-3d-container:hover {
+    background : #f0f0ff;
+
+}

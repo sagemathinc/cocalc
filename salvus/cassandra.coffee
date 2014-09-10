@@ -15,7 +15,7 @@
 #
 # fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['localhost:8403'], username:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
 #
-# fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['localhost'], cb:console.log)
+# a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['localhost'], cb:console.log)
 #
 #########################################################################
 
@@ -37,7 +37,7 @@ misc_node = require('misc_node')
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
-{to_json, from_json, to_iso, defaults} = misc
+{to_json, from_json, defaults} = misc
 required = defaults.required
 
 fs      = require('fs')
@@ -46,7 +46,7 @@ async   = require('async')
 winston = require('winston')                    # https://github.com/flatiron/winston
 
 cql     = require("node-cassandra-cql")
-Client  = cql.Client  # https://github.com/jorgebay/node-cassandra-cql
+Client  = cql.Client  # https://github.com/jorgebay/node-cassandra-cql; https://github.com/jorgebay/node-cassandra-cql/issues/81
 uuid    = require('node-uuid')
 {EventEmitter} = require('events')
 
@@ -74,10 +74,10 @@ higher_consistency = (consistency) ->
 
 
 # the time right now, in iso format ready to insert into the database:
-now = exports.now = () -> to_iso(new Date())
+now = exports.now = () -> new Date()
 
 # the time ms milliseconds ago, in iso format ready to insert into the database:
-exports.milliseconds_ago = (ms) -> to_iso(new Date(new Date() - ms))
+exports.milliseconds_ago = (ms) -> new Date(new Date() - ms)
 exports.seconds_ago      = (s)  -> exports.milliseconds_ago(1000*s)
 exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
 exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
@@ -390,7 +390,9 @@ class exports.Cassandra extends EventEmitter
             query_max_retry : 10    # max number of retries
             consistency     : undefined
             verbose         : false # quick hack for debugging...
-            conn_timeout_ms : 5000  # Maximum time in milliseconds to wait for a connection from the pool.
+            conn_timeout_ms : 20000  # Maximum time in milliseconds to wait for a connection from the pool.
+            latency_limit   : 500
+            pool_size       : 2
 
         @keyspace = opts.keyspace
         @query_timeout_s = opts.query_timeout_s
@@ -414,11 +416,14 @@ class exports.Cassandra extends EventEmitter
             @conn.shutdown?()
             delete @conn
         @conn = new Client
-            hosts      : opts.hosts
-            keyspace   : opts.keyspace
-            username   : opts.username
-            password   : opts.password
+            hosts                 : opts.hosts
+            keyspace              : opts.keyspace
+            username              : opts.username
+            password              : opts.password
             getAConnectionTimeout : opts.conn_timeout_ms
+            latencyLimit          : opts.latency_limit
+            poolSize              : opts.pool_size
+            pageSize              : 10000000  # TODO!!
 
         if opts.verbose
             @conn.on 'log', (level, message) =>
@@ -532,8 +537,8 @@ class exports.Cassandra extends EventEmitter
             table : required
             delta : 1
             cb    : required
-        query = "update counts set count=count+? where table_name=?"
-        @cql query, [opts.delta, opts.table], opts.cb
+        query = "UPDATE counts SET count=count+? where table_name=?"
+        @cql query, [new cql.types.Long(opts.delta), opts.table], opts.cb
 
     # Get count of entries in a table for which we manually maintain the count.
     get_table_counter: (opts) =>
@@ -669,7 +674,7 @@ class exports.Cassandra extends EventEmitter
                     # The 'any of its parents' is because often when the server is loaded it rejects requests sometimes
                     # with "no permissions. ... any of its parents".
                     if error? and ("#{error}".indexOf("peration timed out") != -1 or "#{error}".indexOf("any of its parents") != -1)
-                        winston.error("... so probably re-doing query after re-connecting")
+                        winston.error("... so (probably) re-doing query after reconnecting")
                         @connect () =>
                             c(error)
                     else
@@ -685,10 +690,11 @@ class exports.Cassandra extends EventEmitter
 
         f = (c) =>
             failed = () =>
-                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying"
+                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying after reconnecting"
                 winston.error(m)
-                c(m)
-                c = undefined # ensure only called once
+                @connect () =>
+                    c(m)
+                    c = undefined # ensure only called once
             _timer = setTimeout(failed, 1000*@query_timeout_s)
             g (err) =>
                 clearTimeout(_timer)
@@ -1371,8 +1377,8 @@ class exports.Salvus extends exports.Cassandra
                 ttl = "USING ttl #{opts.ttl}"
             else
                 ttl = ""
-            query = "UPDATE account_creation_actions #{ttl} SET actions=actions+{?} WHERE email_address=?"
-            @cql(query, [misc.to_json(opts.action), opts.email_address], opts.cb)
+            query = "UPDATE account_creation_actions #{ttl} SET actions=actions+{'#{misc.to_json(opts.action)}'} WHERE email_address=?"
+            @cql(query, [opts.email_address], opts.cb)
         else
             @select
                 table     : 'account_creation_actions'
@@ -1565,8 +1571,8 @@ class exports.Salvus extends exports.Cassandra
             set   :
                 filename : opts.filename
             where :
-                day        : date.toISOString().slice(0,10)
-                timestamp  : to_iso(date)
+                day        : date.toISOString().slice(0,10) # this is a string
+                timestamp  : date
                 project_id : opts.project_id
                 account_id : opts.account_id
             cb : opts.cb
@@ -1844,11 +1850,11 @@ class exports.Salvus extends exports.Cassandra
             cb         : undefined
         async.parallel([
             (cb) =>
-                query = "UPDATE projects SET hide_from_accounts=hide_from_accounts+{?} WHERE project_id=?"
-                @cql(query, [opts.account_id, opts.project_id], cb)
+                query = "UPDATE projects SET hide_from_accounts=hide_from_accounts+{#{opts.account_id}} WHERE project_id=?"
+                @cql(query, [opts.project_id], cb)
             (cb) =>
-                query = "UPDATE accounts SET hidden_projects=hidden_projects+{?} WHERE account_id=?"
-                @cql(query, [opts.project_id, opts.account_id], cb)
+                query = "UPDATE accounts SET hidden_projects=hidden_projects+{#{opts.project_id}} WHERE account_id=?"
+                @cql(query, [opts.account_id], cb)
         ], (err) => opts.cb?(err))
 
     unhide_project_from_user: (opts) =>
@@ -1858,11 +1864,11 @@ class exports.Salvus extends exports.Cassandra
             cb         : undefined
         async.parallel([
             (cb) =>
-                query = "UPDATE projects SET hide_from_accounts=hide_from_accounts-{?} WHERE project_id=?"
-                @cql(query, [opts.account_id, opts.project_id], cb)
+                query = "UPDATE projects SET hide_from_accounts=hide_from_accounts-{#{opts.account_id}} WHERE project_id=?"
+                @cql(query, [opts.project_id], cb)
             (cb) =>
-                query = "UPDATE accounts SET hidden_projects=hidden_projects-{?} WHERE account_id=?"
-                @cql(query, [opts.project_id, opts.account_id], cb)
+                query = "UPDATE accounts SET hidden_projects=hidden_projects-{#{opts.project_id}} WHERE account_id=?"
+                @cql(query, [opts.account_id], cb)
         ], (err) => opts.cb?(err))
 
     # Make it so the user with given account id is listed as a(n invited) collaborator or viewer
@@ -1891,12 +1897,12 @@ class exports.Salvus extends exports.Cassandra
         async.series([
             # add account_id to the project's set of users (for the given group)
             (cb) =>
-                query = "UPDATE projects SET #{opts.group}=#{opts.group}+{?} WHERE project_id=?"
-                @cql(query, [opts.account_id, opts.project_id], cb)
+                query = "UPDATE projects SET #{opts.group}=#{opts.group}+{#{opts.account_id}} WHERE project_id=?"
+                @cql(query, [opts.project_id], cb)
             # add project_id to the set of projects (for the given group) for the user's account
             (cb) =>
-                query = "UPDATE accounts SET #{opts.group}=#{opts.group}+{?} WHERE account_id=?"
-                @cql(query, [opts.project_id, opts.account_id], cb)
+                query = "UPDATE accounts SET #{opts.group}=#{opts.group}+{#{opts.project_id}} WHERE account_id=?"
+                @cql(query, [opts.account_id], cb)
         ], opts.cb)
 
     remove_user_from_project: (opts) =>
@@ -1911,12 +1917,12 @@ class exports.Salvus extends exports.Cassandra
         async.series([
             # remove account_id from the project's set of users (for the given group)
             (cb) =>
-                query = "UPDATE projects SET #{opts.group}=#{opts.group}-{?} WHERE project_id=?"
-                @cql(query, [opts.account_id, opts.project_id], cb)
+                query = "UPDATE projects SET #{opts.group}=#{opts.group}-{#{opts.account_id}} WHERE project_id=?"
+                @cql(query, [opts.project_id], cb)
             # remove project_id from the set of projects (for the given group) for the user's account
             (cb) =>
-                query = "UPDATE accounts SET #{opts.group}=#{opts.group}-{?} WHERE account_id=?"
-                @cql(query, [opts.project_id, opts.account_id], cb)
+                query = "UPDATE accounts SET #{opts.group}=#{opts.group}-{#{opts.project_id}} WHERE account_id=?"
+                @cql(query, [opts.account_id], cb)
         ], opts.cb)
 
     # SINGLE USE ONLY:
@@ -2823,7 +2829,7 @@ class ChunkedStorage
                             cb()
             (cb) =>
                 f = (r, c) =>
-                    if to_iso(new Date(r.timestamp)) > tm
+                    if new Date(r.timestamp) > tm
                         dbg("skipping: #{r.id}/#{r.name} -- too new")
                         c(); return
                     dbg("lost file: #{r.id}/#{r.name} -- #{r.chunk_ids.length} chunks")

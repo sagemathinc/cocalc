@@ -6,7 +6,6 @@ Editor for files in a project
 
 .salvus-editor-content {
     position: absolute;
-    top: 78px;
     left: 0;
     margin: 0;
     width: 100%;
@@ -64,6 +63,7 @@ Editor for files in a project
 
 .salvus-editor-codemirror-button-row {
     margin-top: 1px;
+    background: #efefef;
 }
 
 .salvus-editor-codemirror-filename {
@@ -212,6 +212,10 @@ Editor for files in a project
     font-size: 11pt;
 }
 
+.salvus-editor-pdf-preview-embed {
+    position: fixed;
+}
+
 
 .salvus-editor-search-openfiles-input {
     width:80%;
@@ -353,11 +357,12 @@ Editor for files in a project
 }
 
 .sagews-output-tex {
-
+    background: white;  /* so that tex is visible */
 }
 
 .sagews-output-image {
     cursor:pointer;
+    background: white;  /* so that, e.g., latex with transparent background is visible */tex is visible
 }
 
 
@@ -394,6 +399,10 @@ Editor for files in a project
     font-size: 10pt;
     font-weight: bold;
     color:#555;
+}
+
+.salvus-ipython-notebook {
+    background: white;
 }
 
 .salvus-ipython-notebook-buttons {
@@ -489,4 +498,12 @@ code {
 .btn-group .btn-group + .btn,
 .btn-group .btn-group + .btn-group {
     margin-left: 0 !important;
+}
+
+
+.salvus-editor-codemirror-not-synced {
+    background: red;
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
 }

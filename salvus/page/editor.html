@@ -111,14 +111,6 @@ Editor for files in a project
                         <span>Save</span>
                     </a>
 
-                    <span class="salvus-editor-codemirror-sync">
-                        <span class="salvus-editor-codemirror-not-synced hide"><i class="fa fa-spinner"></i> sync…</span>
-                        <span class="salvus-editor-codemirror-synced hide"><i class="fa fa-ok"></i></span>
-                    </span>
-
-                    <span class="salvus-editor-codemirror-loading">
-                        <i class="fa fa-spinner"></i> load…
-                    </span>
                 </span>
                 <span class="hidden-xs">
                     <a href="#history" class="btn btn-sm btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
@@ -126,6 +118,11 @@ Editor for files in a project
                         <span>History</span>
                     </a>
                 </span>
+
+                <span class="salvus-editor-codemirror-loading hide">
+                    <i class="fa fa-spinner"></i> load…
+                </span>
+
                 <span class="salvus-editor-history-controls hide">
                     <span class="salvus-editor-history-control-button-container btn-group">
                         <a href="#back" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="bottom" title="Back"><i class="fa fa-step-backward"></i></a>
@@ -149,6 +146,12 @@ Editor for files in a project
                             <span class="salvus-latex-build-status"></span></a>
                     </span>
                 </span>
+
+                <span class="salvus-editor-codemirror-sync">
+                    <span class="salvus-editor-codemirror-not-synced hide"><i class="fa fa-spinner"></i> sync…</span>
+                    <span class="salvus-editor-codemirror-synced hide"><i class="fa fa-ok"></i></span>
+                </span>
+
 
                 <span class="salvus-editor-codemirror-filename pull-right">
                 </span>
@@ -200,7 +203,7 @@ Editor for files in a project
         <span class="hidden-xs">
             <a class="btn btn-default" href="#refresh"><i class="fa fa-refresh"></i>  Refresh</a>
         </span>
-        <div class="salvus-editor-image-title pull-right"> The title </div>
+        <div class="hidden-xs salvus-editor-image-title pull-right"> The title </div>
         <div class="salvus-editor-image-container"><img><span>Loading...</span></div>
     </div>
 
@@ -227,9 +230,15 @@ Editor for files in a project
 
     <!-- Templates for the embedded PDF previewer: just uses the built-in renderer; can't cope with file updates, inverse search, etc. -->
     <div class="salvus-editor-pdf-preview-embed">
-        <div class="salvus-editor-pdf-preview-embed-spinner hide"></div>
-        <a class="btn btn-default" href="#refresh"><i class="fa fa-refresh"></i><span class="hidden-xs"> Refresh</span></a>
-        <div class="salvus-editor-pdf-title pull-right hidden-xs"> The title </div>
+        <div class="salvus-editor-codemirror-button-row">
+            <span class="salvus-editor-pdf-preview-embed-spinner hide"></span>
+            <span class="btn-group">
+                <a class="btn btn-default btn-lg visible-xs" href="#close" ><i class="fa fa-toggle-up"></i> <span class="hidden-xs">Files...</span></a>
+                <a class="btn btn-default btn-lg visible-xs" href="#refresh"><i class="fa fa-refresh"></i><span class="hidden-xs"> Refresh</span></a>
+                <a class="btn btn-default hidden-xs" href="#refresh"><i class="fa fa-refresh"></i><span class="hidden-xs"> Refresh</span></a>
+            </span>
+            <span class="salvus-editor-pdf-title pull-right hidden-xs"> The title </span>
+        </div>
         <div class="salvus-editor-pdf-preview-embed-page">
         </div>
     </div>
@@ -326,7 +335,7 @@ Editor for files in a project
                 <a href="#info" class="btn  btn-info btn-lg"> <i class="fa fa-info-circle"></i> </a>
             </span>
         </div>
-        <h3 class="salvus-ipython-notebook-connecting hide" style="margin-left:2em">Connecting to IPython Notebook Server...</h3>
+        <h3 class="salvus-ipython-notebook-connecting hide" style="margin-left:2em">Opening...</h3>
         <div class="salvus-ipython-notebook-notebook"></div>
     </div>
 
