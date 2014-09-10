@@ -229,15 +229,13 @@ class SalvusThreeJS
         @scene.add(ambient)
 
         color = 0xffffff
-        d     = 100  # TODO: scary
+        d     = 10000000
+        intensity = 0.5
 
-        directionalLight = new THREE.DirectionalLight(color)
-        directionalLight.position.set(d, d, d).normalize()
-        @scene.add(directionalLight)
-
-        directionalLight = new THREE.DirectionalLight(color)
-        directionalLight.position.set(-d,-d,-d).normalize()
-        @scene.add(directionalLight)
+        for p in [[d,d,d], [d,d,-d], [d,-d,d], [d,-d,-d],[-d,d,d], [-d,d,-d], [-d,-d,d], [-d,-d,-d]]
+            directionalLight = new THREE.DirectionalLight(color, intensity)
+            directionalLight.position.set(p[0], p[1], p[2]).normalize()
+            @scene.add(directionalLight)
 
         @light = new THREE.PointLight(color)
         @light.position.set(0,d,0)
