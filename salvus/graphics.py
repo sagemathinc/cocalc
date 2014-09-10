@@ -133,7 +133,8 @@ class ThreeJS(object):
 
 def show_3d_plot_using_threejs(g, **kwds):
     for k in ['spin', 'renderer', 'viewer', 'frame', 'height', 'width', 'background', 'foreground']:
-        if k in g._extra_kwds and k not in kwds:
+        extra_kwds = {} if g._extra_kwds is None else g._extra_kwds
+        if k in extra_kwds and k not in kwds:
             kwds[k] = g._extra_kwds[k]
     if 'camera_distance' in kwds:
         del kwds['camera_distance'] # deprecated
