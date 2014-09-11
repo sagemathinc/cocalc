@@ -110,8 +110,18 @@ class SalvusThreeJS
             foreground      : undefined
             spin            : false      # if true, image spins by itself when mouse is over it.
             camera_distance : 10
+            aspect_ratio    : undefined  # undefined does nothing or a triple [x,y,z] of length three, which scales the x,y,z coordinates of everything by the given values.
             stop_when_gone  : undefined  # if given, animation, etc., stops when this html element (not jquery!) is no longer in the DOM
 
+        if @opts.aspect_ratio?
+            x = @opts.aspect_ratio[0]; y = @opts.aspect_ratio[1]; z = @opts.aspect_ratio[2]
+            @vector3 = (a,b,c) => new THREE.Vector3(x*a, y*b, z*c)
+            @vector  = (v) => new THREE.Vector3(x*v[0], y*v[1], z*v[2])
+            @aspect_ratio_scale = (v) => [x*v[0], y*v[1], z*v[2]]
+        else
+            @vector3 = (a,b,c) => new THREE.Vector3(a, b, c)
+            @vector  = (v) => new THREE.Vector3(v[0],v[1],v[2])
+            @aspect_ratio_scale = (v) => v
         @init()
 
     init: () =>
@@ -281,7 +291,7 @@ class SalvusThreeJS
         sprite = new THREE.Sprite(spriteMaterial)
 
         # Move the sprite to its position
-        p = o.pos
+        p = @aspect_ratio_scale(o.pos)
         sprite.position.set(p[0],p[1],p[2])
 
         # If the text is supposed to stay constant size, add it to the list of constant size text,
@@ -307,7 +317,7 @@ class SalvusThreeJS
 
         geometry = new THREE.Geometry()
         for a in o.points
-            geometry.vertices.push(new THREE.Vector3(a[0],a[1],a[2]))
+            geometry.vertices.push(@vector(a))
         line = new THREE.Line(geometry, new THREE.LineBasicMaterial(color:o.color, linewidth:o.thickness))
         @scene.add(line)
 
@@ -328,11 +338,11 @@ class SalvusThreeJS
         switch @opts.renderer
             when 'webgl'
                 geometry = new THREE.Geometry()
-                geometry.vertices.push(new THREE.Vector3(o.loc[0], o.loc[1], o.loc[2]))
+                geometry.vertices.push(@vector(o.loc))
                 particle = new THREE.ParticleSystem(geometry, material)
             when 'canvas2d'
                 particle = new THREE.Particle(material)
-                particle.position.set(o.loc[0], o.loc[1], o.loc[2])
+                particle.position.set(@aspect_ratio_scale(o.loc))
                 if @_frame_params?
                     p = @_frame_params
                     w = Math.min(Math.min(p.xmax-p.xmin, p.ymax-p.ymin),p.zmax-p.zmin)
@@ -354,8 +364,9 @@ class SalvusThreeJS
 
             geometry = new THREE.Geometry()
 
+
             for k in [0...vertices.length] by 3
-                geometry.vertices.push(new THREE.Vector3(vertices[k], vertices[k+1], vertices[k+2]))
+                geometry.vertices.push(@vector(vertices.slice(k, k+3)))
 
             # console.log("vertices=",misc.to_json(geometry.vertices))
 
@@ -474,10 +485,10 @@ class SalvusThreeJS
         mx = (x0+x1)/2
         my = (y0+y1)/2
         mz = (z0+z1)/2
-        @_center = new THREE.Vector3(mx,my,mz)
+        @_center = @vector3(mx,my,mz)
 
         if @camera?
-            d = Math.max [x1-x0,y1-y0,z1-z0]...
+            d = Math.max @aspect_ratio_scale([x1-x0, y1-y0, z1-z0])...
             @camera.position.set(mx+d,my+d,mz+d)
 
         if o.draw
@@ -521,7 +532,7 @@ class SalvusThreeJS
             offset = 0.075
             if o.draw
                 e = (y1 - y0)*offset
-                txt(x1,y0-e,z0, l(z0))
+                txt(x1,y0-e,z0,l(z0))
                 txt(x1,y0-e,mz, "z=#{l(z0,z1)}")
                 txt(x1,y0-e,z1,l(z1))
 
@@ -535,7 +546,7 @@ class SalvusThreeJS
                 txt(mx,y1+e,z0, "x=#{l(x0,x1)}")
                 txt(x0,y1+e,z0,l(x0))
 
-        v = new THREE.Vector3(mx, my, mz)
+        v = @vector3(mx, my, mz)
         @camera.lookAt(v)
         if @controls?
             @controls.target = @_center
