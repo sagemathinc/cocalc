@@ -97,37 +97,63 @@ load_threejs = (cb) ->
 
 window.load_threejs = load_threejs
 
+webgl_renderer            = undefined
+current_webgl_renderer_id = undefined
+scene_using_webgl         = undefined
+
+get_renderer = (opts) ->
+    opts = defaults opts,
+        type : required
+        id   : undefined
+    if opts.type == 'webgl'
+        # there is just one webgl_renderer
+        current_webgl_renderer_id = opts.id
+        if not webgl_renderer?
+             webgl_renderer = new THREE.WebGLRenderer
+                antialias : true
+                alpha     : true
+                preserveDrawingBuffer : false
+                    # NOTE about preserveDrawingBuffer - this is only needed to make screenshots, which we don't
+                    # do using WebGL, but may have major performance
+                    # drawbacks -- https://github.com/mrdoob/three.js/pull/421#issuecomment-1792008
+        return webgl_renderer
+    else if opts.type.slice(0,6) == 'canvas'
+        # no limit on these
+        return new THREE.CanvasRenderer
+            antialias : true
+            alpha     : true
+    else
+        throw "unknown renderer: #{opts.type}"
+
 class SalvusThreeJS
     constructor: (opts) ->
         @opts = defaults opts,
             element         : required
+            container       : required
             width           : undefined
             height          : undefined
-            renderer        : undefined  # 'webgl', 'canvas2d', or undefined = "webgl if available; otherwise, canvas2d"
-            orbit_controls  : true
-            light           : true
-            background      : undefined
+            renderer        : undefined  # ignored now
+            background      : "#fafafa"
             foreground      : undefined
             spin            : false      # if true, image spins by itself when mouse is over it.
             camera_distance : 10
             aspect_ratio    : undefined  # undefined does nothing or a triple [x,y,z] of length three, which scales the x,y,z coordinates of everything by the given values.
             stop_when_gone  : undefined  # if given, animation, etc., stops when this html element (not jquery!) is no longer in the DOM
 
-        if @opts.aspect_ratio?
-            x = @opts.aspect_ratio[0]; y = @opts.aspect_ratio[1]; z = @opts.aspect_ratio[2]
-            @vector3 = (a,b,c) => new THREE.Vector3(x*a, y*b, z*c)
-            @vector  = (v) => new THREE.Vector3(x*v[0], y*v[1], z*v[2])
-            @aspect_ratio_scale = (v) => [x*v[0], y*v[1], z*v[2]]
-        else
-            @vector3 = (a,b,c) => new THREE.Vector3(a, b, c)
-            @vector  = (v) => new THREE.Vector3(v[0],v[1],v[2])
-            @aspect_ratio_scale = (v) => v
-        @init()
+        #@opts.element.append($("<span class='renderer-type'>none</span>"))
+        f = () =>
+            if not @_init
+                @opts.element.find(".salvus-3d-note").show()
+        setTimeout(f, 1000)
 
     init: () =>
         if @_init
             return
         @_init = true
+
+        @_id = misc.uuid()
+        @init_aspect_ratio_functions()
+
         @scene = new THREE.Scene()
 
         # IMPORTANT: There is a major bug in three.js -- if you make the width below more than .5 of the window
@@ -139,61 +165,124 @@ class SalvusThreeJS
         else
             @opts.width  = $(window).width()*.5
 
-        @opts.height = if @opts.height? then @opts.height else $(window).height()*.6
+        @opts.height = if @opts.height? then @opts.height else @opts.width*2/3
+        @opts.container.css(width:"#{@opts.width+50}px")
 
-        if not @opts.renderer?
-            if Detector.webgl
-                @opts.renderer = 'webgl'
-            else
-                @opts.renderer = 'canvas2d'
+        @init_on_mouseover()
 
-        if @opts.renderer == 'webgl'
-            @opts.element.find(".salvus-3d-viewer-renderer").text("webgl")
-            @renderer = new THREE.WebGLRenderer
-                antialias             : true
-                preserveDrawingBuffer : true
-                alpha                 : true
-        else if @opts.renderer.slice(0,6) == 'canvas'
-            @opts.element.find(".salvus-3d-viewer-renderer").text("canvas2d")
-            @renderer = new THREE.CanvasRenderer
-                antialias : true
-                alpha     : true
-        else
-            throw "unknown renderer: #{@opts.renderer}"
+        @canvas_renderer = new THREE.CanvasRenderer
+            antialias : true
+            alpha     : true
+        @set_canvas_renderer()
 
-        @renderer.setClearColor(0xffffff, 1)
-        @renderer.setSize(@opts.width, @opts.height)
+        # add a bunch of lights
+        @set_light()
 
-        if not @opts.background?
-            @opts.background = "rgba(0,0,0,0)" # transparent -- looks better with themes
-            if not @opts.foreground?
-                @opts.foreground = "#000000" # black
-
-        # Placing renderer in the DOM.
-        @opts.element.find(".salvus-3d-canvas").css('background':@opts.background).append($(@renderer.domElement))
+        # set background color
+        @opts.element.find(".salvus-3d-canvas").css('background':@opts.background)
 
         if not @opts.foreground?
             c = @opts.element.find(".salvus-3d-canvas").css('background')
-            i = c.indexOf(')')
-            z = (255-parseInt(a) for a in c.slice(4,i).split(','))
-            @opts.foreground = rgb_to_hex(z[0], z[1], z[2])
+            if not c? or c.indexOf(')') == -1
+                @opts.foreground = "#000"  # e.g., on firefox - this is best we can do for now
+            else
+                i = c.indexOf(')')
+                z = []
+                for a in c.slice(4,i).split(',')
+                    b = parseInt(a)
+                    if b < 128
+                        z.push(255)
+                    else
+                        z.push(0)
+                @opts.foreground = rgb_to_hex(z[0], z[1], z[2])
 
-        if @opts.light
-            @set_light()
+    set_renderer: (renderer) =>
+        @renderer = renderer
+        # place renderer in correct place in the DOM
+        @opts.element.find(".salvus-3d-canvas").empty().append($(@renderer.domElement))
+        @renderer.setClearColor(@opts.background, 1)
+        @renderer.setSize(@opts.width, @opts.height)
+        @render_scene(true)
+
+    # On mouseover, we switch the renderer out to use webgl, if available, and also enable spin animation.
+    init_on_mouseover: () =>
+        @has_webgl = Detector.webgl
+        @opts.element.mouseenter () =>
+            # console.log 'mouseenter'
+            if @has_webgl
+                @set_webgl_renderer()
+
+        @opts.element.mouseleave () =>
+            # console.log 'mouseleave'
+            if @has_webgl
+                @set_canvas_renderer()
+
+    set_webgl_renderer: () =>
+        # swap in the globally unique webgl renderer
+        # console.log "swap in webgl"
+        current_webgl_renderer_id = @_id
+
+        # check which scene is already using webgl
+        if scene_using_webgl?
+            if @renderer_type == 'webgl' and scene_using_webgl._id == @_id
+                # our scene is already using webgl
+                return
+            scene_using_webgl.set_canvas_renderer()
+
+        scene_using_webgl = @
+        @renderer_type = 'webgl'
+        if not @webgl_renderer?
+            @webgl_renderer = get_renderer(type:'webgl', id:@_id)
+        @set_renderer(@webgl_renderer)
+        @set_webgl_orbit_controls()
+        if @opts.spin
+            @animate(render:false)
+
+    set_canvas_renderer: () =>
+        # swap in the canvas renderer
+        # console.log "swap in canvas"
+        @renderer_type = 'canvas'
+        #@opts.element.find(".renderer-type").text('canvas')
+        @set_renderer(@canvas_renderer)
+        @set_canvas_orbit_controls()
+
+    # initialize functions to create new vectors, which take into account the scene's 3d frame aspect ratio.
+    init_aspect_ratio_functions: () =>
+        if @opts.aspect_ratio?
+            x = @opts.aspect_ratio[0]; y = @opts.aspect_ratio[1]; z = @opts.aspect_ratio[2]
+            @vector3 = (a,b,c) => new THREE.Vector3(x*a, y*b, z*c)
+            @vector  = (v) => new THREE.Vector3(x*v[0], y*v[1], z*v[2])
+            @aspect_ratio_scale = (v) => [x*v[0], y*v[1], z*v[2]]
+        else
+            @vector3 = (a,b,c) => new THREE.Vector3(a, b, c)
+            @vector  = (v) => new THREE.Vector3(v[0],v[1],v[2])
+            @aspect_ratio_scale = (v) => v
+
 
     show_canvas: () =>
+        @init()
+        if @opts.spin and $.browser.firefox
+            console.log("WARNING: 3d disabling spin=true since it crashes Firefox")
+            @opts.spin = false
         @opts.element.find(".salvus-3d-note").hide()
         @opts.element.find(".salvus-3d-canvas").show()
-        @add_camera(distance:@opts.camera_distance)
-
 
     data_url: (type='png') =>   # 'png' or 'jpeg'
         return @renderer.domElement.toDataURL("image/#{type}")
 
-    set_orbit_controls: () =>
+    set_canvas_orbit_controls: () =>
+        if not @camera?
+            @add_camera(distance:@opts.camera_distance)
+
+        @webgl_controls?.enabled = false
         if @controls?
+            @controls.enabled = true
+            @last_canvas_pos = @controls.object.position
+            @last_canvas_target = @controls.target
+            @render_scene(true)
             return
 
+        # console.log 'set_canvas_orbit_controls'
         # set up camera controls
         @controls = new THREE.OrbitControls(@camera, @renderer.domElement)
         @controls.damping = 2
@@ -208,9 +297,58 @@ class SalvusThreeJS
                 @controls.autoRotateSpeed = @opts.spin
             @controls.autoRotate = true
 
-        @controls.addEventListener('change', ()=>@renderer.render(@scene, @camera))
+        @render_scene(true)
+        @controls.addEventListener('change', @_canvas_controls_change)
+
+        @controls.addEventListener 'start', () =>
+            # console.log 'start'
+            if @has_webgl
+                @set_webgl_renderer()
+        @controls.addEventListener 'end', () =>
+            # console.log 'end'
+
+
+    _canvas_controls_change: () =>
+        if @renderer_type == 'canvas'
+            @renderer.render(@scene, @camera)
+            # console.log("_canvas_controls_change")
+
+    set_webgl_orbit_controls: () =>
+        if not @camera?
+            @add_camera(distance:@opts.camera_distance)
+
+        @controls?.enabled = false
+        if @webgl_controls?
+            if @last_canvas_pos?
+                @webgl_controls.object.position.copy(@last_canvas_pos)
+            if @last_canvas_target?
+                @webgl_controls.target.copy(@last_canvas_target)
+            # set the position from the canvas controls
+            @webgl_controls.enabled = true
+            @render_scene(true)
+            return
+
+        # set up camera controls
+        @webgl_controls = new THREE.OrbitControls(@camera, @renderer.domElement)
+        @webgl_controls.damping = 2
+        @webgl_controls.noKeys = true
+        @webgl_controls.zoomSpeed = 0.4
+        if @_center?
+            @webgl_controls.target = @_center
+        if @opts.spin
+            if typeof(@opts.spin) == "boolean"
+                @webgl_controls.autoRotateSpeed = 2.0
+            else
+                @webgl_controls.autoRotateSpeed = @opts.spin
+            @webgl_controls.autoRotate = true
+
+        @webgl_controls.addEventListener('change', @_webgl_controls_change)
 
         @render_scene(true)
+
+    _webgl_controls_change: () =>
+        if @renderer_type == 'webgl'
+            @renderer.render(@scene, @camera)
 
     add_camera: (opts) =>
         opts = defaults opts,
@@ -230,10 +368,9 @@ class SalvusThreeJS
         @camera.lookAt(@scene.position)
         @camera.up = new THREE.Vector3(0,0,1)
 
-        if @opts.orbit_controls
-            @set_orbit_controls()
-
     set_light: (color= 0xffffff) =>
+
+        # console.log 'set_light'
 
         ambient = new THREE.AmbientLight(0x404040)
         @scene.add(ambient)
@@ -490,6 +627,7 @@ class SalvusThreeJS
         if @camera?
             d = Math.max @aspect_ratio_scale([x1-x0, y1-y0, z1-z0])...
             @camera.position.set(mx+d,my+d,mz+d)
+            # console.log("camera at #{misc.to_json([mx+d,my+d,mz+d])} pointing at #{misc.to_json(@_center)}")
 
         if o.draw
             if @frame?
@@ -550,7 +688,7 @@ class SalvusThreeJS
         @camera.lookAt(v)
         if @controls?
             @controls.target = @_center
-        @render_scene(true)
+        @render_scene()
 
     add_3dgraphics_obj: (opts) =>
         opts = defaults opts,
@@ -597,9 +735,14 @@ class SalvusThreeJS
         opts = defaults opts,
             fps       : undefined
             stop      : false
-            mouseover : true
+            mouseover : undefined  # ignored now
+            render    : true
 
-        # console.log("anim", @opts.element.length, @opts.element.is(":visible"))
+        # console.log("anim?", @opts.element.length, @opts.element.is(":visible"))
+
+        if @renderer_type != 'webgl' or current_webgl_renderer_id != @_id
+            # will try again when we we switch to webgl
+            return
 
         if not @opts.element.is(":visible")
             if @opts.stop_when_gone? and not $.contains(document, @opts.stop_when_gone)
@@ -619,19 +762,27 @@ class SalvusThreeJS
         if @_stop_animating
             @_stop_animating = false
             return
+        if opts.render
+            @render_scene(true)
+        delete opts.render
         f = () =>
             requestAnimationFrame((()=>@animate(opts)))
         if opts.fps? and opts.fps
             setTimeout(f , 1000/opts.fps)
         else
             f()
-        if opts.mouseover and (not document.hasFocus() or not @opts.element.is(":hover"))
-            return
-        @render_scene()
+
 
     render_scene: (force=false) =>
-        #console.log('render', @opts.element.length)
-        if @controls?
+        # console.log('render', @opts.element.length)
+
+        if @render_type == 'webgl' and current_webgl_renderer_id != @_id
+            # console.log("not rendering")
+            return
+
+        if @renderer_type == 'webgl'
+            @webgl_controls?.update()
+        else if @renderer_type == 'canvas'
             @controls?.update()
 
         if not @camera?
@@ -670,6 +821,7 @@ $.fn.salvus_threejs = (opts={}) ->
         elt.empty().append(e)
         e.find(".salvus-3d-canvas").hide()
         opts.element = e
+        opts.container = elt
 
         # TODO/NOTE -- this explicit reference is brittle -- it is just an animation efficiency, but still...
         opts.stop_when_gone = e.closest(".salvus-editor-codemirror")[0]

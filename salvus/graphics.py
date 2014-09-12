@@ -62,7 +62,7 @@ class ThreeJS(object):
         - background -- None (transparent); otherwise a color such as 'black' or 'white'
         - foreground -- None (automatic = black if transparent; otherwise opposite of background);
            or a color; this is used for drawing the frame and axes labels.
-        - spin -- False; if True, spins 3d plot; if a number determines speed (60=one rotation per second)
+        - spin -- False; if True, spins 3d plot, with number determining speed (requires webgl and mouse over plot)
         - aspect_ratio -- None (square) or a triple [x,y,z] so that everything is scaled by x,y,z.
 
         - frame_aspect_ratio -- synonym for aspect_ratio
@@ -77,7 +77,7 @@ class ThreeJS(object):
         self._id       = uuid()
         self._selector = "#%s"%self._id
         self._obj      = "$('%s').data('salvus-threejs')"%self._selector
-        self._salvus.html("<div id=%s class='salvus-3d-container'></div>"%self._id)
+        self._salvus.html("<span id=%s class='salvus-3d-container'></span>"%self._id)
         if not isinstance(spin, bool):
             spin = json_float(spin)
         if frame_aspect_ratio is not None:
@@ -89,7 +89,6 @@ class ThreeJS(object):
                 raise TypeError("aspect_ratio must be None, 1 or a 3-tuple ")
             else:
                 aspect_ratio = [json_float(x) for x in aspect_ratio]
-        print "aspect_ratio = ", aspect_ratio
         self._salvus.javascript("$('%s').salvus_threejs(obj)"%self._selector,
                                 once = False,
                                 obj  = {
@@ -158,7 +157,7 @@ def show_3d_plot_using_threejs(g, **kwds):
     t.add(g, **kwds)
     if kwds.get('spin', False):
         t.animate(mouseover=False)
-    return t
+    #return t
 
 import sage.plot.plot3d.index_face_set
 import sage.plot.plot3d.shapes

@@ -25,3 +25,5 @@ exports.IS_MOBILE = exports.isMobile.any()
 
 if $.browser.chrome
     $(".salvus-chrome-only").show()
+
+$.browser.firefox = navigator.userAgent.toLowerCase().indexOf('firefox') > 0    
