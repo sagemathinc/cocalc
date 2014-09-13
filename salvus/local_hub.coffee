@@ -2107,7 +2107,7 @@ log_truncate = (cb) ->
                 cb(); return
             # read the log file
             fs.readFile SAGEMATHCLOUD_LOG_FILE, (err, _data) ->
-                data = _data.toString()
+                data = _data?.toString()  # ? is important, since in case of err _data is not defined.
                 cb(err)
         (cb) ->
             if not exists
