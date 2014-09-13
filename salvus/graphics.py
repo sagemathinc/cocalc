@@ -145,6 +145,9 @@ class ThreeJS(object):
 
     def animate(self, fps=None, stop=None, mouseover=True):
         self._call('animate(obj)', obj={'fps':noneint(fps), 'stop':stop, 'mouseover':mouseover})
+        
+    def init_done(self):
+        self._call('init_done()')
 
 def show_3d_plot_using_threejs(g, **kwds):
     for k in ['spin', 'renderer', 'viewer', 'frame', 'height', 'width', 'background', 'foreground', 'aspect_ratio']:
@@ -157,7 +160,7 @@ def show_3d_plot_using_threejs(g, **kwds):
     t.add(g, **kwds)
     if kwds.get('spin', False):
         t.animate(mouseover=False)
-    #return t
+    t.init_done()
 
 import sage.plot.plot3d.index_face_set
 import sage.plot.plot3d.shapes
