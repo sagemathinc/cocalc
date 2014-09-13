@@ -168,9 +168,7 @@ class SalvusThreeJS
         # width, then after 8 3d renders, things get foobared in WebGL mode.  This happens even with the simplest
         # demo using the basic cube example from their site with R68.  It even sometimes happens with this workaround, but
         # at least retrying a few times can fix it.
-        if @opts.width
-            @opts.width = Math.min(@opts.width, $(window).width()*.5)
-        else
+        if not @opts.width?
             @opts.width  = $(window).width()*.5
 
         @opts.height = if @opts.height? then @opts.height else @opts.width*2/3
