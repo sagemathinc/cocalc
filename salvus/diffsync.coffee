@@ -570,13 +570,14 @@ exports.MARKERS =
     output : "\uFE21"
 
 exports.FLAGS = FLAGS =
-    execute     : "x"   # request that cell be executed
-    waiting     : "w"   # request to execute received, but still not running (because of another cell running)
-    running     : "r"   # cell currently running
-    interrupt   : "c"   # request execution of cell be interrupted
-    hide_input  : "i"   # hide input part of cell
-    hide_output : "o"   # hide output part of cell
-    auto        : "a"   # if set, run the cell when the sage session first starts
+    execute      : "x"   # request that cell be executed
+    waiting      : "w"   # request to execute received, but still not running (because of another cell running)
+    running      : "r"   # cell currently running
+    interrupt    : "c"   # request execution of cell be interrupted
+    hide_input   : "i"   # hide input part of cell
+    hide_output  : "o"   # hide output part of cell
+    auto         : "a"   # if set, run the cell when the sage session first starts
+    this_session : "s"   # if set, cell was executed during the current sage session.
 
 exports.ACTION_FLAGS = [FLAGS.execute, FLAGS.running, FLAGS.waiting, FLAGS.interrupt]
 

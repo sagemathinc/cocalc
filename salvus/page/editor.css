@@ -308,13 +308,28 @@ Editor for files in a project
 
 .sagews-input {
     height:1em;
+    white-space: nowrap;
 }
 
 .sagews-input-hr {
     border-top: 0px;
-    border-bottom: 1px solid #999;
+    border-bottom: 3px solid #ccc;
     margin: 0px;
     padding-top: .5em;
+    display: inline-block;
+    width: 90%;
+}
+
+.sagews-input-evaluated {
+    border-bottom: 3px solid #0a0;
+    margin-right: -5px;
+    width: 10%;
+}
+
+.sagews-input-unevaluated {
+    border-bottom: 3px solid grey;
+    margin-right: -5px;
+    width: 10%;
 }
 
 .sagews-input:hover {
@@ -324,13 +339,17 @@ Editor for files in a project
     background-image: linear-gradient(to bottom, #0088cc, #0044cc);
 }
 
+/* Margin of sagews-output must be 0 for codemirror 3.14 */
 .sagews-output {
     padding: 6px;
     padding-right: 0px;
-    /* background-color: #f9f9f9; */ /* this messes up codemirror themes */
-    margin: 0px;  /* WARNING: Must be 0 for codemirror 3.14 ! */
-    border-left: 1px solid #aaa;
-    border-radius: 3px;
+
+    /* background-color: #f9f9f9;*/ /* this messes up codemirror themes */
+
+    margin: 0px;
+
+    border-left: 2px solid #aaa;
+    border-radius: 4px;
     /* box-shadow: 2px 2px 1px #ddd; */   /* no longer trendy */
     overflow-y:auto;
     white-space:normal;

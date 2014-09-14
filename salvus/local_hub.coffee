@@ -845,6 +845,12 @@ class CodeMirrorSession
                         cb(err); return
                     @content = content
                     @diffsync_fileclient = new DiffSyncFile_client(@diffsync_fileserver)
+
+                    # worksheet freshly loaded from disk -- now ensure no cells appear to be running
+                    # except for the auto cells that we spin up running.
+                    @sage_update(kill:true, auto:true)
+                    @_set_content_and_sync()
+
                     cb()
         ], (err) => cb?(err, @))
 
@@ -861,14 +867,15 @@ class CodeMirrorSession
             catch e
                 # sage process is dead.
                 @_sage_socket = undefined
-                @sage_update(kill:true)
 
-        winston.debug("sage_socket: Opening a Sage session.")
+        winston.debug("sage_socket: initalize the newly started sage process")
 
-        # Ensure that no cells appear to be running.  This is important
+        # If we've already loaded the worksheet, then ensure
+        # that no cells appear to be running.  This is important
         # because the worksheet file that we just loaded could have had some
         # markup that cells are running.
-        @sage_update(kill:true)
+        if @diffsync_fileclient?
+            @sage_update(kill:true)
 
         # Connect to the local Sage server.
         get_sage_socket (err, socket) =>
@@ -956,16 +963,17 @@ class CodeMirrorSession
                             if before != @content
                                 @_set_content_and_sync()
 
-                # Submit all auto cells to be evaluated.
-                @sage_update(auto:true)
+                # If we've already loaded the worksheet, submit all auto cells to be evaluated.
+                if @diffsync_fileclient?
+                    @sage_update(auto:true)
 
                 cb(false, @_sage_socket)
 
     _set_content_and_sync: () =>
-        @set_content(@content)
-        # Suggest to all connected clients to sync.
-        for id, ds_client of @diffsync_clients
-            ds_client.remote.sync_ready()
+        if @set_content(@content)
+            # Content actually changed, so suggest to all connected clients to sync.
+            for id, ds_client of @diffsync_clients
+                ds_client.remote.sync_ready()
 
     sage_execute_cell: (id) =>
         winston.debug("exec request for cell with id #{id}")
@@ -984,6 +992,7 @@ class CodeMirrorSession
             # Change the cell to "running" mode - this doesn't generate output, so we must explicit force clients
             # to sync.
             @sage_set_cell_flag(id, diffsync.FLAGS.running)
+            @sage_set_cell_flag(id, diffsync.FLAGS.this_session)
             @_set_content_and_sync()
 
             @sage_socket (err, socket) =>
@@ -1054,7 +1063,7 @@ class CodeMirrorSession
 
     sage_update: (opts={}) =>
         opts = defaults opts,
-            kill : false    # if true, just remove all running flags.
+            kill : false    # if true, remove all running flags and all this_session flags
             auto : false    # if true, run all cells that have the auto flag set
         if not @content?  # document not initialized
             return
@@ -1090,18 +1099,23 @@ class CodeMirrorSession
 
             prev_ids[id] = true
             flags = @content.slice(i+37, j)
-            if opts.kill
-                new_flags = ''
-                for t in flags
-                    if t != diffsync.FLAGS.running
-                        new_flags += t
-                @content = @content.slice(0,i+37) + new_flags + @content.slice(j)
-            else
-                if diffsync.FLAGS.execute in flags
-                    @sage_execute_cell(id)
-                else if opts.auto and diffsync.FLAGS.auto in flags
+            if opts.kill or opts.auto
+                if opts.kill
+                    # worksheet process just killed, so clear certain flags.
+                    new_flags = ''
+                    for t in flags
+                        if t != diffsync.FLAGS.running and t != diffsync.FLAGS.this_session
+                            new_flags += t
+                    winston.debug("sage_update: kill=true, so changing flags from '#{flags}' to '#{new_flags}'")
+                    if flags != new_flags
+                        @content = @content.slice(0,i+37) + new_flags + @content.slice(j)
+                if opts.auto and diffsync.FLAGS.auto in flags
+                    # worksheet process being restarted, so run auto cells
                     @sage_remove_cell_flag(id, diffsync.FLAGS.auto)
                     @sage_execute_cell(id)
+            else if diffsync.FLAGS.execute in flags
+                # normal execute
+                @sage_execute_cell(id)
 
             i = j + 1
 
@@ -1297,10 +1311,19 @@ class CodeMirrorSession
 
     set_content: (value) =>
         @is_active = true
-        @content = value
-        @diffsync_fileclient.live = @content
+        changed = false
+        if @content != value
+            @content = value
+            changed = true
+
+        if @diffsync_fileclient.live != value
+            @diffsync_fileclient.live = value
+            changed = true
         for id, ds_client of @diffsync_clients
-            ds_client.live = @content
+            if ds_client.live != value
+                changed = true
+                ds_client.live = value
+        return changed
 
     client_bcast: (socket, mesg) =>
         @is_active = true

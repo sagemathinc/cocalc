@@ -1266,6 +1266,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
                             elt.data('execute','done')
                             # code is not running
                             elt.spin(false)
+
+                        # set marker of whether or not this cell was evaluated during this session
+                        if FLAGS.this_session in flagstring
+                            elt.find(".sagews-input-evaluated").show().css('display', "inline-block")
+                            elt.find(".sagews-input-unevaluated").hide()
+                        else
+                            elt.find(".sagews-input-unevaluated").show().css('display', "inline-block")
+                            elt.find(".sagews-input-evaluated").hide()
+
                     if FLAGS.hide_input in flagstring and FLAGS.hide_input not in mark.flagstring
                         @hide_input(line)
                     else if FLAGS.hide_input in mark.flagstring and FLAGS.hide_input not in flagstring
