@@ -673,14 +673,16 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         opts = defaults opts,
             line     : required
             preparse : true
+            timeout  : undefined
             cb       : required
 
         @call
-            message: message.codemirror_introspect
+            message : message.codemirror_introspect
                 line         : opts.line
                 preparse     : opts.preparse
                 session_uuid : @session_uuid
-            cb : opts.cb
+            timeout : opts.timeout
+            cb      : opts.cb
 
     ui_synced: (synced) =>
         if synced
@@ -976,14 +978,26 @@ class SynchronizedWorksheet extends SynchronizedDocument
         buttons.find("a[href=#delete-output]").click () =>
             @action(execute:false, delete_output:true)
             return false
-        buttons.find("a[href=#interrupt]").click () =>
-            @interrupt()
-            return false
         buttons.find("a[href=#tab]").click () =>
             @editor.press_tab_key(@editor.codemirror_with_last_focus)
             return false
-        buttons.find("a[href=#kill]").click () =>
-            @kill()
+        interrupt_button = buttons.find("a[href=#interrupt]").click () =>
+            interrupt_button.find("i").addClass('fa-spin')
+            @interrupt
+                maxtime : 15
+                cb : (err) =>
+                    interrupt_button.find("i").removeClass('fa-spin')
+                    if err
+                        alert_message(type:"error", message:"Unable to interrupt Sage worksheet; you might try restarting the worksheet instead.")
+            return false
+        kill_button = buttons.find("a[href=#kill]").click () =>
+            kill_button.find("i").addClass('fa-spin')
+            @kill
+                restart : true
+                cb      : (err) =>
+                    kill_button.find("i").removeClass('fa-spin')
+                    if err
+                        alert_message(type:"error", message:"Unable to restart Sage worksheet (maybe system is heavily loaded or Sage is broken)")
             return false
 
     _is_dangerous_undo_step: (cm, changes) =>
@@ -1007,11 +1021,29 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if u.length > 0 and @_is_dangerous_undo_step(cm, u[u.length-1].changes)
             cm.redo()
 
-    interrupt: () =>
+    interrupt: (opts={}) =>
+        opts = defaults opts,
+            maxtime : 15
+            cb      : undefined
         @close_on_action()
-        @send_signal(signal:2)
+        t = misc.walltime()
+        async.series([
+            (cb) =>
+                @send_signal
+                    signal : 2
+                    cb     : cb
+            (cb) =>
+                @start
+                    maxtime : opts.maxtime - misc.walltime(t)
+                    cb      : cb
+        ], (err) => opts.cb?(err))
 
-    kill: () =>
+    kill: (opts={}) =>
+        opts = defaults opts,
+            restart : false
+            maxtime : 60
+            cb      : undefined
+        t = misc.walltime()
         @close_on_action()
         # Set any running cells to not running.
         for cm in [@codemirror, @codemirror1]
@@ -1020,16 +1052,57 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     for flag in ACTION_FLAGS
                         @remove_cell_flag(marker, flag)
         @process_sage_updates()
-        @send_signal(signal:3)
-        setTimeout(( () => @send_signal(signal:9) ), 500 )
+        async.series([
+            (cb) =>
+                @send_signal
+                    signal : 3
+                    cb     : cb
+            (cb) =>
+                setTimeout(cb, 500)
+            (cb) =>
+                @send_signal
+                    signal : 9
+                    cb     : cb
+            (cb) =>
+                if opts.restart
+                    @start
+                        maxtime : opts.maxtime - misc.walltime(t)
+                        cb      : cb
+                else
+                    cb()
+        ], (err) => opts.cb?(err))
 
+    # ensure that the sage process is working and responding to compute requests by doing an introspection.
+    start: (opts={}) =>
+        opts = defaults opts,
+            maxtime : 60        # (roughly) maximum amount of time to try to restart
+            cb      : undefined
+
+        if opts.maxtime <= 0
+            opts.cb?("timed out trying to start Sage worksheet - system may be heavily loaded or Sage is broken.")
+            return
+
+        t = misc.walltime()
+        @introspect_line
+            line     : "open?"
+            timeout  : 10   # give it 10 seconds max each time to work
+            preparse : false
+            cb       : (err) =>
+                if not err
+                    # success
+                    opts.cb?()
+                else
+                    # try again
+                    @start
+                        maxtime : opts.maxtime - misc.walltime(t)
+                        cb      : opts.cb
 
     send_signal: (opts) =>
         opts = defaults opts,
             signal : 2
             cb     : undefined
         if not @session_uuid?
-            opts.cb("session_uuid must be set before sending a signal")
+            opts.cb?("session_uuid must be set before sending a signal")
             return
         @call
             message: message.codemirror_send_signal
