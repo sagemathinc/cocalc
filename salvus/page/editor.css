@@ -308,6 +308,7 @@ Editor for files in a project
 
 .sagews-input {
     white-space: nowrap;
+    margin-left: -4px;
     width: 100%;
 }
 
@@ -356,20 +357,16 @@ Editor for files in a project
 
 
 
-/* Margin of sagews-output must be 0 for codemirror 3.14 */
+/* Margin of sagews-output must be 0 for codemirror 3.14+, or cursor gets all jacked up. */
+/* background-color: #f9f9f9;*/ /* this messes up codemirror themes */
 .sagews-output {
-    padding: 6px;
+    padding: 1ex;
     padding-right: 0px;
-
-    /* background-color: #f9f9f9;*/ /* this messes up codemirror themes */
-
     margin: 0px;
-
-    border-left: 2px solid #aaa;
-    border-radius: 4px;
-    /* box-shadow: 2px 2px 1px #ddd; */   /* no longer trendy */
     overflow-y:auto;
     white-space:normal;
+    border-left: 2px solid orange;
+    margin-left: -4px;
 }
 
 

@@ -1847,6 +1847,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     # check if it is a mode line.
                     mode_line = s.replace(/\s/g,'').toLowerCase()
                     if mode_line in CLIENT_SIDE_MODE_LINES
+                        @set_cell_flag(marker, FLAGS.this_session)
                         @execute_cell_client_side
                             block     : {start:start, end:block.end}
                             mode_line : mode_line
