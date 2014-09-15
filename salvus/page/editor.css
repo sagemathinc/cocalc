@@ -307,37 +307,54 @@ Editor for files in a project
 /*********** Synchronized Worksheets *****************/
 
 .sagews-input {
-    height:1em;
     white-space: nowrap;
 }
 
+
 .sagews-input-hr {
-    border-top: 0px;
-    border-bottom: 3px solid #ccc;
-    margin: 0px;
-    padding-top: .5em;
-    display: inline-block;
-    width: 90%;
+    border  : 1px solid #ccc;
+    margin  : 0px;
+    display : inline-block;
+    width   : 70%;
+    height  : 2px;
+}
+
+.sagews-input-eval-state {
+    width: 10%;
+}
+.sagews-input-run-state {
+    width: 10%;
 }
 
 .sagews-input-evaluated {
-    border-bottom: 3px solid #0a0;
-    margin-right: -5px;
-    width: 10%;
+    border: 1px solid #00a;
 }
 
 .sagews-input-unevaluated {
-    border-bottom: 3px solid grey;
-    margin-right: -5px;
-    width: 10%;
+    border: 1px solid #ccc;
 }
 
-.sagews-input:hover {
+.sagews-input-execute {
+    border: 1px solid #080;
+}
+
+.sagews-input-running {
+    border: 1px solid #0a0;
+}
+
+
+.sagews-input-newcell {
+}
+
+.sagews-input-newcell:hover {
     cursor: pointer;
     cursor: pointer;
     background-color:#0044cc;
     background-image: linear-gradient(to bottom, #0088cc, #0044cc);
 }
+
+
+
 
 /* Margin of sagews-output must be 0 for codemirror 3.14 */
 .sagews-output {

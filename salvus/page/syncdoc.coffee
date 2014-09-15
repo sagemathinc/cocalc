@@ -951,6 +951,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         @codemirror.on 'beforeChange', (instance, changeObj) =>
             #console.log("beforeChange: #{misc.to_json(changeObj)}")
+            # Set the evaluated flag to false for the cell that contains the text
+            # that just changed (if applicable)
+            if changeObj.origin? and changeObj.origin != 'setValue'
+                line = changeObj.from.line
+                mark = @find_input_mark(line)
+                if mark?
+                    @remove_cell_flag(mark, FLAGS.this_session)
+
             if changeObj.origin == 'paste'
                 changeObj.cancel()
                 # WARNING: The Codemirror manual says "Note: you may not do anything
@@ -1244,36 +1252,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         elt = @elt_at_mark(mark)
                         if FLAGS.execute in flagstring
                             elt.data('execute',FLAGS.execute)
-                            g = () ->  #ugly use of closure -- ok for now -- TODO: clean up
-                                # execute requested
-                                elt0 = elt
-                                f = () ->
-                                    if elt0.data('execute') not in ['done', FLAGS.running]
-                                        elt0.spin(true)
-                                setTimeout(f, 1000)
-                            g()
+                            @set_input_state(elt:elt, run_state:'execute')
                         else if FLAGS.running in flagstring
                             elt.data('execute',FLAGS.running)
-                            g = () ->   #ugly use of closure -- ok for now -- TODO: clean up
-                                elt0 = elt
-                                f = () ->
-                                    if elt0.data('execute') not in ['done', FLAGS.execute]
-                                        elt0.spin(color:'green')
-                                # code is running on remote local hub.
-                                setTimeout(f, 1000)
-                            g()
+                            @set_input_state(elt:elt, run_state:'running')
                         else
-                            elt.data('execute','done')
                             # code is not running
-                            elt.spin(false)
-
+                            elt.data('execute','done')
+                            @set_input_state(elt:elt, run_state:'done')
                         # set marker of whether or not this cell was evaluated during this session
                         if FLAGS.this_session in flagstring
-                            elt.find(".sagews-input-evaluated").show().css('display', "inline-block")
-                            elt.find(".sagews-input-unevaluated").hide()
+                            @set_input_state(elt:elt, eval_state:true)
                         else
-                            elt.find(".sagews-input-unevaluated").show().css('display', "inline-block")
-                            elt.find(".sagews-input-evaluated").hide()
+                            @set_input_state(elt:elt, eval_state:false)
 
                     if FLAGS.hide_input in flagstring and FLAGS.hide_input not in mark.flagstring
                         @hide_input(line)
@@ -1332,6 +1323,35 @@ class SynchronizedWorksheet extends SynchronizedDocument
     #    This is purely a client-side display function; it doesn't change
     #    the document or cause any sync to happen!
     ##################################################################################
+
+    set_input_state: (opts) =>
+        opts = defaults opts,
+            elt        : undefined
+            line       : undefined
+            eval_state : undefined    # undefined, true, false
+            run_state  : undefined    # undefined, 'execute', 'running', 'done'
+        if opts.elt?
+            elt = opts.elt
+        else if opts.line?
+            mark = cm.findMarksAt({line:opts.line, ch:1})[0]
+            if not mark?
+                return
+            elt = @elt_at_mark(mark)
+        if opts.eval_state?
+            e = elt.find(".sagews-input-eval-state")
+            if opts.eval_state
+                e.addClass('sagews-input-evaluated').removeClass('sagews-input-unevaluated')
+            else
+                e.addClass('sagews-input-unevaluated').removeClass('sagews-input-evaluated')
+        if opts.run_state?
+            e = elt.find(".sagews-input-run-state")
+            if opts.run_state == 'execute'
+                e.addClass('sagews-input-execute').removeClass('sagews-input-running').addClass('blink')
+            else if opts.run_state == 'running'
+                e.addClass('sagews-input-running').removeClass('sagews-input-execute').addClass('blink')
+            else if opts.run_state == 'done'
+                e.removeClass('sagews-input-execute').removeClass('sagews-input-running').removeClass('blink')
+
 
     # hide_input: hide input part of cell that has start marker at the given line.
     hide_input: (line) =>
@@ -1700,6 +1720,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
             end += 1
         return {start:start, end:end}
 
+    find_input_mark: (line) =>
+        # Input mark containing the given line, or undefined
+        if line?
+            cm = @focused_codemirror()
+            if not cm?
+                return
+            while line >= 0
+                for mark in cm.findMarksAt({line:line, ch:0})
+                    if mark.type == MARKERS.cell
+                        return mark
+                line -= 1
+        return
+
     action: (opts={}) =>
         opts = defaults opts,
             pos     : undefined # if given, use this pos; otherwise, use where cursor is or all cells in selection
@@ -1918,27 +1951,37 @@ class SynchronizedWorksheet extends SynchronizedDocument
     #   This is tightly tied to codemirror, so only makes sense on the client.
     ##########################################
     get_cell_flagstring: (marker) =>
+        if not marker?
+            return
         pos = marker.find()
         if not pos?
             return ''
         return @focused_codemirror().getRange({line:pos.from.line,ch:37},{line:pos.from.line, ch:pos.to.ch-1})
 
     set_cell_flagstring: (marker, value) =>
+        if not marker?
+            return
         pos = marker.find()
         @focused_codemirror().replaceRange(value, {line:pos.from.line,ch:37}, {line:pos.to.line, ch:pos.to.ch-1})
 
     get_cell_uuid: (marker) =>
+        if not marker?
+            return
         pos = marker.find()
         if not pos?
             return ''
         return @focused_codemirror().getLine(pos.line).slice(1,38)
 
     set_cell_flag: (marker, flag) =>
+        if not marker?
+            return
         s = @get_cell_flagstring(marker)
         if flag not in s
             @set_cell_flagstring(marker, flag + s)
 
     remove_cell_flag: (marker, flag) =>
+        if not marker?
+            return
         s = @get_cell_flagstring(marker)
         if flag in s
             s = s.replace(new RegExp(flag, "g"), "")

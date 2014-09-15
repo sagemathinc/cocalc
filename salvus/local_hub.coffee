@@ -976,7 +976,7 @@ class CodeMirrorSession
                 ds_client.remote.sync_ready()
 
     sage_execute_cell: (id) =>
-        winston.debug("exec request for cell with id #{id}")
+        winston.debug("exec request for cell with id: '#{id}'")
         @sage_remove_cell_flag(id, diffsync.FLAGS.execute)
         {code, output_id} = @sage_initialize_cell_for_execute(id)
         winston.debug("exec code '#{code}'; output id='#{output_id}'")
@@ -1117,7 +1117,9 @@ class CodeMirrorSession
                 # normal execute
                 @sage_execute_cell(id)
 
-            i = j + 1
+            # set i to next position after end of line that contained flag we just considered;
+            # above code may have added flags to this line (but won't have added anything before this line).
+            i = @content.indexOf('\n',j + 1)
 
 
     sage_output_mesg: (output_id, mesg) =>
