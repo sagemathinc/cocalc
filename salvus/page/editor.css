@@ -308,49 +308,49 @@ Editor for files in a project
 
 .sagews-input {
     white-space: nowrap;
+    width: 100%;
 }
+
+.sagews-input:hover {
+    cursor: pointer;
+    background-color: #428bca;
+}
+
 
 
 .sagews-input-hr {
-    border  : 1px solid #ccc;
     margin  : 0px;
     display : inline-block;
-    width   : 70%;
+    width   : 85%;
     height  : 2px;
+    margin-right: -10px;
+    background: #ccc;
 }
 
 .sagews-input-eval-state {
-    width: 10%;
+    width: 5%;
 }
 .sagews-input-run-state {
     width: 10%;
 }
 
 .sagews-input-evaluated {
-    border: 1px solid #00a;
+    background: #428bca;
 }
 
 .sagews-input-unevaluated {
-    border: 1px solid #ccc;
 }
 
 .sagews-input-execute {
-    border: 1px solid #080;
+    background: #080;
 }
 
 .sagews-input-running {
-    border: 1px solid #0a0;
+    background: #0a0;
 }
 
 
 .sagews-input-newcell {
-}
-
-.sagews-input-newcell:hover {
-    cursor: pointer;
-    cursor: pointer;
-    background-color:#0044cc;
-    background-image: linear-gradient(to bottom, #0088cc, #0044cc);
 }
 
 

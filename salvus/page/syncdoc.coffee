@@ -1609,8 +1609,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm.replaceRange("\n\n\n", {line:line+1, ch:0})
         x   = cm.getLine(line)
         end = x.indexOf(MARKERS.cell, 1)
-        input = cell_start_template.clone().css
-            width : @cm_lines().width() + 'px'
+        input = cell_start_template.clone()
 
         input.click () =>
             f = () =>

@@ -871,6 +871,7 @@ class exports.Editor
             return
 
         if opts.foreground
+            @_active_tab_filename = filename
             @push_state('files/' + opts.path)
             @hide_recent_file_list()
             @show_editor_content()
@@ -882,9 +883,8 @@ class exports.Editor
                 ed = tab.editor()
 
                 if opts.foreground
-                    ed.show()
-                    setTimeout((() -> ed.show(); ed.focus()), 100)
-                    #@element.find(".btn-group").children().removeClass('disabled')
+                    ed.show(force:true, do_another:true)
+                    ed.focus()
 
                 top_link = @active_tab.open_file_pill
                 if top_link?
@@ -1578,15 +1578,29 @@ class CodeMirrorEditor extends FileEditor
                 v[i] += amount
         $("body").append("<style type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
 
-    show: () =>
-        if not (@element? and @codemirror?)
+    show: (opts={}) =>
+        opts = defaults opts,
+            force      : false
+            do_another : true
+
+        if not (@element? and @codemirror?) or @editor._active_tab_filename != @filename
             return
 
-        if @syncdoc?
-            @syncdoc.sync()
+        window.editor = @
+        # Show gets called repeatedly as we resize the window, so we wait until slightly *after*
+        # the last call before doing the show.
+        now = misc.mswalltime()
+        if not opts.force and (@_last_call? and now - @_last_call < 500)
+            if not @_show_timer?
+                @_show_timer = setTimeout((()=>delete @_show_timer; @show(opts)), now - @_last_call)
+            return
+        @_last_call = now
+
+        console.log("actually show(opts=#{misc.to_json(opts)})")
+        #if @syncdoc?
+        #    @syncdoc.sync()
 
         @element.show()
-        window.codemirror = @codemirror
 
         if @opts.style_active_line
             @_style_active_line($(@codemirror.getWrapperElement()).css('background-color'))
@@ -1637,12 +1651,8 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : ht
                 width  : width
-            setTimeout((()=>cm.refresh()), 0)
-            setTimeout((()=>cm.refresh()), 3000)
-            if not window.cm?
-                window.cm = []
-            window.cm.push(cm)
-
+            cm.refresh()
+            
         if chat
             chat_elt = @element.find(".salvus-editor-codemirror-chat")
             chat_elt.height(cm_height)
@@ -1654,7 +1664,12 @@ class CodeMirrorEditor extends FileEditor
             chat_input.offset({top:chat_input_top})
             chat_output.height(chat_input_top - top - 41)
 
-        @emit 'show', ht
+        @emit('show', ht)
+
+        # throw in another show in 3 seconds, just in case -- will cause no harm if we've moved
+        # away from this tab.
+        if opts.do_another
+            setTimeout((()=>@show(do_another:false, force:false)), 3000)
 
     focus: () =>
         if not @codemirror?
