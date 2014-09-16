@@ -321,10 +321,11 @@ Editor for files in a project
 
 .sagews-input-hr {
     margin  : 0px;
+    margin-right: -10px;
+    margin-bottom: .5ex;   /* makes line look centered */
     display : inline-block;
     width   : 85%;
     height  : 2px;
-    margin-right: -10px;
     background: #ccc;
 }
 

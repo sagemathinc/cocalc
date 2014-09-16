@@ -6,25 +6,6 @@ Editor for files in a project
 
     <!-- Template for the entire editor, both tabs and the actual content -->
     <div class="salvus-editor" style="margin-left:3em;">
-        <div class="salvus-editor-recent-files">
-            <div class="row">
-                <div class="col-sm-6" style="margin-bottom:1ex">
-                    <input class="salvus-editor-search-openfiles-input search-query form-control" type="text" placeholder="Choose files...">
-                    <i class="salvus-editor-search-openfiles-input-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
-                </div>
-                <div class="col-lg-offset-1 col-sm-4">
-                    <a class="btn btn-sm btn-success" href="#save-all"><i class="fa fa-save"> </i> Save all</a>
-                    <a class="btn btn-sm btn-warning" href="#close-all-tabs"><i class="fa fa-minus-sign"> </i> Clear</a>
-                    <a class="btn btn-sm btn-warning hide" href="#undo-close-all-tabs"><i class="fa fa-undo"> </i> Undo</a>
-                </div>
-            </div>
-            <div class="row">
-                <!-- The recently opened files  go in this ul: -->
-                <ul class="nav nav-pills" style="cursor: default;">
-                </ul>
-            </div>
-        </div>
-
         <div class="row" style="margin-top:1ex;">
             <!-- The editor content gets displayed here -->
             <div class="salvus-editor-content">
