@@ -1072,7 +1072,7 @@ class CodeMirrorSession
         #    - also, if we see a cell UUID that we've seen already, we randomly generate
         #      a new cell UUID; clients can annoyingly generate non-unique UUID's (e.g., via
         #      cut and paste) so we fix that.
-        winston.debug("sage_update: opts=#{misc.to_json(opts)}")
+        winston.debug("sage_update")#: opts=#{misc.to_json(opts)}")
         i = 0
         prev_ids = {}
         while true
@@ -1083,39 +1083,44 @@ class CodeMirrorSession
             if j == -1
                 break  # corrupt and is the last one, so not a problem.
             id  = @content.slice(i+1,i+37)
-            if prev_ids[id]?
-                # oops, repeated "unique" id, so fix it.
-                id = uuid.v4()
-                @content = @content.slice(0,i+1) + id + @content.slice(i+37)
-                # Also, if 'r' in the flags for this cell, remove it since it
-                # can't possibly be already running (given the repeat).
-                flags = @content.slice(i+37, j)
-                if diffsync.FLAGS.running in flags
-                    new_flags = ''
-                    for t in flags
-                        if t != diffsync.FLAGS.running
-                            new_flags += t
-                    @content = @content.slice(0,i+37) + new_flags + @content.slice(j)
+            if misc.is_valid_uuid_string(id)
 
-            prev_ids[id] = true
-            flags = @content.slice(i+37, j)
-            if opts.kill or opts.auto
-                if opts.kill
-                    # worksheet process just killed, so clear certain flags.
-                    new_flags = ''
-                    for t in flags
-                        if t != diffsync.FLAGS.running and t != diffsync.FLAGS.this_session
-                            new_flags += t
-                    winston.debug("sage_update: kill=true, so changing flags from '#{flags}' to '#{new_flags}'")
-                    if flags != new_flags
+                # if id isn't valid -- due to document corruption or a bug, just skip it rather than get into all kinds of trouble.
+                # TODO: repair.
+
+                if prev_ids[id]?
+                    # oops, repeated "unique" id, so fix it.
+                    id = uuid.v4()
+                    @content = @content.slice(0,i+1) + id + @content.slice(i+37)
+                    # Also, if 'r' in the flags for this cell, remove it since it
+                    # can't possibly be already running (given the repeat).
+                    flags = @content.slice(i+37, j)
+                    if diffsync.FLAGS.running in flags
+                        new_flags = ''
+                        for t in flags
+                            if t != diffsync.FLAGS.running
+                                new_flags += t
                         @content = @content.slice(0,i+37) + new_flags + @content.slice(j)
-                if opts.auto and diffsync.FLAGS.auto in flags
-                    # worksheet process being restarted, so run auto cells
-                    @sage_remove_cell_flag(id, diffsync.FLAGS.auto)
+
+                prev_ids[id] = true
+                flags = @content.slice(i+37, j)
+                if opts.kill or opts.auto
+                    if opts.kill
+                        # worksheet process just killed, so clear certain flags.
+                        new_flags = ''
+                        for t in flags
+                            if t != diffsync.FLAGS.running and t != diffsync.FLAGS.this_session
+                                new_flags += t
+                        #winston.debug("sage_update: kill=true, so changing flags from '#{flags}' to '#{new_flags}'")
+                        if flags != new_flags
+                            @content = @content.slice(0,i+37) + new_flags + @content.slice(j)
+                    if opts.auto and diffsync.FLAGS.auto in flags
+                        # worksheet process being restarted, so run auto cells
+                        @sage_remove_cell_flag(id, diffsync.FLAGS.auto)
+                        @sage_execute_cell(id)
+                else if diffsync.FLAGS.execute in flags
+                    # normal execute
                     @sage_execute_cell(id)
-            else if diffsync.FLAGS.execute in flags
-                # normal execute
-                @sage_execute_cell(id)
 
             # set i to next position after end of line that contained flag we just considered;
             # above code may have added flags to this line (but won't have added anything before this line).
