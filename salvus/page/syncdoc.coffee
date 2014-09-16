@@ -26,7 +26,7 @@ their 900 clients in parallel.
 # seconds to wait for synchronized doc editing session, before reporting an error.
 # Don't make this too short, since when we open a link to a file in a project that
 # hasn't been opened in a while, it can take a while.
-CONNECT_TIMEOUT_S = 45
+CONNECT_TIMEOUT_S = 70
 
 DEFAULT_TIMEOUT   = 35
 
@@ -948,27 +948,35 @@ class SynchronizedWorksheet extends SynchronizedDocument
                             elt.css('width', (w-25) + 'px')
                         else if elt.hasClass('sagews-input')
                             elt.css('width', w + 'px')
+            @process_sage_updates()
 
-        @codemirror.on 'beforeChange', (instance, changeObj) =>
-            #console.log("beforeChange: #{misc.to_json(changeObj)}")
-            # Set the evaluated flag to false for the cell that contains the text
-            # that just changed (if applicable)
-            if changeObj.origin? and changeObj.origin != 'setValue'
-                line = changeObj.from.line
-                mark = @find_input_mark(line)
-                if mark?
-                    @remove_cell_flag(mark, FLAGS.this_session)
+        v = [@codemirror, @codemirror1]
+        for cm in v
+            cm.on 'beforeChange', (instance, changeObj) =>
+                #console.log("beforeChange: #{misc.to_json(changeObj)}")
+                # Set the evaluated flag to false for the cell that contains the text
+                # that just changed (if applicable)
+                if changeObj.origin? and changeObj.origin != 'setValue'
+                    line = changeObj.from.line
+                    mark = @find_input_mark(line)
+                    if mark?
+                        @remove_cell_flag(mark, FLAGS.this_session)
 
-            if changeObj.origin == 'paste'
-                changeObj.cancel()
-                # WARNING: The Codemirror manual says "Note: you may not do anything
-                # from a "beforeChange" handler that would cause changes to the
-                # document or its visualization."  I think this is OK below though
-                # since we just canceled the change.
-                @remove_cell_flags_from_changeObj(changeObj, ACTION_FLAGS)
-                @_apply_changeObj(changeObj)
-                @process_sage_updates()
-                @sync()
+                if changeObj.origin == 'paste'
+                    changeObj.cancel()
+                    # WARNING: The Codemirror manual says "Note: you may not do anything
+                    # from a "beforeChange" handler that would cause changes to the
+                    # document or its visualization."  I think this is OK below though
+                    # since we just canceled the change.
+                    @remove_cell_flags_from_changeObj(changeObj, ACTION_FLAGS)
+                    @_apply_changeObj(changeObj)
+                    @process_sage_updates()
+                    @sync()
+
+            cm.on 'change', () =>
+                if @editor._split_view
+                    @_process_sage_updates(cm, 0, true)
+
 
     init_worksheet_buttons: () =>
         buttons = @element.find(".salvus-editor-codemirror-worksheet-buttons")
@@ -1214,7 +1222,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if @editor._split_view
             @_process_sage_updates(@editor.codemirror1, start)
 
-    _process_sage_updates: (cm, start) =>
+    _process_sage_updates: (cm, start, ignore_output) =>
 
         if not start?
             start = 0
@@ -1278,7 +1286,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
                     mark.flagstring = flagstring
 
-            else if x[0] == MARKERS.output
+            else if x[0] == MARKERS.output and not ignore_output
                 marks = cm.findMarksAt({line:line, ch:1})
                 if marks.length == 0
                     @mark_output_line(cm, line)
@@ -1304,14 +1312,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
                             catch e
                                 log("BUG: error rendering output: '#{s}' -- #{e}")
 
-            else if x.indexOf(MARKERS.output) != -1
+            else if x.indexOf(MARKERS.output) != -1 and not ignore_output
                 #console.log("correcting merge/paste issue with output marker line (line=#{line})")
                 ch = x.indexOf(MARKERS.output)
                 cm.replaceRange('\n', {line:line, ch:ch})
                 @process_sage_updates(line)
                 return
 
-            else if x.indexOf(MARKERS.cell) != -1
+            else if x.indexOf(MARKERS.cell) != -1 and not ignore_output
                 #console.log("correcting merge/paste issue with cell marker (line=#{line})")
                 ch = x.indexOf(MARKERS.cell)
                 cm.replaceRange('\n', {line:line, ch:ch})
