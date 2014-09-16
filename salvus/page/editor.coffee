@@ -1595,15 +1595,6 @@ class CodeMirrorEditor extends FileEditor
             v = [@codemirror]
             ht = height
 
-        for cm in v
-            scroller = $(cm.getScrollerElement())
-            scroller.css('height':ht)
-            cm_wrapper = $(cm.getWrapperElement())
-            cm_wrapper.css
-                height : ht
-                width  : width
-            #cm.refresh()
-
         # need to do this since theme may have changed
         # @_style_active_line()
 
@@ -1613,7 +1604,17 @@ class CodeMirrorEditor extends FileEditor
         # doing this always causes things to get properly fixed.  I don't know why.
         hack = $("<div>")
         $("body").append(hack)
-        setTimeout((()=>hack.remove()),0)
+        setTimeout((()=>hack.remove()),1)
+
+
+        for cm in v
+            scroller = $(cm.getScrollerElement())
+            scroller.css('height':ht)
+            cm_wrapper = $(cm.getWrapperElement())
+            cm_wrapper.css
+                height : ht
+                width  : width
+            cm.refresh()
 
         @emit('show', ht)
 
