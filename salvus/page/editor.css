@@ -324,16 +324,19 @@ Editor for files in a project
     margin-right: -10px;
     margin-bottom: .5ex;   /* makes line look centered */
     display : inline-block;
-    width   : 85%;
     height  : 2px;
     background: #ccc;
 }
 
+
+.sagews-input-newcell {
+    width: 40%;
+}
 .sagews-input-eval-state {
-    width: 5%;
+    width: 20%;
 }
 .sagews-input-run-state {
-    width: 10%;
+    width: 40%;
 }
 
 .sagews-input-evaluated {
@@ -351,9 +354,6 @@ Editor for files in a project
     background: #0a0;
 }
 
-
-.sagews-input-newcell {
-}
 
 
 
