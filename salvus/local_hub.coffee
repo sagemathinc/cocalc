@@ -1125,6 +1125,8 @@ class CodeMirrorSession
             # set i to next position after end of line that contained flag we just considered;
             # above code may have added flags to this line (but won't have added anything before this line).
             i = @content.indexOf('\n',j + 1)
+            if i == -1
+                break
 
 
     sage_output_mesg: (output_id, mesg) =>
