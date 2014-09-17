@@ -1,6 +1,5 @@
 ##################################################
 # Editor for files in a project
-##################################################
 
 # Show button labels if there are at most this many file tabs opened.
 # This is in exports so that an elite user could customize this by doing, e.g.,
@@ -306,11 +305,6 @@ class exports.Editor
         @tabs = {}   # filename:{useful stuff}
 
         @init_openfile_search()
-        @init_close_all_tabs_button()
-
-        @element.find("a[href=#save-all]").click () =>
-            @save()
-            return false
 
         if opts.initial_files?
             for filename in opts.initial_files
@@ -370,28 +364,6 @@ class exports.Editor
         if not @active_tab? or not @_editor_content_visible
             return
         @active_tab.editor().show()
-
-    # This really closes the "recent files" page.  The name is confusing
-    # due to partial refactor of code (i.e., historical reasons).
-    init_close_all_tabs_button: () =>
-        @element.find("a[href=#close-all-tabs]").click () =>
-            undo = @element.find("a[href=#undo-close-all-tabs]")
-            if not undo.data('files')?
-                undo.data('files', [])
-            v = undo.data('files')
-            for filename, tab of @tabs
-                if tab.link.is(":visible")
-                    @remove_from_recent(filename)
-                    if filename not in v
-                        v.push(filename)
-            undo.show().click () =>
-                undo.hide()
-                for filename in undo.data('files')
-                    @tabs[filename]?.link.show()
-                return false
-            setTimeout((() => undo.hide()), 60000)
-
-            return false
 
     init_openfile_search: () =>
         search_box = @element.find(".salvus-editor-search-openfiles-input")
@@ -856,10 +828,6 @@ class exports.Editor
     warn_user: (filename, cb) =>
         cb(true)
 
-    hide_recent_file_list: () =>
-        $(".salvus-editor-recent-files").hide()
-        $(".project-editor-recent-files-header").hide()
-
     # Make the tab appear in the tabs at the top, and if foreground=true, also make that tab active.
     display_tab: (opts) =>
         opts = defaults opts,
@@ -871,8 +839,8 @@ class exports.Editor
             return
 
         if opts.foreground
+            @_active_tab_filename = filename
             @push_state('files/' + opts.path)
-            @hide_recent_file_list()
             @show_editor_content()
 
         prev_active_tab = @active_tab
@@ -882,9 +850,8 @@ class exports.Editor
                 ed = tab.editor()
 
                 if opts.foreground
-                    ed.show()
-                    setTimeout((() -> ed.show(); ed.focus()), 100)
-                    #@element.find(".btn-group").children().removeClass('disabled')
+                    ed.show(force:true, do_another:true)
+                    ed.focus()
 
                 top_link = @active_tab.open_file_pill
                 if top_link?
@@ -1568,7 +1535,11 @@ class CodeMirrorEditor extends FileEditor
         if pos?
             @set_cursor_center_focus(pos)
 
-    _style_active_line: (rgb) =>
+    # set background color of active line in editor based on background color (which depends on the theme)
+    _style_active_line: () =>
+        if not @opts.style_active_line
+            return
+        rgb = $(@codemirror.getWrapperElement()).css('background-color')
         v = (parseInt(x) for x in rgb.slice(4,rgb.length-1).split(','))
         amount = @opts.style_active_line
         for i in [0..2]
@@ -1576,60 +1547,66 @@ class CodeMirrorEditor extends FileEditor
                 v[i] -= amount
             else
                 v[i] += amount
-        $("body").append("<style type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
+        $("body").remove("#salvus-cm-activeline")
+        $("body").append("<style id='salvus-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
 
-    show: () =>
-        if not (@element? and @codemirror?)
+    show: (opts={}) =>
+        opts = defaults opts,
+            force      : false
+            do_another : true
+
+        if not (@element? and @codemirror?) or @editor._active_tab_filename != @filename
             return
 
-        if @syncdoc?
-            @syncdoc.sync()
+        # window.editor = @ # ** for debugging **
 
+        # Show gets called repeatedly as we resize the window, so we wait until slightly *after*
+        # the last call before doing the show.
+        now = misc.mswalltime()
+        if not opts.force and (@_last_call? and now - @_last_call < 500)
+            if not @_show_timer?
+                @_show_timer = setTimeout((()=>delete @_show_timer; @show(opts)), now - @_last_call)
+            return
+        @_last_call = now
         @element.show()
-        window.codemirror = @codemirror
+        @_show(opts)
 
-        if @opts.style_active_line
-            @_style_active_line($(@codemirror.getWrapperElement()).css('background-color'))
+        # throw in another show in 2 seconds, just in case -- will cause no harm if we've moved
+        # away from this tab.
+        #if opts.do_another
+        #   setTimeout((()=>console.log('doing extra');@show(do_another:false, force:false)), 2000)
 
+    # hide/show the second linked codemirror editor, depending on whether or not it's enabled
+    _show_extra_codemirror_view: () =>
         if @_split_view
             $(@codemirror1.getWrapperElement()).show()
         else
             $(@codemirror1.getWrapperElement()).hide()
 
-        height = $(window).height()
-
-        top = @editor.editor_top_position()
-        elem_height = height - top - 5
-
-        button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
-        font_height = @codemirror.defaultTextHeight()
-
-        cm_height = Math.floor((elem_height - button_bar_height)/font_height) * font_height
-
-        @element.css(top:top, left:0)
-        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height)
-
-        @element.height(elem_height).show()
-        @element.show()
-
-        chat = @_chat_is_hidden? and not @_chat_is_hidden
-        if chat
-            width = @element.find(".salvus-editor-codemirror-chat-column").offset().left
-        else
-            width = $(window).width()
-
-        if @opts.geometry? and @opts.geometry == 'left half'
-            @empty_space = {start: width/2, end:width, top:top+button_bar_height}
-            width = width/2
+    _show_codemirror_editors: (height, width) =>
+        # console.log("_show_codemirror_editors: #{width} x #{height}")
+        # in case of more than one view on the document...
+        @_show_extra_codemirror_view()
 
         if @_split_view
             v = [@codemirror, @codemirror1]
-            ht = cm_height/2
+            ht = height/2
         else
             v = [@codemirror]
-            ht = cm_height
+            ht = height
 
-        #console.log("refreshing cm editors -- #{@filename} -- #{new Date()}")
+        # need to do this since theme may have changed
+        # @_style_active_line()
+
+        # CRAZY HACK: add and remove an HTML element to the DOM.
+        # I don't know why this works, but it gets around a *massive bug*, where after
+        # aggressive resizing, the codemirror editor gets all corrupted. For some reason,
+        # doing this always causes things to get properly fixed.  I don't know why.
+        hack = $("<div>")
+        $("body").append(hack)
+        setTimeout((()=>hack.remove()),1)
+
+
         for cm in v
             scroller = $(cm.getScrollerElement())
             scroller.css('height':ht)
@@ -1637,24 +1614,58 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : ht
                 width  : width
-            setTimeout((()=>cm.refresh()), 0)
-            setTimeout((()=>cm.refresh()), 3000)
-            if not window.cm?
-                window.cm = []
-            window.cm.push(cm)
+            cm.refresh()
+
+        @emit('show', ht)
+
+
+    _show: (opts) =>
+        #console.log("show(#{misc.to_json(opts)})")
+
+        # show the element that contains this editor
+        @element.show()
+        # do size computations: determine height and width of the codemirror editor(s)
+        top               = @editor.editor_top_position()
+        height            = $(window).height()
+        elem_height       = height - top - 5
+        button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
+        font_height       = @codemirror.defaultTextHeight()
+        chat              = @_chat_is_hidden? and not @_chat_is_hidden
+        # width of codemirror editors
+        if chat
+            width         = @element.find(".salvus-editor-codemirror-chat-column").offset().left
+        else
+            width         = $(window).width()
+
+        if @opts.geometry? and @opts.geometry == 'left half'
+            @empty_space  = {start: width/2, end:width, top:top+button_bar_height}
+            width         = width/2
+
+        # height of codemirror editors
+        cm_height         = Math.floor((elem_height - button_bar_height)/font_height) * font_height
+
+        # position the editor element on the screen
+        @element.css(top:top, left:0)
+        # and position the chat column
+        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height)
+
+        # set overall height of the element
+        @element.height(elem_height)
+
+        # show the codemirror editors, resizing as needed
+        @_show_codemirror_editors(cm_height, width)
 
         if chat
             chat_elt = @element.find(".salvus-editor-codemirror-chat")
             chat_elt.height(cm_height)
 
-            chat_output = chat_elt.find(".salvus-editor-codemirror-chat-output")
-
-            chat_input = chat_elt.find(".salvus-editor-codemirror-chat-input")
+            chat_output    = chat_elt.find(".salvus-editor-codemirror-chat-output")
+            chat_input     = chat_elt.find(".salvus-editor-codemirror-chat-input")
             chat_input_top = $(window).height()-chat_input.height() - 15
+
             chat_input.offset({top:chat_input_top})
             chat_output.height(chat_input_top - top - 41)
 
-        @emit 'show', ht
 
     focus: () =>
         if not @codemirror?

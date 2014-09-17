@@ -307,33 +307,67 @@ Editor for files in a project
 /*********** Synchronized Worksheets *****************/
 
 .sagews-input {
-    height:1em;
-}
-
-.sagews-input-hr {
-    border-top: 0px;
-    border-bottom: 1px solid #999;
-    margin: 0px;
-    padding-top: .5em;
+    white-space: nowrap;
+    margin-left: -4px;
+    width: 100%;
 }
 
 .sagews-input:hover {
     cursor: pointer;
-    cursor: pointer;
-    background-color:#0044cc;
-    background-image: linear-gradient(to bottom, #0088cc, #0044cc);
+    background-color: #428bca;
 }
 
+
+
+.sagews-input-hr {
+    margin  : 0px;
+    margin-right: -10px;
+    margin-bottom: .5ex;   /* makes line look centered */
+    display : inline-block;
+    height  : 2px;
+    background: #ccc;
+}
+
+
+.sagews-input-newcell {
+    width: 40%;
+}
+.sagews-input-eval-state {
+    width: 20%;
+}
+.sagews-input-run-state {
+    width: 40%;
+}
+
+.sagews-input-evaluated {
+    background: #428bca;
+}
+
+.sagews-input-unevaluated {
+}
+
+.sagews-input-execute {
+    background: #080;
+}
+
+.sagews-input-running {
+    background: #0a0;
+}
+
+
+
+
+
+/* Margin of sagews-output must be 0 for codemirror 3.14+, or cursor gets all jacked up. */
+/* background-color: #f9f9f9;*/ /* this messes up codemirror themes */
 .sagews-output {
-    padding: 6px;
+    padding: 1ex;
     padding-right: 0px;
-    /* background-color: #f9f9f9; */ /* this messes up codemirror themes */
-    margin: 0px;  /* WARNING: Must be 0 for codemirror 3.14 ! */
-    border-left: 1px solid #aaa;
-    border-radius: 3px;
-    /* box-shadow: 2px 2px 1px #ddd; */   /* no longer trendy */
+    margin: 0px;
     overflow-y:auto;
     white-space:normal;
+    border-left: 2px solid orange;
+    margin-left: -4px;
 }
 
 

@@ -48,7 +48,10 @@ noneint = lambda n : n if n is None else int(n)
 
 class ThreeJS(object):
     def __init__(self, renderer=None, width=None, height=None,
-                 frame=True, background=None, foreground=None, spin=False, viewer=None, **ignored):
+                 frame=True, background=None, foreground=None,
+                 spin=False, viewer=None, aspect_ratio=None,
+                 frame_aspect_ratio = None,
+                 **ignored):
         """
         INPUT:
 
@@ -59,7 +62,10 @@ class ThreeJS(object):
         - background -- None (transparent); otherwise a color such as 'black' or 'white'
         - foreground -- None (automatic = black if transparent; otherwise opposite of background);
            or a color; this is used for drawing the frame and axes labels.
-        - spin -- False; if True, spins 3d plot; if a number determines speed (60=one rotation per second)
+        - spin -- False; if True, spins 3d plot, with number determining speed (requires webgl and mouse over plot)
+        - aspect_ratio -- None (square) or a triple [x,y,z] so that everything is scaled by x,y,z.
+
+        - frame_aspect_ratio -- synonym for aspect_ratio
         - viewer -- synonym for renderer
         """
         if viewer is not None and renderer is None:
@@ -71,10 +77,18 @@ class ThreeJS(object):
         self._id       = uuid()
         self._selector = "#%s"%self._id
         self._obj      = "$('%s').data('salvus-threejs')"%self._selector
-        self._salvus.html("<div id=%s class='salvus-3d-container'></div>"%self._id)
+        self._salvus.html("<span id=%s class='salvus-3d-container'></span>"%self._id)
         if not isinstance(spin, bool):
             spin = json_float(spin)
-
+        if frame_aspect_ratio is not None:
+            aspect_ratio = frame_aspect_ratio
+        if aspect_ratio is not None:
+            if aspect_ratio == 1:
+                aspect_ratio = None
+            elif not (isinstance(aspect_ratio, (list, tuple)) and len(aspect_ratio) == 3):
+                raise TypeError("aspect_ratio must be None, 1 or a 3-tuple ")
+            else:
+                aspect_ratio = [json_float(x) for x in aspect_ratio]
         self._salvus.javascript("$('%s').salvus_threejs(obj)"%self._selector,
                                 once = False,
                                 obj  = {
@@ -83,7 +97,8 @@ class ThreeJS(object):
                                      'height'          : noneint(height),
                                      'background'      : background,
                                      'foreground'      : foreground,
-                                     'spin'            : spin
+                                     'spin'            : spin,
+                                     'aspect_ratio'    : aspect_ratio
                                      })
         self._graphics = []
         self._call('init()')
@@ -130,9 +145,12 @@ class ThreeJS(object):
 
     def animate(self, fps=None, stop=None, mouseover=True):
         self._call('animate(obj)', obj={'fps':noneint(fps), 'stop':stop, 'mouseover':mouseover})
+        
+    def init_done(self):
+        self._call('init_done()')
 
 def show_3d_plot_using_threejs(g, **kwds):
-    for k in ['spin', 'renderer', 'viewer', 'frame', 'height', 'width', 'background', 'foreground']:
+    for k in ['spin', 'renderer', 'viewer', 'frame', 'height', 'width', 'background', 'foreground', 'aspect_ratio']:
         extra_kwds = {} if g._extra_kwds is None else g._extra_kwds
         if k in extra_kwds and k not in kwds:
             kwds[k] = g._extra_kwds[k]
@@ -142,7 +160,7 @@ def show_3d_plot_using_threejs(g, **kwds):
     t.add(g, **kwds)
     if kwds.get('spin', False):
         t.animate(mouseover=False)
-    return t
+    t.init_done()
 
 import sage.plot.plot3d.index_face_set
 import sage.plot.plot3d.shapes

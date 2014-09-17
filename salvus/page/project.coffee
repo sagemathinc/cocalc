@@ -799,8 +799,10 @@ class ProjectPage
                 return false
 
             that.update_file_list_tab()
+
             if name == "project-file-listing"
                 tab.onshow = () ->
+                    that.editor?.hide_editor_content()
                     that.update_file_list_tab()
             else if name == "project-editor"
                 tab.onshow = () ->
@@ -811,10 +813,12 @@ class ProjectPage
                     return false
             else if name == "project-new-file"
                 tab.onshow = () ->
+                    that.editor?.hide_editor_content()
                     that.push_state('new/' + that.current_path.join('/'))
                     that.show_new_file_tab()
             else if name == "project-activity"
                 tab.onshow = () =>
+                    that.editor?.hide_editor_content()
                     that.push_state('log')
                     @render_project_activity_log()
                     if not IS_MOBILE
@@ -822,6 +826,7 @@ class ProjectPage
 
             else if name == "project-settings"
                 tab.onshow = () ->
+                    that.editor?.hide_editor_content()
                     that.push_state('settings')
                     that.update_topbar()
                     #that.update_linked_projects()
@@ -829,6 +834,7 @@ class ProjectPage
 
             else if name == "project-search"
                 tab.onshow = () ->
+                    that.editor?.hide_editor_content()
                     that.push_state('search/' + that.current_path.join('/'))
                     that.container.find(".project-search-form-input").focus()
 

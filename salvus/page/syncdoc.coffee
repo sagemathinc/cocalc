@@ -26,7 +26,7 @@ their 900 clients in parallel.
 # seconds to wait for synchronized doc editing session, before reporting an error.
 # Don't make this too short, since when we open a link to a file in a project that
 # hasn't been opened in a while, it can take a while.
-CONNECT_TIMEOUT_S = 45
+CONNECT_TIMEOUT_S = 70
 
 DEFAULT_TIMEOUT   = 35
 
@@ -673,14 +673,16 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         opts = defaults opts,
             line     : required
             preparse : true
+            timeout  : undefined
             cb       : required
 
         @call
-            message: message.codemirror_introspect
+            message : message.codemirror_introspect
                 line         : opts.line
                 preparse     : opts.preparse
                 session_uuid : @session_uuid
-            cb : opts.cb
+            timeout : opts.timeout
+            cb      : opts.cb
 
     ui_synced: (synced) =>
         if synced
@@ -924,19 +926,27 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
 class SynchronizedWorksheet extends SynchronizedDocument
     constructor: (@editor, @opts) ->
-        if not @opts.history_browser
-            opts0 =
-                cursor_interval : @opts.cursor_interval
-                sync_interval   : @opts.sync_interval
-            super @editor, opts0, () =>
-                @process_sage_updates()
+        # these two lines are assumed, at least by the history browser
+        @codemirror  = @editor.codemirror
+        @codemirror1 = @editor.codemirror1
 
-            @init_worksheet_buttons()
-            @on 'sync', @process_sage_updates
+        if @opts.history_browser
+            return
 
-        @codemirror = @editor.codemirror
+        opts0 =
+            cursor_interval : @opts.cursor_interval
+            sync_interval   : @opts.sync_interval
+        super @editor, opts0, () =>
+            @process_sage_updates(caller:"constructor")
+
+        @init_worksheet_buttons()
+
+        @on 'sync', () =>
+            #console.log("sync")
+            @process_sage_update_queue()
 
         @editor.on 'show', (height) =>
+            @process_sage_updates(caller:"show")
             w = @cm_lines().width()
             for cm in @codemirrors()
                 for mark in cm.getAllMarks()
@@ -947,18 +957,55 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         else if elt.hasClass('sagews-input')
                             elt.css('width', w + 'px')
 
-        @codemirror.on 'beforeChange', (instance, changeObj) =>
-            #console.log("beforeChange: #{misc.to_json(changeObj)}")
-            if changeObj.origin == 'paste'
-                changeObj.cancel()
-                # WARNING: The Codemirror manual says "Note: you may not do anything
-                # from a "beforeChange" handler that would cause changes to the
-                # document or its visualization."  I think this is OK below though
-                # since we just canceled the change.
-                @remove_cell_flags_from_changeObj(changeObj, ACTION_FLAGS)
-                @_apply_changeObj(changeObj)
-                @process_sage_updates()
-                @sync()
+        v = [@codemirror, @codemirror1]
+        v[0].name = '0'; v[1].name = '1'
+        for cm in v
+            cm.on 'beforeChange', (instance, changeObj) =>
+                #console.log("beforeChange (#{instance.name}): #{misc.to_json(changeObj)}")
+                # Set the evaluated flag to false for the cell that contains the text
+                # that just changed (if applicable)
+                if changeObj.origin? and changeObj.origin != 'setValue'
+                    line = changeObj.from.line
+                    mark = @find_input_mark(line)
+                    if mark?
+                        @remove_cell_flag(mark, FLAGS.this_session)
+
+                if changeObj.origin == 'paste'
+                    changeObj.cancel()
+                    # WARNING: The Codemirror manual says "Note: you may not do anything
+                    # from a "beforeChange" handler that would cause changes to the
+                    # document or its visualization."  I think this is OK below though
+                    # since we just canceled the change.
+                    @remove_cell_flags_from_changeObj(changeObj, ACTION_FLAGS)
+                    @_apply_changeObj(changeObj)
+                    @process_sage_updates(caller:"paste")
+                    @sync()
+
+            cm.sage_update_queue = []
+            cm.on 'change', (instance, changeObj) =>
+                if changeObj.origin != '+input' and (instance.name == '0' or @editor._split_view)
+                    start = changeObj.from.line
+                    stop  = changeObj.to.line + changeObj.text.length
+                    if not @_update_queue_start? or start < @_update_queue_start
+                        @_update_queue_start = start
+                    if not @_update_queue_stop? or stop > @_update_queue_stop
+                        @_update_queue_stop = stop
+
+                #if @editor._split_view
+                    # TODO: make faster by using change object to determine line range to consider!
+                #    @process_sage_updates
+                #        cm            : instance
+                #        ignore_output : true
+                #        caller: "change"
+
+    process_sage_update_queue: () =>
+        if @_update_queue_start?
+            @process_sage_updates
+                start  : @_update_queue_start
+                stop   : @_update_queue_stop
+                caller : 'queue'
+            @_update_queue_start = undefined
+            @_update_queue_stop  = undefined
 
     init_worksheet_buttons: () =>
         buttons = @element.find(".salvus-editor-codemirror-worksheet-buttons")
@@ -976,14 +1023,26 @@ class SynchronizedWorksheet extends SynchronizedDocument
         buttons.find("a[href=#delete-output]").click () =>
             @action(execute:false, delete_output:true)
             return false
-        buttons.find("a[href=#interrupt]").click () =>
-            @interrupt()
-            return false
         buttons.find("a[href=#tab]").click () =>
             @editor.press_tab_key(@editor.codemirror_with_last_focus)
             return false
-        buttons.find("a[href=#kill]").click () =>
-            @kill()
+        interrupt_button = buttons.find("a[href=#interrupt]").click () =>
+            interrupt_button.find("i").addClass('fa-spin')
+            @interrupt
+                maxtime : 15
+                cb : (err) =>
+                    interrupt_button.find("i").removeClass('fa-spin')
+                    if err
+                        alert_message(type:"error", message:"Unable to interrupt Sage worksheet; you might try restarting the worksheet instead.")
+            return false
+        kill_button = buttons.find("a[href=#kill]").click () =>
+            kill_button.find("i").addClass('fa-spin')
+            @kill
+                restart : true
+                cb      : (err) =>
+                    kill_button.find("i").removeClass('fa-spin')
+                    if err
+                        alert_message(type:"error", message:"Unable to restart Sage worksheet (maybe system is heavily loaded or Sage is broken)")
             return false
 
     _is_dangerous_undo_step: (cm, changes) =>
@@ -1007,11 +1066,29 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if u.length > 0 and @_is_dangerous_undo_step(cm, u[u.length-1].changes)
             cm.redo()
 
-    interrupt: () =>
+    interrupt: (opts={}) =>
+        opts = defaults opts,
+            maxtime : 15
+            cb      : undefined
         @close_on_action()
-        @send_signal(signal:2)
+        t = misc.walltime()
+        async.series([
+            (cb) =>
+                @send_signal
+                    signal : 2
+                    cb     : cb
+            (cb) =>
+                @start
+                    maxtime : opts.maxtime - misc.walltime(t)
+                    cb      : cb
+        ], (err) => opts.cb?(err))
 
-    kill: () =>
+    kill: (opts={}) =>
+        opts = defaults opts,
+            restart : false
+            maxtime : 60
+            cb      : undefined
+        t = misc.walltime()
         @close_on_action()
         # Set any running cells to not running.
         for cm in [@codemirror, @codemirror1]
@@ -1019,17 +1096,58 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 if marker.type == MARKERS.cell
                     for flag in ACTION_FLAGS
                         @remove_cell_flag(marker, flag)
-        @process_sage_updates()
-        @send_signal(signal:3)
-        setTimeout(( () => @send_signal(signal:9) ), 500 )
+        @process_sage_updates(caller:"kill")
+        async.series([
+            (cb) =>
+                @send_signal
+                    signal : 3
+                    cb     : cb
+            (cb) =>
+                setTimeout(cb, 500)
+            (cb) =>
+                @send_signal
+                    signal : 9
+                    cb     : cb
+            (cb) =>
+                if opts.restart
+                    @start
+                        maxtime : opts.maxtime - misc.walltime(t)
+                        cb      : cb
+                else
+                    cb()
+        ], (err) => opts.cb?(err))
 
+    # ensure that the sage process is working and responding to compute requests by doing an introspection.
+    start: (opts={}) =>
+        opts = defaults opts,
+            maxtime : 60        # (roughly) maximum amount of time to try to restart
+            cb      : undefined
+
+        if opts.maxtime <= 0
+            opts.cb?("timed out trying to start Sage worksheet - system may be heavily loaded or Sage is broken.")
+            return
+
+        t = misc.walltime()
+        @introspect_line
+            line     : "open?"
+            timeout  : 10   # give it 10 seconds max each time to work
+            preparse : false
+            cb       : (err) =>
+                if not err
+                    # success
+                    opts.cb?()
+                else
+                    # try again
+                    @start
+                        maxtime : opts.maxtime - misc.walltime(t)
+                        cb      : opts.cb
 
     send_signal: (opts) =>
         opts = defaults opts,
             signal : 2
             cb     : undefined
         if not @session_uuid?
-            opts.cb("session_uuid must be set before sending a signal")
+            opts.cb?("session_uuid must be set before sending a signal")
             return
         @call
             message: message.codemirror_send_signal
@@ -1122,24 +1240,41 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm.replaceRange(Array(k+1).join('\n'), {line:m+1, ch:0} )
             cm.setCursor(cursor)
 
-    process_sage_updates: (start) =>
-        #console.log("processing Sage updates")
+    # change the codemirror editor to reflect the proper sagews worksheet markup.
+    process_sage_updates: (opts={}) =>
+        opts = defaults opts,
+            start         : undefined    # process starting at this line (0-based); 0 if not given
+            stop          : undefined    # end at this line (0-based); last line if not given
+            cm            : undefined    # only markup changes, etc., using the given editor (uses all visible ones by default)
+            pad_bottom    : 10           # ensure there are this many blank lines at bottom of document
+            caller        : undefined
         # For each line in the editor (or starting at line start), check if the line
         # starts with a cell or output marker and is not already marked.
         # If not marked, mark it appropriately, and possibly process any
         # changes to that line.
-        @pad_bottom_with_newlines(10)
-        @_process_sage_updates(@codemirror, start)
-        if @editor._split_view
-            @_process_sage_updates(@editor.codemirror1, start)
+        ##tm = misc.mswalltime()
+        if opts.pad_bottom
+            @pad_bottom_with_newlines(opts.pad_bottom)
+        if not opts.cm?
+            @_process_sage_updates(@editor.codemirror, opts.start, opts.stop)
+            if @editor._split_view
+                @_process_sage_updates(@editor.codemirror1, opts.start, opts.stop)
+        else
+            @_process_sage_updates(opts.cm, opts.start, opts.stop)
+        ##console.log("process_sage_updates(opts=#{misc.to_json({caller:opts.caller, start:opts.start, stop:opts.stop})}): time=#{misc.mswalltime(tm)}ms")
 
-    _process_sage_updates: (cm, start) =>
+    _process_sage_updates: (cm, start, stop) =>
 
         if not start?
             start = 0
+        if not stop?
+            stop = cm.lineCount()-1
 
-        for line in [start...cm.lineCount()]
+        for line in [start..stop]
             x = cm.getLine(line)
+            #console.log("line=#{line}: '#{x}'")
+            if not x?
+                continue
 
             if x[0] == MARKERS.cell
                 marks = cm.findMarksAt({line:line, ch:1})
@@ -1171,28 +1306,20 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         elt = @elt_at_mark(mark)
                         if FLAGS.execute in flagstring
                             elt.data('execute',FLAGS.execute)
-                            g = () ->  #ugly use of closure -- ok for now -- TODO: clean up
-                                # execute requested
-                                elt0 = elt
-                                f = () ->
-                                    if elt0.data('execute') not in ['done', FLAGS.running]
-                                        elt0.spin(true)
-                                setTimeout(f, 1000)
-                            g()
+                            @set_input_state(elt:elt, run_state:'execute')
                         else if FLAGS.running in flagstring
                             elt.data('execute',FLAGS.running)
-                            g = () ->   #ugly use of closure -- ok for now -- TODO: clean up
-                                elt0 = elt
-                                f = () ->
-                                    if elt0.data('execute') not in ['done', FLAGS.execute]
-                                        elt0.spin(color:'green')
-                                # code is running on remote local hub.
-                                setTimeout(f, 1000)
-                            g()
+                            @set_input_state(elt:elt, run_state:'running')
                         else
-                            elt.data('execute','done')
                             # code is not running
-                            elt.spin(false)
+                            elt.data('execute','done')
+                            @set_input_state(elt:elt, run_state:'done')
+                        # set marker of whether or not this cell was evaluated during this session
+                        if FLAGS.this_session in flagstring
+                            @set_input_state(elt:elt, eval_state:true)
+                        else
+                            @set_input_state(elt:elt, eval_state:false)
+
                     if FLAGS.hide_input in flagstring and FLAGS.hide_input not in mark.flagstring
                         @hide_input(line)
                     else if FLAGS.hide_input in mark.flagstring and FLAGS.hide_input not in flagstring
@@ -1205,51 +1332,86 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
                     mark.flagstring = flagstring
 
-            else if x[0] == MARKERS.output
-                marks = cm.findMarksAt({line:line, ch:1})
-                if marks.length == 0
-                    @mark_output_line(cm, line)
-                mark = cm.findMarksAt({line:line, ch:1})[0]
-                uuid = cm.getRange({line:line,ch:1}, {line:line,ch:37})
-                if mark? and mark.uuid != uuid # uuid changed -- completely new output
-                    #console.log("uuid change: new x = ", x)
-                    mark.processed = 38
-                    mark.uuid = uuid
-                    @elt_at_mark(mark).html('')
-                if mark? and mark.processed < x.length
-                    #console.log("length change; x = ", x)
-                    # new output to process
-                    t = x.slice(mark.processed, x.length-1)
-                    mark.processed = x.length
-                    for s in t.split(MARKERS.output)
-                        if s.length > 0
-                            output = @elt_at_mark(mark)
-                            # appearance of output shows output (bad design?)
-                            output.removeClass('sagews-output-hide')
-                            try
-                               @process_output_mesg(mesg:JSON.parse(s), element:output)
-                            catch e
-                                log("BUG: error rendering output: '#{s}' -- #{e}")
+            else
+                if x[0] == MARKERS.output
+                    marks = cm.findMarksAt({line:line, ch:1})
+                    if marks.length == 0
+                        @mark_output_line(cm, line)
+                    mark = cm.findMarksAt({line:line, ch:1})[0]
+                    if mark?
+                        uuid = cm.getRange({line:line,ch:1}, {line:line,ch:37})
+                        if misc.is_valid_uuid_string(uuid)
+                            if mark.uuid != uuid # uuid changed -- completely new output
+                                mark.processed = 38
+                                mark.uuid = uuid
+                                output = @elt_at_mark(mark)
+                                output.html('')
+                            if mark.processed < x.length-1
+                                # new output to process
+                                t = x.slice(mark.processed, x.length-1)
+                                for s in t.split(MARKERS.output)
+                                    if s.length > 0
+                                        output = @elt_at_mark(mark)
+                                        # appearance of output shows output (bad design?)
+                                        output.removeClass('sagews-output-hide')
+                                        try
+                                            @process_output_mesg(mesg:JSON.parse(s), element:output)
+                                            mark.processed += 1 + s.length
+                                        catch e
+                                            log("BUG: error rendering output: '#{s}' -- #{e}")
+                                            break
+                                    else
+                                        mark.processed += 1
 
-            else if x.indexOf(MARKERS.output) != -1
-                #console.log("correcting merge/paste issue with output marker line (line=#{line})")
-                ch = x.indexOf(MARKERS.output)
-                cm.replaceRange('\n', {line:line, ch:ch})
-                @process_sage_updates(line)
-                return
 
-            else if x.indexOf(MARKERS.cell) != -1
-                #console.log("correcting merge/paste issue with cell marker (line=#{line})")
-                ch = x.indexOf(MARKERS.cell)
-                cm.replaceRange('\n', {line:line, ch:ch})
-                @process_sage_updates(line)
-                return
+                else if x.indexOf(MARKERS.output) != -1
+                    #console.log("correcting merge/paste issue with output marker line (line=#{line})")
+                    ch = x.indexOf(MARKERS.output)
+                    cm.replaceRange('\n', {line:line, ch:ch})
+                    @process_sage_updates(start:line, stop:line+2, caller:"fix output")
+                    return
+
+                else if x.indexOf(MARKERS.cell) != -1
+                    #console.log("correcting merge/paste issue with cell marker (line=#{line})")
+                    ch = x.indexOf(MARKERS.cell)
+                    cm.replaceRange('\n', {line:line, ch:ch})
+                    @process_sage_updates(start:line, stop:line+2, caller:"fix input")
+                    return
 
     ##################################################################################
     # Toggle visibility of input/output portions of cells -
     #    This is purely a client-side display function; it doesn't change
     #    the document or cause any sync to happen!
     ##################################################################################
+
+    set_input_state: (opts) =>
+        opts = defaults opts,
+            elt        : undefined
+            line       : undefined
+            eval_state : undefined    # undefined, true, false
+            run_state  : undefined    # undefined, 'execute', 'running', 'done'
+        if opts.elt?
+            elt = opts.elt
+        else if opts.line?
+            mark = cm.findMarksAt({line:opts.line, ch:1})[0]
+            if not mark?
+                return
+            elt = @elt_at_mark(mark)
+        if opts.eval_state?
+            e = elt.find(".sagews-input-eval-state")
+            if opts.eval_state
+                e.addClass('sagews-input-evaluated').removeClass('sagews-input-unevaluated')
+            else
+                e.addClass('sagews-input-unevaluated').removeClass('sagews-input-evaluated')
+        if opts.run_state?
+            e = elt.find(".sagews-input-run-state")
+            if opts.run_state == 'execute'
+                e.addClass('sagews-input-execute').removeClass('sagews-input-running').addClass('blink')
+            else if opts.run_state == 'running'
+                e.addClass('sagews-input-running').removeClass('sagews-input-execute').addClass('blink')
+            else if opts.run_state == 'done'
+                e.removeClass('sagews-input-execute').removeClass('sagews-input-running').removeClass('blink')
+
 
     # hide_input: hide input part of cell that has start marker at the given line.
     hide_input: (line) =>
@@ -1507,8 +1669,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm.replaceRange("\n\n\n", {line:line+1, ch:0})
         x   = cm.getLine(line)
         end = x.indexOf(MARKERS.cell, 1)
-        input = cell_start_template.clone().css
-            width : @cm_lines().width() + 'px'
+        input = cell_start_template.clone()
 
         input.click () =>
             f = () =>
@@ -1617,6 +1778,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 break
             end += 1
         return {start:start, end:end}
+
+    find_input_mark: (line) =>
+        # Input mark containing the given line, or undefined
+        if line?
+            cm = @focused_codemirror()
+            if not cm?
+                return
+            while line >= 0
+                for mark in cm.findMarksAt({line:line, ch:0})
+                    if mark.type == MARKERS.cell
+                        return mark
+                line -= 1
+        return
 
     action: (opts={}) =>
         opts = defaults opts,
@@ -1733,6 +1907,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     # check if it is a mode line.
                     mode_line = s.replace(/\s/g,'').toLowerCase()
                     if mode_line in CLIENT_SIDE_MODE_LINES
+                        @set_cell_flag(marker, FLAGS.this_session)
                         @execute_cell_client_side
                             block     : {start:start, end:block.end}
                             mode_line : mode_line
@@ -1806,7 +1981,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @remove_cell_flag(opts.marker, FLAGS.hide_input)
 
         # update so that client sees rendering
-        @process_sage_updates()
+        @process_sage_updates(start:block.start, stop:block.end+1, caller:"execute_cell_client_side")
         @sync()
 
     split_cell_at: (pos) =>
@@ -1836,27 +2011,37 @@ class SynchronizedWorksheet extends SynchronizedDocument
     #   This is tightly tied to codemirror, so only makes sense on the client.
     ##########################################
     get_cell_flagstring: (marker) =>
+        if not marker?
+            return
         pos = marker.find()
         if not pos?
             return ''
         return @focused_codemirror().getRange({line:pos.from.line,ch:37},{line:pos.from.line, ch:pos.to.ch-1})
 
     set_cell_flagstring: (marker, value) =>
+        if not marker?
+            return
         pos = marker.find()
         @focused_codemirror().replaceRange(value, {line:pos.from.line,ch:37}, {line:pos.to.line, ch:pos.to.ch-1})
 
     get_cell_uuid: (marker) =>
+        if not marker?
+            return
         pos = marker.find()
         if not pos?
             return ''
         return @focused_codemirror().getLine(pos.line).slice(1,38)
 
     set_cell_flag: (marker, flag) =>
+        if not marker?
+            return
         s = @get_cell_flagstring(marker)
         if flag not in s
             @set_cell_flagstring(marker, flag + s)
 
     remove_cell_flag: (marker, flag) =>
+        if not marker?
+            return
         s = @get_cell_flagstring(marker)
         if flag in s
             s = s.replace(new RegExp(flag, "g"), "")
@@ -1868,7 +2053,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @focused_codemirror().focus()
         @focused_codemirror().setCursor(pos)
         @cell_start_marker(line)
-        @process_sage_updates()
+        @process_sage_updates(start:line, stop:line+1, caller:"insert_new_cell")
         @sync()
 
     cell_start_marker: (line) =>
@@ -1881,6 +2066,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm.replaceRange('\n',{line:line+1,ch:0})
         uuid = misc.uuid()
         cm.replaceRange(MARKERS.cell + uuid + MARKERS.cell + '\n', {line:line, ch:0})
+        @process_sage_updates(start:line, stop:line+1, caller:"cell_start_marker")
         return {marker:@mark_cell_start(cm, line), created:true}
 
     remove_cell_flags_from_changeObj: (changeObj, flags) =>

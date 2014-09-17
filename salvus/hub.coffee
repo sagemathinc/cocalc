@@ -733,7 +733,7 @@ class Client extends EventEmitter
         signed_in_mesg   = message.signed_in(opts)
         session_id       = uuid.v4()
         @hash_session_id = password_hash(session_id)
-        ttl              = 24*3600 * 30     # 30 days
+        ttl              = 24*3600 * 365     # 365 days
 
         # write it -- quick and loose, then more replicas
         @remember_me_db.set
@@ -3878,11 +3878,11 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                         cb()
 
         # We now know that there is an account with this email address.
-        # put entry in the password_reset uuid:value table with ttl of 15 minutes, and send an email
+        # put entry in the password_reset uuid:value table with ttl of 1 hour, and send an email
         (cb) ->
             id = database.uuid_value_store(name:"password_reset").set(
                 value : mesg.email_address
-                ttl   : 60*15,
+                ttl   : 60*60,
                 cb    : (error, results) ->
                     if error
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error generating password reset for #{mesg.email_address}."))
