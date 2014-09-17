@@ -1,5 +1,5 @@
 ###############################################################################
-# Copyright (c) 2013, William Stein
+# Copyright (c) 2013, 2014, William Stein
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -152,7 +152,11 @@ class SalvusThreeJS
             owner = _scene_using_renderer
             @set_dynamic_renderer()
             @set_static_renderer()
-            owner.set_dynamic_renderer()
+            owner?.set_dynamic_renderer()
+
+        # possibly show the canvas warning.
+        if dynamic_renderer_type == 'canvas'
+            @opts.element.find(".salvus-3d-canvas-warning").show().tooltip()
 
     init: () =>
         if @_init
@@ -421,6 +425,10 @@ class SalvusThreeJS
                 geometry = new THREE.Geometry()
                 geometry.vertices.push(@vector(o.loc))
                 particle = new THREE.PointCloud(geometry, material)
+            #when 'canvas'
+            #    geometry = new THREE.Geometry()
+            #    geometry.vertices.push(@vector(o.loc))
+            #    particle = new THREE.PointCloud(geometry, material)
             when 'canvas'
                 particle = new THREE.Particle(material)
                 particle.position.set(@aspect_ratio_scale(o.loc))
@@ -429,7 +437,9 @@ class SalvusThreeJS
                     w = Math.min(Math.min(p.xmax-p.xmin, p.ymax-p.ymin),p.zmax-p.zmin)
                 else
                     w = 5 # little to go on
+                #console.log("w=",w)
                 particle.scale.x = particle.scale.y = Math.max(50/@opts.width, o.size * 5 * w / @opts.width)
+                #console.log(particle)
             else
                 throw "bug -- uknown dynamic_renderer_type = #{dynamic_renderer_type}"
 
@@ -571,8 +581,8 @@ class SalvusThreeJS
         @_center = @vector3(mx,my,mz)
 
         if @camera?
-            d = Math.max @aspect_ratio_scale([x1-x0, y1-y0, z1-z0])...
-            @camera.position.set(mx+d,my+d,mz+d)
+            d = 1.5*Math.max @aspect_ratio_scale([x1-x0, y1-y0, z1-z0])...
+            @camera.position.set(mx+d,my+d,mz+d/2)
             # console.log("camera at #{misc.to_json([mx+d,my+d,mz+d])} pointing at #{misc.to_json(@_center)}")
 
         if o.draw
@@ -683,22 +693,30 @@ class SalvusThreeJS
             stop      : false
             mouseover : undefined  # ignored now
             render    : true
+        #console.log("@animate #{@_animate_started}")
+        if @_animate_started and not opts.stop
+            return
+        @_animate_started = true
+        @_animate(opts)
 
-        # console.log("anim?", @opts.element.length, @opts.element.is(":visible"))
+    _animate: (opts) =>
+        #console.log("anim?", @opts.element.length, @opts.element.is(":visible"))
 
         if @renderer_type == 'static'
             # will try again when we switch to dynamic renderer
+            @_animate_started = false
             return
 
         if not @opts.element.is(":visible")
             if @opts.stop_when_gone? and not $.contains(document, @opts.stop_when_gone)
                 # console.log("stop_when_gone removed from document -- quit animation completely")
+                @_animate_started = false
             else if not $.contains(document, @opts.element[0])
                 # console.log("element removed from document; wait 5 seconds")
-                setTimeout((() => @animate(opts)), 5000)
+                setTimeout((() => @_animate(opts)), 5000)
             else
                 # console.log("check again after a second")
-                setTimeout((() => @animate(opts)), 1000)
+                setTimeout((() => @_animate(opts)), 1000)
             return
 
         if opts.stop
@@ -707,12 +725,12 @@ class SalvusThreeJS
             return
         if @_stop_animating
             @_stop_animating = false
+            @_animate_started = false
             return
-        if opts.render
-            @render_scene(true)
+        @render_scene(opts.render)
         delete opts.render
         f = () =>
-            requestAnimationFrame((()=>@animate(opts)))
+            requestAnimationFrame((()=>@_animate(opts)))
         if opts.fps? and opts.fps
             setTimeout(f , 1000/opts.fps)
         else
@@ -721,7 +739,6 @@ class SalvusThreeJS
 
     render_scene: (force=false) =>
         # console.log('render', @opts.element.length)
-
         if @renderer_type == 'static'
             console.log 'render static -- todo'
             return
@@ -755,6 +772,8 @@ class SalvusThreeJS
                     sprite.scale.set(s,s,s)
 
         @renderer.render(@scene, @camera)
+
+
 
 $.fn.salvus_threejs = (opts={}) ->
     @each () ->
