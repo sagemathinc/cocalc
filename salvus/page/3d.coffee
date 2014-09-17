@@ -99,7 +99,7 @@ window.load_threejs = load_threejs
 
 _scene_using_renderer  = undefined
 _renderer = undefined
-renderer_type = undefined
+dynamic_renderer_type = undefined
 
 get_renderer = (scene) ->
     # if there is a scene currently using this renderer, tell it to switch to
@@ -112,13 +112,13 @@ get_renderer = (scene) ->
     if not _renderer?
         # get the best-possible THREE.js renderer (once and for all)
         if Detector.webgl
-            render_type = 'webgl'
+            dynamic_renderer_type = 'webgl'
             _renderer = new THREE.WebGLRenderer
                 antialias             : true
                 alpha                 : true
                 preserveDrawingBuffer : true
         else
-            render_type = 'canvas'
+            dynamic_renderer_type = 'canvas'
             _renderer = new THREE.CanvasRenderer
                 antialias : true
                 alpha     : true
@@ -410,20 +410,18 @@ class SalvusThreeJS
             size : 1
             color: "#000000"
             sizeAttenuation : false
-        #console.log("rendering a point", o)
         @show_canvas()
 
-        material = new THREE.ParticleBasicMaterial
+        material = new THREE.PointCloudMaterial
             color           : o.color
             size            : o.size
             sizeAttenuation : o.sizeAttenuation
-
-        switch renderer_type
+        switch dynamic_renderer_type
             when 'webgl'
                 geometry = new THREE.Geometry()
                 geometry.vertices.push(@vector(o.loc))
-                particle = new THREE.ParticleSystem(geometry, material)
-            when 'canvas2d'
+                particle = new THREE.PointCloud(geometry, material)
+            when 'canvas'
                 particle = new THREE.Particle(material)
                 particle.position.set(@aspect_ratio_scale(o.loc))
                 if @_frame_params?
@@ -432,6 +430,8 @@ class SalvusThreeJS
                 else
                     w = 5 # little to go on
                 particle.scale.x = particle.scale.y = Math.max(50/@opts.width, o.size * 5 * w / @opts.width)
+            else
+                throw "bug -- uknown dynamic_renderer_type = #{dynamic_renderer_type}"
 
         @scene.add(particle)
 
@@ -722,7 +722,7 @@ class SalvusThreeJS
     render_scene: (force=false) =>
         # console.log('render', @opts.element.length)
 
-        if @render_type == 'static'
+        if @renderer_type == 'static'
             console.log 'render static -- todo'
             return
 
