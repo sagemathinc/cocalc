@@ -295,9 +295,11 @@ class SalvusThreeJS
                 @controls.autoRotateSpeed = @opts.spin
             @controls.autoRotate = true
 
-        @controls.addEventListener 'change', () => if @renderer_type=='dynamic' then @renderer.render(@scene, @camera)
-        # @controls.addEventListener 'end',    () => @set_static_renderer()
-        # @controls.addEventListener 'start',  () =>
+        @controls.addEventListener 'change', () =>
+            if @renderer_type=='dynamic'
+                @rescale_objects()
+                @renderer.render(@scene, @camera)
+
 
 
     add_camera: (opts) =>
@@ -352,10 +354,10 @@ class SalvusThreeJS
         # make an HTML5 2d canvas on which to draw text
         width   = 300  # this determines max text width; beyond this, text is cut off.
         height  = 150
-        canvas  = $("<canvas style='border:1px solid black' width=#{width} height=#{height}>")[0]
-
-        # get the drawing context
-        context = canvas.getContext("2d")
+        canvas = document.createElement( 'canvas' )
+        canvas.width = width
+        canvas.height = height
+        context = canvas.getContext("2d")  # get the drawing context
 
         # set the fontsize and fix for our text.
         context.font = "Normal " + o.fontsize + "px " + o.fontface
@@ -416,30 +418,57 @@ class SalvusThreeJS
             sizeAttenuation : false
         @show_canvas()
 
-        material = new THREE.PointCloudMaterial
-            color           : o.color
-            size            : o.size
-            sizeAttenuation : o.sizeAttenuation
+        # IMPORTANT: Below we use sprites instead of the more natural/faster PointCloudMaterial.
+        # Why?  Because usually people don't plot a huge number of points, and PointCloudMaterial is SQUARE.
+        # By using sprites, our points are round, which is something people really care about. 
+
         switch dynamic_renderer_type
+
             when 'webgl'
-                geometry = new THREE.Geometry()
-                geometry.vertices.push(@vector(o.loc))
-                particle = new THREE.PointCloud(geometry, material)
-            #when 'canvas'
-            #    geometry = new THREE.Geometry()
-            #    geometry.vertices.push(@vector(o.loc))
-            #    particle = new THREE.PointCloud(geometry, material)
-            when 'canvas'
-                particle = new THREE.Particle(material)
-                particle.position.set(@aspect_ratio_scale(o.loc))
-                if @_frame_params?
-                    p = @_frame_params
-                    w = Math.min(Math.min(p.xmax-p.xmin, p.ymax-p.ymin),p.zmax-p.zmin)
+                width   = 50
+                height  = 50
+                canvas = document.createElement( 'canvas' )
+                canvas.width = width
+                canvas.height = height
+                context = canvas.getContext("2d")  # get the drawing context
+
+                centerX = width / 2
+                centerY = height / 2
+                radius = 25
+                context.beginPath()
+                context.arc(centerX, centerY, radius, 0, 2*Math.PI, false)
+                context.fillStyle = o.color
+                context.fill()
+                texture = new THREE.Texture(canvas)
+                texture.needsUpdate = true
+                spriteMaterial = new THREE.SpriteMaterial(map: texture)
+                particle = new THREE.Sprite(spriteMaterial)
+                p = @aspect_ratio_scale(o.loc)
+                particle.position.set(p[0],p[1],p[2])
+                z = [particle, o.size/200]
+                if not @_points?
+                    @_points = [z]
                 else
-                    w = 5 # little to go on
-                #console.log("w=",w)
-                particle.scale.x = particle.scale.y = Math.max(50/@opts.width, o.size * 5 * w / @opts.width)
-                #console.log(particle)
+                    @_points.push(z)
+
+            when 'canvas'
+                # inspired by http://mrdoob.github.io/three.js/examples/canvas_particles_random.html
+                PI2 = Math.PI * 2
+                program = (context) ->
+                    context.beginPath()
+                    context.arc(0, 0, 0.5, 0, PI2, true)
+                    context.fill()
+                material = new THREE.SpriteCanvasMaterial
+                    color   : new THREE.Color(o.color)
+                    program : program
+                particle = new THREE.Sprite(material)
+                p = @aspect_ratio_scale(o.loc)
+                particle.position.set(p[0],p[1],p[2])
+                z = [particle, 4*o.size/@opts.width]
+                if not @_points?
+                    @_points = [z]
+                else
+                    @_points.push(z)
             else
                 throw "bug -- uknown dynamic_renderer_type = #{dynamic_renderer_type}"
 
@@ -762,17 +791,27 @@ class SalvusThreeJS
             return
 
         # rescale all text in scene
-        if (new_pos or force) and @_center?
-            s = @camera.position.distanceTo(@_center) / 3
-            if @_text?
-                for sprite in @_text
-                    sprite.scale.set(s,s,s)
-            if @_frame_labels?
-                for sprite in @_frame_labels
-                    sprite.scale.set(s,s,s)
+        @rescale_objects()
 
         @renderer.render(@scene, @camera)
 
+    rescale_objects: () =>
+        if not @_center?
+            return
+        s = @camera.position.distanceTo(@_center) / 3
+        if Math.abs(@_last_scale - s) < 0.000001
+            return
+        @_last_scale = s
+        if @_text?
+            for sprite in @_text
+                sprite.scale.set(s,s,s)
+        if @_frame_labels?
+            for sprite in @_frame_labels
+                sprite.scale.set(s,s,s)
+        if @_points?
+            for z in @_points
+                c = z[1]
+                z[0].scale.set(s*c,s*c,s*c)
 
 
 $.fn.salvus_threejs = (opts={}) ->
