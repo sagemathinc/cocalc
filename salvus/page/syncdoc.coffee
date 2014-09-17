@@ -978,7 +978,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     # since we just canceled the change.
                     @remove_cell_flags_from_changeObj(changeObj, ACTION_FLAGS)
                     @_apply_changeObj(changeObj)
-                    @process_sage_updates(cm:instance, caller:"paste")
+                    @process_sage_updates(caller:"paste")
                     @sync()
 
             cm.sage_update_queue = []
