@@ -1877,6 +1877,40 @@ write_file_to_project = (socket, mesg) ->
             )
     socket.on 'mesg', write_file
 
+###############################################
+# Printing an individual file to pdf
+###############################################
+
+print_to_pdf = (socket, mesg) ->
+    ext  = misc.filename_extension(mesg.path)
+    if ext
+        pdf = "#{mesg.path.slice(0,mesg.path.length-ext.length)}pdf"
+    else
+        pdf = mesg.path + '.pdf'
+
+    async.series([
+        (cb) ->
+            switch ext
+                when 'sagews'
+                    misc_node.execute_code
+                        command : "sagews2pdf.py"
+                        args        : [mesg.path,
+                                       '--outfile',  pdf,
+                                       '--title',    mesg.options.title,
+                                       '--author',   mesg.options.author,
+                                       '--date',     mesg.options.date,
+                                       '--contents', mesg.options.contents]
+                        err_on_exit : false
+                        bash        : false
+                        cb          : cb
+                else
+                    cb("unable to print file of type '#{ext}'")
+    ], (err) ->
+        if err
+            socket.write_mesg('json', message.error(id:mesg.id, error:err))
+        else
+            socket.write_mesg('json', message.printed_to_pdf(id:mesg.id, path:pdf))
+    )
 
 ###############################################
 # Info
@@ -1992,6 +2026,8 @@ handle_mesg = (socket, mesg, handler) ->
                 read_file_from_project(socket, mesg)
             when 'write_file_to_project'
                 write_file_to_project(socket, mesg)
+            when 'print_to_pdf'
+                print_to_pdf(socket, mesg)
             when 'send_signal'
                 process_kill(mesg.pid, mesg.signal)
                 if mesg.id?

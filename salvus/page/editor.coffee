@@ -850,7 +850,7 @@ class exports.Editor
                 ed = tab.editor()
 
                 if opts.foreground
-                    ed.show(force:true, do_another:true)
+                    ed.show()
                     ed.focus()
 
                 top_link = @active_tab.open_file_pill
@@ -1012,7 +1012,7 @@ class FileEditor extends EventEmitter
     local_storage: (key, value) =>
         return local_storage(@editor.project_id, @filename, key, value)
 
-    show: () =>
+    show: (opts={}) =>
         @element.show()
 
     hide: () =>
@@ -1383,7 +1383,7 @@ class CodeMirrorEditor extends FileEditor
                 dialog.modal('hide')
                 return false
 
-
+    # TODO: this "print" is actually for printing Sage worksheets, not arbitrary files.
     print: () =>
         dialog = templates.find(".salvus-file-print-dialog").clone()
         p = misc.path_split(@filename)
@@ -1394,59 +1394,33 @@ class CodeMirrorEditor extends FileEditor
         else
             ext = v[v.length-1]
             base = v.slice(0,v.length-1).join('.')
-
         if ext != 'sagews'
             alert_message(type:'info', message:'Only printing of Sage Worksheets is currently implemented.')
             return
 
-        #console.log("p=",p)
-        #console.log("base=",base)
-        #console.log("ext=",ext)
         submit = () =>
-            tmp = undefined
-            pdf = undefined
             dialog.find(".salvus-file-printing-progress").show()
             dialog.find(".salvus-file-printing-link").hide()
             dialog.find(".btn-submit").icon_spin(start:true)
+            pdf = undefined
             async.series([
-                (cb) =>
-                    tmp_dir
-                        ttl        : 60
-                        path       : "/tmp"
-                        project_id : @project_id
-                        cb         : (err, _tmp) =>
-                            if err
-                                cb(err)
-                            else
-                                tmp = "/tmp/" + _tmp
-                                pdf = tmp + '/' + base + '.pdf'
-                                #console.log("tmp=",tmp)
-                                #console.log("pdf=",pdf)
-                                cb()
                 (cb) =>
                     @save(cb)
                 (cb) =>
-                    salvus_client.exec
+                    salvus_client.print_to_pdf
                         project_id  : @project_id
-                        path        : p.head
-                        command     : 'sagews2pdf.py'
-                        args        : [p.tail, '--outfile',  pdf,
-                                               '--title',    dialog.find(".salvus-file-print-title").text(),
-                                               '--author',   dialog.find(".salvus-file-print-author").text(),
-                                               '--date',     dialog.find(".salvus-file-print-date").text(),
-                                               '--contents', dialog.find(".salvus-file-print-contents").is(":checked")]
-                        timeout     : 60*5  # link will be valid for 5 minutes
-                        err_on_exit : false
-                        bash        : false
-                        cb          : (err, output) =>
-                            #console.log(output)
+                        path        : @filename
+                        options     :
+                            title    : dialog.find(".salvus-file-print-title").text()
+                            author   : dialog.find(".salvus-file-print-author").text()
+                            date     : dialog.find(".salvus-file-print-date").text()
+                            contents : dialog.find(".salvus-file-print-contents").is(":checked")
+                        cb          : (err, _pdf) =>
                             if err
                                 cb(err)
                             else
-                                if output.exit_code
-                                    cb(output.stderr)
-                                else
-                                    cb()
+                                pdf = _pdf
+                                cb()
                 (cb) =>
                     salvus_client.read_file_from_project
                         project_id : @project_id
@@ -1550,31 +1524,22 @@ class CodeMirrorEditor extends FileEditor
         $("body").remove("#salvus-cm-activeline")
         $("body").append("<style id='salvus-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
 
-    show: (opts={}) =>
-        opts = defaults opts,
-            force      : false
-            do_another : true
+    show: () =>
 
         if not (@element? and @codemirror?) or @editor._active_tab_filename != @filename
             return
 
-        # window.editor = @ # ** for debugging **
-
         # Show gets called repeatedly as we resize the window, so we wait until slightly *after*
         # the last call before doing the show.
         now = misc.mswalltime()
-        if not opts.force and (@_last_call? and now - @_last_call < 500)
+        if @_last_call? and now - @_last_call < 500
             if not @_show_timer?
-                @_show_timer = setTimeout((()=>delete @_show_timer; @show(opts)), now - @_last_call)
+                @_show_timer = setTimeout((()=>delete @_show_timer; @show()), now - @_last_call)
             return
         @_last_call = now
         @element.show()
-        @_show(opts)
+        @_show()
 
-        # throw in another show in 2 seconds, just in case -- will cause no harm if we've moved
-        # away from this tab.
-        #if opts.do_another
-        #   setTimeout((()=>console.log('doing extra');@show(do_another:false, force:false)), 2000)
 
     # hide/show the second linked codemirror editor, depending on whether or not it's enabled
     _show_extra_codemirror_view: () =>
@@ -1619,8 +1584,7 @@ class CodeMirrorEditor extends FileEditor
         @emit('show', ht)
 
 
-    _show: (opts) =>
-        #console.log("show(#{misc.to_json(opts)})")
+    _show: () =>
 
         # show the element that contains this editor
         @element.show()

@@ -1798,162 +1798,29 @@ class exports.Connection extends EventEmitter
                     opts.cb(undefined, resp.token)
 
     #################################################
-    # Tasks
+    # Print file to pdf
+    # The printed version of the file will be created in the same directory
+    # as path, but with extension replaced by ".pdf".
     #################################################
-    ### -- commented out here and in hub, since not used and security not implemented anyways.
-    create_task_list: (opts) =>
+    print_to_pdf: (opts) =>
         opts = defaults opts,
-            owners       : required
-            cb           : required
-        @call
-            message :
-                message.create_task_list
-                    owners       : opts.owners
-            cb      : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp.task_list_id)
-
-    edit_task_list: (opts) =>
-        opts = defaults opts,
-            task_list_id : required
-            project_id   : undefined    # give this if task list usage is authenticated via project_id
-            data         : undefined
-            deleted      : undefined    # use for deleting a task list
-            cb           : undefined
-        @call
-            message :
-                message.edit_task_list
-                    task_list_id : opts.task_list_id
-                    project_id   : opts.project_id
-                    data         : opts.data
-                    deleted      : opts.deleted
-            cb : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined)
-
-    get_task_list_last_edited: (opts) =>
-        opts = defaults opts,
-            task_list_id : required
-            project_id   : undefined    # give this if task list usage is authenticated via project_id
-            cb           : required
-        @call
-            message :
-                message.get_task_list_last_edited
-                    task_list_id    : opts.task_list_id
-                    project_id      : opts.project_id
-            cb : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp.last_edited)
-
-
-    get_task_list: (opts) =>
-        opts = defaults opts,
-            task_list_id : required
-            project_id   : undefined    # give this if task list usage is authenticated via project_id
-            columns      : undefined
-            include_deleted : false
-            cb           : required
-        @call
-            message :
-                message.get_task_list
-                    task_list_id    : opts.task_list_id
-                    project_id      : opts.project_id
-                    include_deleted : opts.include_deleted
-                    columns         : opts.columns
-            cb : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp.task_list)
-
-    set_project_task_list: (opts) =>
-        opts = defaults opts,
-            task_list_id : required
-            project_id   : undefined    # give this if task list usage is authenticated via project_id
-            cb           : undefined
-        @call
-            message :
-                message.set_project_task_list
-                    task_list_id    : opts.task_list_id
-                    project_id      : opts.project_id
-            cb : (err, resp) =>
+            project_id  : required
+            path        : required
+            options     : undefined   # optional options that get passed to the specific backend for this file type
+            cb          : undefined   # cp(err, relative path in project to printed file)
+        @call_local_hub
+            project_id : opts.project_id
+            message    : message.print_to_pdf
+                path    : opts.path
+                options : opts.options
+            cb         : (err, resp) =>
                 if err
                     opts.cb?(err)
                 else if resp.event == 'error'
                     opts.cb?(resp.error)
                 else
-                    opts.cb()
+                    opts.cb?(undefined, resp.path)
 
-    create_task: (opts) =>
-        opts = defaults opts,
-            task_list_id : required
-            title        : "No title"
-            position     : 0
-            project_id   : undefined    # give this if task list usage is authenticated via project_id
-            cb           : required
-        @call
-            message :
-                message.create_task
-                    task_list_id : opts.task_list_id
-                    title        : opts.title
-                    position     : opts.position
-                    project_id   : opts.project_id
-            cb : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp.task_id)
-
-    edit_task: (opts) =>
-        opts = defaults opts,
-            task_list_id : required
-            task_id      : required
-            project_id   : undefined    # give this if task list usage is authenticated via project_id
-            id           : undefined
-            title        : undefined
-            position     : undefined
-            done         : undefined
-            data         : undefined
-            deleted      : undefined
-            sub_task_list_id : undefined
-            cb           : undefined
-
-        @call
-            message :
-                message.edit_task
-                    task_list_id : opts.task_list_id
-                    task_id      : opts.task_id
-                    project_id   : opts.project_id
-                    title        : opts.title
-                    position     : opts.position
-                    deleted      : opts.deleted
-                    sub_task_list_id : opts.sub_task_list_id
-                    data         : opts.data
-                    done         : opts.done
-            cb : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp.task_id)
-    ###
 
 
 #################################################

@@ -614,7 +614,9 @@ exports.abspath = abspath = (path) ->
         return process.env.HOME
     if path[0] == '/'
         return path  # already an absolute path
-    return process.env.HOME + '/' + path
+    p = process.env.HOME + '/' + path
+    p = p.replace(/\/\.\//g,'/')    # get rid of /./, which is the same as /...
+    return p
 
 # Other path related functions...
 
