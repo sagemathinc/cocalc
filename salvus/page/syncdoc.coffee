@@ -1579,10 +1579,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         render_3d_scene
                             url     : target
                             element : elt
-                            cb      : (err) =>
+                            cb      : (err, obj) =>
                                 if err
                                     # TODO: red?
                                     elt.append($("<div>").text("error rendering 3d scene -- #{err}"))
+
 
                     when 'svg', 'png', 'gif', 'jpg'
                         img = $("<img src='#{target}' class='sagews-output-image'>")
@@ -2108,6 +2109,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 else
                     text[i] = s.slice(0,37) + MARKERS.cell
 
+    sage3d_images: () =>
+        x =
+        v = []
+        for e in @element.find(".salvus-3d-container")
+            png = $(e).data('salvus-threejs').data_url(type:'png', quality:1)
+            i = png.indexOf(',')
+            png = png.slice(i+1)
+            v.push({png:png})
+        return v
 
 class Cell
     constructor : (opts) ->

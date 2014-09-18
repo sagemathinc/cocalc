@@ -1415,6 +1415,7 @@ class CodeMirrorEditor extends FileEditor
                             author   : dialog.find(".salvus-file-print-author").text()
                             date     : dialog.find(".salvus-file-print-date").text()
                             contents : dialog.find(".salvus-file-print-contents").is(":checked")
+                            sage3d   : @syncdoc.sage3d_images()
                         cb          : (err, _pdf) =>
                             if err
                                 cb(err)
@@ -1436,7 +1437,7 @@ class CodeMirrorEditor extends FileEditor
                 dialog.find(".btn-submit").icon_spin(false)
                 dialog.find(".salvus-file-printing-progress").hide()
                 if err
-                    alert_message(type:"error", message:"problem printing '#{p.tail}' -- #{err}")
+                    alert_message(type:"error", message:"problem printing '#{p.tail}' -- #{misc.to_json(err)}")
             )
             return false
 
