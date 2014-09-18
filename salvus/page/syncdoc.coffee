@@ -53,7 +53,7 @@ templates           = $("#salvus-editor-templates")
 cell_start_template = templates.find(".sagews-input")
 output_template     = templates.find(".sagews-output")
 
-salvus_threejs = require("salvus_threejs")
+{render_3d_scene} = require("3d")
 
 account = require('account')
 
@@ -1358,6 +1358,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                             @process_output_mesg(mesg:JSON.parse(s), element:output)
                                             mark.processed += 1 + s.length
                                         catch e
+                                            console.log(e.stack)
                                             log("BUG: error rendering output: '#{s}' -- #{e}")
                                             break
                                     else
@@ -1558,47 +1559,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 arg.inline = true
             output.append(elt.mathjax(arg))
 
-        if mesg.threed?
-            # Render a 3-d scene
-            #console.log("rendering threed message")
-            x = mesg.threed.split(':')
-            scene_uuid  = x[0]
-            static_uuid = x[1]
-            #console.log("scene_uuid='#{x[0]}'")
-            elt = $("<span class='salvus-3d-container'></span>")
-            output.append(elt)
-            scene = undefined
-            url = "/blobs/x?uuid=#{scene_uuid}"
-            #console.log("url='#{url}'")
-            async.series([
-                (cb) =>
-                    $.ajax(
-                        url     : url
-                        timeout : 30000
-                        success : (data) ->
-                            try
-                                scene = misc.from_json(data)
-                                cb()
-                            catch e
-                                cb(e)
-                    ).fail () ->
-                        cb("error downloading #{url}")
-                (cb) =>
-                    scene.opts.cb = (err, s) ->
-                        if err
-                            cb(err)
-                        else
-                            s.init()
-                            s.add_3dgraphics_obj
-                                obj : scene.obj
-                            s.init_done()
-                            cb()
-                    elt.salvus_threejs(scene.opts)
-            ], (err) ->
-                if err
-                    console.log("error rendering 3d scene -- #{err}")
-            )
-
         if mesg.file?
             val = mesg.file
             if not val.show? or val.show
@@ -1608,9 +1568,21 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     target = "#{window.salvus_base_url}/blobs/#{val.filename}?uuid=#{val.uuid}"
                 switch misc.filename_extension(val.filename)
                     # TODO: harden DOM creation below?
+
                     when 'webm'
                         video = $("<video src='#{target}' class='sagews-output-video' preload controls loop>")
                         output.append(video)
+
+                    when 'sage3d'
+                        elt = $("<span class='salvus-3d-container'></span>")
+                        output.append(elt)
+                        render_3d_scene
+                            url     : target
+                            element : elt
+                            cb      : (err) =>
+                                if err
+                                    # TODO: red?
+                                    elt.append($("<div>").text("error rendering 3d scene -- #{err}"))
 
                     when 'svg', 'png', 'gif', 'jpg'
                         img = $("<img src='#{target}' class='sagews-output-image'>")

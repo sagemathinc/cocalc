@@ -207,7 +207,6 @@ class Message(object):
                md=None,
                tex=None,
                file=None,
-               threed=None,    # scene_uuid:static_uuid
                obj=None,
                done=None, once=None, hide=None,
                show=None, auto=None, events=None, clear=None):
@@ -227,7 +226,6 @@ class Message(object):
         if interact is not None: m['interact'] = interact
         if obj is not None: m['obj'] = json.dumps(obj)
         if file is not None: m['file'] = file    # = {'filename':..., 'uuid':...}
-        if threed is not None: m['threed'] = threed  # =73 characters consisting of scene_uuid:static_uuid.
         if done is not None: m['done'] = done
         if once is not None: m['once'] = once
         if hide is not None: m['hide'] = hide
@@ -564,8 +562,8 @@ class Salvus(object):
         self.javascript("worksheet.editor.close(obj)", obj = filename, once=True)
 
 
-    def threed(self, g,
-               done         = False,
+    def threed(self,
+               g,                   # sage Graphic3d object.
                width        = None,
                height       = None,
                frame        = True, # True/False or {'color':'black', 'thickness':.4, 'labels':True, 'fontsize':14, 'draw':True,
@@ -574,13 +572,14 @@ class Salvus(object):
                foreground   = None,
                spin         = False,
                aspect_ratio = None,
-               frame_aspect_ratio = None  # synonym for aspect_ratio
+               frame_aspect_ratio = None,  # synonym for aspect_ratio
+
+               done         = False
               ):
 
         from graphics import graphics3d_to_jsonable, json_float as f
 
         # process options, combining ones set explicitly above with ones inherited from 3d scene
-
         opts = { 'width':width, 'height':height,
                  'background':background, 'foreground':foreground,
                  'spin':spin, 'aspect_ratio':aspect_ratio}
@@ -638,10 +637,11 @@ class Salvus(object):
         blob = json.dumps(scene, separators=(',', ':'))
         uuid = self._conn.send_blob(blob)
 
-        # return message with scene_uuid:static_uuid, where static_uuid is all x's, since we don't know it yet.
-        threed="%s:xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"%uuid
-        return self._send_output(id=self._id, done=done, threed=threed)
+        # flush output (so any text appears before 3d graphics, in case they are interleaved)
+        self._flush_stdio()
 
+        # send message pointing to the 3d 'file', which will get downloaded from database
+        self._send_output(id=self._id, file={'filename':unicode8("%s.sage3d"%uuid), 'uuid':uuid}, done=done)
 
     def file(self, filename, show=True, done=False, download=False, once=False, events=None, raw=False):
         """

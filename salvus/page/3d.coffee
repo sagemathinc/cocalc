@@ -140,29 +140,13 @@ class SalvusThreeJS
             camera_distance : 10
             aspect_ratio    : undefined  # undefined does nothing or a triple [x,y,z] of length three, which scales the x,y,z coordinates of everything by the given values.
             stop_when_gone  : undefined  # if given, animation, etc., stops when this html element (not jquery!) is no longer in the DOM
-            frame           : undefined  # if given call set_frame with opts.frame as input
+            frame           : undefined  # if given call set_frame with opts.frame as input when init_done called
             cb              : undefined  # opts.cb(undefined, this object)
 
-        f = () =>
-            if not @_init
-                @opts.element.find(".salvus-3d-note").show()
-        setTimeout(f, 1000)
-        if opts.frame?
-            @set_frame(opts.frame)
+        @init_eval_note()
         opts.cb?(undefined, @)
 
-    init_done: () =>
-        # if we don't have the renderer, swap it in, make a static image, then give it back to whoever had it.
-        if @renderer_type != 'dynamic'
-            owner = _scene_using_renderer
-            @set_dynamic_renderer()
-            @set_static_renderer()
-            owner?.set_dynamic_renderer()
-
-        # possibly show the canvas warning.
-        if dynamic_renderer_type == 'canvas'
-            @opts.element.find(".salvus-3d-canvas-warning").show().tooltip()
-
+    # client code should call this when start adding objects to the scene
     init: () =>
         if @_init
             return
@@ -207,6 +191,29 @@ class SalvusThreeJS
                     else
                         z.push(0)
                 @opts.foreground = rgb_to_hex(z[0], z[1], z[2])
+
+    # client code should call this when done adding objects to the scene
+    init_done: () =>
+        if @opts.frame?
+            @set_frame(@opts.frame)
+
+        # if we don't have the renderer, swap it in, make a static image, then give it back to whoever had it.
+        if @renderer_type != 'dynamic'
+            owner = _scene_using_renderer
+            @set_dynamic_renderer()
+            @set_static_renderer()
+            owner?.set_dynamic_renderer()
+
+        # possibly show the canvas warning.
+        if dynamic_renderer_type == 'canvas'
+            @opts.element.find(".salvus-3d-canvas-warning").show().tooltip()
+
+    # show an "eval note" if we don't load the scene within a second.
+    init_eval_note: () =>
+        f = () =>
+            if not @_init
+                @opts.element.find(".salvus-3d-note").show()
+        setTimeout(f, 1000)
 
     set_dynamic_renderer: () =>
         # console.log "dynamic renderer"
@@ -418,10 +425,11 @@ class SalvusThreeJS
     add_point: (opts) =>
         o = defaults opts,
             loc  : [0,0,0]
-            size : 1
+            size : 5
             color: "#000000"
-            sizeAttenuation : false
         @show_canvas()
+        if not @_points?
+            @_points = []
 
         # IMPORTANT: Below we use sprites instead of the more natural/faster PointCloudMaterial.
         # Why?  Because usually people don't plot a huge number of points, and PointCloudMaterial is SQUARE.
@@ -430,31 +438,30 @@ class SalvusThreeJS
         switch dynamic_renderer_type
 
             when 'webgl'
-                width   = 50
-                height  = 50
-                canvas = document.createElement( 'canvas' )
-                canvas.width = width
+                width         = 50
+                height        = 50
+                canvas        = document.createElement('canvas')
+                canvas.width  = width
                 canvas.height = height
-                context = canvas.getContext("2d")  # get the drawing context
 
-                centerX = width / 2
-                centerY = height / 2
-                radius = 25
+                context       = canvas.getContext('2d')  # get the drawing context
+                centerX       = width/2
+                centerY       = height/2
+                radius        = 25
+
                 context.beginPath()
                 context.arc(centerX, centerY, radius, 0, 2*Math.PI, false)
                 context.fillStyle = o.color
                 context.fill()
+
                 texture = new THREE.Texture(canvas)
                 texture.needsUpdate = true
                 spriteMaterial = new THREE.SpriteMaterial(map: texture)
                 particle = new THREE.Sprite(spriteMaterial)
+
                 p = @aspect_ratio_scale(o.loc)
                 particle.position.set(p[0],p[1],p[2])
-                z = [particle, o.size/200]
-                if not @_points?
-                    @_points = [z]
-                else
-                    @_points.push(z)
+                @_points.push([particle, o.size/200])
 
             when 'canvas'
                 # inspired by http://mrdoob.github.io/three.js/examples/canvas_particles_random.html
@@ -469,13 +476,9 @@ class SalvusThreeJS
                 particle = new THREE.Sprite(material)
                 p = @aspect_ratio_scale(o.loc)
                 particle.position.set(p[0],p[1],p[2])
-                z = [particle, 4*o.size/@opts.width]
-                if not @_points?
-                    @_points = [z]
-                else
-                    @_points.push(z)
+                @_points.push([particle, 4*o.size/@opts.width])
             else
-                throw "bug -- uknown dynamic_renderer_type = #{dynamic_renderer_type}"
+                throw "bug -- unkown dynamic_renderer_type = #{dynamic_renderer_type}"
 
         @scene.add(particle)
 
@@ -800,11 +803,15 @@ class SalvusThreeJS
 
         @renderer.render(@scene, @camera)
 
-    rescale_objects: (force=false) =>
+    _rescale_factor: () =>
         if not @_center?
-            return
-        s = @camera.position.distanceTo(@_center) / 3
-        if Math.abs(@_last_scale - s) < 0.000001
+            return undefined
+        else
+            return @camera.position.distanceTo(@_center) / 3
+
+    rescale_objects: (force=false) =>
+        s = @_rescale_factor()
+        if not s? or (Math.abs(@_last_scale - s) < 0.000001 and not force)
             return
         @_last_scale = s
         if @_text?
@@ -818,6 +825,60 @@ class SalvusThreeJS
                 c = z[1]
                 z[0].scale.set(s*c,s*c,s*c)
 
+
+exports.render_3d_scene = (opts) ->
+    opts = defaults opts,
+        url     : undefined   # url from which to download (via ajax) a JSON string that parses to {opts:?,obj:?}
+        scene   : undefined   # {opts:?, obj:?}
+        element : required    # DOM element
+        cb      : undefined   # cb(err, scene object)
+    # Render a 3-d scene
+    #console.log("render_3d_scene: url='#{opts.url}'")
+
+    if not opts.scene? and not opts.url?
+        opts.cb?("one of url or scene must be defined")
+        return
+
+    scene_obj = undefined
+    async.series([
+        (cb) =>
+            if opts.scene?
+                cb()
+            else
+                $.ajax(
+                    url     : opts.url
+                    timeout : 30000
+                    success : (data) ->
+                        try
+                            opts.scene = misc.from_json(data)
+                            cb()
+                        catch e
+                            cb(e)
+                ).fail () ->
+                    cb("error downloading #{url}")
+        (cb) =>
+            # do this initialization *after* we create the 3d renderer
+            init = (err, s) ->
+                if err
+                    cb(err)
+                else
+                    scene_obj = s
+                    s.init()
+                    s.add_3dgraphics_obj
+                        obj : opts.scene.obj
+                    s.init_done()
+                    cb()
+            # create the 3d renderer
+            opts.scene.opts.cb = init
+            opts.element.salvus_threejs(opts.scene.opts)
+    ], (err) ->
+        window.s = scene_obj  #DEBUGGING!
+        opts.cb?(err, scene_obj)
+    )
+
+
+
+# jQuery plugin for making a DOM object into a 3d renderer
 
 $.fn.salvus_threejs = (opts={}) ->
     @each () ->
