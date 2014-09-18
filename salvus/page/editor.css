@@ -324,7 +324,7 @@ Editor for files in a project
     margin-right: -10px;
     margin-bottom: .5ex;   /* makes line look centered */
     display : inline-block;
-    height  : 2px;
+    height  : 3px;
     background: #ccc;
 }
 
@@ -366,7 +366,7 @@ Editor for files in a project
     margin: 0px;
     overflow-y:auto;
     white-space:normal;
-    border-left: 2px solid orange;
+    border-left: 3px solid orange;
     margin-left: -4px;
 }
 
