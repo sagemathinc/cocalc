@@ -140,11 +140,16 @@ class SalvusThreeJS
             camera_distance : 10
             aspect_ratio    : undefined  # undefined does nothing or a triple [x,y,z] of length three, which scales the x,y,z coordinates of everything by the given values.
             stop_when_gone  : undefined  # if given, animation, etc., stops when this html element (not jquery!) is no longer in the DOM
+            frame           : undefined  # if given call set_frame with opts.frame as input
+            cb              : undefined  # opts.cb(undefined, this object)
 
         f = () =>
             if not @_init
                 @opts.element.find(".salvus-3d-note").show()
         setTimeout(f, 1000)
+        if opts.frame?
+            @set_frame(opts.frame)
+        opts.cb?(undefined, @)
 
     init_done: () =>
         # if we don't have the renderer, swap it in, make a static image, then give it back to whoever had it.
@@ -420,7 +425,7 @@ class SalvusThreeJS
 
         # IMPORTANT: Below we use sprites instead of the more natural/faster PointCloudMaterial.
         # Why?  Because usually people don't plot a huge number of points, and PointCloudMaterial is SQUARE.
-        # By using sprites, our points are round, which is something people really care about. 
+        # By using sprites, our points are round, which is something people really care about.
 
         switch dynamic_renderer_type
 
@@ -795,7 +800,7 @@ class SalvusThreeJS
 
         @renderer.render(@scene, @camera)
 
-    rescale_objects: () =>
+    rescale_objects: (force=false) =>
         if not @_center?
             return
         s = @camera.position.distanceTo(@_center) / 3
@@ -827,14 +832,19 @@ $.fn.salvus_threejs = (opts={}) ->
         # TODO/NOTE -- this explicit reference is brittle -- it is just an animation efficiency, but still...
         opts.stop_when_gone = e.closest(".salvus-editor-codemirror")[0]
 
-        f = () -> elt.data('salvus-threejs', new SalvusThreeJS(opts))
+        f = () ->
+            obj = new SalvusThreeJS(opts)
+            elt.data('salvus-threejs', obj)
         if not THREE?
             load_threejs (err) =>
                 if not err
                     f()
                 else
-                    # TODO -- not sure what to do at this point...
-                    console.log("Error loading THREE.js")
+                    msg = "Error loading THREE.js -- #{err}"
+                    if not opts.cb?
+                        console.log(msg)
+                    else
+                        opts.cb?(msg)
         else
             f()
 

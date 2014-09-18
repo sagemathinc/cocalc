@@ -3695,7 +3695,7 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             cb         : (err, output) =>
                 cb?(err)
 
-# Download a remote URL, possibly retrying repeatedly with exponetial backoff
+# Download a remote URL, possibly retrying repeatedly with exponential backoff
 # on the timeout.
 # If the downlaod URL contains bad_string (default: 'ECONNREFUSED'), also retry.
 get_with_retry = (opts) ->

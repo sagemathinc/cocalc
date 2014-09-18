@@ -1558,6 +1558,47 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 arg.inline = true
             output.append(elt.mathjax(arg))
 
+        if mesg.threed?
+            # Render a 3-d scene
+            #console.log("rendering threed message")
+            x = mesg.threed.split(':')
+            scene_uuid  = x[0]
+            static_uuid = x[1]
+            #console.log("scene_uuid='#{x[0]}'")
+            elt = $("<span class='salvus-3d-container'></span>")
+            output.append(elt)
+            scene = undefined
+            url = "/blobs/x?uuid=#{scene_uuid}"
+            #console.log("url='#{url}'")
+            async.series([
+                (cb) =>
+                    $.ajax(
+                        url     : url
+                        timeout : 30000
+                        success : (data) ->
+                            try
+                                scene = misc.from_json(data)
+                                cb()
+                            catch e
+                                cb(e)
+                    ).fail () ->
+                        cb("error downloading #{url}")
+                (cb) =>
+                    scene.opts.cb = (err, s) ->
+                        if err
+                            cb(err)
+                        else
+                            s.init()
+                            s.add_3dgraphics_obj
+                                obj : scene.obj
+                            s.init_done()
+                            cb()
+                    elt.salvus_threejs(scene.opts)
+            ], (err) ->
+                if err
+                    console.log("error rendering 3d scene -- #{err}")
+            )
+
         if mesg.file?
             val = mesg.file
             if not val.show? or val.show

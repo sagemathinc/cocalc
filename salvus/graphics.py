@@ -33,6 +33,8 @@ def uuid():
     return str(uuid4())
 
 def json_float(t):
+    if t is None:
+        return t
     t = float(t)
     # Neither of nan or inf get JSON'd in a way that works properly, for some reason.  I don't understand why.
     if math.isnan(t) or math.isinf(t):
@@ -145,7 +147,7 @@ class ThreeJS(object):
 
     def animate(self, fps=None, stop=None, mouseover=True):
         self._call('animate(obj)', obj={'fps':noneint(fps), 'stop':stop, 'mouseover':mouseover})
-        
+
     def init_done(self):
         self._call('init_done()')
 
