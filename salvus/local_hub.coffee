@@ -1882,52 +1882,38 @@ write_file_to_project = (socket, mesg) ->
 ###############################################
 print_sagews = (opts) ->
     opts = defaults opts,
-        path     : required
-        outfile  : required
-        title    : required
-        author   : required
-        date     : required
-        contents : required
-        sage3d   : undefined   # if given, array in order of {width:, height:, base-64 encoded png image}
-        cb       : required
+        path       : required
+        outfile    : required
+        title      : required
+        author     : required
+        date       : required
+        contents   : required
+        extra_data : undefined   # extra data that is useful for displaying certain things in the worksheet.
+        cb         : required
 
-    tmp_dir = undefined
+    extra_data_file = undefined
+    args = [opts.path, '--outfile', opts.outfile, '--title', opts.title, '--author', opts.author,'--date', opts.date, '--contents', opts.contents]
     async.series([
         (cb) ->
-            if true or not opts.sage3d?
+            if not opts.extra_data?
                 cb(); return
-            # decode base64 3d png images and write to disk
-            # create a temporary directory where pdf generation will happen
-            tmp_dir = opts.path + '/' + uuid()
-            async.series([
-                (c) ->
-                    fs.mkdir(tmp_dir, c)
-                (c) ->
-                    v = ({i:i, png:x} for i, x of opts.sage3d)
-                    f = (x, cb) ->
-                        # base64 decode png
-                        # write to file
-                        cb()
-                    async.map(v, f, c)
-            ], cb)
+            extra_data_file = temp.path() + '.json'
+            args.push('--extra_data_file')
+            args.push(extra_data_file)
+            # NOTE: extra_data is a string that is *already* in JSON format.
+            fs.writeFile(extra_data_file, opts.extra_data, cb)
         (cb) ->
             # run the converter script
             misc_node.execute_code
                 command     : "sagews2pdf.py"
-                args        : [opts.path,
-                               '--outfile',  opts.outfile,
-                               '--title',    opts.title,
-                               '--author',   opts.author,
-                               '--date',     opts.date,
-                               '--contents', opts.contents]
+                args        : args
                 err_on_exit : false
                 bash        : false
                 cb          : cb
 
         ], (err) =>
-            if opts.tmp_dir?
-                winston.debug("TODO: remove tmp_dir")
-                # TODO: remove tmp_dir
+            if false and extra_data_path? # DEBUG
+                fs.unlink(extra_data_file)  # no need to wait for completion before calling opts.cb
             opts.cb(err)
         )
 
@@ -1943,14 +1929,14 @@ print_to_pdf = (socket, mesg) ->
             switch ext
                 when 'sagews'
                     print_sagews
-                        path     : mesg.path
-                        outfile  : pdf
-                        title    : mesg.options.title
-                        author   : mesg.options.author
-                        date     : mesg.options.date
-                        contents : mesg.options.contents
-                        sage3d   : mesg.options.sage3d
-                        cb       : cb
+                        path       : mesg.path
+                        outfile    : pdf
+                        title      : mesg.options.title
+                        author     : mesg.options.author
+                        date       : mesg.options.date
+                        contents   : mesg.options.contents
+                        extra_data : mesg.options.extra_data
+                        cb         : cb
                 else
                     cb("unable to print file of type '#{ext}'")
     ], (err) ->

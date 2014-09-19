@@ -1575,6 +1575,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
                     when 'sage3d'
                         elt = $("<span class='salvus-3d-container'></span>")
+                        elt.data('uuid',val.uuid)
                         output.append(elt)
                         render_3d_scene
                             url     : target
@@ -1583,6 +1584,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                 if err
                                     # TODO: red?
                                     elt.append($("<div>").text("error rendering 3d scene -- #{err}"))
+                                else
+                                    elt.data('width', obj.opts.width / $(window).width())
 
 
                     when 'svg', 'png', 'gif', 'jpg'
@@ -2109,15 +2112,29 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 else
                     text[i] = s.slice(0,37) + MARKERS.cell
 
-    sage3d_images: () =>
-        x =
-        v = []
+    print_to_pdf_data: () =>
+        data = {}
+        sage3d = data.sage3d = {}
+
+        # TODO: reasons this breaks!!!!
+        #    - as things scroll out of view they are removed from the DOM! So this is not going to work.
+
+        # Useful extra data about 3d plots (a png data url)
         for e in @element.find(".salvus-3d-container")
-            png = $(e).data('salvus-threejs').data_url(type:'png', quality:1)
-            i = png.indexOf(',')
-            png = png.slice(i+1)
-            v.push({png:png})
-        return v
+            f = $(e)
+            scene = $(e).data('salvus-threejs')
+            scene.set_static_renderer()
+            data_url  = scene.static_image
+            if data_url?
+                uuid = f.data('uuid')
+                if not sage3d[uuid]?
+                    sage3d[uuid] = []
+                sage3d[uuid].push({'data-url':data_url, 'width':f.data('width')})
+
+        if misc.len(sage3d) == 0
+            return undefined
+
+        return data
 
 class Cell
     constructor : (opts) ->

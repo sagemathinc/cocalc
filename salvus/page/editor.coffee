@@ -1411,11 +1411,11 @@ class CodeMirrorEditor extends FileEditor
                         project_id  : @project_id
                         path        : @filename
                         options     :
-                            title    : dialog.find(".salvus-file-print-title").text()
-                            author   : dialog.find(".salvus-file-print-author").text()
-                            date     : dialog.find(".salvus-file-print-date").text()
-                            contents : dialog.find(".salvus-file-print-contents").is(":checked")
-                            sage3d   : @syncdoc.sage3d_images()
+                            title      : dialog.find(".salvus-file-print-title").text()
+                            author     : dialog.find(".salvus-file-print-author").text()
+                            date       : dialog.find(".salvus-file-print-date").text()
+                            contents   : dialog.find(".salvus-file-print-contents").is(":checked")
+                            extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing 
                         cb          : (err, _pdf) =>
                             if err
                                 cb(err)
