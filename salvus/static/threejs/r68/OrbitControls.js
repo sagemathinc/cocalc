@@ -152,7 +152,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 		// get X column of matrix
 		panOffset.set( te[ 0 ], te[ 1 ], te[ 2 ] );
 		panOffset.multiplyScalar( - distance );
-		
+
 		pan.add( panOffset );
 
 	};
@@ -165,11 +165,11 @@ THREE.OrbitControls = function ( object, domElement ) {
 		// get Y column of matrix
 		panOffset.set( te[ 4 ], te[ 5 ], te[ 6 ] );
 		panOffset.multiplyScalar( distance );
-		
+
 		pan.add( panOffset );
 
 	};
-	
+
 	// pass in x,y of change desired in pixel space,
 	// right and down are positive
 	this.pan = function ( deltaX, deltaY ) {
@@ -265,7 +265,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 		// restrict radius to be between desired limits
 		radius = Math.max( this.minDistance, Math.min( this.maxDistance, radius ) );
-		
+
 		// move target to panned location
 		this.target.add( pan );
 
@@ -326,25 +326,31 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 
 	function onMouseDown( event ) {
+        // alt or command = pan
+        // control or shift = zoom
+        var pan_key = event.altKey || event.metaKey;
+        var zoom_key = event.ctrlKey || event.shiftKey;
+        var no_key = !(pan_key || zoom_key);
+
 
 		if ( scope.enabled === false ) return;
 		event.preventDefault();
 
-		if ( event.button === 0 ) {
+		if ( event.button === 0 && no_key ) {
 			if ( scope.noRotate === true ) return;
 
 			state = STATE.ROTATE;
 
 			rotateStart.set( event.clientX, event.clientY );
 
-		} else if ( event.button === 1 ) {
+		} else if ( event.button === 1 || zoom_key ) {
 			if ( scope.noZoom === true ) return;
 
 			state = STATE.DOLLY;
 
 			dollyStart.set( event.clientX, event.clientY );
 
-		} else if ( event.button === 2 ) {
+		} else if ( event.button === 2 || pan_key ) {
 			if ( scope.noPan === true ) return;
 
 			state = STATE.PAN;
@@ -407,7 +413,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 			panEnd.set( event.clientX, event.clientY );
 			panDelta.subVectors( panEnd, panStart );
-			
+
 			scope.pan( panDelta.x, panDelta.y );
 
 			panStart.copy( panEnd );
@@ -467,7 +473,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	function onKeyDown( event ) {
 
 		if ( scope.enabled === false || scope.noKeys === true || scope.noPan === true ) return;
-		
+
 		switch ( event.keyCode ) {
 
 			case scope.keys.UP:
@@ -603,7 +609,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 				panEnd.set( event.touches[ 0 ].pageX, event.touches[ 0 ].pageY );
 				panDelta.subVectors( panEnd, panStart );
-				
+
 				scope.pan( panDelta.x, panDelta.y );
 
 				panStart.copy( panEnd );

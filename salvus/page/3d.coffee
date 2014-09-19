@@ -197,8 +197,8 @@ class SalvusThreeJS
         if @opts.frame?
             @set_frame(@opts.frame)
 
-        # if we don't have the renderer, swap it in, make a static image, then give it back to whoever had it.
         if @renderer_type != 'dynamic'
+            # if we don't have the renderer, swap it in, make a static image, then give it back to whoever had it.
             owner = _scene_using_renderer
             @set_dynamic_renderer()
             @set_static_renderer()
@@ -241,12 +241,12 @@ class SalvusThreeJS
         if @renderer_type == 'static'
             # already have it
             return
+        @static_image = @data_url()
         @renderer_type = 'static'
         if @controls?
             @controls.enabled = false
             @last_canvas_pos = @controls.object.position
             @last_canvas_target = @controls.target
-        @static_image = @data_url()
         img = $("<img class='salvus-3d-static-renderer'>").attr(src:@static_image).width(@opts.width).height(@opts.height)
         @opts.element.find(".salvus-3d-canvas").empty().append(img)
 
@@ -281,9 +281,8 @@ class SalvusThreeJS
 
     data_url: (opts) =>
         opts = defaults opts,
-            type    : 'webp'      # 'png' or 'jpeg' or 'webp' (the best)
+            type    : 'png'      # 'png' or 'jpeg' or 'webp' (the best)
             quality : undefined   # 1 is best quality; 0 is worst; only applies for jpeg or webp
-
         s = @renderer.domElement.toDataURL("image/#{opts.type}", opts.quality)
         # console.log("took #{misc.to_json(opts)} snapshot (length=#{s.length})")
         return s
@@ -872,7 +871,6 @@ exports.render_3d_scene = (opts) ->
             opts.scene.opts.cb = init
             opts.element.salvus_threejs(opts.scene.opts)
     ], (err) ->
-        window.s = scene_obj  #DEBUGGING!
         opts.cb?(err, scene_obj)
     )
 

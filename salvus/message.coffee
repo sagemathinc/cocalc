@@ -1353,7 +1353,7 @@ message
     task_id      : required
     task         : undefined    # if task is created or edited this is given with new version; if deleted this is undefined
 
-############################################
+#############################################
 # Admin Functionality
 #############################################
 
@@ -1385,3 +1385,18 @@ message
     id           : undefined
     token        : undefined  # comes back in here
 
+
+
+#############################################
+# Printing Files
+#############################################
+message
+    event        : "print_to_pdf"
+    id           : undefined
+    path         : required
+    options      : undefined
+
+message
+    event        : 'printed_to_pdf'
+    id           : undefined
+    path         : required

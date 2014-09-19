@@ -1575,14 +1575,17 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
                     when 'sage3d'
                         elt = $("<span class='salvus-3d-container'></span>")
+                        elt.data('uuid',val.uuid)
                         output.append(elt)
                         render_3d_scene
                             url     : target
                             element : elt
-                            cb      : (err) =>
+                            cb      : (err, obj) =>
                                 if err
                                     # TODO: red?
                                     elt.append($("<div>").text("error rendering 3d scene -- #{err}"))
+                                else
+                                    elt.data('width', obj.opts.width / $(window).width())
 
                     when 'svg', 'png', 'gif', 'jpg'
                         img = $("<img src='#{target}' class='sagews-output-image'>")
@@ -2108,6 +2111,42 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 else
                     text[i] = s.slice(0,37) + MARKERS.cell
 
+    output_elements: () =>
+        cm = @editor.codemirror
+        v = []
+        for line in [0...cm.lineCount()]
+            marks = cm.findMarksAt({line:line, ch:1})
+            if not marks? or marks.length == 0
+                continue
+            for mark in marks
+                elt = mark.replacedWith
+                if elt?
+                    elt = $(elt)
+                    if elt.hasClass('sagews-output')
+                        v.push(elt)
+        return v
+
+    print_to_pdf_data: () =>
+        data = {}
+        sage3d = data.sage3d = {}
+
+        # Useful extra data about 3d plots (a png data url)
+        for elt in @output_elements()
+            for e in elt.find(".salvus-3d-container")
+                f = $(e)
+                scene = $(e).data('salvus-threejs')
+                scene.set_static_renderer()
+                data_url  = scene.static_image
+                if data_url?
+                    uuid = f.data('uuid')
+                    if not sage3d[uuid]?
+                        sage3d[uuid] = []
+                    sage3d[uuid].push({'data-url':data_url, 'width':f.data('width')})
+
+        if misc.len(sage3d) == 0
+            return undefined
+
+        return data
 
 class Cell
     constructor : (opts) ->
