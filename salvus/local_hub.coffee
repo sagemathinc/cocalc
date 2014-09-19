@@ -1912,7 +1912,7 @@ print_sagews = (opts) ->
                 cb          : cb
 
         ], (err) =>
-            if false and extra_data_path? # DEBUG
+            if extra_data_file?
                 fs.unlink(extra_data_file)  # no need to wait for completion before calling opts.cb
             opts.cb(err)
         )
