@@ -107,7 +107,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
         obj1 = {}
     error  = () ->
         try
-            s = "(obj1=#{exports.to_json(obj1)}, obj2=#{exports.to_json(obj2)})"
+            s = "(obj1=#{exports.trunc(exports.to_json(obj1),1024)}, obj2=#{exports.trunc(exports.to_json(obj2),1024)})"
             console.log(s)
             return s
         catch error

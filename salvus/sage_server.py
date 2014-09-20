@@ -88,6 +88,7 @@ if 'base_url' not in INFO:
 #log = logging.getLogger('sage_server')
 #log.setLevel(logging.INFO)
 
+# A CoffeeScript version of this function is in misc_node.coffee.
 import hashlib
 def uuidsha1(data):
     sha1sum = hashlib.sha1()
@@ -100,6 +101,7 @@ def uuidsha1(data):
         if t[i] == 'x':
             r[i] = s[j]; j += 1
         elif t[i] == 'y':
+            # take 8 + low order 3 bits of hex number.
             r[i] = hex( (int(s[j],16)&0x3) |0x8)[-1]; j += 1
     return ''.join(r)
 
