@@ -1311,7 +1311,7 @@ class exports.Salvus extends exports.Cassandra
                             banned_accounts = @_account_is_banned_cache
                             f = () =>
                                 delete @_account_is_banned_cache
-                            setTimeout(f, 10*60000)    # cache db lookups for 10 minutes
+                            setTimeout(f, 7*24*60*60000)    # cache db lookups for a long time (basically next restart) -- right now not used much anyways, due to no account verification.
                             cb()
             (cb) =>
                 if opts.email_address?
