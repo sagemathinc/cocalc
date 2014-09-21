@@ -505,8 +505,6 @@ class exports.Editor
         if opts.session_uuid?
             extra_opts.session_uuid = opts.session_uuid
 
-        local_storage(@project_id, filename, "auto_open", true)
-
         link = templates.find(".salvus-editor-filename-pill").clone().show()
         link_filename = link.find(".salvus-editor-tab-filename")
         link_filename.text(trunc(filename,64))
@@ -796,8 +794,6 @@ class exports.Editor
         @update_counter()
 
     remove_from_recent: (filename) =>
-        # Do not show this file in "recent" next time.
-        local_storage_delete(@project_id, filename, "auto_open")
         # Hide from the DOM.
         # This same tab object also stores the top tab and editor, so we don't just delete it.
         @tabs[filename]?.link.hide()
@@ -1200,10 +1196,12 @@ class CodeMirrorEditor extends FileEditor
 
 
         @codemirror = make_editor(elt[0])
+        @codemirror.name = '0'
 
         elt1 = @element.find(".salvus-editor-codemirror-input-box-1").find("textarea")
 
         @codemirror1 = make_editor(elt1[0])
+        @codemirror1.name = '1'
 
         buf = @codemirror.linkedDoc({sharedHist: true})
         @codemirror1.swapDoc(buf)
@@ -1215,7 +1213,9 @@ class CodeMirrorEditor extends FileEditor
         @codemirror1.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror1
 
-        @_split_view = false
+        @_split_view = @local_storage("split_view")
+        if not @_split_view?
+            @_split_view = false
 
         @init_change_event()
 
@@ -1339,6 +1339,7 @@ class CodeMirrorEditor extends FileEditor
 
     toggle_split_view: (cm) =>
         @_split_view = not @_split_view
+        @local_storage("split_view", @_split_view)  # store state so can restore same on next open
         @show()
         @focus()
         cm.focus()
@@ -1415,7 +1416,7 @@ class CodeMirrorEditor extends FileEditor
                             author     : dialog.find(".salvus-file-print-author").text()
                             date       : dialog.find(".salvus-file-print-date").text()
                             contents   : dialog.find(".salvus-file-print-contents").is(":checked")
-                            extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing 
+                            extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
                         cb          : (err, _pdf) =>
                             if err
                                 cb(err)
@@ -1502,13 +1503,22 @@ class CodeMirrorEditor extends FileEditor
         {from} = @codemirror.getViewport()
         @codemirror.setValue(content)
         @codemirror.scrollIntoView(from)
-        # even better, if available
-        @restore_cursor_position()
+        # even better -- fully restore cursors, if available in localStorage
+        setTimeout((()=>@restore_cursor_position()),1)  # do in next round, so that both editors get set by codemirror first (including the linked one)
 
     restore_cursor_position: () =>
-        pos = @local_storage("cursor")
-        if pos?
-            @set_cursor_center_focus(pos)
+        for i, cm of [@codemirror, @codemirror1]
+            if cm?
+                pos = @local_storage("cursor#{i}")
+                if pos?
+                    cm.setCursor(pos)
+                    #console.log("#{@filename}: setting view #{cm.name} to cursor pos -- #{misc.to_json(pos)}")
+                    info = cm.getScrollInfo()
+                    try
+                        cm.scrollIntoView(pos, info.clientHeight/2)
+                    catch e
+                        #console.log("#{@filename}: failed to scroll view #{cm.name} into view -- #{e}")
+                        
 
     # set background color of active line in editor based on background color (which depends on the theme)
     _style_active_line: () =>
@@ -3375,8 +3385,6 @@ class Terminal extends FileEditor
         @console?.focus()
 
     terminate_session: () =>
-        #@console?.terminate_session()
-        @local_storage("auto_open", false)
 
     remove: () =>
         @element.salvus_console(false)

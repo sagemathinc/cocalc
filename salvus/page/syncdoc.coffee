@@ -470,8 +470,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @codemirror1.setOption('readOnly', true)
         @element     = @editor.element
 
-        @init_cursorActivity_event()
-
         synchronized_string
             project_id    : @project_id
             filename      : misc.meta_file(@filename, 'chat')
@@ -497,6 +495,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @ui_synced(false)
                 @editor.init_autosave()
                 @sync()
+                @init_cursorActivity_event()
                 @codemirror.on 'changes', (instance, changes) =>
                     for changeObj in changes
                         #console.log("change #{misc.to_json(changeObj)}")
@@ -635,8 +634,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 message : message.codemirror_disconnect()
                 cb      : cb
 
-        # store pref in localStorage to not auto-open this file next time
-        @editor.local_storage('auto_open', false)
         @chat_session?.disconnect_from_session()
 
     execute_code: (opts) =>
@@ -700,10 +697,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             @_ui_synced_timer = setTimeout(show_spinner, 8*@opts.sync_interval)
 
     init_cursorActivity_event: () =>
-        for cm in [@codemirror, @codemirror1]
+        for i, cm of [@codemirror, @codemirror1]
             cm.on 'cursorActivity', (instance) =>
                 @send_cursor_info_to_hub_soon()
-                @editor.local_storage('cursor', cm.getCursor())
+                # console.log("setting cursor#{instance.name} to #{misc.to_json(instance.getCursor())}")
+                @editor.local_storage("cursor#{instance.name}", instance.getCursor())
 
     init_chat: () =>
         chat = @element.find(".salvus-editor-codemirror-chat")
@@ -958,7 +956,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
                             elt.css('width', w + 'px')
 
         v = [@codemirror, @codemirror1]
-        v[0].name = '0'; v[1].name = '1'
         for cm in v
             cm.on 'beforeChange', (instance, changeObj) =>
                 #console.log("beforeChange (#{instance.name}): #{misc.to_json(changeObj)}")
