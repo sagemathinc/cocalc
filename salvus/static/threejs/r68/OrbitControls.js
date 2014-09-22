@@ -328,8 +328,8 @@ THREE.OrbitControls = function ( object, domElement ) {
 	function onMouseDown( event ) {
         // alt or command = pan
         // control or shift = zoom
-        var pan_key = event.altKey || event.metaKey;
-        var zoom_key = event.ctrlKey || event.shiftKey;
+        var pan_key = event.altKey || event.metaKey || event.ctrlKey;
+        var zoom_key = event.shiftKey;
         var no_key = !(pan_key || zoom_key);
 
 
