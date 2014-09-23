@@ -120,6 +120,7 @@ class TopNavbar  extends EventEmitter
         # We still call show even if already on this page.
         n.page?.show()
         n.onshow?()
+        ga('send', 'pageview', window.location.pathname)
 
     fullscreen: (entering) =>
         @pages[@current_page_id]?.onfullscreen?(entering)

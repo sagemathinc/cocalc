@@ -134,6 +134,7 @@ class ProjectPage
         @container = templates.find(".salvus-project").clone()
         @container.data('project', @)
         $("body").append(@container)
+        # ga('send', 'event', 'project', 'open', 'project_id', @project.project_id, {'nonInteraction': 1})
 
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
         @container.top_navbar
@@ -338,6 +339,7 @@ class ProjectPage
         # For now, we are just going to default to project-id based URL's, since they are stable and will always be supported.
         # I can extend to the above later in another release, without any harm.
         window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.project_id + '/' + url)
+        ga('send', 'pageview', window.location.pathname)
 
 
     #  files/....
@@ -3246,8 +3248,10 @@ class ProjectPage
         ext = filename_extension(opts.path)
         @editor.open opts.path, (err, opened_path) =>
             if err
-                alert_message(type:"error", message:"Error opening '#{path}' -- #{err}", timeout:10)
+                # ga('send', 'event', 'file', 'open', 'error', opts.path, {'nonInteraction': 1})
+                alert_message(type:"error", message:"Error opening '#{opts.path}' -- #{misc.to_json(err)}", timeout:10)
             else
+                # ga('send', 'event', 'file', 'open', 'success', opts.path, {'nonInteraction': 1})
                 if opts.foreground
                     @display_tab("project-editor")
                 @editor.display_tab(path:opened_path, foreground:opts.foreground)
