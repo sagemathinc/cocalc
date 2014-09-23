@@ -901,8 +901,8 @@ show_connection_information = () ->
 if localStorage.remember_me
     $(".salvus-remember_me-message").show().find("span").text(localStorage.remember_me)
     $(".salvus-sign_in-form").hide()
-    # just in case, always show manual login screen after 10s.
-    setTimeout((()=>$(".salvus-remember_me-message").hide(); $(".salvus-sign_in-form").show()), 10000)
+    # just in case, always show manual login screen after 45s.
+    setTimeout((()=>$(".salvus-remember_me-message").hide(); $(".salvus-sign_in-form").show()), 45000)
 
 salvus_client.on "remember_me_failed", () ->
     $(".salvus-remember_me-message").hide()
@@ -910,3 +910,4 @@ salvus_client.on "remember_me_failed", () ->
 
 salvus_client.on "signed_in", () ->
     $(".salvus-remember_me-message").hide()
+    $(".salvus-sign_in-form").show()
