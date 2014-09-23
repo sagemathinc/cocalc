@@ -496,17 +496,16 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @editor.init_autosave()
                 @sync()
                 @init_cursorActivity_event()
-                @codemirror.on 'changes', (instance, changes) =>
-                    for changeObj in changes
-                        #console.log("change #{misc.to_json(changeObj)}")
-                        if changeObj.origin?
-                            if changeObj.origin == 'undo'
-                                @on_undo(instance, changeObj)
-                            if changeObj.origin == 'redo'
-                                @on_redo(instance, changeObj)
-                            if changeObj.origin != 'setValue'
-                                @ui_synced(false)
-                                @sync()
+                @codemirror.on 'change', (instance, changeObj) =>
+                    #console.log("change #{misc.to_json(changeObj)}")
+                    if changeObj.origin?
+                        if changeObj.origin == 'undo'
+                            @on_undo(instance, changeObj)
+                        if changeObj.origin == 'redo'
+                            @on_redo(instance, changeObj)
+                        if changeObj.origin != 'setValue'
+                            @ui_synced(false)
+                            @sync()
             # Done initializing and have got content.
             cb?()
 
@@ -961,6 +960,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 #console.log("beforeChange (#{instance.name}): #{misc.to_json(changeObj)}")
                 # Set the evaluated flag to false for the cell that contains the text
                 # that just changed (if applicable)
+                if changeObj.origin == 'undo' or changeObj.origin == 'redo'
+                    return
                 if changeObj.origin? and changeObj.origin != 'setValue'
                     line = changeObj.from.line
                     mark = @find_input_mark(line)
@@ -980,6 +981,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
             cm.sage_update_queue = []
             cm.on 'change', (instance, changeObj) =>
+                if changeObj.origin == 'undo' or changeObj.origin == 'redo'
+                    return
                 if changeObj.origin != '+input' and (instance.name == '0' or @editor._split_view)
                     start = changeObj.from.line
                     stop  = changeObj.to.line + changeObj.text.length
@@ -1045,9 +1048,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
     _is_dangerous_undo_step: (cm, changes) =>
         for c in changes
             if c.from.line == c.to.line
-                line = cm.getLine(c.from.line)
-                if line? and line.length > 0 and (line[0] == MARKERS.output or line[0] == MARKERS.cell)
-                    return true
+                if c.from.line < cm.lineCount()  # ensure we have such line in document
+                    line = cm.getLine(c.from.line)
+                    if line? and line.length > 0 and (line[0] == MARKERS.output or line[0] == MARKERS.cell)
+                        return true
             for t in c.text
                 if MARKERS.output in t or MARKERS.cell in t
                     return true
@@ -1056,12 +1060,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
     on_undo: (cm, changeObj) =>
         u = cm.getHistory().undone
         if u.length > 0 and @_is_dangerous_undo_step(cm, u[u.length-1].changes)
-            cm.undo()
+            #console.log("on_undo(repeat)")
+            try
+                cm.undo()
+            catch e
+                console.log("skipping undo: ",e)
 
     on_redo: (cm, changeObj) =>
         u = cm.getHistory().done
         if u.length > 0 and @_is_dangerous_undo_step(cm, u[u.length-1].changes)
-            cm.redo()
+            try
+                cm.redo()
+            catch e
+                console.log("skipping redo: ",e)
 
     interrupt: (opts={}) =>
         opts = defaults opts,
@@ -1875,35 +1886,39 @@ class SynchronizedWorksheet extends SynchronizedDocument
             block.end += 1
 
         if opts.toggle_input
-            if FLAGS.hide_input in @get_cell_flagstring(marker)
-                # input is currently hidden
-                if @_toggle_input_range != 'hide'
-                    @remove_cell_flag(marker, FLAGS.hide_input)   # show input
-                if @_toggle_input_range == 'wait'
-                    @_toggle_input_range = 'show'
-            else
-                # input is currently shown
-                if @_toggle_input_range != 'show'
-                    @set_cell_flag(marker, FLAGS.hide_input)  # hide input
-                if @_toggle_input_range == 'wait'
-                    @_toggle_input_range = 'hide'
+            fs = @get_cell_flagstring(marker)
+            if fs?
+                if FLAGS.hide_input in fs
+                    # input is currently hidden
+                    if @_toggle_input_range != 'hide'
+                        @remove_cell_flag(marker, FLAGS.hide_input)   # show input
+                    if @_toggle_input_range == 'wait'
+                        @_toggle_input_range = 'show'
+                else
+                    # input is currently shown
+                    if @_toggle_input_range != 'show'
+                        @set_cell_flag(marker, FLAGS.hide_input)  # hide input
+                    if @_toggle_input_range == 'wait'
+                        @_toggle_input_range = 'hide'
 
-            @sync()
+                @sync()
 
         if opts.toggle_output
-            if FLAGS.hide_output in @get_cell_flagstring(marker)
-                # output is currently hidden
-                if @_toggle_output_range != 'hide'
-                    @remove_cell_flag(marker, FLAGS.hide_output)  # show output
-                if @_toggle_output_range == 'wait'
-                    @_toggle_output_range = 'show'
-            else
-                if @_toggle_output_range != 'show'
-                    @set_cell_flag(marker, FLAGS.hide_output)
-                if @_toggle_output_range == 'wait'
-                    @_toggle_output_range = 'hide'
+            fs = @get_cell_flagstring(marker)
+            if fs?
+                if FLAGS.hide_output in fs
+                    # output is currently hidden
+                    if @_toggle_output_range != 'hide'
+                        @remove_cell_flag(marker, FLAGS.hide_output)  # show output
+                    if @_toggle_output_range == 'wait'
+                        @_toggle_output_range = 'show'
+                else
+                    if @_toggle_output_range != 'show'
+                        @set_cell_flag(marker, FLAGS.hide_output)
+                    if @_toggle_output_range == 'wait'
+                        @_toggle_output_range = 'hide'
 
-            @sync()
+                @sync()
 
         if opts.advance
             block.end = @move_cursor_to_next_cell()
@@ -1934,7 +1949,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
             # started had completed.
             wait = 50
             f = () =>
-                if FLAGS.execute in @get_cell_flagstring(marker)
+                fs = @get_cell_flagstring(marker)
+                if fs? and FLAGS.execute in fs
                     @sync () =>
                         wait = wait*1.2
                         if wait < 15000
@@ -2025,17 +2041,25 @@ class SynchronizedWorksheet extends SynchronizedDocument
     ##########################################
     get_cell_flagstring: (marker) =>
         if not marker?
-            return
+            return undefined
         pos = marker.find()
         if not pos?
             return ''
-        return @focused_codemirror().getRange({line:pos.from.line,ch:37},{line:pos.from.line, ch:pos.to.ch-1})
+        cm = @focused_codemirror()
+        if not misc.is_valid_uuid_string(cm.getRange({line:pos.from.line,ch:1},{line:pos.from.line, ch:37}))
+            # worksheet is somehow corrupt
+            # TODO: should fix things at this point, or make sure this is never hit; could be caused by
+            # undo conflicting with updates.
+            return undefined
+        return cm.getRange({line:pos.from.line,ch:37},{line:pos.from.line, ch:pos.to.ch-1})
 
     set_cell_flagstring: (marker, value) =>
         if not marker?
             return
         pos = marker.find()
+        h = @focused_codemirror().getHistory()
         @focused_codemirror().replaceRange(value, {line:pos.from.line,ch:37}, {line:pos.to.line, ch:pos.to.ch-1})
+        h = @focused_codemirror().getHistory()
 
     get_cell_uuid: (marker) =>
         if not marker?
@@ -2049,14 +2073,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if not marker?
             return
         s = @get_cell_flagstring(marker)
-        if flag not in s
+        if s? and flag not in s
             @set_cell_flagstring(marker, flag + s)
 
     remove_cell_flag: (marker, flag) =>
         if not marker?
             return
         s = @get_cell_flagstring(marker)
-        if flag in s
+        if s? and flag in s
             s = s.replace(new RegExp(flag, "g"), "")
             @set_cell_flagstring(marker, s)
 
