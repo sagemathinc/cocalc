@@ -946,6 +946,9 @@ class FileEditor extends EventEmitter
     constructor: (@editor, @filename, content, opts) ->
         @val(content)
 
+    is_active: () =>
+        return @editor._active_tab_filename == @filename
+
     init_autosave: () =>
         if @_autosave_interval?
             # This function can safely be called again to *adjust* the
@@ -1009,6 +1012,8 @@ class FileEditor extends EventEmitter
         return local_storage(@editor.project_id, @filename, key, value)
 
     show: (opts={}) =>
+        if not @is_active()
+            return
         @element.show()
 
     hide: () =>
@@ -1218,6 +1223,9 @@ class CodeMirrorEditor extends FileEditor
             @_split_view = false
 
         @init_change_event()
+
+    is_active: () =>
+        return @codemirror? and @editor? and @editor._active_tab_filename == @filename
 
     set_theme: (theme) =>
         # Change the editor theme after the editor has been created
@@ -1518,7 +1526,7 @@ class CodeMirrorEditor extends FileEditor
                         cm.scrollIntoView(pos, info.clientHeight/2)
                     catch e
                         #console.log("#{@filename}: failed to scroll view #{cm.name} into view -- #{e}")
-                        
+
 
     # set background color of active line in editor based on background color (which depends on the theme)
     _style_active_line: () =>
@@ -1536,8 +1544,7 @@ class CodeMirrorEditor extends FileEditor
         $("body").append("<style id='salvus-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
 
     show: () =>
-
-        if not (@element? and @codemirror?) or @editor._active_tab_filename != @filename
+        if not @is_active()
             return
 
         # Show gets called repeatedly as we resize the window, so we wait until slightly *after*
@@ -2449,6 +2456,8 @@ class PDF_Preview extends FileEditor
             top    : undefined
             width  : $(window).width()
             height : undefined
+        if not @is_active()
+            return
 
         @element.show()
 
@@ -2706,6 +2715,8 @@ class HistoryEditor extends FileEditor
             @worksheet.process_sage_updates()
 
     show: () =>
+        if not @is_active()
+            return
         @element?.show()
         @history_editor?.show()
         if @ext == 'sagews'
@@ -3021,6 +3032,9 @@ class LatexEditor extends FileEditor
         @latex_editor._set(content)
 
     show: () =>
+        if not @is_active()
+            return
+
         @element?.show()
         @latex_editor?.show()
         if not @_show_before?
@@ -3391,6 +3405,8 @@ class Terminal extends FileEditor
         @element.remove()
 
     show: () =>
+        if not @is_active()
+            return
         @element.show()
         if @console?
             e = $(@console.terminal.element)
@@ -3515,6 +3531,8 @@ class Worksheet extends FileEditor
             @worksheet?.focus()
 
     show: () =>
+        if not @is_active()
+            return
         if not @worksheet?
             return
         @element.show()
@@ -3606,6 +3624,8 @@ class Image extends FileEditor
                     cb?()
 
     show: () =>
+        if not @is_active()
+            return
         @element.show()
         @element.css(top:@editor.editor_top_position())
         @element.maxheight()
@@ -3801,8 +3821,9 @@ class IPythonNotebook extends FileEditor
             (cb) =>
                 if @readonly
                     # TODO -- change UI to say *READONLY*
-                    @iframe.animate(opacity:1)
+                    @iframe.css(opacity:1)
                     @save_button.text('Readonly').addClass('disabled')
+                    @show()
                     cb()
                 else
                     @_init_doc(cb)
@@ -3825,7 +3846,8 @@ class IPythonNotebook extends FileEditor
             # already initialized
             @doc.sync () =>
                 @set_live_from_syncdoc()
-                @iframe.animate(opacity:1)
+                @iframe.css(opacity:1)
+                @show()
                 cb?()
             return
         @doc = syncdoc.synchronized_string
@@ -3852,7 +3874,8 @@ class IPythonNotebook extends FileEditor
         else
             @set_live_from_syncdoc()
         #console.log("DONE SETTING!")
-        @iframe.animate(opacity:1)
+        @iframe.css(opacity:1)
+        @show()
 
         @doc._presync = () =>
             if not @nb? or @_reloading
@@ -4410,15 +4433,17 @@ class IPythonNotebook extends FileEditor
         # console.log("ipython notebook focus: todo")
 
     show: () =>
+        if not @is_active()
+            return
         @element.show()
         top = @editor.editor_top_position()
         @element.css(top:top)
         if top == 0
             @element.css('position':'fixed')
         w = $(window).width()
+        # console.log("top=#{top}; setting maxheight for iframe =", @iframe)
         @iframe?.attr('width',w).maxheight()
-
-
+        setTimeout((()=>@iframe?.maxheight()), 1)   # set it one time more the next render loop.
 
 class FileEditorWrapper extends FileEditor
     constructor: (@editor, @filename) ->
@@ -4451,6 +4476,8 @@ class FileEditorWrapper extends FileEditor
         @wrapped.destroy?()
 
     show: () =>
+        if not @is_active()
+            return
         @element.show()
         if not IS_MOBILE
             @element.css(top:@editor.editor_top_position(), position:'fixed')
