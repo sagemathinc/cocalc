@@ -41,6 +41,8 @@ for ext in misc.split('blg bbl glo idx toc aux log lof ind nav snm gz xyc out il
 
 #many languages such as fortran or c++ have a default file name of "a.out." when compiled, so .out extensions are not masked
 
+# If there are more
+MAX_FILE_LISTING_SIZE = 300
 
 ##################################################
 # Initialize the modal project management dialogs
@@ -132,6 +134,7 @@ class ProjectPage
         @container = templates.find(".salvus-project").clone()
         @container.data('project', @)
         $("body").append(@container)
+        # ga('send', 'event', 'project', 'open', 'project_id', @project.project_id, {'nonInteraction': 1})
 
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
         @container.top_navbar
@@ -197,6 +200,8 @@ class ProjectPage
 
         @init_ssh()
         @init_worksheet_server_restart()
+
+        @init_listing_show_all()
 
         @init_delete_project()
         @init_undelete_project()
@@ -334,6 +339,7 @@ class ProjectPage
         # For now, we are just going to default to project-id based URL's, since they are stable and will always be supported.
         # I can extend to the above later in another release, without any harm.
         window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.project_id + '/' + url)
+        ga('send', 'pageview', window.location.pathname)
 
 
     #  files/....
@@ -490,11 +496,15 @@ class ProjectPage
 
         listing = @container.find(".project-file-listing-file-list")
 
+        show_all = @container.find(".project-file-listing-show_all")
         if v == ""
             @container.find(".salvus-project-search-describe").hide()
+            if show_all.find("span").text()
+                show_all.show()
             listing.children().show()
             match = (s) -> true
         else
+            show_all.hide()
             @container.find(".salvus-project-search-describe").show().find("span").text(v)
             terms = v.split(' ')
             listing.children().hide()
@@ -791,8 +801,10 @@ class ProjectPage
                 return false
 
             that.update_file_list_tab()
+
             if name == "project-file-listing"
                 tab.onshow = () ->
+                    that.editor?.hide_editor_content()
                     that.update_file_list_tab()
             else if name == "project-editor"
                 tab.onshow = () ->
@@ -803,10 +815,12 @@ class ProjectPage
                     return false
             else if name == "project-new-file"
                 tab.onshow = () ->
+                    that.editor?.hide_editor_content()
                     that.push_state('new/' + that.current_path.join('/'))
                     that.show_new_file_tab()
             else if name == "project-activity"
                 tab.onshow = () =>
+                    that.editor?.hide_editor_content()
                     that.push_state('log')
                     @render_project_activity_log()
                     if not IS_MOBILE
@@ -814,6 +828,7 @@ class ProjectPage
 
             else if name == "project-settings"
                 tab.onshow = () ->
+                    that.editor?.hide_editor_content()
                     that.push_state('settings')
                     that.update_topbar()
                     #that.update_linked_projects()
@@ -821,6 +836,7 @@ class ProjectPage
 
             else if name == "project-search"
                 tab.onshow = () ->
+                    that.editor?.hide_editor_content()
                     that.push_state('search/' + that.current_path.join('/'))
                     that.container.find(".project-search-form-input").focus()
 
@@ -1365,14 +1381,20 @@ class ProjectPage
             return false
         dialog.modal()
 
-
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: (no_focus) =>
         if @_updating_file_list_tab_LOCK
             return # already updating it
         @_updating_file_list_tab_LOCK = true
         @_update_file_list_tab no_focus, () =>
+            @_show_all_files = false
             setTimeout( (() => @_updating_file_list_tab_LOCK = false), 500 )
+
+    init_listing_show_all: () =>
+        @container.find(".project-file-listing-show_all").click () =>
+            @_show_all_files = true
+            @update_file_list_tab()
+            return false
 
     _update_file_list_tab: (no_focus, cb) =>
 
@@ -1425,7 +1447,7 @@ class ProjectPage
                 # Update the display of the path above the listing or file preview
                 @update_current_path()
 
-                if (err)
+                if err
                     #console.log("update_file_list_tab: error -- ", err)
                     if @_last_path_without_error? and @_last_path_without_error != path
                         @set_current_path(@_last_path_without_error)
@@ -1435,25 +1457,26 @@ class ProjectPage
                         @set_current_path('')
                         @_last_path_without_error = undefined # avoid any chance of infinite loop
                         @update_file_list_tab(no_focus)
-                    cb()
+                    cb?()
                     return
 
                 # remember for later
                 @_last_path_without_error = path
 
                 if not listing?
-                    cb()
+                    cb?()
                     return
 
                 # If the files haven't changed -- a VERY common case -- don't rebuild the whole listing.
                 files = misc.to_json(listing)  # use json to deep compare -- e.g., file size matters!
-                if @_update_file_list_tab_last_path == path and @_update_file_list_tab_last_path_files == files and @_update_file_sort_by_time == @_sort_by_time
-                    cb()
+                if @_update_file_list_tab_last_path == path and @_update_file_list_tab_last_path_files == files and @_update_file_sort_by_time == @_sort_by_time and @_last_show_all_files == @_show_all_files
+                    cb?()
                     return
                 else
                     @_update_file_list_tab_last_path = path
                     @_update_file_list_tab_last_path_files = files
                     @_update_file_sort_by_time = @_sort_by_time
+                    @_last_show_all_files = @_show_all_files
 
                 @_last_listing = listing
 
@@ -1540,11 +1563,18 @@ class ProjectPage
 
                 tm = misc.walltime()
 
-                masked_file_exts_bad = (key for key of masked_file_exts)
+                masked_file_exts_bad  = (key for key of masked_file_exts)
                 masked_file_exts_good = (value for key, value of masked_file_exts)
                 masked_file_bad_index = []
                 masked_file_good_name = []
+                n = 0
+                that.container.find(".project-file-listing-show_all").hide().find('span').text('')
+                search = that._file_search_box.val()
                 for obj, i in listing.files
+                    if not search and (not that._show_all_files and n >= MAX_FILE_LISTING_SIZE)
+                        that.container.find(".project-file-listing-show_all").show().find('span').text(listing.files.length - n)
+                        break
+                    n += 1
                     t = template_project_file.clone()
                     t.data(obj:obj)
                     if obj.isdir
@@ -1669,12 +1699,12 @@ class ProjectPage
                     @container.find(".project-file-listing-snapshot-warning").hide()
 
                 if no_focus? and no_focus
-                    cb(); return
+                    cb?(); return
 
                 @focus_file_search()
                 #console.log("done with everything #{misc.walltime(tm)}")
 
-                cb()
+                cb?()
 
     _init_listing_actions: (t, path, name, fullname, isdir, is_snapshot) =>
         if not fullname?
@@ -3218,8 +3248,10 @@ class ProjectPage
         ext = filename_extension(opts.path)
         @editor.open opts.path, (err, opened_path) =>
             if err
-                alert_message(type:"error", message:"Error opening '#{path}' -- #{err}", timeout:10)
+                # ga('send', 'event', 'file', 'open', 'error', opts.path, {'nonInteraction': 1})
+                alert_message(type:"error", message:"Error opening '#{opts.path}' -- #{misc.to_json(err)}", timeout:10)
             else
+                # ga('send', 'event', 'file', 'open', 'success', opts.path, {'nonInteraction': 1})
                 if opts.foreground
                     @display_tab("project-editor")
                 @editor.display_tab(path:opened_path, foreground:opts.foreground)

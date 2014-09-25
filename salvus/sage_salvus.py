@@ -2222,7 +2222,11 @@ def show(obj, svg=True, **kwds):
 
        - display: (default: True); if true use display math for expression (big and centered).
 
-       - svg: (default: True); if True, render graphics using svg.
+       - svg: (default: True); if True, render graphics using svg (otherwise use png)
+
+       - renderer: (default: 'webgl'); for 3d graphics, try to use 'webgl' (faster); otherwise use 'canvas2d' (slower)
+
+       - spin: (default: False); spins 3d plot, with number determining speed (requires webgl and mouse over plot)
 
        - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
@@ -2262,7 +2266,8 @@ def show(obj, svg=True, **kwds):
         if kwds.get('viewer') == 'tachyon':
             show_3d_plot_using_tachyon(obj, **kwds)
         else:
-            graphics.show_3d_plot_using_threejs(obj, **kwds)
+            salvus.threed(obj, **kwds)
+            # graphics.show_3d_plot_using_threejs(obj, **kwds)
     else:
         if 'display' not in kwds:
             kwds['display'] = True

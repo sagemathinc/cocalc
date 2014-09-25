@@ -1,5 +1,5 @@
 ###############################################################################
-# Copyright (c) 2013, William Stein
+# Copyright (c) 2013, 2014 by William Stein
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,12 +25,22 @@
 
 
 
-import json
+import json, math
+import sage_salvus
+
 from uuid import uuid4
 def uuid():
     return str(uuid4())
-import sage_salvus
 
+def json_float(t):
+    if t is None:
+        return t
+    t = float(t)
+    # Neither of nan or inf get JSON'd in a way that works properly, for some reason.  I don't understand why.
+    if math.isnan(t) or math.isinf(t):
+        return None
+    else:
+        return t
 
 #######################################################
 # Three.js based plotting
@@ -40,7 +50,10 @@ noneint = lambda n : n if n is None else int(n)
 
 class ThreeJS(object):
     def __init__(self, renderer=None, width=None, height=None,
-                 frame=True, camera_distance=10.0, background=None, foreground=None, **ignored):
+                 frame=True, background=None, foreground=None,
+                 spin=False, viewer=None, aspect_ratio=None,
+                 frame_aspect_ratio = None,
+                 **ignored):
         """
         INPUT:
 
@@ -48,77 +61,108 @@ class ThreeJS(object):
         - width    -- None (automatic) or an integer
         - height   -- None (automatic) or an integer
         - frame    -- bool (default: True); draw a frame that includes every object.
-        - camera_distance -- float (default: 10); default camera distance.
         - background -- None (transparent); otherwise a color such as 'black' or 'white'
         - foreground -- None (automatic = black if transparent; otherwise opposite of background);
            or a color; this is used for drawing the frame and axes labels.
+        - spin -- False; if True, spins 3d plot, with number determining speed (requires webgl and mouse over plot)
+        - aspect_ratio -- None (square) or a triple [x,y,z] so that everything is scaled by x,y,z.
+
+        - frame_aspect_ratio -- synonym for aspect_ratio
+        - viewer -- synonym for renderer
         """
+        if viewer is not None and renderer is None:
+            renderer = viewer
+        if renderer not in [None, 'webgl', 'canvas', 'canvas2d']:
+            raise ValueError("unknown renderer='%s'; it must be None, webgl, or canvas2d"%renderer)
         self._frame    = frame
         self._salvus   = sage_salvus.salvus  # object for this cell
         self._id       = uuid()
-        self._selector = "$('#%s')"%self._id
-        self._obj      = "%s.data('salvus-threejs')"%self._selector
-        self._salvus.html("<div id=%s style='border:1px solid grey'></div>"%self._id)
-        self._salvus.javascript("%s.salvus_threejs(obj)"%self._selector, once=False,
-                                obj={'renderer':renderer,
-                                     'width':noneint(width),
-                                     'height':noneint(height),
-                                     'camera_distance':float(camera_distance),
-                                     'background':background,
-                                     'foreground':foreground
+        self._selector = "#%s"%self._id
+        self._obj      = "$('%s').data('salvus-threejs')"%self._selector
+        self._salvus.html("<span id=%s class='salvus-3d-container'></span>"%self._id)
+        if not isinstance(spin, bool):
+            spin = json_float(spin)
+        if frame_aspect_ratio is not None:
+            aspect_ratio = frame_aspect_ratio
+        if aspect_ratio is not None:
+            if aspect_ratio == 1:
+                aspect_ratio = None
+            elif not (isinstance(aspect_ratio, (list, tuple)) and len(aspect_ratio) == 3):
+                raise TypeError("aspect_ratio must be None, 1 or a 3-tuple ")
+            else:
+                aspect_ratio = [json_float(x) for x in aspect_ratio]
+        self._salvus.javascript("$('%s').salvus_threejs(obj)"%self._selector,
+                                once = False,
+                                obj  = {
+                                     'renderer'        : renderer,
+                                     'width'           : noneint(width),
+                                     'height'          : noneint(height),
+                                     'background'      : background,
+                                     'foreground'      : foreground,
+                                     'spin'            : spin,
+                                     'aspect_ratio'    : aspect_ratio
                                      })
         self._graphics = []
+        self._call('init()')
 
     def _call(self, s, obj=None):
         cmd = 'misc.eval_until_defined({code:"%s", cb:(function(err, __t__) { __t__ != null ? __t__.%s:void 0 })})'%(
                 self._obj, s)
         self._salvus.execute_javascript(cmd, obj=obj)
 
+    def bounding_box(self):
+        if not self._graphics:
+            return -1,1,-1,1,-1,1
+        b = self._graphics[0].bounding_box()
+        xmin, xmax, ymin, ymax, zmin, zmax = b[0][0], b[1][0], b[0][1], b[1][1], b[0][2], b[1][2]
+        for g in self._graphics[1:]:
+            b = g.bounding_box()
+            xmin, xmax, ymin, ymax, zmin, zmax = (
+                  min(xmin,b[0][0]), max(b[1][0],xmax),
+                  min(b[0][1],ymin), max(b[1][1],ymax),
+                  min(b[0][2],zmin), max(b[1][2],zmax))
+        v = xmin, xmax, ymin, ymax, zmin, zmax
+        return [json_float(x) for x in v]
+
+    def frame_options(self):
+        xmin, xmax, ymin, ymax, zmin, zmax = self.bounding_box()
+        return {'xmin':xmin, 'xmax':xmax, 'ymin':ymin, 'ymax':ymax, 'zmin':zmin, 'zmax':zmax,
+                'draw' : self._frame}
+
     def add(self, graphics3d, **kwds):
         kwds = graphics3d._process_viewing_options(kwds)
-        self._frame = kwds.get('frame',False)
         self._graphics.append(graphics3d)
-        self._call('add_3dgraphics_obj(obj)', obj={'obj':graphics3d_to_jsonable(graphics3d), 'wireframe':jsonable(kwds.get('wireframe'))})
-        self.set_frame(draw = self._frame)  # update the frame
+        obj = {'obj'       : graphics3d_to_jsonable(graphics3d),
+               'wireframe' : jsonable(kwds.get('wireframe')),
+               'set_frame' : self.frame_options()}
+        self._call('add_3dgraphics_obj(obj)', obj=obj)
 
     def render_scene(self, force=True):
         self._call('render_scene(obj)', obj={'force':force})
 
     def add_text(self, pos, text, fontsize=18, fontface='Arial', sprite_alignment='topLeft'):
         self._call('add_text(obj)',
-                   obj={'pos':[float(pos[0]), float(pos[1]), float(pos[2])],'text':str(text),
+                   obj={'pos':[json_float(pos[0]), json_float(pos[1]), json_float(pos[2])],'text':str(text),
                         'fontsize':int(fontsize),'fontface':str(fontface), 'sprite_alignment':str(sprite_alignment)})
 
     def animate(self, fps=None, stop=None, mouseover=True):
         self._call('animate(obj)', obj={'fps':noneint(fps), 'stop':stop, 'mouseover':mouseover})
 
-    def set_frame(self, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None, color=None, draw=True):
-        if not self._graphics:
-            xmin, xmax, ymin, ymax, zmin, zmax = -1,1,-1,1,-1,1
-        else:
-            b = self._graphics[0].bounding_box()
-            xmin, xmax, ymin, ymax, zmin, zmax = b[0][0], b[1][0], b[0][1], b[1][1], b[0][2], b[1][2]
-            for g in self._graphics[1:]:
-                b = g.bounding_box()
-                xmin, xmax, ymin, ymax, zmin, zmax = (
-                      min(xmin,b[0][0]), max(b[1][0],xmax),
-                      min(b[0][1],ymin), max(b[1][1],ymax),
-                      min(b[0][2],zmin), max(b[1][2],zmax))
-
-        self._call('set_frame(obj)', obj={
-                      'xmin':float(xmin), 'xmax':float(xmax),
-                      'ymin':float(ymin), 'ymax':float(ymax),
-                      'zmin':float(zmin), 'zmax':float(zmax), 'color':color, 'draw':draw})
+    def init_done(self):
+        self._call('init_done()')
 
 def show_3d_plot_using_threejs(g, **kwds):
-    b = g.bounding_box()
-    if 'camera_distance' not in kwds:
-        kwds['camera_distance'] = 2 * max([abs(x) for x in list(b[0])+list(b[1])])
+    for k in ['spin', 'renderer', 'viewer', 'frame', 'height', 'width', 'background', 'foreground', 'aspect_ratio']:
+        extra_kwds = {} if g._extra_kwds is None else g._extra_kwds
+        if k in extra_kwds and k not in kwds:
+            kwds[k] = g._extra_kwds[k]
+    if 'camera_distance' in kwds:
+        del kwds['camera_distance'] # deprecated
     t = ThreeJS(**kwds)
-    t.set_frame(b[0][0],b[1][0],b[0][1],b[1][1],b[0][2],b[1][2],draw=False)
     t.add(g, **kwds)
-    t.animate()
-    return t
+    if kwds.get('spin', False):
+        t.animate(mouseover=False)
+    t.init_done()
 
 import sage.plot.plot3d.index_face_set
 import sage.plot.plot3d.shapes
@@ -128,7 +172,7 @@ from sage.structure.element import Element
 
 def jsonable(x):
     if isinstance(x, Element):
-        return float(x)
+        return json_float(x)
     return x
 
 def graphics3d_to_jsonable(p):
@@ -157,13 +201,13 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 face_num = len(tmp.split())
                 for t in tmp.split():
-                    if(face_num ==4):
+                    if face_num == 4:
                         try:
                             face3.append(int(t))
                         except ValueError:
                             pass
 
-                    elif(face_num ==6):
+                    elif face_num == 6:
                         try:
                             face5.append(int(t))
                         except ValueError:
@@ -236,7 +280,7 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 for t in tmp.split():
                     try:
-                        ambient.append(float(t))
+                        ambient.append(json_float(t))
                     except ValueError:
                         pass
 
@@ -244,7 +288,7 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 for t in tmp.split():
                     try:
-                        specular.append(float(t))
+                        specular.append(json_float(t))
                     except ValueError:
                         pass
 
@@ -252,7 +296,7 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 for t in tmp.split():
                     try:
-                        diffuse.append(float(t))
+                        diffuse.append(json_float(t))
                     except ValueError:
                         pass
 
@@ -260,7 +304,7 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 for t in tmp.split():
                     try:
-                        illum_list.append(float(t))
+                        illum_list.append(json_float(t))
                     except ValueError:
                         pass
 
@@ -270,7 +314,7 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 for t in tmp.split():
                     try:
-                        shininess_list.append(float(t))
+                        shininess_list.append(json_float(t))
                     except ValueError:
                         pass
 
@@ -278,7 +322,7 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 for t in tmp.split():
                     try:
-                        opacity_diffuse.append(float(t))
+                        opacity_diffuse.append(json_float(t))
                     except ValueError:
                         pass
 
@@ -310,7 +354,7 @@ def graphics3d_to_jsonable(p):
                 tmp = str(item.strip())
                 for t in tmp.split():
                     try:
-                        vertex_geometry.append(float(t))
+                        vertex_geometry.append(json_float(t))
                     except ValueError:
                         pass
         myobj = {"face_geometry":face_geometry,"type":'index_face_set',"vertex_geometry":vertex_geometry,"material":material}
@@ -342,16 +386,29 @@ def graphics3d_to_jsonable(p):
         obj_list.append(myobj)
 
     def convert_line(p):
+        if isinstance(p, sage.plot.plot3d.base.TransformGroup):
+            # converting a transformed line
+            assert len(p.all) == 1, "not implemented"
+            g = p.all[0]
+            points = g.points
+            # apply transformation
+            T = p.get_transformation()
+            points = [T.transform_point(point) for point in points]
+        else:
+            # a regular line (not transformed)
+            points = p.points
+            g = p
+
         obj_list.append({"type"       : "line",
-                         "points"     : p.points,
-                         "thickness"  : jsonable(p.thickness),
-                         "color"      : "#" + p.get_texture().hex_rgb(),
-                         "arrow_head" : bool(p.arrow_head)})
+                         "points"     : points,
+                         "thickness"  : jsonable(g.thickness),
+                         "color"      : "#" + g.get_texture().hex_rgb(),
+                         "arrow_head" : bool(g.arrow_head)})
 
     def convert_point(p):
         obj_list.append({"type" : "point",
                          "loc"  : p.loc,
-                         "size" : float(p.size),
+                         "size" : json_float(p.size),
                          "color" : "#" + p.get_texture().hex_rgb()})
 
     def convert_combination(p):

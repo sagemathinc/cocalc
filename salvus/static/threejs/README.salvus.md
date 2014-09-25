@@ -1,2 +1,1 @@
-The r59/TrackballControls.js works fine -- but the current one from master is broken.
-So for now we use r59.
+* I modified OrbitControls.js to be more mac-friendly; in particular alt/command + mouse = pan.

@@ -197,3 +197,27 @@ input[type="text"], select {
     margin-top: 4px;
     margin-bottom: 4px;
 }
+
+
+/* Make math visible even when there is a dark background.  Since mathjax is always black, this
+   helps a lot.  Obviously, it isn't perfect, but it is better than USELESS. '*/
+.MathJax_SVG_Display {
+    background: white;
+}
+
+
+/* From http://stackoverflow.com/questions/13955163/imitating-a-blink-tag-with-css3-animations */
+
+.blink {
+  animation: blink 1s steps(5, start) infinite;
+  -webkit-animation: blink 1s steps(5, start) infinite;
+}
+@keyframes blink {
+  to { visibility: hidden; }
+}
+@-webkit-keyframes blink {
+  to { visibility: hidden; }
+}
+
+
+

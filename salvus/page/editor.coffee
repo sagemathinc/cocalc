@@ -1,6 +1,5 @@
 ##################################################
 # Editor for files in a project
-##################################################
 
 # Show button labels if there are at most this many file tabs opened.
 # This is in exports so that an elite user could customize this by doing, e.g.,
@@ -306,11 +305,6 @@ class exports.Editor
         @tabs = {}   # filename:{useful stuff}
 
         @init_openfile_search()
-        @init_close_all_tabs_button()
-
-        @element.find("a[href=#save-all]").click () =>
-            @save()
-            return false
 
         if opts.initial_files?
             for filename in opts.initial_files
@@ -359,7 +353,8 @@ class exports.Editor
         if salvus_client.in_fullscreen_mode()
             return 0
         else
-            return @element.find(".salvus-editor-content").position().top
+            e = @project_page.container
+            return e.position().top + e.height()
 
     refresh: () =>
         @_window_resize_while_editing()
@@ -369,28 +364,6 @@ class exports.Editor
         if not @active_tab? or not @_editor_content_visible
             return
         @active_tab.editor().show()
-
-    # This really closes the "recent files" page.  The name is confusing
-    # due to partial refactor of code (i.e., historical reasons).
-    init_close_all_tabs_button: () =>
-        @element.find("a[href=#close-all-tabs]").click () =>
-            undo = @element.find("a[href=#undo-close-all-tabs]")
-            if not undo.data('files')?
-                undo.data('files', [])
-            v = undo.data('files')
-            for filename, tab of @tabs
-                if tab.link.is(":visible")
-                    @remove_from_recent(filename)
-                    if filename not in v
-                        v.push(filename)
-            undo.show().click () =>
-                undo.hide()
-                for filename in undo.data('files')
-                    @tabs[filename]?.link.show()
-                return false
-            setTimeout((() => undo.hide()), 60000)
-
-            return false
 
     init_openfile_search: () =>
         search_box = @element.find(".salvus-editor-search-openfiles-input")
@@ -531,8 +504,6 @@ class exports.Editor
         extra_opts = copy(opts0.opts)
         if opts.session_uuid?
             extra_opts.session_uuid = opts.session_uuid
-
-        local_storage(@project_id, filename, "auto_open", true)
 
         link = templates.find(".salvus-editor-filename-pill").clone().show()
         link_filename = link.find(".salvus-editor-tab-filename")
@@ -823,8 +794,6 @@ class exports.Editor
         @update_counter()
 
     remove_from_recent: (filename) =>
-        # Do not show this file in "recent" next time.
-        local_storage_delete(@project_id, filename, "auto_open")
         # Hide from the DOM.
         # This same tab object also stores the top tab and editor, so we don't just delete it.
         @tabs[filename]?.link.hide()
@@ -855,10 +824,6 @@ class exports.Editor
     warn_user: (filename, cb) =>
         cb(true)
 
-    hide_recent_file_list: () =>
-        $(".salvus-editor-recent-files").hide()
-        $(".project-editor-recent-files-header").hide()
-
     # Make the tab appear in the tabs at the top, and if foreground=true, also make that tab active.
     display_tab: (opts) =>
         opts = defaults opts,
@@ -870,8 +835,8 @@ class exports.Editor
             return
 
         if opts.foreground
+            @_active_tab_filename = filename
             @push_state('files/' + opts.path)
-            @hide_recent_file_list()
             @show_editor_content()
 
         prev_active_tab = @active_tab
@@ -882,8 +847,7 @@ class exports.Editor
 
                 if opts.foreground
                     ed.show()
-                    setTimeout((() -> ed.show(); ed.focus()), 100)
-                    #@element.find(".btn-group").children().removeClass('disabled')
+                    ed.focus()
 
                 top_link = @active_tab.open_file_pill
                 if top_link?
@@ -982,6 +946,9 @@ class FileEditor extends EventEmitter
     constructor: (@editor, @filename, content, opts) ->
         @val(content)
 
+    is_active: () =>
+        return @editor._active_tab_filename == @filename
+
     init_autosave: () =>
         if @_autosave_interval?
             # This function can safely be called again to *adjust* the
@@ -1044,7 +1011,9 @@ class FileEditor extends EventEmitter
     local_storage: (key, value) =>
         return local_storage(@editor.project_id, @filename, key, value)
 
-    show: () =>
+    show: (opts={}) =>
+        if not @is_active()
+            return
         @element.show()
 
     hide: () =>
@@ -1232,10 +1201,12 @@ class CodeMirrorEditor extends FileEditor
 
 
         @codemirror = make_editor(elt[0])
+        @codemirror.name = '0'
 
         elt1 = @element.find(".salvus-editor-codemirror-input-box-1").find("textarea")
 
         @codemirror1 = make_editor(elt1[0])
+        @codemirror1.name = '1'
 
         buf = @codemirror.linkedDoc({sharedHist: true})
         @codemirror1.swapDoc(buf)
@@ -1247,9 +1218,14 @@ class CodeMirrorEditor extends FileEditor
         @codemirror1.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror1
 
-        @_split_view = false
+        @_split_view = @local_storage("split_view")
+        if not @_split_view?
+            @_split_view = false
 
         @init_change_event()
+
+    is_active: () =>
+        return @codemirror? and @editor? and @editor._active_tab_filename == @filename
 
     set_theme: (theme) =>
         # Change the editor theme after the editor has been created
@@ -1371,6 +1347,7 @@ class CodeMirrorEditor extends FileEditor
 
     toggle_split_view: (cm) =>
         @_split_view = not @_split_view
+        @local_storage("split_view", @_split_view)  # store state so can restore same on next open
         @show()
         @focus()
         cm.focus()
@@ -1415,7 +1392,7 @@ class CodeMirrorEditor extends FileEditor
                 dialog.modal('hide')
                 return false
 
-
+    # TODO: this "print" is actually for printing Sage worksheets, not arbitrary files.
     print: () =>
         dialog = templates.find(".salvus-file-print-dialog").clone()
         p = misc.path_split(@filename)
@@ -1426,59 +1403,34 @@ class CodeMirrorEditor extends FileEditor
         else
             ext = v[v.length-1]
             base = v.slice(0,v.length-1).join('.')
-
         if ext != 'sagews'
             alert_message(type:'info', message:'Only printing of Sage Worksheets is currently implemented.')
             return
 
-        #console.log("p=",p)
-        #console.log("base=",base)
-        #console.log("ext=",ext)
         submit = () =>
-            tmp = undefined
-            pdf = undefined
             dialog.find(".salvus-file-printing-progress").show()
             dialog.find(".salvus-file-printing-link").hide()
             dialog.find(".btn-submit").icon_spin(start:true)
+            pdf = undefined
             async.series([
-                (cb) =>
-                    tmp_dir
-                        ttl        : 60
-                        path       : "/tmp"
-                        project_id : @project_id
-                        cb         : (err, _tmp) =>
-                            if err
-                                cb(err)
-                            else
-                                tmp = "/tmp/" + _tmp
-                                pdf = tmp + '/' + base + '.pdf'
-                                #console.log("tmp=",tmp)
-                                #console.log("pdf=",pdf)
-                                cb()
                 (cb) =>
                     @save(cb)
                 (cb) =>
-                    salvus_client.exec
+                    salvus_client.print_to_pdf
                         project_id  : @project_id
-                        path        : p.head
-                        command     : 'sagews2pdf.py'
-                        args        : [p.tail, '--outfile',  pdf,
-                                               '--title',    dialog.find(".salvus-file-print-title").text(),
-                                               '--author',   dialog.find(".salvus-file-print-author").text(),
-                                               '--date',     dialog.find(".salvus-file-print-date").text(),
-                                               '--contents', dialog.find(".salvus-file-print-contents").is(":checked")]
-                        timeout     : 60*5  # link will be valid for 5 minutes
-                        err_on_exit : false
-                        bash        : false
-                        cb          : (err, output) =>
-                            #console.log(output)
+                        path        : @filename
+                        options     :
+                            title      : dialog.find(".salvus-file-print-title").text()
+                            author     : dialog.find(".salvus-file-print-author").text()
+                            date       : dialog.find(".salvus-file-print-date").text()
+                            contents   : dialog.find(".salvus-file-print-contents").is(":checked")
+                            extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
+                        cb          : (err, _pdf) =>
                             if err
                                 cb(err)
                             else
-                                if output.exit_code
-                                    cb(output.stderr)
-                                else
-                                    cb()
+                                pdf = _pdf
+                                cb()
                 (cb) =>
                     salvus_client.read_file_from_project
                         project_id : @project_id
@@ -1494,7 +1446,7 @@ class CodeMirrorEditor extends FileEditor
                 dialog.find(".btn-submit").icon_spin(false)
                 dialog.find(".salvus-file-printing-progress").hide()
                 if err
-                    alert_message(type:"error", message:"problem printing '#{p.tail}' -- #{err}")
+                    alert_message(type:"error", message:"problem printing '#{p.tail}' -- #{misc.to_json(err)}")
             )
             return false
 
@@ -1559,15 +1511,28 @@ class CodeMirrorEditor extends FileEditor
         {from} = @codemirror.getViewport()
         @codemirror.setValue(content)
         @codemirror.scrollIntoView(from)
-        # even better, if available
-        @restore_cursor_position()
+        # even better -- fully restore cursors, if available in localStorage
+        setTimeout((()=>@restore_cursor_position()),1)  # do in next round, so that both editors get set by codemirror first (including the linked one)
 
     restore_cursor_position: () =>
-        pos = @local_storage("cursor")
-        if pos?
-            @set_cursor_center_focus(pos)
+        for i, cm of [@codemirror, @codemirror1]
+            if cm?
+                pos = @local_storage("cursor#{i}")
+                if pos?
+                    cm.setCursor(pos)
+                    #console.log("#{@filename}: setting view #{cm.name} to cursor pos -- #{misc.to_json(pos)}")
+                    info = cm.getScrollInfo()
+                    try
+                        cm.scrollIntoView(pos, info.clientHeight/2)
+                    catch e
+                        #console.log("#{@filename}: failed to scroll view #{cm.name} into view -- #{e}")
 
-    _style_active_line: (rgb) =>
+
+    # set background color of active line in editor based on background color (which depends on the theme)
+    _style_active_line: () =>
+        if not @opts.style_active_line
+            return
+        rgb = $(@codemirror.getWrapperElement()).css('background-color')
         v = (parseInt(x) for x in rgb.slice(4,rgb.length-1).split(','))
         amount = @opts.style_active_line
         for i in [0..2]
@@ -1575,60 +1540,56 @@ class CodeMirrorEditor extends FileEditor
                 v[i] -= amount
             else
                 v[i] += amount
-        $("body").append("<style type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
+        $("body").remove("#salvus-cm-activeline")
+        $("body").append("<style id='salvus-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
 
     show: () =>
-        if not (@element? and @codemirror?)
+        if not @is_active()
             return
 
-        if @syncdoc?
-            @syncdoc.sync()
-
+        # Show gets called repeatedly as we resize the window, so we wait until slightly *after*
+        # the last call before doing the show.
+        now = misc.mswalltime()
+        if @_last_call? and now - @_last_call < 500
+            if not @_show_timer?
+                @_show_timer = setTimeout((()=>delete @_show_timer; @show()), now - @_last_call)
+            return
+        @_last_call = now
         @element.show()
-        window.codemirror = @codemirror
+        @_show()
 
-        if @opts.style_active_line
-            @_style_active_line($(@codemirror.getWrapperElement()).css('background-color'))
 
+    # hide/show the second linked codemirror editor, depending on whether or not it's enabled
+    _show_extra_codemirror_view: () =>
         if @_split_view
             $(@codemirror1.getWrapperElement()).show()
         else
             $(@codemirror1.getWrapperElement()).hide()
 
-        height = $(window).height()
-
-        top = @editor.editor_top_position()
-        elem_height = height - top - 5
-
-        button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
-        font_height = @codemirror.defaultTextHeight()
-
-        cm_height = Math.floor((elem_height - button_bar_height)/font_height) * font_height
-
-        @element.css(top:top, left:0)
-        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height)
-
-        @element.height(elem_height).show()
-        @element.show()
-
-        chat = @_chat_is_hidden? and not @_chat_is_hidden
-        if chat
-            width = @element.find(".salvus-editor-codemirror-chat-column").offset().left
-        else
-            width = $(window).width()
-
-        if @opts.geometry? and @opts.geometry == 'left half'
-            @empty_space = {start: width/2, end:width, top:top+button_bar_height}
-            width = width/2
+    _show_codemirror_editors: (height, width) =>
+        # console.log("_show_codemirror_editors: #{width} x #{height}")
+        # in case of more than one view on the document...
+        @_show_extra_codemirror_view()
 
         if @_split_view
             v = [@codemirror, @codemirror1]
-            ht = cm_height/2
+            ht = height/2
         else
             v = [@codemirror]
-            ht = cm_height
+            ht = height
 
-        #console.log("refreshing cm editors -- #{@filename} -- #{new Date()}")
+        # need to do this since theme may have changed
+        # @_style_active_line()
+
+        # CRAZY HACK: add and remove an HTML element to the DOM.
+        # I don't know why this works, but it gets around a *massive bug*, where after
+        # aggressive resizing, the codemirror editor gets all corrupted. For some reason,
+        # doing this always causes things to get properly fixed.  I don't know why.
+        hack = $("<div>")
+        $("body").append(hack)
+        setTimeout((()=>hack.remove()),1)
+
+
         for cm in v
             scroller = $(cm.getScrollerElement())
             scroller.css('height':ht)
@@ -1636,24 +1597,57 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : ht
                 width  : width
-            setTimeout((()=>cm.refresh()), 0)
-            setTimeout((()=>cm.refresh()), 3000)
-            if not window.cm?
-                window.cm = []
-            window.cm.push(cm)
+            cm.refresh()
+
+        @emit('show', ht)
+
+
+    _show: () =>
+
+        # show the element that contains this editor
+        @element.show()
+        # do size computations: determine height and width of the codemirror editor(s)
+        top               = @editor.editor_top_position()
+        height            = $(window).height()
+        elem_height       = height - top - 5
+        button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
+        font_height       = @codemirror.defaultTextHeight()
+        chat              = @_chat_is_hidden? and not @_chat_is_hidden
+        # width of codemirror editors
+        if chat
+            width         = @element.find(".salvus-editor-codemirror-chat-column").offset().left
+        else
+            width         = $(window).width()
+
+        if @opts.geometry? and @opts.geometry == 'left half'
+            @empty_space  = {start: width/2, end:width, top:top+button_bar_height}
+            width         = width/2
+
+        # height of codemirror editors
+        cm_height         = Math.floor((elem_height - button_bar_height)/font_height) * font_height
+
+        # position the editor element on the screen
+        @element.css(top:top, left:0)
+        # and position the chat column
+        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height)
+
+        # set overall height of the element
+        @element.height(elem_height)
+
+        # show the codemirror editors, resizing as needed
+        @_show_codemirror_editors(cm_height, width)
 
         if chat
             chat_elt = @element.find(".salvus-editor-codemirror-chat")
             chat_elt.height(cm_height)
 
-            chat_output = chat_elt.find(".salvus-editor-codemirror-chat-output")
-
-            chat_input = chat_elt.find(".salvus-editor-codemirror-chat-input")
+            chat_output    = chat_elt.find(".salvus-editor-codemirror-chat-output")
+            chat_input     = chat_elt.find(".salvus-editor-codemirror-chat-input")
             chat_input_top = $(window).height()-chat_input.height() - 15
+
             chat_input.offset({top:chat_input_top})
             chat_output.height(chat_input_top - top - 41)
 
-        @emit 'show', ht
 
     focus: () =>
         if not @codemirror?
@@ -2188,6 +2182,7 @@ class PDF_Preview extends FileEditor
         @_first_output = true
         @_needs_update = true
 
+
     zoom: (opts) =>
         opts = defaults opts,
             delta : undefined
@@ -2461,6 +2456,8 @@ class PDF_Preview extends FileEditor
             top    : undefined
             width  : $(window).width()
             height : undefined
+        if not @is_active()
+            return
 
         @element.show()
 
@@ -2504,6 +2501,10 @@ class PDF_PreviewEmbed extends FileEditor
             @update()
             return false
 
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
+
     focus: () =>
 
     update: (cb) =>
@@ -2544,6 +2545,8 @@ class PDF_PreviewEmbed extends FileEditor
             height : undefined
 
         @element.show()
+        if not geometry.top?
+            @element.css(top:@editor.editor_top_position())
 
         if geometry.height?
             @element.height(geometry.height)
@@ -2712,6 +2715,8 @@ class HistoryEditor extends FileEditor
             @worksheet.process_sage_updates()
 
     show: () =>
+        if not @is_active()
+            return
         @element?.show()
         @history_editor?.show()
         if @ext == 'sagews'
@@ -3027,6 +3032,9 @@ class LatexEditor extends FileEditor
         @latex_editor._set(content)
 
     show: () =>
+        if not @is_active()
+            return
+
         @element?.show()
         @latex_editor?.show()
         if not @_show_before?
@@ -3391,14 +3399,14 @@ class Terminal extends FileEditor
         @console?.focus()
 
     terminate_session: () =>
-        #@console?.terminate_session()
-        @local_storage("auto_open", false)
 
     remove: () =>
         @element.salvus_console(false)
         @element.remove()
 
     show: () =>
+        if not @is_active()
+            return
         @element.show()
         if @console?
             e = $(@console.terminal.element)
@@ -3523,6 +3531,8 @@ class Worksheet extends FileEditor
             @worksheet?.focus()
 
     show: () =>
+        if not @is_active()
+            return
         if not @worksheet?
             return
         @element.show()
@@ -3614,6 +3624,8 @@ class Image extends FileEditor
                     cb?()
 
     show: () =>
+        if not @is_active()
+            return
         @element.show()
         @element.css(top:@editor.editor_top_position())
         @element.maxheight()
@@ -3676,7 +3688,7 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             cb         : (err, output) =>
                 cb?(err)
 
-# Download a remote URL, possibly retrying repeatedly with exponetial backoff
+# Download a remote URL, possibly retrying repeatedly with exponential backoff
 # on the timeout.
 # If the downlaod URL contains bad_string (default: 'ECONNREFUSED'), also retry.
 get_with_retry = (opts) ->
@@ -3794,13 +3806,28 @@ class IPythonNotebook extends FileEditor
             (cb) =>
                 @status("Ensuring synchronization file exists")
                 @editor.project_page.ensure_file_exists
-                    path : @syncdoc_filename
-                    cb   : cb
+                    path  : @syncdoc_filename
+                    alert : false
+                    cb    : (err) =>
+                        if err
+                            # unable to create syncdoc file -- open in non-sync read-only mode.
+                            @readonly = true
+                        else
+                            @readonly = false
+                        #console.log("ipython: readonly=#{@readonly}")
+                        cb()
             (cb) =>
                 @initialize(cb)
             (cb) =>
-                @_init_doc(cb)
-                @init_autosave()
+                if @readonly
+                    # TODO -- change UI to say *READONLY*
+                    @iframe.css(opacity:1)
+                    @save_button.text('Readonly').addClass('disabled')
+                    @show()
+                    cb()
+                else
+                    @_init_doc(cb)
+                    @init_autosave()
         ], (err) =>
             @con.show().icon_spin(false).hide()
             @_setting_up = false
@@ -3819,7 +3846,8 @@ class IPythonNotebook extends FileEditor
             # already initialized
             @doc.sync () =>
                 @set_live_from_syncdoc()
-                @iframe.animate(opacity:1)
+                @iframe.css(opacity:1)
+                @show()
                 cb?()
             return
         @doc = syncdoc.synchronized_string
@@ -3846,7 +3874,8 @@ class IPythonNotebook extends FileEditor
         else
             @set_live_from_syncdoc()
         #console.log("DONE SETTING!")
-        @iframe.animate(opacity:1)
+        @iframe.css(opacity:1)
+        @show()
 
         @doc._presync = () =>
             if not @nb? or @_reloading
@@ -3933,8 +3962,8 @@ class IPythonNotebook extends FileEditor
 
 
     broadcast_cursor_pos: () =>
-        if not @nb?
-            # no point -- reloading or loading
+        if not @nb? or @readonly
+            # no point -- reloading or loading or read-only
             return
         index = @nb.get_selected_index()
         cell  = @nb.get_cell(index)
@@ -4050,6 +4079,9 @@ class IPythonNotebook extends FileEditor
                             @nb._save_checkpoint = @nb.save_checkpoint
                             @nb.save_checkpoint = @save
 
+                            if @readonly
+                                @frame.$("#save_widget").append($("<b style='background: red;color: white;padding-left: 1ex; padding-right: 1ex;'>This is a READONLY document that can't be saved.</b>"))
+
                             # Ipython doesn't consider a load (e.g., snapshot restore) "dirty" (for obvious reasons!)
                             @nb._load_notebook_success = @nb.load_notebook_success
                             @nb.load_notebook_success = (data,status,xhr) =>
@@ -4086,6 +4118,8 @@ class IPythonNotebook extends FileEditor
                             @reload() # -- only thing we can do, really
 
     autosync: () =>
+        if @readonly
+            return
         @check_for_moved_server()  # only bother if document being changed.
         if @frame?.IPython?.notebook?.dirty and not @_reloading
             #console.log("causing sync")
@@ -4094,6 +4128,8 @@ class IPythonNotebook extends FileEditor
             @nb.dirty = false
 
     sync: () =>
+        if @readonly
+            return
         @save_button.icon_spin(start:true,delay:1000)
         @doc.sync () =>
             @save_button.icon_spin(false)
@@ -4102,7 +4138,7 @@ class IPythonNotebook extends FileEditor
         return not @save_button.hasClass('disabled')
 
     save: (cb) =>
-        if not @nb?
+        if not @nb? or @readonly
             cb?(); return
         @save_button.icon_spin(start:true, delay:1000)
         @nb._save_checkpoint?()
@@ -4397,15 +4433,17 @@ class IPythonNotebook extends FileEditor
         # console.log("ipython notebook focus: todo")
 
     show: () =>
+        if not @is_active()
+            return
         @element.show()
         top = @editor.editor_top_position()
         @element.css(top:top)
         if top == 0
             @element.css('position':'fixed')
         w = $(window).width()
+        # console.log("top=#{top}; setting maxheight for iframe =", @iframe)
         @iframe?.attr('width',w).maxheight()
-
-
+        setTimeout((()=>@iframe?.maxheight()), 1)   # set it one time more the next render loop.
 
 class FileEditorWrapper extends FileEditor
     constructor: (@editor, @filename) ->
@@ -4438,6 +4476,8 @@ class FileEditorWrapper extends FileEditor
         @wrapped.destroy?()
 
     show: () =>
+        if not @is_active()
+            return
         @element.show()
         if not IS_MOBILE
             @element.css(top:@editor.editor_top_position(), position:'fixed')

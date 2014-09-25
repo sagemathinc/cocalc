@@ -246,7 +246,7 @@ $("#create_account-button").click (event) ->
                         template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
                     ).popover("show").focus( () -> $(@).popover("destroy"))
             when "signed_in"
-                _gaq.push(['_trackEvent', 'account', 'create_account'])  # custom google analytic event -- user created an account
+                ga('send', 'event', 'account', 'create_account')    # custom google analytic event -- user created an account
                 alert_message(type:"success", message: "Account created!  You are now signed in as #{mesg.first_name} #{mesg.last_name}.")
                 signed_in(mesg)
             else
@@ -316,7 +316,7 @@ sign_in = () ->
 first_login = true
 hub = undefined
 signed_in = (mesg) ->
-    _gaq.push(['_trackEvent', 'account', 'signed_in'])  # custom google analytic event -- user signed in
+    ga('send', 'event', 'account', 'signed_in')    # custom google analytic event -- user signed in
     # Record which hub we're connected to.
     hub = mesg.hub
 
@@ -365,7 +365,7 @@ salvus_client.on("signed_in", signed_in)
 ################################################
 sign_out = () ->
 
-    _gaq.push(['_trackEvent', 'account', 'sign_out'])  # custom google analytic event -- user explicitly signed out.
+    ga('send', 'event', 'account', 'sign_out')    # custom google analytic event -- user explicitly signed out.
 
     # require('worksheet1').close_scratch_worksheet()
 
@@ -816,7 +816,7 @@ $("#account-forgot_password_reset-button-cancel").click((event)->close_forgot_pa
 forgot_password_reset.on("shown", () -> $("#account-forgot_password_reset-new_password").focus())
 
 $("#account-forgot_password_reset-button-submit").click (event) ->
-    _gaq.push(['_trackEvent', 'account', 'forgot_password'])  # custom google analytic event -- user signed in
+    ga('send', 'event', 'account', 'forgot_password')    # custom google analytic event -- user forgot password
 
     new_password = $("#account-forgot_password_reset-new_password").val()
     forgot_password_reset.find(".account-error-text").hide()
@@ -901,8 +901,8 @@ show_connection_information = () ->
 if localStorage.remember_me
     $(".salvus-remember_me-message").show().find("span").text(localStorage.remember_me)
     $(".salvus-sign_in-form").hide()
-    # just in case, always show manual login screen after 10s.
-    setTimeout((()=>$(".salvus-remember_me-message").hide(); $(".salvus-sign_in-form").show()), 10000)
+    # just in case, always show manual login screen after 45s.
+    setTimeout((()=>$(".salvus-remember_me-message").hide(); $(".salvus-sign_in-form").show()), 45000)
 
 salvus_client.on "remember_me_failed", () ->
     $(".salvus-remember_me-message").hide()

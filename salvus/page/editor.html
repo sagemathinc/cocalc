@@ -6,25 +6,6 @@ Editor for files in a project
 
     <!-- Template for the entire editor, both tabs and the actual content -->
     <div class="salvus-editor" style="margin-left:3em;">
-        <div class="salvus-editor-recent-files">
-            <div class="row">
-                <div class="col-sm-6" style="margin-bottom:1ex">
-                    <input class="salvus-editor-search-openfiles-input search-query form-control" type="text" placeholder="Choose files...">
-                    <i class="salvus-editor-search-openfiles-input-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
-                </div>
-                <div class="col-lg-offset-1 col-sm-4">
-                    <a class="btn btn-sm btn-success" href="#save-all"><i class="fa fa-save"> </i> Save all</a>
-                    <a class="btn btn-sm btn-warning" href="#close-all-tabs"><i class="fa fa-minus-sign"> </i> Clear</a>
-                    <a class="btn btn-sm btn-warning hide" href="#undo-close-all-tabs"><i class="fa fa-undo"> </i> Undo</a>
-                </div>
-            </div>
-            <div class="row">
-                <!-- The recently opened files  go in this ul: -->
-                <ul class="nav nav-pills" style="cursor: default;">
-                </ul>
-            </div>
-        </div>
-
         <div class="row" style="margin-top:1ex;">
             <!-- The editor content gets displayed here -->
             <div class="salvus-editor-content">
@@ -77,8 +58,8 @@ Editor for files in a project
                 <span class="hidden-xs">
                     <span class="salvus-editor-codemirror-worksheet-buttons hide">
                         <span class="btn-group">
-                            <a href="#execute" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="right" title="Execute current or selected cells."><i class="fa fa-play"></i> Run</a>
-                            <a href="#interrupt" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="right" title="Interrupt the running Sage process."><i class="fa fa-stop"></i> Stop</a>
+                            <a href="#execute" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="right" title="Execute current or selected cells."><i class="fa fa-play"></i> &nbsp;<span class="hidden-sm">Run</span></a>
+                            <a href="#interrupt" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="right" title="Interrupt the running Sage process."><i class="fa fa-stop"></i> <span class="hidden-sm">Stop</span></a>
                             <a href="#kill" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process."><i class="fa fa-refresh"></i> <span class="hidden-sm">Restart</span></a>
                         </span>
                         <span class="btn-group">
@@ -108,18 +89,18 @@ Editor for files in a project
                 <span class="salvus-editor-save-group">
                     <a href="#save" class="hidden-xs btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Save file to disk (file is constantly sync'd with server).">
                         <i class="fa fa-save"></i>
-                        <span>Save</span>
+                        <span class="hidden-sm">Save</span>
                     </a>
 
                 </span>
                 <span class="hidden-xs">
                     <a href="#history" class="btn btn-sm btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
                         <i class="fa fa-history"></i>
-                        <span>History</span>
+                        <span class="hidden-sm">History</span>
                     </a>
                 </span>
 
-                <span class="salvus-editor-codemirror-loading">
+                <span class="salvus-editor-codemirror-loading hide">
                     <i class="fa fa-spinner"></i> load…
                 </span>
 
@@ -203,7 +184,7 @@ Editor for files in a project
         <span class="hidden-xs">
             <a class="btn btn-default" href="#refresh"><i class="fa fa-refresh"></i>  Refresh</a>
         </span>
-        <div class="salvus-editor-image-title pull-right"> The title </div>
+        <div class="hidden-xs salvus-editor-image-title pull-right"> The title </div>
         <div class="salvus-editor-image-container"><img><span>Loading...</span></div>
     </div>
 
@@ -230,9 +211,15 @@ Editor for files in a project
 
     <!-- Templates for the embedded PDF previewer: just uses the built-in renderer; can't cope with file updates, inverse search, etc. -->
     <div class="salvus-editor-pdf-preview-embed">
-        <div class="salvus-editor-pdf-preview-embed-spinner hide"></div>
-        <a class="btn btn-default" href="#refresh"><i class="fa fa-refresh"></i><span class="hidden-xs"> Refresh</span></a>
-        <div class="salvus-editor-pdf-title pull-right hidden-xs"> The title </div>
+        <div class="salvus-editor-codemirror-button-row">
+            <span class="salvus-editor-pdf-preview-embed-spinner hide"></span>
+            <span class="btn-group">
+                <a class="btn btn-default btn-lg visible-xs" href="#close" ><i class="fa fa-toggle-up"></i> <span class="hidden-xs">Files...</span></a>
+                <a class="btn btn-default btn-lg visible-xs" href="#refresh"><i class="fa fa-refresh"></i><span class="hidden-xs"> Refresh</span></a>
+                <a class="btn btn-default hidden-xs" href="#refresh"><i class="fa fa-refresh"></i><span class="hidden-xs"> Refresh</span></a>
+            </span>
+            <span class="salvus-editor-pdf-title pull-right hidden-xs"> The title </span>
+        </div>
         <div class="salvus-editor-pdf-preview-embed-page">
         </div>
     </div>
@@ -296,7 +283,12 @@ Editor for files in a project
         <div class="salvus-editor-history-history_editor"></div>
     </div>
 
-    <div class="sagews-input"><hr class="sagews-input-hr"></div>
+    <div class="sagews-input">
+        <span class="sagews-input-hr sagews-input-eval-state"></span>
+        <span class="sagews-input-hr sagews-input-run-state"></span>
+        <span class="sagews-input-hr sagews-input-newcell"></span>
+    </div>
+
     <div class="sagews-output"></div>
 
     <div class="salvus-ipython-notebook">
@@ -329,7 +321,7 @@ Editor for files in a project
                 <a href="#info" class="btn  btn-info btn-lg"> <i class="fa fa-info-circle"></i> </a>
             </span>
         </div>
-        <h3 class="salvus-ipython-notebook-connecting hide" style="margin-left:2em">Connecting to IPython Notebook Server...</h3>
+        <h3 class="salvus-ipython-notebook-connecting hide" style="margin-left:2em">Opening...</h3>
         <div class="salvus-ipython-notebook-notebook"></div>
     </div>
 
