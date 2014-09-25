@@ -24,7 +24,8 @@ for x in os.popen('ssh %s "cd salvus/salvus; . salvus-env && nodetool status"'%A
 hosts.sort()
 print hosts
 
-for h in reversed(hosts):
+#for h in reversed(hosts):
+for h in hosts:
    print h
    cmd("time ssh %s 'cd salvus/salvus; . salvus-env && nodetool repair -pr salvus'"%h)  # cassandra 2
    #cmd("time ssh %s 'cd salvus/salvus; . salvus-env && nodetool repair -pr -par salvus'"%h)  # cassandra 2
