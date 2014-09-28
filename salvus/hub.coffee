@@ -76,7 +76,6 @@ from_json = misc.from_json
 async   = require("async")
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 daemon  = require("start-stop-daemon")  # daemonize -- https://github.com/jiem/start-stop-daemon
-sockjs  = require("sockjs")             # websockets (+legacy support) -- https://github.com/sockjs/sockjs-node
 uuid    = require('node-uuid')
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
@@ -539,7 +538,7 @@ init_http_proxy_server = () =>
 
 
 #############################################################
-# Client = a client that is connected via sockjs to the hub
+# Client = a client that is connected via a persistent connection to the hub
 #############################################################
 class Client extends EventEmitter
     constructor: (@conn) ->
@@ -671,7 +670,7 @@ class Client extends EventEmitter
         @account_id = undefined
 
     #########################################################
-    # Setting and getting HTTP-only cookies via SockJS + AJAX
+    # Setting and getting HTTP-only cookies via Primus + AJAX
     #########################################################
     get_cookie: (opts) ->
         opts = defaults opts,
@@ -771,7 +770,7 @@ class Client extends EventEmitter
 
     ######################################################################
     #
-    # SockJS only supports one connection between the client and
+    # Our realtime socket connection might (e.g., SockJS) only supports one connection between the client and
     # server, so we multiplex multiple channels over the same
     # connection.  There is one base channel for JSON messages called
     # JSON_CHANNEL, which themselves can be routed to different
@@ -2256,15 +2255,19 @@ snap_command = (opts) ->
 
 
 ##############################
-# Create the SockJS Server
+# Create the Primus realtime socket server
 ##############################
-init_sockjs_server = () ->
-    sockjs_server = sockjs.createServer()
-
-    sockjs_server.on "connection", (conn) ->
+primus_server = undefined
+init_primus_server = () ->
+    Primus = require('primus')
+    opts =
+        transformer : 'websockets'
+        pathname    : '/hub'
+    primus_server = new Primus(http_server, opts)
+    winston.debug("primus_server: listening on #{opts.pathname}")
+    primus_server.on "connection", (conn) ->
+        winston.debug("primus_server: new connection")
         clients[conn.id] = new Client(conn)
-
-    sockjs_server.installHandlers(http_server, {prefix : program.base_url + '/hub'})
 
 
 #######################################################
@@ -2274,7 +2277,7 @@ init_sockjs_server = () ->
 #######################################################
 
 # get_client_ids -- given query parameters, returns a list of id's,
-#   where the id is the SockJS connection id, which we assume is
+#   where the id is the connection id, which we assume is
 #   globally unique across all of space and time.
 get_client_ids = (opts) ->
     opts = defaults opts,
@@ -2739,7 +2742,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # client --> console:
                 # Create a binary channel that the client can use to write to the socket.
                 # (This uses our system for multiplexing JSON and multiple binary streams
-                #  over one single SockJS connection.)
+                #  over one single connection.)
                 channel = opts.client.register_data_handler (data) ->
                     if not ignore
                         console_socket.write(data)
@@ -4552,7 +4555,7 @@ exports.start_server = start_server = () ->
             update_server_stats(); setInterval(update_server_stats, 120*1000)
             register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 
-            init_sockjs_server()
+            init_primus_server()
             init_stateless_exec()
             http_server.listen(program.port, program.host)
 

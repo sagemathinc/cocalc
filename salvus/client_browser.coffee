@@ -4,25 +4,34 @@ exports.connect = (url) -> new Connection(url)
 
 class Connection extends client.Connection
     _connect: (url, ondata) ->
-            conn = new SockJS("#{url}/hub") #, undefined, {protocols_whitelist:['websocket']})
-            @_conn = conn
-            conn.onopen = () =>
-                @_last_pong = require('misc').walltime()
-                @_connected = true
-                @emit("connected", conn.protocol)
-            conn.onmessage = (evt) -> ondata(evt.data)
-            conn.onerror = (err) => @emit("error", err)
+        console.log("primus_client: connecting to '#{url}'")
+        conn = new Primus(url)
+        @_conn = conn
+        conn.on 'open', () =>
+            console.log("primus_client: open -- successfully connected")
+            @_last_pong = require('misc').walltime()
+            @_connected = true
+            @emit("connected", 'websocket')
 
-            conn.onclose = () =>
-                @emit("connecting")
-                if @_connected
-                    console.log("SockJS connection just closed, so trying to make a new one...")
-                    @_connected = false
-                else
-                    console.log("Failed to create a SockJS connection; trying again.")
-                setTimeout((() => @_connect(url, ondata)), 1000)
+        conn.on 'message', (evt) =>
+            console.log("primus_client -- message: ", evt)
+            ondata(evt.data)
 
-            @_write = (data) -> conn.send(data)
+        conn.on 'error', (err) =>
+            console.log("primus_client -- error: ", evt)
+            @emit("error", err)
+
+        conn.on 'close', () =>
+            console.log("primus_client: close")
+            @emit("connecting")
+            if @_connected
+                console.log("Primus connection just closed, so trying to make a new one...")
+                @_connected = false
+            else
+                console.log("Failed to create a Primus connection; trying again.")
+            setTimeout((() => @_connect(url, ondata)), 1000)
+
+        @_write = (data) -> conn.send(data)
 
     _fix_connection: () ->
         console.log("connection is not working... attempting to fix.")
