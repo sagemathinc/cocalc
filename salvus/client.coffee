@@ -133,7 +133,7 @@ class Session extends EventEmitter
 # A Sage session, which links the client to a running Sage process;
 # provides extra functionality to kill/interrupt, etc.
 #
-#   Client <-- (sockjs) ---> Hub  <--- (tcp) ---> sage_server
+#   Client <-- (primus) ---> Hub  <--- (tcp) ---> sage_server
 #
 ###
 
@@ -210,7 +210,7 @@ class SageSession extends Session
 #
 # A Console session, which connects the client to a pty on a remote machine.
 #
-#   Client <-- (sockjs) ---> Hub  <--- (tcp) ---> console_server
+#   Client <-- (primus) ---> Hub  <--- (tcp) ---> console_server
 #
 ###
 
@@ -253,7 +253,7 @@ class exports.Connection extends EventEmitter
 
         # IMPORTANT! Connection is an abstract base class.  Derived classes must
         # implement a method called _connect that takes a URL and a callback, and connects to
-        # the SockJS server with that url, then creates the following event emitters:
+        # the Primus websocket server with that url, then creates the following event emitters:
         #      "connected", "error", "close"
         # and returns a function to write raw data to the socket.
 
@@ -268,7 +268,7 @@ class exports.Connection extends EventEmitter
                 # the message is sent to an appropriate handler, if
                 # one has previously been registered.  The motivation
                 # is that we the ability to multiplex multiple
-                # sessions over a *single* SockJS connection, and it
+                # sessions over a *single* WebSocket connection, and it
                 # is absolutely critical that there is minimal
                 # overhead regarding the amount of data transfered --
                 # 1 character is minimal!

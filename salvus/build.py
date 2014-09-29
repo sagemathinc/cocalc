@@ -321,7 +321,6 @@ NODE_MODULES = [
     'primus',  # websocket abstraction
     'ws',      # fast low-level websocket depedency for primus
     'node-cassandra-cql',
-    'sockjs-client-ws',
     'coffee-script',
     'node-uuid',
     'browserify@1.16.4',

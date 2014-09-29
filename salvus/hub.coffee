@@ -771,7 +771,7 @@ class Client extends EventEmitter
 
     ######################################################################
     #
-    # Our realtime socket connection might (e.g., SockJS) only supports one connection between the client and
+    # Our realtime socket connection might only supports one connection between the client and
     # server, so we multiplex multiple channels over the same
     # connection.  There is one base channel for JSON messages called
     # JSON_CHANNEL, which themselves can be routed to different
