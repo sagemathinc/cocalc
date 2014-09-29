@@ -13,8 +13,8 @@ web_cpu       = 2
 old_compute_ram = 2
 old_compute_cpu = 1
 
-compute_ram   = 72
-compute_ram_med = 42
+compute_ram   = 60
+compute_ram_med = 40
 compute_cpu   = 12   # DO *NOT* change compute_cpu willy-nilly; if you change it, you must rebuild ATLAS, which takes 12 hours.
                      # if you don't rebuild ATLAS, then it will crash on this benchmark
                      # sage: n=1000;import numpy; a=numpy.random.randn(n,n);

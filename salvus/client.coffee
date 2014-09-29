@@ -1246,16 +1246,16 @@ class exports.Connection extends EventEmitter
     ######################################################################
     exec: (opts) ->
         opts = defaults opts,
-            project_id : required
-            path       : ''
-            command    : required
-            args       : []
-            timeout    : 30
+            project_id      : required
+            path            : ''
+            command         : required
+            args            : []
+            timeout         : 30
             network_timeout : undefined
-            max_output : undefined
-            bash       : false
-            err_on_exit : true
-            cb         : required   # cb(err, {stdout:..., stderr:..., exit_code:...}).
+            max_output      : undefined
+            bash            : false
+            err_on_exit     : true
+            cb              : required   # cb(err, {stdout:..., stderr:..., exit_code:...}).
 
         if not opts.network_timeout?
             opts.network_timeout = opts.timeout * 1.5
@@ -1263,13 +1263,13 @@ class exports.Connection extends EventEmitter
         #console.log("Executing -- #{opts.command}, #{misc.to_json(opts.args)} in '#{opts.path}'")
         @call
             message : message.project_exec
-                project_id : opts.project_id
-                path       : opts.path
-                command    : opts.command
-                args       : opts.args
-                timeout    : opts.timeout
-                max_output : opts.max_output
-                bash       : opts.bash
+                project_id  : opts.project_id
+                path        : opts.path
+                command     : opts.command
+                args        : opts.args
+                timeout     : opts.timeout
+                max_output  : opts.max_output
+                bash        : opts.bash
                 err_on_exit : opts.err_on_exit
             timeout : opts.network_timeout
             cb      : (err, mesg) ->

@@ -44,6 +44,10 @@ for ext in misc.split('blg bbl glo idx toc aux log lof ind nav snm gz xyc out il
 # If there are more
 MAX_FILE_LISTING_SIZE = 300
 
+# timeout in seconds when downloading files etc., from web in +New dialog.
+FROM_WEB_TIMEOUT_S = 45
+
+
 ##################################################
 # Initialize the modal project management dialogs
 ##################################################
@@ -1276,12 +1280,15 @@ class ProjectPage
                     d = "root of project"
                 else
                     d = dest
-                alert_message(type:'info', message:"Downloading '#{url}' to '#{d}', which may run for up to 15 seconds.")
+                alert_message
+                    type    : 'info'
+                    message : "Downloading '#{url}' to '#{d}', which may run for up to #{FROM_WEB_TIMEOUT_S} seconds..."
+                    timeout : 5
             timer = setTimeout(long, 3000)
             @get_from_web
                 url     : url
                 dest    : dest
-                timeout : 15
+                timeout : FROM_WEB_TIMEOUT_S
                 alert   : true
                 cb      : (err) =>
                     clearTimeout(timer)
@@ -2125,7 +2132,7 @@ class ProjectPage
         opts = defaults opts,
             url     : required
             dest    : undefined
-            timeout : 10
+            timeout : 45
             alert   : true
             cb      : undefined     # cb(true or false, depending on error)
 
