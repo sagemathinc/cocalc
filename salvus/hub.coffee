@@ -545,7 +545,7 @@ class Client extends EventEmitter
         @_data_handlers = {}
         @_data_handlers[JSON_CHANNEL] = @handle_json_message_from_client
 
-        @ip_address = @conn.remoteAddress
+        @ip_address = @conn.address.ip
 
         # A unique id -- can come in handy
         @id = @conn.id
@@ -568,12 +568,12 @@ class Client extends EventEmitter
         @conn.on "data", @handle_data_from_client
 
         @conn.on "close", () =>
-            winston.debug("connection: hub <--> client(id=#{@id})  CLOSED")
+            winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  CLOSED")
             @emit 'close'
             @compute_session_uuids = []
             delete clients[@conn.id]
 
-        winston.debug("connection: hub <--> client(id=#{@id})  ESTABLISHED")
+        winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
     remember_me_failed: (reason) =>
         @push_to_client(message.remember_me_failed(reason:reason))
@@ -629,10 +629,11 @@ class Client extends EventEmitter
     # Pushing messages to this particular connected client
     #######################################################
     push_to_client: (mesg) =>
-        winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}") if mesg.event != 'pong'
+        winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
 
     push_data_to_client: (channel, data) ->
+        #winston.debug("push_data_to_client(#{channel},'#{data}')")
         @conn.write(channel + data)
 
     error_to_client: (opts) ->
@@ -881,7 +882,7 @@ class Client extends EventEmitter
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
         #winston.debug("got message: #{data}")
-        if mesg.event.slice(0,4) != 'ping' and mesg.event != 'codemirror_bcast'
+        if mesg.event != 'codemirror_bcast'
             winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 300)}")
         handler = @["mesg_#{mesg.event}"]
         if handler?
@@ -1011,13 +1012,6 @@ class Client extends EventEmitter
             else
                 session.send_signal(mesg.signal)
 
-    mesg_ping_session: (mesg) =>
-        s = persistent_sage_sessions[mesg.session_uuid]
-        if s?
-            s.last_ping_time = new Date()
-            return
-        @push_to_client(message.error(id:mesg.id, error:"Pinged unknown session #{mesg.session_uuid}"))
-
     mesg_restart_session: (mesg) =>
         @get_sage_session mesg, (err, session) =>
             if err
@@ -1054,13 +1048,6 @@ class Client extends EventEmitter
                 return
             else
                 session.send_json(@, mesg)
-
-    ######################################################
-    # Messages: Keeping client connected
-    ######################################################
-    # ping/pong
-    mesg_ping: (mesg) =>
-        @push_to_client(message.pong(id:mesg.id))
 
     ######################################################
     # Messages: Account creation, sign in, sign out
@@ -2266,7 +2253,7 @@ init_primus_server = () ->
     primus_server = new Primus(http_server, opts)
     winston.debug("primus_server: listening on #{opts.pathname}")
     primus_server.on "connection", (conn) ->
-        winston.debug("primus_server: new connection")
+        winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id}")
         clients[conn.id] = new Client(conn)
 
 
@@ -4205,35 +4192,7 @@ make_blobs_permanent = (opts) ->
 ########################################
 compute_sessions = {}
 
-# The ping timer for compute sessions is very simple:
-#     - an attribute 'last_ping_time', which client code must set periodicially
-#     - the input session must have a kill() method
-#     - an interval timer
-#     - if the timeout option is set to 0, the ping timer is not activated
 
-# This is the time in *seconds* until a session that not being actively pinged is killed.
-# This is a global var, since it must be
-DEFAULT_SESSION_KILL_TIMEOUT = 3 * client_lib.DEFAULT_SESSION_PING_TIME
-
-enable_ping_timer = (opts) ->
-    opts = defaults opts,
-        session : required
-        timeout : DEFAULT_SESSION_KILL_TIMEOUT    # time in *seconds* until session not being actively pinged is killed
-
-    if not opts.timeout
-        # do nothing -- this will keep other code cleaner
-        return
-
-    opts.session.last_ping_time = new Date()
-
-    timer = undefined
-    check_for_timeout = () ->
-        d = ((new Date()) - opts.session.last_ping_time )/1000
-        if  d > opts.timeout
-            clearInterval(timer)
-            opts.session.kill()
-
-    timer = setInterval(check_for_timeout, opts.timeout*1000)
 
 ########################################
 # Persistent Sage Sessions

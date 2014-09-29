@@ -43,4 +43,4 @@ salvus_client.on "connected", (protocol) ->
 
 salvus_client.on "ping", (ping_time) ->
     last_ping_time = ping_time
-    $(".salvus-connection-status-ping-time").html("#{(ping_time*1000).toFixed(0)}ms")
+    $(".salvus-connection-status-ping-time").html("#{ping_time}ms") 

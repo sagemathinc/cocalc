@@ -1,41 +1,62 @@
 client = require('client')
 
-exports.connect = (url) -> new Connection(url)
+exports.connect = (url) ->
+    new Connection(url)
 
 class Connection extends client.Connection
     _connect: (url, ondata) ->
-        console.log("primus_client: connecting to '#{url}'")
-        conn = new Primus(url)
+        @url = url
+        @ondata = ondata
+        console.log("client: connecting to '#{url}'...")
+
+        opts =
+            ping      : 9000
+            pong      : 7000
+            strategy  : 'disconnect,online,timeout'
+            reconnect :
+              maxDelay : 20000
+              minDelay : 500
+              retries  : 100
+
+        conn = new Primus(url, opts)
         @_conn = conn
         conn.on 'open', () =>
-            console.log("primus_client: open -- successfully connected")
-            @_last_pong = require('misc').walltime()
+            console.log("client -- open")
             @_connected = true
             @emit("connected", 'websocket')
 
         conn.on 'message', (evt) =>
-            console.log("primus_client -- message: ", evt)
+            #console.log("client -- message: ", evt)
             ondata(evt.data)
 
         conn.on 'error', (err) =>
-            console.log("primus_client -- error: ", evt)
+            console.log("client -- error: ", evt)
             @emit("error", err)
 
         conn.on 'close', () =>
-            console.log("primus_client: close")
+            console.log("client: closed")
+            @_connected = false
             @emit("connecting")
-            if @_connected
-                console.log("Primus connection just closed, so trying to make a new one...")
-                @_connected = false
-            else
-                console.log("Failed to create a Primus connection; trying again.")
-            setTimeout((() => @_connect(url, ondata)), 1000)
 
-        @_write = (data) -> conn.send(data)
+        conn.on 'data', (data) =>
+            #console.log("client: data='#{data}'")
+            ondata(data)
 
-    _fix_connection: () ->
-        console.log("connection is not working... attempting to fix.")
-        @_conn.close()
+        conn.on 'reconnecting', (opts) =>
+            console.log('client: reconnecting in %d ms', opts.timeout)
+            console.log('client: this is attempt %d out of %d', opts.attempt, opts.retries)
 
-    _cookies: (mesg) ->
+        conn.on 'incoming::pong', () =>
+            # console.log("pong latency=#{conn.latency}")
+            @emit "ping", conn.latency
+
+        @_write = (data) =>
+            conn.write(data)
+
+    _fix_connection: () =>
+        console.log("client: _fix_connection...")
+        @_conn.end()
+        @_connect(@url, @ondata)
+
+    _cookies: (mesg) =>
         $.ajax(url:mesg.url, data:{id:mesg.id, set:mesg.set, get:mesg.get})

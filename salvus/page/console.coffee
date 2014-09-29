@@ -256,7 +256,7 @@ class Console extends EventEmitter
             @_ignore_mesg = false
 
         # Initialize pinging the server to keep the console alive
-        @_init_session_ping()
+        #@_init_session_ping()
 
         #console.log("session -- history='#{@session.init_history}'")
         if @session.init_history?
@@ -438,8 +438,8 @@ class Console extends EventEmitter
             if not @opts.font.family?
                 @opts.font.family = "droid-sans-mono"
 
-    _init_session_ping: () =>
-        @session.ping(@console_is_open)
+    #_init_session_ping: () =>
+    #    @session.ping(@console_is_open)
 
     _init_codemirror: () ->
         that = @

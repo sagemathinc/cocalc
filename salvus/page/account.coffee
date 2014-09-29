@@ -316,6 +316,8 @@ sign_in = () ->
 first_login = true
 hub = undefined
 signed_in = (mesg) ->
+    #console.log("signed_in: ", mesg)
+
     ga('send', 'event', 'account', 'signed_in')    # custom google analytic event -- user signed in
     # Record which hub we're connected to.
     hub = mesg.hub
@@ -889,7 +891,7 @@ show_connection_information = () ->
     dialog.find(".salvus-connection-type").text(s.protocol())
 
     if s.ping_time()
-        dialog.find(".salvus-connection-ping").show().find('pre').text((s.ping_time()*1000).toFixed(0) + "ms")
+        dialog.find(".salvus-connection-ping").show().find('pre').text("#{s.ping_time()}ms")
     else
         dialog.find(".salvus-connection-ping").hide()
 
