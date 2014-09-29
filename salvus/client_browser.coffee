@@ -39,7 +39,7 @@ class Connection extends client.Connection
             @emit("connecting")
 
         conn.on 'data', (data) =>
-            #console.log("client: data='#{data}'")
+            # console.log("client: data='#{data}'")
             ondata(data)
 
         conn.on 'reconnecting', (opts) =>

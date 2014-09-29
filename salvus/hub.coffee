@@ -557,13 +557,11 @@ class Client extends EventEmitter
         @account_id = undefined
 
         # The persistent sessions that this client started.
-        # TODO: For now,these are all terminated when the client disconnects.
         @compute_session_uuids = []
 
         @cookies = {}
         @remember_me_db = database.key_value_store(name: 'remember_me')
 
-        @check_for_remember_me()
 
         @conn.on "data", @handle_data_from_client
 
@@ -575,10 +573,13 @@ class Client extends EventEmitter
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
+        @check_for_remember_me()
+
     remember_me_failed: (reason) =>
         @push_to_client(message.remember_me_failed(reason:reason))
 
     check_for_remember_me: () =>
+        winston.debug("client(id=#{@id}): check for remember me")
         @get_cookie
             name : program.base_url + 'remember_me'
             cb   : (value) =>
@@ -1094,8 +1095,10 @@ class Client extends EventEmitter
     # Messages: Account settings
     ######################################################
     mesg_get_account_settings: (mesg) =>
-        if @account_id != mesg.account_id
-            @push_to_client(message.error(id:mesg.id, error:"Not signed in as user with id #{mesg.account_id}."))
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"not yet signed in"))
+        else if @account_id != mesg.account_id
+            @push_to_client(message.error(id:mesg.id, error:"not signed in as user with id #{mesg.account_id}."))
         else
             database.get_account
                 account_id : @account_id

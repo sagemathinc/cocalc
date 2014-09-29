@@ -417,7 +417,7 @@ class AccountSettings
         salvus_client.get_account_settings
             account_id : account_id
             cb         : (error, settings_mesg) =>
-                if error
+                if error or settings_mesg.event == 'error'
                     $("#account-settings-error").show()
                     if not @settings?
                         # we only set the settings to error if they aren't already set, since we
