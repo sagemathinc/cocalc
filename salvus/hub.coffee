@@ -134,13 +134,9 @@ init_http_server = () ->
         switch segments[1]
             when "cookies"
                 cookies = new Cookies(req, res)
-                conn = clients[query.id]
-                if conn?
-                    if query.get  # this doesn't work because haproxy cookies aren't sticky enough; we don't use it
-                        conn.emit("get_cookie-#{query.get}", cookies.get(query.get))
-                    if query.set
-                        cookies.set(query.set, query.value, {expires:new Date(new Date().getTime() + 1000*24*3600*365)})
-                        conn.emit("set_cookie-#{query.set}")
+                if query.set
+                    # TODO: implement expires as part of query.
+                    cookies.set(query.set, query.value, {expires:new Date(new Date().getTime() + 1000*24*3600*365)})
                 res.end('')
             when "alive"
                 if not database_is_working
@@ -689,11 +685,9 @@ class Client extends EventEmitter
             name  : required
             value : required
             ttl   : undefined    # time in seconds until cookie expires
-            cb    : undefined    # cb() when cookie is set
         options = {}
         if opts.ttl?  # Todo: ignored
             options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
-        @once("set_cookie-#{opts.name}", ()->opts.cb?())
         @cookies[opts.name] = {value:opts.value, options:options}  # TODO: this can't work
         @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:program.base_url+"/cookies", value:opts.value))
 
