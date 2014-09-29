@@ -678,8 +678,9 @@ message
     event       : 'cookies'
     id          : required
     url         : "/cookies"
-    set         : undefined  # name of a cookie to set
     get         : undefined  # name of a cookie to get
+    set         : undefined  # name of a cookie to set
+    value       : undefined  # value to set cookie to
 
 
 

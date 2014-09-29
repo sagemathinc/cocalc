@@ -136,17 +136,11 @@ init_http_server = () ->
                 cookies = new Cookies(req, res)
                 conn = clients[query.id]
                 if conn?
-                    if query.get
+                    if query.get  # this doesn't work because haproxy cookies aren't sticky enough; we don't use it
                         conn.emit("get_cookie-#{query.get}", cookies.get(query.get))
                     if query.set
-                        # in some rare cases this is undefined:
-                        x = conn.cookies[query.set]
-                        #delete conn.cookies[query.set]
-                        if x?
-                            cookies.set(query.set, x.value, x.options)
-                            conn.emit("set_cookie-#{query.set}")
-                        else
-                            winston.debug("possible issue -- requested to set cookie #{query.set}, but cookie not defined")
+                        cookies.set(query.set, query.value, {expires:new Date(new Date().getTime() + 1000*24*3600*365)})
+                        conn.emit("set_cookie-#{query.set}")
                 res.end('')
             when "alive"
                 if not database_is_working
@@ -550,6 +544,7 @@ class Client extends EventEmitter
         # A unique id -- can come in handy
         @id = @conn.id
 
+
         # The variable account_id is either undefined or set to the
         # account id of the user that this session has successfully
         # authenticated as.  Use @account_id to decide whether or not
@@ -562,7 +557,6 @@ class Client extends EventEmitter
         @cookies = {}
         @remember_me_db = database.key_value_store(name: 'remember_me')
 
-
         @conn.on "data", @handle_data_from_client
 
         @conn.on "end", () =>
@@ -573,7 +567,11 @@ class Client extends EventEmitter
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
-        @check_for_remember_me()
+        cookies = new Cookies(@conn.request)
+        value = cookies.get(program.base_url + 'remember_me')
+        @_validate_remember_me(value)
+       
+        #@check_for_remember_me()
 
     remember_me_failed: (reason) =>
         @push_to_client(message.remember_me_failed(reason:reason))
@@ -583,6 +581,10 @@ class Client extends EventEmitter
         @get_cookie
             name : program.base_url + 'remember_me'
             cb   : (value) =>
+                @_validate_remember_me(value)
+
+    _validate_remember_me: (value) =>
+                #winston.debug("_validate_remember_me: #{value}")
                 if not value?
                     @remember_me_failed("no remember_me cookie")
                     return
@@ -689,11 +691,11 @@ class Client extends EventEmitter
             ttl   : undefined    # time in seconds until cookie expires
             cb    : undefined    # cb() when cookie is set
         options = {}
-        if opts.ttl?
+        if opts.ttl?  # Todo: ignored
             options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
         @once("set_cookie-#{opts.name}", ()->opts.cb?())
-        @cookies[opts.name] = {value:opts.value, options:options}
-        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:program.base_url+"/cookies"))
+        @cookies[opts.name] = {value:opts.value, options:options}  # TODO: this can't work
+        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:program.base_url+"/cookies", value:opts.value))
 
     remember_me: (opts) ->
         #############################################################
