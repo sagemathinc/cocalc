@@ -565,7 +565,7 @@ class Client extends EventEmitter
 
         @conn.on "data", @handle_data_from_client
 
-        @conn.on "close", () =>
+        @conn.on "end", () =>
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  CLOSED")
             @emit 'close'
             @compute_session_uuids = []
