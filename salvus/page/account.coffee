@@ -2,6 +2,9 @@
 # Account Settings
 ############################################################
 
+async = require('async')
+
+
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
@@ -261,15 +264,26 @@ $("#create_account-button").click (event) ->
 # Enhance HTML element to display feedback about a choice of password
 #     input   -- jQuery wrapped <input> element where password is typed
 password_strength_meter = (input) ->
+    if require("feature").IS_MOBILE
+        return
     # TODO: move this html into account.html
     display = $('<div class="progress progress-striped"><div class="progress-bar"></div>&nbsp;<font size=-1></font></div>')
     input.after(display)
     score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
     input.bind 'change keypress paste focus textInput input', () ->
         if input.val()
-            result = zxcvbn(input.val(), ['sagemath'])  # explicitly ban some words.
-            display.find(".progress-bar").css("width", "#{13*(result.score+1)}%")
-            display.find("font").html(score[result.score])
+            async.series([
+                (cb) ->
+                    if zxcvbn?
+                        cb()
+                    else
+                        $.getScript("/static/zxcvbn/zxcvbn.js", cb)
+                (cb) ->
+                    result = zxcvbn(input.val(), ['sagemath','salvus','sage','sagemathcloud','smc','mathematica','pari'])  # explicitly ban some words.
+                    display.find(".progress-bar").show().css("width", "#{13*(result.score+1)}%")
+                    display.find("font").html(score[result.score])
+                    cb()
+                ])
     return input
 
 $.fn.extend
