@@ -2601,8 +2601,12 @@ def dynamic(*args, **kwds):
 import sage.all
 
 def var0(*args, **kwds):
+    if len(args)==1:
+        name = args[0]
+    else:
+        name = args
     G = salvus.namespace
-    v = sage.all.SR.var(*args, **kwds)
+    v = sage.all.SR.var(name, **kwds)
     if isinstance(v, tuple):
         for x in v:
             G[repr(x)] = x
@@ -2629,7 +2633,7 @@ def var(*args, **kwds):
     Here is the docstring for var in Sage:
 
     """
-    if len(args) > 0 and isinstance(args[0], (str, unicode)):
+    if len(args) > 0:
         return var0(*args, **kwds)
     else:
         def f(s):
