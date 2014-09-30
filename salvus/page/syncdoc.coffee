@@ -1653,7 +1653,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
              code = mesg.javascript.code
              async.series([
                  (cb) =>
-                     if mesg.javascript.coffeescript
+                     if mesg.javascript.coffeescript or code.indexOf('CoffeeScript') != -1
                          misc_page.load_coffeescript_compiler(cb)
                      else
                          cb()
@@ -1690,7 +1690,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                          code = mesg.code
                          async.series([
                              (cb) =>
-                                 if mesg.coffeescript
+                                 if mesg.coffeescript or code.indexOf('CoffeeScript') != -1
                                      misc_page.load_coffeescript_compiler(cb)
                                  else
                                      cb()
