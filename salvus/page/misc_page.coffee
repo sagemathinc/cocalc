@@ -593,6 +593,15 @@ exports.is_responsive_mode = () ->
 
 
 
+exports.load_coffeescript_compiler = (cb) ->
+    if CoffeeScript?
+        cb()
+    else
+        console.log("loading coffee-script...")
+        $.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
+            console.log("loaded CoffeeScript -- #{status}")
+            cb()
+
 
 
 
