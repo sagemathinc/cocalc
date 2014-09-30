@@ -949,7 +949,7 @@ class TaskList
         e.data('diff_sync', new DiffSyncDoc(cm:cm, readonly:false))
 
         cm.clearHistory()  # ensure that the undo history doesn't start with "empty document"
-        $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor')
+        $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor').css(height:'auto')  # setting height via salvus-new-task-cm-editor doesn't work.
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
 
 
