@@ -79,3 +79,10 @@ Minify keybinding modes (e.g., vim is HUGE):
      uglifyjs2 vim.js > vim.min.js
      uglifyjs2 emacs.js > emacs.min.js
      uglifyjs2 sublime.js > sublime.min.js
+
+Minify big mode:
+
+     cd mode/perl
+     uglifyjs2 perl.js > perl.min.js
+     cd ../css
+     uglifyjs2 css.js > css.min.js
