@@ -347,14 +347,15 @@ signed_in = (mesg) ->
             show_page("account-settings")
             # change the navbar title from "Sign in" to their email address -- don't use the one from mesg, which may be out of date
             set_account_tab_label(true, account_settings.settings.email_address)
-            top_navbar.show_page_button("projects")
 
-            #####
-            # DISABLE worksheet1 -- enable this maybe when finishing worksheets port
-            #
-            #top_navbar.show_page_button("worksheet1")
-            # Load the default worksheet (for now)
-            #require('worksheet1').load_scratch_worksheet()
+            # Only show the project listing page once the async parts of the site are loaded.
+            f = () ->
+                if require('last').async_load_done
+                    top_navbar.show_page_button("projects")
+                else
+                    setTimeout(f, 100)
+            f()
+
 
             # If this is the initial login, switch to the project
             # page.  We do this because if the user's connection is

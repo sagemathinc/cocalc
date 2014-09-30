@@ -7,42 +7,16 @@
     <meta name="description" content="SageMathCloud">
     <meta name="author" content="William Stein">
 
-    <link rel="stylesheet" href="static/jquery/jquery-ui/css/humanity/jquery-ui.css">
+    <!-- Primus: websockets -->
+    <script type="text/javascript" src="static/primus/primus.min.js"></script>
 
+    <link rel="stylesheet" href="static/jquery/jquery-ui/css/humanity/jquery-ui.css">
 
     <link href="static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="static/font-awesome/css/font-awesome.min.css" rel="stylesheet">
     <link href="static/bootstrap-switch/bootstrap-switch.css" rel="stylesheet">
 
-    <!-- CODEMIRROR 4.6 -->
 
-    <link rel="stylesheet" href="static/codemirror-4.6/lib/codemirror.css">
-
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/twilight.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/vibrant-ink.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/night.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/cobalt.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/neat.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/erlang-dark.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/lesser-dark.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/elegant.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/monokai.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/ambiance-mobile.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/ambiance.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/rubyblue.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/solarized.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/blackboard.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/xq-dark.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/eclipse.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/3024-day.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/3024-night.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/base16-light.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/base16-dark.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/the-matrix.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/paraiso-dark.css">
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/paraiso-light.css">
-    <!--<link rel="stylesheet" href="static/codemirror-4.6/theme/pastel-on-dark.css">-->
-    <link rel="stylesheet" href="static/codemirror-4.6/theme/tomorrow-night-eighties.css">
 
     <link rel="stylesheet" type="text/css" href="static/jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css">
     <link href="static/pnotify/jquery.pnotify.default.css" media="all" rel="stylesheet" type="text/css" />
@@ -84,102 +58,7 @@
 	<meta name="msapplication-TileImage" content="/favicon-144.png">
 	<!-- ****** faviconit.com favicons ****** -->
 
-    <script src="static/codemirror-4.6/lib/codemirror.min.js"></script>
 
-    <script src="static/codemirror-4.6/mode/clike/clike.js"></script>
-    <script src="static/codemirror-4.6/mode/clojure/clojure.js"></script>
-    <script src="static/codemirror-4.6/mode/coffeescript/coffeescript.js"></script>
-    <script src="static/codemirror-4.6/mode/commonlisp/commonlisp.js"></script>
-    <script src="static/codemirror-4.6/mode/css/css.js"></script>
-    <script src="static/codemirror-4.6/mode/diff/diff.js"></script>
-    <script src="static/codemirror-4.6/mode/dtd/dtd.js"></script>
-    <script src="static/codemirror-4.6/mode/ecl/ecl.js"></script>
-    <script src="static/codemirror-4.6/mode/eiffel/eiffel.js"></script>
-    <script src="static/codemirror-4.6/mode/erlang/erlang.js"></script>
-    <script src="static/codemirror-4.6/mode/fortran/fortran.js"></script>
-    <script src="static/codemirror-4.6/mode/gfm/gfm.js"></script>
-    <script src="static/codemirror-4.6/mode/go/go.js"></script>
-    <script src="static/codemirror-4.6/mode/groovy/groovy.js"></script>
-    <script src="static/codemirror-4.6/mode/haskell/haskell.js"></script>
-    <script src="static/codemirror-4.6/mode/haxe/haxe.js"></script>
-    <script src="static/codemirror-4.6/mode/htmlembedded/htmlembedded.js"></script>
-    <script src="static/codemirror-4.6/mode/htmlmixed/htmlmixed.js"></script>
-    <script src="static/codemirror-4.6/mode/http/http.js"></script>
-    <script src="static/codemirror-4.6/mode/javascript/javascript.js"></script>
-    <script src="static/codemirror-4.6/mode/jinja2/jinja2.js"></script>
-    <script src="static/codemirror-4.6/mode/julia/julia.js"></script>
-    <script src="static/codemirror-4.6/mode/less/less.js"></script>
-    <script src="static/codemirror-4.6/mode/lua/lua.js"></script>
-    <script src="static/codemirror-4.6/mode/markdown/markdown.js"></script>
-    <script src="static/codemirror-4.6/mode/nginx/nginx.js"></script>
-    <script src="static/codemirror-4.6/mode/ntriples/ntriples.js"></script>
-    <script src="static/codemirror-4.6/mode/ocaml/ocaml.js"></script>
-    <script src="static/codemirror-4.6/mode/octave/octave.js"></script>
-    <script src="static/codemirror-4.6/mode/pari/pari.js"></script>
-    <script src="static/codemirror-4.6/mode/pascal/pascal.js"></script>
-    <script src="static/codemirror-4.6/mode/perl/perl.min.js"></script>
-    <script src="static/codemirror-4.6/mode/php/php.js"></script>
-    <script src="static/codemirror-4.6/mode/pig/pig.js"></script>
-    <script src="static/codemirror-4.6/mode/properties/properties.js"></script>
-    <script src="static/codemirror-4.6/mode/python/python.js"></script>
-    <script src="static/codemirror-4.6/mode/r/r.js"></script>
-    <script src="static/codemirror-4.6/mode/rst/rst.js"></script>
-    <script src="static/codemirror-4.6/mode/ruby/ruby.js"></script>
-    <script src="static/codemirror-4.6/mode/rust/rust.js"></script>
-    <script src="static/codemirror-4.6/mode/scheme/scheme.js"></script>
-    <script src="static/codemirror-4.6/mode/shell/shell.js"></script>
-    <script src="static/codemirror-4.6/mode/sieve/sieve.js"></script>
-    <script src="static/codemirror-4.6/mode/smalltalk/smalltalk.js"></script>
-    <script src="static/codemirror-4.6/mode/smarty/smarty.js"></script>
-    <script src="static/codemirror-4.6/mode/sparql/sparql.js"></script>
-    <script src="static/codemirror-4.6/mode/sql/sql.js"></script>
-    <script src="static/codemirror-4.6/mode/stex/stex.js"></script>
-    <script src="static/codemirror-4.6/mode/tiddlywiki/tiddlywiki.js"></script>
-    <script src="static/codemirror-4.6/mode/tiki/tiki.js"></script>
-    <script src="static/codemirror-4.6/mode/toml/toml.js"></script>
-    <script src="static/codemirror-4.6/mode/vb/vb.js"></script>
-    <script src="static/codemirror-4.6/mode/vbscript/vbscript.js"></script>
-    <script src="static/codemirror-4.6/mode/velocity/velocity.js"></script>
-    <script src="static/codemirror-4.6/mode/verilog/verilog.js"></script>
-    <script src="static/codemirror-4.6/mode/xml/xml.js"></script>
-    <script src="static/codemirror-4.6/mode/xquery/xquery.js"></script>
-    <script src="static/codemirror-4.6/mode/yaml/yaml.js"></script>
-    <script src="static/codemirror-4.6/mode/z80/z80.js"></script>
-
-    <!-- Codemirror plugins/addons -->
-    <script src="static/codemirror-4.6/addon/mode/multiplex.js"></script>
-    <script src="static/codemirror-4.6/addon/mode/overlay.js"></script>
-    <script src="static/codemirror-4.6/addon/selection/active-line.js"></script>
-    <script src="static/codemirror-4.6/addon/comment/comment.js"></script>
-
-    <link rel="stylesheet" href="static/codemirror-4.6/addon/dialog/dialog.css">
-    <script src="static/codemirror-4.6/addon/dialog/dialog.js"></script>
-
-    <!--<link rel="stylesheet" href="static/codemirror-4.6/addon/display/fullscreen.css">
-    <script src="static/codemirror-4.6/addon/display/fullscreen.js"></script>-->
-
-    <script src="static/codemirror-4.6/addon/search/searchcursor.js"></script>
-    <script src="static/codemirror-4.6/addon/search/search.js"></script>
-    <script src="static/codemirror-4.6/addon/edit/matchbrackets.js"></script>
-    <script src="static/codemirror-4.6/addon/edit/closebrackets.js"></script>
-    <script src="static/codemirror-4.6/addon/edit/trailingspace.js"></script>
-    <script src="static/codemirror-4.6/addon/edit/continuelist.js"></script>
-    <script src="static/codemirror-4.6/addon/wrap/hardwrap.js"></script>
-
-    <!--
-    <link rel="stylesheet" href="static/codemirror-4.6/addon/fold/foldgutter.css" />
-    <script src="static/codemirror-4.6/addon/fold/foldcode.js"></script>
-    <script src="static/codemirror-4.6/addon/fold/brace-fold.js"></script>
-    <script src="static/codemirror-4.6/addon/fold/foldgutter.js"></script>
-    <script src="static/codemirror-4.6/addon/fold/xml-fold.js"></script>
-    <script src="static/codemirror-4.6/addon/fold/markdown-fold.js"></script>
-    <script src="static/codemirror-4.6/addon/fold/comment-fold.js"></script>
-    -->
-
-    <!-- Codemirror keymaps -->
-    <script src="static/codemirror-4.6/keymap/vim.min.js"></script>
-    <script src="static/codemirror-4.6/keymap/emacs.min.js"></script>
-    <script src="static/codemirror-4.6/keymap/sublime.min.js"></script>
 
     <!-- Jquery -->
     <script type="text/javascript" src="static/jquery/jquery.min.js"></script>
@@ -222,9 +101,6 @@
     <!-- Bootstrap switch: https://github.com/nostalgiaz/bootstrap-switch -->
     <script type="text/javascript" src="static/bootstrap-switch/bootstrap-switch.min.js"></script>
 
-    <!-- Primus: websockets -->
-    <script type="text/javascript" src="static/primus/primus.min.js"></script>
-
     <script type="text/x-mathjax-config">
     MathJax.Hub.Config({
        extensions: ["tex2jax.js","fp.js","asciimath2jax.js"],
@@ -263,7 +139,7 @@
 
 
     <!-- XTerm terminal emulator -->
-    <script type="text/javascript" src="static/term/term.js"></script>
+    <script type="text/javascript" src="static/term/term.min.js"></script>
     <script type="text/javascript" src="static/term/color_themes.js"></script>
 
     <!-- 3D Transforms jQuery Plugin: http://ricostacruz.com/jquery.transit/ -->

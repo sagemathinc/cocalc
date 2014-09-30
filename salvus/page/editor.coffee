@@ -191,11 +191,13 @@ sagews_decorator_modes = [
     ['sh'          , 'shell'],
 ]
 
-CodeMirror.defineMode "sagews", (config) ->
-    options = []
-    for x in sagews_decorator_modes
-        options.push(open:"%" + x[0], close : MARKERS.cell, mode : CodeMirror.getMode(config, x[1]))
-    return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"), options...)
+exports.define_codemirror_sagews_mode = () ->
+    
+    CodeMirror.defineMode "sagews", (config) ->
+        options = []
+        for x in sagews_decorator_modes
+            options.push(open:"%" + x[0], close : MARKERS.cell, mode : CodeMirror.getMode(config, x[1]))
+        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"), options...)
 
 # Given a text file (defined by content), try to guess
 # what the extension should be.

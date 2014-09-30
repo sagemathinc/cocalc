@@ -273,206 +273,208 @@ $.fn.focus_end = () ->
 # Codemirror Extensions
 ####################################
 
-CodeMirror.defineExtension 'unindent_selection', () ->
-    editor     = @
+exports.define_codemirror_extensions = () ->
 
-    start = editor.getCursor('head')
-    end   = editor.getCursor('anchor')
-    if end.line <= start.line or (end.line ==start.line and end.ch <= start.ch)
-        # swap start and end.
-        t = start
-        start = end
-        end = t
+    CodeMirror.defineExtension 'unindent_selection', () ->
+        editor     = @
 
-    start_line = start.line
-    end_line   = if end.ch > 0 then end.line else end.line - 1
-    if end_line < start_line
-        end_line = start_line
-    all_need_unindent = true
-    for n in [start_line .. end_line]
-        s = editor.getLine(n)
-        if not s?
-            return
-        if s.length ==0 or s[0] == '\t' or s[0] == ' '
-            continue
-        else
-            all_need_unindent = false
-            break
-    if all_need_unindent
+        start = editor.getCursor('head')
+        end   = editor.getCursor('anchor')
+        if end.line <= start.line or (end.line ==start.line and end.ch <= start.ch)
+            # swap start and end.
+            t = start
+            start = end
+            end = t
+
+        start_line = start.line
+        end_line   = if end.ch > 0 then end.line else end.line - 1
+        if end_line < start_line
+            end_line = start_line
+        all_need_unindent = true
         for n in [start_line .. end_line]
-            editor.indentLine(n, "subtract")
-
-CodeMirror.defineExtension 'tab_as_space', () ->
-    cursor = @getCursor()
-    for i in [0...@.options.tabSize]
-        @replaceRange(' ', cursor)
-
-# Apply a CodeMirror changeObj to this editing buffer.
-CodeMirror.defineExtension 'apply_changeObj', (changeObj) ->
-    @replaceRange(changeObj.text, changeObj.from, changeObj.to)
-    if changeObj.next?
-        @apply_changeObj(changeObj.next)
-
-# Delete all trailing whitespace from the editor's buffer.
-CodeMirror.defineExtension 'delete_trailing_whitespace', (opts={}) ->
-    opts = defaults opts,
-        omit_lines : {}
-    # We *could* easily make a one-line version of this function that
-    # just uses setValue.  However, that would mess up the undo
-    # history (!), and potentially feel jumpy.
-    changeObj = undefined
-    val       = @getValue()
-    text1     = val.split('\n')
-    text2     = misc.delete_trailing_whitespace(val).split('\n')    # a very fast regexp.
-    pos       = @getCursor()
-    if text1.length != text2.length
-        console.log("Internal error -- there is a bug in misc.delete_trailing_whitespace; please report.")
-        return
-    opts.omit_lines[pos.line] = true
-    for i in [0...text1.length]
-        if opts.omit_lines[i]?
-            continue
-        if text1[i].length != text2[i].length
-            obj = {from:{line:i,ch:text2[i].length}, to:{line:i,ch:text1[i].length}, text:[""]}
-            if not changeObj?
-                changeObj = obj
-                currentObj = changeObj
+            s = editor.getLine(n)
+            if not s?
+                return
+            if s.length ==0 or s[0] == '\t' or s[0] == ' '
+                continue
             else
-                currentObj.next = obj
-                currentObj = obj
-    if changeObj?
-        @apply_changeObj(changeObj)
+                all_need_unindent = false
+                break
+        if all_need_unindent
+            for n in [start_line .. end_line]
+                editor.indentLine(n, "subtract")
 
-# Set the value of the buffer to something new, and make some attempt
-# to maintain the view, e.g., cursor position and scroll position.
-# This function is very, very naive now, but will get better using better algorithms.
-CodeMirror.defineExtension 'setValueNoJump', (value) ->
-    try
-        scroll = @getScrollInfo()
-        pos = @getCursor()
-    catch e
-        # nothing
-    @setValue(value)
-    try
-        @setCursor(pos)
-        @scrollTo(scroll.left, scroll.top)
-        @scrollIntoView(pos)   #I've seen tracebacks from this saying "cannot call method chunckSize of undefined"
-                               #which cause havoc on the reset of sync, which assumes setValueNoJump works, and
-                               # leads to user data loss.  I consider this a codemirror bug, but of course
-                               # just not moving the view in such cases is a reasonable workaround.
-    catch e
-        # nothing
+    CodeMirror.defineExtension 'tab_as_space', () ->
+        cursor = @getCursor()
+        for i in [0...@.options.tabSize]
+            @replaceRange(' ', cursor)
 
+    # Apply a CodeMirror changeObj to this editing buffer.
+    CodeMirror.defineExtension 'apply_changeObj', (changeObj) ->
+        @replaceRange(changeObj.text, changeObj.from, changeObj.to)
+        if changeObj.next?
+            @apply_changeObj(changeObj.next)
 
-
-
-# This is an improved rewrite of simple-hint.js from the CodeMirror3 distribution.
-CodeMirror.defineExtension 'showCompletions', (opts) ->
-    {from, to, completions, target, completions_size} = defaults opts,
-        from             : required
-        to               : required
-        completions      : required
-        target           : required
-        completions_size : 20
-
-    if completions.length == 0
-        return
-
-    start_cursor_pos = @getCursor()
-    that = @
-    insert = (str) ->
-        pos = that.getCursor()
-        from.line = pos.line
-        to.line   = pos.line
-        shift = pos.ch - start_cursor_pos.ch
-        from.ch += shift
-        to.ch   += shift
-        that.replaceRange(str, from, to)
-
-    if completions.length == 1
-        insert(target + completions[0])
-        return
-
-    sel = $("<select>").css('width','auto')
-    complete = $("<div>").addClass("salvus-completions").append(sel)
-    for c in completions
-        sel.append($("<option>").text(target + c))
-    sel.find(":first").attr("selected", true)
-    sel.attr("size", Math.min(completions_size, completions.length))
-    pos = @cursorCoords(from)
-
-    complete.css
-        left : pos.left   + 'px'
-        top  : pos.bottom + 'px'
-    $("body").append(complete)
-    # If we're at the edge of the screen, then we want the menu to appear on the left of the cursor.
-    winW = window.innerWidth or Math.max(document.body.offsetWidth, document.documentElement.offsetWidth)
-    if winW - pos.left < sel.attr("clientWidth")
-        complete.css(left: (pos.left - sel.attr("clientWidth")) + "px")
-    # Hide scrollbar
-    if completions.length <= completions_size
-        complete.css(width: (sel.attr("clientWidth") - 1) + "px")
-
-    done = false
-
-    close = () ->
-        if done
+    # Delete all trailing whitespace from the editor's buffer.
+    CodeMirror.defineExtension 'delete_trailing_whitespace', (opts={}) ->
+        opts = defaults opts,
+            omit_lines : {}
+        # We *could* easily make a one-line version of this function that
+        # just uses setValue.  However, that would mess up the undo
+        # history (!), and potentially feel jumpy.
+        changeObj = undefined
+        val       = @getValue()
+        text1     = val.split('\n')
+        text2     = misc.delete_trailing_whitespace(val).split('\n')    # a very fast regexp.
+        pos       = @getCursor()
+        if text1.length != text2.length
+            console.log("Internal error -- there is a bug in misc.delete_trailing_whitespace; please report.")
             return
-        done = true
-        complete.remove()
+        opts.omit_lines[pos.line] = true
+        for i in [0...text1.length]
+            if opts.omit_lines[i]?
+                continue
+            if text1[i].length != text2[i].length
+                obj = {from:{line:i,ch:text2[i].length}, to:{line:i,ch:text1[i].length}, text:[""]}
+                if not changeObj?
+                    changeObj = obj
+                    currentObj = changeObj
+                else
+                    currentObj.next = obj
+                    currentObj = obj
+        if changeObj?
+            @apply_changeObj(changeObj)
 
-    pick = () ->
-        insert(sel.val())
-        close()
-        if not IS_MOBILE
-            setTimeout((() -> that.focus()), 50)
+    # Set the value of the buffer to something new, and make some attempt
+    # to maintain the view, e.g., cursor position and scroll position.
+    # This function is very, very naive now, but will get better using better algorithms.
+    CodeMirror.defineExtension 'setValueNoJump', (value) ->
+        try
+            scroll = @getScrollInfo()
+            pos = @getCursor()
+        catch e
+            # nothing
+        @setValue(value)
+        try
+            @setCursor(pos)
+            @scrollTo(scroll.left, scroll.top)
+            @scrollIntoView(pos)   #I've seen tracebacks from this saying "cannot call method chunckSize of undefined"
+                                   #which cause havoc on the reset of sync, which assumes setValueNoJump works, and
+                                   # leads to user data loss.  I consider this a codemirror bug, but of course
+                                   # just not moving the view in such cases is a reasonable workaround.
+        catch e
+            # nothing
 
-    sel.blur(pick)
-    sel.dblclick(pick)
-    if not IS_MOBILE  # do not do this on mobile, since it makes it unusable!
-        sel.click(pick)
-    sel.keydown (event) ->
-        code = event.keyCode
-        switch code
-            when 13 # enter
-                pick()
-                return false
-            when 27
-                close()
-                that.focus()
-                return false
-            else
-                if code != 38 and code != 40 and code != 33 and code != 34 and not CodeMirror.isModifierKey(event)
+
+
+
+    # This is an improved rewrite of simple-hint.js from the CodeMirror3 distribution.
+    CodeMirror.defineExtension 'showCompletions', (opts) ->
+        {from, to, completions, target, completions_size} = defaults opts,
+            from             : required
+            to               : required
+            completions      : required
+            target           : required
+            completions_size : 20
+
+        if completions.length == 0
+            return
+
+        start_cursor_pos = @getCursor()
+        that = @
+        insert = (str) ->
+            pos = that.getCursor()
+            from.line = pos.line
+            to.line   = pos.line
+            shift = pos.ch - start_cursor_pos.ch
+            from.ch += shift
+            to.ch   += shift
+            that.replaceRange(str, from, to)
+
+        if completions.length == 1
+            insert(target + completions[0])
+            return
+
+        sel = $("<select>").css('width','auto')
+        complete = $("<div>").addClass("salvus-completions").append(sel)
+        for c in completions
+            sel.append($("<option>").text(target + c))
+        sel.find(":first").attr("selected", true)
+        sel.attr("size", Math.min(completions_size, completions.length))
+        pos = @cursorCoords(from)
+
+        complete.css
+            left : pos.left   + 'px'
+            top  : pos.bottom + 'px'
+        $("body").append(complete)
+        # If we're at the edge of the screen, then we want the menu to appear on the left of the cursor.
+        winW = window.innerWidth or Math.max(document.body.offsetWidth, document.documentElement.offsetWidth)
+        if winW - pos.left < sel.attr("clientWidth")
+            complete.css(left: (pos.left - sel.attr("clientWidth")) + "px")
+        # Hide scrollbar
+        if completions.length <= completions_size
+            complete.css(width: (sel.attr("clientWidth") - 1) + "px")
+
+        done = false
+
+        close = () ->
+            if done
+                return
+            done = true
+            complete.remove()
+
+        pick = () ->
+            insert(sel.val())
+            close()
+            if not IS_MOBILE
+                setTimeout((() -> that.focus()), 50)
+
+        sel.blur(pick)
+        sel.dblclick(pick)
+        if not IS_MOBILE  # do not do this on mobile, since it makes it unusable!
+            sel.click(pick)
+        sel.keydown (event) ->
+            code = event.keyCode
+            switch code
+                when 13 # enter
+                    pick()
+                    return false
+                when 27
                     close()
                     that.focus()
-                    # Pass to CodeMirror (e.g., backspace)
-                    that.triggerOnKeyDown(event)
-    sel.focus()
-    return sel
+                    return false
+                else
+                    if code != 38 and code != 40 and code != 33 and code != 34 and not CodeMirror.isModifierKey(event)
+                        close()
+                        that.focus()
+                        # Pass to CodeMirror (e.g., backspace)
+                        that.triggerOnKeyDown(event)
+        sel.focus()
+        return sel
 
-CodeMirror.defineExtension 'showIntrospect', (opts) ->
-    opts = defaults opts,
-        from      : required
-        content   : required
-        type      : required   # 'docstring', 'source-code' -- TODO: curr ignored
-        target    : required
-    editor = @
-    element = templates.find(".salvus-codemirror-introspect").clone()
-    element.find(".salvus-codemirror-introspect-title").text(opts.target)
-    element.find(".salvus-codemirror-introspect-content").text(opts.content)
-    element.find(".salvus-codemirror-introspect-close").click () -> element.remove()
-    pos = editor.cursorCoords(opts.from)
-    element.css
-        left : pos.left + 'px'
-        top  : pos.bottom + 'px'
-    $("body").prepend element
-    if not IS_MOBILE
-        element.draggable(handle: element.find(".salvus-codemirror-introspect-title")).resizable
-            alsoResize : element.find(".salvus-codemirror-introspect-content")
-            maxHeight: 650
-            handles : 'all'
-    element.focus()
-    return element
+    CodeMirror.defineExtension 'showIntrospect', (opts) ->
+        opts = defaults opts,
+            from      : required
+            content   : required
+            type      : required   # 'docstring', 'source-code' -- TODO: curr ignored
+            target    : required
+        editor = @
+        element = templates.find(".salvus-codemirror-introspect").clone()
+        element.find(".salvus-codemirror-introspect-title").text(opts.target)
+        element.find(".salvus-codemirror-introspect-content").text(opts.content)
+        element.find(".salvus-codemirror-introspect-close").click () -> element.remove()
+        pos = editor.cursorCoords(opts.from)
+        element.css
+            left : pos.left + 'px'
+            top  : pos.bottom + 'px'
+        $("body").prepend element
+        if not IS_MOBILE
+            element.draggable(handle: element.find(".salvus-codemirror-introspect-title")).resizable
+                alsoResize : element.find(".salvus-codemirror-introspect-content")
+                maxHeight: 650
+                handles : 'all'
+        element.focus()
+        return element
 
 
 exports.download_file = (url) ->
