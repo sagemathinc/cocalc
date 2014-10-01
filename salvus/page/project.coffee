@@ -239,17 +239,17 @@ class ProjectPage
         # sends a message to the hub.
         that = @
         @container.find(".project-project_title").blur () ->
-            new_title = $(@).text()
+            new_title = $(@).html()
             if new_title != that.project.title
                 salvus_client.update_project_data
                     project_id : that.project.project_id
                     data       : {title:new_title}
                     cb         : (err, mesg) ->
                         if err
-                            $(@).text(that.project.title)  # change it back
+                            $(@).html(that.project.title)  # change it back
                             alert_message(type:'error', message:"Error contacting server to save modified project title.")
                         else if mesg.event == "error"
-                            $(@).text(that.project.title)  # change it back
+                            $(@).html(that.project.title)  # change it back
                             alert_message(type:'error', message:mesg.error)
                         else
                             that.project.title = new_title
@@ -257,17 +257,17 @@ class ProjectPage
                             that.update_topbar()
 
         @container.find(".project-project_description").blur () ->
-            new_desc = $(@).text()
+            new_desc = $(@).html()
             if new_desc != that.project.description
                 salvus_client.update_project_data
                     project_id : that.project.project_id
                     data       : {description:new_desc}
                     cb         : (err, mesg) ->
                         if err
-                            $(@).text(that.project.description)   # change it back
+                            $(@).html(that.project.description)   # change it back
                             alert_message(type:'error', message:err)
                         else if mesg.event == "error"
-                            $(@).text(that.project.description)   # change it back
+                            $(@).html(that.project.description)   # change it back
                             alert_message(type:'error', message:mesg.error)
                         else
                             that.project.description = new_desc
@@ -969,15 +969,15 @@ class ProjectPage
             @container.find(".project-settings-make-public").show()
             @container.find(".project-settings-make-private").hide()
 
-        @container.find(".project-project_title").text(@project.title)
-        @container.find(".project-project_description").text(@project.description)
+        @container.find(".project-project_title").html(@project.title).mathjax()
+        @container.find(".project-project_description").html(@project.description).mathjax()
 
         if not @project.title? # make sure that things work even if @project is invalid.
             @project.title = ""
             alert_message(type:"error", message:"Project #{@project.project_id} is corrupt. Please report.")
-        label = @project.title
+        label = $("<div>").html(@project.title).text()  # plain text for this...
         top_navbar.set_button_label(@project.project_id, label)
-        document.title = "Sagemath: #{@project.title}"
+        document.title = "Sagemath: #{label}"
 
         if not @_computing_status
             @_computing_usage = true
