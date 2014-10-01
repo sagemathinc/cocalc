@@ -11,8 +11,8 @@ class Connection extends client.Connection
         t = require('misc').mswalltime()
 
         opts =
-            ping      : 9000
-            pong      : 7000
+            ping      : 8000
+            pong      : 14000
             strategy  : 'disconnect,online,timeout'
             reconnect :
               maxDelay : 20000
