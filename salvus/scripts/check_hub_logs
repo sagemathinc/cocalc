@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+
+import os
+
+LOGS = "%s/data/logs"%os.environ['SALVUS_ROOT']
+
+def count(f, s, lines):
+    fname = os.path.join(LOGS, f)
+    if not os.path.exists(fname):
+        return -1
+    if lines:
+        c = "tail -n %s %s"%(lines, fname)
+    else:
+        c = "cat %s"%fname
+    c += " | grep '%s' |wc -l"%s
+    return int(os.popen(c).read())
+
+strings = [('timed out with no response',2000), ('PoolConnectionError',2000), ('debug: Uncaught exception:',0)]
+
+for f in sorted(os.listdir(LOGS)):
+    if f.startswith('hub-') and f.endswith('.log'):
+        for s,lines in strings:
+            i = count(f, s, lines)
+            if i > 0:
+                print f, i, "'%s'"%s
