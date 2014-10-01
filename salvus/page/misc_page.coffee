@@ -606,4 +606,8 @@ exports.load_coffeescript_compiler = (cb) ->
 
 
 
+# Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
+
+exports.html_to_text = (html) -> $($.parseHTML(html)).text()
+
 
