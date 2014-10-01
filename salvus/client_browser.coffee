@@ -31,7 +31,7 @@ class Connection extends client.Connection
             ondata(evt.data)
 
         conn.on 'error', (err) =>
-            console.log("websocket -- error: ", evt)
+            console.log("websocket -- error: ", err)
             @emit("error", err)
 
         conn.on 'close', () =>
