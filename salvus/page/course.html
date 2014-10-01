@@ -244,15 +244,97 @@
                     <h3><i class="fa fa-question-circle"> </i>  Course Help</h3>
                 </div>
                 <div class="modal-body">
-                    Use a course to manage a group of students, their projects, and assignments.
+                    Course documents allow you to manage a <i>list of students</i>, <i>create projects</i> for each
+                    of them, <i>share homework</i> and folders with them, <i>collect
+                    homework</i>, and <i>grade and return</i> it to students.
+
 
                     <h4>Add Students</h4>
+                    <p>
+                        To add a student to your course, click on the <a class="btn btn-primary btn-default"><i class="fa fa-users"> </i>  Students</a> tab,
+                        then type a student's name or email address in the "Add student" box to the right and press
+                        enter or click the button.   Searching for an email address is best, since you can be certain that the person you're adding is
+                        really a student in your course (instead of an unknown SageMathCloud user with the same name); moreover, if your student
+                        doesn't already have an account, they will receive an invitation via email.
+                        <span class="lighten">(NOTE: There is currently no way to add dozens of students at once.)</span>
+                    </p>
 
-                    <h4>Add Assignments (shared folders)</h4>
+                    <p>
+                        Once you add a student, click on <a  class="btn btn-warning"><i class="fa fa-plus-circle"> </i>  Create Project</a> next to your
+                        student's name to create their project.  You own the project, and they will be added as a collaborator, and invited by email if they
+                        do not yet have an account.  Don't worry, student projects are hidden by default from your main project listing.
+                        <!--view
+                        (click <button class="btn btn-info btn-sm"> <i class="fa fa-eye-slash"></i> Hidden</button> to see hidden projects in your project listing).-->
+                    </p>
+                    <p>To delete a student, click <i class="fa fa-times"> </i> to the right of the student.
+                        You can toggle whether deleted students are shown in settings.</p>
 
-                    <h4>Collect Assignments</h4>
+                    <h4>Add Assignments</h4>
+                    <p>
+                        To create an assignment, first click
+                        <a data-target="project-new-file">
+                            <i class="project-control-icon fa fa-plus-circle"></i>
+                            <span class="project-pages-button-label hidden-xs">New</span>
+                        </a>
+                        in the upper left of your project to create a new folder, and create or add files to it, as usual.
+                        Click on the <a class="btn btn-default btn-primary"><i class="fa fa-share-square-o"> </i> Assignments</a>
+                        tab of the course, then search for the folder by typing some part of its name in the box on the far right.
+                        Click to select the folder and it will be added to your
+                        list of assignments.
+                        To make <b>copies</b> of this folder available to all of your students whose projects you have created,
+                        click the <a class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Assign</a> button.
+                        <span class="lighten">NOTE: You can share arbitrary folders with any contents with your
+                            students -- folders don't have
+                            to contain "assignments", and may contain anything, Sage worksheets, IPython notebooks,
+                            LaTeX documents, etc.</span>
+                    </p>
 
+
+                    <h4>Collecting and Grading Assignments</h4>
+                    <p>
+                        To collect an assignment from your students,
+                        click <a  class="btn btn-warning"><i class="fa fa-share-square-o fa-rotate-180"> </i>  Collect</a> to the right of an assignment
+                        to collect it from all students.
+                        <span class="lighten">
+                        (NOTE: There is currently no way to schedule collection to happen at a specific time -- it happens
+                        when you click the button.  Click it again to update the collected files.)</span>
+                    </p>
+                    <p>
+                        Once the assignments are collected, click
+                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                            <i class="fa fa-eye"> </i> Grade <span class="caret"></span>
+                        </button>
+                        and select a student to jump to the folder that contains the collected version of a
+                        student's assignment. Edit the
+                        files there, indicating grades on each problem, etc.
+                        <span class="lighten">
+                            NOTE: There is no special support yet for recording grades, knowing which homework you have graded already, etc.
+                        </span>
+                    </p>
+
+                    <p>
+                        When you are done grading, click <a class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Return Graded</a>
+                        to return the graded homework to the students.  If the homework folder is called <tt>homework1</tt>, then the graded version
+                        will appear in the student's project as <tt>homework1-graded</tt>.
+                    </p>
                     <h4>Course Settings</h4>
+                    <p>
+                        Set the title and description of the course in the
+                        <a class="btn btn-default btn-primary"><i class="fa fa-wrench"> </i> Settings</a> tab.  When you
+                        change these, the new title and description
+                        propagates automatically to all student projects for this course.
+                    </p>
+
+                    <h4>Other</h4>
+                    <ul>
+                        <li>
+                            <a target="_blank" href="http://youtu.be/C8ZALCcCCkM">Video Tutorial</a>
+                        </li>
+                    </ul>
+
+                    <h4>Technical Remarks</h4>
+                    The underlying file format of a .course file is a plain text file with one line in JSON format for each student,
+                    shared assignment, and for settings.
 
                 </div>
                 <div class="modal-footer">
