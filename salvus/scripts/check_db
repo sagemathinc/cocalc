@@ -1,5 +1,18 @@
-cd $SALVUS_ROOT/data/logs
-echo "0 `tail -n 5000 hub-0.log | grep "timed out with no response" |wc -l`"
-echo "1 `tail -n 5000 hub-1.log | grep "timed out with no response" |wc -l`"
-echo "2 `tail -n 5000 hub-2.log | grep "timed out with no response" |wc -l`"
-echo "3 `tail -n 5000 hub-3.log | grep "timed out with no response" |wc -l`"
+#!/usr/bin/env python
+
+import os
+
+LOGS = "%s/data/logs"%os.environ['SALVUS_ROOT']
+
+def count(f, s, lines=500):
+    fname = os.path.join(LOGS, f)
+    if not os.path.exists(fname):
+        return -1
+    c = "tail -n %s %s | grep '%s' |wc -l"%(lines, fname, s)
+    return int(os.popen(c).read())
+
+for f in os.listdir(LOGS):
+    if f.startswith('hub-') and f.endswith('.log'):
+        print f, count(f, 'timed out with no response'),  count(f, 'PoolConnectionError'),
+
+print
