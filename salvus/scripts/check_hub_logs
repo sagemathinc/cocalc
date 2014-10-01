@@ -15,7 +15,7 @@ def count(f, s, lines):
     c += " | grep '%s' |wc -l"%s
     return int(os.popen(c).read())
 
-strings = [('timed out with no response',2000), ('PoolConnectionError',2000), ('debug: Uncaught exception:',0)]
+strings = [('timed out with no response',2000), ('PoolConnectionError',2000), ('debug: Uncaught exception:',10)]
 
 for f in sorted(os.listdir(LOGS)):
     if f.startswith('hub-') and f.endswith('.log'):
