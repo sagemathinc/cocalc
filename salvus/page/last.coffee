@@ -20,9 +20,5 @@ $(document).on "click", (e) ->
 # These are things that aren't needed for the initial page initialization,
 # but are needed to load documents.
 
-exports.async_load_done = false
-d = $("<div>").load '/static/async_head.html', () ->
-    $("body").append(d)
-    misc_page.define_codemirror_extensions()
-    editor.define_codemirror_sagews_mode()
-    exports.async_load_done = true
+misc_page.define_codemirror_extensions()
+editor.define_codemirror_sagews_mode()

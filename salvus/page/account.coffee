@@ -348,14 +348,7 @@ signed_in = (mesg) ->
             # change the navbar title from "Sign in" to their email address -- don't use the one from mesg, which may be out of date
             set_account_tab_label(true, account_settings.settings.email_address)
 
-            # Only show the project listing page once the async parts of the site are loaded.
-            f = () ->
-                if require('last').async_load_done
-                    top_navbar.show_page_button("projects")
-                else
-                    setTimeout(f, 100)
-            f()
-
+            top_navbar.show_page_button("projects")
 
             # If this is the initial login, switch to the project
             # page.  We do this because if the user's connection is
