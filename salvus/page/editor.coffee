@@ -192,7 +192,7 @@ sagews_decorator_modes = [
 ]
 
 exports.define_codemirror_sagews_mode = () ->
-    
+
     CodeMirror.defineMode "sagews", (config) ->
         options = []
         for x in sagews_decorator_modes
@@ -1589,7 +1589,7 @@ class CodeMirrorEditor extends FileEditor
         # doing this always causes things to get properly fixed.  I don't know why.
         hack = $("<div>")
         $("body").append(hack)
-        setTimeout((()=>hack.remove()),1)
+        setTimeout((()=>hack.remove()),100)
 
 
         for cm in v

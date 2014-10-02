@@ -896,7 +896,6 @@ show_connection_information = () ->
         dialog.find(".salvus-connection-nohub").show()
         dialog.find(".salvus-connection-hub").hide()
     s = require('salvus_client')
-    dialog.find(".salvus-connection-type").text(s.protocol())
 
     if s.ping_time()
         dialog.find(".salvus-connection-ping").show().find('pre').text("#{s.ping_time()}ms")

@@ -84,7 +84,7 @@ class TopNavbar  extends EventEmitter
         a = button.find("a")
         a.find(".button-label").text(label)
         if icon?
-            a.find(".button-label").prepend($("<i class='fa #{icon}' style='font-size:20px'> </i>"))
+            a.find(".button-label").prepend($("<i class='fa #{icon}' style='font-size:20px;padding-right: 2px;'> </i>"))
         close_button = a.find(".close-button")
         if close
             close_button.data("id", id)
@@ -312,6 +312,4 @@ $(".salvus-fullscreen-deactivate").click () ->
     $("body").css('padding-top': ($(".salvus-top_navbar").height()) + 1 + 'px')
     return false
 
-
-$(".salvus-connection-status-protocol").tooltip(delay:{ show: 500, hide: 100 })
 $(".salvus-connection-status-ping-time").tooltip(delay:{ show: 500, hide: 100 })
