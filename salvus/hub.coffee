@@ -566,7 +566,7 @@ class Client extends EventEmitter
         cookies = new Cookies(@conn.request)
         value = cookies.get(program.base_url + 'remember_me')
         @_validate_remember_me(value)
-       
+
         #@check_for_remember_me()
 
     remember_me_failed: (reason) =>
@@ -4042,7 +4042,7 @@ exports.send_email = send_email = (opts={}) ->
         (cb) ->
             if email_server?
                 cb(); return
-            dbg("starting sendgrid client")
+            dbg("starting sendgrid client...")
             filename = 'data/secrets/sendgrid_email_password'
             fs.readFile filename, 'utf8', (error, password) ->
                 if error

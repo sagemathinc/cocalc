@@ -469,13 +469,8 @@ class exports.Cassandra extends EventEmitter
                         equals_fallback = false
                     if op == '=='
                         op = '=' # for cassandra
-                    if op == 'in'
-                        # !!!!!!!!!!!!!! potential CQL-injection attack !?  !!!!!!!!!!!
-                        # TODO -- keep checking/complaining?:  in queries with params don't seem to work right at least as of Oct 13, 2013 !
-                        where += "#{key} IN #{array_of_strings_to_cql_list(x2)}"
-                    else
-                        where += "#{key} #{op} ?"
-                        vals.push(x2)
+                    where += "#{key} #{op} ?"
+                    vals.push(x2)
                     where += " AND "
         return where.slice(0,-4)    # slice off final AND.
 
@@ -821,7 +816,7 @@ class exports.Salvus extends exports.Cassandra
         @_all_users_computing = true
         @select
             table     : 'accounts'
-            columns   : ['first_name', 'last_name', 'email_address', 'account_id']
+            columns   : ['first_name', 'last_name', 'account_id']
             objectify : true
             consistency : 1     # since we really want optimal speed, and missing something temporarily is ok.
             limit     : 1000000  # TODO: probably start failing due to timeouts around 100K users (?) -- will have to cursor or query multiple times then?
@@ -835,7 +830,7 @@ class exports.Salvus extends exports.Cassandra
                     if not r.last_name?
                         r.last_name = ''
                     search = (r.first_name + ' ' + r.last_name).toLowerCase()
-                    obj = {account_id : r.account_id, first_name:r.first_name, last_name:r.last_name, search:search, email:r.email_address?.toLowerCase()}
+                    obj = {account_id : r.account_id, first_name:r.first_name, last_name:r.last_name, search:search}
                     v.push(obj)
                 delete @_all_users_computing
                 if not @_all_users?
@@ -848,31 +843,80 @@ class exports.Salvus extends exports.Cassandra
 
     user_search: (opts) =>
         opts = defaults opts,
-            query : required
-            limit : undefined
-            cb    : required
+            query : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
+            limit : undefined    # limit on string queries; email query always returns 0 or 1 result per email address
+            cb    : required     # cb(err, list of {account_id:?, first_name:?, last_name:?, email_address:?}), where the
+                                 # email_address *only* occurs in search queries that are by email_address -- we do not reveal
+                                 # email addresses of users queried by name.
 
-        @all_users (err, users) =>
-            if err
-                opts.cb(err); return
-            query = opts.query.toLowerCase().split(/\s+/g)
-            match = (search, email) ->
-                for q in query
-                    if (search.indexOf(q) == -1 and email != q)
+        {string_queries, email_queries} = misc.parse_user_search(opts.query)
+
+        results = []
+        async.parallel([
+
+            (cb) =>
+                if email_queries.length == 0
+                    cb(); return
+
+                # do email queries -- with exactly two targeted db queries (even if there are hundreds of addresses)
+                @select
+                    table     : 'email_address_to_account_id'
+                    where     : {email_address:{'in':email_queries}}
+                    columns   : ['account_id']
+                    objectify : false
+                    cb        : (err, r) =>
+                        if err
+                            cb(err); return
+                        if r.length == 0
+                            cb(); return
+                        @select
+                            table     : 'accounts'
+                            columns   : ['account_id', 'first_name', 'last_name', 'email_address']
+                            where     : {'account_id':{'in':(x[0] for x in r)}}
+                            objectify : true
+                            cb        : (err, r) =>
+                                if err
+                                    cb(err)
+                                else
+                                    for x in r
+                                        results.push(x)
+                                    cb()
+
+            (cb) =>
+                # do all string queries
+                if string_queries.length == 0 or (opts.limit? and results.length >= opts.limit)
+                    # nothing to do
+                    cb(); return
+
+                @all_users (err, users) =>
+                    if err
+                        cb(err); return
+                    match = (search) ->
+                        for query in queries
+                            matches = true
+                            for q in query
+                                if search.indexOf(q) == -1
+                                    matches = false
+                                    break
+                            if matches
+                                return true
                         return false
-                return true
-            r = []
-            # LOCKING WARNING: In the worst case, this is a non-indexed linear search through all
-            # names which completely locks the server.  That said, it would take about
-            # 500,000 users before this blocks the server for *1 second*... at which point the
-            # database query to load all users into memory above (in @all_users) would take
-            # several hours.   So let's optimize this, but do that later!!
-            for x in users
-                if match(x.search, x.email)
-                    r.push(x)
-                    if opts.limit? and r.length >= opts.limit
-                        break
-            opts.cb(false, r)
+                    # SCALABILITY WARNING: In the worst case, this is a non-indexed linear search through all
+                    # names which completely locks the server.  That said, it would take about
+                    # 500,000 users before this blocks the server for *1 second*... at which point the
+                    # database query to load all users into memory above (in @all_users) would take
+                    # several hours.
+                    # TODO: we should limit the number of search requests per user per minute, since this
+                    # is a DOS vector.
+                    for x in users
+                        if match(x.search)
+                            results.push(x)
+                            if opts.limit? and results.length >= opts.limit
+                                break
+                    cb()
+
+            ], (err) => opts.cb(err, results))
+
 
     account_ids_to_usernames: (opts) =>
         opts = defaults opts,

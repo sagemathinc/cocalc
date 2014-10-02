@@ -71,7 +71,7 @@
                                 </div>
                                 <div class="col-sm-5">
                                     <div class="input-group">
-                                        <input class="salvus-course-students-add search-query form-control" type="search" placeholder="Add student (name or email address)...">
+                                        <input class="salvus-course-students-add search-query form-control" type="search" placeholder="Add by name or email (separate multiple with commas)...">
                                         <span class="input-group-btn">
                                             <button class="btn btn-default salvus-course-add-student-button" type="button">
                                                 <i class="fa fa-search"></i>
@@ -79,13 +79,11 @@
                                         </span>
                                     </div>
 
-                                    <select class="salvus-course-add-student-select form-control hide"></select>
+                                    <select multiple="multiple" class="salvus-course-add-student-select form-control hide"></select>
 
                                     <div class="salvus-course-add-student-loading hide" style="margin-top:1ex">Loading...</div>
-                                    <a class="btn btn-lg btn-primary btn-submit hide salvus-course-add-noncloud-student" style="margin-top: 1ex;"> <i class="fa fa-user"> </i>  No matches. Invite student...</a>
-                                    <div class="salvus-course-add-student-already-match lighten hide" style="margin-top:1ex">Student already added</div>
-                                    <a class="btn btn-lg btn-primary btn-submit hide salvus-course-add-cloud-student" style="margin-top: 1ex;"> <i class="fa fa-user"> </i>  Add <span>selected student</span></a>
-                                    <div class="salvus-course-add-noncloud-hint lighten hide"  style="margin-top:1ex">Enter an email address to invite a student who does not have an account.</div>
+                                    <a class="btn btn-lg btn-primary btn-submit hide salvus-course-add-selected-button" style="margin-top: 1ex;"> <i class="fa fa-user"> </i>  Add <span>selected students</span></a>
+                                    <div class="salvus-course-add-noncloud-hint lighten hide"  style="margin-top:1ex">Enter an email address (or several separated by commas) to invite a student who does not have an account.</div>
                                 </div>
                             </div>
                             <div class="row">
@@ -256,7 +254,7 @@
                         enter or click the button.   Searching for an email address is best, since you can be certain that the person you're adding is
                         really a student in your course (instead of an unknown SageMathCloud user with the same name); moreover, if your student
                         doesn't already have an account, they will receive an invitation via email.
-                        <span class="lighten">(NOTE: There is currently no way to add dozens of students at once.)</span>
+                        To add many students at once, just paste in a list of email addresses separated by commas.
                     </p>
 
                     <p>
