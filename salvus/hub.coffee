@@ -628,7 +628,8 @@ class Client extends EventEmitter
     # Pushing messages to this particular connected client
     #######################################################
     push_to_client: (mesg) =>
-        winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
+        if mesg.event != 'pong'
+            winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
 
     push_data_to_client: (channel, data) ->
@@ -879,7 +880,7 @@ class Client extends EventEmitter
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
         #winston.debug("got message: #{data}")
-        if mesg.event != 'codemirror_bcast'
+        if mesg.event != 'codemirror_bcast' and mesg.event != 'ping'
             winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 300)}")
         handler = @["mesg_#{mesg.event}"]
         if handler?
@@ -926,6 +927,13 @@ class Client extends EventEmitter
                     cb?(err)
                 else
                     cb?(false, session)
+
+    ######################################################
+    # ping/pong
+    ######################################################
+    mesg_ping: (mesg) =>
+        @push_to_client(message.pong(id:mesg.id))
+
 
     ######################################################
     # Messages: Sage compute sessions and code execution
@@ -3766,7 +3774,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 
         (cb) ->
             # If they just changed email to an address that has some actions, carry those out...
-            # TODO: move to hook this only after validdation of the email address.
+            # TODO: move to hook this only after validation of the email address.
             account_creation_actions
                 email_address : mesg.new_email_address
                 account_id    : mesg.account_id

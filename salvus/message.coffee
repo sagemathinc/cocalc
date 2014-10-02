@@ -1379,3 +1379,11 @@ message
     event        : 'printed_to_pdf'
     id           : undefined
     path         : required
+
+message
+    event : 'ping'
+    id    : undefined
+
+message
+    event : 'pong'
+    id    : undefined

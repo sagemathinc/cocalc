@@ -283,6 +283,23 @@ class exports.Connection extends EventEmitter
 
         @_connected = false
 
+        # start pinging -- not used/needed with primus
+        #@_ping()
+
+    _ping: () =>
+        if not @_ping_interval?
+            @_ping_interval = 10000 # frequency to ping
+        @_last_ping = new Date()
+        @call
+            message : message.ping()
+            timeout : 20  # 20 second timeout
+            cb      : (err, pong) =>
+                if not err? and pong?.event == 'pong'
+                    latency = new Date() - @_last_ping
+                    @emit "ping", latency
+                # try again later
+                setTimeout(@_ping, @_ping_interval)
+
     close: () ->
         @_conn.close()   # TODO: this looks very dubious -- probably broken or not u
 

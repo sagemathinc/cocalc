@@ -1,5 +1,4 @@
 client = require('client')
-
 exports.connect = (url) ->
     new Connection(url)
 
@@ -13,8 +12,8 @@ class Connection extends client.Connection
         console.log("websocket -- connecting to '#{url}'...")
 
         opts =
-            ping      : 8000
-            pong      : 14000
+            ping      : 6000   # used for maintaining the connection and deciding when to reconnect.
+            pong      : 12000  # used to decide when to reconnect
             strategy  : 'disconnect,online,timeout'
             reconnect :
               maxDelay : 20000
@@ -50,12 +49,18 @@ class Connection extends client.Connection
             console.log('websocket --reconnecting in %d ms', opts.timeout)
             console.log('websocket --this is attempt %d out of %d', opts.attempt, opts.retries)
 
-        conn.on 'incoming::pong', () =>
-            # console.log("pong latency=#{conn.latency}")
-            @emit "ping", conn.latency
+        conn.on 'incoming::pong', (time) =>
+            #console.log("pong latency=#{conn.latency}")
+            if not window.document.hasFocus? or window.document.hasFocus()
+                # networking/pinging slows down when browser not in focus...
+                @emit "ping", conn.latency
+
+        #conn.on 'outgoing::ping', () =>
+        #    console.log(new Date() - 0, "sending a ping")
 
         @_write = (data) =>
             conn.write(data)
+
 
     _fix_connection: () =>
         console.log("websocket --_fix_connection...")
