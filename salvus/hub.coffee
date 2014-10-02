@@ -1953,14 +1953,18 @@ class Client extends EventEmitter
                         if done
                             cb()
                         else
-                            # send an email to the user
+                            cb()
+                            # send an email to the user -- async, not blocking user.
+                            # TODO: this can take a while -- we need to take some actionif it fails, e.g., change a setting in the projects table!
                             s = @signed_in_mesg
                             send_email
                                 to      : email_address
                                 from    : if s? then "#{s.first_name} #{s.last_name} <#{s.email_address}>" else undefined
                                 subject : "SageMathCloud Invitation"
                                 body    : email.replace("https://cloud.sagemath.com", "Sign up at https://cloud.sagemath.com using the email address #{email_address}.")
-                                cb      : cb
+                                cb      : (err) =>
+                                    winston.debug("send_email to #{email_address} -- done -- err={misc.to_json(err)}")
+
                 ], cb)
 
             async.map to, invite_user, (err, results) =>
@@ -4030,7 +4034,7 @@ exports.send_email = send_email = (opts={}) ->
     opts = defaults opts,
         subject : required
         body    : required
-        from    : 'wstein@uw.edu'          # obviously change this at some point.  But it is the best "reply to right now"
+        from    : 'SageMathCloud <wstein@uw.edu>'          # obviously change this at some point.  But it is the best "reply to right now"
         to      : required
         cc      : ''
         cb      : undefined
@@ -4038,6 +4042,7 @@ exports.send_email = send_email = (opts={}) ->
     dbg = (m) -> winston.debug("send_email(to:#{opts.to}) -- #{m}")
     dbg(opts.body)
 
+    disabled = false
     async.series([
         (cb) ->
             if email_server?
@@ -4050,15 +4055,26 @@ exports.send_email = send_email = (opts={}) ->
                     dbg(err)
                     cb(err)
                 else
+                    pass = password.toString().trim()
+                    if pass.length == 0
+                        winston.debug("email_server: explicitly disabled -- so pretend to always succeed for testing purposes")
+                        disabled = true
+                        email_server = {disabled:true}
+                        cb()
+                        return
                     email_server = nodemailer.createTransport "SMTP",
                         service : "SendGrid"
                         port    : 2525
                         auth    :
                             user: "wstein",
-                            pass: require('fs').readFileSync('data/secrets/sendgrid_email_password').toString().trim()
+                            pass: pass
                     dbg("started email server")
                     cb()
         (cb) ->
+            if disabled or email_server?.disabled
+                cb(undefined, 'email disabled -- no actual message sent')
+                return
+            winston.debug("sendMail to #{opts.to} starting...")
             email_server.sendMail
                 from    : opts.from
                 to      : opts.to
@@ -4066,8 +4082,9 @@ exports.send_email = send_email = (opts={}) ->
                 subject : opts.subject
                 cc      : opts.cc,
                 cb      : (err) =>
+                    winston.debug("sendMail to #{opts.to} done... (err=#{misc.to_json(err)})")
                     if err
-                        dbg("sendMail -- error = #{err}")
+                        dbg("sendMail -- error = #{misc.to_json(err)}")
                     cb(err)
 
     ], (err, message) ->

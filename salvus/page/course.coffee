@@ -566,13 +566,13 @@ class Course
                                 else
                                     cb()
                     else
-                        console.log("invite_noncloud_collaborators")
+                        #console.log("invite_noncloud_collaborators")
                         salvus_client.invite_noncloud_collaborators
                             to         : v.email_address
                             email      : "Please create a SageMathCloud account using this email address so that you can use the project for #{title}.\n\n#{description}"
                             project_id : project_id
                             cb         : (err) =>
-                                console.log("got back err", err)
+                                #console.log("got back err", err)
                                 if err
                                     cb("error inviting #{v.email_address} to collaborate on a course project -- #{misc.to_json(err)}")
                                 else
