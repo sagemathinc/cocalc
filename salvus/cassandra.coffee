@@ -892,7 +892,7 @@ class exports.Salvus extends exports.Cassandra
                     if err
                         cb(err); return
                     match = (search) ->
-                        for query in queries
+                        for query in string_queries
                             matches = true
                             for q in query
                                 if search.indexOf(q) == -1
