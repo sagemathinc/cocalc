@@ -1433,7 +1433,11 @@ class exports.Salvus extends exports.Cassandra
                     if err
                         opts.cb(err)
                     else
-                        opts.cb(false, (misc.from_json(r) for r in results))
+                        if results.length == 0
+                            opts.cb(undefined, [])
+                        else
+                            console.log(results[0][0])              
+                            opts.cb(false, (misc.from_json(r) for r in results[0][0]))
 
     update_account_settings: (opts={}) ->
         opts = defaults opts,
