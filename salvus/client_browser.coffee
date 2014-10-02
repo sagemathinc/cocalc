@@ -3,12 +3,14 @@ client = require('client')
 exports.connect = (url) ->
     new Connection(url)
 
+{walltime} = require('misc')
+t = walltime()
+
 class Connection extends client.Connection
     _connect: (url, ondata) ->
         @url = url
         @ondata = ondata
         console.log("websocket -- connecting to '#{url}'...")
-        t = require('misc').mswalltime()
 
         opts =
             ping      : 8000
@@ -22,7 +24,7 @@ class Connection extends client.Connection
         conn = new Primus(url, opts)
         @_conn = conn
         conn.on 'open', () =>
-            console.log("websocket -- open", require('misc').mswalltime(t))
+            console.log("websocket -- connected in #{walltime(t)} seconds")
             @_connected = true
             @emit("connected", 'websocket')
 
@@ -37,6 +39,7 @@ class Connection extends client.Connection
         conn.on 'close', () =>
             console.log("websocket -- closed")
             @_connected = false
+            t = walltime()
             @emit("connecting")
 
         conn.on 'data', (data) =>
