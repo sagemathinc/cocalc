@@ -358,7 +358,7 @@ class Course
                     # oh well...
                     return
                 for r in result
-                    if r.account_id?
+                    if r.account_id?                        
                         @db.update
                             set :
                                 account_id    : r.account_id
