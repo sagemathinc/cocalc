@@ -3585,8 +3585,8 @@ account_creation_actions = (opts) ->
         email_address : opts.email_address
         cb            : (err, actions) ->
             if err
-                cb(err); return
-            for action in actions
+                opts.cb(err); return
+            f = (action, cb) ->
                 winston.debug("account_creation_actions: action = #{misc.to_json(action)}")
                 if action.action == 'add_to_project'
                     database.add_user_to_project
@@ -3594,9 +3594,12 @@ account_creation_actions = (opts) ->
                         account_id : opts.account_id
                         group      : action.group
                         cb         : (err) =>
-                            winston.debug("Error adding user to project: #{err}")
-    # We immediately move on -- it's ok to do the actions in parallel.
-    opts.cb()
+                            if err
+                                winston.debug("Error adding user to project: #{err}")
+                            cb(err)
+                else
+                    cb("unknown action -- #{action.action}")
+            async.map(actions, f, (err) -> opts.cb(err))
 
 run_all_account_creation_actions = (cb) ->
     dbg = (m) -> winston.debug("all_account_creation: #{m}")
@@ -3605,6 +3608,9 @@ run_all_account_creation_actions = (cb) ->
     users           = undefined
 
     async.series([
+        (cb) ->
+            dbg("connect to database...")
+            connect_to_database(cb)
         (cb) ->
             dbg("get all email addresses in the account creation actions table")
             database.select
