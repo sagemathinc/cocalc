@@ -3012,11 +3012,7 @@ class LatexEditor extends FileEditor
     _set: (content) =>
         @latex_editor._set(content)
 
-    show: () =>
-        if not @is_active()
-            return
-
-        @element?.show()
+    _show: () =>
         @latex_editor?.show()
         if not @_show_before?
             @show_page('png-preview')
