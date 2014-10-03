@@ -2568,6 +2568,9 @@ class PDF_PreviewEmbed extends FileEditor
     hide: () =>
         @element.hide()
 
+#############################################
+# Viewer/editor (?) for history of changes to a document
+#############################################
 
 class HistoryEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
@@ -2722,6 +2725,9 @@ class HistoryEditor extends FileEditor
         if @ext == 'sagews'
             @worksheet.process_sage_updates()
 
+#############################################
+# Editor for LaTeX documents
+#############################################
 
 class LatexEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
@@ -2805,38 +2811,13 @@ class LatexEditor extends FileEditor
         @save_conf(conf)
 
     load_conf: () =>
-        doc = @latex_editor.codemirror.getValue()
-        i = doc.indexOf("%sagemathcloud=")
-        if i == -1
-            return {}
-
-        j = doc.indexOf('=',i)
-        k = doc.indexOf('\n',i)
-        if k == -1
-            k = doc.length
-        try
-            conf = misc.from_json(doc.slice(j+1,k))
-        catch
+        conf = @local_storage('conf')
+        if not conf?
             conf = {}
-
         return conf
 
     save_conf: (conf) =>
-        cm  = @latex_editor.codemirror
-        doc = cm.getValue()
-        i = doc.indexOf('%sagemathcloud=')
-        line = '%sagemathcloud=' + misc.to_json(conf)
-        if i != -1
-            # find the line m where it is already
-            for n in [0..cm.doc.lastLine()]
-                z = cm.getLine(n)
-                if z.indexOf('%sagemathcloud=') != -1
-                    m = n
-                    break
-            cm.replaceRange(line+'\n', {line:m,ch:0}, {line:m+1,ch:0})
-        else
-            cm.replaceRange('\n'+line, {line:cm.doc.lastLine()+1,ch:0})
-        @latex_editor.syncdoc.sync()
+        @local_storage('conf', conf)
 
     _pause_passive_search: (cb) =>
         @_passive_forward_search_disabled = true
