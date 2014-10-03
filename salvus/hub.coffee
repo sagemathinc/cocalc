@@ -853,7 +853,11 @@ class Client extends EventEmitter
         @_handle_data_queue_empty_function()
 
     register_data_handler: (h) ->
-        # generate a random channel character that isn't already taken
+        # generate a channel character that isn't already taken -- if these get too large,
+        # this will break (see, e.g., http://blog.fgribreau.com/2012/05/how-to-fix-could-not-decode-text-frame.html);
+        # however, this is a counter for *each* individual user connection, so they won't get too big.
+        # Ultimately, we'll redo things to use primus/websocket channel support, which should be much more powerful
+        # and faster.
         if not @_last_channel?
             @_last_channel = 1
         while true
