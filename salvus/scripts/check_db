@@ -1,5 +1,0 @@
-cd $SALVUS_ROOT/data/logs
-echo "0 `tail -n 5000 hub-0.log | grep "timed out with no response" |wc -l`"
-echo "1 `tail -n 5000 hub-1.log | grep "timed out with no response" |wc -l`"
-echo "2 `tail -n 5000 hub-2.log | grep "timed out with no response" |wc -l`"
-echo "3 `tail -n 5000 hub-3.log | grep "timed out with no response" |wc -l`"

@@ -1,11 +1,17 @@
 * In mode/python/python.js I add our unicode output character to be a comment starter:
+
       // Handle Comments
       if (ch == "#"  || ch == "\uFE21") {
+
+
+  diff mode/python/python.js ../codemirror-4.5/mode/python/python.js
 
 -----------------------------------------------------------------------------------------------
 
 * The theme/solarized.css file looks like *CRAP* -- I had to remove the weird background image and shadow text.  Come on.
 
+      diff theme/solarized.css ../codemirror-4.5/theme/solarized.css|more
+      cp  ../codemirror-4.5/theme/solarized.css theme/
 
 -----------------------------------------------------------------------------------------------
 
@@ -30,14 +36,14 @@ index 104ccd7..2ac716d 100644
 
 * Add modes:
 
-cp -rv ../codemirror4.orig/mode/less mode/
-cp -rv ../codemirror4.orig/mode/pari mode/
-cp -rv ../codemirror4.orig/mode/ocaml mode/
+    cp -rv ../codemirror-4.5/mode/less mode/
+    cp -rv ../codemirror-4.5/mode/pari mode/
+    cp -rv ../codemirror-4.5/mode/ocaml mode/
 
 -----------------------------------------------------------------------------------------------
 
 * Workaround bug in codemirror that codemirror devs can't easily reproduce -- without this
-workaround, copying text out, then back in (after changing tabs back and forth)
+workaround, copying text out, then back in (after changing tabs back and forth) OFTEN
 results in the whole document being replaced by a dash:
 
 diff --git a/salvus/static/codemirror4/lib/codemirror.js b/salvus/static/codemirror4/lib/codemirror.js
@@ -55,3 +61,12 @@ index f106f79..43a5711 100644
 -----------------------------------------------------------------------------------------------
 
 * There are numerous changes to addon/search/search.js to make it bootstrap3 compatible (done by Andy).
+
+    diff ../codemirror-4.5/addon/search/search.js addon/search/search.js
+    cp ../codemirror-4.5/addon/search/search.js addon/search/
+
+-----------------------------------------------------------------------------------------------
+
+Minify the main library:
+
+     uglifyjs2 codemirror.js > codemirror.min.js

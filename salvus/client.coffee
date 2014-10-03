@@ -19,13 +19,6 @@ docs = require("docs")
 defaults = misc.defaults
 required = defaults.required
 
-# This is the default time in *seconds* between pings sent by the
-# client to the server to indicate that a given session is being
-# actively viewed.  This variable is used by hub.coffee to set
-# its kill timeout, so do not change the name here without changing
-# it there.   It *is* safe to change the value.
-exports.DEFAULT_SESSION_PING_TIME = 600
-
 # JSON_CHANNEL is the channel used for JSON.  The hub imports this
 # file, so if this constant is ever changed (for some reason?), it
 # only has to be changed on this one line.  Moreover, channel
@@ -37,12 +30,6 @@ exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 # Default timeout for many operations -- a user will get an error in many cases
 # if there is no response to an operation after this amount of time.
 DEFAULT_TIMEOUT = 30  # in seconds
-
-# Default minimum ping time (see below) -- if don't get response this quickly, then will reconnect automatically
-# Making this shorter can easily lead to false positives and lots of reconnects for no reason, which means that
-# many messages, etc., get dropped.  Making this too long means it can take longer for the client to realize that
-# it needs to reconnect.  Making this too short also limits the maximum message time.
-PING_CHECK_INTERVAL = 45  # in seconds
 
 
 # change these soon
@@ -140,28 +127,13 @@ class Session extends EventEmitter
     restart: (cb) =>
         @conn.call(message:message.restart_session(session_uuid:@session_uuid), timeout:10, cb:cb)
 
-    # Starts a ping interval timer that periodicially pings the server
-    # to indicate that this session is being actively viewed.  Pinging
-    # stops if the function continue_pinging() returns false.
-    # If the continue_pinging function is not defined, just ping server once.
-    ping: (continue_pinging) ->
-        if not continue_pinging?
-            @conn.send(message.ping_session(session_uuid:@session_uuid))
-            return
-        timer = undefined
-        ping = () =>
-            if continue_pinging()
-                @ping()
-            else
-                clearInterval(timer)
-        timer = setInterval(ping, exports.DEFAULT_SESSION_PING_TIME * 1000)
 
 ###
 #
 # A Sage session, which links the client to a running Sage process;
 # provides extra functionality to kill/interrupt, etc.
 #
-#   Client <-- (sockjs) ---> Hub  <--- (tcp) ---> sage_server
+#   Client <-- (primus) ---> Hub  <--- (tcp) ---> sage_server
 #
 ###
 
@@ -238,7 +210,7 @@ class SageSession extends Session
 #
 # A Console session, which connects the client to a pty on a remote machine.
 #
-#   Client <-- (sockjs) ---> Hub  <--- (tcp) ---> console_server
+#   Client <-- (primus) ---> Hub  <--- (tcp) ---> console_server
 #
 ###
 
@@ -255,7 +227,6 @@ class exports.Connection extends EventEmitter
     #    - 'error'      -- called when an error occurs
     #    - 'output'     -- received some output for stateless execution (not in any session)
     #    - 'execute_javascript' -- code that server wants client to run (not for a particular session)
-    #    - 'ping'       -- a pong is received back; data is the round trip ping time
     #    - 'message'    -- emitted when a JSON message is received           on('message', (obj) -> ...)
     #    - 'data'       -- emitted when raw data (not JSON) is received --   on('data, (id, data) -> )...
     #    - 'signed_in'  -- server pushes a succesful sign in to the client (e.g., due to
@@ -282,7 +253,7 @@ class exports.Connection extends EventEmitter
 
         # IMPORTANT! Connection is an abstract base class.  Derived classes must
         # implement a method called _connect that takes a URL and a callback, and connects to
-        # the SockJS server with that url, then creates the following event emitters:
+        # the Primus websocket server with that url, then creates the following event emitters:
         #      "connected", "error", "close"
         # and returns a function to write raw data to the socket.
 
@@ -297,7 +268,7 @@ class exports.Connection extends EventEmitter
                 # the message is sent to an appropriate handler, if
                 # one has previously been registered.  The motivation
                 # is that we the ability to multiplex multiple
-                # sessions over a *single* SockJS connection, and it
+                # sessions over a *single* WebSocket connection, and it
                 # is absolutely critical that there is minimal
                 # overhead regarding the amount of data transfered --
                 # 1 character is minimal!
@@ -310,24 +281,27 @@ class exports.Connection extends EventEmitter
                 # give other listeners a chance to do something with this data.
                 @emit("data", channel, data)
 
-        @_last_pong = misc.walltime()
         @_connected = false
 
-        # have to get a round trip packet between client and hub every
-        # this many ms, or client will start freaking out and trying
-        # to reconnect.  This limits things like max size of files we
-        # can edit.
-        @_ping_check_interval = PING_CHECK_INTERVAL * 1000
-        @_ping_check_id = setInterval((()=>@ping(); @_ping_check()), @_ping_check_interval)
+        # start pinging -- not used/needed with primus
+        #@_ping()
+
+    _ping: () =>
+        if not @_ping_interval?
+            @_ping_interval = 10000 # frequency to ping
+        @_last_ping = new Date()
+        @call
+            message : message.ping()
+            timeout : 20  # 20 second timeout
+            cb      : (err, pong) =>
+                if not err? and pong?.event == 'pong'
+                    latency = new Date() - @_last_ping
+                    @emit "ping", latency
+                # try again later
+                setTimeout(@_ping, @_ping_interval)
 
     close: () ->
-        clearInterval(@_ping_check_id)
-        @_conn.close()
-
-    _ping_check: () ->
-        if @_connected and (@_last_ping - @_last_pong > 1.1*@_ping_check_interval/1000.0)
-            @_signed_in = false
-            @_fix_connection?()
+        @_conn.close()   # TODO: this looks very dubious -- probably broken or not u
 
     # Send a JSON message to the hub server.
     send: (mesg) ->
@@ -345,6 +319,7 @@ class exports.Connection extends EventEmitter
 
     handle_json_data: (data) =>
         mesg = misc.from_json(data)
+        #console.log("handle_json_data: #{data}")
         switch mesg.event
             when "execute_javascript"
                 if mesg.session_uuid?
@@ -368,9 +343,6 @@ class exports.Connection extends EventEmitter
                     @_sessions[mesg.data_channel]?.reconnect()
                 else if mesg.session_uuid?
                     @_sessions[mesg.session_uuid]?.reconnect()
-            when "pong"
-                @_last_pong = misc.walltime()
-                @emit("ping", @_last_pong - @_last_ping)
             when "cookies"
                 @_cookies?(mesg)
             when "signed_in"
@@ -422,15 +394,12 @@ class exports.Connection extends EventEmitter
         delete @_data_handlers[channel]
 
     _handle_data: (channel, data) =>
+        #console.log("_handle_data:(#{channel},'#{data}')")
         f = @_data_handlers[channel]
         if f?
             f(data)
         #else
-            #console.log("Error -- missing channel #{channel} for data #{data}.  @_data_handlers = #{misc.to_json(@_data_handlers)}")
-
-    ping: () ->
-        @_last_ping = misc.walltime()
-        @send(message.ping())
+        #    console.log("Error -- missing channel '#{channel}' for data '#{data}'.  @_data_handlers = #{misc.to_json(@_data_handlers)}")
 
     connect_to_session: (opts) ->
         opts = defaults opts,
@@ -1246,16 +1215,16 @@ class exports.Connection extends EventEmitter
     ######################################################################
     exec: (opts) ->
         opts = defaults opts,
-            project_id : required
-            path       : ''
-            command    : required
-            args       : []
-            timeout    : 30
+            project_id      : required
+            path            : ''
+            command         : required
+            args            : []
+            timeout         : 30
             network_timeout : undefined
-            max_output : undefined
-            bash       : false
-            err_on_exit : true
-            cb         : required   # cb(err, {stdout:..., stderr:..., exit_code:...}).
+            max_output      : undefined
+            bash            : false
+            err_on_exit     : true
+            cb              : required   # cb(err, {stdout:..., stderr:..., exit_code:...}).
 
         if not opts.network_timeout?
             opts.network_timeout = opts.timeout * 1.5
@@ -1263,13 +1232,13 @@ class exports.Connection extends EventEmitter
         #console.log("Executing -- #{opts.command}, #{misc.to_json(opts.args)} in '#{opts.path}'")
         @call
             message : message.project_exec
-                project_id : opts.project_id
-                path       : opts.path
-                command    : opts.command
-                args       : opts.args
-                timeout    : opts.timeout
-                max_output : opts.max_output
-                bash       : opts.bash
+                project_id  : opts.project_id
+                path        : opts.path
+                command     : opts.command
+                args        : opts.args
+                timeout     : opts.timeout
+                max_output  : opts.max_output
+                bash        : opts.bash
                 err_on_exit : opts.err_on_exit
             timeout : opts.network_timeout
             cb      : (err, mesg) ->

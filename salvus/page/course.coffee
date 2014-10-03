@@ -69,6 +69,7 @@ class Course
                 @default_settings(cb)
             (cb) =>
                 @init_edit_settings()
+                @check_if_students_have_signed_up_for_an_account()
                 @update_students()
                 @init_assignments()
                 @update_assignments()
@@ -196,25 +197,19 @@ class Course
         add_button = @element.find(".salvus-course-add-student-button")
         select     = @element.find(".salvus-course-add-student-select")
         loading    = @element.find(".salvus-course-add-student-loading")
-        already_match   = @element.find(".salvus-course-add-student-already-match")
-        noncloud_button = @element.find(".salvus-course-add-noncloud-student")
-        cloud_button = @element.find(".salvus-course-add-cloud-student")
+        add_selected_button = @element.find(".salvus-course-add-selected-button")
         noncloud_hint = @element.find(".salvus-course-add-noncloud-hint")
         last_result = undefined
 
         clear = () =>
             input_box.val('')
-            noncloud_button.hide()
-            cloud_button.hide()
+            add_selected_button.hide()
             noncloud_hint.hide()
-            already_match.hide()
             select.hide()
 
         input_box.keyup (evt) =>
             if input_box.val() == ""
-                noncloud_button.hide()
-                cloud_button.hide()
-                already_match.hide()
+                add_selected_button.hide()
             if evt.which == 13
                 update_select(input_box.val())
                 return
@@ -223,35 +218,24 @@ class Course
             update_select(input_box.val())
             return false
 
-        noncloud_button.click () =>
-            email_address = noncloud_button.data('target')
-            @add_new_student
-                email_address : email_address
+        add_selected_button.click () =>
+            v = {}
+            for y in select.find(":selected")
+                v[$(y).attr('value')] = true
+            for r in last_result
+                if v[r.account_id] or v[r.email_address]
+                    @add_new_student
+                        account_id    : r.account_id
+                        first_name    : r.first_name
+                        last_name     : r.last_name
+                        email_address : r.email_address
             clear()
-
-        cloud_button.click () =>
-            r = cloud_button.data('target')
-            @add_new_student
-                account_id    : r.account_id
-                first_name    : r.first_name
-                last_name     : r.last_name
-                email_address : r.email
-            clear()
-
-        set_cloud_button_target = (target) =>
-            cloud_button.find("span").text(target.first_name + ' ' + target.last_name)
-            cloud_button.show().data('target', target)
 
         select.click () =>
-            account_id = select.val()
-            if not account_id or not last_result?
-                cloud_button.show().addClass('disabled')
+            if select.find(":selected").length == 0
+                add_selected_button.show().addClass('disabled')
             else
-                cloud_button.show().removeClass('disabled')
-                for r in last_result
-                    if r.account_id == account_id
-                        set_cloud_button_target(r)
-                        break
+                add_selected_button.show().removeClass('disabled')
 
         last_query_id = 0
         num_loading = 0
@@ -261,6 +245,7 @@ class Course
                 select.html("").hide()
                 return
             select.show()
+
             last_query_id += 1
             num_loading += 1
             loading.show()
@@ -282,43 +267,44 @@ class Course
                     select.html("")
                     last_result = result
 
-                    # only include not-already-students
+                    {string_queries, email_queries} = misc.parse_user_search(x)
+
+                    # add in all emails for which there's no current SMC account, so an invite will get sent instead.
+                    result_emails = {}
+                    for r in result
+                        if r.email_address?
+                            result_emails[r.email_address] = true
+                    for r in email_queries
+                        if not result_emails[r]
+                            result.push({email_address:r})
+
+                    # remove from search result every student who is already in the course
                     already_student = {}
                     for z in @db.select({table : 'students'})
                         if z.account_id?
                             already_student[z.account_id] = true
                         if z.email_address?
                             already_student[z.email_address] = true
-                    result = (r for r in result when not already_student[r.account_id])
+                    result = (r for r in result when not (already_student[r.account_id] or already_student[r.email_address]))
 
                     if result.length > 0
-                        noncloud_button.hide()
                         noncloud_hint.hide()
-                        already_match.hide()
-                        if result.length > 1
-                            select.html('').show()
-                            select.attr(size:Math.min(10, result.length))
-                            for r in result
+                        add_selected_button.hide()
+                        select.html('').show()
+                        select.attr(size:Math.min(10, result.length))
+                        for r in result
+                            if r.account_id?
                                 name = r.first_name + ' ' + r.last_name
                                 select.append($("<option>").attr(value:r.account_id, label:name).text(name))
-                            cloud_button.show().addClass('disabled').find("span").text("selected student")
-                        else
-                            # exactly one result
-                            select.hide()
-                            r = result[0]
-                            set_cloud_button_target(r)
+                            else if r.email_address?
+                                name = "Invite #{r.email_address}"
+                                select.append($("<option>").attr(value:r.email_address, label:name).text(name))
+                        add_selected_button.show().addClass('disabled').find("span").text("selected student")
 
                     else
                         # no results
                         select.hide()
-                        if require('client').is_valid_email_address(x)
-                            if not already_student[x]
-                                noncloud_button.show().data('target', x)
-                            else
-                                already_match.show()
-                        else
-                            noncloud_hint.show()
-                        cloud_button.hide()
+                        noncloud_hint.show()
 
 
 
@@ -332,7 +318,8 @@ class Course
 
         # TODO: check that no student with given account_id or email is already in db first
 
-        opts.email_address = misc.lower_email_address(opts.email_address)
+        if opts.email_address?
+            opts.email_address = misc.lower_email_address(opts.email_address)
 
         student_id = misc.uuid()
         @db.update
@@ -355,6 +342,31 @@ class Course
             project_id    : opts.project_id
             append        : false
         @update_student_count()
+
+
+    check_if_students_have_signed_up_for_an_account: () =>
+        # for each student that doesn't have an account id yet, since they haven't joined,
+        # check to see if they have in fact joined and if so record their account id and name.
+        email_query = (x.email_address for x in @db.select({table : 'students'}) when not x.account_id?)
+        if email_query.length == 0
+            # nothing to do
+            return
+        salvus_client.user_search
+            query : email_query.join(',')
+            cb    : (err, result) =>
+                if err
+                    # oh well...
+                    return
+                for r in result
+                    if r.account_id?                        
+                        @db.update
+                            set :
+                                account_id    : r.account_id
+                                first_name    : r.first_name
+                                last_name     : r.last_name
+                            where :
+                                table         : 'students'
+                                email_address : r.email_address
 
 
     update_students: () =>
@@ -554,11 +566,13 @@ class Course
                                 else
                                     cb()
                     else
+                        #console.log("invite_noncloud_collaborators")
                         salvus_client.invite_noncloud_collaborators
                             to         : v.email_address
                             email      : "Please create a SageMathCloud account using this email address so that you can use the project for #{title}.\n\n#{description}"
                             project_id : project_id
                             cb         : (err) =>
+                                #console.log("got back err", err)
                                 if err
                                     cb("error inviting #{v.email_address} to collaborate on a course project -- #{misc.to_json(err)}")
                                 else
@@ -616,10 +630,10 @@ class Course
     # as a collaborator, add them so the project is hidden from their normal listing.
     add_course_collaborators_to_project: (opts) =>
         opts = defaults opts,
-            project_id : required
-            update     : true     # if true, we assume project was created a while ago and lookup collaborators; otherwise add *all* collabs.
+            project_id     : required
+            update         : true     # if true, we assume project was created a while ago and lookup collaborators; otherwise add *all* collabs.
             course_collabs : undefined
-            cb         : required
+            cb             : required
 
         course_collabs  = opts.course_collabs
         project_collabs = {}
@@ -699,11 +713,14 @@ class Course
                     return
                 # add all new collaborators to all projects
                 f = (student, cb) =>
-                    @add_course_collaborators_to_project
-                        project_id     : student.project_id
-                        update         : true
-                        course_collabs : to_add
-                        cb             : cb
+                    if not student.project_id?
+                        cb()
+                    else
+                        @add_course_collaborators_to_project
+                            project_id     : student.project_id
+                            update         : true
+                            course_collabs : to_add
+                            cb             : cb
                 async.mapLimit @students(), MAP_LIMIT, f, (err) =>
                     if err
                         cb?(err)
@@ -721,10 +738,13 @@ class Course
         if student.first_name? then first_name = student.first_name
         if student.last_name? then last_name = student.last_name
         if student.email_address? then email_address = student.email_address
-        if first_name or last_name
-            return first_name + ' ' + last_name
+        if student.account_id? or first_name or last_name
+            s = "#{first_name} #{last_name}"
+            if email_address
+                s += " (#{email_address})"
+            return s
         else
-            return email_address
+            return "#{email_address} (invited)"
 
     course_project_settings: (student_id) =>
         z = @db.select_one(table:'settings')
@@ -1083,6 +1103,8 @@ class Course
             @element.find(".salvus-course-assignments-add").focus()
         else
             @element.find(".salvus-course-assignments-none").hide()
+
+
 
 
 

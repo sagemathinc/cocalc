@@ -76,7 +76,6 @@ from_json = misc.from_json
 async   = require("async")
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 daemon  = require("start-stop-daemon")  # daemonize -- https://github.com/jiem/start-stop-daemon
-sockjs  = require("sockjs")             # websockets (+legacy support) -- https://github.com/sockjs/sockjs-node
 uuid    = require('node-uuid')
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
@@ -135,19 +134,9 @@ init_http_server = () ->
         switch segments[1]
             when "cookies"
                 cookies = new Cookies(req, res)
-                conn = clients[query.id]
-                if conn?
-                    if query.get
-                        conn.emit("get_cookie-#{query.get}", cookies.get(query.get))
-                    if query.set
-                        # in some rare cases this is undefined:
-                        x = conn.cookies[query.set]
-                        #delete conn.cookies[query.set]
-                        if x?
-                            cookies.set(query.set, x.value, x.options)
-                            conn.emit("set_cookie-#{query.set}")
-                        else
-                            winston.debug("possible issue -- requested to set cookie #{query.set}, but cookie not defined")
+                if query.set
+                    # TODO: implement expires as part of query.
+                    cookies.set(query.set, query.value, {expires:new Date(new Date().getTime() + 1000*24*3600*365)})
                 res.end('')
             when "alive"
                 if not database_is_working
@@ -539,17 +528,18 @@ init_http_proxy_server = () =>
 
 
 #############################################################
-# Client = a client that is connected via sockjs to the hub
+# Client = a client that is connected via a persistent connection to the hub
 #############################################################
 class Client extends EventEmitter
     constructor: (@conn) ->
         @_data_handlers = {}
         @_data_handlers[JSON_CHANNEL] = @handle_json_message_from_client
 
-        @ip_address = @conn.remoteAddress
+        @ip_address = @conn.address.ip
 
         # A unique id -- can come in handy
         @id = @conn.id
+
 
         # The variable account_id is either undefined or set to the
         # account id of the user that this session has successfully
@@ -558,31 +548,39 @@ class Client extends EventEmitter
         @account_id = undefined
 
         # The persistent sessions that this client started.
-        # TODO: For now,these are all terminated when the client disconnects.
         @compute_session_uuids = []
 
         @cookies = {}
         @remember_me_db = database.key_value_store(name: 'remember_me')
 
-        @check_for_remember_me()
-
         @conn.on "data", @handle_data_from_client
 
-        @conn.on "close", () =>
-            winston.debug("connection: hub <--> client(id=#{@id})  CLOSED")
+        @conn.on "end", () =>
+            winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  CLOSED")
             @emit 'close'
             @compute_session_uuids = []
             delete clients[@conn.id]
 
-        winston.debug("connection: hub <--> client(id=#{@id})  ESTABLISHED")
+        winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
+
+        cookies = new Cookies(@conn.request)
+        value = cookies.get(program.base_url + 'remember_me')
+        @_validate_remember_me(value)
+
+        #@check_for_remember_me()
 
     remember_me_failed: (reason) =>
         @push_to_client(message.remember_me_failed(reason:reason))
 
     check_for_remember_me: () =>
+        winston.debug("client(id=#{@id}): check for remember me")
         @get_cookie
             name : program.base_url + 'remember_me'
             cb   : (value) =>
+                @_validate_remember_me(value)
+
+    _validate_remember_me: (value) =>
+                #winston.debug("_validate_remember_me: #{value}")
                 if not value?
                     @remember_me_failed("no remember_me cookie")
                     return
@@ -630,10 +628,12 @@ class Client extends EventEmitter
     # Pushing messages to this particular connected client
     #######################################################
     push_to_client: (mesg) =>
-        winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}") if mesg.event != 'pong'
+        if mesg.event != 'pong'
+            winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
 
     push_data_to_client: (channel, data) ->
+        #winston.debug("push_data_to_client(#{channel},'#{data}')")
         @conn.write(channel + data)
 
     error_to_client: (opts) ->
@@ -671,7 +671,7 @@ class Client extends EventEmitter
         @account_id = undefined
 
     #########################################################
-    # Setting and getting HTTP-only cookies via SockJS + AJAX
+    # Setting and getting HTTP-only cookies via Primus + AJAX
     #########################################################
     get_cookie: (opts) ->
         opts = defaults opts,
@@ -686,13 +686,11 @@ class Client extends EventEmitter
             name  : required
             value : required
             ttl   : undefined    # time in seconds until cookie expires
-            cb    : undefined    # cb() when cookie is set
         options = {}
-        if opts.ttl?
+        if opts.ttl?  # Todo: ignored
             options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
-        @once("set_cookie-#{opts.name}", ()->opts.cb?())
-        @cookies[opts.name] = {value:opts.value, options:options}
-        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:program.base_url+"/cookies"))
+        @cookies[opts.name] = {value:opts.value, options:options}  # TODO: this can't work
+        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:program.base_url+"/cookies", value:opts.value))
 
     remember_me: (opts) ->
         #############################################################
@@ -771,7 +769,7 @@ class Client extends EventEmitter
 
     ######################################################################
     #
-    # SockJS only supports one connection between the client and
+    # Our realtime socket connection might only supports one connection between the client and
     # server, so we multiplex multiple channels over the same
     # connection.  There is one base channel for JSON messages called
     # JSON_CHANNEL, which themselves can be routed to different
@@ -856,8 +854,11 @@ class Client extends EventEmitter
 
     register_data_handler: (h) ->
         # generate a random channel character that isn't already taken
+        if not @_last_channel?
+            @_last_channel = 1
         while true
-            channel = String.fromCharCode(Math.random()*65536)
+            @_last_channel += 1
+            channel = String.fromCharCode(@_last_channel)
             if not @_data_handlers[channel]?
                 break
         @_data_handlers[channel] = h
@@ -882,7 +883,7 @@ class Client extends EventEmitter
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
         #winston.debug("got message: #{data}")
-        if mesg.event.slice(0,4) != 'ping' and mesg.event != 'codemirror_bcast'
+        if mesg.event != 'codemirror_bcast' and mesg.event != 'ping'
             winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 300)}")
         handler = @["mesg_#{mesg.event}"]
         if handler?
@@ -929,6 +930,13 @@ class Client extends EventEmitter
                     cb?(err)
                 else
                     cb?(false, session)
+
+    ######################################################
+    # ping/pong
+    ######################################################
+    mesg_ping: (mesg) =>
+        @push_to_client(message.pong(id:mesg.id))
+
 
     ######################################################
     # Messages: Sage compute sessions and code execution
@@ -1012,13 +1020,6 @@ class Client extends EventEmitter
             else
                 session.send_signal(mesg.signal)
 
-    mesg_ping_session: (mesg) =>
-        s = persistent_sage_sessions[mesg.session_uuid]
-        if s?
-            s.last_ping_time = new Date()
-            return
-        @push_to_client(message.error(id:mesg.id, error:"Pinged unknown session #{mesg.session_uuid}"))
-
     mesg_restart_session: (mesg) =>
         @get_sage_session mesg, (err, session) =>
             if err
@@ -1055,13 +1056,6 @@ class Client extends EventEmitter
                 return
             else
                 session.send_json(@, mesg)
-
-    ######################################################
-    # Messages: Keeping client connected
-    ######################################################
-    # ping/pong
-    mesg_ping: (mesg) =>
-        @push_to_client(message.pong(id:mesg.id))
 
     ######################################################
     # Messages: Account creation, sign in, sign out
@@ -1108,8 +1102,10 @@ class Client extends EventEmitter
     # Messages: Account settings
     ######################################################
     mesg_get_account_settings: (mesg) =>
-        if @account_id != mesg.account_id
-            @push_to_client(message.error(id:mesg.id, error:"Not signed in as user with id #{mesg.account_id}."))
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"not yet signed in"))
+        else if @account_id != mesg.account_id
+            @push_to_client(message.error(id:mesg.id, error:"not signed in as user with id #{mesg.account_id}."))
         else
             database.get_account
                 account_id : @account_id
@@ -1968,14 +1964,18 @@ class Client extends EventEmitter
                         if done
                             cb()
                         else
-                            # send an email to the user
+                            cb()
+                            # send an email to the user -- async, not blocking user.
+                            # TODO: this can take a while -- we need to take some actionif it fails, e.g., change a setting in the projects table!
                             s = @signed_in_mesg
                             send_email
                                 to      : email_address
                                 from    : if s? then "#{s.first_name} #{s.last_name} <#{s.email_address}>" else undefined
                                 subject : "SageMathCloud Invitation"
                                 body    : email.replace("https://cloud.sagemath.com", "Sign up at https://cloud.sagemath.com using the email address #{email_address}.")
-                                cb      : cb
+                                cb      : (err) =>
+                                    winston.debug("send_email to #{email_address} -- done -- err={misc.to_json(err)}")
+
                 ], cb)
 
             async.map to, invite_user, (err, results) =>
@@ -2256,15 +2256,19 @@ snap_command = (opts) ->
 
 
 ##############################
-# Create the SockJS Server
+# Create the Primus realtime socket server
 ##############################
-init_sockjs_server = () ->
-    sockjs_server = sockjs.createServer()
-
-    sockjs_server.on "connection", (conn) ->
+primus_server = undefined
+init_primus_server = () ->
+    Primus = require('primus')
+    opts =
+        transformer : 'websockets'
+        pathname    : '/hub'
+    primus_server = new Primus(http_server, opts)
+    winston.debug("primus_server: listening on #{opts.pathname}")
+    primus_server.on "connection", (conn) ->
+        winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id}")
         clients[conn.id] = new Client(conn)
-
-    sockjs_server.installHandlers(http_server, {prefix : program.base_url + '/hub'})
 
 
 #######################################################
@@ -2274,7 +2278,7 @@ init_sockjs_server = () ->
 #######################################################
 
 # get_client_ids -- given query parameters, returns a list of id's,
-#   where the id is the SockJS connection id, which we assume is
+#   where the id is the connection id, which we assume is
 #   globally unique across all of space and time.
 get_client_ids = (opts) ->
     opts = defaults opts,
@@ -2739,7 +2743,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # client --> console:
                 # Create a binary channel that the client can use to write to the socket.
                 # (This uses our system for multiplexing JSON and multiple binary streams
-                #  over one single SockJS connection.)
+                #  over one single connection.)
                 channel = opts.client.register_data_handler (data) ->
                     if not ignore
                         console_socket.write(data)
@@ -3773,7 +3777,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 
         (cb) ->
             # If they just changed email to an address that has some actions, carry those out...
-            # TODO: move to hook this only after validdation of the email address.
+            # TODO: move to hook this only after validation of the email address.
             account_creation_actions
                 email_address : mesg.new_email_address
                 account_id    : mesg.account_id
@@ -4041,7 +4045,7 @@ exports.send_email = send_email = (opts={}) ->
     opts = defaults opts,
         subject : required
         body    : required
-        from    : 'wstein@uw.edu'          # obviously change this at some point.  But it is the best "reply to right now"
+        from    : 'SageMathCloud <wstein@uw.edu>'          # obviously change this at some point.  But it is the best "reply to right now"
         to      : required
         cc      : ''
         cb      : undefined
@@ -4049,11 +4053,12 @@ exports.send_email = send_email = (opts={}) ->
     dbg = (m) -> winston.debug("send_email(to:#{opts.to}) -- #{m}")
     dbg(opts.body)
 
+    disabled = false
     async.series([
         (cb) ->
             if email_server?
                 cb(); return
-            dbg("starting sendgrid client")
+            dbg("starting sendgrid client...")
             filename = 'data/secrets/sendgrid_email_password'
             fs.readFile filename, 'utf8', (error, password) ->
                 if error
@@ -4061,15 +4066,26 @@ exports.send_email = send_email = (opts={}) ->
                     dbg(err)
                     cb(err)
                 else
+                    pass = password.toString().trim()
+                    if pass.length == 0
+                        winston.debug("email_server: explicitly disabled -- so pretend to always succeed for testing purposes")
+                        disabled = true
+                        email_server = {disabled:true}
+                        cb()
+                        return
                     email_server = nodemailer.createTransport "SMTP",
                         service : "SendGrid"
                         port    : 2525
                         auth    :
                             user: "wstein",
-                            pass: require('fs').readFileSync('data/secrets/sendgrid_email_password').toString().trim()
+                            pass: pass
                     dbg("started email server")
                     cb()
         (cb) ->
+            if disabled or email_server?.disabled
+                cb(undefined, 'email disabled -- no actual message sent')
+                return
+            winston.debug("sendMail to #{opts.to} starting...")
             email_server.sendMail
                 from    : opts.from
                 to      : opts.to
@@ -4077,8 +4093,9 @@ exports.send_email = send_email = (opts={}) ->
                 subject : opts.subject
                 cc      : opts.cc,
                 cb      : (err) =>
+                    winston.debug("sendMail to #{opts.to} done... (err=#{misc.to_json(err)})")
                     if err
-                        dbg("sendMail -- error = #{err}")
+                        dbg("sendMail -- error = #{misc.to_json(err)}")
                     cb(err)
 
     ], (err, message) ->
@@ -4202,35 +4219,7 @@ make_blobs_permanent = (opts) ->
 ########################################
 compute_sessions = {}
 
-# The ping timer for compute sessions is very simple:
-#     - an attribute 'last_ping_time', which client code must set periodicially
-#     - the input session must have a kill() method
-#     - an interval timer
-#     - if the timeout option is set to 0, the ping timer is not activated
 
-# This is the time in *seconds* until a session that not being actively pinged is killed.
-# This is a global var, since it must be
-DEFAULT_SESSION_KILL_TIMEOUT = 3 * client_lib.DEFAULT_SESSION_PING_TIME
-
-enable_ping_timer = (opts) ->
-    opts = defaults opts,
-        session : required
-        timeout : DEFAULT_SESSION_KILL_TIMEOUT    # time in *seconds* until session not being actively pinged is killed
-
-    if not opts.timeout
-        # do nothing -- this will keep other code cleaner
-        return
-
-    opts.session.last_ping_time = new Date()
-
-    timer = undefined
-    check_for_timeout = () ->
-        d = ((new Date()) - opts.session.last_ping_time )/1000
-        if  d > opts.timeout
-            clearInterval(timer)
-            opts.session.kill()
-
-    timer = setInterval(check_for_timeout, opts.timeout*1000)
 
 ########################################
 # Persistent Sage Sessions
@@ -4552,7 +4541,7 @@ exports.start_server = start_server = () ->
             update_server_stats(); setInterval(update_server_stats, 120*1000)
             register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 
-            init_sockjs_server()
+            init_primus_server()
             init_stateless_exec()
             http_server.listen(program.port, program.host)
 

@@ -285,7 +285,7 @@ In /etc/sysctl.conf, put:
 
 TINC_VERSION       = '1.0.23'    # options here -- http://tinc-vpn.org/packages/
 CASSANDRA_VERSION  = '2.0.8'     # options here -- http://downloads.datastax.com/community/
-NODE_VERSION       = '0.10.29'   # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
+NODE_VERSION       = '0.10.32'   # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
 PYTHON_VERSION     = '2.7.6'     # options here -- https://www.python.org/ftp/python/
 SETUPTOOLS_VERSION = '3.4.4'     # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
 NGINX_VERSION      = '1.7.0'     # options here -- http://nginx.org/download/
@@ -318,9 +318,9 @@ NODE_MODULES = [
     'commander',
     'start-stop-daemon',
     'winston',
-    'sockjs',
+    'primus',  # websocket abstraction
+    'ws',      # fast low-level websocket depedency for primus
     'node-cassandra-cql',
-    'sockjs-client-ws',
     'coffee-script',
     'node-uuid',
     'browserify@1.16.4',

@@ -714,7 +714,7 @@ class Salvus(object):
         while mesg is None:
             self.message_queue.recv()
             for i, (typ, m) in enumerate(self.message_queue.queue):
-                if typ == 'json' and m['event'] == 'save_blob' and m['sha1'] == file_uuid:
+                if typ == 'json' and m.get('event') == 'save_blob' and m.get('sha1') == file_uuid:
                     mesg = m
                     del self.message_queue[i]
                     break
@@ -729,7 +729,7 @@ class Salvus(object):
             url = u"%s/blobs/%s?uuid=%s"%(info['base_url'], filename, file_uuid)
             if download:
                 url += u'?download'
-            return TemporaryURL(url=url, ttl=mesg['ttl'])
+            return TemporaryURL(url=url, ttl=mesg.get('ttl',0))
 
     def default_mode(self, mode=None):
         """

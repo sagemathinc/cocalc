@@ -346,6 +346,18 @@ exports.lower_email_address = (email_address) ->
     return email_address.toLowerCase()
 
 
+exports.parse_user_search = (query) ->
+    queries = (q.trim().toLowerCase() for q in query.split(','))
+    r = {string_queries:[], email_queries:[]}
+    for x in queries
+        if x.indexOf('@') == -1
+            r.string_queries.push(x.split(/\s+/g))
+        else
+            r.email_queries.push(x)
+    return r
+
+
+
 # Delete trailing whitespace in the string s.  See
 exports.delete_trailing_whitespace = (s) ->
     return s.replace(/[^\S\n]+$/gm, "")

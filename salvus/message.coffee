@@ -97,16 +97,6 @@ message
     state         : undefined
 
 #
-# A period ping message must usually be sent by the client to keep a
-# worksheet/console open, except when worksheet/console is explicitly
-# put in a special (screen-like/nohup) mode.
-#
-# client --> hub
-message
-    event         : 'ping_session'
-    id            : undefined
-    session_uuid  : undefined
-
 
 # client --> hub
 message
@@ -386,18 +376,6 @@ message
     session_uuid : required
     signal       : 2           # 2 = SIGINT, 3 = SIGQUIT, 9 = SIGKILL
 
-############################################
-# Ping/pong
-#############################################
-# browser --> hub
-message
-    event   : 'ping'
-    id      : undefined
-
-# hub --> browser;   sent in response to a ping
-message
-    event   : 'pong'
-    id      : undefined
 
 ############################################
 # Account Management
@@ -700,8 +678,9 @@ message
     event       : 'cookies'
     id          : required
     url         : "/cookies"
-    set         : undefined  # name of a cookie to set
     get         : undefined  # name of a cookie to get
+    set         : undefined  # name of a cookie to set
+    value       : undefined  # value to set cookie to
 
 
 
@@ -1400,3 +1379,11 @@ message
     event        : 'printed_to_pdf'
     id           : undefined
     path         : required
+
+message
+    event : 'ping'
+    id    : undefined
+
+message
+    event : 'pong'
+    id    : undefined

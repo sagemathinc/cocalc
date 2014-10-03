@@ -63,6 +63,7 @@ for mode in ['md', 'html', 'coffeescript', 'javascript']
     for s in ['', '(hide=false)', '(hide=true)', '(once=false)']
         CLIENT_SIDE_MODE_LINES.push("%#{mode}#{s}")
 
+
 # Return true if there are currently unsynchronized changes, e.g., due to the network
 # connection being down, or SageMathCloud not working, or a bug.
 exports.unsynced_docs = () ->
@@ -1647,19 +1648,29 @@ class SynchronizedWorksheet extends SynchronizedDocument
             (() =>
              cell      = new Cell(output : opts.element)
              worksheet = new Worksheet(@)
-             print     = (s...) -> opts.element.append($("<div></div>").text("#{s.join(' ')}"))
+             print     = (s...) -> cell.output.append($("<div></div>").text("#{s.join(' ')}"))
 
              code = mesg.javascript.code
-             if mesg.javascript.coffeescript
-                 code = CoffeeScript.compile(code)
-             if mesg.obj?
-                 obj  = JSON.parse(mesg.obj)
+             async.series([
+                 (cb) =>
+                     if mesg.javascript.coffeescript or code.indexOf('CoffeeScript') != -1
+                         misc_page.load_coffeescript_compiler(cb)
+                     else
+                         cb()
+                 (cb) =>
+                     if mesg.javascript.coffeescript
+                         code = CoffeeScript.compile(code)
+                     if mesg.obj?
+                         obj  = JSON.parse(mesg.obj)
 
-             # The eval below is an intentional cross-site scripting vulnerability in the fundamental design of Salvus.
-             # Note that there is an allow_javascript document option, which (at some point) users
-             # will be able to set.  There is one more instance of eval below in _receive_broadcast.
-             eval(code)
-            )()
+                     # The eval below is an intentional cross-site scripting vulnerability in the fundamental design of Salvus.
+                     # Note that there is an allow_javascript document option, which (at some point) users
+                     # will be able to set.  There is one more instance of eval below in _receive_broadcast.
+                     eval(code)
+                     @refresh_soon()
+                     cb()
+            ])
+           )()
 
         if mesg.done? and mesg.done
             output.removeClass('sagews-output-running')
@@ -1677,10 +1688,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
                          cell      = new Cell(cell_id : mesg.cell_id)
                          print     = (s...) -> console.log("#{s.join(' ')}") # doesn't make sense, but better than printing to printer...
                          code = mesg.code
-                         if mesg.coffeescript
-                             code = CoffeeScript.compile(code)
-                         obj = JSON.parse(mesg.obj)
-                         eval(code)
+                         async.series([
+                             (cb) =>
+                                 if mesg.coffeescript or code.indexOf('CoffeeScript') != -1
+                                     misc_page.load_coffeescript_compiler(cb)
+                                 else
+                                     cb()
+                             (cb) =>
+                                 if mesg.coffeescript
+                                     code = CoffeeScript.compile(code)
+                                 obj = JSON.parse(mesg.obj)
+                                 eval(code)
+                                 cb()
+                        ])
                     )()
 
 
