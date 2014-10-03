@@ -3598,6 +3598,57 @@ account_creation_actions = (opts) ->
     # We immediately move on -- it's ok to do the actions in parallel.
     opts.cb()
 
+run_all_account_creation_actions = (cb) ->
+    dbg = (m) -> winston.debug("all_account_creation: #{m}")
+
+    email_addresses = undefined
+    users           = undefined
+
+    async.series([
+        (cb) ->
+            dbg("get all email addresses in the account creation actions table")
+            database.select
+                table   : 'account_creation_actions'
+                columns : ['email_address']
+                cb      : (err, results) ->
+                    if err
+                        cb(err)
+                    else
+                        dbg("got #{results.length} creation actions from database")
+                        email_addresses = (x[0] for x in results)
+                        cb()
+        (cb) ->
+            dbg("for each action, determine if the account has been created (most probably won't be) and get account_id")
+            database.select
+                table     : 'email_address_to_account_id'
+                columns   : ['email_address', 'account_id']
+                where     : {email_address:{'in':email_addresses}}
+                objectify : true
+                cb        : (err, results) ->
+                    if err
+                        cb(err)
+                    else
+                        dbg("got #{results.length} of these accounts have already been created")
+                        users = results
+                        cb()
+        (cb) ->
+            dbg("for each of the #{users.length} for which the account has been created, do all the actions")
+            i = 0
+            f = (user, cb) ->
+                i += 1
+                dbg("considering user #{i} of #{users.length}")
+                account_creation_actions
+                    email_address : user.email_address
+                    account_id    : user.account_id
+                    cb            : cb
+            # We use mapSeries instead of map, so that the log output is clearer, and since this is fairly small.
+            # We could do it in parallel and be way faster, but not necessary.
+            async.mapSeries(users, f, (err) -> cb(err))
+    ], cb)
+
+
+
+
 change_password = (mesg, client_ip_address, push_to_client) ->
     account = null
     mesg.email_address = misc.lower_email_address(mesg.email_address)
@@ -4593,6 +4644,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
+    .option('--account_creation_actions', 'Run all known account creation actions for accounts that have been created (used mainly to clean up after a particular bug)')
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
@@ -4611,6 +4663,11 @@ if program._name.slice(0,3) == 'hub'
     if program.passwd
         console.log("Resetting password")
         reset_password(program.passwd, (err) -> process.exit())
+    if program.account_creation_actions
+        console.log("Account creation actions")
+        run_all_account_creation_actions (err) ->
+            console.log("DONE --", err)
+            (err) -> process.exit()
     else if program.add_user_to_project
         console.log("Adding user to project")
         v = program.add_user_to_project.split(',')
