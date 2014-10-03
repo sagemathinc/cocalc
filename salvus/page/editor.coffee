@@ -1013,10 +1013,23 @@ class FileEditor extends EventEmitter
     local_storage: (key, value) =>
         return local_storage(@editor.project_id, @filename, key, value)
 
-    show: (opts={}) =>
+    show: () =>
         if not @is_active()
             return
+
+        # Show gets called repeatedly as we resize the window, so we wait until slightly *after*
+        # the last call before doing the show.
+        now = misc.mswalltime()
+        if @_last_call? and now - @_last_call < 500
+            if not @_show_timer?
+                @_show_timer = setTimeout((()=>delete @_show_timer; @show()), now - @_last_call)
+            return
+        @_last_call = now
         @element.show()
+        @_show()
+
+    _show: (opts={}) =>
+        # define in derived class
 
     hide: () =>
         @element.hide()
@@ -1544,21 +1557,6 @@ class CodeMirrorEditor extends FileEditor
                 v[i] += amount
         $("body").remove("#salvus-cm-activeline")
         $("body").append("<style id='salvus-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
-
-    show: () =>
-        if not @is_active()
-            return
-
-        # Show gets called repeatedly as we resize the window, so we wait until slightly *after*
-        # the last call before doing the show.
-        now = misc.mswalltime()
-        if @_last_call? and now - @_last_call < 500
-            if not @_show_timer?
-                @_show_timer = setTimeout((()=>delete @_show_timer; @show()), now - @_last_call)
-            return
-        @_last_call = now
-        @element.show()
-        @_show()
 
 
     # hide/show the second linked codemirror editor, depending on whether or not it's enabled
@@ -3333,6 +3331,14 @@ class LatexEditor extends FileEditor
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         @element = $("<div>").hide()
+        elt = @element.salvus_console
+            title     : "Terminal"
+            filename  : filename
+            resizable : false
+            close     : () => @editor.project_page.display_tab("project-file-listing")
+            editor    : @editor
+        @console = elt.data("console")
+        @element = @console.element
         salvus_client.read_text_file_from_project
             project_id : @editor.project_id
             path       : @filename
@@ -3346,19 +3352,6 @@ class Terminal extends FileEditor
                         delete result.content
                     opts = @opts = defaults opts,
                         session_uuid : result.content
-                        rows         : 24
-                        cols         : 80
-
-                    elt = @element.salvus_console
-                        title   : "Terminal"
-                        filename : filename
-                        cols    : @opts.cols
-                        rows    : @opts.rows
-                        resizable: false
-                        close   : () => @editor.project_page.display_tab("project-file-listing")
-                        editor  : @editor
-                    @console = elt.data("console")
-                    @element = @console.element
                     @connect_to_server()
 
     connect_to_server: (cb) =>
@@ -3388,9 +3381,6 @@ class Terminal extends FileEditor
         else
             salvus_client.new_session(mesg)
 
-        # TODO
-        #@filename_tab.set_icon('console')
-
 
     _get: () =>  # TODO
         return 'history saving not yet implemented'
@@ -3406,10 +3396,7 @@ class Terminal extends FileEditor
         @element.salvus_console(false)
         @element.remove()
 
-    show: () =>
-        if not @is_active()
-            return
-        @element.show()
+    _show: () =>
         if @console?
             e = $(@console.terminal.element)
             top = @editor.editor_top_position() + @element.find(".salvus-console-topbar").height()

@@ -854,8 +854,11 @@ class Client extends EventEmitter
 
     register_data_handler: (h) ->
         # generate a random channel character that isn't already taken
+        if not @_last_channel?
+            @_last_channel = 1
         while true
-            channel = String.fromCharCode(Math.random()*65536)
+            @_last_channel += 1
+            channel = String.fromCharCode(@_last_channel)
             if not @_data_handlers[channel]?
                 break
         @_data_handlers[channel] = h
