@@ -740,11 +740,15 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @show_chat_window()
             else
                 @hide_chat_window()
-        @hide_chat_window()  #start hidden for now, until we have a way to save this state.
+        if @editor._chat_is_hidden
+            @hide_chat_window()
+        else
+            @show_chat_window()
 
     show_chat_window: () =>
         # SHOW the chat window
         @editor._chat_is_hidden = false
+        @editor.local_storage("chat_is_hidden", false)
         @element.find(".salvus-editor-chat-show").hide()
         @element.find(".salvus-editor-chat-hide").show()
         @element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-12').addClass('col-sm-9')
@@ -758,6 +762,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
     hide_chat_window: () =>
         # HIDE the chat window
         @editor._chat_is_hidden = true
+        @editor.local_storage("chat_is_hidden", true)
         @element.find(".salvus-editor-chat-hide").hide()
         @element.find(".salvus-editor-chat-show").show()
         @element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-9').addClass('col-sm-12')

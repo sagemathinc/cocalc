@@ -79,7 +79,11 @@ Editor for files in a project
                     <a href="#prev" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Previous"><i class="fa fa-chevron-up"></i></a>
                     <a href="#next" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Next"><i class="fa fa-chevron-down"></i></a>
                     <a href="#replace" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Replace"><i class="fa fa-exchange"></i></a>
-                    <a href="#split-view" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Toggle split view"><i class="fa fa-film"></i></a>
+                    <a href="#split-view" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Split view of document">
+                        <i class="fa fa-columns fa-rotate-270 salvus-editor-layout-0"></i>
+                        <i class="fa fa-columns salvus-editor-layout-1"></i>
+                        <i class="fa fa-tablet fa-rotate-90 salvus-editor-layout-2" style="font-size: 12pt;"></i>
+                    </a>
                     <a href="#decrease-font" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Decrease text size"><i class="fa fa-font" style="font-size:7pt"> </i> </a>
                     <a href="#increase-font" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Increase text size"><i class="fa fa-font" style="font-size:11pt"> </i> </a>
                     <a href="#goto-line" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Go to line"><i class="fa fa-bolt"> </i> </a>
@@ -139,24 +143,36 @@ Editor for files in a project
 
             </div>
         </div>
-        <div class="salvus-editor-codemirror-input-container">
+        <div class="salvus-editor-codemirror-chat-column hide">
+            <div class="salvus-editor-codemirror-chat">
+                <div class="salvus-editor-codemirror-chat-output"></div>
+                <textarea class="salvus-editor-codemirror-chat-input form-control" placeholder="Write something..."></textarea>
+            </div>
+        </div>
+        <div class="salvus-editor-codemirror-input-container-layout-1 hide">
             <div class="row">
-                <div class="salvus-editor-codemirror-input-box col-sm-9">
+                <div class="salvus-editor-codemirror-input-box col-sm-12">
                     <textarea></textarea>
-                </div>
-                <div class="salvus-editor-codemirror-chat-column hide col-sm-3">
-                    <div class="salvus-editor-codemirror-chat">
-                        <div class="salvus-editor-codemirror-chat-output"></div>
-                        <textarea class="salvus-editor-codemirror-chat-input form-control" placeholder="Write something..."></textarea>
-                    </div>
                 </div>
             </div>
             <div class="row">
-                <div class="salvus-editor-codemirror-input-box-1 col-sm-9">
+                <div class="salvus-editor-codemirror-input-box-1 col-sm-12">
                     <textarea></textarea>
                 </div>
             </div>
         </div>
+
+        <div class="salvus-editor-codemirror-input-container-layout-2 hide">
+            <div class="row">
+                <div class="salvus-editor-codemirror-input-box col-sm-6">
+                    <textarea></textarea>
+                </div>
+                <div class="salvus-editor-codemirror-input-box-1 col-sm-6" style="padding-left: 0;">
+                    <textarea></textarea>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Template for chat entries -->
