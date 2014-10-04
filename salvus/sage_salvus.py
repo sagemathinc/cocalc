@@ -2222,7 +2222,11 @@ def show(obj, svg=True, **kwds):
 
        - display: (default: True); if true use display math for expression (big and centered).
 
-       - svg: (default: True); if True, render graphics using svg.
+       - svg: (default: True); if True, render graphics using svg (otherwise use png)
+
+       - renderer: (default: 'webgl'); for 3d graphics, try to use 'webgl' (faster); otherwise use 'canvas2d' (slower)
+
+       - spin: (default: False); spins 3d plot, with number determining speed (requires webgl and mouse over plot)
 
        - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
@@ -2262,7 +2266,8 @@ def show(obj, svg=True, **kwds):
         if kwds.get('viewer') == 'tachyon':
             show_3d_plot_using_tachyon(obj, **kwds)
         else:
-            graphics.show_3d_plot_using_threejs(obj, **kwds)
+            salvus.threed(obj, **kwds)
+            # graphics.show_3d_plot_using_threejs(obj, **kwds)
     else:
         if 'display' not in kwds:
             kwds['display'] = True
@@ -2594,19 +2599,8 @@ def dynamic(*args, **kwds):
 
 
 import sage.all
-def var(*args, **kwds):
-    """
-    Create symbolic variables and inject them into the global namespace.
 
-    NOTE: In SageCloud, you can use var as a line decorator::
-
-        %var x
-        %var a,b,theta          # separate with commas
-        %var x y z t            # separate with spaces
-
-    Here is the docstring for var in Sage:
-
-    """
+def var0(*args, **kwds):
     if len(args)==1:
         name = args[0]
     else:
@@ -2620,7 +2614,34 @@ def var(*args, **kwds):
         G[repr(v)] = v
     return v
 
+def var(*args, **kwds):
+    """
+    Create symbolic variables and inject them into the global namespace.
+
+    NOTE: In SageCloud, you can use var as a line decorator::
+
+        %var x
+        %var a,b,theta          # separate with commas
+        %var x y z t            # separate with spaces
+
+    Multicolored variables made using the %var line decorator:
+
+        %var(latex_name=r"{\color{green}{\theta}}") theta
+        %var(latex_name=r"{\color{red}{S_{u,i}}}") sui
+        show(expand((sui + x^3 + theta)^2))
+
+    Here is the docstring for var in Sage:
+
+    """
+    if len(args) > 0:
+        return var0(*args, **kwds)
+    else:
+        def f(s):
+            return var0(s, *args, **kwds)
+        return f
+
 var.__doc__ += sage.all.var.__doc__
+
 
 
 #############################################

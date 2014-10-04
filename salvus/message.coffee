@@ -97,16 +97,6 @@ message
     state         : undefined
 
 #
-# A period ping message must usually be sent by the client to keep a
-# worksheet/console open, except when worksheet/console is explicitly
-# put in a special (screen-like/nohup) mode.
-#
-# client --> hub
-message
-    event         : 'ping_session'
-    id            : undefined
-    session_uuid  : undefined
-
 
 # client --> hub
 message
@@ -386,18 +376,6 @@ message
     session_uuid : required
     signal       : 2           # 2 = SIGINT, 3 = SIGQUIT, 9 = SIGKILL
 
-############################################
-# Ping/pong
-#############################################
-# browser --> hub
-message
-    event   : 'ping'
-    id      : undefined
-
-# hub --> browser;   sent in response to a ping
-message
-    event   : 'pong'
-    id      : undefined
 
 ############################################
 # Account Management
@@ -700,8 +678,9 @@ message
     event       : 'cookies'
     id          : required
     url         : "/cookies"
-    set         : undefined  # name of a cookie to set
     get         : undefined  # name of a cookie to get
+    set         : undefined  # name of a cookie to set
+    value       : undefined  # value to set cookie to
 
 
 
@@ -1007,7 +986,6 @@ message
     title      : required
     description: required
     public     : required
-    hidden     : false     # if true, project will be created hidden from its owner (e.g., a project for a student in a course)
 
 # client --> hub
 message
@@ -1044,13 +1022,14 @@ message
     event      : 'hide_project_from_user'
     id         : undefined
     project_id : required
+    account_id : undefined   # owner can optionally hide project from other users
 
 # client --> hub
 message
     event      : 'unhide_project_from_user'
     id         : undefined
     project_id : required
-
+    account_id : undefined   # owner can optionally unhide project for other users
 
 
 # Get info about a single project (instead of all projects)
@@ -1353,7 +1332,7 @@ message
     task_id      : required
     task         : undefined    # if task is created or edited this is given with new version; if deleted this is undefined
 
-############################################
+#############################################
 # Admin Functionality
 #############################################
 
@@ -1385,3 +1364,26 @@ message
     id           : undefined
     token        : undefined  # comes back in here
 
+
+
+#############################################
+# Printing Files
+#############################################
+message
+    event        : "print_to_pdf"
+    id           : undefined
+    path         : required
+    options      : undefined
+
+message
+    event        : 'printed_to_pdf'
+    id           : undefined
+    path         : required
+
+message
+    event : 'ping'
+    id    : undefined
+
+message
+    event : 'pong'
+    id    : undefined

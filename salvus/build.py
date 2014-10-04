@@ -16,7 +16,7 @@ The components are:
     * sage -- we do *not* build or include Sage; it must be available system-wide or for
       user in order for worksheets to work (everything but worksheets should work without Sage).
 
-Supported Platform: Ubuntu 14.04
+Supported Platform:  Ubuntu 14.04
 
 Steps:
 
@@ -112,7 +112,7 @@ MaxStartups 128
 # Additional packages (mainly for users, not building).
 
 
-   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html quantlib-ruby r-cran-rquantlib  libf2c2-dev libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps mesa-utils libpangox-1.0-dev octave-signal octave-audio octave-benchmark octave-bim octave-biosig octave-communications octave-communications-common octave-data-smoothing octave-dataframe octave-dbg octave-doc octave-econometrics octave-epstk octave-financial octave-fpl octave-ga octave-gdf octave-geometry  octave-gmt octave-gsl octave-htmldoc octave-image octave-info octave-io octave-lhapdf octave-linear-algebra octave-mapping octave-miscellaneous octave-missing-functions octave-mpi octave-msh octave-nan octave-nlopt octave-nnet octave-nurbs octave-ocs octave-octcdf octave-octgpr octave-odepkg octave-openmpi-ext octave-optim octave-optiminterp  octave-parallel octave-pfstools octave-pkg-dev octave-plot octave-psychtoolbox-3 octave-quaternion octave-secs1d octave-secs2d octave-sockets octave-splines octave-statistics octave-strings octave-struct octave-sundials octave-tsa octave-vlfeat octave-vrml octave-zenity gnugo libapr1-dev  libcap2-bin npm coffeescript lbzip2 mosh smem libcurl4-openssl-dev jekyll
+   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html quantlib-ruby r-cran-rquantlib  libf2c2-dev libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps mesa-utils libpangox-1.0-dev octave-signal octave-audio octave-benchmark octave-bim octave-biosig octave-communications octave-communications-common octave-data-smoothing octave-dataframe octave-dbg octave-doc octave-econometrics octave-epstk octave-financial octave-fpl octave-ga octave-gdf octave-geometry  octave-gmt octave-gsl octave-htmldoc octave-image octave-info octave-io octave-lhapdf octave-linear-algebra octave-mapping octave-miscellaneous octave-missing-functions octave-mpi octave-msh octave-nan octave-nlopt octave-nnet octave-nurbs octave-ocs octave-octcdf octave-octgpr octave-odepkg octave-openmpi-ext octave-optim octave-optiminterp  octave-parallel octave-pfstools octave-pkg-dev octave-plot octave-psychtoolbox-3 octave-quaternion octave-secs1d octave-secs2d octave-sockets octave-splines octave-statistics octave-strings octave-struct octave-sundials octave-tsa octave-vlfeat octave-vrml octave-zenity gnugo libapr1-dev  libcap2-bin npm coffeescript lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34 gmsh libmed1 libhdf5-openmpi-7
 
 # NOTE: as of April 27 the quantlib python indings that get installed above don't work in Ubuntu 14.04 (e.g., 'import QuantLib' fails)
 
@@ -126,6 +126,11 @@ MaxStartups 128
    sudo add-apt-repository ppa:pippijn/ppa
    sudo apt-get update; sudo apt-get install aldor open-axiom*
 
+# ROOT data analysis ipython notebook support systemwide:
+
+   cd /usr/lib/x86_64-linux-gnu/root5.34
+   wget https://gist.githubusercontent.com/mazurov/6194738/raw/67e851fdac969e670a11296642478f1801324b8d/rootnotes.py
+   chmod a+r *
 
 # Octave: needed by octave for plotting:
 
@@ -182,14 +187,12 @@ MaxStartups 128
 
 
 
-# Install Julia
+# Install Julia stable (from http://julialang.org/downloads/)
 
-   sudo su
-   umask 022  &&  cd /usr/local/ && git clone git://github.com/JuliaLang/julia.git  &&  cd julia  &&  make -j16 install  &&   cd /usr/local/bin  &&  ln -sf /usr/local/julia/julia .
-
-Start Julia and type:
-
-   Pkg.add("IJulia")
+    sudo add-apt-repository ppa:staticfloat/juliareleases
+    sudo add-apt-repository ppa:staticfloat/julia-deps
+    sudo apt-get update
+    sudo apt-get install julia
 
 # FEnICS -- automated solution of differential equations by finite element methods
   (Test with "import dolfin".)
@@ -272,14 +275,17 @@ In /etc/sysctl.conf, put:
     umask 022
     cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/ && texhash
 
+# Use different node-cassandra-cql with better reconnect support:
+# See https://github.com/jorgebay/node-cassandra-cql/issues/81
 
+    cd ~/salvus/salvus/node_modules/; mv node-cassandra-cql node-cassandra-cql.old; git clone  https://github.com/Applifier/node-cassandra-cql; cd node- cassandra-cql; npm install .
 
 
 """
 
 TINC_VERSION       = '1.0.23'    # options here -- http://tinc-vpn.org/packages/
 CASSANDRA_VERSION  = '2.0.8'     # options here -- http://downloads.datastax.com/community/
-NODE_VERSION       = '0.10.29'   # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
+NODE_VERSION       = '0.10.32'   # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
 PYTHON_VERSION     = '2.7.6'     # options here -- https://www.python.org/ftp/python/
 SETUPTOOLS_VERSION = '3.4.4'     # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
 NGINX_VERSION      = '1.7.0'     # options here -- http://nginx.org/download/
@@ -312,9 +318,9 @@ NODE_MODULES = [
     'commander',
     'start-stop-daemon',
     'winston',
-    'sockjs',
+    'primus',  # websocket abstraction
+    'ws',      # fast low-level websocket depedency for primus
     'node-cassandra-cql',
-    'sockjs-client-ws',
     'coffee-script',
     'node-uuid',
     'browserify@1.16.4',
@@ -399,7 +405,8 @@ SAGE_PIP_PACKAGES = [
     'gmpy2',
     'mmh3',
     'joblib',
-    'colorpy'
+    'colorpy',
+    'rootpy'    # supports ROOT data analysis framework
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -455,6 +462,7 @@ SAGE_OPTIONAL_PACKAGES = [
     'kash3',
     'lie',
     'lrs',
+    'mcqd',
     'nauty',
     'normaliz',
     'nose',
@@ -574,6 +582,7 @@ class BuildSage(object):
         self.install_neuron()
         self.install_basemap()
         self.install_4ti2()
+        self.install_root_notebook()
         self.clean_up()
         self.extend_sys_path()
         self.fix_permissions()
@@ -690,7 +699,8 @@ class BuildSage(object):
         This MUST be done *after* pip is installed.
         """
         target = self.path("local/lib/python/sitecustomize.py")
-        paths = ['/usr/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7']
+        ROOT = '/usr/lib/x86_64-linux-gnu/' + [x for x in os.listdir('/usr/lib/x86_64-linux-gnu/') if 'root' in x][-1]
+        paths = ['/usr/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7', ROOT]
         # sanity check
         for p in paths:
             if not os.path.exists(p):

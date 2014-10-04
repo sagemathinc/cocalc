@@ -76,7 +76,7 @@ CREATE TABLE accounts (
     gitconfig            varchar,   /* if empty or undefined, make simple default from first_name, last_name, email_address. */
 
     password_hash        varchar,
-    password_change_     wait_until  timestamp,
+    password_change_wait_until  timestamp,
 
     plan_id              uuid,
     plan_starttime       timestamp,

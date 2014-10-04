@@ -34,24 +34,24 @@ def get_input(prompt):
     except EOFError:
         return None
 
-def strip_leading_prompts(code, prompts=['sage:', '....:', '...:', '>>>', '...']):
-    code, literals, state = strip_string_literals(code)
-    code2 = []
-    for line in code.splitlines():
-        line2 = line.lstrip()
-        for p in prompts:
-            if line2.startswith(p):
-                line2 = line2[len(p):]
-                if p[0] != '.':
-                    line2 = line2.lstrip()
-                break
-        code2.append(line2)
-    code = ('\n'.join(code2))%literals
-    return code
+#def strip_leading_prompts(code, prompts=['sage:', '....:', '...:', '>>>', '...']):
+#    code, literals, state = strip_string_literals(code)
+#    code2 = []
+#    for line in code.splitlines():
+#        line2 = line.lstrip()
+#        for p in prompts:
+#            if line2.startswith(p):
+#                line2 = line2[len(p):]
+#                if p[0] != '.':
+#                    line2 = line2.lstrip()
+#                break
+#        code2.append(line2)
+#    code = ('\n'.join(code2))%literals
+#    return code
 
 def preparse_code(code):
     import sage.all_cmdline
-    return sage.all_cmdline.preparse(code)
+    return sage.all_cmdline.preparse(code, ignore_prompts=True)
 
 def strip_string_literals(code, state=None):
     new_code = []
@@ -143,16 +143,21 @@ def end_of_expr(s):
         i += 1
     return i
 
-# The dec_args dict will leak memory over time.  However, it only
+# NOTE: The dec_args dict will leak memory over time.  However, it only
 # contains code that was entered, so it should never get big.  It
 # seems impossible to know for sure whether a bit of code will be
 # eventually needed later, so this leakiness seems necessary.
 dec_counter = 0
 dec_args = {}
+
+# Divide the input code (a string) into blocks of code.
 def divide_into_blocks(code):
     global dec_counter
+
+    # strip string literals from the input, so that we can parse it without having to worry about strings
     code, literals, state = strip_string_literals(code)
 
+    # divide the code up into line lines.
     code = code.splitlines()
 
     # Compute the line-level code decorators.
@@ -230,30 +235,37 @@ def divide_into_blocks(code):
 
     # merge try/except/finally/decorator/else/elif blocks
     i = 1
+    def merge():
+        "Merge block i-1 with block i."
+        blocks[i-1][-1] += '\n' + blocks[i][-1]
+        blocks[i-1][1] = blocks[i][1]
+        del blocks[i]
+
     while i < len(blocks):
         s = blocks[i][-1].lstrip()
-        # TODO: there shouldn't be 5 identical bits of code below!!!
-        if s.startswith('finally') or s.startswith('except'):
-            if blocks[i-1][-1].lstrip().startswith('try'):
-                blocks[i-1][-1] += '\n' + blocks[i][-1]
-                blocks[i-1][1] = blocks[i][1]
-                del blocks[i]
-        elif s.startswith('def') and blocks[i-1][-1].lstrip().startswith('@'):
-            blocks[i-1][-1] += '\n' + blocks[i][-1]
-            blocks[i-1][1] = blocks[i][1]
-            del blocks[i]
+
+        # finally/except lines after a try
+        if (s.startswith('finally') or s.startswith('except')) and blocks[i-1][-1].lstrip().startswith('try'):
+            merge()
+
+        # function definitions
+        elif s.startswith('def') and blocks[i-1][-1].splitlines()[-1].lstrip().startswith('@'):
+            merge()
+
+        # lines starting with else conditions (if *and* for *and* while!)
         elif s.startswith('else') and (blocks[i-1][-1].lstrip().startswith('if') or blocks[i-1][-1].lstrip().startswith('while') or blocks[i-1][-1].lstrip().startswith('for') or blocks[i-1][-1].lstrip().startswith('elif')):
-            blocks[i-1][-1] += '\n' + blocks[i][-1]
-            blocks[i-1][1] = blocks[i][1]
-            del blocks[i]
+            merge()
+
+        # lines starting with elif
         elif s.startswith('elif') and blocks[i-1][-1].lstrip().startswith('if'):
-            blocks[i-1][-1] += '\n' + blocks[i][-1]
-            blocks[i-1][1] = blocks[i][1]
-            del blocks[i]
+            merge()
+
+        # do not merge blocks -- move on to next one
         else:
             i += 1
 
     return blocks
+
 
 
 

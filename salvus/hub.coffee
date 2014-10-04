@@ -76,7 +76,6 @@ from_json = misc.from_json
 async   = require("async")
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 daemon  = require("start-stop-daemon")  # daemonize -- https://github.com/jiem/start-stop-daemon
-sockjs  = require("sockjs")             # websockets (+legacy support) -- https://github.com/sockjs/sockjs-node
 uuid    = require('node-uuid')
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
@@ -135,21 +134,14 @@ init_http_server = () ->
         switch segments[1]
             when "cookies"
                 cookies = new Cookies(req, res)
-                conn = clients[query.id]
-                if conn?
-                    if query.get
-                        conn.emit("get_cookie-#{query.get}", cookies.get(query.get))
-                    if query.set
-                        # in some rare cases this is undefined:
-                        x = conn.cookies[query.set]
-                        #delete conn.cookies[query.set]
-                        if x?
-                            cookies.set(query.set, x.value, x.options)
-                            conn.emit("set_cookie-#{query.set}")
-                        else
-                            winston.debug("possible issue -- requested to set cookie #{query.set}, but cookie not defined")
+                if query.set
+                    # TODO: implement expires as part of query.
+                    cookies.set(query.set, query.value, {expires:new Date(new Date().getTime() + 1000*24*3600*365)})
                 res.end('')
             when "alive"
+                if not database_is_working
+                    # this will stop haproxy from routing traffic to us until db connection starts working again.
+                    res.writeHead(404, {'Content-Type':'text/plain'})
                 res.end('')
             when "proxy"
                 res.end("testing the proxy server -- #{pathname}")
@@ -536,17 +528,18 @@ init_http_proxy_server = () =>
 
 
 #############################################################
-# Client = a client that is connected via sockjs to the hub
+# Client = a client that is connected via a persistent connection to the hub
 #############################################################
 class Client extends EventEmitter
     constructor: (@conn) ->
         @_data_handlers = {}
         @_data_handlers[JSON_CHANNEL] = @handle_json_message_from_client
 
-        @ip_address = @conn.remoteAddress
+        @ip_address = @conn.address.ip
 
         # A unique id -- can come in handy
         @id = @conn.id
+
 
         # The variable account_id is either undefined or set to the
         # account id of the user that this session has successfully
@@ -555,31 +548,39 @@ class Client extends EventEmitter
         @account_id = undefined
 
         # The persistent sessions that this client started.
-        # TODO: For now,these are all terminated when the client disconnects.
         @compute_session_uuids = []
 
         @cookies = {}
         @remember_me_db = database.key_value_store(name: 'remember_me')
 
-        @check_for_remember_me()
-
         @conn.on "data", @handle_data_from_client
 
-        @conn.on "close", () =>
-            winston.debug("connection: hub <--> client(id=#{@id})  CLOSED")
+        @conn.on "end", () =>
+            winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  CLOSED")
             @emit 'close'
             @compute_session_uuids = []
             delete clients[@conn.id]
 
-        winston.debug("connection: hub <--> client(id=#{@id})  ESTABLISHED")
+        winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
+
+        cookies = new Cookies(@conn.request)
+        value = cookies.get(program.base_url + 'remember_me')
+        @_validate_remember_me(value)
+
+        #@check_for_remember_me()
 
     remember_me_failed: (reason) =>
         @push_to_client(message.remember_me_failed(reason:reason))
 
     check_for_remember_me: () =>
+        winston.debug("client(id=#{@id}): check for remember me")
         @get_cookie
             name : program.base_url + 'remember_me'
             cb   : (value) =>
+                @_validate_remember_me(value)
+
+    _validate_remember_me: (value) =>
+                #winston.debug("_validate_remember_me: #{value}")
                 if not value?
                     @remember_me_failed("no remember_me cookie")
                     return
@@ -587,7 +588,7 @@ class Client extends EventEmitter
                 hash = generate_hash(x[0], x[1], x[2], x[3])
                 @remember_me_db.get
                     key         : hash
-                    consistency : cql.types.consistencies.one
+                    #consistency : cql.types.consistencies.one
                     cb          : (error, signed_in_mesg) =>
                         if error
                             @remember_me_failed("error accessing database")
@@ -627,10 +628,12 @@ class Client extends EventEmitter
     # Pushing messages to this particular connected client
     #######################################################
     push_to_client: (mesg) =>
-        winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}") if mesg.event != 'pong'
+        if mesg.event != 'pong'
+            winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
 
     push_data_to_client: (channel, data) ->
+        #winston.debug("push_data_to_client(#{channel},'#{data}')")
         @conn.write(channel + data)
 
     error_to_client: (opts) ->
@@ -668,7 +671,7 @@ class Client extends EventEmitter
         @account_id = undefined
 
     #########################################################
-    # Setting and getting HTTP-only cookies via SockJS + AJAX
+    # Setting and getting HTTP-only cookies via Primus + AJAX
     #########################################################
     get_cookie: (opts) ->
         opts = defaults opts,
@@ -683,13 +686,11 @@ class Client extends EventEmitter
             name  : required
             value : required
             ttl   : undefined    # time in seconds until cookie expires
-            cb    : undefined    # cb() when cookie is set
         options = {}
-        if opts.ttl?
+        if opts.ttl?  # Todo: ignored
             options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
-        @once("set_cookie-#{opts.name}", ()->opts.cb?())
-        @cookies[opts.name] = {value:opts.value, options:options}
-        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:program.base_url+"/cookies"))
+        @cookies[opts.name] = {value:opts.value, options:options}  # TODO: this can't work
+        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:program.base_url+"/cookies", value:opts.value))
 
     remember_me: (opts) ->
         #############################################################
@@ -730,7 +731,7 @@ class Client extends EventEmitter
         signed_in_mesg   = message.signed_in(opts)
         session_id       = uuid.v4()
         @hash_session_id = password_hash(session_id)
-        ttl              = 24*3600 * 30     # 30 days
+        ttl              = 24*3600 * 365     # 365 days
 
         # write it -- quick and loose, then more replicas
         @remember_me_db.set
@@ -768,7 +769,7 @@ class Client extends EventEmitter
 
     ######################################################################
     #
-    # SockJS only supports one connection between the client and
+    # Our realtime socket connection might only supports one connection between the client and
     # server, so we multiplex multiple channels over the same
     # connection.  There is one base channel for JSON messages called
     # JSON_CHANNEL, which themselves can be routed to different
@@ -852,9 +853,16 @@ class Client extends EventEmitter
         @_handle_data_queue_empty_function()
 
     register_data_handler: (h) ->
-        # generate a random channel character that isn't already taken
+        # generate a channel character that isn't already taken -- if these get too large,
+        # this will break (see, e.g., http://blog.fgribreau.com/2012/05/how-to-fix-could-not-decode-text-frame.html);
+        # however, this is a counter for *each* individual user connection, so they won't get too big.
+        # Ultimately, we'll redo things to use primus/websocket channel support, which should be much more powerful
+        # and faster.
+        if not @_last_channel?
+            @_last_channel = 1
         while true
-            channel = String.fromCharCode(Math.random()*65536)
+            @_last_channel += 1
+            channel = String.fromCharCode(@_last_channel)
             if not @_data_handlers[channel]?
                 break
         @_data_handlers[channel] = h
@@ -879,7 +887,7 @@ class Client extends EventEmitter
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
         #winston.debug("got message: #{data}")
-        if mesg.event.slice(0,4) != 'ping' and mesg.event != 'codemirror_bcast'
+        if mesg.event != 'codemirror_bcast' and mesg.event != 'ping'
             winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 300)}")
         handler = @["mesg_#{mesg.event}"]
         if handler?
@@ -926,6 +934,13 @@ class Client extends EventEmitter
                     cb?(err)
                 else
                     cb?(false, session)
+
+    ######################################################
+    # ping/pong
+    ######################################################
+    mesg_ping: (mesg) =>
+        @push_to_client(message.pong(id:mesg.id))
+
 
     ######################################################
     # Messages: Sage compute sessions and code execution
@@ -1009,13 +1024,6 @@ class Client extends EventEmitter
             else
                 session.send_signal(mesg.signal)
 
-    mesg_ping_session: (mesg) =>
-        s = persistent_sage_sessions[mesg.session_uuid]
-        if s?
-            s.last_ping_time = new Date()
-            return
-        @push_to_client(message.error(id:mesg.id, error:"Pinged unknown session #{mesg.session_uuid}"))
-
     mesg_restart_session: (mesg) =>
         @get_sage_session mesg, (err, session) =>
             if err
@@ -1052,13 +1060,6 @@ class Client extends EventEmitter
                 return
             else
                 session.send_json(@, mesg)
-
-    ######################################################
-    # Messages: Keeping client connected
-    ######################################################
-    # ping/pong
-    mesg_ping: (mesg) =>
-        @push_to_client(message.pong(id:mesg.id))
 
     ######################################################
     # Messages: Account creation, sign in, sign out
@@ -1105,8 +1106,10 @@ class Client extends EventEmitter
     # Messages: Account settings
     ######################################################
     mesg_get_account_settings: (mesg) =>
-        if @account_id != mesg.account_id
-            @push_to_client(message.error(id:mesg.id, error:"Not signed in as user with id #{mesg.account_id}."))
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"not yet signed in"))
+        else if @account_id != mesg.account_id
+            @push_to_client(message.error(id:mesg.id, error:"not signed in as user with id #{mesg.account_id}."))
         else
             database.get_account
                 account_id : @account_id
@@ -1315,34 +1318,73 @@ class Client extends EventEmitter
 
     mesg_hide_project_from_user: (mesg) =>
         if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to hide a project.")
+            @error_to_client(id: mesg.id, error: "you must be signed in to hide a project")
             return
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-            project.hide_project_from_user
-                account_id : @account_id
-                cb         : (err, ok) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
+            async.series([
+                (cb) =>
+                    if mesg.account_id? and mesg.account_id != @account_id
+                        # trying to hide project from another user -- @account_id must be owner of project
+                        user_owns_project
+                            project_id : mesg.project_id
+                            account_id : @account_id
+                            cb         : (err, is_owner) =>
+                                if err
+                                    cb(err)
+                                else if not is_owner
+                                    cb("only the owner of a project may hide it from collaborators")
+                                else
+                                    cb()
                     else
-                        @push_to_client(message.success(id:mesg.id))
+                        mesg.account_id = @account_id
+                        cb()
+                (cb) =>
+                    project.hide_project_from_user
+                        account_id : mesg.account_id
+                        cb         : cb
+            ], (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
+            )
 
     mesg_unhide_project_from_user: (mesg) =>
         if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to unhide a project.")
+            @error_to_client(id: mesg.id, error: "you must be signed in to unhide a project")
             return
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-            project.unhide_project_from_user
-                account_id : @account_id
-                cb         : (err, ok) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
+            async.series([
+                (cb) =>
+                    if mesg.account_id? and mesg.account_id != @account_id
+                        # trying to unhide project from another user -- @account_id must be owner of project
+                        user_owns_project
+                            project_id : mesg.project_id
+                            account_id : @account_id
+                            cb         : (err, is_owner) =>
+                                if err
+                                    cb(err)
+                                else if not is_owner
+                                    cb("only the owner of a project may unhide it from collaborators")
+                                else
+                                    cb()
                     else
-                        @push_to_client(message.success(id:mesg.id))
-
+                        mesg.account_id = @account_id
+                        cb()
+                (cb) =>
+                    project.unhide_project_from_user
+                        account_id : mesg.account_id
+                        cb         : cb
+            ], (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
+            )
 
     mesg_move_project: (mesg) =>
         if not @account_id?
@@ -1429,6 +1471,12 @@ class Client extends EventEmitter
             if err
                 return
             else
+                process = (info) =>
+                    if info.hide_from_accounts?
+                        info.hidden = @account_id in info.hide_from_accounts
+                        delete info.hide_from_accounts
+                    return info
+
                 project.get_info (err, info) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
@@ -1445,9 +1493,9 @@ class Client extends EventEmitter
                                     if err
                                         @error_to_client(id:mesg.id, error:err)
                                     else
-                                        @push_to_client(message.project_info(id:mesg.id, info:info))
+                                        @push_to_client(message.project_info(id:mesg.id, info:process(info)))
                         else
-                            @push_to_client(message.project_info(id:mesg.id, info:info))
+                            @push_to_client(message.project_info(id:mesg.id, info:process(info)))
 
     mesg_project_session_info: (mesg) =>
         assert mesg.event == 'project_session_info'
@@ -1581,16 +1629,21 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         # Store content in uuid:blob store and provide a temporary link to it.
-                        u = uuid.v4()
-                        save_blob uuid:u, value:content.blob, ttl:BLOB_TTL, cb:(err) =>
-                            if err
-                                @error_to_client(id:mesg.id, error:err)
-                            else
-                                if content.archive?
-                                    the_url = program.base_url + "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
+                        u = misc_node.uuidsha1(content.blob)
+                        save_blob
+                            uuid  : u
+                            value : content.blob
+                            ttl   : BLOB_TTL
+                            check : false       # trusted hub generated the uuid above.
+                            cb    : (err) =>
+                                if err
+                                    @error_to_client(id:mesg.id, error:err)
                                 else
-                                    the_url = program.base_url + "/blobs/#{mesg.path}?uuid=#{u}"
-                                @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
+                                    if content.archive?
+                                        the_url = program.base_url + "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
+                                    else
+                                        the_url = program.base_url + "/blobs/#{mesg.path}?uuid=#{u}"
+                                    @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
 
     mesg_move_file_in_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
@@ -1903,7 +1956,7 @@ class Client extends EventEmitter
                                 group      : 'collaborator'
                                 cb         : cb
                         else
-                            winston.debug("user #{email_address} doesn't have an account yet -- send email")
+                            winston.debug("user #{email_address} doesn't have an account yet -- will send email")
                             # create trigger so that when user eventually makes an account,
                             # they will be added to the project.
                             database.account_creation_actions
@@ -1915,14 +1968,18 @@ class Client extends EventEmitter
                         if done
                             cb()
                         else
-                            # send an email to the user
+                            cb()
+                            # send an email to the user -- async, not blocking user.
+                            # TODO: this can take a while -- we need to take some actionif it fails, e.g., change a setting in the projects table!
                             s = @signed_in_mesg
                             send_email
                                 to      : email_address
                                 from    : if s? then "#{s.first_name} #{s.last_name} <#{s.email_address}>" else undefined
                                 subject : "SageMathCloud Invitation"
                                 body    : email.replace("https://cloud.sagemath.com", "Sign up at https://cloud.sagemath.com using the email address #{email_address}.")
-                                cb      : cb
+                                cb      : (err) =>
+                                    winston.debug("send_email to #{email_address} -- done -- err={misc.to_json(err)}")
+
                 ], cb)
 
             async.map to, invite_user, (err, results) =>
@@ -2176,7 +2233,7 @@ update_server_stats = () ->
                 _server_stats_cache = stats
 
 
-
+database_is_working = false
 register_hub = (cb) ->
     database.update
         table : 'hub_servers'
@@ -2185,8 +2242,10 @@ register_hub = (cb) ->
         ttl   : 2*REGISTER_INTERVAL_S
         cb    : (err) ->
             if err
+                database_is_working = false
                 winston.debug("Error registering with database - #{err}")
             else
+                database_is_working = true
                 winston.debug("Successfully registered with database.")
             cb?(err)
 
@@ -2201,15 +2260,19 @@ snap_command = (opts) ->
 
 
 ##############################
-# Create the SockJS Server
+# Create the Primus realtime socket server
 ##############################
-init_sockjs_server = () ->
-    sockjs_server = sockjs.createServer()
-
-    sockjs_server.on "connection", (conn) ->
+primus_server = undefined
+init_primus_server = () ->
+    Primus = require('primus')
+    opts =
+        transformer : 'websockets'
+        pathname    : '/hub'
+    primus_server = new Primus(http_server, opts)
+    winston.debug("primus_server: listening on #{opts.pathname}")
+    primus_server.on "connection", (conn) ->
+        winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id}")
         clients[conn.id] = new Client(conn)
-
-    sockjs_server.installHandlers(http_server, {prefix : program.base_url + '/hub'})
 
 
 #######################################################
@@ -2219,7 +2282,7 @@ init_sockjs_server = () ->
 #######################################################
 
 # get_client_ids -- given query parameters, returns a list of id's,
-#   where the id is the SockJS connection id, which we assume is
+#   where the id is the connection id, which we assume is
 #   globally unique across all of space and time.
 get_client_ids = (opts) ->
     opts = defaults opts,
@@ -2438,6 +2501,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             uuid  : opts.uuid
             value : opts.blob
             ttl   : BLOB_TTL
+            check : true         # if malicious user tries to overwrite a blob with given sha1 hash, they get an error.
             cb    : (err, ttl) =>
                 if err
                     resp = message.save_blob(sha1:opts.uuid, error:err)
@@ -2620,9 +2684,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                             # database.touch_project(project_id:opts.project_id)
                             socket.history += data
                             n = socket.history.length
-                            if n > 400000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
-                                # take last 300000 characters
-                                socket.history = socket.history.slice(socket.history.length-300000)
+                            if n > 200000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
+                                # take last 100000 characters
+                                socket.history = socket.history.slice(socket.history.length-100000)
 
                         socket.on 'end', () =>
                             @dbg("console session #{opts.session_uuid} -- socket connection to local_hub closed")
@@ -2683,7 +2747,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # client --> console:
                 # Create a binary channel that the client can use to write to the socket.
                 # (This uses our system for multiplexing JSON and multiple binary streams
-                #  over one single SockJS connection.)
+                #  over one single connection.)
                 channel = opts.client.register_data_handler (data) ->
                     if not ignore
                         console_socket.write(data)
@@ -3521,8 +3585,8 @@ account_creation_actions = (opts) ->
         email_address : opts.email_address
         cb            : (err, actions) ->
             if err
-                cb(err); return
-            for action in actions
+                opts.cb(err); return
+            f = (action, cb) ->
                 winston.debug("account_creation_actions: action = #{misc.to_json(action)}")
                 if action.action == 'add_to_project'
                     database.add_user_to_project
@@ -3530,9 +3594,66 @@ account_creation_actions = (opts) ->
                         account_id : opts.account_id
                         group      : action.group
                         cb         : (err) =>
-                            winston.debug("Error adding user to project: #{err}")
-    # We immediately move on -- it's ok to do the actions in parallel.
-    opts.cb()
+                            if err
+                                winston.debug("Error adding user to project: #{err}")
+                            cb(err)
+                else
+                    cb("unknown action -- #{action.action}")
+            async.map(actions, f, (err) -> opts.cb(err))
+
+run_all_account_creation_actions = (cb) ->
+    dbg = (m) -> winston.debug("all_account_creation: #{m}")
+
+    email_addresses = undefined
+    users           = undefined
+
+    async.series([
+        (cb) ->
+            dbg("connect to database...")
+            connect_to_database(cb)
+        (cb) ->
+            dbg("get all email addresses in the account creation actions table")
+            database.select
+                table   : 'account_creation_actions'
+                columns : ['email_address']
+                cb      : (err, results) ->
+                    if err
+                        cb(err)
+                    else
+                        dbg("got #{results.length} creation actions from database")
+                        email_addresses = (x[0] for x in results)
+                        cb()
+        (cb) ->
+            dbg("for each action, determine if the account has been created (most probably won't be) and get account_id")
+            database.select
+                table     : 'email_address_to_account_id'
+                columns   : ['email_address', 'account_id']
+                where     : {email_address:{'in':email_addresses}}
+                objectify : true
+                cb        : (err, results) ->
+                    if err
+                        cb(err)
+                    else
+                        dbg("got #{results.length} of these accounts have already been created")
+                        users = results
+                        cb()
+        (cb) ->
+            dbg("for each of the #{users.length} for which the account has been created, do all the actions")
+            i = 0
+            f = (user, cb) ->
+                i += 1
+                dbg("considering user #{i} of #{users.length}")
+                account_creation_actions
+                    email_address : user.email_address
+                    account_id    : user.account_id
+                    cb            : cb
+            # We use mapSeries instead of map, so that the log output is clearer, and since this is fairly small.
+            # We could do it in parallel and be way faster, but not necessary.
+            async.mapSeries(users, f, (err) -> cb(err))
+    ], cb)
+
+
+
 
 change_password = (mesg, client_ip_address, push_to_client) ->
     account = null
@@ -3717,7 +3838,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 
         (cb) ->
             # If they just changed email to an address that has some actions, carry those out...
-            # TODO: move to hook this only after validdation of the email address.
+            # TODO: move to hook this only after validation of the email address.
             account_creation_actions
                 email_address : mesg.new_email_address
                 account_id    : mesg.account_id
@@ -3828,11 +3949,11 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                         cb()
 
         # We now know that there is an account with this email address.
-        # put entry in the password_reset uuid:value table with ttl of 15 minutes, and send an email
+        # put entry in the password_reset uuid:value table with ttl of 1 hour, and send an email
         (cb) ->
             id = database.uuid_value_store(name:"password_reset").set(
                 value : mesg.email_address
-                ttl   : 60*15,
+                ttl   : 60*60,
                 cb    : (error, results) ->
                     if error
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error generating password reset for #{mesg.email_address}."))
@@ -3979,46 +4100,73 @@ get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
 nodemailer   = require("nodemailer")
 email_server = undefined
 
-# here's how I test this function:  require('hub').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@uw.edu', cb:console.log)
+# here's how I test this function:
+#    require('hub').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@uw.edu', cb:console.log)
 exports.send_email = send_email = (opts={}) ->
-    opts = defaults(opts,
+    opts = defaults opts,
         subject : required
         body    : required
-        from    : 'wstein@uw.edu'          # obviously change this at some point.  But it is the best "reply to right now"
+        from    : 'SageMathCloud <wstein@uw.edu>'          # obviously change this at some point.  But it is the best "reply to right now"
         to      : required
         cc      : ''
-        cb      : undefined)
+        cb      : undefined
 
+    dbg = (m) -> winston.debug("send_email(to:#{opts.to}) -- #{m}")
+    dbg(opts.body)
+
+    disabled = false
     async.series([
         (cb) ->
-            if not email_server?
-                filename = 'data/secrets/sendgrid_email_password'
-                require('fs').readFile(filename, 'utf8', (error, password) ->
-                    if error
-                        winston.info("Unable to read the file '#{filename}', which is needed to send emails.")
-                        opts.cb(error)
+            if email_server?
+                cb(); return
+            dbg("starting sendgrid client...")
+            filename = 'data/secrets/sendgrid_email_password'
+            fs.readFile filename, 'utf8', (error, password) ->
+                if error
+                    err = "unable to read the file '#{filename}', which is needed to send emails."
+                    dbg(err)
+                    cb(err)
+                else
+                    pass = password.toString().trim()
+                    if pass.length == 0
+                        winston.debug("email_server: explicitly disabled -- so pretend to always succeed for testing purposes")
+                        disabled = true
+                        email_server = {disabled:true}
+                        cb()
+                        return
                     email_server = nodemailer.createTransport "SMTP",
                         service : "SendGrid"
                         port    : 2525
                         auth    :
                             user: "wstein",
-                            pass: require('fs').readFileSync('data/secrets/sendgrid_email_password').toString().trim()
+                            pass: pass
+                    dbg("started email server")
                     cb()
-                )
-            else
-                cb()
         (cb) ->
+            if disabled or email_server?.disabled
+                cb(undefined, 'email disabled -- no actual message sent')
+                return
+            winston.debug("sendMail to #{opts.to} starting...")
             email_server.sendMail
                 from    : opts.from
                 to      : opts.to
                 text    : opts.body
                 subject : opts.subject
                 cc      : opts.cc,
-                cb
+                cb      : (err) =>
+                    winston.debug("sendMail to #{opts.to} done... (err=#{misc.to_json(err)})")
+                    if err
+                        dbg("sendMail -- error = #{misc.to_json(err)}")
+                    cb(err)
+
     ], (err, message) ->
         if err
             # so next time it will try fresh to connect to email server, rather than being wrecked forever.
             email_server = undefined
+            err = "error sending email -- #{misc.to_json(err)}"
+            dbg(err)
+        else
+            dbg("successfully sent email")
         opts.cb?(err, message)
     )
 
@@ -4032,29 +4180,39 @@ MAX_BLOB_SIZE_HUMAN = "12MB"
 
 blobs = {}
 
+# save a blob in the blobstore database with given misc_node.uuidsha1 hash.
 save_blob = (opts) ->
     opts = defaults opts,
-        uuid  : undefined  # if not given, is generated; function always returns the uuid that was used
-        #value : required   # NOTE: value *must* be a Buffer.
-        value : undefined
+        uuid  : undefined  # uuid=sha1-based from value; actually *required*, but instead of a traceback, get opts.cb(err)
+        value : undefined  # actually *required*, but instead of a traceback, get opts.cb(err)
+        ttl   : undefined  # object in blobstore will have *at least* this ttl in seconds; if there is already something, in blobstore with longer ttl, we leave it; undefined = infinite ttl
+        check : true       # if true, return an error (via cb) if misc_node.uuidsha1(opts.value) != opts.uuid.  This is a check against bad user-supplied data.
         cb    : required   # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
-        ttl   : undefined  # object in blobstore will have *at least* this ttl in seconds; if there is already something,  in blobstore with longer ttl, we leave it; undefined = infinite ttl
 
-    if false  # this and the one below can be commented out for testing -- HOWEVEr, don't do this in production with
-              # more than one hub, or things will break in subtle ways.
+    if false  # enable this for testing -- HOWEVER, don't do this in production with
+              # more than one hub, or things will break in subtle ways (obviously).
         blobs[opts.uuid] = opts.value
         opts.cb()
         winston.debug("save_blob #{opts.uuid}")
         return
 
+    err = undefined
+
     if not opts.value?
-        err = "BUG -- error in call to save_blob (uuid=#{opts.uuid}); received a save_blob request with undefined value"
+        err = "save_blob: UG -- error in call to save_blob (uuid=#{opts.uuid}); received a save_blob request with undefined value"
+
+    else if not opts.uuid?
+        err = "save_blob: BUG -- error in call to save_blob; received a save_blob request without corresponding uuid"
+
+    else if opts.value.length > MAX_BLOB_SIZE
+        err = "save_blob: blobs are limited to #{MAX_BLOB_SIZE_HUMAN} and you just tried to save one of size #{opts.value.length/1000000}MB"
+
+    else if opts.check and opts.uuid != misc_node.uuidsha1(opts.value)
+        err = "save_blob: uuid=#{opts.uuid} must be derived from the Sha1 hash of value, but it is not (possible malicious attack)"
+
+    if err?
         winston.debug(err)
         opts.cb(err)
-        return
-
-    if opts.value.length > MAX_BLOB_SIZE
-        opts.cb("blobs are limited to #{MAX_BLOB_SIZE_HUMAN} and you just tried to save one of size #{opts.value.length/1000000}MB")
         return
 
     # Store the blob in the database, if it isn't there already.
@@ -4069,12 +4227,13 @@ save_blob = (opts) ->
                 opts.cb(false, ttl)
             else
                 # store it in the database
-                ttl = opts.ttl
-                if not ttl?
-                    ttl = 0
-                f = opts.cb
-                opts.cb = (err) -> f(err, ttl)
-                db.set(opts)
+                if not opts.ttl?
+                    opts.ttl = 0
+                db.set
+                    uuid  : opts.uuid
+                    value : opts.value
+                    ttl   : opts.ttl
+                    cb    : (err) -> opts.cb(err, ttl)
 
 get_blob = (opts) ->
     opts = defaults opts,
@@ -4121,35 +4280,7 @@ make_blobs_permanent = (opts) ->
 ########################################
 compute_sessions = {}
 
-# The ping timer for compute sessions is very simple:
-#     - an attribute 'last_ping_time', which client code must set periodicially
-#     - the input session must have a kill() method
-#     - an interval timer
-#     - if the timeout option is set to 0, the ping timer is not activated
 
-# This is the time in *seconds* until a session that not being actively pinged is killed.
-# This is a global var, since it must be
-DEFAULT_SESSION_KILL_TIMEOUT = 3 * client_lib.DEFAULT_SESSION_PING_TIME
-
-enable_ping_timer = (opts) ->
-    opts = defaults opts,
-        session : required
-        timeout : DEFAULT_SESSION_KILL_TIMEOUT    # time in *seconds* until session not being actively pinged is killed
-
-    if not opts.timeout
-        # do nothing -- this will keep other code cleaner
-        return
-
-    opts.session.last_ping_time = new Date()
-
-    timer = undefined
-    check_for_timeout = () ->
-        d = ((new Date()) - opts.session.last_ping_time )/1000
-        if  d > opts.timeout
-            clearInterval(timer)
-            opts.session.kill()
-
-    timer = setInterval(check_for_timeout, opts.timeout*1000)
 
 ########################################
 # Persistent Sage Sessions
@@ -4208,6 +4339,7 @@ class SageSession
                     uuid  : mesg.uuid
                     value : mesg.blob
                     ttl   : BLOB_TTL  # deleted after this long
+                    check : true      # guard against malicious users trying to fake a sha1 hash to goatse somebody else's worksheet
                     cb    : (err, ttl) ->
                         if err
                             winston.debug("Error saving blob for Sage Session -- #{err}")
@@ -4470,7 +4602,7 @@ exports.start_server = start_server = () ->
             update_server_stats(); setInterval(update_server_stats, 120*1000)
             register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 
-            init_sockjs_server()
+            init_primus_server()
             init_stateless_exec()
             http_server.listen(program.port, program.host)
 
@@ -4518,6 +4650,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
+    .option('--account_creation_actions', 'Run all known account creation actions for accounts that have been created (used mainly to clean up after a particular bug)')
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
@@ -4525,16 +4658,22 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
 console.log(program._name)
 if program._name.slice(0,3) == 'hub'
     # run as a server/daemon (otherwise, is being imported as a library)
-    if program.rawArgs[1] in ['start', 'restart']
-        process.addListener "uncaughtException", (err) ->
-            winston.debug("BUG ****************************************************************************")
-            winston.debug("Uncaught exception: " + err)
-            winston.debug(new Error().stack)
-            winston.debug("BUG ****************************************************************************")
+
+    #if program.rawArgs[1] in ['start', 'restart']
+    process.addListener "uncaughtException", (err) ->
+        winston.debug("BUG ****************************************************************************")
+        winston.debug("Uncaught exception: " + err)
+        winston.debug(new Error().stack)
+        winston.debug("BUG ****************************************************************************")
 
     if program.passwd
         console.log("Resetting password")
         reset_password(program.passwd, (err) -> process.exit())
+    if program.account_creation_actions
+        console.log("Account creation actions")
+        run_all_account_creation_actions (err) ->
+            console.log("DONE --", err)
+            (err) -> process.exit()
     else if program.add_user_to_project
         console.log("Adding user to project")
         v = program.add_user_to_project.split(',')

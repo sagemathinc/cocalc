@@ -2,6 +2,9 @@
 # Account Settings
 ############################################################
 
+async = require('async')
+
+
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
@@ -28,7 +31,7 @@ account_id = undefined
 
 top_navbar.on "switch_to_page-account", () ->
     window.history.pushState("", "", window.salvus_base_url + '/settings')
-    if not @account_id?
+    if not account_id?
         $("#sign_in-email").focus()
 
 ################################################
@@ -246,7 +249,7 @@ $("#create_account-button").click (event) ->
                         template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
                     ).popover("show").focus( () -> $(@).popover("destroy"))
             when "signed_in"
-                _gaq.push(['_trackEvent', 'account', 'create_account'])  # custom google analytic event -- user created an account
+                ga('send', 'event', 'account', 'create_account')    # custom google analytic event -- user created an account
                 alert_message(type:"success", message: "Account created!  You are now signed in as #{mesg.first_name} #{mesg.last_name}.")
                 signed_in(mesg)
             else
@@ -261,15 +264,26 @@ $("#create_account-button").click (event) ->
 # Enhance HTML element to display feedback about a choice of password
 #     input   -- jQuery wrapped <input> element where password is typed
 password_strength_meter = (input) ->
+    if require("feature").IS_MOBILE
+        return
     # TODO: move this html into account.html
     display = $('<div class="progress progress-striped"><div class="progress-bar"></div>&nbsp;<font size=-1></font></div>')
     input.after(display)
     score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
     input.bind 'change keypress paste focus textInput input', () ->
         if input.val()
-            result = zxcvbn(input.val(), ['sagemath'])  # explicitly ban some words.
-            display.find(".progress-bar").css("width", "#{13*(result.score+1)}%")
-            display.find("font").html(score[result.score])
+            async.series([
+                (cb) ->
+                    if zxcvbn?
+                        cb()
+                    else
+                        $.getScript("/static/zxcvbn/zxcvbn.js", cb)
+                (cb) ->
+                    result = zxcvbn(input.val(), ['sagemath','salvus','sage','sagemathcloud','smc','mathematica','pari'])  # explicitly ban some words.
+                    display.find(".progress-bar").show().css("width", "#{13*(result.score+1)}%")
+                    display.find("font").html(score[result.score])
+                    cb()
+                ])
     return input
 
 $.fn.extend
@@ -316,7 +330,9 @@ sign_in = () ->
 first_login = true
 hub = undefined
 signed_in = (mesg) ->
-    _gaq.push(['_trackEvent', 'account', 'signed_in'])  # custom google analytic event -- user signed in
+    #console.log("signed_in: ", mesg)
+
+    ga('send', 'event', 'account', 'signed_in')    # custom google analytic event -- user signed in
     # Record which hub we're connected to.
     hub = mesg.hub
 
@@ -331,14 +347,8 @@ signed_in = (mesg) ->
             show_page("account-settings")
             # change the navbar title from "Sign in" to their email address -- don't use the one from mesg, which may be out of date
             set_account_tab_label(true, account_settings.settings.email_address)
-            top_navbar.show_page_button("projects")
 
-            #####
-            # DISABLE worksheet1 -- enable this maybe when finishing worksheets port
-            #
-            #top_navbar.show_page_button("worksheet1")
-            # Load the default worksheet (for now)
-            #require('worksheet1').load_scratch_worksheet()
+            top_navbar.show_page_button("projects")
 
             # If this is the initial login, switch to the project
             # page.  We do this because if the user's connection is
@@ -365,7 +375,7 @@ salvus_client.on("signed_in", signed_in)
 ################################################
 sign_out = () ->
 
-    _gaq.push(['_trackEvent', 'account', 'sign_out'])  # custom google analytic event -- user explicitly signed out.
+    ga('send', 'event', 'account', 'sign_out')    # custom google analytic event -- user explicitly signed out.
 
     # require('worksheet1').close_scratch_worksheet()
 
@@ -415,7 +425,7 @@ class AccountSettings
         salvus_client.get_account_settings
             account_id : account_id
             cb         : (error, settings_mesg) =>
-                if error
+                if error or settings_mesg.event == 'error'
                     $("#account-settings-error").show()
                     if not @settings?
                         # we only set the settings to error if they aren't already set, since we
@@ -816,7 +826,7 @@ $("#account-forgot_password_reset-button-cancel").click((event)->close_forgot_pa
 forgot_password_reset.on("shown", () -> $("#account-forgot_password_reset-new_password").focus())
 
 $("#account-forgot_password_reset-button-submit").click (event) ->
-    _gaq.push(['_trackEvent', 'account', 'forgot_password'])  # custom google analytic event -- user signed in
+    ga('send', 'event', 'account', 'forgot_password')    # custom google analytic event -- user forgot password
 
     new_password = $("#account-forgot_password_reset-new_password").val()
     forgot_password_reset.find(".account-error-text").hide()
@@ -886,10 +896,9 @@ show_connection_information = () ->
         dialog.find(".salvus-connection-nohub").show()
         dialog.find(".salvus-connection-hub").hide()
     s = require('salvus_client')
-    dialog.find(".salvus-connection-type").text(s.protocol())
 
     if s.ping_time()
-        dialog.find(".salvus-connection-ping").show().find('pre').text((s.ping_time()*1000).toFixed(0) + "ms")
+        dialog.find(".salvus-connection-ping").show().find('pre').text("#{s.ping_time()}ms")
     else
         dialog.find(".salvus-connection-ping").hide()
 
@@ -901,8 +910,8 @@ show_connection_information = () ->
 if localStorage.remember_me
     $(".salvus-remember_me-message").show().find("span").text(localStorage.remember_me)
     $(".salvus-sign_in-form").hide()
-    # just in case, always show manual login screen after 10s.
-    setTimeout((()=>$(".salvus-remember_me-message").hide(); $(".salvus-sign_in-form").show()), 10000)
+    # just in case, always show manual login screen after 45s.
+    setTimeout((()=>$(".salvus-remember_me-message").hide(); $(".salvus-sign_in-form").show()), 45000)
 
 salvus_client.on "remember_me_failed", () ->
     $(".salvus-remember_me-message").hide()

@@ -72,7 +72,7 @@ class Console extends EventEmitter
             rows        : 16
             cols        : 80
             resizable   : false
-            editor      : undefined  # needed for some actions, e.g., opening a file
+            editor      : undefined  # FileEditor instance -- needed for some actions, e.g., opening a file
             close       : undefined  # if defined, called when close button clicked.
             reconnect   : undefined  # if defined, opts.reconnect?() is called when session console wants to reconnect; this should call set_session.
 
@@ -202,10 +202,10 @@ class Console extends EventEmitter
                 mesg = from_json(mesg)
                 switch mesg.event
                     when 'open_file'
-                        @opts.editor?.project_page.open_file(path:mesg.name, foreground:true)
+                        @opts.editor?.editor.project_page.open_file(path:mesg.name, foreground:true)
                     when 'open_directory'
-                        @opts.editor?.project_page.chdir(mesg.name)
-                        @opts.editor?.project_page.display_tab("project-file-listing")
+                        @opts.editor?.editor.project_page.chdir(mesg.name)
+                        @opts.editor?.editor.project_page.display_tab("project-file-listing")
             catch e
                 console.log("issue parsing message -- ", e)
 
@@ -226,50 +226,50 @@ class Console extends EventEmitter
         @terminal.on 'title', (title) => @set_title(title)
 
         @reset()
-        @resize_terminal()
+        @resize_terminal () =>
 
-        # The remote server sends data back to us to display:
-        @session.on 'data',  (data) =>
-            #console.log("got #{data.length} data")
-            if @_rendering_is_paused
-                @_render_buffer += data
-            else
-                @render(data)
+            # The remote server sends data back to us to display:
+            @session.on 'data',  (data) =>
+                #console.log("got #{data.length} data")
+                if @_rendering_is_paused
+                    @_render_buffer += data
+                else
+                    @render(data)
 
-        @session.on 'reconnect', () =>
-            #console.log("reconnect")
-            @_ignore_mesg = true
-            @value = ""
-            @reset()
+            @session.on 'reconnect', () =>
+                #console.log("reconnect")
+                @_ignore_mesg = true
+                @value = ""
+                @reset()
+                if @session.init_history?
+                    #console.log("writing history")
+                    try
+                        @terminal.write(@session.init_history)
+                    catch e
+                        console.log(e)
+                    #console.log("recording history for copy/paste buffer")
+                    @append_to_value(@session.init_history)
+
+                # On first write we ignore any queued terminal attributes responses that result.
+                @terminal.queue = ''
+                @terminal.showCursor()
+                @_ignore_mesg = false
+
+            # Initialize pinging the server to keep the console alive
+            #@_init_session_ping()
+
+            #console.log("session -- history='#{@session.init_history}'")
             if @session.init_history?
-                #console.log("writing history")
                 try
                     @terminal.write(@session.init_history)
                 catch e
                     console.log(e)
-                #console.log("recording history for copy/paste buffer")
+                # On first write we ignore any queued terminal attributes responses that result.
+                @terminal.queue = ''
                 @append_to_value(@session.init_history)
 
-            # On first write we ignore any queued terminal attributes responses that result.
-            @terminal.queue = ''
             @terminal.showCursor()
             @_ignore_mesg = false
-
-        # Initialize pinging the server to keep the console alive
-        @_init_session_ping()
-
-        #console.log("session -- history='#{@session.init_history}'")
-        if @session.init_history?
-            try
-                @terminal.write(@session.init_history)
-            catch e
-                console.log(e)
-            # On first write we ignore any queued terminal attributes responses that result.
-            @terminal.queue = ''
-            @append_to_value(@session.init_history)
-
-        @terminal.showCursor()
-        @_ignore_mesg = false
 
     render: (data) =>
         try
@@ -312,7 +312,6 @@ class Console extends EventEmitter
         f = () =>
             if @_rendering_is_paused
                 @element.find("a[href=#pause]").addClass('btn-success').find('i').addClass('fa-play').removeClass('fa-pause')
-                @element.find(".salvus-console-terminal")
         if immediate
             f()
         else
@@ -329,7 +328,6 @@ class Console extends EventEmitter
         # current selection instead of the post-render empty version.
         setTimeout(f, 0)
         @element.find("a[href=#pause]").removeClass('btn-success').find('i').addClass('fa-pause').removeClass('fa-play')
-        @element.find(".salvus-console-terminal")
 
     #######################################################################
     # Private Methods
@@ -409,6 +407,7 @@ class Console extends EventEmitter
             @_font_size_changed()
 
     _font_size_changed: () =>
+        @opts.editor?.local_storage("font-size",@opts.font.size)
         $(@terminal.element).css('font-size':"#{@opts.font.size}px")
         delete @_character_height
         @element.find(".salvus-console-font-indicator-size").text(@opts.font.size)
@@ -426,7 +425,11 @@ class Console extends EventEmitter
     _init_default_settings: () =>
         settings = require('account').account_settings.settings.terminal
         if not @opts.font.size?
-            @opts.font.size = settings.font_size
+            font_size = @opts.editor?.local_storage("font-size")
+            if font_size?
+                @opts.font.size = font_size
+            else
+                @opts.font.size = settings.font_size
             if not @opts.font.size?   # in case of weirdness, do not leave user screwed.
                 @opts.font.size = 12
         if not @opts.color_scheme?
@@ -438,8 +441,8 @@ class Console extends EventEmitter
             if not @opts.font.family?
                 @opts.font.family = "droid-sans-mono"
 
-    _init_session_ping: () =>
-        @session.ping(@console_is_open)
+    #_init_session_ping: () =>
+    #    @session.ping(@console_is_open)
 
     _init_codemirror: () ->
         that = @
@@ -714,8 +717,7 @@ class Console extends EventEmitter
         h = $(".navbar-fixed-top").height()
         @element.css
             position : 'absolute'
-            width : "97%"
-        .css
+            width    : "97%"
             top      : h
             left     : 0
             right    : 0
@@ -723,7 +725,7 @@ class Console extends EventEmitter
 
         $(@terminal.element).css
             position  : 'absolute'
-            width     : "97%"
+            width     : "100%"
             top       : "3.5em"
             bottom    : 1
 
@@ -761,34 +763,51 @@ class Console extends EventEmitter
             # (todo: could queue this up to send)
             return
 
-        @resize_terminal()
+        @resize_terminal () =>
 
-        # Resize the remote PTY
-        resize_code = (cols, rows) ->
-            # See http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
-            # CSI Ps ; Ps ; Ps t
-            # CSI[4];[height];[width]t
-            return CSI + "4;#{rows};#{cols}t"
-        @session.write_data(resize_code(@opts.cols, @opts.rows))
+            # Resize the remote PTY
+            resize_code = (cols, rows) ->
+                # See http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
+                # CSI Ps ; Ps ; Ps t
+                # CSI[4];[height];[width]t
+                return CSI + "4;#{rows};#{cols}t"
+            @session.write_data(resize_code(@opts.cols, @opts.rows))
 
-        @resize_scrollbar()
+            @resize_scrollbar()
 
 
-        # Refresh depends on correct @opts being set!
-        @refresh()
+            # Refresh depends on correct @opts being set!
+            @refresh()
 
-    resize_terminal: () =>
+    resize_terminal: (cb) =>
+        # make the terminal DOM element almost all of its likely recently resized parent
+        $(@terminal.element).css('width','99.5%')
+
+        # The code here and below (in _resize_terminal) may seem horrible, but welcome to browser
+        # DOM programming...
+
         # Determine size of container DOM.
-        # Determine the width of a character using a little trick:
-        c = $("<span style:'padding:0px;margin:0px;border:0px;'>X</span>").appendTo(@terminal.element)
-        character_width = c.width()
-        c.remove()
+        # Determine the average width of a character by inserting 10 blank spaces,
+        # seeing how wide that is, and dividing by 10.  The result is typically not
+        # an integer, which is why we have to use multiple characters.
+        @_c = $("<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>").prependTo(@terminal.element)
+
+        # We have to do the actual calculation in the next render loop, since otherwise the terminal
+        # might not yet have resized, or the text we just inserted might not yet be visible.
+        setTimeout((()=>@_resize_terminal(cb)), 0)
+
+    _resize_terminal: (cb) =>
+        character_width = @_c.width()/10
+        @_c.remove()
         elt = $(@terminal.element)
 
-        # The above trick is not reliable for getting the height of each row.
-        # For that we use the terminal itself.
+        # The above style trick for character width is not reliable for getting the height of each row.
+        # For that we use the terminal itself, since it already has rows, and hopefully at least
+        # one has something in it (a div).
+        #
         # The row height is in fact *NOT* constant -- it can vary by 1 (say) depending
-        # on what is in the row.  So we compute the maximum line height, which is safe.
+        # on what is in the row.  So we compute the maximum line height, which is safe, so
+        # long as we throw out the outliers.
         heights = ($(x).height() for x in elt.children())
         # Eliminate weird outliers that sometimes appear (e.g., for last row); yes, this is
         # pretty crazy...
@@ -797,6 +816,7 @@ class Console extends EventEmitter
 
         if character_width == 0 or row_height == 0
             # The editor must not yet be visible -- do nothing
+            cb?()
             return
 
         # Determine the number of columns from the width of a character, computed above.
@@ -812,7 +832,7 @@ class Console extends EventEmitter
         # Record new size
         @opts.cols = new_cols
         @opts.rows = new_rows
-
+        cb?()
 
     resize_scrollbar: () =>
         # render the scrollbar on the right

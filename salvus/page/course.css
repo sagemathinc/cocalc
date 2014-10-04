@@ -1,0 +1,77 @@
+.salvus-course-student {
+    background : white;
+}
+
+.salvus-course-editor {
+    overflow-y    : auto;
+    overflow-x    : hidden;
+    margin-bottom : 2em;
+    margin-top    : 1em;
+    background    : white;
+    width         : 100%;
+}
+
+.salvus-course-editor-title {
+    font-size:18pt;
+    font-weight: bold;
+    color:#555;
+    margin-top: 6px;
+    padding: 1ex;
+    background:white;
+    -webkit-appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.salvus-course-editor-description {
+    font-size:12pt;
+    padding: 1ex;
+    border-radius: 4px;
+    color:#555;
+    background:white;
+    -webkit-appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+
+.salvus-course-heading {
+    font-weight: bold;
+    padding-left: 1ex;
+    font-size: 12pt;
+    color : #666;
+}
+
+.salvus-course-field {
+    color:#555;
+    overflow-y: auto;
+    padding-bottom: 1ex;
+}
+
+.salvus-course-student-deleted {
+    text-decoration: line-through;
+    color:#888;
+}
+
+.salvus-course-student-first_name {
+}
+.salvus-course-student-last_name {
+}
+
+.salvus-course-student-email_address {
+    font-family: monospace;
+}
+
+.salvus-course-assignment-path {
+    cursor: pointer;
+    font-size: 13pt;
+}
+
+.salvus-course-collect-path {
+    cursor: pointer;
+}
+
+.salvus-course-search-describe {
+    margin-top: 4px;
+    font-size: 11pt;
+    padding-bottom: 4px;
+}
+

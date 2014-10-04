@@ -1,32 +1,71 @@
 client = require('client')
+exports.connect = (url) ->
+    new Connection(url)
 
-exports.connect = (url) -> new Connection(url)
+{walltime} = require('misc')
+t = walltime()
 
 class Connection extends client.Connection
     _connect: (url, ondata) ->
-            conn = new SockJS("#{url}/hub") #, undefined, {protocols_whitelist:['websocket']})
-            @_conn = conn
-            conn.onopen = () =>
-                @_last_pong = require('misc').walltime()
-                @_connected = true
-                @emit("connected", conn.protocol)
-            conn.onmessage = (evt) -> ondata(evt.data)
-            conn.onerror = (err) => @emit("error", err)
+        @url = url
+        @ondata = ondata
+        console.log("websocket -- connecting to '#{url}'...")
 
-            conn.onclose = () =>
-                @emit("connecting")
-                if @_connected
-                    console.log("SockJS connection just closed, so trying to make a new one...")
-                    @_connected = false
-                else
-                    console.log("Failed to create a SockJS connection; trying again.")
-                setTimeout((() => @_connect(url, ondata)), 1000)
+        opts =
+            ping      : 6000   # used for maintaining the connection and deciding when to reconnect.
+            pong      : 12000  # used to decide when to reconnect
+            strategy  : 'disconnect,online,timeout'
+            reconnect :
+              maxDelay : 20000
+              minDelay : 500
+              retries  : 100000  # why ever stop trying if we're only trying once every 20 seconds?
 
-            @_write = (data) -> conn.send(data)
+        conn = new Primus(url, opts)
+        @_conn = conn
+        conn.on 'open', () =>
+            console.log("websocket -- connected in #{walltime(t)} seconds")
+            @_connected = true
+            @emit("connected", 'websocket')
 
-    _fix_connection: () ->
-        console.log("connection is not working... attempting to fix.")
-        @_conn.close()
+        conn.on 'message', (evt) =>
+            #console.log("websocket -- message: ", evt)
+            ondata(evt.data)
 
-    _cookies: (mesg) ->
-        $.ajax(url:mesg.url, data:{id:mesg.id, set:mesg.set, get:mesg.get})
+        conn.on 'error', (err) =>
+            console.log("websocket -- error: ", err)
+            @emit("error", err)
+
+        conn.on 'close', () =>
+            console.log("websocket -- closed")
+            @_connected = false
+            t = walltime()
+            @emit("connecting")
+
+        conn.on 'data', (data) =>
+            # console.log("websocket --data='#{data}'")
+            ondata(data)
+
+        conn.on 'reconnecting', (opts) =>
+            console.log('websocket --reconnecting in %d ms', opts.timeout)
+            console.log('websocket --this is attempt %d out of %d', opts.attempt, opts.retries)
+
+        conn.on 'incoming::pong', (time) =>
+            #console.log("pong latency=#{conn.latency}")
+            if not window.document.hasFocus? or window.document.hasFocus()
+                # networking/pinging slows down when browser not in focus...
+                @emit "ping", conn.latency
+
+        #conn.on 'outgoing::ping', () =>
+        #    console.log(new Date() - 0, "sending a ping")
+
+        @_write = (data) =>
+            conn.write(data)
+
+
+    _fix_connection: () =>
+        console.log("websocket --_fix_connection...")
+        @_conn.end()
+        @_connect(@url, @ondata)
+
+    _cookies: (mesg) =>
+        $.ajax(url:mesg.url, data:{id:mesg.id, set:mesg.set, get:mesg.get, value:mesg.value})

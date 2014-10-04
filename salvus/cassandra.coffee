@@ -12,10 +12,11 @@
 # (c) 2013 William Stein, University of Washington
 #
 # fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.1.1.2:9160'], username:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
+# fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.1.1.2:9160'], username:'hub', password:fs.readFileSync('data/secrets/cassandra/hub').toString().trim(), cb:console.log)
 #
 # fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['localhost:8403'], username:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
 #
-# fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['localhost'], cb:console.log)
+# a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['localhost'], cb:console.log)
 #
 #########################################################################
 
@@ -37,7 +38,7 @@ misc_node = require('misc_node')
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
-{to_json, from_json, to_iso, defaults} = misc
+{to_json, from_json, defaults} = misc
 required = defaults.required
 
 fs      = require('fs')
@@ -46,7 +47,7 @@ async   = require('async')
 winston = require('winston')                    # https://github.com/flatiron/winston
 
 cql     = require("node-cassandra-cql")
-Client  = cql.Client  # https://github.com/jorgebay/node-cassandra-cql
+Client  = cql.Client  # https://github.com/jorgebay/node-cassandra-cql; https://github.com/jorgebay/node-cassandra-cql/issues/81
 uuid    = require('node-uuid')
 {EventEmitter} = require('events')
 
@@ -74,10 +75,10 @@ higher_consistency = (consistency) ->
 
 
 # the time right now, in iso format ready to insert into the database:
-now = exports.now = () -> to_iso(new Date())
+now = exports.now = () -> new Date()
 
 # the time ms milliseconds ago, in iso format ready to insert into the database:
-exports.milliseconds_ago = (ms) -> to_iso(new Date(new Date() - ms))
+exports.milliseconds_ago = (ms) -> new Date(new Date() - ms)
 exports.seconds_ago      = (s)  -> exports.milliseconds_ago(1000*s)
 exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
 exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
@@ -90,7 +91,7 @@ exports.inet_to_str = (r) -> [r[0], r[1], r[2], r[3]].join('.')
 
 #########################################################################
 
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'task_list_id'].concat(PROJECT_GROUPS)
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'task_list_id', 'hide_from_accounts'].concat(PROJECT_GROUPS)
 
 exports.create_schema = (conn, cb) ->
     t = misc.walltime()
@@ -390,7 +391,9 @@ class exports.Cassandra extends EventEmitter
             query_max_retry : 10    # max number of retries
             consistency     : undefined
             verbose         : false # quick hack for debugging...
-            conn_timeout_ms : 5000  # Maximum time in milliseconds to wait for a connection from the pool.
+            conn_timeout_ms : 20000  # Maximum time in milliseconds to wait for a connection from the pool.
+            latency_limit   : 500
+            pool_size       : 2
 
         @keyspace = opts.keyspace
         @query_timeout_s = opts.query_timeout_s
@@ -403,13 +406,25 @@ class exports.Cassandra extends EventEmitter
         @consistency = opts.consistency  # the default consistency (for now)
 
         #winston.debug("connect using: #{JSON.stringify(opts)}")  # DEBUG ONLY!! output contains sensitive info (the password)!!!
+        @_opts = opts
+        @connect()
 
+    connect: (cb) =>
+        winston.debug("connect: connecting to the database server")
+        console.log("connecting...")
+        opts = @_opts
+        if @conn?
+            @conn.shutdown?()
+            delete @conn
         @conn = new Client
-            hosts      : opts.hosts
-            keyspace   : opts.keyspace
-            username   : opts.username
-            password   : opts.password
+            hosts                 : opts.hosts
+            keyspace              : opts.keyspace
+            username              : opts.username
+            password              : opts.password
             getAConnectionTimeout : opts.conn_timeout_ms
+            latencyLimit          : opts.latency_limit
+            poolSize              : opts.pool_size
+            pageSize              : 10000000  # TODO!!
 
         if opts.verbose
             @conn.on 'log', (level, message) =>
@@ -431,6 +446,10 @@ class exports.Cassandra extends EventEmitter
             # network issues, etc.
             opts.cb = undefined
 
+            # this callback is for convenience when re-connecting
+            cb?()
+            cb=undefined
+
     _where: (where_key, vals, json=[]) ->
         where = "";
         for key, val of where_key
@@ -451,13 +470,8 @@ class exports.Cassandra extends EventEmitter
                         equals_fallback = false
                     if op == '=='
                         op = '=' # for cassandra
-                    if op == 'in'
-                        # !!!!!!!!!!!!!! potential CQL-injection attack !?  !!!!!!!!!!!
-                        # TODO -- keep checking/complaining?:  in queries with params don't seem to work right at least as of Oct 13, 2013 !
-                        where += "#{key} IN #{array_of_strings_to_cql_list(x2)}"
-                    else
-                        where += "#{key} #{op} ?"
-                        vals.push(x2)
+                    where += "#{key} #{op} ?"
+                    vals.push(x2)
                     where += " AND "
         return where.slice(0,-4)    # slice off final AND.
 
@@ -519,8 +533,8 @@ class exports.Cassandra extends EventEmitter
             table : required
             delta : 1
             cb    : required
-        query = "update counts set count=count+? where table_name=?"
-        @cql query, [opts.delta, opts.table], opts.cb
+        query = "UPDATE counts SET count=count+? where table_name=?"
+        @cql query, [new cql.types.Long(opts.delta), opts.table], opts.cb
 
     # Get count of entries in a table for which we manually maintain the count.
     get_table_counter: (opts) =>
@@ -653,11 +667,12 @@ class exports.Cassandra extends EventEmitter
                     if error
                         winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
                     # TODO - this test for "ResponseError: Operation timed out" is HORRIBLE.
-                    # The any of its parents is because often when the server is loaded it rejects requests sometimes
+                    # The 'any of its parents' is because often when the server is loaded it rejects requests sometimes
                     # with "no permissions. ... any of its parents".
                     if error? and ("#{error}".indexOf("peration timed out") != -1 or "#{error}".indexOf("any of its parents") != -1)
-                        winston.error("... so probably re-doing query")
-                        c(error)
+                        winston.error("... so (probably) re-doing query after reconnecting")
+                        @connect () =>
+                            c(error)
                     else
                         cb?(error, results?.rows)
                         cb = undefined  # ensure is only called once
@@ -671,10 +686,11 @@ class exports.Cassandra extends EventEmitter
 
         f = (c) =>
             failed = () =>
-                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying"
+                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying after reconnecting"
                 winston.error(m)
-                c(m)
-                c = undefined # ensure only called once
+                @connect () =>
+                    c(m)
+                    c = undefined # ensure only called once
             _timer = setTimeout(failed, 1000*@query_timeout_s)
             g (err) =>
                 clearTimeout(_timer)
@@ -801,7 +817,7 @@ class exports.Salvus extends exports.Cassandra
         @_all_users_computing = true
         @select
             table     : 'accounts'
-            columns   : ['first_name', 'last_name', 'email_address', 'account_id']
+            columns   : ['first_name', 'last_name', 'account_id']
             objectify : true
             consistency : 1     # since we really want optimal speed, and missing something temporarily is ok.
             limit     : 1000000  # TODO: probably start failing due to timeouts around 100K users (?) -- will have to cursor or query multiple times then?
@@ -815,7 +831,7 @@ class exports.Salvus extends exports.Cassandra
                     if not r.last_name?
                         r.last_name = ''
                     search = (r.first_name + ' ' + r.last_name).toLowerCase()
-                    obj = {account_id : r.account_id, first_name:r.first_name, last_name:r.last_name, search:search, email:r.email_address?.toLowerCase()}
+                    obj = {account_id : r.account_id, first_name:r.first_name, last_name:r.last_name, search:search}
                     v.push(obj)
                 delete @_all_users_computing
                 if not @_all_users?
@@ -828,31 +844,80 @@ class exports.Salvus extends exports.Cassandra
 
     user_search: (opts) =>
         opts = defaults opts,
-            query : required
-            limit : undefined
-            cb    : required
+            query : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
+            limit : undefined    # limit on string queries; email query always returns 0 or 1 result per email address
+            cb    : required     # cb(err, list of {account_id:?, first_name:?, last_name:?, email_address:?}), where the
+                                 # email_address *only* occurs in search queries that are by email_address -- we do not reveal
+                                 # email addresses of users queried by name.
 
-        @all_users (err, users) =>
-            if err
-                opts.cb(err); return
-            query = opts.query.toLowerCase().split(/\s+/g)
-            match = (search, email) ->
-                for q in query
-                    if (search.indexOf(q) == -1 and email != q)
+        {string_queries, email_queries} = misc.parse_user_search(opts.query)
+
+        results = []
+        async.parallel([
+
+            (cb) =>
+                if email_queries.length == 0
+                    cb(); return
+
+                # do email queries -- with exactly two targeted db queries (even if there are hundreds of addresses)
+                @select
+                    table     : 'email_address_to_account_id'
+                    where     : {email_address:{'in':email_queries}}
+                    columns   : ['account_id']
+                    objectify : false
+                    cb        : (err, r) =>
+                        if err
+                            cb(err); return
+                        if r.length == 0
+                            cb(); return
+                        @select
+                            table     : 'accounts'
+                            columns   : ['account_id', 'first_name', 'last_name', 'email_address']
+                            where     : {'account_id':{'in':(x[0] for x in r)}}
+                            objectify : true
+                            cb        : (err, r) =>
+                                if err
+                                    cb(err)
+                                else
+                                    for x in r
+                                        results.push(x)
+                                    cb()
+
+            (cb) =>
+                # do all string queries
+                if string_queries.length == 0 or (opts.limit? and results.length >= opts.limit)
+                    # nothing to do
+                    cb(); return
+
+                @all_users (err, users) =>
+                    if err
+                        cb(err); return
+                    match = (search) ->
+                        for query in string_queries
+                            matches = true
+                            for q in query
+                                if search.indexOf(q) == -1
+                                    matches = false
+                                    break
+                            if matches
+                                return true
                         return false
-                return true
-            r = []
-            # LOCKING WARNING: In the worst case, this is a non-indexed linear search through all
-            # names which completely locks the server.  That said, it would take about
-            # 500,000 users before this blocks the server for *1 second*... at which point the
-            # database query to load all users into memory above (in @all_users) would take
-            # several hours.   So let's optimize this, but do that later!!
-            for x in users
-                if match(x.search, x.email)
-                    r.push(x)
-                    if opts.limit? and r.length >= opts.limit
-                        break
-            opts.cb(false, r)
+                    # SCALABILITY WARNING: In the worst case, this is a non-indexed linear search through all
+                    # names which completely locks the server.  That said, it would take about
+                    # 500,000 users before this blocks the server for *1 second*... at which point the
+                    # database query to load all users into memory above (in @all_users) would take
+                    # several hours.
+                    # TODO: we should limit the number of search requests per user per minute, since this
+                    # is a DOS vector.
+                    for x in users
+                        if match(x.search)
+                            results.push(x)
+                            if opts.limit? and results.length >= opts.limit
+                                break
+                    cb()
+
+            ], (err) => opts.cb(err, results))
+
 
     account_ids_to_usernames: (opts) =>
         opts = defaults opts,
@@ -1291,7 +1356,7 @@ class exports.Salvus extends exports.Cassandra
                             banned_accounts = @_account_is_banned_cache
                             f = () =>
                                 delete @_account_is_banned_cache
-                            setTimeout(f, 10*60000)    # cache db lookups for 10 minutes
+                            setTimeout(f, 7*24*60*60000)    # cache db lookups for a long time (basically next restart) -- right now not used much anyways, due to no account verification.
                             cb()
             (cb) =>
                 if opts.email_address?
@@ -1357,8 +1422,8 @@ class exports.Salvus extends exports.Cassandra
                 ttl = "USING ttl #{opts.ttl}"
             else
                 ttl = ""
-            query = "UPDATE account_creation_actions #{ttl} SET actions=actions+{?} WHERE email_address=?"
-            @cql(query, [misc.to_json(opts.action), opts.email_address], opts.cb)
+            query = "UPDATE account_creation_actions #{ttl} SET actions=actions+{'#{misc.to_json(opts.action)}'} WHERE email_address=?"
+            @cql(query, [opts.email_address], opts.cb)
         else
             @select
                 table     : 'account_creation_actions'
@@ -1369,7 +1434,11 @@ class exports.Salvus extends exports.Cassandra
                     if err
                         opts.cb(err)
                     else
-                        opts.cb(false, (misc.from_json(r[0]) for r in results))
+                        if results.length == 0
+                            opts.cb(undefined, [])
+                        else
+                            console.log(results[0][0])              
+                            opts.cb(false, (misc.from_json(r) for r in results[0][0]))
 
     update_account_settings: (opts={}) ->
         opts = defaults opts,
@@ -1551,8 +1620,8 @@ class exports.Salvus extends exports.Cassandra
             set   :
                 filename : opts.filename
             where :
-                day        : date.toISOString().slice(0,10)
-                timestamp  : to_iso(date)
+                day        : date.toISOString().slice(0,10) # this is a string
+                timestamp  : date
                 project_id : opts.project_id
                 account_id : opts.account_id
             cb : opts.cb
@@ -1830,11 +1899,11 @@ class exports.Salvus extends exports.Cassandra
             cb         : undefined
         async.parallel([
             (cb) =>
-                query = "UPDATE projects SET hide_from_accounts=hide_from_accounts+{?} WHERE project_id=?"
-                @cql(query, [opts.account_id, opts.project_id], cb)
+                query = "UPDATE projects SET hide_from_accounts=hide_from_accounts+{#{opts.account_id}} WHERE project_id=?"
+                @cql(query, [opts.project_id], cb)
             (cb) =>
-                query = "UPDATE accounts SET hidden_projects=hidden_projects+{?} WHERE account_id=?"
-                @cql(query, [opts.project_id, opts.account_id], cb)
+                query = "UPDATE accounts SET hidden_projects=hidden_projects+{#{opts.project_id}} WHERE account_id=?"
+                @cql(query, [opts.account_id], cb)
         ], (err) => opts.cb?(err))
 
     unhide_project_from_user: (opts) =>
@@ -1844,11 +1913,11 @@ class exports.Salvus extends exports.Cassandra
             cb         : undefined
         async.parallel([
             (cb) =>
-                query = "UPDATE projects SET hide_from_accounts=hide_from_accounts-{?} WHERE project_id=?"
-                @cql(query, [opts.account_id, opts.project_id], cb)
+                query = "UPDATE projects SET hide_from_accounts=hide_from_accounts-{#{opts.account_id}} WHERE project_id=?"
+                @cql(query, [opts.project_id], cb)
             (cb) =>
-                query = "UPDATE accounts SET hidden_projects=hidden_projects-{?} WHERE account_id=?"
-                @cql(query, [opts.project_id, opts.account_id], cb)
+                query = "UPDATE accounts SET hidden_projects=hidden_projects-{#{opts.project_id}} WHERE account_id=?"
+                @cql(query, [opts.account_id], cb)
         ], (err) => opts.cb?(err))
 
     # Make it so the user with given account id is listed as a(n invited) collaborator or viewer
@@ -1877,12 +1946,12 @@ class exports.Salvus extends exports.Cassandra
         async.series([
             # add account_id to the project's set of users (for the given group)
             (cb) =>
-                query = "UPDATE projects SET #{opts.group}=#{opts.group}+{?} WHERE project_id=?"
-                @cql(query, [opts.account_id, opts.project_id], cb)
+                query = "UPDATE projects SET #{opts.group}=#{opts.group}+{#{opts.account_id}} WHERE project_id=?"
+                @cql(query, [opts.project_id], cb)
             # add project_id to the set of projects (for the given group) for the user's account
             (cb) =>
-                query = "UPDATE accounts SET #{opts.group}=#{opts.group}+{?} WHERE account_id=?"
-                @cql(query, [opts.project_id, opts.account_id], cb)
+                query = "UPDATE accounts SET #{opts.group}=#{opts.group}+{#{opts.project_id}} WHERE account_id=?"
+                @cql(query, [opts.account_id], cb)
         ], opts.cb)
 
     remove_user_from_project: (opts) =>
@@ -1897,12 +1966,12 @@ class exports.Salvus extends exports.Cassandra
         async.series([
             # remove account_id from the project's set of users (for the given group)
             (cb) =>
-                query = "UPDATE projects SET #{opts.group}=#{opts.group}-{?} WHERE project_id=?"
-                @cql(query, [opts.account_id, opts.project_id], cb)
+                query = "UPDATE projects SET #{opts.group}=#{opts.group}-{#{opts.account_id}} WHERE project_id=?"
+                @cql(query, [opts.project_id], cb)
             # remove project_id from the set of projects (for the given group) for the user's account
             (cb) =>
-                query = "UPDATE accounts SET #{opts.group}=#{opts.group}-{?} WHERE account_id=?"
-                @cql(query, [opts.project_id, opts.account_id], cb)
+                query = "UPDATE accounts SET #{opts.group}=#{opts.group}-{#{opts.project_id}} WHERE account_id=?"
+                @cql(query, [opts.account_id], cb)
         ], opts.cb)
 
     # SINGLE USE ONLY:
@@ -2809,7 +2878,7 @@ class ChunkedStorage
                             cb()
             (cb) =>
                 f = (r, c) =>
-                    if to_iso(new Date(r.timestamp)) > tm
+                    if new Date(r.timestamp) > tm
                         dbg("skipping: #{r.id}/#{r.name} -- too new")
                         c(); return
                     dbg("lost file: #{r.id}/#{r.name} -- #{r.chunk_ids.length} chunks")

@@ -46,7 +46,7 @@ if os.path.exists(next_path):
 cmd("qemu-img create -b %s -f qcow2 %s"%(prev_path, next_path))
 cmd("chgrp kvm %s; chmod g+rw %s"%(next_path, next_path))
 
-cmd("virt-install --connect qemu:///system --cpu host --network network:default,model=virtio --name %s --vcpus=12 --ram 8000 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole --graphics vnc,port=12101"%(next,next_path))
+cmd("virt-install --connect qemu:///system --cpu host --network network:default,model=virtio --name %s --vcpus=12 --ram 4000 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole --graphics vnc,port=12101"%(next,next_path))
 
 print "Booting..."
 
@@ -62,18 +62,13 @@ while True:
 print """
 You probably want to do something like this:
 
-    ssh %s
-    cd salvus/salvus
-    . salvus-env
-    git pull
-    ./make_coffee
+    sshvm %s
     sudo su
+    ./update_salvus
     apt-get update; apt-get upgrade
 
-    # Build new sage; if so, delete notebook() line from local/bin/sage-banner
-
     reboot -h now
-    ssh %s
+    sshvm %s
     sudo shutdown -h now
 
  Then
@@ -82,4 +77,4 @@ You probably want to do something like this:
     cd vm/images/base/
     ./push
 
-"""%(ip, ip, next)
+"""%(next, next, next)

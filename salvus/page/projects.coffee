@@ -9,7 +9,7 @@
 {alert_message} = require('alerts')
 misc            = require('misc')
 {project_page}  = require('project')
-{human_readable_size} = require('misc_page')
+{human_readable_size, html_to_text} = require('misc_page')
 {account_settings} = require('account')
 
 templates = $(".salvus-projects-templates")
@@ -208,7 +208,10 @@ create_project_item = (project) ->
         item.find(".projects-public-icon").hide()
         item.addClass("private-project").removeClass("public-project")
 
-    item.find(".projects-title").text(project.title)
+    # NOTE: in some places, project title is HTML, but showing arbitrary HTML is danerous, due to
+    # (1) cross site scripting, and (2) anybody can add anybody else as a project collaborator right now, without any acceptance (will change)
+    title = misc.trunc(html_to_text(project.title),128)
+    item.find(".projects-title").text(title)
     #if project.host != ""
     #    item.find(".projects-active").show().tooltip(title:"This project is opened, so you can access it quickly, search it, etc.", placement:"top", delay:500)
 
@@ -220,7 +223,8 @@ create_project_item = (project) ->
     #if project.size?
     #    item.find(".projects-size").text(human_readable_size(project.size))
 
-    item.find(".projects-description").text(project.description)
+    description = misc.trunc(html_to_text(project.description),128)
+    item.find(".projects-description").text(description)
 
     users = []
     for group in misc.PROJECT_GROUPS
@@ -418,7 +422,14 @@ exports.open_project = open_project = (project, item) ->
                 x = p
                 break
         if not x?
-            alert_message(type:"error", message:"Unknown project with id '#{project}'")
+            # have to get from database.
+            salvus_client.project_info
+                project_id : project
+                cb         : (err, p) ->
+                    if err
+                        alert_message(type:"error", message:"Unknown project with id '#{project}'")
+                    else
+                        open_project(p)
             return
         else
             project = x
@@ -455,7 +466,9 @@ exports.open_project = open_project = (project, item) ->
 ################################################
 # Create a New Project
 ################################################
-$("#new_project-button").click((event) -> create_project.modal('show'))
+$("#new_project-button").click () ->
+    create_project.modal('show')
+    create_project.find("#projects-create_project-title").focus()
 
 create_project = $("#projects-create_project")
 title_input = $("#projects-create_project-title")

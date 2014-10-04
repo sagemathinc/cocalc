@@ -327,8 +327,8 @@ class ConsoleSessions
                         session.history += data
                         session.amount_of_data += data.length
                         n = session.history.length
-                        if n > 400000  # TODO: totally arbitrary; also have to change the same thing in hub.coffee
-                            session.history = session.history.slice(session.history.length - 300000)
+                        if n > 200000
+                            session.history = session.history.slice(session.history.length - 100000)
 
                         # Never push more than 20000 characters at once to client hub, since that could overwhelm...
                         if data.length > 20000
@@ -845,6 +845,12 @@ class CodeMirrorSession
                         cb(err); return
                     @content = content
                     @diffsync_fileclient = new DiffSyncFile_client(@diffsync_fileserver)
+
+                    # worksheet freshly loaded from disk -- now ensure no cells appear to be running
+                    # except for the auto cells that we spin up running.
+                    @sage_update(kill:true, auto:true)
+                    @_set_content_and_sync()
+
                     cb()
         ], (err) => cb?(err, @))
 
@@ -861,14 +867,15 @@ class CodeMirrorSession
             catch e
                 # sage process is dead.
                 @_sage_socket = undefined
-                @sage_update(kill:true)
 
-        winston.debug("sage_socket: Opening a Sage session.")
+        winston.debug("sage_socket: initalize the newly started sage process")
 
-        # Ensure that no cells appear to be running.  This is important
+        # If we've already loaded the worksheet, then ensure
+        # that no cells appear to be running.  This is important
         # because the worksheet file that we just loaded could have had some
         # markup that cells are running.
-        @sage_update(kill:true)
+        if @diffsync_fileclient?
+            @sage_update(kill:true)
 
         # Connect to the local Sage server.
         get_sage_socket (err, socket) =>
@@ -956,19 +963,20 @@ class CodeMirrorSession
                             if before != @content
                                 @_set_content_and_sync()
 
-                # Submit all auto cells to be evaluated.
-                @sage_update(auto:true)
+                # If we've already loaded the worksheet, submit all auto cells to be evaluated.
+                if @diffsync_fileclient?
+                    @sage_update(auto:true)
 
                 cb(false, @_sage_socket)
 
     _set_content_and_sync: () =>
-        @set_content(@content)
-        # Suggest to all connected clients to sync.
-        for id, ds_client of @diffsync_clients
-            ds_client.remote.sync_ready()
+        if @set_content(@content)
+            # Content actually changed, so suggest to all connected clients to sync.
+            for id, ds_client of @diffsync_clients
+                ds_client.remote.sync_ready()
 
     sage_execute_cell: (id) =>
-        winston.debug("exec request for cell with id #{id}")
+        winston.debug("exec request for cell with id: '#{id}'")
         @sage_remove_cell_flag(id, diffsync.FLAGS.execute)
         {code, output_id} = @sage_initialize_cell_for_execute(id)
         winston.debug("exec code '#{code}'; output id='#{output_id}'")
@@ -984,6 +992,7 @@ class CodeMirrorSession
             # Change the cell to "running" mode - this doesn't generate output, so we must explicit force clients
             # to sync.
             @sage_set_cell_flag(id, diffsync.FLAGS.running)
+            @sage_set_cell_flag(id, diffsync.FLAGS.this_session)
             @_set_content_and_sync()
 
             @sage_socket (err, socket) =>
@@ -1054,7 +1063,7 @@ class CodeMirrorSession
 
     sage_update: (opts={}) =>
         opts = defaults opts,
-            kill : false    # if true, just remove all running flags.
+            kill : false    # if true, remove all running flags and all this_session flags
             auto : false    # if true, run all cells that have the auto flag set
         if not @content?  # document not initialized
             return
@@ -1063,7 +1072,7 @@ class CodeMirrorSession
         #    - also, if we see a cell UUID that we've seen already, we randomly generate
         #      a new cell UUID; clients can annoyingly generate non-unique UUID's (e.g., via
         #      cut and paste) so we fix that.
-        winston.debug("sage_update: opts=#{misc.to_json(opts)}")
+        winston.debug("sage_update")#: opts=#{misc.to_json(opts)}")
         i = 0
         prev_ids = {}
         while true
@@ -1074,36 +1083,50 @@ class CodeMirrorSession
             if j == -1
                 break  # corrupt and is the last one, so not a problem.
             id  = @content.slice(i+1,i+37)
-            if prev_ids[id]?
-                # oops, repeated "unique" id, so fix it.
-                id = uuid.v4()
-                @content = @content.slice(0,i+1) + id + @content.slice(i+37)
-                # Also, if 'r' in the flags for this cell, remove it since it
-                # can't possibly be already running (given the repeat).
+            if misc.is_valid_uuid_string(id)
+
+                # if id isn't valid -- due to document corruption or a bug, just skip it rather than get into all kinds of trouble.
+                # TODO: repair.
+
+                if prev_ids[id]?
+                    # oops, repeated "unique" id, so fix it.
+                    id = uuid.v4()
+                    @content = @content.slice(0,i+1) + id + @content.slice(i+37)
+                    # Also, if 'r' in the flags for this cell, remove it since it
+                    # can't possibly be already running (given the repeat).
+                    flags = @content.slice(i+37, j)
+                    if diffsync.FLAGS.running in flags
+                        new_flags = ''
+                        for t in flags
+                            if t != diffsync.FLAGS.running
+                                new_flags += t
+                        @content = @content.slice(0,i+37) + new_flags + @content.slice(j)
+
+                prev_ids[id] = true
                 flags = @content.slice(i+37, j)
-                if diffsync.FLAGS.running in flags
-                    new_flags = ''
-                    for t in flags
-                        if t != diffsync.FLAGS.running
-                            new_flags += t
-                    @content = @content.slice(0,i+37) + new_flags + @content.slice(j)
-
-            prev_ids[id] = true
-            flags = @content.slice(i+37, j)
-            if opts.kill
-                new_flags = ''
-                for t in flags
-                    if t != diffsync.FLAGS.running
-                        new_flags += t
-                @content = @content.slice(0,i+37) + new_flags + @content.slice(j)
-            else
-                if diffsync.FLAGS.execute in flags
-                    @sage_execute_cell(id)
-                else if opts.auto and diffsync.FLAGS.auto in flags
-                    @sage_remove_cell_flag(id, diffsync.FLAGS.auto)
+                if opts.kill or opts.auto
+                    if opts.kill
+                        # worksheet process just killed, so clear certain flags.
+                        new_flags = ''
+                        for t in flags
+                            if t != diffsync.FLAGS.running and t != diffsync.FLAGS.this_session
+                                new_flags += t
+                        #winston.debug("sage_update: kill=true, so changing flags from '#{flags}' to '#{new_flags}'")
+                        if flags != new_flags
+                            @content = @content.slice(0,i+37) + new_flags + @content.slice(j)
+                    if opts.auto and diffsync.FLAGS.auto in flags
+                        # worksheet process being restarted, so run auto cells
+                        @sage_remove_cell_flag(id, diffsync.FLAGS.auto)
+                        @sage_execute_cell(id)
+                else if diffsync.FLAGS.execute in flags
+                    # normal execute
                     @sage_execute_cell(id)
 
-            i = j + 1
+            # set i to next position after end of line that contained flag we just considered;
+            # above code may have added flags to this line (but won't have added anything before this line).
+            i = @content.indexOf('\n',j + 1)
+            if i == -1
+                break
 
 
     sage_output_mesg: (output_id, mesg) =>
@@ -1297,10 +1320,19 @@ class CodeMirrorSession
 
     set_content: (value) =>
         @is_active = true
-        @content = value
-        @diffsync_fileclient.live = @content
+        changed = false
+        if @content != value
+            @content = value
+            changed = true
+
+        if @diffsync_fileclient.live != value
+            @diffsync_fileclient.live = value
+            changed = true
         for id, ds_client of @diffsync_clients
-            ds_client.live = @content
+            if ds_client.live != value
+                changed = true
+                ds_client.live = value
+        return changed
 
     client_bcast: (socket, mesg) =>
         @is_active = true
@@ -1586,12 +1618,14 @@ class CodeMirrorSessions
             session = @_sessions.by_uuid[mesg.session_uuid]
             if session?
                 finish(session)
+                opts.cb?(undefined, session)
                 return
 
         if mesg.path?
             session = @_sessions.by_path[mesg.path]
             if session?
                 finish(session)
+                opts.cb?(undefined, session)
                 return
 
         mesg.session_uuid = uuid.v4()
@@ -1843,6 +1877,74 @@ write_file_to_project = (socket, mesg) ->
             )
     socket.on 'mesg', write_file
 
+###############################################
+# Printing an individual file to pdf
+###############################################
+print_sagews = (opts) ->
+    opts = defaults opts,
+        path       : required
+        outfile    : required
+        title      : required
+        author     : required
+        date       : required
+        contents   : required
+        extra_data : undefined   # extra data that is useful for displaying certain things in the worksheet.
+        cb         : required
+
+    extra_data_file = undefined
+    args = [opts.path, '--outfile', opts.outfile, '--title', opts.title, '--author', opts.author,'--date', opts.date, '--contents', opts.contents]
+    async.series([
+        (cb) ->
+            if not opts.extra_data?
+                cb(); return
+            extra_data_file = temp.path() + '.json'
+            args.push('--extra_data_file')
+            args.push(extra_data_file)
+            # NOTE: extra_data is a string that is *already* in JSON format.
+            fs.writeFile(extra_data_file, opts.extra_data, cb)
+        (cb) ->
+            # run the converter script
+            misc_node.execute_code
+                command     : "sagews2pdf.py"
+                args        : args
+                err_on_exit : false
+                bash        : false
+                cb          : cb
+
+        ], (err) =>
+            if extra_data_file?
+                fs.unlink(extra_data_file)  # no need to wait for completion before calling opts.cb
+            opts.cb(err)
+        )
+
+print_to_pdf = (socket, mesg) ->
+    ext  = misc.filename_extension(mesg.path)
+    if ext
+        pdf = "#{mesg.path.slice(0,mesg.path.length-ext.length)}pdf"
+    else
+        pdf = mesg.path + '.pdf'
+
+    async.series([
+        (cb) ->
+            switch ext
+                when 'sagews'
+                    print_sagews
+                        path       : mesg.path
+                        outfile    : pdf
+                        title      : mesg.options.title
+                        author     : mesg.options.author
+                        date       : mesg.options.date
+                        contents   : mesg.options.contents
+                        extra_data : mesg.options.extra_data
+                        cb         : cb
+                else
+                    cb("unable to print file of type '#{ext}'")
+    ], (err) ->
+        if err
+            socket.write_mesg('json', message.error(id:mesg.id, error:err))
+        else
+            socket.write_mesg('json', message.printed_to_pdf(id:mesg.id, path:pdf))
+    )
 
 ###############################################
 # Info
@@ -1958,6 +2060,8 @@ handle_mesg = (socket, mesg, handler) ->
                 read_file_from_project(socket, mesg)
             when 'write_file_to_project'
                 write_file_to_project(socket, mesg)
+            when 'print_to_pdf'
+                print_to_pdf(socket, mesg)
             when 'send_signal'
                 process_kill(mesg.pid, mesg.signal)
                 if mesg.id?
@@ -2105,7 +2209,7 @@ log_truncate = (cb) ->
                 cb(); return
             # read the log file
             fs.readFile SAGEMATHCLOUD_LOG_FILE, (err, _data) ->
-                data = _data.toString()
+                data = _data?.toString()  # ? is important, since in case of err _data is not defined.
                 cb(err)
         (cb) ->
             if not exists

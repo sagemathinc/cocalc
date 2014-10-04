@@ -202,7 +202,6 @@
     background-color: white;
     font-family: monospace;
     /* overflow-y: auto; */
-    height: 100%;
 }
 
 .project-search-output-command {
@@ -421,6 +420,7 @@
 
 .project-search-output-further-results {
     font-weight: bold;
+    background: white;
 }
 
 .project-search-result {
@@ -544,6 +544,12 @@
 .salvus-project-search-describe {
     margin-top: 4px;
     font-size: 14pt;
+}
+
+.project-file-listing-show_all {
+   margin-left   : 1em;
+   margin-right  : 1em;
+   margin-bottom : 1em;
 }
 
 @media (min-width: 768px) {

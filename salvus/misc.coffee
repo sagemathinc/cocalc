@@ -107,9 +107,11 @@ exports.defaults = (obj1, obj2, allow_extra) ->
         obj1 = {}
     error  = () ->
         try
-            "(obj1=#{exports.to_json(obj1)}, obj2=#{exports.to_json(obj2)})"
+            s = "(obj1=#{exports.trunc(exports.to_json(obj1),1024)}, obj2=#{exports.trunc(exports.to_json(obj2),1024)})"
+            console.log(s)
+            return s
         catch error
-            ""
+            return ""
     if typeof(obj1) != 'object'
         # We put explicit traces before the errors in this function,
         # since otherwise they can be very hard to debug.
@@ -342,6 +344,18 @@ exports.lower_email_address = (email_address) ->
         email_address = JSON.stringify(email_address)
     # make email address lower case
     return email_address.toLowerCase()
+
+
+exports.parse_user_search = (query) ->
+    queries = (q.trim().toLowerCase() for q in query.split(','))
+    r = {string_queries:[], email_queries:[]}
+    for x in queries
+        if x.indexOf('@') == -1
+            r.string_queries.push(x.split(/\s+/g))
+        else
+            r.email_queries.push(x)
+    return r
+
 
 
 # Delete trailing whitespace in the string s.  See

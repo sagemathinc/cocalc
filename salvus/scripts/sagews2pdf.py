@@ -37,7 +37,8 @@ MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
 # TODO: this needs to use salvus.project_info() or an environment variable or something!
 site = 'https://cloud.sagemath.com'
 
-import argparse, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile
+import argparse, base64, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile
+from uuid import uuid4
 
 def wrap(s, c=90):
     return '\n'.join(['\n'.join(textwrap.wrap(x, c)) for x in s.splitlines()])
@@ -261,6 +262,28 @@ class Cell(object):
                         s += '\\includegraphics[width=\\textwidth]{%s}\n'%img
                     else:
                         s += "(problem loading \\verb|'%s'|)"%filename
+                elif ext == 'sage3d' and 'sage3d' in extra_data and 'uuid' in val:
+                    # render a static image, if available
+                    v = extra_data['sage3d']
+                    print "KEYS", v.keys()
+                    uuid = val['uuid']
+                    if uuid in v:
+                        print "TARGET acquired!"
+                        data = v[uuid].pop()
+                        width = min(1, 1.2*data.get('width',0.5))
+                        print "width = ", width
+                        if 'data-url' in data:
+                            data_url = data['data-url']  # 'data:image/png;base64,iVBOR...'
+                            i = data_url.find('/')
+                            j = data_url.find(";")
+                            k = data_url.find(',')
+                            image_ext  = data_url[i+1:j]
+                            image_data = data_url[k+1:]
+                            assert data_url[j+1:k] == 'base64'
+                            filename = str(uuid4()) + "." + image_ext
+                            open(filename, 'w').write(base64.b64decode(image_data))
+                            s += '\\includegraphics[width=%s\\textwidth]{%s}\n'%(width, filename)
+
                 else:
                     if target.startswith('http'):
                         s += '\\url{%s}'%target
@@ -398,6 +421,7 @@ if __name__ == "__main__":
     parser.add_argument("--contents", dest="contents", help="include a table of contents 'true' or 'false' (default: 'true')", type=str, default='true')
     parser.add_argument("--outfile", dest="outfile", help="output filename (defaults to input file with sagews replaced by pdf)", type=str, default="")
     parser.add_argument("--remove_tmpdir", dest="remove_tmpdir", help="if 'false' do not delete the temporary LaTeX files and print name of temporary directory (default: 'true')", type=str, default='true')
+    parser.add_argument("--extra_data_file", dest="extra_data_file", help="JSON format file that contains extra data useful in printing this worksheet, e.g., 3d plots", type=str, default='')
 
     args = parser.parse_args()
     if args.contents == 'true':
@@ -410,5 +434,12 @@ if __name__ == "__main__":
     else:
         args.remove_tmpdir = False
 
-    sagews_to_pdf(args.filename, title=args.title.decode('utf8'), author=args.author.decode('utf8'), outfile=args.outfile,
+    if args.extra_data_file:
+        import json
+        extra_data = json.loads(open(args.extra_data_file).read())
+    else:
+        extra_data = {}
+
+    sagews_to_pdf(args.filename, title=args.title.decode('utf8'),
+                  author=args.author.decode('utf8'), outfile=args.outfile,
                   date=args.date, contents=args.contents, remove_tmpdir=args.remove_tmpdir)

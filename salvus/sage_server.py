@@ -88,6 +88,7 @@ if 'base_url' not in INFO:
 #log = logging.getLogger('sage_server')
 #log.setLevel(logging.INFO)
 
+# A CoffeeScript version of this function is in misc_node.coffee.
 import hashlib
 def uuidsha1(data):
     sha1sum = hashlib.sha1()
@@ -100,6 +101,7 @@ def uuidsha1(data):
         if t[i] == 'x':
             r[i] = s[j]; j += 1
         elif t[i] == 'y':
+            # take 8 + low order 3 bits of hex number.
             r[i] = hex( (int(s[j],16)&0x3) |0x8)[-1]; j += 1
     return ''.join(r)
 
@@ -197,7 +199,19 @@ class Message(object):
     def execute_javascript(self, code, obj=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, md=None, tex=None, file=None, done=None, once=None, hide=None, show=None, auto=None, events=None, clear=None):
+    def output(self, id,
+               stdout=None,
+               stderr=None,
+               html=None,
+               javascript=None,
+               coffeescript=None,
+               interact=None,
+               md=None,
+               tex=None,
+               file=None,
+               obj=None,
+               done=None, once=None, hide=None,
+               show=None, auto=None, events=None, clear=None):
         m = self._new('output')
         m['id'] = id
         t = truncate_text
@@ -550,8 +564,86 @@ class Salvus(object):
         self.javascript("worksheet.editor.close(obj)", obj = filename, once=True)
 
 
-    #def open_project(self, project_id):
-    #def close_project(self, project_id):
+    def threed(self,
+               g,                   # sage Graphic3d object.
+               width        = None,
+               height       = None,
+               frame        = True, # True/False or {'color':'black', 'thickness':.4, 'labels':True, 'fontsize':14, 'draw':True,
+                                    #                'xmin':?, 'xmax':?, 'ymin':?, 'ymax':?, 'zmin':?, 'zmax':?}
+               background   = None,
+               foreground   = None,
+               spin         = False,
+               aspect_ratio = None,
+               frame_aspect_ratio = None,  # synonym for aspect_ratio
+
+               done         = False
+              ):
+
+        from graphics import graphics3d_to_jsonable, json_float as f
+
+        # process options, combining ones set explicitly above with ones inherited from 3d scene
+        opts = { 'width':width, 'height':height,
+                 'background':background, 'foreground':foreground,
+                 'spin':spin, 'aspect_ratio':aspect_ratio}
+
+        extra_kwds = {} if g._extra_kwds is None else g._extra_kwds
+        if aspect_ratio is None:
+            if frame_aspect_ratio is not None:
+                aspect_ratio = frame_aspect_ratio
+            elif extra_kwds.get("frame_aspect_ratio",None):
+                aspect_ratio = extra_kwds['frame_aspect_ratio']
+        if aspect_ratio is not None:
+            if aspect_ratio == 1:
+                aspect_ratio = None
+            elif not (isinstance(aspect_ratio, (list, tuple)) and len(aspect_ratio) == 3):
+                raise TypeError("aspect_ratio must be None, 1 or a 3-tuple ")
+            else:
+                aspect_ratio = [f(x) for x in aspect_ratio]
+
+        for k in ['spin', 'height', 'width', 'background', 'foreground', 'aspect_ratio']:
+            if k in extra_kwds and not opts.get(k,None):
+                opts[k] = extra_kwds[k]
+
+        if not isinstance(opts['spin'], bool):
+            opts['spin'] = f(opts['spin'])
+        opts['width']  = f(opts['width'])
+        opts['height'] = f(opts['height'])
+
+        # determine the frame
+        b = g.bounding_box()
+        xmin, xmax, ymin, ymax, zmin, zmax = b[0][0], b[1][0], b[0][1], b[1][1], b[0][2], b[1][2]
+        fr = opts['frame'] = {'xmin':f(xmin), 'xmax':f(xmax),
+                              'ymin':f(ymin), 'ymax':f(ymax),
+                              'zmin':f(zmin), 'zmax':f(zmax)}
+
+        if isinstance(frame, dict):
+            for k in fr.keys():
+                if k in frame:
+                    fr[k] = f(frame[k])
+            fr['draw'] = frame.get('draw', True)
+            fr['color'] = frame.get('color', None)
+            fr['thickness'] = f(frame.get('thickness', None))
+            fr['labels'] = frame.get('labels', None)
+            if 'fontsize' in frame:
+                fr['fontsize'] = int(frame['fontsize'])
+        elif isinstance(frame, bool):
+            fr['draw'] = frame
+
+        # convert the Sage graphics object to a JSON object that can be rendered
+        scene = {'opts' : opts,
+                 'obj'  : graphics3d_to_jsonable(g)}
+
+        # Store that object in the database, rather than sending it directly as an output message.
+        # We do this since obj can easily be quite large/complicated, and managing it as part of the
+        # document is too slow and doesn't scale.
+        blob = json.dumps(scene, separators=(',', ':'))
+        uuid = self._conn.send_blob(blob)
+
+        # flush output (so any text appears before 3d graphics, in case they are interleaved)
+        self._flush_stdio()
+
+        # send message pointing to the 3d 'file', which will get downloaded from database
+        self._send_output(id=self._id, file={'filename':unicode8("%s.sage3d"%uuid), 'uuid':uuid}, done=done)
 
     def file(self, filename, show=True, done=False, download=False, once=False, events=None, raw=False):
         """
@@ -611,7 +703,7 @@ class Salvus(object):
             url  = os.path.join(u'/',info['base_url'].strip('/'), info['project_id'], u'raw', path.lstrip('/'))
             if show:
                 self._flush_stdio()
-                self._send_output(id=self._id, once=once, file={'filename':filename, 'url':url, 'show':show}, events=events)
+                self._send_output(id=self._id, once=once, file={'filename':filename, 'url':url, 'show':show}, events=events, done=done)
                 return
             else:
                 return TemporaryURL(url=url, ttl=0)
@@ -622,7 +714,7 @@ class Salvus(object):
         while mesg is None:
             self.message_queue.recv()
             for i, (typ, m) in enumerate(self.message_queue.queue):
-                if typ == 'json' and m['event'] == 'save_blob' and m['sha1'] == file_uuid:
+                if typ == 'json' and m.get('event') == 'save_blob' and m.get('sha1') == file_uuid:
                     mesg = m
                     del self.message_queue[i]
                     break
@@ -631,13 +723,13 @@ class Salvus(object):
             raise RuntimeError("error saving blob -- %s"%mesg['error'])
 
         self._flush_stdio()
-        self._send_output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}, events=events)
+        self._send_output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}, events=events, done=done)
         if not show:
             info = self.project_info()
             url = u"%s/blobs/%s?uuid=%s"%(info['base_url'], filename, file_uuid)
             if download:
                 url += u'?download'
-            return TemporaryURL(url=url, ttl=mesg['ttl'])
+            return TemporaryURL(url=url, ttl=mesg.get('ttl',0))
 
     def default_mode(self, mode=None):
         """
