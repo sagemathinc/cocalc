@@ -1349,6 +1349,8 @@ class CodeMirrorEditor extends FileEditor
                 @print()
 
     change_font_size: (cm, delta) =>
+        scroll_before = cm.getScrollInfo()
+
         elt = $(cm.getWrapperElement())
         size = elt.data('font-size')
         if not size?
@@ -1358,7 +1360,17 @@ class CodeMirrorEditor extends FileEditor
         if new_size > 1
             elt.css('font-size', new_size + 'px')
             elt.data('font-size', new_size)
-        @show()
+
+        # we have to do the scrollTo in the next render loop, since otherwise
+        # the getScrollInfo function below will return the sizing data about
+        # the cm instance before the above css font-size change has been rendered.
+        f = () =>
+            cm.refresh()
+            scroll_after = cm.getScrollInfo()
+            x = (scroll_before.left / scroll_before.width) * scroll_after.width
+            y = (((scroll_before.top+scroll_before.clientHeight/2) / scroll_before.height) * scroll_after.height) - scroll_after.clientHeight/2
+            cm.scrollTo(x, y)
+        setTimeout(f, 0)
 
     toggle_split_view: (cm) =>
         @_split_view = not @_split_view

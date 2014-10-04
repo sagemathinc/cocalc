@@ -356,9 +356,12 @@ exports.define_codemirror_extensions = () ->
             # nothing
         @setValue(value)
         try
-            @setCursor(pos)
-            @scrollTo(scroll.left, scroll.top)
-            @scrollIntoView(pos)   #I've seen tracebacks from this saying "cannot call method chunckSize of undefined"
+            if pos?
+                @setCursor(pos)
+            if scroll?
+                @scrollTo(scroll.left, scroll.top)
+            if pos?
+                @scrollIntoView(pos)   #I've seen tracebacks from this saying "cannot call method chunckSize of undefined"
                                    #which cause havoc on the reset of sync, which assumes setValueNoJump works, and
                                    # leads to user data loss.  I consider this a codemirror bug, but of course
                                    # just not moving the view in such cases is a reasonable workaround.
