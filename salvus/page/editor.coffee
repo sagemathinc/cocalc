@@ -1233,6 +1233,8 @@ class CodeMirrorEditor extends FileEditor
         @codemirror1.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror1
 
+        @restore_font_size()
+
         @_split_view = @local_storage("split_view")
         if not @_split_view?
             @_split_view = false
@@ -1348,6 +1350,18 @@ class CodeMirrorEditor extends FileEditor
             when 'print'
                 @print()
 
+    restore_font_size: () =>
+        for i, cm of [@codemirror, @codemirror1]
+            size = @local_storage("font_size#{i}")
+            if size?
+                @set_font_size(cm, size)
+
+    set_font_size: (cm, size) =>
+        if size > 1
+            elt = $(cm.getWrapperElement())
+            elt.css('font-size', size + 'px')
+            elt.data('font-size', size)
+
     change_font_size: (cm, delta) =>
         scroll_before = cm.getScrollInfo()
 
@@ -1357,9 +1371,8 @@ class CodeMirrorEditor extends FileEditor
             s = elt.css('font-size')
             size = parseInt(s.slice(0,s.length-2))
         new_size = size + delta
-        if new_size > 1
-            elt.css('font-size', new_size + 'px')
-            elt.data('font-size', new_size)
+        @set_font_size(cm, new_size)
+        @local_storage("font_size#{cm.name}", new_size)
 
         # we have to do the scrollTo in the next render loop, since otherwise
         # the getScrollInfo function below will return the sizing data about
