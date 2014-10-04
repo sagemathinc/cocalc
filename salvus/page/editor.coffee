@@ -3338,7 +3338,7 @@ class Terminal extends FileEditor
             filename  : filename
             resizable : false
             close     : () => @editor.project_page.display_tab("project-file-listing")
-            editor    : @editor
+            editor    : @
         @console = elt.data("console")
         @element = @console.element
         salvus_client.read_text_file_from_project
