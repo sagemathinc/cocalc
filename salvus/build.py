@@ -467,6 +467,7 @@ SAGE_OPTIONAL_PACKAGES = [
     'normaliz',
     'nose',
     'nzmath',
+    'ore_algebra',
     'p_group_cohomology',
     'phc',
     'pybtex',
