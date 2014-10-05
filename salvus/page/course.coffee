@@ -601,9 +601,9 @@ class Course
                             set   : {project_id : project_id}
                             where : where
                         i = Math.random()
-                        console.log('about to save ',i)
+                        #console.log('about to save ',i)
                         @db.save (err) =>
-                            console.log('save #{i} done -- err',err)
+                            #console.log('save #{i} done -- err',err)
                         @update_student_view(student_id:opts.student_id)
                         opts.cb?()
             )
