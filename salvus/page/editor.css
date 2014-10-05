@@ -312,7 +312,7 @@ Editor for files in a project
     width: 100%;
 }
 
-.sagews-input:hover {
+.sagews-input-live:hover {
     cursor: pointer;
     background-color: #428bca;
 }

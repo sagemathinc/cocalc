@@ -1719,21 +1719,22 @@ class SynchronizedWorksheet extends SynchronizedDocument
         x   = cm.getLine(line)
         end = x.indexOf(MARKERS.cell, 1)
         input = cell_start_template.clone()
-
-        input.click () =>
-            f = () =>
-                @insert_new_cell(mark.find().from.line)
-            if IS_MOBILE
-                # It is way too easy to accidentally click on the insert new cell line on mobile.
-                bootbox.confirm "Create new cell?", (result) =>
-                    if result
-                        f()
-                    else # what the user really wants...
-                        cm.focus()
-                        cm.setCursor({line:mark.find().from.line+1, ch:0})
-            else
-                f()
-            return false
+        if not @readonly
+            input.addClass('sagews-input-live')
+            input.click () =>
+                f = () =>
+                    @insert_new_cell(mark.find().from.line)
+                if IS_MOBILE
+                    # It is way too easy to accidentally click on the insert new cell line on mobile.
+                    bootbox.confirm "Create new cell?", (result) =>
+                        if result
+                            f()
+                        else # what the user really wants...
+                            cm.focus()
+                            cm.setCursor({line:mark.find().from.line+1, ch:0})
+                else
+                    f()
+                return false
 
         opts =
             shared         : false
@@ -1851,6 +1852,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
             toggle_output : false  # if true; toggle whether output is displayed; ranges all toggle same as first
             delete_output : false  # if true; delete all the the output in the range
             cm      : @focused_codemirror()
+
+        if @readonly
+            # don't do any actions on a read-only file.
+            return
+
         if opts.pos?
             pos = opts.pos
         else
