@@ -72,7 +72,7 @@ class Console extends EventEmitter
             rows        : 16
             cols        : 80
             resizable   : false
-            editor      : undefined  # needed for some actions, e.g., opening a file
+            editor      : undefined  # FileEditor instance -- needed for some actions, e.g., opening a file
             close       : undefined  # if defined, called when close button clicked.
             reconnect   : undefined  # if defined, opts.reconnect?() is called when session console wants to reconnect; this should call set_session.
 
@@ -202,10 +202,10 @@ class Console extends EventEmitter
                 mesg = from_json(mesg)
                 switch mesg.event
                     when 'open_file'
-                        @opts.editor?.project_page.open_file(path:mesg.name, foreground:true)
+                        @opts.editor?.editor.project_page.open_file(path:mesg.name, foreground:true)
                     when 'open_directory'
-                        @opts.editor?.project_page.chdir(mesg.name)
-                        @opts.editor?.project_page.display_tab("project-file-listing")
+                        @opts.editor?.editor.project_page.chdir(mesg.name)
+                        @opts.editor?.editor.project_page.display_tab("project-file-listing")
             catch e
                 console.log("issue parsing message -- ", e)
 
@@ -407,6 +407,7 @@ class Console extends EventEmitter
             @_font_size_changed()
 
     _font_size_changed: () =>
+        @opts.editor?.local_storage("font-size",@opts.font.size)
         $(@terminal.element).css('font-size':"#{@opts.font.size}px")
         delete @_character_height
         @element.find(".salvus-console-font-indicator-size").text(@opts.font.size)
@@ -424,7 +425,11 @@ class Console extends EventEmitter
     _init_default_settings: () =>
         settings = require('account').account_settings.settings.terminal
         if not @opts.font.size?
-            @opts.font.size = settings.font_size
+            font_size = @opts.editor?.local_storage("font-size")
+            if font_size?
+                @opts.font.size = font_size
+            else
+                @opts.font.size = settings.font_size
             if not @opts.font.size?   # in case of weirdness, do not leave user screwed.
                 @opts.font.size = 12
         if not @opts.color_scheme?

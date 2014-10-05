@@ -18,7 +18,7 @@ class Connection extends client.Connection
             reconnect :
               maxDelay : 20000
               minDelay : 500
-              retries  : 100
+              retries  : 100000  # why ever stop trying if we're only trying once every 20 seconds?
 
         conn = new Primus(url, opts)
         @_conn = conn

@@ -107,7 +107,11 @@ class SynchronizedDB extends EventEmitter
         @_doc.sync()
 
     save: (cb) =>
-        @_doc.save(cb)
+        @sync (err) =>
+            if err
+                setTimeout((()=>@save(cb)), 3000)
+            else
+                @_doc.save(cb)
 
     sync: (cb) =>
         @_doc.sync(cb)

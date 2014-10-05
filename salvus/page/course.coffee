@@ -61,6 +61,7 @@ class Course
         @init_view_options()
         @init_new_student()
         @init_new_file_assignment()
+        @init_create_all_projects_button()
         @init_help()
         async.series([
             (cb) =>
@@ -358,7 +359,7 @@ class Course
                     # oh well...
                     return
                 for r in result
-                    if r.account_id?                        
+                    if r.account_id?
                         @db.update
                             set :
                                 account_id    : r.account_id
@@ -375,6 +376,14 @@ class Course
         for student in v
             @render_student(student)
         @update_student_count()
+
+    update_create_all_projects_button: (n) =>
+        e = @element.find("a[href=#create-all-projects]")
+        if n >= 2
+            e.show()
+            e.find("span").text(n)
+        else
+            e.hide()
 
     init_student_search: () =>
         @student_search_box = @element.find(".salvus-course-students-search")
@@ -432,9 +441,11 @@ class Course
             e.find("a[href=#delete]").click () =>
                 @delete_student(student_id: opts.student_id)
                 return false
+
             e.find("a[href=#undelete]").click () =>
                 @undelete_student(student_id: opts.student_id)
                 return false
+
             e.find("a[href=#create-project]").click () =>
                 create_project_btn.addClass('disabled').icon_spin(start:true)
                 @create_project
@@ -444,6 +455,7 @@ class Course
                         if err
                             alert_message(type:"error", message:"error creating project -- #{misc.to_json(err)}")
                 return false
+
             e.find("a[href=#open-project]").click () =>
                 v = @db.select_one({student_id : opts.student_id, table : 'students'})
                 project_id = v.project_id
@@ -453,6 +465,7 @@ class Course
                     f = () => require('projects').open_project(project_id)
                     setTimeout(f, 1) # ugly hack Jon suggests for now.
                 return false
+
             if opts.append
                 @element.find(".salvus-course-students").append(e)
             else
@@ -511,6 +524,9 @@ class Course
             @element.find(".salvus-course-students-add").focus()
         else
             @element.find(".salvus-course-students-none ").hide()
+
+        n = (x for x in v when not x.deleted and not x.project_id?).length
+        @update_create_all_projects_button(n)
 
     create_project: (opts) =>
         opts = defaults opts,
@@ -584,7 +600,10 @@ class Course
                         @db.update
                             set   : {project_id : project_id}
                             where : where
-                        @db.save()
+                        i = Math.random()
+                        #console.log('about to save ',i)
+                        @db.save (err) =>
+                            #console.log('save #{i} done -- err',err)
                         @update_student_view(student_id:opts.student_id)
                         opts.cb?()
             )
@@ -758,6 +777,17 @@ class Course
         name += ' -- '
         return {title: "#{name} #{z.title}", description:z.description}
 
+    init_create_all_projects_button: () =>
+        e = @element.find("a[href=#create-all-projects]").click () =>
+            n = e.find('span').text()
+            m = "Are you sure you want to create all #{n} projects for the students in this course."
+            bootbox.confirm m, (result) =>
+                if not result
+                    return
+                for x in @db.select({table : 'students'})
+                    if not x.project_id? and not x.deleted
+                        e = @element.find("[data-student_id='#{x.student_id}']")
+                        e.find("a[href=#create-project]").click()
 
     ###
     # Assignment

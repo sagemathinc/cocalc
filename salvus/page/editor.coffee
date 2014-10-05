@@ -1123,7 +1123,17 @@ class CodeMirrorEditor extends FileEditor
         # not really needed due to highlighted tab; annoying.
         #@element.find(".salvus-editor-codemirror-filename").text(filename)
 
-        elt = @element.find(".salvus-editor-codemirror-input-box").find("textarea")
+        @_chat_is_hidden = @local_storage("chat_is_hidden")
+        if not @_chat_is_hidden?
+            @_chat_is_hidden = true
+
+        @_layout = @local_storage("layout")
+        if not @_layout?
+            @_layout = 1
+        @_last_layout = @_layout
+
+        layout_elt = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").show()
+        elt = layout_elt.find(".salvus-editor-codemirror-input-box").find("textarea")
         elt.text(content)
 
         extraKeys =
@@ -1218,7 +1228,7 @@ class CodeMirrorEditor extends FileEditor
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
 
-        elt1 = @element.find(".salvus-editor-codemirror-input-box-1").find("textarea")
+        elt1 = layout_elt.find(".salvus-editor-codemirror-input-box-1").find("textarea")
 
         @codemirror1 = make_editor(elt1[0])
         @codemirror1.name = '1'
@@ -1232,6 +1242,8 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror1.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror1
+
+        @restore_font_size()
 
         @_split_view = @local_storage("split_view")
         if not @_split_view?
@@ -1348,21 +1360,52 @@ class CodeMirrorEditor extends FileEditor
             when 'print'
                 @print()
 
+    restore_font_size: () =>
+        for i, cm of [@codemirror, @codemirror1]
+            size = @local_storage("font_size#{i}")
+            if size?
+                @set_font_size(cm, size)
+
+    set_font_size: (cm, size) =>
+        if size > 1
+            elt = $(cm.getWrapperElement())
+            elt.css('font-size', size + 'px')
+            elt.data('font-size', size)
+
     change_font_size: (cm, delta) =>
+        scroll_before = cm.getScrollInfo()
+
         elt = $(cm.getWrapperElement())
         size = elt.data('font-size')
         if not size?
             s = elt.css('font-size')
             size = parseInt(s.slice(0,s.length-2))
         new_size = size + delta
-        if new_size > 1
-            elt.css('font-size', new_size + 'px')
-            elt.data('font-size', new_size)
-        @show()
+        @set_font_size(cm, new_size)
+        @local_storage("font_size#{cm.name}", new_size)
+
+        # we have to do the scrollTo in the next render loop, since otherwise
+        # the getScrollInfo function below will return the sizing data about
+        # the cm instance before the above css font-size change has been rendered.
+        f = () =>
+            cm.refresh()
+            scroll_after = cm.getScrollInfo()
+            x = (scroll_before.left / scroll_before.width) * scroll_after.width
+            y = (((scroll_before.top+scroll_before.clientHeight/2) / scroll_before.height) * scroll_after.height) - scroll_after.clientHeight/2
+            cm.scrollTo(x, y)
+        setTimeout(f, 0)
 
     toggle_split_view: (cm) =>
-        @_split_view = not @_split_view
+        if @_split_view
+            if @_layout == 1
+                @_layout = 2
+            else
+                @_split_view = false
+        else
+            @_split_view = true
+            @_layout = 1
         @local_storage("split_view", @_split_view)  # store state so can restore same on next open
+        @local_storage("layout", @_layout)
         @show()
         @focus()
         cm.focus()
@@ -1571,12 +1614,34 @@ class CodeMirrorEditor extends FileEditor
         # in case of more than one view on the document...
         @_show_extra_codemirror_view()
 
-        if @_split_view
-            v = [@codemirror, @codemirror1]
-            ht = height/2
-        else
+        btn = @element.find("a[href=#split-view]")
+        btn.find("i").hide()
+        if not @_split_view
+            @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
+            btn.find(".salvus-editor-layout-0").show()
+            # one full editor
             v = [@codemirror]
             ht = height
+        else
+            if @_layout == 1
+                @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
+                btn.find(".salvus-editor-layout-1").show()
+                v = [@codemirror, @codemirror1]
+                ht = height/2
+            else
+                btn.find(".salvus-editor-layout-2").show()
+                @element.find(".salvus-editor-codemirror-input-container-layout-2").width(width)
+                v = [@codemirror, @codemirror1]
+                ht = height
+                width = width/2
+
+        if @_last_layout != @_layout
+            # move the editors to the correct layout template and show it.
+            @element.find(".salvus-editor-codemirror-input-container-layout-#{@_last_layout}").hide()
+            layout_elt = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").show()
+            layout_elt.find(".salvus-editor-codemirror-input-box").empty().append($(@codemirror.getWrapperElement()))
+            layout_elt.find(".salvus-editor-codemirror-input-box-1").empty().append($(@codemirror1.getWrapperElement()))
+            @_last_layout = @_layout
 
         # need to do this since theme may have changed
         # @_style_active_line()
@@ -1588,7 +1653,6 @@ class CodeMirrorEditor extends FileEditor
         hack = $("<div>")
         $("body").append(hack)
         setTimeout((()=>hack.remove()),100)
-
 
         for cm in v
             scroller = $(cm.getScrollerElement())
@@ -1603,7 +1667,6 @@ class CodeMirrorEditor extends FileEditor
 
 
     _show: () =>
-
         # show the element that contains this editor
         @element.show()
         # do size computations: determine height and width of the codemirror editor(s)
@@ -2568,6 +2631,9 @@ class PDF_PreviewEmbed extends FileEditor
     hide: () =>
         @element.hide()
 
+#############################################
+# Viewer/editor (?) for history of changes to a document
+#############################################
 
 class HistoryEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
@@ -2722,6 +2788,9 @@ class HistoryEditor extends FileEditor
         if @ext == 'sagews'
             @worksheet.process_sage_updates()
 
+#############################################
+# Editor for LaTeX documents
+#############################################
 
 class LatexEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
@@ -2805,38 +2874,13 @@ class LatexEditor extends FileEditor
         @save_conf(conf)
 
     load_conf: () =>
-        doc = @latex_editor.codemirror.getValue()
-        i = doc.indexOf("%sagemathcloud=")
-        if i == -1
-            return {}
-
-        j = doc.indexOf('=',i)
-        k = doc.indexOf('\n',i)
-        if k == -1
-            k = doc.length
-        try
-            conf = misc.from_json(doc.slice(j+1,k))
-        catch
+        conf = @local_storage('conf')
+        if not conf?
             conf = {}
-
         return conf
 
     save_conf: (conf) =>
-        cm  = @latex_editor.codemirror
-        doc = cm.getValue()
-        i = doc.indexOf('%sagemathcloud=')
-        line = '%sagemathcloud=' + misc.to_json(conf)
-        if i != -1
-            # find the line m where it is already
-            for n in [0..cm.doc.lastLine()]
-                z = cm.getLine(n)
-                if z.indexOf('%sagemathcloud=') != -1
-                    m = n
-                    break
-            cm.replaceRange(line+'\n', {line:m,ch:0}, {line:m+1,ch:0})
-        else
-            cm.replaceRange('\n'+line, {line:cm.doc.lastLine()+1,ch:0})
-        @latex_editor.syncdoc.sync()
+        @local_storage('conf', conf)
 
     _pause_passive_search: (cb) =>
         @_passive_forward_search_disabled = true
@@ -3031,11 +3075,7 @@ class LatexEditor extends FileEditor
     _set: (content) =>
         @latex_editor._set(content)
 
-    show: () =>
-        if not @is_active()
-            return
-
-        @element?.show()
+    _show: () =>
         @latex_editor?.show()
         if not @_show_before?
             @show_page('png-preview')
@@ -3336,7 +3376,7 @@ class Terminal extends FileEditor
             filename  : filename
             resizable : false
             close     : () => @editor.project_page.display_tab("project-file-listing")
-            editor    : @editor
+            editor    : @
         @console = elt.data("console")
         @element = @console.element
         salvus_client.read_text_file_from_project
