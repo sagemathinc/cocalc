@@ -10,15 +10,15 @@ else:
     file = 'smc.tasks'
 
 if len(sys.argv) > 2:
-    tag = sys.argv[2]
+    tag = "\\#" + sys.argv[2]
 else:
-    tag = 'today'
+    tag = ""
 
-print file
-print "#" + tag
+
+print "file='%s'; tag='%s'"%(file, tag[1:])
 
 tm = 0
-for x in os.popen('grep \#%s %s |grep -v done\\":1'%(tag, file)).readlines():
+for x in os.popen('%s | grep -v done\\":1'%('grep %s %s '%(tag, file) if tag else 'cat %s'%file)).readlines():
     i = x.find(OPENING)
     if i == -1:
         continue
@@ -34,4 +34,8 @@ for x in os.popen('grep \#%s %s |grep -v done\\":1'%(tag, file)).readlines():
         m = 0
     tm += 60*h + m
 
-print "total: (%s:%s?)"%(tm//60,tm%60)
+print "-"*70    
+print "Total: (%s:%s)"%(tm//60,tm%60)
+
+for k in [4,8,9,12,16]:
+    print "- %5.1f days at %2s hours/day"%(tm/60./k, k)
