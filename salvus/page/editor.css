@@ -541,3 +541,23 @@ code {
     padding: 5px;
     border-radius: 3px;
 }
+
+
+.salvus-editor-resize-bar-layout-1 {
+    height     : 6px;
+    cursor     : ns-resize;
+    background : #efefef;
+}
+
+.salvus-editor-resize-bar-layout-1:hover {
+    background : #ddd;
+}
+
+
+.salvus-editor-resize-bar-layout-2 {
+    height     : 6px;
+    cursor     : ew-resize;
+    background : #efefef;
+}
+
+

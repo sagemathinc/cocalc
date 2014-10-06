@@ -1069,7 +1069,6 @@ class FileEditor extends EventEmitter
 ###############################################
 class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-
         editor_settings = require('account').account_settings.settings.editor_settings
 
         opts = @opts = defaults opts,
@@ -1249,7 +1248,30 @@ class CodeMirrorEditor extends FileEditor
         if not @_split_view?
             @_split_view = false
 
+
         @init_change_event()
+        @init_draggable_splits()
+
+    init_draggable_splits: () =>
+        @_layout1_split_pos = @local_storage("layout1_split_pos")
+        @_layout2_split_pos = @local_storage("layout2_split_pos")
+
+        layout1_bar = @element.find(".salvus-editor-resize-bar-layout-1")
+        layout1_bar.draggable
+            axis        : 'y'
+            containment : @element
+            zIndex      : 100
+            stop        : (event, ui) =>
+                # compute the position of bar as a number from 0 to 1, with 0 being at top (left), 1 at bottom (right), and .5 right in the middle
+                e   = @element.find(".salvus-editor-codemirror-input-container-layout-1")
+                top = e.position().top
+                ht  = e.height()
+                p   = layout1_bar.position().top + layout1_bar.height()/2
+                @_layout1_split_pos = (p - top) / ht
+                @local_storage("layout1_split_pos", @_layout1_split_pos)
+                layout1_bar.css(top:0)
+                # redraw, which uses split_pos percentage
+                @show()
 
     is_active: () =>
         return @codemirror? and @editor? and @editor._active_tab_filename == @filename
@@ -1620,20 +1642,24 @@ class CodeMirrorEditor extends FileEditor
             @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
             btn.find(".salvus-editor-layout-0").show()
             # one full editor
-            v = [@codemirror]
-            ht = height
+            v = [{cm:@codemirror,height:height,width:width}]
         else
             if @_layout == 1
                 @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
                 btn.find(".salvus-editor-layout-1").show()
-                v = [@codemirror, @codemirror1]
-                ht = height/2
+                p = @_layout1_split_pos
+                if not p?
+                    p = 0.5
+                v = [{cm:@codemirror,  height:height*p,     width:width},
+                     {cm:@codemirror1, height:height*(1-p), width:width}]
             else
+                p = @_layout2_split_pos
+                if not p?
+                    p = 0.5
                 btn.find(".salvus-editor-layout-2").show()
                 @element.find(".salvus-editor-codemirror-input-container-layout-2").width(width)
-                v = [@codemirror, @codemirror1]
-                ht = height
-                width = width/2
+                v = [{cm:@codemirror,  height:height, width:width*p},
+                     {cm:@codemirror1, height:height, width:width*(1-p)}]
 
         if @_last_layout != @_layout
             # move the editors to the correct layout template and show it.
@@ -1649,26 +1675,27 @@ class CodeMirrorEditor extends FileEditor
         # CRAZY HACK: add and remove an HTML element to the DOM.
         # I don't know why this works, but it gets around a *massive bug*, where after
         # aggressive resizing, the codemirror editor gets all corrupted. For some reason,
-        # doing this always causes things to get properly fixed.  I don't know why.
+        # doing this "always" causes things to get properly fixed.  I don't know why.
         hack = $("<div>")
         $("body").append(hack)
-        setTimeout((()=>hack.remove()),100)
+        setTimeout((()=>hack.remove()),1000)
 
-        for cm in v
+        for {cm,height,width} in v
             scroller = $(cm.getScrollerElement())
-            scroller.css('height':ht)
+            scroller.css('height':height)
             cm_wrapper = $(cm.getWrapperElement())
             cm_wrapper.css
-                height : ht
+                height : height
                 width  : width
             cm.refresh()
 
-        @emit('show', ht)
+        @emit('show', height)
 
 
     _show: () =>
         # show the element that contains this editor
         @element.show()
+
         # do size computations: determine height and width of the codemirror editor(s)
         top               = @editor.editor_top_position()
         height            = $(window).height()
@@ -1676,6 +1703,7 @@ class CodeMirrorEditor extends FileEditor
         button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
         font_height       = @codemirror.defaultTextHeight()
         chat              = @_chat_is_hidden? and not @_chat_is_hidden
+
         # width of codemirror editors
         if chat
             width         = @element.find(".salvus-editor-codemirror-chat-column").offset().left
