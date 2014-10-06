@@ -1069,6 +1069,7 @@ class FileEditor extends EventEmitter
 ###############################################
 class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
+        #window.cm = @ #TODO: debug
         editor_settings = require('account').account_settings.settings.editor_settings
 
         opts = @opts = defaults opts,
@@ -1234,7 +1235,6 @@ class CodeMirrorEditor extends FileEditor
 
         buf = @codemirror.linkedDoc({sharedHist: true})
         @codemirror1.swapDoc(buf)
-        $(@codemirror1.getWrapperElement()).css('border-top':'2px solid #aaa')
 
         @codemirror.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror
@@ -1264,13 +1264,31 @@ class CodeMirrorEditor extends FileEditor
             stop        : (event, ui) =>
                 # compute the position of bar as a number from 0 to 1, with 0 being at top (left), 1 at bottom (right), and .5 right in the middle
                 e   = @element.find(".salvus-editor-codemirror-input-container-layout-1")
-                top = e.position().top
+                top = e.offset().top
                 ht  = e.height()
-                p   = layout1_bar.position().top + layout1_bar.height()/2
+                p   = layout1_bar.offset().top + layout1_bar.height()/2
                 @_layout1_split_pos = (p - top) / ht
                 @local_storage("layout1_split_pos", @_layout1_split_pos)
                 layout1_bar.css(top:0)
-                # redraw, which uses split_pos percentage
+                # redraw, which uses split info
+                @show()
+
+        layout2_bar = @element.find(".salvus-editor-resize-bar-layout-2")
+        layout2_bar.css(position:'absolute')
+        layout2_bar.draggable
+            axis        : 'x'
+            containment : @element
+            zIndex      : 100
+            stop        : (event, ui) =>
+                # compute the position of bar as a number from 0 to 1, with 0 being at top (left), 1 at bottom (right), and .5 right in the middle
+                e     = @element.find(".salvus-editor-codemirror-input-container-layout-2")
+                left  = e.offset().left
+                width = e.width()
+                p     = layout2_bar.offset().left
+                @_layout2_split_pos = (p - left) / width
+                @local_storage("layout2_split_pos", @_layout2_split_pos)
+                layout2_bar.css(left:left + width*p)
+                # redraw, which uses split info
                 @show()
 
     is_active: () =>
@@ -1633,6 +1651,8 @@ class CodeMirrorEditor extends FileEditor
 
     _show_codemirror_editors: (height, width) =>
         # console.log("_show_codemirror_editors: #{width} x #{height}")
+        if not width or not height
+            return
         # in case of more than one view on the document...
         @_show_extra_codemirror_view()
 
@@ -1640,12 +1660,16 @@ class CodeMirrorEditor extends FileEditor
         btn.find("i").hide()
         if not @_split_view
             @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
+            @element.find(".salvus-editor-resize-bar-layout-1").hide()
+            @element.find(".salvus-editor-resize-bar-layout-2").hide()
             btn.find(".salvus-editor-layout-0").show()
             # one full editor
             v = [{cm:@codemirror,height:height,width:width}]
         else
             if @_layout == 1
                 @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
+                @element.find(".salvus-editor-resize-bar-layout-1").show()
+                @element.find(".salvus-editor-resize-bar-layout-2").hide()
                 btn.find(".salvus-editor-layout-1").show()
                 p = @_layout1_split_pos
                 if not p?
@@ -1653,13 +1677,20 @@ class CodeMirrorEditor extends FileEditor
                 v = [{cm:@codemirror,  height:height*p,     width:width},
                      {cm:@codemirror1, height:height*(1-p), width:width}]
             else
+                @element.find(".salvus-editor-resize-bar-layout-1").hide()
+                @element.find(".salvus-editor-resize-bar-layout-2").show()
                 p = @_layout2_split_pos
                 if not p?
                     p = 0.5
+                width0 = width*p
+                width1 = width*(1-p)
                 btn.find(".salvus-editor-layout-2").show()
-                @element.find(".salvus-editor-codemirror-input-container-layout-2").width(width)
-                v = [{cm:@codemirror,  height:height, width:width*p},
-                     {cm:@codemirror1, height:height, width:width*(1-p)}]
+                e = @element.find(".salvus-editor-codemirror-input-container-layout-2")
+                e.width(width)
+                e.find(".salvus-editor-resize-bar-layout-2").height(height).css(left : e.offset().left + width*p)
+                e.find(".salvus-editor-codemirror-input-box").width(width0-7)
+                v = [{cm:@codemirror,  height:height, width:width0},
+                     {cm:@codemirror1, height:height, width:width1-8}]
 
         if @_last_layout != @_layout
             # move the editors to the correct layout template and show it.

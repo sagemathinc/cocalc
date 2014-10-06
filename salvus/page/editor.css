@@ -555,9 +555,14 @@ code {
 
 
 .salvus-editor-resize-bar-layout-2 {
-    height     : 6px;
     cursor     : ew-resize;
     background : #efefef;
+    width      : 6px;
+    position   : absolute;
+}
+
+.salvus-editor-resize-bar-layout-2:hover {
+    background : #ddd;
 }
 
 
