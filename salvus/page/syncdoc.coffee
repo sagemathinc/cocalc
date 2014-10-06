@@ -891,7 +891,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             omit_lines = {}
             for k, x of @other_cursors
                 omit_lines[x.line] = true
-            @codemirror.delete_trailing_whitespace(omit_lines:omit_lines)
+            @focused_codemirror().delete_trailing_whitespace(omit_lines:omit_lines)
         super(cb)
 
     _apply_changeObj: (changeObj) =>
