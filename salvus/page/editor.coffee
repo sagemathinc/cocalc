@@ -3187,7 +3187,7 @@ class LatexEditor extends FileEditor
         {top, left} = @element.offset()
         editor_width = (width - left)*@_split_pos
 
-        cm._dragbar.css('left',editor_width+left)
+        @_dragbar.css('left',editor_width+left)
         @latex_editor.show(width:editor_width)
 
         button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
@@ -3203,7 +3203,7 @@ class LatexEditor extends FileEditor
         else
             @show_page()
 
-        cm._dragbar.height(@latex_editor.element.height()).css('top',button_bar_height)
+        @_dragbar.height(@latex_editor.element.height()).css('top',button_bar_height)
 
     focus: () =>
         @latex_editor?.focus()
