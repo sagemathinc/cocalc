@@ -13,6 +13,8 @@
       diff theme/solarized.css ../codemirror-4.5/theme/solarized.css|more
       cp  ../codemirror-4.5/theme/solarized.css theme/
 
+  Also get rid of "line-height: 1.45em;". 
+
 -----------------------------------------------------------------------------------------------
 
 
