@@ -757,7 +757,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         # if you want to try to make this resizable
         @new_chat_indicator(false)
         @editor.show()  # updates editor width
+        @editor.emit 'show-chat'
         @render_chat_log()
+
 
     hide_chat_window: () =>
         # HIDE the chat window
@@ -768,6 +770,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-9').addClass('col-sm-12')
         @element.find(".salvus-editor-codemirror-chat-column").hide()
         @editor.show()  # update size/display of editor (especially the width)
+        @editor.emit 'hide-chat'
 
     new_chat_indicator: (new_chats) =>
         # Show a new chat indicatorif new_chats=true
