@@ -294,15 +294,16 @@ httpProxy = require('http-proxy')
 
 init_http_proxy_server = () =>
 
-    _remember_me_check_for_write_access_to_project = (opts) ->
+    _remember_me_check_for_access_to_project = (opts) ->
         opts = defaults opts,
             project_id  : required
             remember_me : required
+            type        : 'write'     # 'read' or 'write'
             cb          : required    # cb(err, has_access)
-        dbg = (m) -> winston.debug("_remember_me_check_for_write_access_to_project: #{m}")
+        dbg = (m) -> winston.debug("_remember_me_check_for_access_to_project: #{m}")
         account_id       = undefined
         email_address    = undefined
-        has_write_access = false
+        has_access = false
         hash             = undefined
         async.series([
             (cb) ->
@@ -337,55 +338,72 @@ init_http_proxy_server = () =>
                         else
                             cb()
             (cb) ->
-                dbg("check if user has write access")
-                user_has_write_access_to_project
-                    project_id : opts.project_id
-                    account_id : account_id
-                    cb         : (err, result) =>
-                        dbg("got: #{err}, #{result}")
-                        if err
-                            cb(err)
-                        else if not result
-                            cb("User does not have write access to project.")
-                        else
-                            has_write_access = true
-                            cb()
+                dbg("check if user has #{opts.type} access to project")
+                if opts.type == 'write'
+                    user_has_write_access_to_project
+                        project_id : opts.project_id
+                        account_id : account_id
+                        cb         : (err, result) =>
+                            dbg("got: #{err}, #{result}")
+                            if err
+                                cb(err)
+                            else if not result
+                                cb("User does not have write access to project.")
+                            else
+                                has_access = true
+                                cb()
+                else
+                    user_has_read_access_to_project
+                        project_id : opts.project_id
+                        account_id : account_id
+                        cb         : (err, result) =>
+                            dbg("got: #{err}, #{result}")
+                            if err
+                                cb(err)
+                            else if not result
+                                cb("User does not have read access to project.")
+                            else
+                                has_access = true
+                                cb()
+
         ], (err) ->
-            opts.cb(err, has_write_access)
+            opts.cb(err, has_access)
         )
 
     _remember_me_cache = {}
-    remember_me_check_for_write_access_to_project = (opts) ->
+    remember_me_check_for_access_to_project = (opts) ->
         opts = defaults opts,
             project_id  : required
             remember_me : required
+            type        : 'write'
             cb          : required    # cb(err, has_access)
-        key = opts.project_id + opts.remember_me
-        has_write_access = _remember_me_cache[key]
-        if has_write_access?
-            opts.cb(false, has_write_access)
+        key = opts.project_id + opts.remember_me + opts.type
+        has_access = _remember_me_cache[key]
+        if has_access?
+            opts.cb(false, has_access)
             return
         # get the answer, cache it, return answer
-        _remember_me_check_for_write_access_to_project
+        _remember_me_check_for_access_to_project
             project_id  : opts.project_id
             remember_me : opts.remember_me
-            cb          : (err, has_write_access) ->
+            type        : opts.type
+            cb          : (err, has_access) ->
                 # if cache gets huge for some *weird* reason (should never happen under normal conditions),
-                # just reset it to avoid any possibility of DOS-->RAM crash attach
+                # just reset it to avoid any possibility of DOS-->RAM crash attack
                 if misc.len(_remember_me_cache) >= 100000
                     _remember_me_cache = {}
 
-                _remember_me_cache[key] = has_write_access
+                _remember_me_cache[key] = has_access
                 # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
                 # but also if the user is suddenly granted permission to the project, this should be
                 # reflected within a few seconds.
                 f = () ->
                     delete _remember_me_cache[key]
-                if has_write_access
-                    setTimeout(f, 1000*60*5)    # write access lasts 5 minutes (i.e., if you revoke privs to a user they could still hit the port for 5 minutes)
+                if has_access
+                    setTimeout(f, 1000*60*6)    # access lasts 6 minutes (i.e., if you revoke privs to a user they could still hit the port for 5 minutes)
                 else
-                    setTimeout(f, 1000*60)      # not having write access lasts 1 minute
-                opts.cb(err, has_write_access)
+                    setTimeout(f, 1000*60*2)    # not having access lasts 2 minute
+                opts.cb(err, has_access)
 
     _target_cache = {}
     target = (remember_me, url, cb) ->
@@ -410,14 +428,20 @@ init_http_proxy_server = () =>
                     # remember_me = undefined means "allow"; this is used for the websocket upgrade.
                     cb(); return
 
-                remember_me_check_for_write_access_to_project
+                if type == 'raw'
+                    access_type = 'read'
+                else
+                    access_type = 'write'
+
+                remember_me_check_for_access_to_project
                     project_id  : project_id
                     remember_me : remember_me
+                    type        : access_type
                     cb          : (err, has_access) ->
                         if err
                             cb(err)
                         else if not has_access
-                            cb("user does not have write access to this project")
+                            cb("user does not have #{access_type} access to this project")
                         else
                             cb()
             (cb) ->
@@ -3113,8 +3137,44 @@ user_has_write_access_to_project = (opts) ->
     user_is_in_project_group(opts)
 
 user_has_read_access_to_project = (opts) ->
-    opts.groups = ['owner', 'collaborator', 'viewer']
-    user_is_in_project_group(opts)
+    # read access is granted if *either* (1) project is public, or
+    # (2) user is in any of the groups listed below.  So we query
+    # simultaneously for both conditions.
+    #dbg = (m) -> winston.debug("user_has_read_access_to_project #{opts.project_id}, #{opts.account_id}; #{m}")
+    main_cb = opts.cb
+    done = false
+    async.parallel([
+        (cb)->
+            opts.groups = ['owner', 'collaborator', 'viewer']
+            opts.cb = (err, in_group) ->
+                if err
+                    cb(err)
+                else
+                    if not done and in_group
+                        #dbg("yes, since in group")
+                        main_cb(undefined, true)
+                        done = true
+                    cb()
+            user_is_in_project_group(opts)
+        (cb) ->
+            database.project_is_public
+                project_id  : opts.project_id
+                consistency : cql.types.consistencies.one
+                cb          : (err, is_public) ->
+                    if err
+                        cb(err)
+                    else
+                        if not done and is_public
+                            #dbg("yes, since is public")
+                            main_cb(undefined, true)
+                            done = true
+                        cb()
+    ], (err) ->
+        dbg("nope, since neither in group nor public")
+        if not done
+            main_cb(err, false)
+    )
+                            
 
 
 ########################################

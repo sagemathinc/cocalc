@@ -2006,6 +2006,24 @@ class exports.Salvus extends exports.Cassandra
                 async.map(results, f, cb)
         ], cb)
 
+    # cb(err, true if project is public)
+    project_is_public: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            consistency : undefined
+            cb          : required  # cb(err, is_public)
+        @get_project_data
+            project_id  : opts.project_id
+            columns     : ['public']
+            objectify   : false
+            consistency : opts.consistency
+            cb          : (err, result) ->
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(false, result[0])
+
+
     # cb(err, true if user is in one of the groups)
     user_is_in_project_group: (opts) =>
         opts = defaults opts,
