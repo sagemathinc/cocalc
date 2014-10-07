@@ -3144,12 +3144,16 @@ class ProjectPage
                 delete @_update_local_status_link_lock
                 clearTimeout(timer)
                 if not err
-                    e = @container.find(".salvus-project-status-indicator")
-                    upper_state = state.state[0].toUpperCase() + state.state.slice(1)
-                    e.text(upper_state)
-                    @editor.resize_open_file_tabs()
-                    if state.state in ['starting', 'stopping', 'saving', 'restarting']  # intermediate states -- update more often
-                        setTimeout(@update_local_status_link, 3000)
+                    if state.state?
+                        e = @container.find(".salvus-project-status-indicator")
+                        upper_state = state.state[0].toUpperCase() + state.state.slice(1)
+                        e.text(upper_state)
+                        @editor.resize_open_file_tabs()
+                        if state.state in ['starting', 'stopping', 'saving', 'restarting']  # intermediate states -- update more often
+                            setTimeout(@update_local_status_link, 3000)
+                            @container.find("a[href=#restart-project]").addClass("disabled")
+                        else
+                            @container.find("a[href=#restart-project]").removeClass("disabled")
 
 
     init_local_status_link: () =>
