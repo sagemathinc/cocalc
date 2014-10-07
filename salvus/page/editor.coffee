@@ -1581,7 +1581,7 @@ class CodeMirrorEditor extends FileEditor
             @history_button.click(@click_history_button)
             @history_button.show()
             @history_button.css
-                display: 'inline-block'  # this is needed due to subtleties of jQuery show().
+                display: 'inline-block'   # this is needed due to subtleties of jQuery show().
 
     click_save_button: () =>
         window.cm = @ # TODO: debug

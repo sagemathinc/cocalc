@@ -329,6 +329,8 @@ class AbstractSynchronizedDoc extends EventEmitter
                     else if resp.event == 'error'
                         cb(resp.error)
                     else if resp.event == 'success' or resp.event == 'codemirror_wrote_to_disk'
+                        cb()
+                        ###
                         if resp.hash?
                             live = @live()
                             if live.string?
@@ -338,6 +340,7 @@ class AbstractSynchronizedDoc extends EventEmitter
                                 cb("file changed during save")
                             else
                                 cb()
+                        ###
                     else
                         cb("unknown response type #{misc.to_json(resp)}")
 
