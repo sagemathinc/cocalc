@@ -329,18 +329,19 @@ class AbstractSynchronizedDoc extends EventEmitter
                     else if resp.event == 'error'
                         cb(resp.error)
                     else if resp.event == 'success' or resp.event == 'codemirror_wrote_to_disk'
-                        cb()
-                        ###
+                        if not resp.hash?
+                            console.log("_save: please restart your project server to get updated hash support")
+                            cb(); return
                         if resp.hash?
                             live = @live()
                             if live.string?
                                 live = live.string()
                             hash = misc.hash_string(live)
+                            console.log("_save: remote hash=#{resp.hash}; local hash=#{hash}")
                             if hash != resp.hash
                                 cb("file changed during save")
                             else
                                 cb()
-                        ###
                     else
                         cb("unknown response type #{misc.to_json(resp)}")
 
