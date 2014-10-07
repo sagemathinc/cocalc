@@ -337,7 +337,7 @@ class AbstractSynchronizedDoc extends EventEmitter
                             if live.string?
                                 live = live.string()
                             hash = misc.hash_string(live)
-                            console.log("_save: remote hash=#{resp.hash}; local hash=#{hash}")
+                            # console.log("_save: remote hash=#{resp.hash}; local hash=#{hash}")
                             if hash != resp.hash
                                 cb("file changed during save")
                             else
