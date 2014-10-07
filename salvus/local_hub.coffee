@@ -1466,7 +1466,7 @@ class CodeMirrorSession
             if err
                 resp = message.error(id:mesg.id, error:"Error writing file '#{@path}' to disk -- #{err}")
             else
-                resp = message.success(id:mesg.id)
+                resp = message.codemirror_wrote_to_disk(id:mesg.id, hash:misc.hash_string(@content))
             socket.write_mesg('json', resp)
 
     read_from_disk: (socket, mesg) =>

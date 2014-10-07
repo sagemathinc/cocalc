@@ -223,10 +223,13 @@ exports.connect_to_locked_socket = (opts) ->
 
 # Compute a uuid v4 from the Sha-1 hash of data.
 crypto = require('crypto')
-exports.uuidsha1 = (data) ->
+exports.sha1 = (data) ->
     sha1sum = crypto.createHash('sha1')
     sha1sum.update(data)
-    s = sha1sum.digest('hex')
+    return sha1sum.digest('hex')
+
+exports.uuidsha1 = (data) ->
+    s = exports.sha1(data)
     i = -1
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) ->
         i += 1

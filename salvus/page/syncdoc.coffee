@@ -275,7 +275,7 @@ class AbstractSynchronizedDoc extends EventEmitter
     _apply_patch_to_live: (patch) =>
         @dsync_client._apply_edits_to_live(patch)
 
-    # @live(): the current live version of this document as a string, or
+    # @live(): the current live version of this document as a DiffSyncDoc or string, or
     # @live(s): set the live version
     live: (s) =>
         if s?
@@ -309,8 +309,9 @@ class AbstractSynchronizedDoc extends EventEmitter
                 @emit('sync')
                 cb?()
 
-    # save(cb): write out file to disk retrying until success.
+    # save(cb): write out file to disk retrying until success = worked *and* what was saved to disk eq.
     # _save(cb): try to sync then write to disk; if anything goes wrong, cb(err).
+    #         if success, does cb()
     _save: (cb) =>
         if not @dsync_client?
             cb("must be connected before saving"); return
@@ -325,10 +326,20 @@ class AbstractSynchronizedDoc extends EventEmitter
                 cb      : (err, resp) =>
                     if err
                         cb(err)
-                    else if resp.event != 'success'
-                        cb(resp)
+                    else if resp.event == 'error'
+                        cb(resp.error)
+                    else if resp.event == 'success' or resp.event == 'codemirror_wrote_to_disk'
+                        if resp.hash?
+                            live = @live()
+                            if live.string?
+                                live = live.string()
+                            hash = misc.hash_string(live)
+                            if hash != resp.hash
+                                cb("file changed during save")
+                            else
+                                cb()
                     else
-                        cb()
+                        cb("unknown response type #{misc.to_json(resp)}")
 
     call: (opts) =>
         opts = defaults opts,

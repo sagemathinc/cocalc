@@ -1584,16 +1584,15 @@ class CodeMirrorEditor extends FileEditor
                 display: 'inline-block'  # this is needed due to subtleties of jQuery show().
 
     click_save_button: () =>
+        window.cm = @ # TODO: debug
         if @_saving
             return
         @_saving = true
-        before = @codemirror.getValue()
-        @save_button.icon_spin(start:true, delay:3000)
+        @save_button.icon_spin(start:true, delay:1500)
         @editor.save @filename, (err) =>
             @save_button.icon_spin(false)
             @_saving = false
-            if not err and @codemirror.getValue() == before
-                @has_unsaved_changes(false)
+            @has_unsaved_changes(false)
         return false
 
     click_history_button: () =>
