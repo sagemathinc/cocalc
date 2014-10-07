@@ -16,9 +16,9 @@ class Connection extends client.Connection
             pong      : 12000  # used to decide when to reconnect
             strategy  : 'disconnect,online,timeout'
             reconnect :
-              maxDelay : 20000
+              maxDelay : 15000
               minDelay : 500
-              retries  : 100000  # why ever stop trying if we're only trying once every 20 seconds?
+              retries  : 100000  # why ever stop trying if we're only trying once every 15 seconds?
 
         conn = new Primus(url, opts)
         @_conn = conn
