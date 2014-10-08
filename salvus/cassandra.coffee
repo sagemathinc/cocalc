@@ -664,6 +664,8 @@ class exports.Cassandra extends EventEmitter
         g = (c) =>
             try
                 @conn.execute query, vals, consistency, (error, results) =>
+                    if not error
+                        error = undefined   # it comes back as null
                     if error
                         winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
                     # TODO - this test for "ResponseError: Operation timed out" is HORRIBLE.
@@ -689,12 +691,13 @@ class exports.Cassandra extends EventEmitter
                 m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying after reconnecting"
                 winston.error(m)
                 @connect () =>
-                    c(m)
+                    c?(m)
                     c = undefined # ensure only called once
             _timer = setTimeout(failed, 1000*@query_timeout_s)
             g (err) =>
                 clearTimeout(_timer)
                 c?(err)
+                c = undefined # ensure only called once
 
         # If a query fails due to "Operation timed out", then we will keep retrying, up to 10 times, with exponential backoff.
         # ** This is ABSOLUTELY critical, if we have a loaded system, slow nodes, want to use consistency level > 1, etc, **
@@ -1437,7 +1440,7 @@ class exports.Salvus extends exports.Cassandra
                         if results.length == 0
                             opts.cb(undefined, [])
                         else
-                            console.log(results[0][0])              
+                            console.log(results[0][0])
                             opts.cb(false, (misc.from_json(r) for r in results[0][0]))
 
     update_account_settings: (opts={}) ->

@@ -3090,14 +3090,17 @@ user_is_in_project_group = (opts) ->
         groups         : required
         consistency    : cql.types.consistencies.one
         cb             : required        # cb(err, true or false)
+    dbg = (m) -> winston.debug("user_is_in_project_group -- #{m}")
+    dbg()
     if not opts.account_id?
-        # we can have a client *without* account_id that is requesting access to a project.  Just say no.
+        dbg("not logged in, so for now we just say 'no' -- this may change soon.")
         opts.cb(undefined, false) # do not have access
         return
+
     access = false
     async.series([
         (cb) ->
-            #winston.debug("opts.account_groups = #{misc.to_json(opts.account_groups)}")
+            dbg("check if admin or in appropriate group -- #{misc.to_json(opts.account_groups)}")
             if opts.account_groups? and 'admin' in opts.account_groups  # check also done below!
                 access = true
                 cb()
@@ -3129,6 +3132,7 @@ user_is_in_project_group = (opts) ->
                             access = 'admin' in r['groups']
                             cb()
         ], (err) ->
+            dbg("done with tests -- now access=#{access}, err=#{err}")
             opts.cb(err, access)
         )
 
@@ -3170,7 +3174,7 @@ user_has_read_access_to_project = (opts) ->
                             done = true
                         cb()
     ], (err) ->
-        dbg("nope, since neither in group nor public")
+        #dbg("nope, since neither in group nor public")
         if not done
             main_cb(err, false)
     )
