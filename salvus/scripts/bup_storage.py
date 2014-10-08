@@ -74,10 +74,6 @@ import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, u
 from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
 
-UID_WHITELIST = "/root/smc-iptables/uid_whitelist"
-if not os.path.exists(UID_WHITELIST):
-    open(UID_WHITELIST,'w').close()
-
 # Flag to turn off all use of quotas, since it will take a while to set these up after migration.
 QUOTAS_ENABLED=True
 QUOTAS_OVERRIDE=0  # 0 = don't override
@@ -132,6 +128,16 @@ def log(m, *args):
         m = m%args
     sys.stderr.write(str(m)+'\n')
     sys.stderr.flush()
+
+
+UID_WHITELIST = "/root/smc-iptables/uid_whitelist"
+if not os.path.exists(UID_WHITELIST):
+    try:
+        open(UID_WHITELIST,'w').close()
+    except Exception, err:
+        log(err)
+
+
 
 def print_json(s):
     print json.dumps(s, separators=(',',':'))
@@ -1165,6 +1171,70 @@ class Project(object):
             log("rsync error: %s", mesg)
             raise
 
+
+
+    # path = relative path in project; *must* resolve to be under PROJECTS_PATH/project_id or get an error.
+    def directory_listing(self, path, hidden=True, time=True, start=0, limit=-1):
+        project_id = self.project_id
+        project_path = os.path.join(PROJECTS_PATH, project_id)
+        abspath = os.path.abspath(os.path.join(project_path, path))
+        if not abspath.startswith(project_path):
+            raise RuntimeError("path (=%s) must be contained in project path %s"%(path, project_path))
+        def get_file_mtime(name):
+            try:
+                # use lstat instead of stat or getmtime so this works on broken symlinks!
+                return int(os.lstat(os.path.join(abspath, name)).st_mtime)
+            except:
+                # ?? This should never happen ??
+                return 0
+
+        def get_file_size(name):
+            try:
+                # same as above; use instead of os.path....
+                return os.lstat(os.path.join(abspath, name)).st_size
+            except:
+                return -1
+
+
+        listdir = os.listdir(abspath)
+        result = {}
+        if not hidden:
+            listdir = [x for x in listdir if not x.startswith('.')]
+
+        # Get list of (name, timestamp) pairs
+        if time:
+            all = [(get_file_mtime(name), name) for name in listdir]
+        else:
+            all = [(name, get_file_mtime(name)) for name in listdir]
+        # Sort
+        all.sort()
+
+        if time:
+            all = [(x,y) for y,x in reversed(all)]
+
+        # Limit and convert to objects
+        all = all[start:]
+        if limit > 0 and len(all) > limit:
+            result['more'] = True
+            all = all[:limit]
+
+
+        files = dict([(name, {'name':name, 'mtime':mtime}) for name, mtime in all])
+        sorted_names = [x[0] for x in all]
+
+        # Fill in other OS information about each file
+        #for obj in result:
+        for name, info in files.iteritems():
+            if os.path.isdir(os.path.join(abspath, name)):
+                info['isdir'] = True
+            else:
+                info['size'] = get_file_size(name)
+
+
+        result['files'] = [files[name] for name in sorted_names]
+        return result
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Bup-backed SMC project storage system")
@@ -1257,6 +1327,25 @@ if __name__ == "__main__":
     parser_mkdir = subparsers.add_parser('mkdir', help='make a path in a project')
     parser_mkdir.add_argument("--path", help="relative path in project", dest="path", default='', type=str)
     parser_mkdir.set_defaults(func=lambda args: do_mkdir(path = args.path))
+
+
+    def do_directory_listing(*args, **kwds):
+        try:
+            print json.dumps(project.directory_listing(*args, **kwds))
+        except Exception, mesg:
+            print json.dumps({"error":str(mesg)})
+    parser_directory_listing = subparsers.add_parser('directory_listing', help='list files (and info about them) in a directory in the project')
+    parser_directory_listing.add_argument("--path", help="relative path in project", dest="path", default='', type=str)
+    parser_directory_listing.add_argument("--hidden", help="if given, show hidden files",
+                                   dest="hidden", default=False, action="store_const", const=True)
+    parser_directory_listing.add_argument("--time", help="if given, sort by time with newest first",
+                                   dest="time", default=False, action="store_const", const=True)
+    parser_directory_listing.add_argument("--start", help="return only part of listing starting with this position (default: 0)",
+                                   dest="start", default=0, type=int)
+    parser_directory_listing.add_argument("--limit", help="if given, only return this many directory entries (default: -1)",
+                                   dest="limit", default=-1, type=int)
+
+    parser_directory_listing.set_defaults(func=lambda args: do_directory_listing(path = args.path, hidden=args.hidden, time=args.time, start=args.start, limit=args.limit))
 
 
     parser_settings = subparsers.add_parser('settings', help='set settings for this user; also outputs settings in JSON')
