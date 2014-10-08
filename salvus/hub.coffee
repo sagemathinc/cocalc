@@ -31,6 +31,9 @@ MESG_QUEUE_MAX_COUNT    = 150
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
 MESG_QUEUE_MAX_SIZE_MB  = 7
 
+# How long to cache a positive authentication for using a project.
+CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
+
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
@@ -428,10 +431,12 @@ init_http_proxy_server = () =>
                     # remember_me = undefined means "allow"; this is used for the websocket upgrade.
                     cb(); return
 
-                if type == 'raw'
-                    access_type = 'read'
-                else
-                    access_type = 'write'
+                # It's still unclear if we will ever grant read access to the raw server.
+                #if type == 'raw'
+                #    access_type = 'read'
+                #else
+                #    access_type = 'write'
+                access_type = 'write'
 
                 remember_me_check_for_access_to_project
                     project_id  : project_id
@@ -1261,6 +1266,13 @@ class Client extends EventEmitter
             cb(err)
             return
 
+        project = @_project_cache?[mesg.project_id]
+        if project?
+            # Use the cached project so we don't have to re-verify authentication for the user again below, which
+            # is very expensive.  This cache does expire, in case user is kicked out of the project.
+            cb(undefined, project)
+            return
+
         project = undefined
         async.series([
             (cb) =>
@@ -1307,7 +1319,11 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     cb(err)
                 else
-                    cb(false, project)
+                    if not @_project_cache?
+                        @_project_cache = {}
+                    @_project_cache[mesg.project_id] = project
+                    setTimeout((()=>delete @_project_cache[mesg.project_id]), CACHE_PROJECT_AUTH_MS)  # cache for a while
+                    cb(undefined, project)
         )
 
     # Mark a project as "deleted" in the database.  This is non-destructive by design --
@@ -1777,10 +1793,11 @@ class Client extends EventEmitter
 
         async.series([
             (cb) =>
-                # check permissions for the source and target projects (in parallel)
+                # Check permissions for the source and target projects (in parallel) --
+                # need read access to the source and write access to the target.
                 async.parallel([
                     (cb) =>
-                        user_has_write_access_to_project
+                        user_has_read_access_to_project
                             project_id     : mesg.src_project_id
                             account_id     : @account_id
                             account_groups : @groups
@@ -1788,7 +1805,7 @@ class Client extends EventEmitter
                                 if err
                                     cb(err)
                                 else if not result
-                                    cb("user must have write access to project #{mesg.src_project_id}")
+                                    cb("user must have read access to source project #{mesg.src_project_id}")
                                 else
                                     cb()
                     (cb) =>
@@ -1800,7 +1817,7 @@ class Client extends EventEmitter
                                 if err
                                     cb(err)
                                 else if not result
-                                    cb("user must have write access to project #{mesg.target_project_id}")
+                                    cb("user must have write access to target project #{mesg.target_project_id}")
                                 else
                                     cb()
                 ], cb)
@@ -1858,9 +1875,11 @@ class Client extends EventEmitter
                 # Record that a client is actively doing something with this session, but
                 # use a timeout to give local hub a chance to actually do the above save...
                 f = () =>
+                    # record that project is active in the database
                     database.touch_project(project_id : project.project_id)
+                    # snapshot project and rsync it out to replicas, if enough time has passed.
                     project.local_hub?.project.save()
-                setTimeout(f, 5000)
+                setTimeout(f, 10000)  # 10 seconds later, possibly replicate.
 
             # Record eaching opening of a file in the database log
             if mesg.message.event == 'codemirror_get_session' and mesg.message.path? and mesg.message.path != '.sagemathcloud.log' and @account_id? and mesg.message.project_id?
@@ -1876,7 +1895,7 @@ class Client extends EventEmitter
                 multi_response : mesg.multi_response
                 cb             : (err, resp) =>
                     if err
-                        winston.debug("Error #{err} calling message #{to_json(mesg.message)}")
+                        winston.debug("ERROR: #{err} calling message #{to_json(mesg.message)}")
                         @error_to_client(id:mesg.id, error:err)
                     else
                         if not mesg.multi_response

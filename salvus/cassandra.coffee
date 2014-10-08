@@ -652,6 +652,7 @@ class exports.Cassandra extends EventEmitter
         @select(opts)
 
     cql: (query, vals, consistency, cb) =>
+        #winston.debug("cql: '#{query}'")
         if typeof vals == 'function'
             cb = vals
             vals = []
@@ -1798,7 +1799,7 @@ class exports.Salvus extends exports.Cassandra
             project_id : required
             size       : undefined
             cb         : undefined
-
+        winston.debug("touch_project: #{opts.project_id}")
         id = opts.project_id
         tm = @_touch_project_cache[id]
         if tm?
