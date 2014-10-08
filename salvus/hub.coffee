@@ -3174,7 +3174,7 @@ user_has_read_access_to_project = (opts) ->
         if not done
             main_cb(err, false)
     )
-                            
+
 
 
 ########################################
@@ -4723,7 +4723,7 @@ if program._name.slice(0,3) == 'hub'
     process.addListener "uncaughtException", (err) ->
         winston.debug("BUG ****************************************************************************")
         winston.debug("Uncaught exception: " + err)
-        winston.debug(new Error().stack)
+        winston.debug(err.stack)
         winston.debug("BUG ****************************************************************************")
 
     if program.passwd

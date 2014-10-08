@@ -3154,7 +3154,10 @@ main = () ->
     winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
-        winston.error("Uncaught exception: #{err}")
+        winston.debug("BUG ****************************************************************************")
+        winston.debug("Uncaught exception: " + err)
+        winston.debug(err.stack)
+        winston.debug("BUG ****************************************************************************")
     daemon({max:999999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
 if program._name.split('.')[0] == 'bup_server'

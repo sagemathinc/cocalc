@@ -2265,7 +2265,10 @@ if program._name.split('.')[0] == 'local_hub'
     winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
-        winston.error "Uncaught exception: " + err
+        winston.debug("BUG ****************************************************************************")
+        winston.debug("Uncaught exception: " + err)
+        winston.debug(err.stack)
+        winston.debug("BUG ****************************************************************************")
         if console? and console.trace?
             console.trace()
     console.log("setting up conf path")
