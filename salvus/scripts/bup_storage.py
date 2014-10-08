@@ -1172,7 +1172,6 @@ class Project(object):
             raise
 
 
-
     # path = relative path in project; *must* resolve to be under PROJECTS_PATH/project_id or get an error.
     def directory_listing(self, path, hidden=True, time=True, start=0, limit=-1):
         project_id = self.project_id
@@ -1238,6 +1237,21 @@ class Project(object):
 
         result['files'] = [files[name] for name in sorted_names]
         return result
+
+
+    # filename *must* resolve to be under PROJECTS_PATH/project_id or get an error; and it
+    # must have size in bytes less than the given limit
+    def read_file(self, path, maxsize):
+        project_id = self.project_id
+        project_path = os.path.join(PROJECTS_PATH, project_id)
+        abspath = os.path.abspath(os.path.join(project_path, path))
+        if not abspath.startswith(project_path):
+            raise RuntimeError("path (=%s) must be contained in project path %s"%(path, project_path))
+        size = os.lstat(abspath).st_size
+        if size > maxsize:
+            raise RuntimeError("path (=%s) must be at most %s bytes, but it is %s bytes"%(path, maxsize, size))
+        return open(abspath).read()
+
 
 
 if __name__ == "__main__":
@@ -1351,6 +1365,19 @@ if __name__ == "__main__":
                                    dest="limit", default=-1, type=int)
 
     parser_directory_listing.set_defaults(func=lambda args: do_directory_listing(path = args.path, hidden=args.hidden, time=args.time, start=args.start, limit=args.limit))
+
+
+    def do_read_file(*args, **kwds):
+        try:
+            print json.dumps(project.read_file(*args, **kwds))
+        except Exception, mesg:
+            print json.dumps({"error":str(mesg)})
+    parser_read_file = subparsers.add_parser('read_file', help='read a file from disk')
+    parser_read_file.add_argument("--path", help="relative path of a file in project (required)", dest="path", type=str)
+    parser_read_file.add_argument("--maxsize", help="maximum file size to read; any bigger and instead give an error",
+                                   dest="maxsize", default=3000000, type=int)
+
+    parser_read_file.set_defaults(func=lambda args: do_read_file(path = args.path, maxsize=args.maxsize))
 
 
     parser_settings = subparsers.add_parser('settings', help='set settings for this user; also outputs settings in JSON')
