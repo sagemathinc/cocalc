@@ -68,6 +68,7 @@ bup_storage = (opts) =>
         command : "sudo"
         args    : ["/usr/local/bin/bup_storage.py", "--zpool", ZPOOL].concat(opts.args)
         timeout : opts.timeout
+        bash    : false
         path    : process.cwd()
         cb      : (err, output) =>
             winston.debug("bup_storage: finished running #{misc.to_json(opts.args)} -- #{err}")
@@ -1108,7 +1109,7 @@ class GlobalProject
             server_id : undefined
             timeout   : TIMEOUT
             cb        : required
-        dbg = (m) => winston.debug("GlobalProject.directory_listing(#{@project_id}, #{opts.path}: #{m}")
+        dbg = (m) => winston.debug("GlobalProject.directory_listing(#{@project_id}, #{opts.path}): #{m}")
         dbg()
         project = undefined
         listing = undefined
@@ -1134,6 +1135,39 @@ class GlobalProject
         ], (err) =>
             opts.cb(err, listing)
         )
+
+    # read files from this project
+    read_file: (opts) =>
+        opts = defaults opts,
+            path      : required
+            maxsize   : 3000000    # 3MB
+            server_id : undefined
+            timeout   : TIMEOUT
+            cb        : required
+        dbg = (m) => winston.debug("GlobalProject.read_file(#{@project_id}, #{opts.path}): #{m}")
+        dbg()
+        project = undefined
+        data = undefined
+        async.series([
+            (cb) =>
+                dbg("get the project")
+                @project
+                    server_id : opts.server_id
+                    cb        : (err, p) =>
+                        project = p; cb(err)
+            (cb) =>
+                dbg("do the read_file action")
+                project.read_file
+                    path    : opts.path
+                    maxsize : opts.maxsize
+                    timeout : opts.timeout
+                    cb      : (err, _data) =>
+                        data = _data
+                        cb(err)
+        ], (err) =>
+            opts.cb(err, data)
+        )
+
 
     # copy a path from this project to another project
     copy_path: (opts) =>
@@ -3069,7 +3103,7 @@ class ClientProject
             cb      : undefined
         @action
             action  : 'mkdir'
-            param   : ["--path=#{opts.path}"]
+            param   : ["--path", opts.path]
             timeout : opts.timeout
             cb      : (err, resp) =>
                 if err
@@ -3089,13 +3123,33 @@ class ClientProject
             limit   : -1
             timeout : TIMEOUT
             cb      : required
-        param =  ["--path=#{opts.path}", "--start=#{opts.start}", "--limit=#{opts.limit}"]
+        param =  ["--path", opts.path, "--start", opts.start, "--limit", opts.limit]
         if opts.hidden
             param.push("--hidden")
         if opts.time
             param.push("--time")
         @action
             action  : 'directory_listing'
+            param   : param
+            timeout : opts.timeout
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    if resp.result?.error
+                        opts.cb(resp.result.error)
+                    else
+                        opts.cb(undefined, resp?.result)
+
+    read_file: (opts) =>
+        opts = defaults opts,
+            path    : required
+            maxsize : 3000000
+            timeout : TIMEOUT
+            cb      : required
+        param =  ["--path", opts.path, "--maxsize", opts.maxsize]
+        @action
+            action  : 'read_file'
             param   : param
             timeout : opts.timeout
             cb      : (err, resp) =>
