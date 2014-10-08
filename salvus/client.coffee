@@ -300,8 +300,51 @@ class exports.Connection extends EventEmitter
                 # try again later
                 setTimeout(@_ping, @_ping_interval)
 
+    ping_test: (opts) =>
+        opts = defaults opts,
+            packets  : 20
+            timeout  : 5   # any ping that takes this long in seconds is considered a fail
+            delay_ms : 200  # wait this long between doing pings
+            log      : undefined  # if set, use this to log output
+            cb       : undefined   # cb(err, ping_times)
+
+        ###
+        Use like this in a Sage Worksheet:
+
+            %coffeescript
+            s = require('salvus_client').salvus_client
+            s.ping_test(delay_ms:100, packets:40, log:print)
+        ###
+        ping_times = []
+        do_ping = (i, cb) =>
+            t = new Date()
+            @call
+                message : message.ping()
+                timeout : opts.timeout
+                cb      : (err, pong) =>
+                    heading = "#{i}/#{opts.packets}: "
+                    if not err? and pong?.event == 'pong'
+                        ping_time = new Date() - t
+                        bar = ('*' for j in [0...Math.floor(ping_time/10)]).join('')
+                        mesg = "#{heading}time=#{ping_time}ms"
+                    else
+                        bar = "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                        mesg = "#{heading}Request error -- #{err}, #{misc.to_json(pong)}"
+                        ping_time = Infinity
+                    while mesg.length < 40
+                        mesg += ' '
+                    mesg += bar
+                    if opts.log?
+                        opts.log(mesg)
+                    else
+                        console.log(mesg)
+                    ping_times.push(ping_time)
+                    setTimeout(cb, opts.delay_ms)
+        async.mapSeries([1..opts.packets], do_ping, (err) => opts.cb?(err, ping_times))
+
+
     close: () ->
-        @_conn.close()   # TODO: this looks very dubious -- probably broken or not u
+        @_conn.close()   # TODO: this looks very dubious -- probably broken or not used anymore
 
     # Send a JSON message to the hub server.
     send: (mesg) ->

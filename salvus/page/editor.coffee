@@ -9,6 +9,9 @@ exports.SHOW_BUTTON_LABELS = 4
 MAX_LATEX_ERRORS   = 10
 MAX_LATEX_WARNINGS = 50
 
+MIN_SPLIT = 0.02
+MAX_SPLIT = 0.98  # maximum pane split proportion for editing
+
 async = require('async')
 
 message = require('message')
@@ -1013,7 +1016,13 @@ class FileEditor extends EventEmitter
     local_storage: (key, value) =>
         return local_storage(@editor.project_id, @filename, key, value)
 
-    show: () =>
+    show: (opts) =>
+        if not opts?
+            if @_last_show_opts?
+                opts = @_last_show_opts
+            else
+                opts = {}
+        @_last_show_opts = opts
         if not @is_active()
             return
 
@@ -1022,11 +1031,11 @@ class FileEditor extends EventEmitter
         now = misc.mswalltime()
         if @_last_call? and now - @_last_call < 500
             if not @_show_timer?
-                @_show_timer = setTimeout((()=>delete @_show_timer; @show()), now - @_last_call)
+                @_show_timer = setTimeout((()=>delete @_show_timer; @show(opts)), now - @_last_call)
             return
         @_last_call = now
         @element.show()
-        @_show()
+        @_show(opts)
 
     _show: (opts={}) =>
         # define in derived class
@@ -1069,7 +1078,6 @@ class FileEditor extends EventEmitter
 ###############################################
 class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-
         editor_settings = require('account').account_settings.settings.editor_settings
 
         opts = @opts = defaults opts,
@@ -1235,7 +1243,6 @@ class CodeMirrorEditor extends FileEditor
 
         buf = @codemirror.linkedDoc({sharedHist: true})
         @codemirror1.swapDoc(buf)
-        $(@codemirror1.getWrapperElement()).css('border-top':'2px solid #aaa')
 
         @codemirror.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror
@@ -1249,7 +1256,48 @@ class CodeMirrorEditor extends FileEditor
         if not @_split_view?
             @_split_view = false
 
+
         @init_change_event()
+        @init_draggable_splits()
+
+    init_draggable_splits: () =>
+        @_layout1_split_pos = @local_storage("layout1_split_pos")
+        @_layout2_split_pos = @local_storage("layout2_split_pos")
+
+        layout1_bar = @element.find(".salvus-editor-resize-bar-layout-1")
+        layout1_bar.draggable
+            axis        : 'y'
+            containment : @element
+            zIndex      : 100
+            stop        : (event, ui) =>
+                # compute the position of bar as a number from 0 to 1, with 0 being at top (left), 1 at bottom (right), and .5 right in the middle
+                e   = @element.find(".salvus-editor-codemirror-input-container-layout-1")
+                top = e.offset().top
+                ht  = e.height()
+                p   = layout1_bar.offset().top + layout1_bar.height()/2
+                @_layout1_split_pos = (p - top) / ht
+                @local_storage("layout1_split_pos", @_layout1_split_pos)
+                layout1_bar.css(top:0)
+                # redraw, which uses split info
+                @show()
+
+        layout2_bar = @element.find(".salvus-editor-resize-bar-layout-2")
+        layout2_bar.css(position:'absolute')
+        layout2_bar.draggable
+            axis        : 'x'
+            containment : @element
+            zIndex      : 100
+            stop        : (event, ui) =>
+                # compute the position of bar as a number from 0 to 1, with 0 being at top (left), 1 at bottom (right), and .5 right in the middle
+                e     = @element.find(".salvus-editor-codemirror-input-container-layout-2")
+                left  = e.offset().left
+                width = e.width()
+                p     = layout2_bar.offset().left
+                @_layout2_split_pos = (p - left) / width
+                @local_storage("layout2_split_pos", @_layout2_split_pos)
+                layout2_bar.css(left:left + width*p)
+                # redraw, which uses split info
+                @show()
 
     is_active: () =>
         return @codemirror? and @editor? and @editor._active_tab_filename == @filename
@@ -1533,19 +1581,18 @@ class CodeMirrorEditor extends FileEditor
             @history_button.click(@click_history_button)
             @history_button.show()
             @history_button.css
-                display: 'inline-block'  # this is needed due to subtleties of jQuery show().
+                display: 'inline-block'   # this is needed due to subtleties of jQuery show().
 
     click_save_button: () =>
+        window.cm = @ # TODO: debug
         if @_saving
             return
         @_saving = true
-        before = @codemirror.getValue()
-        @save_button.icon_spin(start:true, delay:3000)
+        @save_button.icon_spin(start:true, delay:1500)
         @editor.save @filename, (err) =>
             @save_button.icon_spin(false)
             @_saving = false
-            if not err and @codemirror.getValue() == before
-                @has_unsaved_changes(false)
+            @has_unsaved_changes(false)
         return false
 
     click_history_button: () =>
@@ -1611,6 +1658,8 @@ class CodeMirrorEditor extends FileEditor
 
     _show_codemirror_editors: (height, width) =>
         # console.log("_show_codemirror_editors: #{width} x #{height}")
+        if not width or not height
+            return
         # in case of more than one view on the document...
         @_show_extra_codemirror_view()
 
@@ -1618,22 +1667,39 @@ class CodeMirrorEditor extends FileEditor
         btn.find("i").hide()
         if not @_split_view
             @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
+            @element.find(".salvus-editor-resize-bar-layout-1").hide()
+            @element.find(".salvus-editor-resize-bar-layout-2").hide()
             btn.find(".salvus-editor-layout-0").show()
             # one full editor
-            v = [@codemirror]
-            ht = height
+            v = [{cm:@codemirror,height:height,width:width}]
         else
             if @_layout == 1
                 @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
+                @element.find(".salvus-editor-resize-bar-layout-1").show()
+                @element.find(".salvus-editor-resize-bar-layout-2").hide()
                 btn.find(".salvus-editor-layout-1").show()
-                v = [@codemirror, @codemirror1]
-                ht = height/2
+                p = @_layout1_split_pos
+                if not p?
+                    p = 0.5
+                p = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, p))
+                v = [{cm:@codemirror,  height:height*p,     width:width},
+                     {cm:@codemirror1, height:height*(1-p), width:width}]
             else
+                @element.find(".salvus-editor-resize-bar-layout-1").hide()
+                @element.find(".salvus-editor-resize-bar-layout-2").show()
+                p = @_layout2_split_pos
+                if not p?
+                    p = 0.5
+                p = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, p))
+                width0 = width*p
+                width1 = width*(1-p)
                 btn.find(".salvus-editor-layout-2").show()
-                @element.find(".salvus-editor-codemirror-input-container-layout-2").width(width)
-                v = [@codemirror, @codemirror1]
-                ht = height
-                width = width/2
+                e = @element.find(".salvus-editor-codemirror-input-container-layout-2")
+                e.width(width)
+                e.find(".salvus-editor-resize-bar-layout-2").height(height).css(left : e.offset().left + width*p)
+                e.find(".salvus-editor-codemirror-input-box").width(width0-7)
+                v = [{cm:@codemirror,  height:height, width:width0},
+                     {cm:@codemirror1, height:height, width:width1-8}]
 
         if @_last_layout != @_layout
             # move the editors to the correct layout template and show it.
@@ -1649,26 +1715,28 @@ class CodeMirrorEditor extends FileEditor
         # CRAZY HACK: add and remove an HTML element to the DOM.
         # I don't know why this works, but it gets around a *massive bug*, where after
         # aggressive resizing, the codemirror editor gets all corrupted. For some reason,
-        # doing this always causes things to get properly fixed.  I don't know why.
+        # doing this "always" causes things to get properly fixed.  I don't know why.
         hack = $("<div>")
         $("body").append(hack)
-        setTimeout((()=>hack.remove()),100)
+        setTimeout((()=>hack.remove()),1000)
 
-        for cm in v
+        for {cm,height,width} in v
             scroller = $(cm.getScrollerElement())
-            scroller.css('height':ht)
+            scroller.css('height':height)
             cm_wrapper = $(cm.getWrapperElement())
             cm_wrapper.css
-                height : ht
+                height : height
                 width  : width
             cm.refresh()
 
-        @emit('show', ht)
+        @emit('show', height)
 
 
-    _show: () =>
+    _show: (opts={}) =>
+
         # show the element that contains this editor
         @element.show()
+
         # do size computations: determine height and width of the codemirror editor(s)
         top               = @editor.editor_top_position()
         height            = $(window).height()
@@ -1676,15 +1744,15 @@ class CodeMirrorEditor extends FileEditor
         button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
         font_height       = @codemirror.defaultTextHeight()
         chat              = @_chat_is_hidden? and not @_chat_is_hidden
+
         # width of codemirror editors
         if chat
             width         = @element.find(".salvus-editor-codemirror-chat-column").offset().left
         else
             width         = $(window).width()
 
-        if @opts.geometry? and @opts.geometry == 'left half'
-            @empty_space  = {start: width/2, end:width, top:top+button_bar_height}
-            width         = width/2
+        if opts.width?
+            width         = opts.width
 
         # height of codemirror editors
         cm_height         = Math.floor((elem_height - button_bar_height)/font_height) * font_height
@@ -2799,7 +2867,6 @@ class LatexEditor extends FileEditor
         #     * preview -- display the images (page forward/backward/resolution)
         #     * log -- log of latex command
         opts.mode = 'stex'
-        opts.geometry = 'left half'
 
         @element = templates.find(".salvus-editor-latex").clone()
 
@@ -2812,12 +2879,11 @@ class LatexEditor extends FileEditor
         @latex_editor.action_key = @action_key
         @element.find(".salvus-editor-latex-buttons").show()
 
-        @latex_editor.on 'show', () =>
-            @show_page()
-
         @latex_editor.syncdoc.on 'connect', () =>
             @preview.zoom_width = @load_conf().zoom_width
             @update_preview()
+
+
 
         v = path_split(@filename)
         @_path = v.head
@@ -2855,6 +2921,16 @@ class LatexEditor extends FileEditor
         @_error_message_template = @element.find(".salvus-editor-latex-mesg-template")
 
         @_init_buttons()
+        @init_draggable_split()
+
+        # this is entirely because of the chat
+        # currently being part of @latex_editor, and
+        # only calling the show for that; once chat
+        # is refactored out, delete this.
+        @latex_editor.on 'show-chat', () =>
+            @show()
+        @latex_editor.on 'hide-chat', () =>
+            @show()
 
         # This synchronizes the editor and png preview -- it's kind of disturbing.
         # If people request it, make it a non-default option...
@@ -2866,6 +2942,29 @@ class LatexEditor extends FileEditor
             cm1.on 'cursorActivity', @_passive_forward_search
             cm0.on 'change', @_pause_passive_search
             cm1.on 'change', @_pause_passive_search
+
+    init_draggable_split: () =>
+        @_split_pos = @local_storage("split_pos")
+        @_dragbar = dragbar = @element.find(".salvus-editor-latex-resize-bar")
+        dragbar.css(position:'absolute')
+        dragbar.draggable
+            axis : 'x'
+            containment : @element
+            zIndex      : 100
+            stop        : (event, ui) =>
+                # compute the position of bar as a number from 0 to 1
+                left  = @element.offset().left
+                chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
+                if chat_pos.left
+                    width = chat_pos.left - left
+                else
+                    width = @element.width()
+                p     = dragbar.offset().left
+                @_split_pos = (p - left) / width
+                @local_storage('split_pos', @_split_pos)
+                #dragbar.css(left: )
+                @show()
+
 
     set_conf: (obj) =>
         conf = @load_conf()
@@ -3075,11 +3174,35 @@ class LatexEditor extends FileEditor
     _set: (content) =>
         @latex_editor._set(content)
 
-    _show: () =>
-        @latex_editor?.show()
+    _show: (opts={}) =>
+        if not @_split_pos?
+            @_split_pos = .5
+        @_split_pos = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, @_split_pos))
+        width = @element.width()
+        chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
+        if chat_pos.left
+            width = chat_pos.left
+
+        {top, left} = @element.offset()
+        editor_width = (width - left)*@_split_pos
+
+        @_dragbar.css('left',editor_width+left)
+        @latex_editor.show(width:editor_width)
+
+        button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
+
+        @_right_pane_position =
+            start : editor_width + left + 7
+            end   : width
+            top   : top + button_bar_height
+
         if not @_show_before?
             @show_page('png-preview')
             @_show_before = true
+        else
+            @show_page()
+
+        @_dragbar.height(@latex_editor.element.height()).css('top',button_bar_height)
 
     focus: () =>
         @latex_editor?.focus()
@@ -3088,6 +3211,9 @@ class LatexEditor extends FileEditor
         return @latex_editor?.has_unsaved_changes(val)
 
     show_page: (name) =>
+        if not @_right_pane_position?
+            return
+
         if not name?
             name = @_current_page
         @_current_page = name
@@ -3098,14 +3224,23 @@ class LatexEditor extends FileEditor
         for n in pages
             @element.find(".salvus-editor-latex-#{n}").hide()
 
+        pos = @_right_pane_position
+        g  = {left : pos.start, top:pos.top+3, width:pos.end-pos.start-3}
+        if g.width < 50
+            @element.find(".salvus-editor-latex-png-preview").find(".btn-group").hide()
+            @element.find(".salvus-editor-latex-log").find(".btn-group").hide()
+        else
+            @element.find(".salvus-editor-latex-png-preview").find(".btn-group").show()
+            @element.find(".salvus-editor-latex-log").find(".btn-group").show()
+
         for n in pages
             page = @_pages[n]
+            if not page?
+                continue
             e = @element.find(".salvus-editor-latex-#{n}")
             button = @element.find("a[href=#" + n + "]")
             if n == name
                 e.show()
-                es = @latex_editor.empty_space
-                g  = {left : es.start, top:es.top+3, width:es.end-es.start-3}
                 if n not in ['log', 'errors']
                     page.show(g)
                 else
@@ -3329,6 +3464,9 @@ class LatexEditor extends FileEditor
             cb     : undefined
         number = @preview.current_page().number
         elt    = @preview.pdflatex.page(number).element
+        if not elt?
+            opts.cb?("Preview not yet loaded.")
+            return
         output = @preview.output
         nH     = elt.find("img")[0].naturalHeight
         y      = (output.height()/2 + output.offset().top - elt.offset().top) * nH / elt.height()

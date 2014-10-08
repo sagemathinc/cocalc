@@ -13,6 +13,8 @@
       diff theme/solarized.css ../codemirror-4.5/theme/solarized.css|more
       cp  ../codemirror-4.5/theme/solarized.css theme/
 
+  Also, shrink the line-height to 1.1em from 1.45em, which looks ridiculously spaced out.
+
 -----------------------------------------------------------------------------------------------
 
 

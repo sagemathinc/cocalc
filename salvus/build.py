@@ -406,7 +406,8 @@ SAGE_PIP_PACKAGES = [
     'mmh3',
     'joblib',
     'colorpy',
-    'rootpy'    # supports ROOT data analysis framework
+    'rootpy',    # supports ROOT data analysis framework
+    'tabulate'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}

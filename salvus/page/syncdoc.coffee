@@ -275,7 +275,7 @@ class AbstractSynchronizedDoc extends EventEmitter
     _apply_patch_to_live: (patch) =>
         @dsync_client._apply_edits_to_live(patch)
 
-    # @live(): the current live version of this document as a string, or
+    # @live(): the current live version of this document as a DiffSyncDoc or string, or
     # @live(s): set the live version
     live: (s) =>
         if s?
@@ -309,8 +309,9 @@ class AbstractSynchronizedDoc extends EventEmitter
                 @emit('sync')
                 cb?()
 
-    # save(cb): write out file to disk retrying until success.
+    # save(cb): write out file to disk retrying until success = worked *and* what was saved to disk eq.
     # _save(cb): try to sync then write to disk; if anything goes wrong, cb(err).
+    #         if success, does cb()
     _save: (cb) =>
         if not @dsync_client?
             cb("must be connected before saving"); return
@@ -325,10 +326,24 @@ class AbstractSynchronizedDoc extends EventEmitter
                 cb      : (err, resp) =>
                     if err
                         cb(err)
-                    else if resp.event != 'success'
-                        cb(resp)
+                    else if resp.event == 'error'
+                        cb(resp.error)
+                    else if resp.event == 'success' or resp.event == 'codemirror_wrote_to_disk'
+                        if not resp.hash?
+                            console.log("_save: please restart your project server to get updated hash support")
+                            cb(); return
+                        if resp.hash?
+                            live = @live()
+                            if live.string?
+                                live = live.string()
+                            hash = misc.hash_string(live)
+                            # console.log("_save: remote hash=#{resp.hash}; local hash=#{hash}")
+                            if hash != resp.hash
+                                cb("file changed during save")
+                            else
+                                cb()
                     else
-                        cb()
+                        cb("unknown response type #{misc.to_json(resp)}")
 
     call: (opts) =>
         opts = defaults opts,
@@ -757,7 +772,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         # if you want to try to make this resizable
         @new_chat_indicator(false)
         @editor.show()  # updates editor width
+        @editor.emit 'show-chat'
         @render_chat_log()
+
 
     hide_chat_window: () =>
         # HIDE the chat window
@@ -768,6 +785,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-9').addClass('col-sm-12')
         @element.find(".salvus-editor-codemirror-chat-column").hide()
         @editor.show()  # update size/display of editor (especially the width)
+        @editor.emit 'hide-chat'
 
     new_chat_indicator: (new_chats) =>
         # Show a new chat indicatorif new_chats=true
@@ -888,7 +906,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             omit_lines = {}
             for k, x of @other_cursors
                 omit_lines[x.line] = true
-            @codemirror.delete_trailing_whitespace(omit_lines:omit_lines)
+            @focused_codemirror().delete_trailing_whitespace(omit_lines:omit_lines)
         super(cb)
 
     _apply_changeObj: (changeObj) =>

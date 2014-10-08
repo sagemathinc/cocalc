@@ -304,6 +304,12 @@ message
     event        : 'codemirror_write_to_disk'
     id           : undefined
     session_uuid : undefined
+    
+# local_hub --> hub --> client
+message
+    event        : 'codemirror_wrote_to_disk'
+    id           : undefined
+    hash         : undefined     # on success, return message contains sha1 hash of what was actually written to disk.
 
 # Replace what is on local_hub by what is on physical disk (will push out a
 # codemirror_change message, so any browser client has a chance to undo this).
