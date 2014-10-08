@@ -1097,6 +1097,44 @@ class GlobalProject
         ], (err) => opts.cb?(err))
 
 
+    # list files in a directory in this project
+    directory_listing: (opts) =>
+        opts = defaults opts,
+            path      : ''
+            hidden    : false
+            time      : false        # sort by timestamp, with newest first?
+            start     : 0
+            limit     : -1
+            server_id : undefined
+            timeout   : TIMEOUT
+            cb        : required
+        dbg = (m) => winston.debug("GlobalProject.directory_listing(#{@project_id}, #{opts.path}: #{m}")
+        dbg()
+        project = undefined
+        listing = undefined
+        async.series([
+            (cb) =>
+                dbg("get the project")
+                @project
+                    server_id : opts.server_id
+                    cb        : (err, p) =>
+                        project = p; cb(err)
+            (cb) =>
+                dbg("do the directory_listing action")
+                project.directory_listing
+                    path    : opts.path
+                    hidden  : opts.hidden
+                    time    : opts.time
+                    start   : opts.start
+                    limit   : opts.limit
+                    timeout : opts.timeout
+                    cb      : (err, _listing) =>
+                        listing = _listing
+                        cb(err)
+        ], (err) =>
+            opts.cb(err, listing)
+        )
+
     # copy a path from this project to another project
     copy_path: (opts) =>
         opts = defaults opts,
@@ -3041,6 +3079,33 @@ class ClientProject
                         opts.cb?(resp.result.error)
                     else
                         opts.cb?()
+
+    directory_listing: (opts) =>
+        opts = defaults opts,
+            path    : ''
+            hidden  : false
+            time    : false        # sort by timestamp, with newest first?
+            start   : 0
+            limit   : -1
+            timeout : TIMEOUT
+            cb      : required
+        param =  ["--path=#{opts.path}", "--start=#{opts.start}", "--limit=#{opts.limit}"]
+        if opts.hidden
+            param.push("--hidden")
+        if opts.time
+            param.push("--time")
+        @action
+            action  : 'directory_listing'
+            param   : param
+            timeout : opts.timeout
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    if resp.result?.error
+                        opts.cb(resp.result.error)
+                    else
+                        opts.cb(undefined, resp?.result)
 
     copy_path: (opts) =>
         opts = defaults opts,

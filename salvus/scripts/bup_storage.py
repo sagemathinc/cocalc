@@ -1202,15 +1202,20 @@ class Project(object):
             listdir = [x for x in listdir if not x.startswith('.')]
 
         # Get list of (name, timestamp) pairs
-        if time:
-            all = [(get_file_mtime(name), name) for name in listdir]
-        else:
-            all = [(name, get_file_mtime(name)) for name in listdir]
-        # Sort
-        all.sort()
+        all = [(name, get_file_mtime(name)) for name in listdir]
 
         if time:
-            all = [(x,y) for y,x in reversed(all)]
+            # sort by time first with bigger times first, then by filename in normal order
+            def f(a,b):
+                if a[1] > b[1]:
+                    return -1
+                elif a[1] < b[1]:
+                    return 0
+                else:
+                    return cmp(a[0],b[0])
+            all.sort(f)
+        else:
+            all.sort()  # usual sort is fine
 
         # Limit and convert to objects
         all = all[start:]
