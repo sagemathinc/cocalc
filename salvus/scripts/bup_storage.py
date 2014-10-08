@@ -887,7 +887,7 @@ class Project(object):
         This code assumes that / on the remote host is *NOT* a ZFS filesystem.
         """
         s   = "stat -f -c %T /projects /bup/bups"
-        out = self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", '-p', port, 'root@'+remote, s], ignore_errors=True)
+        out = self.cmd(["ssh", "-o", "ConnectTimeout=15", "-o", "StrictHostKeyChecking=no", '-p', port, 'root@'+remote, s], ignore_errors=True)
         return 'ext' not in out and 'zfs' in out  # properly mounted = mounted via ZFS in any way.
 
     def _sync(self, remote, destructive=True, snapshots=True, union=False, union2=False, rsync_timeout=120, bwlimit=BWLIMIT):
