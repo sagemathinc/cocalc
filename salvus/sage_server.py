@@ -587,6 +587,8 @@ class Salvus(object):
                  'spin':spin, 'aspect_ratio':aspect_ratio}
 
         extra_kwds = {} if g._extra_kwds is None else g._extra_kwds
+
+        # clean up and normalize aspect_ratio option
         if aspect_ratio is None:
             if frame_aspect_ratio is not None:
                 aspect_ratio = frame_aspect_ratio
@@ -599,6 +601,8 @@ class Salvus(object):
                 raise TypeError("aspect_ratio must be None, 1 or a 3-tuple ")
             else:
                 aspect_ratio = [f(x) for x in aspect_ratio]
+
+        opts['aspect_ratio'] = aspect_ratio
 
         for k in ['spin', 'height', 'width', 'background', 'foreground', 'aspect_ratio']:
             if k in extra_kwds and not opts.get(k,None):
