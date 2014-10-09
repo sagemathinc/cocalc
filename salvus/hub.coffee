@@ -3624,11 +3624,12 @@ create_account = (client, mesg) ->
                                  id:id, reason:{'other':"Unable to create account right now.  Please try later."})
                         )
                         cb(true)
-                    account_id = result
-                    database.log
-                        event : 'create_account'
-                        value : {account_id:account_id, first_name:mesg.first_name, last_name:mesg.last_name, email_address:mesg.email_address}
-                    cb()
+                    else
+                        account_id = result
+                        database.log
+                            event : 'create_account'
+                            value : {account_id:account_id, first_name:mesg.first_name, last_name:mesg.last_name, email_address:mesg.email_address}
+                        cb()
 
         (cb) ->
             dbg("check for account creation actions")
