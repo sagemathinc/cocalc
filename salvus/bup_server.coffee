@@ -1232,25 +1232,18 @@ class GlobalProject
                                     cb(err)
                                 else
                                     target_loc = x
-                                    if source_loc.server_id == x.server_id
-                                        # special case when source and target are on the same machine.
-                                        # NOTE: we *must* use localhost since the firewall doesn't allow
-                                        # ssh'ing from localhost to host to localhost !
-                                        target_loc.addr = 'localhost'
-                                        cb()
-                                    else
-                                        @global_client.get_external_ssh
-                                            server_id : x.server_id
-                                            dc        : dc   # data center of the *source* project!
-                                            cb        : (err, addr) =>
-                                                if not err and not addr?
-                                                    err = "unable to determine ip address of target server #{x.server_id} from dc #{dc}"
-                                                if err
-                                                    cb(err)
-                                                else
-                                                    target_loc.addr = addr
-                                                    dbg("target_loc=#{misc.to_json(target_loc)}")
-                                                    cb()
+                                    @global_client.get_external_ssh
+                                        server_id : x.server_id
+                                        dc        : dc   # data center of the *source* project!
+                                        cb        : (err, addr) =>
+                                            if not err and not addr?
+                                                err = "unable to determine ip address of target server #{x.server_id} from dc #{dc}"
+                                            if err
+                                                cb(err)
+                                            else
+                                                target_loc.addr = addr
+                                                dbg("target_loc=#{misc.to_json(target_loc)}")
+                                                cb()
                 ], cb)
 
             (cb) =>
@@ -1261,6 +1254,11 @@ class GlobalProject
                         project = p; cb(err)
             (cb) =>
                 dbg("do the copy_path action")
+                if source_loc.server_id == target_loc.server_id
+                    # special case when source and target are on the same machine.
+                    # NOTE: we *must* use localhost since the firewall doesn't allow
+                    # ssh'ing from localhost to host to localhost !
+                    target_loc.addr = 'localhost'
                 project.copy_path
                     target_hostname   : target_loc.addr
                     target_project_id : opts.project_id

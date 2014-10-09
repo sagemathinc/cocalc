@@ -279,7 +279,8 @@ init_http_server = () ->
                             if err
                                 winston.debug("Error during file upload: #{misc.to_json(err)}")
                             # delete tmp file
-                            fs.unlink(files.file.path)
+                            if files?.file?.path?
+                                fs.unlink(files.file.path)
                         )
             else
                 res.end('hub server')
