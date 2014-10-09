@@ -202,6 +202,10 @@ init_http_server = () ->
                         res.writeHead(200, {'content-type': 'text/plain'})
                         res.write('received upload:\n\n');
                         res.end('')
+                        if not files.file? or not files.file.path? or not files.file.name?
+                            winston.debug("file upload failed -- #{misc.to_json(files)}")
+                            return # nothing to do -- no actual file upload requested
+
                         account_id = undefined
                         project_id = undefined
                         dest_dir   = undefined
