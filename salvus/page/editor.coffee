@@ -2514,8 +2514,7 @@ class PDF_Preview extends FileEditor
             if page.length == 0
                 # create
                 for m in [@last_page+1 .. n]
-                    #page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><div class='salvus-editor-pdf-preview-text'></div><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
-                    page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
+                    page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'><br></div>")
                     page.data("number", m)
 
                     f = (e) ->
