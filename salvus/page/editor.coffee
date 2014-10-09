@@ -3228,6 +3228,10 @@ class LatexEditor extends FileEditor
         if not @_split_pos?
             @_split_pos = .5
         @_split_pos = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, @_split_pos))
+
+        @element.css(top:@editor.editor_top_position(), position:'fixed')
+        @element.width($(window).width())
+
         width = @element.width()
         chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
         if chat_pos.left
@@ -3252,7 +3256,7 @@ class LatexEditor extends FileEditor
         else
             @show_page()
 
-        @_dragbar.height(@latex_editor.element.height()).css('top',button_bar_height)
+        @_dragbar.height(@latex_editor.element.height()).css('top',button_bar_height+2)
 
     focus: () =>
         @latex_editor?.focus()
