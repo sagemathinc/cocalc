@@ -2170,6 +2170,9 @@ class GlobalClient
             objectify : true
             where     : {dummy:true, server_id:{'in':s}}
             cb        : (err, results) =>
+                if err
+                    opts.cb?(err)
+                    return
                 f = (result, cb) =>
                     # TODO: replace formula before by what's done in gossip/cassandra, which is provably sensible.
                     # There is definitely a potential for "race conditions" below, but it doesn't matter -- it is just health.

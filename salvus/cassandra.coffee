@@ -603,15 +603,15 @@ class exports.Cassandra extends EventEmitter
 
     select: (opts={}) =>
         opts = defaults opts,
-            table     : required    # string -- the table to query
-            columns   : required    # list -- columns to extract
-            where     : undefined   # object -- conditions to impose; undefined = return everything
-            cb        : required    # callback(error, results)
-            objectify : false       # if false results is a array of arrays (so less redundant); if true, array of objects (so keys redundant)
-            limit     : undefined   # if defined, limit the number of results returned to this integer
-            json      : []          # list of columns that should be converted from JSON format
-            order_by : undefined    # if given, adds an "ORDER BY opts.order_by"
-            consistency : undefined  # default...
+            table           : required    # string -- the table to query
+            columns         : required    # list -- columns to extract
+            where           : undefined   # object -- conditions to impose; undefined = return everything
+            cb              : required    # callback(error, results)
+            objectify       : false       # if false results is a array of arrays (so less redundant); if true, array of objects (so keys redundant)
+            limit           : undefined   # if defined, limit the number of results returned to this integer
+            json            : []          # list of columns that should be converted from JSON format
+            order_by        : undefined    # if given, adds an "ORDER BY opts.order_by"
+            consistency     : undefined  # default...
             allow_filtering : false
 
         vals = []
