@@ -1066,7 +1066,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 cb      : (err) =>
                     kill_button.find("i").removeClass('fa-spin')
                     if err
-                        alert_message(type:"error", message:"Unable to restart Sage worksheet (maybe system is heavily loaded or Sage is broken)")
+                        alert_message(type:"error", message:"Unable to restart Sage worksheet (maybe system is heavily loaded so Sage is taking a while to start up -- try again in a minute)")
             return false
 
     _is_dangerous_undo_step: (cm, changes) =>
