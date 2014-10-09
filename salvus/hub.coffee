@@ -2456,9 +2456,11 @@ _local_hub_cache = {}
 new_local_hub = (opts) ->    # cb(err, hub)
     opts = defaults opts,
         project_id : required
-        cb       : required
+        cb         : required
+
     hash = opts.project_id
-    H = _local_hub_cache[hash]
+    H    = _local_hub_cache[hash]
+
     if H?
         winston.debug("new_local_hub (#{opts.project_id}) -- using cached version")
         opts.cb(false, H)

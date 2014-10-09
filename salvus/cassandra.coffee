@@ -712,6 +712,7 @@ class exports.Cassandra extends EventEmitter
                     cb?("query failed even after #{@query_max_retry} attempts -- giving up -- #{err}")
                 else
                     cb?()
+                cb = undefined  # ensure only called once
 
 
     key_value_store: (opts={}) -> # key_value_store(name:"the name")
