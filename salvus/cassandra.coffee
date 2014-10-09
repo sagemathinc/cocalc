@@ -603,15 +603,15 @@ class exports.Cassandra extends EventEmitter
 
     select: (opts={}) =>
         opts = defaults opts,
-            table     : required    # string -- the table to query
-            columns   : required    # list -- columns to extract
-            where     : undefined   # object -- conditions to impose; undefined = return everything
-            cb        : required    # callback(error, results)
-            objectify : false       # if false results is a array of arrays (so less redundant); if true, array of objects (so keys redundant)
-            limit     : undefined   # if defined, limit the number of results returned to this integer
-            json      : []          # list of columns that should be converted from JSON format
-            order_by : undefined    # if given, adds an "ORDER BY opts.order_by"
-            consistency : undefined  # default...
+            table           : required    # string -- the table to query
+            columns         : required    # list -- columns to extract
+            where           : undefined   # object -- conditions to impose; undefined = return everything
+            cb              : required    # callback(error, results)
+            objectify       : false       # if false results is a array of arrays (so less redundant); if true, array of objects (so keys redundant)
+            limit           : undefined   # if defined, limit the number of results returned to this integer
+            json            : []          # list of columns that should be converted from JSON format
+            order_by        : undefined    # if given, adds an "ORDER BY opts.order_by"
+            consistency     : undefined  # default...
             allow_filtering : false
 
         vals = []
@@ -652,6 +652,7 @@ class exports.Cassandra extends EventEmitter
         @select(opts)
 
     cql: (query, vals, consistency, cb) =>
+        #winston.debug("cql: '#{query}'")
         if typeof vals == 'function'
             cb = vals
             vals = []
@@ -664,6 +665,8 @@ class exports.Cassandra extends EventEmitter
         g = (c) =>
             try
                 @conn.execute query, vals, consistency, (error, results) =>
+                    if not error
+                        error = undefined   # it comes back as null
                     if error
                         winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
                     # TODO - this test for "ResponseError: Operation timed out" is HORRIBLE.
@@ -689,12 +692,13 @@ class exports.Cassandra extends EventEmitter
                 m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying after reconnecting"
                 winston.error(m)
                 @connect () =>
-                    c(m)
+                    c?(m)
                     c = undefined # ensure only called once
             _timer = setTimeout(failed, 1000*@query_timeout_s)
             g (err) =>
                 clearTimeout(_timer)
                 c?(err)
+                c = undefined # ensure only called once
 
         # If a query fails due to "Operation timed out", then we will keep retrying, up to 10 times, with exponential backoff.
         # ** This is ABSOLUTELY critical, if we have a loaded system, slow nodes, want to use consistency level > 1, etc, **
@@ -708,6 +712,7 @@ class exports.Cassandra extends EventEmitter
                     cb?("query failed even after #{@query_max_retry} attempts -- giving up -- #{err}")
                 else
                     cb?()
+                cb = undefined  # ensure only called once
 
 
     key_value_store: (opts={}) -> # key_value_store(name:"the name")
@@ -1437,7 +1442,7 @@ class exports.Salvus extends exports.Cassandra
                         if results.length == 0
                             opts.cb(undefined, [])
                         else
-                            console.log(results[0][0])              
+                            console.log(results[0][0])
                             opts.cb(false, (misc.from_json(r) for r in results[0][0]))
 
     update_account_settings: (opts={}) ->
@@ -1795,7 +1800,7 @@ class exports.Salvus extends exports.Cassandra
             project_id : required
             size       : undefined
             cb         : undefined
-
+        winston.debug("touch_project: #{opts.project_id}")
         id = opts.project_id
         tm = @_touch_project_cache[id]
         if tm?
@@ -2005,6 +2010,24 @@ class exports.Salvus extends exports.Cassandra
                 # note -- this does all bazillion in parallel :-)
                 async.map(results, f, cb)
         ], cb)
+
+    # cb(err, true if project is public)
+    project_is_public: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            consistency : undefined
+            cb          : required  # cb(err, is_public)
+        @get_project_data
+            project_id  : opts.project_id
+            columns     : ['public']
+            objectify   : false
+            consistency : opts.consistency
+            cb          : (err, result) ->
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(false, result[0])
+
 
     # cb(err, true if user is in one of the groups)
     user_is_in_project_group: (opts) =>

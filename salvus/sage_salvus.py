@@ -1967,8 +1967,8 @@ def r_eval(code, *args, **kwds):
         return r_eval0(code, *args, **kwds)
     try:
         r_dev_on = True
-        tmp = '/tmp/' + uuid() + '.png'
-        r_eval0("png(filename='%s')"%tmp)
+        tmp = '/tmp/' + uuid() + '.svg'
+        r_eval0("svg(filename='%s')"%tmp)
         s = r_eval0(code, *args, **kwds)
         r_eval0('dev.off()')
         return s
@@ -2189,6 +2189,8 @@ def show_animation(obj, **kwds):
     os.unlink(t)
 
 def show_2d_plot_using_matplotlib(obj, svg, **kwds):
+    if isinstance(obj, matplotlib.axes.Axes):
+        obj = obj.get_figure()
     if 'events' in kwds:
         from graphics import InteractiveGraphics
         ig = InteractiveGraphics(obj, **kwds['events'])
@@ -2258,7 +2260,7 @@ def show(obj, svg=True, **kwds):
             show(g, events={'click':c, 'mousemove':h}, svg=True, gridlines='major', ymin=ymin, ymax=ymax)
     """
     import graphics
-    if isinstance(obj, (Graphics, GraphicsArray, matplotlib.figure.Figure)):
+    if isinstance(obj, (Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes)):
         show_2d_plot_using_matplotlib(obj, svg=svg, **kwds)
     elif isinstance(obj, Animation):
         show_animation(obj, **kwds)
@@ -2980,7 +2982,7 @@ matplotlib.pyplot.show = _show_pyplot
 _system_sys_displayhook = sys.displayhook
 
 def displayhook(obj):
-    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure, Animation)):
+    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes, Animation)):
         show(obj)
     else:
         _system_sys_displayhook(obj)

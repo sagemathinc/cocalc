@@ -68,6 +68,7 @@ bup_storage = (opts) =>
         command : "sudo"
         args    : ["/usr/local/bin/bup_storage.py", "--zpool", ZPOOL].concat(opts.args)
         timeout : opts.timeout
+        bash    : false
         path    : process.cwd()
         cb      : (err, output) =>
             winston.debug("bup_storage: finished running #{misc.to_json(opts.args)} -- #{err}")
@@ -1097,6 +1098,77 @@ class GlobalProject
         ], (err) => opts.cb?(err))
 
 
+    # list files in a directory in this project
+    directory_listing: (opts) =>
+        opts = defaults opts,
+            path      : ''
+            hidden    : false
+            time      : false        # sort by timestamp, with newest first?
+            start     : 0
+            limit     : -1
+            server_id : undefined
+            timeout   : TIMEOUT
+            cb        : required
+        dbg = (m) => winston.debug("GlobalProject.directory_listing(#{@project_id}, #{opts.path}): #{m}")
+        dbg()
+        project = undefined
+        listing = undefined
+        async.series([
+            (cb) =>
+                dbg("get the project")
+                @project
+                    server_id : opts.server_id
+                    cb        : (err, p) =>
+                        project = p; cb(err)
+            (cb) =>
+                dbg("do the directory_listing action")
+                project.directory_listing
+                    path    : opts.path
+                    hidden  : opts.hidden
+                    time    : opts.time
+                    start   : opts.start
+                    limit   : opts.limit
+                    timeout : opts.timeout
+                    cb      : (err, _listing) =>
+                        listing = _listing
+                        cb(err)
+        ], (err) =>
+            opts.cb(err, listing)
+        )
+
+    # read files from this project
+    read_file: (opts) =>
+        opts = defaults opts,
+            path      : required
+            maxsize   : 3000000    # 3MB
+            server_id : undefined
+            timeout   : TIMEOUT
+            cb        : required
+        dbg = (m) => winston.debug("GlobalProject.read_file(#{@project_id}, #{opts.path}): #{m}")
+        dbg()
+        project = undefined
+        data = undefined
+        async.series([
+            (cb) =>
+                dbg("get the project")
+                @project
+                    server_id : opts.server_id
+                    cb        : (err, p) =>
+                        project = p; cb(err)
+            (cb) =>
+                dbg("do the read_file action")
+                project.read_file
+                    path    : opts.path
+                    maxsize : opts.maxsize
+                    timeout : opts.timeout
+                    cb      : (err, _data) =>
+                        data = _data
+                        cb(err)
+        ], (err) =>
+            opts.cb(err, data)
+        )
+
+
     # copy a path from this project to another project
     copy_path: (opts) =>
         opts = defaults opts,
@@ -1160,25 +1232,18 @@ class GlobalProject
                                     cb(err)
                                 else
                                     target_loc = x
-                                    if source_loc.server_id == x.server_id
-                                        # special case when source and target are on the same machine.
-                                        # NOTE: we *must* use localhost since the firewall doesn't allow
-                                        # ssh'ing from localhost to host to localhost !
-                                        target_loc.addr = 'localhost'
-                                        cb()
-                                    else
-                                        @global_client.get_external_ssh
-                                            server_id : x.server_id
-                                            dc        : dc   # data center of the *source* project!
-                                            cb        : (err, addr) =>
-                                                if not err and not addr?
-                                                    err = "unable to determine ip address of target server #{x.server_id} from dc #{dc}"
-                                                if err
-                                                    cb(err)
-                                                else
-                                                    target_loc.addr = addr
-                                                    dbg("target_loc=#{misc.to_json(target_loc)}")
-                                                    cb()
+                                    @global_client.get_external_ssh
+                                        server_id : x.server_id
+                                        dc        : dc   # data center of the *source* project!
+                                        cb        : (err, addr) =>
+                                            if not err and not addr?
+                                                err = "unable to determine ip address of target server #{x.server_id} from dc #{dc}"
+                                            if err
+                                                cb(err)
+                                            else
+                                                target_loc.addr = addr
+                                                dbg("target_loc=#{misc.to_json(target_loc)}")
+                                                cb()
                 ], cb)
 
             (cb) =>
@@ -1189,6 +1254,11 @@ class GlobalProject
                         project = p; cb(err)
             (cb) =>
                 dbg("do the copy_path action")
+                if source_loc.server_id == target_loc.server_id
+                    # special case when source and target are on the same machine.
+                    # NOTE: we *must* use localhost since the firewall doesn't allow
+                    # ssh'ing from localhost to host to localhost !
+                    target_loc.addr = 'localhost'
                 project.copy_path
                     target_hostname   : target_loc.addr
                     target_project_id : opts.project_id
@@ -2100,6 +2170,9 @@ class GlobalClient
             objectify : true
             where     : {dummy:true, server_id:{'in':s}}
             cb        : (err, results) =>
+                if err
+                    opts.cb?(err)
+                    return
                 f = (result, cb) =>
                     # TODO: replace formula before by what's done in gossip/cassandra, which is provably sensible.
                     # There is definitely a potential for "race conditions" below, but it doesn't matter -- it is just health.
@@ -3031,7 +3104,7 @@ class ClientProject
             cb      : undefined
         @action
             action  : 'mkdir'
-            param   : ["--path=#{opts.path}"]
+            param   : ["--path", opts.path]
             timeout : opts.timeout
             cb      : (err, resp) =>
                 if err
@@ -3041,6 +3114,53 @@ class ClientProject
                         opts.cb?(resp.result.error)
                     else
                         opts.cb?()
+
+    directory_listing: (opts) =>
+        opts = defaults opts,
+            path    : ''
+            hidden  : false
+            time    : false        # sort by timestamp, with newest first?
+            start   : 0
+            limit   : -1
+            timeout : TIMEOUT
+            cb      : required
+        param =  ["--path", opts.path, "--start", opts.start, "--limit", opts.limit]
+        if opts.hidden
+            param.push("--hidden")
+        if opts.time
+            param.push("--time")
+        @action
+            action  : 'directory_listing'
+            param   : param
+            timeout : opts.timeout
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    if resp.result?.error
+                        opts.cb(resp.result.error)
+                    else
+                        opts.cb(undefined, resp?.result)
+
+    read_file: (opts) =>
+        opts = defaults opts,
+            path    : required
+            maxsize : 3000000
+            timeout : TIMEOUT
+            cb      : required
+        param =  ["--path", opts.path, "--maxsize", opts.maxsize]
+        @action
+            action  : 'read_file'
+            param   : param
+            timeout : opts.timeout
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    if resp.result?.error
+                        opts.cb(resp.result.error)
+                    else
+                        opts.cb(undefined, resp?.result)
 
     copy_path: (opts) =>
         opts = defaults opts,
@@ -3161,7 +3281,10 @@ main = () ->
     winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
-        winston.error("Uncaught exception: #{err}")
+        winston.debug("BUG ****************************************************************************")
+        winston.debug("Uncaught exception: " + err)
+        winston.debug(err.stack)
+        winston.debug("BUG ****************************************************************************")
     daemon({max:999999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
 if program._name.split('.')[0] == 'bup_server'

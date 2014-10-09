@@ -1727,7 +1727,13 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : height
                 width  : width
-            cm.refresh()
+            scroll = cm.getScrollInfo(); pos = cm.getCursor()
+            cm.refresh()  # NOTE: unfortunately, this can break the cursor location and scrollTo -- I've seen it happen.
+            scroll_after = cm.getScrollInfo(); pos_after = cm.getCursor()
+            if scroll.left != scroll_after.left or scroll.top != scroll_after.top or pos.line != pos_after.line or pos.ch != pos_after.ch
+                console.log("WARNING: codemirror refresh lost pos -- RESETTING position")
+                cm.scrollTo(scroll.left, scroll.top)
+                cm.setCursor(pos)
 
         @emit('show', height)
 

@@ -31,6 +31,9 @@ MESG_QUEUE_MAX_COUNT    = 150
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
 MESG_QUEUE_MAX_SIZE_MB  = 7
 
+# How long to cache a positive authentication for using a project.
+CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
+
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
@@ -199,6 +202,10 @@ init_http_server = () ->
                         res.writeHead(200, {'content-type': 'text/plain'})
                         res.write('received upload:\n\n');
                         res.end('')
+                        if not files.file? or not files.file.path? or not files.file.name?
+                            winston.debug("file upload failed -- #{misc.to_json(files)}")
+                            return # nothing to do -- no actual file upload requested
+
                         account_id = undefined
                         project_id = undefined
                         dest_dir   = undefined
@@ -276,7 +283,8 @@ init_http_server = () ->
                             if err
                                 winston.debug("Error during file upload: #{misc.to_json(err)}")
                             # delete tmp file
-                            fs.unlink(files.file.path)
+                            if files?.file?.path?
+                                fs.unlink(files.file.path)
                         )
             else
                 res.end('hub server')
@@ -294,15 +302,16 @@ httpProxy = require('http-proxy')
 
 init_http_proxy_server = () =>
 
-    _remember_me_check_for_write_access_to_project = (opts) ->
+    _remember_me_check_for_access_to_project = (opts) ->
         opts = defaults opts,
             project_id  : required
             remember_me : required
+            type        : 'write'     # 'read' or 'write'
             cb          : required    # cb(err, has_access)
-        dbg = (m) -> winston.debug("_remember_me_check_for_write_access_to_project: #{m}")
+        dbg = (m) -> winston.debug("_remember_me_check_for_access_to_project: #{m}")
         account_id       = undefined
         email_address    = undefined
-        has_write_access = false
+        has_access = false
         hash             = undefined
         async.series([
             (cb) ->
@@ -337,55 +346,72 @@ init_http_proxy_server = () =>
                         else
                             cb()
             (cb) ->
-                dbg("check if user has write access")
-                user_has_write_access_to_project
-                    project_id : opts.project_id
-                    account_id : account_id
-                    cb         : (err, result) =>
-                        dbg("got: #{err}, #{result}")
-                        if err
-                            cb(err)
-                        else if not result
-                            cb("User does not have write access to project.")
-                        else
-                            has_write_access = true
-                            cb()
+                dbg("check if user has #{opts.type} access to project")
+                if opts.type == 'write'
+                    user_has_write_access_to_project
+                        project_id : opts.project_id
+                        account_id : account_id
+                        cb         : (err, result) =>
+                            dbg("got: #{err}, #{result}")
+                            if err
+                                cb(err)
+                            else if not result
+                                cb("User does not have write access to project.")
+                            else
+                                has_access = true
+                                cb()
+                else
+                    user_has_read_access_to_project
+                        project_id : opts.project_id
+                        account_id : account_id
+                        cb         : (err, result) =>
+                            dbg("got: #{err}, #{result}")
+                            if err
+                                cb(err)
+                            else if not result
+                                cb("User does not have read access to project.")
+                            else
+                                has_access = true
+                                cb()
+
         ], (err) ->
-            opts.cb(err, has_write_access)
+            opts.cb(err, has_access)
         )
 
     _remember_me_cache = {}
-    remember_me_check_for_write_access_to_project = (opts) ->
+    remember_me_check_for_access_to_project = (opts) ->
         opts = defaults opts,
             project_id  : required
             remember_me : required
+            type        : 'write'
             cb          : required    # cb(err, has_access)
-        key = opts.project_id + opts.remember_me
-        has_write_access = _remember_me_cache[key]
-        if has_write_access?
-            opts.cb(false, has_write_access)
+        key = opts.project_id + opts.remember_me + opts.type
+        has_access = _remember_me_cache[key]
+        if has_access?
+            opts.cb(false, has_access)
             return
         # get the answer, cache it, return answer
-        _remember_me_check_for_write_access_to_project
+        _remember_me_check_for_access_to_project
             project_id  : opts.project_id
             remember_me : opts.remember_me
-            cb          : (err, has_write_access) ->
+            type        : opts.type
+            cb          : (err, has_access) ->
                 # if cache gets huge for some *weird* reason (should never happen under normal conditions),
-                # just reset it to avoid any possibility of DOS-->RAM crash attach
+                # just reset it to avoid any possibility of DOS-->RAM crash attack
                 if misc.len(_remember_me_cache) >= 100000
                     _remember_me_cache = {}
 
-                _remember_me_cache[key] = has_write_access
+                _remember_me_cache[key] = has_access
                 # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
                 # but also if the user is suddenly granted permission to the project, this should be
                 # reflected within a few seconds.
                 f = () ->
                     delete _remember_me_cache[key]
-                if has_write_access
-                    setTimeout(f, 1000*60*5)    # write access lasts 5 minutes (i.e., if you revoke privs to a user they could still hit the port for 5 minutes)
+                if has_access
+                    setTimeout(f, 1000*60*6)    # access lasts 6 minutes (i.e., if you revoke privs to a user they could still hit the port for 5 minutes)
                 else
-                    setTimeout(f, 1000*60)      # not having write access lasts 1 minute
-                opts.cb(err, has_write_access)
+                    setTimeout(f, 1000*60*2)    # not having access lasts 2 minute
+                opts.cb(err, has_access)
 
     _target_cache = {}
     target = (remember_me, url, cb) ->
@@ -410,14 +436,22 @@ init_http_proxy_server = () =>
                     # remember_me = undefined means "allow"; this is used for the websocket upgrade.
                     cb(); return
 
-                remember_me_check_for_write_access_to_project
+                # It's still unclear if we will ever grant read access to the raw server.
+                #if type == 'raw'
+                #    access_type = 'read'
+                #else
+                #    access_type = 'write'
+                access_type = 'write'
+
+                remember_me_check_for_access_to_project
                     project_id  : project_id
                     remember_me : remember_me
+                    type        : access_type
                     cb          : (err, has_access) ->
                         if err
                             cb(err)
                         else if not has_access
-                            cb("user does not have write access to this project")
+                            cb("user does not have #{access_type} access to this project")
                         else
                             cb()
             (cb) ->
@@ -1237,6 +1271,13 @@ class Client extends EventEmitter
             cb(err)
             return
 
+        project = @_project_cache?[mesg.project_id]
+        if project?
+            # Use the cached project so we don't have to re-verify authentication for the user again below, which
+            # is very expensive.  This cache does expire, in case user is kicked out of the project.
+            cb(undefined, project)
+            return
+
         project = undefined
         async.series([
             (cb) =>
@@ -1283,7 +1324,11 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     cb(err)
                 else
-                    cb(false, project)
+                    if not @_project_cache?
+                        @_project_cache = {}
+                    @_project_cache[mesg.project_id] = project
+                    setTimeout((()=>delete @_project_cache[mesg.project_id]), CACHE_PROJECT_AUTH_MS)  # cache for a while
+                    cb(undefined, project)
         )
 
     # Mark a project as "deleted" in the database.  This is non-destructive by design --
@@ -1753,10 +1798,11 @@ class Client extends EventEmitter
 
         async.series([
             (cb) =>
-                # check permissions for the source and target projects (in parallel)
+                # Check permissions for the source and target projects (in parallel) --
+                # need read access to the source and write access to the target.
                 async.parallel([
                     (cb) =>
-                        user_has_write_access_to_project
+                        user_has_read_access_to_project
                             project_id     : mesg.src_project_id
                             account_id     : @account_id
                             account_groups : @groups
@@ -1764,7 +1810,7 @@ class Client extends EventEmitter
                                 if err
                                     cb(err)
                                 else if not result
-                                    cb("user must have write access to project #{mesg.src_project_id}")
+                                    cb("user must have read access to source project #{mesg.src_project_id}")
                                 else
                                     cb()
                     (cb) =>
@@ -1776,7 +1822,7 @@ class Client extends EventEmitter
                                 if err
                                     cb(err)
                                 else if not result
-                                    cb("user must have write access to project #{mesg.target_project_id}")
+                                    cb("user must have write access to target project #{mesg.target_project_id}")
                                 else
                                     cb()
                 ], cb)
@@ -1834,9 +1880,11 @@ class Client extends EventEmitter
                 # Record that a client is actively doing something with this session, but
                 # use a timeout to give local hub a chance to actually do the above save...
                 f = () =>
+                    # record that project is active in the database
                     database.touch_project(project_id : project.project_id)
+                    # snapshot project and rsync it out to replicas, if enough time has passed.
                     project.local_hub?.project.save()
-                setTimeout(f, 5000)
+                setTimeout(f, 10000)  # 10 seconds later, possibly replicate.
 
             # Record eaching opening of a file in the database log
             if mesg.message.event == 'codemirror_get_session' and mesg.message.path? and mesg.message.path != '.sagemathcloud.log' and @account_id? and mesg.message.project_id?
@@ -1852,7 +1900,7 @@ class Client extends EventEmitter
                 multi_response : mesg.multi_response
                 cb             : (err, resp) =>
                     if err
-                        winston.debug("Error #{err} calling message #{to_json(mesg.message)}")
+                        winston.debug("ERROR: #{err} calling message #{to_json(mesg.message)}")
                         @error_to_client(id:mesg.id, error:err)
                     else
                         if not mesg.multi_response
@@ -2412,9 +2460,11 @@ _local_hub_cache = {}
 new_local_hub = (opts) ->    # cb(err, hub)
     opts = defaults opts,
         project_id : required
-        cb       : required
+        cb         : required
+
     hash = opts.project_id
-    H = _local_hub_cache[hash]
+    H    = _local_hub_cache[hash]
+
     if H?
         winston.debug("new_local_hub (#{opts.project_id}) -- using cached version")
         opts.cb(false, H)
@@ -3066,14 +3116,17 @@ user_is_in_project_group = (opts) ->
         groups         : required
         consistency    : cql.types.consistencies.one
         cb             : required        # cb(err, true or false)
+    dbg = (m) -> winston.debug("user_is_in_project_group -- #{m}")
+    dbg()
     if not opts.account_id?
-        # we can have a client *without* account_id that is requesting access to a project.  Just say no.
+        dbg("not logged in, so for now we just say 'no' -- this may change soon.")
         opts.cb(undefined, false) # do not have access
         return
+
     access = false
     async.series([
         (cb) ->
-            #winston.debug("opts.account_groups = #{misc.to_json(opts.account_groups)}")
+            dbg("check if admin or in appropriate group -- #{misc.to_json(opts.account_groups)}")
             if opts.account_groups? and 'admin' in opts.account_groups  # check also done below!
                 access = true
                 cb()
@@ -3105,6 +3158,7 @@ user_is_in_project_group = (opts) ->
                             access = 'admin' in r['groups']
                             cb()
         ], (err) ->
+            dbg("done with tests -- now access=#{access}, err=#{err}")
             opts.cb(err, access)
         )
 
@@ -3113,8 +3167,44 @@ user_has_write_access_to_project = (opts) ->
     user_is_in_project_group(opts)
 
 user_has_read_access_to_project = (opts) ->
-    opts.groups = ['owner', 'collaborator', 'viewer']
-    user_is_in_project_group(opts)
+    # read access is granted if *either* (1) project is public, or
+    # (2) user is in any of the groups listed below.  So we query
+    # simultaneously for both conditions.
+    #dbg = (m) -> winston.debug("user_has_read_access_to_project #{opts.project_id}, #{opts.account_id}; #{m}")
+    main_cb = opts.cb
+    done = false
+    async.parallel([
+        (cb)->
+            opts.groups = ['owner', 'collaborator', 'viewer']
+            opts.cb = (err, in_group) ->
+                if err
+                    cb(err)
+                else
+                    if not done and in_group
+                        #dbg("yes, since in group")
+                        main_cb(undefined, true)
+                        done = true
+                    cb()
+            user_is_in_project_group(opts)
+        (cb) ->
+            database.project_is_public
+                project_id  : opts.project_id
+                consistency : cql.types.consistencies.one
+                cb          : (err, is_public) ->
+                    if err
+                        cb(err)
+                    else
+                        if not done and is_public
+                            #dbg("yes, since is public")
+                            main_cb(undefined, true)
+                            done = true
+                        cb()
+    ], (err) ->
+        #dbg("nope, since neither in group nor public")
+        if not done
+            main_cb(err, false)
+    )
+
 
 
 ########################################
@@ -3540,11 +3630,12 @@ create_account = (client, mesg) ->
                                  id:id, reason:{'other':"Unable to create account right now.  Please try later."})
                         )
                         cb(true)
-                    account_id = result
-                    database.log
-                        event : 'create_account'
-                        value : {account_id:account_id, first_name:mesg.first_name, last_name:mesg.last_name, email_address:mesg.email_address}
-                    cb()
+                    else
+                        account_id = result
+                        database.log
+                            event : 'create_account'
+                            value : {account_id:account_id, first_name:mesg.first_name, last_name:mesg.last_name, email_address:mesg.email_address}
+                        cb()
 
         (cb) ->
             dbg("check for account creation actions")
@@ -4663,7 +4754,7 @@ if program._name.slice(0,3) == 'hub'
     process.addListener "uncaughtException", (err) ->
         winston.debug("BUG ****************************************************************************")
         winston.debug("Uncaught exception: " + err)
-        winston.debug(new Error().stack)
+        winston.debug(err.stack)
         winston.debug("BUG ****************************************************************************")
 
     if program.passwd

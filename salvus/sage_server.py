@@ -32,6 +32,9 @@ import os, sys
 PWD = os.path.split(os.path.realpath(__file__))[0]
 sys.path.insert(0, PWD)
 
+# used for clearing pylab figure
+pylab = None
+
 # Maximum number of distinct (non-once) output messages per cell; when this number is
 # exceeded, an exception is raised; this reduces the chances of the user creating
 # a huge unusable worksheet.
@@ -587,11 +590,15 @@ class Salvus(object):
                  'spin':spin, 'aspect_ratio':aspect_ratio}
 
         extra_kwds = {} if g._extra_kwds is None else g._extra_kwds
+
+        # clean up and normalize aspect_ratio option
         if aspect_ratio is None:
             if frame_aspect_ratio is not None:
                 aspect_ratio = frame_aspect_ratio
-            elif extra_kwds.get("frame_aspect_ratio",None):
+            elif 'frame_aspect_ratio' in extra_kwds:
                 aspect_ratio = extra_kwds['frame_aspect_ratio']
+            elif 'aspect_ratio' in extra_kwds:
+                aspect_ratio = extra_kwds['aspect_ratio']
         if aspect_ratio is not None:
             if aspect_ratio == 1:
                 aspect_ratio = None
@@ -599,6 +606,8 @@ class Salvus(object):
                 raise TypeError("aspect_ratio must be None, 1 or a 3-tuple ")
             else:
                 aspect_ratio = [f(x) for x in aspect_ratio]
+
+        opts['aspect_ratio'] = aspect_ratio
 
         for k in ['spin', 'height', 'width', 'background', 'foreground', 'aspect_ratio']:
             if k in extra_kwds and not opts.get(k,None):
@@ -813,6 +822,10 @@ class Salvus(object):
     def execute(self, code, namespace=None, preparse=True, locals=None):
         if namespace is None:
             namespace = self.namespace
+
+        # clear pylab figure (takes a few microseconds)
+        if pylab is not None:
+            pylab.clf()
 
         #code   = parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print x"
         blocks = parsing.divide_into_blocks(code)
@@ -1455,6 +1468,7 @@ def serve(port, host):
 
         # Actually import sage now.  This must happen after the interact
         # import because of library interacts.
+        print "import sage..."
         import sage.all
 
         # Monkey patch the html command.
@@ -1470,7 +1484,19 @@ def serve(port, host):
 
         # Plot, integrate, etc., -- so startup time of worksheets is minimal.
 
-        exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; import sympy; import pylab; plot(sin).save('%s/a.png'%os.environ['SAGEMATHCLOUD'], figsize=2); integrate(sin(x**2),x);" in namespace
+        for cmd in ['from sage.all import *',
+                    'from sage.calculus.predefined import x',
+                    'import scipy',
+                    'import sympy',
+                    'import pylab',
+                    "plot(sin).save('%s/a.png'%os.environ['SAGEMATHCLOUD'], figsize=2)",
+                    'integrate(sin(x**2),x)']:
+            print cmd
+            exec cmd in namespace
+
+        global pylab
+        pylab = namespace['pylab']     # used for clearing
+
         print 'imported sage library in %s seconds'%(time.time() - tm)
 
         for k,v in sage_salvus.interact_functions.iteritems():
@@ -1501,7 +1527,10 @@ def serve(port, host):
     i = 0
 
     # Write to file name of port we are now listening on.
-    open(os.path.join(DATA_PATH, "sage_server.port"),'w').write(str(args.port))
+    try:
+        open(os.path.join(DATA_PATH, "sage_server.port"),'w').write(str(args.port))
+    except Exception, err:
+        print "Not writing sage_server.port file --", err
     try:
         while True:
             i += 1

@@ -171,6 +171,10 @@ program.usage('[start/stop/restart/status] [options]')
 if program._name.split('.')[0] == 'console_server'
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
+        winston.debug("BUG ****************************************************************************")
+        winston.debug("Uncaught exception: " + err)
+        winston.debug(err.stack)
+        winston.debug("BUG ****************************************************************************")
         winston.error "Uncaught exception: " + err
         if console? and console.trace?
             console.trace()

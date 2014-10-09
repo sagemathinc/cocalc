@@ -1459,6 +1459,9 @@ class CodeMirrorSession
             winston.debug("DISCONNECT: socket connection #{socket.id} from global hub disconected.")
             delete @diffsync_clients[client_id]
 
+    remove_client: (socket, client_id) =>
+        delete @diffsync_clients[client_id]
+
     write_to_disk: (socket, mesg) =>
         @is_active = true
         winston.debug("write_to_disk: #{json(mesg)} -- calling sync_filesystem")
@@ -1718,8 +1721,11 @@ class CodeMirrorSessions
                 session.sage_introspect(client_socket, mesg)
             when 'codemirror_send_signal'
                 session.send_signal_to_sage_session(client_socket, mesg)
+            when 'codemirror_disconnect'
+                session.remove_client(client_socket, mesg.client_id)
+                client_socket.write_mesg('json', message.success(id:mesg.id))
             else
-                client_socket.write_mesg('json', message.error(id:mesg.id, error:"Unknown CodeMirror session event: #{mesg.event}."))
+                client_socket.write_mesg('json', message.error(id:mesg.id, error:"unknown CodeMirror session event: #{mesg.event}."))
 
 codemirror_sessions = new CodeMirrorSessions()
 
@@ -2133,7 +2139,7 @@ start_raw_server = (cb) ->
         info = INFO
         winston.debug("info = #{misc.to_json(info)}")
 
-        express = require('express')
+        express    = require('express')
         raw_server = express()
         project_id = info.project_id
         misc_node.free_port (err, port) ->
@@ -2265,7 +2271,10 @@ if program._name.split('.')[0] == 'local_hub'
     winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
-        winston.error "Uncaught exception: " + err
+        winston.debug("BUG ****************************************************************************")
+        winston.debug("Uncaught exception: " + err)
+        winston.debug(err.stack)
+        winston.debug("BUG ****************************************************************************")
         if console? and console.trace?
             console.trace()
     console.log("setting up conf path")
