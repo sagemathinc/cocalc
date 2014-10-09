@@ -592,8 +592,10 @@ class Salvus(object):
         if aspect_ratio is None:
             if frame_aspect_ratio is not None:
                 aspect_ratio = frame_aspect_ratio
-            elif extra_kwds.get("frame_aspect_ratio",None):
+            elif 'frame_aspect_ratio' in extra_kwds:
                 aspect_ratio = extra_kwds['frame_aspect_ratio']
+            elif 'aspect_ratio' in extra_kwds:
+                aspect_ratio = extra_kwds['aspect_ratio']
         if aspect_ratio is not None:
             if aspect_ratio == 1:
                 aspect_ratio = None
