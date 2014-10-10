@@ -2514,8 +2514,7 @@ class PDF_Preview extends FileEditor
             if page.length == 0
                 # create
                 for m in [@last_page+1 .. n]
-                    #page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><div class='salvus-editor-pdf-preview-text'></div><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
-                    page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
+                    page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'><br></div>")
                     page.data("number", m)
 
                     f = (e) ->
@@ -2919,7 +2918,7 @@ class LatexEditor extends FileEditor
         @log_input.keyup (e) =>
             if e.keyCode == 13
                 latex_command = @log_input.val()
-                @set_conf(latex_command: latex_command)
+                @set_conf_doc(latex_command: latex_command)
                 @save()
 
         @errors = @element.find(".salvus-editor-latex-errors")
@@ -2986,6 +2985,50 @@ class LatexEditor extends FileEditor
 
     save_conf: (conf) =>
         @local_storage('conf', conf)
+
+
+    set_conf_doc: (obj) =>
+        conf = @load_conf_doc()
+        for k, v of obj
+            conf[k] = v
+        @save_conf_doc(conf)
+
+    load_conf_doc: () =>
+        doc = @latex_editor.codemirror.getValue()
+        i = doc.indexOf("%sagemathcloud=")
+        if i == -1
+            return {}
+
+        j = doc.indexOf('=',i)
+        k = doc.indexOf('\n',i)
+        if k == -1
+            k = doc.length
+        try
+            conf = misc.from_json(doc.slice(j+1,k))
+        catch
+            conf = {}
+
+        return conf
+
+    save_conf_doc: (conf) =>
+        cm  = @latex_editor.codemirror
+        doc = cm.getValue()
+        i = doc.indexOf('%sagemathcloud=')
+        line = '%sagemathcloud=' + misc.to_json(conf)
+        if i != -1
+            # find the line m where it is already
+            for n in [0..cm.doc.lastLine()]
+                z = cm.getLine(n)
+                if z.indexOf('%sagemathcloud=') != -1
+                    m = n
+                    break
+            cm.replaceRange(line+'\n', {line:m,ch:0}, {line:m+1,ch:0})
+        else
+            if misc.len(conf) == 0
+                # don't put it in there if empty
+                return
+            cm.replaceRange('\n'+line, {line:cm.doc.lastLine()+1,ch:0})
+        @latex_editor.syncdoc.sync()
 
     _pause_passive_search: (cb) =>
         @_passive_forward_search_disabled = true
@@ -3095,7 +3138,7 @@ class LatexEditor extends FileEditor
         @element.find("a[href=#latex-command-undo]").click () =>
             c = @preview.pdflatex.default_tex_command()
             @log_input.val(c)
-            @set_conf(latex_command: c)
+            @set_conf_doc(latex_command: c)
             return false
 
         trash_aux_button = @element.find("a[href=#latex-trash-aux]")
@@ -3118,7 +3161,7 @@ class LatexEditor extends FileEditor
         run_latex.click () =>
             @log.find("textarea").text("Running Latex...")
             run_latex.icon_spin(true)
-            @preview.pdflatex._run_latex @load_conf().latex_command, (err, log) =>
+            @preview.pdflatex._run_latex @load_conf_doc().latex_command, (err, log) =>
                 run_latex.icon_spin(false)
                 @log.find("textarea").text(log)
             return false
@@ -3168,7 +3211,7 @@ class LatexEditor extends FileEditor
 
     update_preview: (cb) =>
         @run_latex
-            command : @load_conf().latex_command
+            command : @load_conf_doc().latex_command
             cb      : () =>
                 @preview.update
                     cb: (err) =>
@@ -3184,6 +3227,10 @@ class LatexEditor extends FileEditor
         if not @_split_pos?
             @_split_pos = .5
         @_split_pos = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, @_split_pos))
+
+        @element.css(top:@editor.editor_top_position(), position:'fixed')
+        @element.width($(window).width())
+
         width = @element.width()
         chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
         if chat_pos.left
@@ -3208,7 +3255,7 @@ class LatexEditor extends FileEditor
         else
             @show_page()
 
-        @_dragbar.height(@latex_editor.element.height()).css('top',button_bar_height)
+        @_dragbar.height(@latex_editor.element.height()).css('top',button_bar_height+2)
 
     focus: () =>
         @latex_editor?.focus()
@@ -3253,7 +3300,7 @@ class LatexEditor extends FileEditor
                     page.offset({left:g.left, top:g.top}).width(g.width)
                     page.maxheight()
                     if n == 'log'
-                        c = @load_conf().latex_command
+                        c = @load_conf_doc().latex_command
                         if c
                             @log_input.val(c)
                     else if n == 'errors'

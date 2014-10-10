@@ -1252,6 +1252,76 @@ class exports.Connection extends EventEmitter
                     cb?(undefined, resp)
 
 
+    #################################################
+    # *PUBLIC* Projects
+    #################################################
+    public_project_info: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+            timeout    : DEFAULT_TIMEOUT
+        @call
+            message :
+                message.public_get_project_info
+                    project_id : opts.project_id
+            timeout : opts.timeout
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(undefined, resp.info)
+
+    public_get_text_file: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : required
+            timeout    : DEFAULT_TIMEOUT
+
+        @call
+            message :
+                message.public_get_text_file
+                    project_id : opts.project_id
+                    path       : opts.path
+            timeout : opts.timeout
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(undefined, resp.data)
+
+    public_project_directory_listing: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : '.'
+            time       : false
+            start      : 0
+            limit      : -1
+            timeout    : DEFAULT_TIMEOUT
+            hidden     : false
+            cb         : required
+        @call
+            message :
+                message.public_get_directory_listing
+                    project_id : opts.project_id
+                    path       : opts.path
+                    time       : opts.time
+                    start      : opts.tart
+                    limit      : opts.limit
+                    hidden     : opts.hidden
+            timeout : opts.timeout
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(undefined, resp.result)
+
 
     ######################################################################
     # Execute a program in a given project

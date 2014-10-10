@@ -34,6 +34,11 @@ MESG_QUEUE_MAX_SIZE_MB  = 7
 # How long to cache a positive authentication for using a project.
 CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
 
+# How long to cache believing that a project is public.   If a user
+# makes their project private, this fact might be ignored for few minutes.
+# However, if they make it public (from private), that is instant.
+CACHE_PROJECT_PUBLIC_MS = 1000*60*15    # 15 minutes
+
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
@@ -2154,6 +2159,89 @@ class Client extends EventEmitter
                         if not val?
                             val = ''
                         @push_to_client(message.get_account_creation_token(id:mesg.id, token:val))
+
+    ################################################
+    # Public/published projects data
+    ################################################
+    get_public_project: (mesg, cb) =>
+        err = undefined
+        if not mesg.project_id?
+            err = "mesg must have project_id attribute -- #{to_safe_str(mesg)}"
+            if mesg.id?
+                @error_to_client(id:mesg.id, error:err)
+            cb(err)
+            return
+
+        project = @_public_project_cache?[mesg.project_id]
+        if project?
+            # Use the cached project so we don't have to re-verify public nature
+            # of project, etc.
+            cb(undefined, project)
+            return
+
+        database.project_is_public
+            project_id : mesg.project_id
+            cb         : (err, is_public) =>
+                if err
+                    # since this error is public facing, we don't want
+                    # to give a low level database message.
+                    err = "no public project with id #{mesg.project_id} available"
+                if not err and not is_public
+                    err = "project #{mesg.project_id} is not public"
+                if err
+                    if mesg.id?
+                        @error_to_client(id:mesg.id, error:err)
+                    cb(err)
+                    return
+                project = bup_server.get_project(mesg.project_id)
+                if not @_public_project_cache?
+                    @_public_project_cache = {}
+                @_public_project_cache[mesg.project_id] = project
+                setTimeout((()=>delete @_public_project_cache[mesg.project_id]), CACHE_PROJECT_PUBLIC_MS)  # cache for a while
+                cb(undefined, project)
+
+    mesg_public_get_project_info: (mesg) =>
+        @get_public_project mesg, (err, project) =>
+            if err
+                return
+            database.get_project_data
+                project_id : mesg.project_id
+                objectify  : true
+                columns    : cass.PUBLIC_PROJECT_COLUMNS
+                cb         : (err, info) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:"no project with id #{mesg.project_id} available")
+                    else
+                        @push_to_client(message.public_project_info(id:mesg.id, info:info))
+
+    mesg_public_get_directory_listing: (mesg) =>
+        @get_public_project mesg, (err, project) =>
+            if err
+                return
+             project.directory_listing
+                path    : mesg.path
+                hidden  : mesg.hidden
+                time    : mesg.time
+                start   : mesg.start
+                limit   : mesg.limit
+                cb      : (err, result) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:"no project with id #{mesg.project_id} available")
+                    else
+                        @push_to_client(message.public_directory_listing(id:mesg.id, result:result))
+
+    mesg_public_get_text_file: (mesg) =>
+        @get_public_project mesg, (err, project) =>
+            if err
+                return
+            project.read_file
+                path    : mesg.path
+                maxsize : 1000000  # restrict to 1MB -- for now
+                cb      : (err, data) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.public_text_file_contents(id:mesg.id, data:data))
 
 
     ################################################
