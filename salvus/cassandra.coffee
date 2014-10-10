@@ -91,7 +91,9 @@ exports.inet_to_str = (r) -> [r[0], r[1], r[2], r[3]].join('.')
 
 #########################################################################
 
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'task_list_id', 'hide_from_accounts'].concat(PROJECT_GROUPS)
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'hide_from_accounts'].concat(PROJECT_GROUPS)
+
+exports.PUBLIC_PROJECT_COLUMNS = ['project_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted']
 
 exports.create_schema = (conn, cb) ->
     t = misc.walltime()
