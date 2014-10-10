@@ -1264,6 +1264,7 @@ class Client extends EventEmitter
         #   *NOTE*:  on failure, if mesg.id is defined, then client will receive an error message; the function
         #            calling get_project does *NOT* have to send the error message back to the client!
 
+
         err = undefined
         if not mesg.project_id?
             err = "mesg must have project_id attribute -- #{to_safe_str(mesg)}"
@@ -1276,7 +1277,8 @@ class Client extends EventEmitter
             cb(err)
             return
 
-        project = @_project_cache?[mesg.project_id]
+        key = mesg.project_id + permission
+        project = @_project_cache?[key]
         if project?
             # Use the cached project so we don't have to re-verify authentication for the user again below, which
             # is very expensive.  This cache does expire, in case user is kicked out of the project.
@@ -1331,8 +1333,8 @@ class Client extends EventEmitter
                 else
                     if not @_project_cache?
                         @_project_cache = {}
-                    @_project_cache[mesg.project_id] = project
-                    setTimeout((()=>delete @_project_cache[mesg.project_id]), CACHE_PROJECT_AUTH_MS)  # cache for a while
+                    @_project_cache[key] = project
+                    setTimeout((()=>delete @_project_cache[key]), CACHE_PROJECT_AUTH_MS)  # cache for a while
                     cb(undefined, project)
         )
 
@@ -2212,6 +2214,7 @@ class Client extends EventEmitter
                     if err
                         @error_to_client(id:mesg.id, error:"no project with id #{mesg.project_id} available")
                     else
+                        info.read_only = true
                         @push_to_client(message.public_project_info(id:mesg.id, info:info))
 
     mesg_public_get_directory_listing: (mesg) =>
@@ -3255,9 +3258,7 @@ user_has_write_access_to_project = (opts) ->
     user_is_in_project_group(opts)
 
 user_has_read_access_to_project = (opts) ->
-    # read access is granted if *either* (1) project is public, or
-    # (2) user is in any of the groups listed below.  So we query
-    # simultaneously for both conditions.
+    # Read access is granted if user is in any of the groups listed below (owner, collaborator, or *viewer*).
     #dbg = (m) -> winston.debug("user_has_read_access_to_project #{opts.project_id}, #{opts.account_id}; #{m}")
     main_cb = opts.cb
     done = false
@@ -3274,19 +3275,6 @@ user_has_read_access_to_project = (opts) ->
                         done = true
                     cb()
             user_is_in_project_group(opts)
-        (cb) ->
-            database.project_is_public
-                project_id  : opts.project_id
-                consistency : cql.types.consistencies.one
-                cb          : (err, is_public) ->
-                    if err
-                        cb(err)
-                    else
-                        if not done and is_public
-                            #dbg("yes, since is public")
-                            main_cb(undefined, true)
-                            done = true
-                        cb()
     ], (err) ->
         #dbg("nope, since neither in group nor public")
         if not done
