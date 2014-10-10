@@ -1527,6 +1527,7 @@ class Client extends EventEmitter
                     if info.hide_from_accounts?
                         info.hidden = @account_id in info.hide_from_accounts
                         delete info.hide_from_accounts
+                    info.public_access = false
                     return info
 
                 project.get_info (err, info) =>
@@ -2214,7 +2215,7 @@ class Client extends EventEmitter
                     if err
                         @error_to_client(id:mesg.id, error:"no project with id #{mesg.project_id} available")
                     else
-                        info.read_only = true
+                        info.public_access = true
                         @push_to_client(message.public_project_info(id:mesg.id, info:info))
 
     mesg_public_get_directory_listing: (mesg) =>
