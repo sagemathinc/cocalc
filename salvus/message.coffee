@@ -304,7 +304,7 @@ message
     event        : 'codemirror_write_to_disk'
     id           : undefined
     session_uuid : undefined
-    
+
 # local_hub --> hub --> client
 message
     event        : 'codemirror_wrote_to_disk'
@@ -1393,3 +1393,70 @@ message
 message
     event : 'pong'
     id    : undefined
+
+
+
+#############################################
+# Reading listings and files from projects
+# without invoking the project server and
+# write auth requirement.  Instead the given
+# path in the project must be public.  These
+# functions don't even assume the client has
+# logged in.
+#############################################
+
+# return a JSON object with all data that is
+# meant to be publically available about this project,
+# who owns it, the title/description, etc.
+message
+    event         : 'public_get_project_info'
+    id            : undefined
+    project_id    : required
+
+message
+    event         : 'public_project_info'
+    id            : undefined
+    info          : required
+
+# public request of listing of files in a project.
+message
+    event         : 'public_get_directory_listing'
+    id            : undefined
+    project_id    : required
+    path          : required
+    hidden        : false   # show hidden files
+    time          : false   # sort by timestamp, with newest first?
+    start         : 0
+    limit         : -1
+
+message
+    event         : 'public_directory_listing'
+    id            : undefined
+    result        : required
+
+# public request of contents of a text file in project
+message
+    event         : 'public_get_text_file'
+    id            : undefined
+    project_id    : required
+    path          : required
+
+message
+    event         : 'public_text_file_contents'
+    id            : undefined
+    data          : required
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
