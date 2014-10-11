@@ -501,11 +501,12 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         #console.log("connect: constructor")
         @connect (err) =>
             if err
+                err = misc.to_json(err)  # convert to string
                 if err.indexOf("ENOENT") != -1
                     bootbox.alert "<h3>Unable to open '#{@filename}'</h3> - file does not exist", () =>
                         @editor.editor.close(@filename)
                 else
-                    bootbox.alert "<h3>Unable to open '#{@filename}'</h3> - #{misc.to_json(err)}", () =>
+                    bootbox.alert "<h3>Unable to open '#{@filename}'</h3> - #{err}", () =>
                         @editor.editor.close(@filename)
             else
                 @ui_synced(false)

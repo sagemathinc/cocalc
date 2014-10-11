@@ -135,36 +135,25 @@ move_path_dialog = new Dialog
 
 class ProjectPage
     constructor: (@project) ->
+
+        # whether or not we have full access to the project or only very limited
+        # public access (since project is public)
+        @public_access = !!@project.public_access
+
+        # the html container for everything in the project.
         @container = templates.find(".salvus-project").clone()
         @container.data('project', @)
         $("body").append(@container)
         # ga('send', 'event', 'project', 'open', 'project_id', @project.project_id, {'nonInteraction': 1})
 
-        # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
-        @container.top_navbar
-            id    : @project.project_id
-            label : @project.project_id
-            icon  : 'fa-edit'
-            onclose : () =>
-                @editor?.close_all_open_files()
-                @save_browser_local_data()
-                delete project_pages[@project.project_id]
-                @project_log?.disconnect_from_session()
-                clearInterval(@_update_last_snapshot_time)
-            onshow: () =>
-                if @project?
-                    document.title = "Project - #{@project.title}"
-                    @push_state()
-                @editor?.refresh()
+        if @public_access
+            @container.find(".salvus-project-write-access").hide()
+            @container.find(".salvus-project-public-access").show()
+        else
+            @container.find(".salvus-project-write-access").show()
+            @container.find(".salvus-project-public-access").hide()
 
-
-            onfullscreen: (entering) =>
-                if @project?
-                    if entering
-                        @hide_tabs()
-                    else
-                        @show_tabs()
-                    $(window).resize()
+        @init_new_tab_in_navbar()
 
         $(window).resize () => @window_resize()
         @_update_file_listing_size()
@@ -189,7 +178,6 @@ class ProjectPage
         @init_file_search()
 
         @init_new_file_tab()
-
         @init_refresh_files()
         @init_hidden_files_icon()
         @init_trash_link()
@@ -312,6 +300,34 @@ class ProjectPage
 
         @init_file_sessions()
 
+    init_new_tab_in_navbar: () =>
+        # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
+        @container.top_navbar
+            id    : @project.project_id
+            label : @project.project_id
+            icon  : 'fa-edit'
+
+            onclose : () =>
+                @editor?.close_all_open_files()
+                @save_browser_local_data()
+                delete project_pages[@project.project_id]
+                @project_log?.disconnect_from_session()
+                clearInterval(@_update_last_snapshot_time)
+
+            onshow: () =>
+                if @project?
+                    document.title = "Project - #{@project.title}"
+                    @push_state()
+                @editor?.refresh()
+
+            onfullscreen: (entering) =>
+                if @project?
+                    if entering
+                        @hide_tabs()
+                    else
+                        @show_tabs()
+                    $(window).resize()
+
     init_sortable_file_list: () =>
         # make the list of open files user-sortable.
         if @_file_list_is_sortable
@@ -355,13 +371,14 @@ class ProjectPage
     load_target: (target, foreground=true) =>
         #console.log("project -- load_target=#{target}")
         segments = target.split('/')
+        #console.log("segments=",segments)
         switch segments[0]
             when 'files'
                 if target[target.length-1] == '/'
                     # open a directory
-                    @display_tab("project-file-listing")
-                    @current_path = target.slice(0,target.length-1).split('/').slice(1)
+                    @current_path = segments.slice(1, segments.length-1)
                     @update_file_list_tab()
+                    @display_tab("project-file-listing")
                 else
                     # open a file
                     @display_tab("project-editor")
@@ -1404,7 +1421,6 @@ class ProjectPage
             return false
 
     _update_file_list_tab: (no_focus, cb) =>
-
         spinner = @container.find(".project-file-listing-spinner")
         timer = setTimeout( (() -> spinner.show().spin()), 1000 )
 
@@ -1437,7 +1453,11 @@ class ProjectPage
 
         tm = misc.walltime()
         #console.log("calling project_directory_listing with path=#{path}")
-        salvus_client.project_directory_listing
+        if @public_access
+            f = salvus_client.public_project_directory_listing
+        else
+            f = salvus_client.project_directory_listing
+        f
             project_id : @project.project_id
             path       : path
             time       : @_sort_by_time

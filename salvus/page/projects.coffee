@@ -8,6 +8,7 @@
 {top_navbar}    = require('top_navbar')
 {alert_message} = require('alerts')
 misc            = require('misc')
+{required, defaults} = misc
 {project_page}  = require('project')
 {human_readable_size, html_to_text} = require('misc_page')
 {account_settings} = require('account')
@@ -240,15 +241,21 @@ create_project_item = (project) ->
         u = '  ' + users.join(', ')
     item.find(".projects-users-list").text(u)
 
-    item.find(".projects-users").click () =>
-        proj = open_project(project, item)
-        proj.display_tab('project-settings')
-        proj.container.find(".project-add-collaborator-input").focus()
-        collab = proj.container.find(".project-collaborators-box")
-        collab.css(border:'2px solid red')
-        setTimeout((()->collab.css(border:'')), 5000)
-        collab.css('box-shadow':'8px 8px 4px #888')
-        setTimeout((()->collab.css('box-shadow':'')), 5000)
+    item.find(".projects-users").click () ->
+        open_project
+            project : project
+            item    : item
+            cb      : (err, proj) ->
+                if err
+                    alert_message(type:"error", message:err)
+                    return
+                proj.display_tab('project-settings')
+                proj.container.find(".project-add-collaborator-input").focus()
+                collab = proj.container.find(".project-collaborators-box")
+                collab.css(border:'2px solid red')
+                setTimeout((()->collab.css(border:'')), 5000)
+                collab.css('box-shadow':'8px 8px 4px #888')
+                setTimeout((()->collab.css('box-shadow':'')), 5000)
         return false
 
     if not project.location  # undefined or empty string
@@ -257,7 +264,12 @@ create_project_item = (project) ->
         item.find(".projects-location").append(template_project_deploying.clone())
 
     item.click (event) ->
-        open_project(project, item)
+        open_project
+            project : project
+            item    : item
+            cb      : (err) ->
+                if err
+                    alert_message(type:"error", message:err)
         return false
     return item
 
@@ -413,23 +425,46 @@ update_hashtag_bar = () ->
 
 ## end hashtag code
 
-exports.open_project = open_project = (project, item) ->
+exports.open_project = open_project = (opts) ->
+    opts = defaults opts,
+        project : required
+        item    : undefined
+        target  : undefined
+        cb      : required   # cb(err, project)
+
+    project = opts.project
     if typeof(project) == 'string'
         # actually a project id
         x = undefined
-        for p in project_list
-            if p.project_id == project
-                x = p
-                break
+        if project_list?
+            for p in project_list
+                if p.project_id == project
+                    x = p
+                    break
         if not x?
-            # have to get from database.
+            # have to get info from database.
             salvus_client.project_info
                 project_id : project
                 cb         : (err, p) ->
                     if err
-                        alert_message(type:"error", message:"Unknown project with id '#{project}'")
+                        # try again as a public project
+                        salvus_client.public_project_info
+                            project_id : project
+                            cb         : (err, p) ->
+                                if err
+                                    opts.cb("Unknown project with id '#{project}'")
+                                else
+                                    open_project
+                                        project : p
+                                        item    : opts.item
+                                        target  : opts.target
+                                        cb      : opts.cb
                     else
-                        open_project(p)
+                        open_project
+                            project : p
+                            item    : opts.item
+                            target  : opts.target
+                            cb      : opts.cb
             return
         else
             project = x
@@ -437,31 +472,28 @@ exports.open_project = open_project = (project, item) ->
     proj = project_page(project)
     top_navbar.resize_open_project_tabs()
     top_navbar.switch_to_page(project.project_id)
+    if opts.target?
+        proj.load_target(opts.target)
 
     if not project.bup_location?
         alert_message
-            type:"info"
-            message:"Opening project #{project.title}... (this takes about 30 seconds)"
-            timeout: 15
-        if item?
-            item.find(".projects-location").html("<i class='fa-spinner fa-spin'> </i>restoring...")
+            type    : "info"
+            message : "Opening project #{project.title}... (this takes about 30 seconds)"
+            timeout : 15
+        opts.item?.find(".projects-location").html("<i class='fa-spinner fa-spin'> </i>restoring...")
         salvus_client.project_info
             project_id : project.project_id
             cb         : (err, info) ->
                 if err
-                    alert_message(type:"error", message:"error opening project -- #{err}", timeout:6)
-                    if item?
-                        item.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
-                    return
-                if not info?.bup_location?
-                    if item?
-                        item.find(".projects-location").html("(none)")
+                    opts.item?.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
+                    opts.cb("error opening project -- #{err}")
                 else
-                    project.location = info.bup_location
-                    if item?
-                        item.find(".projects-location").text("")
-    return proj
-
+                    if not info?.bup_location?
+                        opts.item?.find(".projects-location").html("(none)")
+                    else
+                        project.location = info.bup_location
+                        opts.item?.find(".projects-location").text("")
+                    opts.cb(undefined, proj)
 
 ################################################
 # Create a New Project
@@ -542,38 +574,15 @@ exports.load_target = load_target = (target) ->
         top_navbar.switch_to_page("projects")
         return
     segments = target.split('/')
-    project = undefined
-    update_project_list () ->
-        if misc.is_valid_uuid_string(segments[0])
-            t = segments.slice(1).join('/')
-            project_id = segments[0]
-            for p in project_list
-                if p.project_id == project_id
-                    project = p
-                    open_project(p).load_target(t)
-                    return
-            # have to get from database.
-            salvus_client.project_info
-                project_id : project_id
-                cb         : (err, p) ->
-                    if err
-                        alert_message(type:"error", message:err)
-                    else
-                        open_project(p).load_target(t)
-        ###
-        else
-            t         = segments.slice(2).join('/')
-            ownername = segments[0]
-            name      = segments[1]
-            for p in project_list
-                if p.ownername == ownername and p.name == name
-                                        open_project(p).load_target(t)
-                    return
-            # have to get from database.
-            alert_message(type:"error", message:"You do not have access to the project '#{owner}/#{projectname}.")
-            return
-        ###
-
+    if misc.is_valid_uuid_string(segments[0])
+        t = segments.slice(1).join('/')
+        project_id = segments[0]
+        open_project
+            project : project_id
+            target  : t
+            cb      : (err) ->
+                if err
+                    alert_message(type:"error", message:err)
 
 
 ################################################
