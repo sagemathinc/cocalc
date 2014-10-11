@@ -407,7 +407,8 @@ SAGE_PIP_PACKAGES = [
     'joblib',
     'colorpy',
     'rootpy',    # supports ROOT data analysis framework
-    'tabulate'
+    'tabulate',
+    'goslate'    # google translate api -- http://pythonhosted.org/goslate/
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
