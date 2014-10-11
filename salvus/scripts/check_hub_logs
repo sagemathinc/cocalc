@@ -13,8 +13,12 @@ def count(f, s, lines):
         c = "tail -n %s %s"%(lines, fname)
     else:
         c = "cat %s"%fname
-    c += " | grep '%s' |wc -l"%s
-    return int(os.popen(c).read())
+    # exclude 'Error: read ' since those are caused by db driver and aren't worth worrying about (they don't seem to cause trouble)
+    c += " | grep '%s' | grep -v 'Error: read ' | wc -l"%s
+    #print c
+    n = int(os.popen(c).read())
+    #print n
+    return n
 
 def check(num):
     strings = [('timed out with no response',num), ('PoolConnectionError',num), ('debug: Uncaught exception:',num)]
