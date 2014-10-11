@@ -44,4 +44,14 @@ salvus/src/*.tgz
 
 salvus/conf/tinc_hosts/
 
+*.aux
+*.out
+*.pdf
+*.synctex.gz
+*.toc
+*.term
+*.sagews
+
+
+
 
