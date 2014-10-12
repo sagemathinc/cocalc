@@ -126,21 +126,17 @@ $(".projects-search-form-input-clear").click () =>
 #$(".projects").find(".form-search").find("button").click((event) -> update_project_view(); return false;)
 
 select_filter_button = (which) ->
-    for w in ['all', 'public', 'private', 'deleted', 'hidden']
+    for w in ['all', 'deleted', 'hidden']
         a = $("#projects-#{w}-button")
         if w == which
             a.removeClass("btn-info").addClass("btn-warning")
         else
             a.removeClass("btn-warning").addClass("btn-info")
 
-only_public  = false
-only_private = false
 only_deleted = false
 only_hidden  = false
 
 $("#projects-all-button").click (event) ->
-    only_public  = false
-    only_private = false
     only_deleted = false
     only_hidden  = false
     select_filter_button('all')
@@ -148,30 +144,9 @@ $("#projects-all-button").click (event) ->
     update_project_list () ->
         update_project_view()
 
-$("#projects-public-button").click (event) ->
-    only_public  = true
-    only_private = false
-    only_deleted = false
-    only_hidden  = false
-    select_filter_button('public')
-    update_project_view()
-    update_project_list () ->
-        update_project_view()
-
-$("#projects-private-button").click (event) ->
-    only_public  = false
-    only_private = true
-    only_deleted = false
-    only_hidden  = false
-    select_filter_button('private')
-    update_project_view()
-    update_project_list () ->
-        update_project_view()
 
 $("#projects-deleted-button").click (event) ->
     only_deleted = true
-    only_private = false
-    only_public  = false
     only_hidden  = false
     select_filter_button('deleted')
     update_project_view()
@@ -180,8 +155,6 @@ $("#projects-deleted-button").click (event) ->
 
 $("#projects-hidden-button").click (event) ->
     only_deleted = false
-    only_private = false
-    only_public  = false
     only_hidden  = true
     select_filter_button('hidden')
     update_project_view()
@@ -199,15 +172,6 @@ template_project_deploying = $(".projects-location-states").find(".projects-loca
 
 create_project_item = (project) ->
     item = template.clone().show().data("project", project)
-
-    if project.public
-        item.find(".projects-public-icon").show()
-        item.find(".projects-private-icon").hide()
-        item.removeClass("private-project").addClass("public-project")
-    else
-        item.find(".projects-private-icon").show()
-        item.find(".projects-public-icon").hide()
-        item.addClass("private-project").removeClass("public-project")
 
     # NOTE: in some places, project title is HTML, but showing arbitrary HTML is danerous, due to
     # (1) cross site scripting, and (2) anybody can add anybody else as a project collaborator right now, without any acceptance (will change)
@@ -288,10 +252,6 @@ exports.matching_projects = matching_projects = (query) ->
         desc = "Showing "
         if only_deleted
             desc += "deleted projects "
-        else if only_public
-            desc += "public projects "
-        else if only_private
-            desc += "private projects "
         else if only_hidden
             desc += "hidden projects "
         else
@@ -313,14 +273,6 @@ exports.matching_projects = matching_projects = (query) ->
         for project in v
             if not match(project.search)
                 continue
-
-            if only_public
-                if not project.public
-                    continue
-
-            if only_private
-                if project.public
-                    continue
 
             if only_deleted
                 if not project.deleted
@@ -508,8 +460,6 @@ description_input = $("#projects-create_project-description")
 
 close_create_project = () ->
     create_project.modal('hide').find('input').val('')
-    $("#projects-create_project-public").attr("checked", true)
-    $("#projects-create_project-private").attr("checked", false)
     #$("#projects-create_project-location").val('')
 
 create_project.find(".close").click((event) -> close_create_project())

@@ -10,18 +10,9 @@
                     <div class="row">
                         <div class="col-sm-7">
                             <span class="btn-group">
-
                                 <button class="btn btn-warning btn-sm" id="projects-all-button">
                                     <i class="fa fa-tasks"></i> Default
                                 </button>
-                                <!--
-                                <button class="btn btn-info btn-sm" id="projects-public-button">
-                                    <i class="fa fa-eye"></i> Public
-                                </button>
-                                <button class="btn btn-info btn-sm" id="projects-private-button">
-                                    <i class="fa fa-eye-slash"></i> Private
-                                </button>
-                                -->
                                 <button class="btn btn-info btn-sm" id="projects-deleted-button">
                                     <i class="fa fa-trash-o"></i> Deleted
                                 </button>
@@ -58,12 +49,7 @@
 
             <div class="row well project-link hide projects-project_list_item_template">
                 <div class="row">
-                    <div class="col-sm-1" style="font-size: 16pt;">
-                        <i class="fa fa-eye projects-public-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                        <i class="fa fa-lock projects-private-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                        <!--<span class="projects-active hide"><i class="fa fa-bolt"> </i></span>-->
-                    </div>
-                    <div class="col-sm-3">
+                    <div class="col-sm-4">
                         <a href="" class="projects-title"></a>
                     </div>
                     <div class="smallish col-sm-2">
@@ -136,20 +122,6 @@
                     <span class="hidden-xs lighten">You can change the title and description at any time later.</span>
                 </div>
 
-                <!-- public? -->
-                <div class="hide">
-                    <hr class="hidden-xs">
-                    <div class="checkbox"><label class="">
-                        <input type="radio" name="projects-create_project-public" value="public" id="projects-create_project-public">
-                        <span style="font-size:14pt; font-weight:bold"><i class="fa fa-eye"></i> Public (not yet available)</span><br>
-                        <span class="hidden-xs lighten">Anyone can see the contents of this project. You choose who can modify it.</span>
-                    </label></div>
-                    <div class="checkbox"><label class="">
-                        <input type="radio" name="projects-create_project-public" value="private" checked="">
-                        <span style="font-size:14pt; font-weight:bold"><i class="fa fa-lock"></i> Private</span><br>
-                        <span class="hidden-xs lighten">You choose who can see and modify contents of this project.</span>
-                    </label></div>
-                </div>
             </div>
             <!-- do it -->
             <div class="modal-footer">

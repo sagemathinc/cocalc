@@ -869,19 +869,6 @@ class ProjectPage
         if not @project?
             return
 
-        if @project.public
-            @container.find(".project-public").show()
-            @container.find(".project-private").hide()
-            @container.find(".project-heading-well").removeClass("private-project").addClass("public-project")
-            @container.find(".project-settings-make-public").hide()
-            @container.find(".project-settings-make-private").show()
-        else
-            @container.find(".project-public").hide()
-            @container.find(".project-private").show()
-            @container.find(".project-heading-well").addClass("private-project").removeClass("public-project")
-            @container.find(".project-settings-make-public").show()
-            @container.find(".project-settings-make-private").hide()
-
         @container.find(".project-project_title").html(@project.title).mathjax()
         @container.find(".project-project_description").html(@project.description).mathjax()
 

@@ -24,14 +24,6 @@
     background-color:#efe;
 }
 
-.private-project {
-    background-color:lightyellow;
-}
-
-.public-project {
-    background-color:white;
-}
-
 .projects-title {
     font-weight: bold;
     max-height: 7em;
