@@ -304,6 +304,8 @@ class exports.Editor
         @project_id = opts.project_page.project.project_id
         @element = templates.find(".salvus-editor").clone().show()
 
+        # read-only public access to project only
+        @public_access = opts.project_page.public_access
 
         @nav_tabs = @element.find(".nav-pills")
 
@@ -436,32 +438,63 @@ class exports.Editor
             cb?("BUG -- open(undefined) makes no sense")
             return
 
-        if filename == ".sagemathcloud.log"
-            cb?("You can only edit '.sagemathcloud.log' via the terminal.")
+        if @tabs[filename]?
+            cb?(false, filename)
             return
 
-        if filename_extension(filename).toLowerCase() == "sws"   # sagenb worksheet
-            alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{filename}...")
-            @convert_sagenb_worksheet filename, (err, sagews_filename) =>
-                if not err
-                    @open(sagews_filename, cb)
+        if not @public_access
+            # following only makes sense for read-write project access
+
+            if filename == ".sagemathcloud.log"
+                cb?("You can only edit '.sagemathcloud.log' via the terminal.")
+                return
+
+            if filename_extension(filename).toLowerCase() == "sws"   # sagenb worksheet
+                alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{filename}...")
+                @convert_sagenb_worksheet filename, (err, sagews_filename) =>
+                    if not err
+                        @open(sagews_filename, cb)
+                    else
+                        cb?("Error converting Sage Notebook sws file -- #{err}")
+                return
+
+            if filename_extension(filename).toLowerCase() == "docx"   # Microsoft Word Document
+                alert_message(type:"info", message:"Opening converted plane text file instead of '#{filename}...")
+                @convert_docx_file filename, (err, new_filename) =>
+                    if not err
+                        @open(new_filename, cb)
+                    else
+                        cb?("Error converting Microsoft Docx file -- #{err}")
+                return
+
+        content = undefined
+        extra_opts = {}
+        async.series([
+            (c) =>
+                if @public_access
+                    salvus_client.public_get_text_file
+                        project_id : @project_id
+                        path       : filename
+                        cb         : (err, data) =>
+                            if err
+                                c(err)
+                            else
+                                content = data
+                                extra_opts.read_only = true
+                                c()
                 else
-                    cb?("Error converting Sage Notebook sws file -- #{err}")
-            return
+                    c()
+        ], (err) =>
+            if err
+                cb?(err)
+            else
+                @tabs[filename] = @create_tab
+                    filename   : filename
+                    content    : content
+                    extra_opts : extra_opts
+                cb?(false, filename)
+        )
 
-        if filename_extension(filename).toLowerCase() == "docx"   # Microsoft Word Document
-            alert_message(type:"info", message:"Opening converted plane text file instead of '#{filename}...")
-            @convert_docx_file filename, (err, new_filename) =>
-                if not err
-                    @open(new_filename, cb)
-                else
-                    cb?("Error converting Microsoft Docx file -- #{err}")
-            return
-
-        if not @tabs[filename]?   # if it is defined, then nothing to do -- file already loaded
-            @tabs[filename] = @create_tab(filename:filename)
-
-        cb?(false, filename)
 
     convert_sagenb_worksheet: (filename, cb) =>
         salvus_client.exec
@@ -494,11 +527,11 @@ class exports.Editor
             x = file_associations['']
         return x
 
-    # This is just one of thetabs in the recent files list, not at the very top
     create_tab: (opts) =>
         opts = defaults opts,
             filename     : required
             content      : undefined
+            extra_opts   : undefined
 
         filename = opts.filename
         if @tabs[filename]?
@@ -507,17 +540,14 @@ class exports.Editor
         content = opts.content
         opts0 = @file_options(filename, content)
         extra_opts = copy(opts0.opts)
-        if opts.session_uuid?
-            extra_opts.session_uuid = opts.session_uuid
+
+        if opts.extra_opts?
+            for k, v of opts.extra_opts
+                extra_opts[k] = v
 
         link = templates.find(".salvus-editor-filename-pill").clone().show()
         link_filename = link.find(".salvus-editor-tab-filename")
         link_filename.text(trunc(filename,64))
-
-        link.find(".salvus-editor-close-button-x").click () =>
-            if ignore_clicks
-                return false
-            @remove_from_recent(filename)
 
         containing_path = misc.path_split(filename).head
         ignore_clicks = false
@@ -602,9 +632,19 @@ class exports.Editor
 
         # Some of the editors below might get the content later and will call @file_options again then.
         switch editor_name
-            # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
+            # TODO: JSON, since I have that jsoneditor plugin...
+            # codemirror is the default...
             when 'codemirror', undefined
-                editor = codemirror_session_editor(@, filename, extra_opts)
+                if opts.content? and extra_opts.read_only
+                    # This is used only for public access to files
+                    editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
+                    if filename_extension(filename) == 'sagews'
+                        editor.syncdoc = new (syncdoc.SynchronizedWorksheet)(editor, {static_viewer:true})
+                        editor.on 'show', () =>
+                            editor.syncdoc.process_sage_updates()
+                else
+                    # realtime synchronized editing session
+                    editor = codemirror_session_editor(@, filename, extra_opts)
             when 'terminal'
                 editor = new Terminal(@, filename, content, extra_opts)
             when 'worksheet'
@@ -691,6 +731,7 @@ class exports.Editor
                     delete tab.open_file_pill
                 tab.editor()?.disconnect_from_session()
                 tab.close_editor()
+                delete @tabs[filename]
 
             @_currently_closing_files = true
             if @open_file_tabs().length < 1
@@ -797,11 +838,6 @@ class exports.Editor
         tab.close_tab?()
         delete @tabs[filename]
         @update_counter()
-
-    remove_from_recent: (filename) =>
-        # Hide from the DOM.
-        # This same tab object also stores the top tab and editor, so we don't just delete it.
-        @tabs[filename]?.link.hide()
 
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>
@@ -1260,6 +1296,9 @@ class CodeMirrorEditor extends FileEditor
         @init_change_event()
         @init_draggable_splits()
 
+        if opts.read_only
+            @set_readonly_ui()
+
     init_draggable_splits: () =>
         @_layout1_split_pos = @local_storage("layout1_split_pos")
         @_layout2_split_pos = @local_storage("layout2_split_pos")
@@ -1311,6 +1350,7 @@ class CodeMirrorEditor extends FileEditor
     # add something visual to the UI to suggest that the file is read only
     set_readonly_ui: () =>
         @element.find("a[href=#save]").text('Readonly').addClass('disabled')
+        @element.find(".salvus-editor-write-only").hide()
 
     set_cursor_center_focus: (pos, tries=5) =>
         if tries <= 0
@@ -2723,10 +2763,9 @@ class HistoryEditor extends FileEditor
         @history_editor.show()
 
         if @ext == "sagews"
-            # not finished yet
             opts0 =
                 allow_javascript_eval : false
-                history_browser       : true
+                static_viewer         : true
                 read_only             : true
             @worksheet = new (syncdoc.SynchronizedWorksheet)(@history_editor, opts0)
 

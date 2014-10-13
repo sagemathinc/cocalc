@@ -83,9 +83,9 @@
                 </span>
                 <br><br>
                 <span class="salvus-project-published-desc hide">
-                    <input type="text" placeholder="Description of share..." class="form-control hide" style="width:50%;display: inline;">
-                    <a class="btn btn-lg btn-primary hide" href="#unpublish-path"><i class="fa fa-shield"> </i> Stop Sharing Publicly</a>
-                    <a class="btn btn-lg btn-primary hide" href="#publish-path"><i class="fa fa-share-square-o"> </i> Share Publicly</a>
+                    <input type="text" placeholder="Description of share..." class="form-control hide" style="width:50%;display:inline;paddi4px;">
+                    <a class="btn btn-primary hide" href="#unpublish-path"><i class="fa fa-shield"> </i> Stop Sharing Publicly</a>
+                    <a class="btn btn-primary hide" href="#publish-path"><i class="fa fa-share-square-o"> </i> Share Publicly</a>
                     <span class="salvus-project-in-published hide">Public because it is contained in <span></span>.</span>
                 </span>
             </div>
@@ -305,17 +305,13 @@
 
     <div class="container-fluid salvus-project">
 
-            <div class="pull-right salvus-project-public-access">
-                <span class="lighten">
-                    (Public Access)
-                </span>
-            </div>
-
 
         <div class="row" style="width:100%">   <!-- TODO: width 100% probably hack around misues of Bootstrap -- without get horiz scrollbar -->
             <!-- Displays the current path -->
-            <div class="hidden-xs project-file-top-current-path-container">
-                <a href="#project-file-listing"><span class="project-file-top-current-path-display"></span></a>
+            <div class="salvus-project-write-access">
+                <div class="hidden-xs project-file-top-current-path-container">
+                    <a href="#project-file-listing"><span class="project-file-top-current-path-display"></span></a>
+                </div>
             </div>
             <!--<a class="pull-right salvus-project-status-indicator-button pill">
                 <i class="project-control-icon fa fa-wrench"> </i>
@@ -406,12 +402,12 @@
 
                     <div class="project-file-listing-buttons">
                         <!-- Snapshots link -->
-                        <div class="project-snapshot pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
+                        <div class="project-snapshot pull-right salvus-project-write-access" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
                             <a href="#snapshot" data-toggle="tooltip" data-placement="bottom" title="Recover  past versions of your files." style="margin-left: 1ex;"><i class="fa fa-camera-retro"> </i> <span style="font-size:14px">&nbsp;Snapshots</span><div class="project-snapshot-last-timeago"><span></span></div></a>
                         </div>
 
                         <!-- Trash can link -->
-                        <div class="project-trash-can pull-right" style="padding-top:4px; font-size:14pt">
+                        <div class="project-trash-can pull-right salvus-project-write-access" style="padding-top:4px; font-size:14pt">
                             <a href="#trash" data-toggle="tooltip" data-placement="bottom" title="Show the trash can."><i class="fa fa-trash-o"> </i></a>
                             <a href="#empty-trash" class="hide btn btn-sm btn-danger" data-toggle="tooltip" data-placement="left" title="Empty the trash."><i class="fa fa-trash-o"></i>&nbsp;</a>
                         </div>
@@ -436,7 +432,7 @@
 
                     <!-- command line prompt -->
                     <div class="project-command-line pull-right col-sm-4">
-                        <input class="project-command-line-input form-control" type="text" placeholder="Terminal command..." data-toggle="tooltip" data-placement="top" title="Run command line in the current directory.">
+                        <input class="project-command-line-input form-control salvus-project-write-access" type="text" placeholder="Terminal command..." data-toggle="tooltip" data-placement="top" title="Run command line in the current directory.">
                         <div class="project-command-line-output">
                             <div class="project-command-line-spinner hide"></div>
                             <pre class="project-command-line-stdout  hide"></pre>
