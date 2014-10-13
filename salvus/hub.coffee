@@ -2297,6 +2297,42 @@ class Client extends EventEmitter
                             @push_to_client(message.public_text_file_contents(id:mesg.id, data:data))
 
 
+    mesg_publish_path: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if not err
+                database.publish_path
+                    project_id  : mesg.project_id
+                    path        : mesg.path
+                    description : mesg.description
+                    cb          : (err) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:"error publishing path -- #{err}")
+                        else
+                            @push_to_client(message.success(id:mesg.id))
+
+    mesg_unpublish_path: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if not err
+                database.unpublish_path
+                    project_id  : mesg.project_id
+                    path        : mesg.path
+                    cb          : (err) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:"error publishing path -- #{err}")
+                        else
+                            @push_to_client(message.success(id:mesg.id))
+
+    mesg_get_public_paths: (mesg) =>
+        database.get_public_paths
+            project_id : mesg.project_id
+            cb         : (err, paths) =>
+                if err
+                    @error_to_client(id:mesg.id, error:"error getting published paths -- #{err}")
+                else
+                    @push_to_client(message.public_paths(id:mesg.id, paths:paths))
+
+
+
     ################################################
     # Task list messages..
     ################################################
