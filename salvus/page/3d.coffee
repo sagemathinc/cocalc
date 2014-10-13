@@ -854,7 +854,7 @@ exports.render_3d_scene = (opts) ->
                         catch e
                             cb(e)
                 ).fail () ->
-                    cb("error downloading #{url}")
+                    cb("error downloading #{opts.url}")
         (cb) =>
             # do this initialization *after* we create the 3d renderer
             init = (err, s) ->
