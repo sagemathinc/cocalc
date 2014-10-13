@@ -632,10 +632,16 @@ class exports.Editor
 
         # Some of the editors below might get the content later and will call @file_options again then.
         switch editor_name
-            # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
+            # TODO: JSON, since I have that jsoneditor plugin...
+            # codemirror is the default...
             when 'codemirror', undefined
-                if opts.content?
+                if opts.content? and extra_opts.read_only
+                    # This is used only for public access to files
                     editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
+                    if filename_extension(filename) == 'sagews'
+                        editor.syncdoc = new (syncdoc.SynchronizedWorksheet)(editor, {static_viewer:true})
+                        editor.on 'show', () =>
+                            editor.syncdoc.process_sage_updates()
                 else
                     # realtime synchronized editing session
                     editor = codemirror_session_editor(@, filename, extra_opts)
@@ -1344,6 +1350,7 @@ class CodeMirrorEditor extends FileEditor
     # add something visual to the UI to suggest that the file is read only
     set_readonly_ui: () =>
         @element.find("a[href=#save]").text('Readonly').addClass('disabled')
+        @element.find(".salvus-editor-write-only").hide()
 
     set_cursor_center_focus: (pos, tries=5) =>
         if tries <= 0
@@ -2756,10 +2763,9 @@ class HistoryEditor extends FileEditor
         @history_editor.show()
 
         if @ext == "sagews"
-            # not finished yet
             opts0 =
                 allow_javascript_eval : false
-                history_browser       : true
+                static_viewer         : true
                 read_only             : true
             @worksheet = new (syncdoc.SynchronizedWorksheet)(@history_editor, opts0)
 

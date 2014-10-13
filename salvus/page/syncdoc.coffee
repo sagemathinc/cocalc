@@ -952,7 +952,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
 
-        if @opts.history_browser
+        if @opts.static_viewer
+            @readonly = true
             return
 
         opts0 =
@@ -1103,6 +1104,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         opts = defaults opts,
             maxtime : 15
             cb      : undefined
+        if @readonly
+            opts.cb?(); return
         @close_on_action()
         t = misc.walltime()
         async.series([
@@ -1121,6 +1124,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
             restart : false
             maxtime : 60
             cb      : undefined
+        if @readonly
+            opts.cb?(); return
         t = misc.walltime()
         @close_on_action()
         # Set any running cells to not running.
@@ -1155,6 +1160,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         opts = defaults opts,
             maxtime : 60        # (roughly) maximum amount of time to try to restart
             cb      : undefined
+        if @readonly
+            opts.cb?(); return
 
         if opts.maxtime <= 0
             opts.cb?("timed out trying to start Sage worksheet - system may be heavily loaded or Sage is broken.")
@@ -1179,6 +1186,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         opts = defaults opts,
             signal : 2
             cb     : undefined
+        if @readonly
+            opts.cb?(); return
         if not @session_uuid?
             opts.cb?("session_uuid must be set before sending a signal")
             return
@@ -1192,7 +1201,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 opts.cb?(err)
 
     introspect: () =>
-        if @opts.history_browser
+        if @opts.static_viewer
+            return
+        if @readonly
             return
         # TODO: obviously this wouldn't work in both sides of split worksheet.
         cm = @focused_codemirror()
@@ -1258,7 +1269,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         return @_cm_lines = @cm_wrapper().find(".CodeMirror-lines")
 
     pad_bottom_with_newlines: (n) =>
-        if @opts.history_browser
+        if @opts.static_viewer
             return
         cm = @codemirror
         m = cm.lineCount()
@@ -1335,7 +1346,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     if not mark.flagstring?
                         mark.flagstring = ''
                     # only do something if the flagstring changed.
-                    if not @opts.history_browser
+                    if not @opts.static_viewer
                         elt = @elt_at_mark(mark)
                         if FLAGS.execute in flagstring
                             elt.data('execute',FLAGS.execute)
@@ -1496,6 +1507,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
             preparse : true
             uuid     : undefined
 
+        if @readonly
+            opts.cb?(); return
         if opts.uuid?
             uuid = opts.uuid
         else
@@ -1516,11 +1529,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
         return uuid
 
     interact: (output, desc) =>
-        # Create and insert DOM objects corresponding to the interact
+        # Create and insert DOM objects corresponding to this interact
         elt = $("<div class='sagews-output-interact'>")
         interact_elt = $("<span>")
         elt.append(interact_elt)
         output.append(elt)
+
+        if @readonly
+            interact_elt.text("(interacts not available)").addClass('lighten')
+            return
 
         # Call jQuery plugin to make it all happen.
         interact_elt.sage_interact(desc:desc, execute_code:@execute_code, process_output_mesg:@process_output_mesg)

@@ -27,7 +27,7 @@ Editor for files in a project
     <div class="salvus-editor-codemirror well">
         <div class="salvus-editor-codemirror-button-row">
             <div class="salvus-editor-codemirror-button-container">
-                <div class="hidden-xs salvus-editor-chat-title pull-right">
+                <div class="hidden-xs salvus-editor-chat-title salvus-editor-write-only pull-right">
                     <i class="fa fa-caret-down salvus-editor-chat-hide"></i>
                     <i class="fa fa-caret-left hide salvus-editor-chat-show"></i>
                     <i class="fa fa-comments-o salvus-editor-chat-new-chats hide"></i>
@@ -57,12 +57,12 @@ Editor for files in a project
                 </span>
                 <span class="hidden-xs">
                     <span class="salvus-editor-codemirror-worksheet-buttons hide">
-                        <span class="btn-group">
+                        <span class="btn-group salvus-editor-write-only">
                             <a href="#execute" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="right" title="Execute current or selected cells."><i class="fa fa-play"></i> &nbsp;<span class="hidden-sm">Run</span></a>
                             <a href="#interrupt" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="right" title="Interrupt the running Sage process."><i class="fa fa-stop"></i> <span class="hidden-sm">Stop</span></a>
                             <a href="#kill" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process."><i class="fa fa-refresh"></i> <span class="hidden-sm">Restart</span></a>
                         </span>
-                        <span class="btn-group">
+                        <span class="btn-group salvus-editor-write-only">
                             <a href="#toggle-input" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="right" title="Toggle display of input of selected cells."><i class="fa fa-eye-slash"></i></a>
                             <a href="#toggle-output" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="right" title="Toggle display of output of selected cells."><i class="fa fa-adjust"></i></a>
                             <a href="#delete-output" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="right" title="Delete output of selected cells."><i class="fa fa-times-circle"></i></a>
@@ -70,15 +70,15 @@ Editor for files in a project
                     </span>
                 </span>
                 <span class="hidden-xs btn-group editor-btn-group">
-                    <a href="#undo" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Undo"><i class="fa fa-undo"></i></a>
-                    <a href="#redo" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Redo"><i class="fa fa-repeat"></i></a>
-                    <a href="#autoindent" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Autoindent selected text"><i class="fa fa-magic"></i></a>
-                    <a href="#shift-left" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Shift selected text left"><i class="fa fa-outdent"></i></a>
-                    <a href="#shift-right" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Shift selected text right"><i class="fa fa-indent"></i></a>
+                    <a href="#undo" class="btn btn-sm btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Undo"><i class="fa fa-undo"></i></a>
+                    <a href="#redo" class="btn btn-sm btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Redo"><i class="fa fa-repeat"></i></a>
+                    <a href="#autoindent" class="btn btn-sm btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Autoindent selected text"><i class="fa fa-magic"></i></a>
+                    <a href="#shift-left" class="btn btn-sm btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text left"><i class="fa fa-outdent"></i></a>
+                    <a href="#shift-right" class="btn btn-sm btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text right"><i class="fa fa-indent"></i></a>
                     <a href="#search" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Search"><i class="fa fa-search"></i></a>
                     <a href="#prev" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Previous"><i class="fa fa-chevron-up"></i></a>
                     <a href="#next" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Next"><i class="fa fa-chevron-down"></i></a>
-                    <a href="#replace" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Replace"><i class="fa fa-exchange"></i></a>
+                    <a href="#replace" class="btn btn-sm btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Replace"><i class="fa fa-exchange"></i></a>
                     <a href="#split-view" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Split view of document">
                         <i class="fa fa-columns fa-rotate-270 salvus-editor-layout-0"></i>
                         <i class="fa fa-columns salvus-editor-layout-1"></i>
@@ -87,7 +87,7 @@ Editor for files in a project
                     <a href="#decrease-font" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Decrease text size"><i class="fa fa-font" style="font-size:7pt"> </i> </a>
                     <a href="#increase-font" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Increase text size"><i class="fa fa-font" style="font-size:11pt"> </i> </a>
                     <a href="#goto-line" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Go to line"><i class="fa fa-bolt"> </i> </a>
-                    <a href="#print" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
+                    <a href="#print" class="btn btn-sm btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
                 </span>
 
                 <span class="salvus-editor-save-group">
