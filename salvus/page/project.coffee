@@ -1290,36 +1290,37 @@ class ProjectPage
                 path : obj.fullname
             return false
 
-        @is_path_published
-            path : obj.fullname
-            cb   : (err, pub) =>
-                publish = dialog.find(".salvus-project-published-desc")
-                publish.show()
-                if pub? and pub.public_path != obj.fullname
-                    publish.find(".salvus-project-in-published").show().find("span").text(pub.public_path)
-                    return
-                desc = publish.find("input").show()
-                if pub
-                    publish.find("a[href=#unpublish-path]").show().click () =>
-                        dialog.modal('hide')
-                        @unpublish_path
-                            path : obj.fullname
-                        return false
-                    desc.val(pub.description)
-                else
-                    dialog.find("a[href=#publish-path]").show().click () =>
-                        dialog.modal('hide')
-                        @publish_path
-                            path        : obj.fullname
-                            description : desc.val()
-                        return false
-                desc.keydown (evt) =>
-                    if evt.which == 13 and desc.val() # enter and nontrivial
-                        dialog.modal('hide')
-                        # update description
-                        @publish_path
-                            path        : obj.fullname
-                            description : desc.val()
+        if not @public_access
+            @is_path_published
+                path : obj.fullname
+                cb   : (err, pub) =>
+                    publish = dialog.find(".salvus-project-published-desc")
+                    publish.show()
+                    if pub? and pub.public_path != obj.fullname
+                        publish.find(".salvus-project-in-published").show().find("span").text(pub.public_path)
+                        return
+                    desc = publish.find("input").show()
+                    if pub
+                        publish.find("a[href=#unpublish-path]").show().click () =>
+                            dialog.modal('hide')
+                            @unpublish_path
+                                path : obj.fullname
+                            return false
+                        desc.val(pub.description)
+                    else
+                        dialog.find("a[href=#publish-path]").show().click () =>
+                            dialog.modal('hide')
+                            @publish_path
+                                path        : obj.fullname
+                                description : desc.val()
+                            return false
+                    desc.keydown (evt) =>
+                        if evt.which == 13 and desc.val() # enter and nontrivial
+                            dialog.modal('hide')
+                            # update description
+                            @publish_path
+                                path        : obj.fullname
+                                description : desc.val()
 
         dialog.modal()
 
