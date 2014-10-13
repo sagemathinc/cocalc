@@ -1697,6 +1697,41 @@ class exports.Salvus extends exports.Cassandra
             consistency : opts.consistency
             cb          : opts.cb
 
+    get_public_paths: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            consistency : undefined
+            cb          : required
+        @select
+            table       : 'public_paths'
+            where       : {project_id: opts.project_id}
+            columns     : ['path', 'description']
+            objectify   : true
+            consistency : opts.consistency
+            cb          : opts.cb
+
+    publish_path: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            path        : required
+            description : required
+            cb          : required
+        @update
+            table       : 'public_paths'
+            where       : {project_id: opts.project_id, path:opts.path}
+            set         : {description: opts.description}
+            cb          : opts.cb
+
+    unpublish_path: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            path        : required
+            cb          : required
+        @delete
+            table       : 'public_paths'
+            where       : {project_id: opts.project_id, path:opts.path}
+            cb          : opts.cb
+
     # get map {project_group:[{account_id:?,first_name:?,last_name:?}], ...}
     get_project_users: (opts) =>
         opts = defaults opts,

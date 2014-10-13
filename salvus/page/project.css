@@ -552,6 +552,10 @@
    margin-bottom : 1em;
 }
 
+.project-heading-well {
+    background: white;
+}
+
 @media (min-width: 768px) {
     .project-settings-well, .project-heading-well {
         margin-left: 10px;

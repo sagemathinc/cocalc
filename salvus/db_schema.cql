@@ -235,7 +235,7 @@ CREATE TABLE projects (
      account_id       uuid,          // id of original creator of this project
      title            varchar,
      description      varchar,
-     public           boolean,   // whether or not the project is visible to everybody in the world
+     public           boolean,   // whether or not the project is visible to everybody in the world - TODO: NOT USED CURRENTLY
      snapshots_disabled boolean, // if true, do not make snapshots (e.g., because something is weird)
 
      last_edited      timestamp,// timestamp of last modification of the project
@@ -298,6 +298,17 @@ CREATE TABLE recently_modified_projects (
     PRIMARY KEY(ttl, project_id)
 );
 
+
+
+////////////////////////////////////////////
+// public shared documents/paths
+////////////////////////////////////////////
+CREATE TABLE public_paths (
+    project_id  uuid,
+    path        varchar,
+    description varchar,
+    PRIMARY KEY(project_id, path)
+);
 
 
 ////////////////////////////////////////////

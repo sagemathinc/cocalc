@@ -2166,86 +2166,157 @@ class Client extends EventEmitter
     ################################################
     # Public/published projects data
     ################################################
-    get_public_project: (mesg, cb) =>
-        err = undefined
-        if not mesg.project_id?
-            err = "mesg must have project_id attribute -- #{to_safe_str(mesg)}"
-            if mesg.id?
-                @error_to_client(id:mesg.id, error:err)
-            cb(err)
+    path_is_in_public_paths: (path, paths) =>
+        return misc.path_is_in_public_paths(path, paths)
+
+    get_public_project: (opts) =>
+        opts = defaults opts,
+            project_id : undefined
+            path       : undefined
+            use_cache  : true
+            cb         : required
+
+        if not opts.project_id?
+            opts.cb("project_id must be defined")
             return
 
-        project = @_public_project_cache?[mesg.project_id]
-        if project?
-            # Use the cached project so we don't have to re-verify public nature
-            # of project, etc.
-            cb(undefined, project)
-            return
+        if not opts.use_cache
+            # determine if path is public in given project, without using cache to determine paths; this *does* cache the result.
+            database.get_public_paths
+                project_id : opts.project_id
+                cb         : (err, paths) =>
+                    if err
+                        opts.cb(err)
+                    else
+                        if not @_public_project_cache?
+                            @_public_project_cache = {}
+                        project = @_public_project_cache[opts.project_id]?.project  # save in case project known from before
+                        x = @_public_project_cache[opts.project_id] = {paths:paths}
+                        setTimeout((()=>delete @_public_project_cache[opts.project_id]), CACHE_PROJECT_PUBLIC_MS)
+                        if @path_is_in_public_paths(opts.path, paths)
+                            # yes
+                            if not project?
+                                x.project = bup_server.get_project(opts.project_id)
+                            opts.cb(undefined, x.project)
+                        else
+                            # no
+                            opts.cb("path #{opts.path} of project #{opts.project_id} is not public")
+        else
+            # first check if path is public using the cache; if not, will try again not using cache
+            x = @_public_project_cache?[opts.project_id]
+            if x? and @path_is_in_public_paths(opts.path, x.paths)  # cache sufficient to conclude path is public
+                if not x.project?
+                    x.project = bup_server.get_project(opts.project_id)
+                opts.cb(undefined, x.project)
+            else
+                # At this point opts.path isn't in the list in the cache or cache is empty.
+                # We try querying database, since cache isn't good enough to decide.
+                # Note that we are caching a positive decision for CACHE_PROJECT_PUBLIC_MS, but
+                # we always query the database in order to make a negative decision.  This is so
+                # publishing works instantly right after the user makes the path public.
+                @get_public_project
+                    project_id : opts.project_id
+                    path       : opts.path
+                    use_cache  : false
+                    cb         : opts.cb
 
-        database.project_is_public
-            project_id : mesg.project_id
-            cb         : (err, is_public) =>
-                if err
-                    # since this error is public facing, we don't want
-                    # to give a low level database message.
-                    err = "no public project with id #{mesg.project_id} available"
-                if not err and not is_public
-                    err = "project #{mesg.project_id} is not public"
-                if err
-                    if mesg.id?
-                        @error_to_client(id:mesg.id, error:err)
-                    cb(err)
-                    return
-                project = bup_server.get_project(mesg.project_id)
-                if not @_public_project_cache?
-                    @_public_project_cache = {}
-                @_public_project_cache[mesg.project_id] = project
-                setTimeout((()=>delete @_public_project_cache[mesg.project_id]), CACHE_PROJECT_PUBLIC_MS)  # cache for a while
-                cb(undefined, project)
 
     mesg_public_get_project_info: (mesg) =>
-        @get_public_project mesg, (err, project) =>
-            if err
-                return
-            database.get_project_data
-                project_id : mesg.project_id
-                objectify  : true
-                columns    : cass.PUBLIC_PROJECT_COLUMNS
-                cb         : (err, info) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:"no project with id #{mesg.project_id} available")
-                    else
-                        info.public_access = true
-                        @push_to_client(message.public_project_info(id:mesg.id, info:info))
+        @get_public_project
+            project_id : mesg.project_id
+            cb         :  (err, project) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                    return
+                database.get_project_data
+                    project_id : mesg.project_id
+                    objectify  : true
+                    columns    : cass.PUBLIC_PROJECT_COLUMNS
+                    cb         : (err, info) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:"no project with id #{mesg.project_id} available")
+                        else
+                            info.public_access = true
+                            @push_to_client(message.public_project_info(id:mesg.id, info:info))
 
     mesg_public_get_directory_listing: (mesg) =>
-        @get_public_project mesg, (err, project) =>
-            if err
-                return
-             project.directory_listing
-                path    : mesg.path
-                hidden  : mesg.hidden
-                time    : mesg.time
-                start   : mesg.start
-                limit   : mesg.limit
-                cb      : (err, result) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:"no project with id #{mesg.project_id} available")
-                    else
-                        @push_to_client(message.public_directory_listing(id:mesg.id, result:result))
+        if not mesg.path?
+            @error_to_client(id:mesg.id, error:'must specify path')
+            return
+        @get_public_project
+            project_id : mesg.project_id
+            path       : mesg.path
+            cb         : (err, project) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                    return
+                 project.directory_listing
+                    path    : mesg.path
+                    hidden  : mesg.hidden
+                    time    : mesg.time
+                    start   : mesg.start
+                    limit   : mesg.limit
+                    cb      : (err, result) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(message.public_directory_listing(id:mesg.id, result:result))
 
     mesg_public_get_text_file: (mesg) =>
-        @get_public_project mesg, (err, project) =>
-            if err
-                return
-            project.read_file
-                path    : mesg.path
-                maxsize : 1000000  # restrict to 1MB -- for now
-                cb      : (err, data) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.public_text_file_contents(id:mesg.id, data:data))
+        if not mesg.path?
+            @error_to_client(id:mesg.id, error:'must specify path')
+            return
+        @get_public_project
+            project_id : mesg.project_id
+            path       : mesg.path
+            cb         : (err, project) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                    return
+                project.read_file
+                    path    : mesg.path
+                    maxsize : 1000000  # restrict to 1MB -- for now
+                    cb      : (err, data) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(message.public_text_file_contents(id:mesg.id, data:data))
+
+
+    mesg_publish_path: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if not err
+                database.publish_path
+                    project_id  : mesg.project_id
+                    path        : mesg.path
+                    description : mesg.description
+                    cb          : (err) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:"error publishing path -- #{err}")
+                        else
+                            @push_to_client(message.success(id:mesg.id))
+
+    mesg_unpublish_path: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if not err
+                database.unpublish_path
+                    project_id  : mesg.project_id
+                    path        : mesg.path
+                    cb          : (err) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:"error publishing path -- #{err}")
+                        else
+                            @push_to_client(message.success(id:mesg.id))
+
+    mesg_get_public_paths: (mesg) =>
+        database.get_public_paths
+            project_id : mesg.project_id
+            cb         : (err, paths) =>
+                if err
+                    @error_to_client(id:mesg.id, error:"error getting published paths -- #{err}")
+                else
+                    @push_to_client(message.public_paths(id:mesg.id, paths:paths))
+
 
 
     ################################################

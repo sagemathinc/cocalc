@@ -79,7 +79,14 @@
                 <br><br>
                 <span class=" btn-group">
                     <a class="btn btn-lg btn-primary" href="#copy-file"><i class="fa fa-copy"> </i> Copy</a>
-                    <a class="btn btn-lg btn-primary" href="#copy-to-another-project"><i class="fa fa-send-o"> </i> To Another Project</a>
+                    <a class="btn btn-lg btn-primary" href="#copy-to-another-project"><i class="fa fa-send-o"> </i> Copy To Another Project</a>
+                </span>
+                <br><br>
+                <span class="salvus-project-published-desc hide">
+                    <input type="text" placeholder="Description of share..." class="form-control hide" style="width:50%;display: inline;">
+                    <a class="btn btn-lg btn-primary hide" href="#unpublish-path"><i class="fa fa-shield"> </i> Stop Sharing Publicly</a>
+                    <a class="btn btn-lg btn-primary hide" href="#publish-path"><i class="fa fa-share-square-o"> </i> Share Publicly</a>
+                    <span class="salvus-project-in-published hide">Public because it is contained in <span></span>.</span>
                 </span>
             </div>
             <div class="modal-footer">
@@ -298,8 +305,14 @@
 
     <div class="container-fluid salvus-project">
 
+            <div class="pull-right salvus-project-public-access">
+                <span class="lighten">
+                    (Public Access)
+                </span>
+            </div>
 
-        <div class="row">
+
+        <div class="row" style="width:100%">   <!-- TODO: width 100% probably hack around misues of Bootstrap -- without get horiz scrollbar -->
             <!-- Displays the current path -->
             <div class="hidden-xs project-file-top-current-path-container">
                 <a href="#project-file-listing"><span class="project-file-top-current-path-display"></span></a>
@@ -333,7 +346,7 @@
                 </li>
 
                 <!-- Create a new file (or, etc.)-->
-                <li class="super-menu project-pages-button">
+                <li class="super-menu project-pages-button salvus-project-write-access">
                     <a data-target="project-new-file" data-toggle="tooltip" data-placement="bottom" title="Create new file, folder, worksheet or terminal">
                         <i class="project-control-icon fa fa-plus-circle"></i>
                         <span class="project-pages-button-label hidden-xs">New</span>
@@ -342,7 +355,7 @@
 
 
                 <!-- Project activities  -->
-                <li class="super-menu project-pages-button">
+                <li class="super-menu project-pages-button salvus-project-write-access">
                     <a data-target="project-activity" data-toggle="tooltip" data-placement="bottom" title="Log of project activity">
                         <i class="project-control-icon fa fa-list"></i>
                         <span class="project-pages-button-label hidden-xs">Log</span>
@@ -350,14 +363,14 @@
                 </li>
 
                 <!-- Search -->
-                <li class="super-menu project-pages-button project-search-menu-item">
+                <li class="super-menu project-pages-button project-search-menu-item salvus-project-write-access">
                     <a data-target="project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project">
                         <i class="project-control-icon fa fa-search"></i>
                         <span class="project-pages-button-label hidden-xs">Find</span>
                     </a>
                 </li>
 
-                <li class="super-menu project-pages-button  project-settings-menu-item">
+                <li class="super-menu project-pages-button  project-settings-menu-item salvus-project-write-access">
                     <a data-target="project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls">
                         <i class="project-control-icon fa fa-wrench"></i>
                         <span class="project-pages-button-label hidden-xs">Settings</span>
@@ -602,8 +615,6 @@
                             <h4><i class="fa fa-gear"> </i>&nbsp;&nbsp;  Title and Description <span class="lighten"> (click to edit)</span></h4>
                             <!-- Title of the project (editable) -->
                             <h4>
-                                <span class="project-public"><i class="fa fa-eye">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
-                                <span class="project-private hide"><i class="fa fa-lock"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
                                 <span class="project-project_title" contenteditable="true"></span>
                             </h4>
                             <!-- Description of the project (editable) -->
@@ -816,34 +827,6 @@
                                 </div>
                                 <br>
                             </div>
-                            <div class="project-settings-make-public hide row">
-                                <div class="hide">
-                                    <div class="col-sm-8">
-                                        Make it so anyone can see the contents of this project. You choose who can modify it.
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <!-- Change public / private -->
-                                        <a href="#make-public" class="btn btn-danger  pull-right" data-toggle="tooltip" data-placement="right" title="Make it so anyone can see the contents of this project. You choose who can modify it.">
-                                            <i class="fa fa-eye"> </i> Make Public...
-                                            <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            <br>
-                            <div class="hide project-settings-make-private row" style="margin-top:1ex">
-                                <div class="hide">
-                                    <div class="col-sm-8">
-                                        Make it so you choose who can see and modify contents of this project
-                                    </div>
-                                    <div class="pull-right col-sm-4">
-                                        <a href="#make-private" class="btn btn-danger  pull-right" data-toggle="tooltip" data-placement="right" title="Make it so you choose who can see and modify contents of this project.">
-                                            <i class="fa fa-lock"> </i> Make Private...
-                                            <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
 
                             <div class="project-settings-delete hide row" style="margin-top:1ex">
                             <!-- Delete the project -->
@@ -970,6 +953,7 @@
     <div class="project-file-link-style project-file-link project-path-link row">
         <div class="col-sm-2" style="width: 8em;">
             <a href="#file-action" class="salvus-file-action btn btn-default btn-sm">
+                <!--<i class="fa fa-info-circle"></i>-->
                 <i class="fa fa-arrows"> </i> <i class="fa fa-cloud-download"></i>  <i class="fa fa-copy"></i>
                 <i class="fa fa-trash-o"> </i>
             </a>

@@ -1446,10 +1446,28 @@ message
     id            : undefined
     data          : required
 
+message
+    event         : 'publish_path'
+    id            : undefined
+    project_id    : required
+    path          : required
+    description   : required
 
+message
+    event         : 'unpublish_path'
+    id            : undefined
+    project_id    : required
+    path          : required
 
+message
+    event         : 'get_public_paths'
+    id            : undefined
+    project_id    : required
 
-
+message
+    event         : 'public_paths'
+    id            : undefined
+    paths         : required   # list of {path:?, description:?}
 
 
 

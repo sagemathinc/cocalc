@@ -8,6 +8,7 @@
 {top_navbar}    = require('top_navbar')
 {alert_message} = require('alerts')
 misc            = require('misc')
+{required, defaults} = misc
 {project_page}  = require('project')
 {human_readable_size, html_to_text} = require('misc_page')
 {account_settings} = require('account')
@@ -125,21 +126,17 @@ $(".projects-search-form-input-clear").click () =>
 #$(".projects").find(".form-search").find("button").click((event) -> update_project_view(); return false;)
 
 select_filter_button = (which) ->
-    for w in ['all', 'public', 'private', 'deleted', 'hidden']
+    for w in ['all', 'deleted', 'hidden']
         a = $("#projects-#{w}-button")
         if w == which
             a.removeClass("btn-info").addClass("btn-warning")
         else
             a.removeClass("btn-warning").addClass("btn-info")
 
-only_public  = false
-only_private = false
 only_deleted = false
 only_hidden  = false
 
 $("#projects-all-button").click (event) ->
-    only_public  = false
-    only_private = false
     only_deleted = false
     only_hidden  = false
     select_filter_button('all')
@@ -147,30 +144,9 @@ $("#projects-all-button").click (event) ->
     update_project_list () ->
         update_project_view()
 
-$("#projects-public-button").click (event) ->
-    only_public  = true
-    only_private = false
-    only_deleted = false
-    only_hidden  = false
-    select_filter_button('public')
-    update_project_view()
-    update_project_list () ->
-        update_project_view()
-
-$("#projects-private-button").click (event) ->
-    only_public  = false
-    only_private = true
-    only_deleted = false
-    only_hidden  = false
-    select_filter_button('private')
-    update_project_view()
-    update_project_list () ->
-        update_project_view()
 
 $("#projects-deleted-button").click (event) ->
     only_deleted = true
-    only_private = false
-    only_public  = false
     only_hidden  = false
     select_filter_button('deleted')
     update_project_view()
@@ -179,8 +155,6 @@ $("#projects-deleted-button").click (event) ->
 
 $("#projects-hidden-button").click (event) ->
     only_deleted = false
-    only_private = false
-    only_public  = false
     only_hidden  = true
     select_filter_button('hidden')
     update_project_view()
@@ -198,15 +172,6 @@ template_project_deploying = $(".projects-location-states").find(".projects-loca
 
 create_project_item = (project) ->
     item = template.clone().show().data("project", project)
-
-    if project.public
-        item.find(".projects-public-icon").show()
-        item.find(".projects-private-icon").hide()
-        item.removeClass("private-project").addClass("public-project")
-    else
-        item.find(".projects-private-icon").show()
-        item.find(".projects-public-icon").hide()
-        item.addClass("private-project").removeClass("public-project")
 
     # NOTE: in some places, project title is HTML, but showing arbitrary HTML is danerous, due to
     # (1) cross site scripting, and (2) anybody can add anybody else as a project collaborator right now, without any acceptance (will change)
@@ -240,15 +205,21 @@ create_project_item = (project) ->
         u = '  ' + users.join(', ')
     item.find(".projects-users-list").text(u)
 
-    item.find(".projects-users").click () =>
-        proj = open_project(project, item)
-        proj.display_tab('project-settings')
-        proj.container.find(".project-add-collaborator-input").focus()
-        collab = proj.container.find(".project-collaborators-box")
-        collab.css(border:'2px solid red')
-        setTimeout((()->collab.css(border:'')), 5000)
-        collab.css('box-shadow':'8px 8px 4px #888')
-        setTimeout((()->collab.css('box-shadow':'')), 5000)
+    item.find(".projects-users").click () ->
+        open_project
+            project : project
+            item    : item
+            cb      : (err, proj) ->
+                if err
+                    alert_message(type:"error", message:err)
+                    return
+                proj.display_tab('project-settings')
+                proj.container.find(".project-add-collaborator-input").focus()
+                collab = proj.container.find(".project-collaborators-box")
+                collab.css(border:'2px solid red')
+                setTimeout((()->collab.css(border:'')), 5000)
+                collab.css('box-shadow':'8px 8px 4px #888')
+                setTimeout((()->collab.css('box-shadow':'')), 5000)
         return false
 
     if not project.location  # undefined or empty string
@@ -257,7 +228,12 @@ create_project_item = (project) ->
         item.find(".projects-location").append(template_project_deploying.clone())
 
     item.click (event) ->
-        open_project(project, item)
+        open_project
+            project : project
+            item    : item
+            cb      : (err) ->
+                if err
+                    alert_message(type:"error", message:err)
         return false
     return item
 
@@ -276,10 +252,6 @@ exports.matching_projects = matching_projects = (query) ->
         desc = "Showing "
         if only_deleted
             desc += "deleted projects "
-        else if only_public
-            desc += "public projects "
-        else if only_private
-            desc += "private projects "
         else if only_hidden
             desc += "hidden projects "
         else
@@ -301,14 +273,6 @@ exports.matching_projects = matching_projects = (query) ->
         for project in v
             if not match(project.search)
                 continue
-
-            if only_public
-                if not project.public
-                    continue
-
-            if only_private
-                if project.public
-                    continue
 
             if only_deleted
                 if not project.deleted
@@ -413,23 +377,46 @@ update_hashtag_bar = () ->
 
 ## end hashtag code
 
-exports.open_project = open_project = (project, item) ->
+exports.open_project = open_project = (opts) ->
+    opts = defaults opts,
+        project : required
+        item    : undefined
+        target  : undefined
+        cb      : required   # cb(err, project)
+
+    project = opts.project
     if typeof(project) == 'string'
         # actually a project id
         x = undefined
-        for p in project_list
-            if p.project_id == project
-                x = p
-                break
+        if project_list?
+            for p in project_list
+                if p.project_id == project
+                    x = p
+                    break
         if not x?
-            # have to get from database.
+            # have to get info from database.
             salvus_client.project_info
                 project_id : project
                 cb         : (err, p) ->
                     if err
-                        alert_message(type:"error", message:"Unknown project with id '#{project}'")
+                        # try again as a public project
+                        salvus_client.public_project_info
+                            project_id : project
+                            cb         : (err, p) ->
+                                if err
+                                    opts.cb("Unknown project with id '#{project}'")
+                                else
+                                    open_project
+                                        project : p
+                                        item    : opts.item
+                                        target  : opts.target
+                                        cb      : opts.cb
                     else
-                        open_project(p)
+                        open_project
+                            project : p
+                            item    : opts.item
+                            target  : opts.target
+                            cb      : opts.cb
             return
         else
             project = x
@@ -437,31 +424,28 @@ exports.open_project = open_project = (project, item) ->
     proj = project_page(project)
     top_navbar.resize_open_project_tabs()
     top_navbar.switch_to_page(project.project_id)
+    if opts.target?
+        proj.load_target(opts.target)
 
     if not project.bup_location?
         alert_message
-            type:"info"
-            message:"Opening project #{project.title}... (this takes about 30 seconds)"
-            timeout: 15
-        if item?
-            item.find(".projects-location").html("<i class='fa-spinner fa-spin'> </i>restoring...")
+            type    : "info"
+            message : "Opening project #{project.title}... (this takes about 30 seconds)"
+            timeout : 15
+        opts.item?.find(".projects-location").html("<i class='fa-spinner fa-spin'> </i>restoring...")
         salvus_client.project_info
             project_id : project.project_id
             cb         : (err, info) ->
                 if err
-                    alert_message(type:"error", message:"error opening project -- #{err}", timeout:6)
-                    if item?
-                        item.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
-                    return
-                if not info?.bup_location?
-                    if item?
-                        item.find(".projects-location").html("(none)")
+                    opts.item?.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
+                    opts.cb("error opening project -- #{err}")
                 else
-                    project.location = info.bup_location
-                    if item?
-                        item.find(".projects-location").text("")
-    return proj
-
+                    if not info?.bup_location?
+                        opts.item?.find(".projects-location").html("(none)")
+                    else
+                        project.location = info.bup_location
+                        opts.item?.find(".projects-location").text("")
+                    opts.cb(undefined, proj)
 
 ################################################
 # Create a New Project
@@ -476,8 +460,6 @@ description_input = $("#projects-create_project-description")
 
 close_create_project = () ->
     create_project.modal('hide').find('input').val('')
-    $("#projects-create_project-public").attr("checked", true)
-    $("#projects-create_project-private").attr("checked", false)
     #$("#projects-create_project-location").val('')
 
 create_project.find(".close").click((event) -> close_create_project())
@@ -542,38 +524,15 @@ exports.load_target = load_target = (target) ->
         top_navbar.switch_to_page("projects")
         return
     segments = target.split('/')
-    project = undefined
-    update_project_list () ->
-        if misc.is_valid_uuid_string(segments[0])
-            t = segments.slice(1).join('/')
-            project_id = segments[0]
-            for p in project_list
-                if p.project_id == project_id
-                    project = p
-                    open_project(p).load_target(t)
-                    return
-            # have to get from database.
-            salvus_client.project_info
-                project_id : project_id
-                cb         : (err, p) ->
-                    if err
-                        alert_message(type:"error", message:err)
-                    else
-                        open_project(p).load_target(t)
-        ###
-        else
-            t         = segments.slice(2).join('/')
-            ownername = segments[0]
-            name      = segments[1]
-            for p in project_list
-                if p.ownername == ownername and p.name == name
-                                        open_project(p).load_target(t)
-                    return
-            # have to get from database.
-            alert_message(type:"error", message:"You do not have access to the project '#{owner}/#{projectname}.")
-            return
-        ###
-
+    if misc.is_valid_uuid_string(segments[0])
+        t = segments.slice(1).join('/')
+        project_id = segments[0]
+        open_project
+            project : project_id
+            target  : t
+            cb      : (err) ->
+                if err
+                    alert_message(type:"error", message:err)
 
 
 ################################################

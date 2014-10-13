@@ -24,9 +24,6 @@ templates = $("#salvus-project-templates")
 template_project_file          = templates.find(".project-file-link")
 template_home_icon             = templates.find(".project-home-icon")
 template_segment_sep           = templates.find(".project-segment-sep")
-template_project_commits       = templates.find(".project-commits")
-template_project_commit_single = templates.find(".project-commit-single")
-template_project_branch_single = templates.find(".project-branch-single")
 template_project_collab        = templates.find(".project-collab")
 template_project_linked        = templates.find(".project-linked")
 
@@ -48,86 +45,8 @@ MAX_FILE_LISTING_SIZE = 300
 FROM_WEB_TIMEOUT_S = 45
 
 
-##################################################
-# Initialize the modal project management dialogs
-##################################################
-delete_path_dialog = $("#project-delete-path-dialog")
-move_path_dialog   = $("#project-move-path-dialog")
-
-class Dialog
-    constructor: (opts) ->
-        opts = defaults opts,
-            dialog      : required
-            submit      : required
-            before_show : undefined
-            after_show  : undefined
-
-        @opts = opts
-
-        submit = () =>
-            try
-                opts.dialog.modal('hide')
-                opts.submit(opts.dialog, @project)
-            catch e
-                console.log("Exception submitting modal: ", e)
-            return false
-
-        opts.dialog.submit submit
-        opts.dialog.find("form").submit submit
-        opts.dialog.find(".btn-submit").click submit
-        opts.dialog.find(".btn-close").click(() -> opts.dialog.modal('hide'); return false)
-
-    show: (project) =>
-        @project = project
-        @opts.before_show(@opts.dialog, project)
-        @opts.dialog.modal()
-        @opts.after_show(@opts.dialog, project)
-        return false
-
-delete_path_dialog = new Dialog
-    dialog      : $("#project-delete-path-dialog")
-    submit      : (dialog, project) ->
-        path = project.current_path.join('/')
-        commit_mesg = dialog.find("input[type=text]").val()
-        if commit_mesg == ""
-            commit_mesg = "deleted #{path}"
-        project.path_action
-            action      : 'delete'
-            branch      : project.meta.display_branch
-            path        : path
-            commit_mesg : commit_mesg
-
-    before_show : (dialog, project) ->
-        dialog.find(".project-delete-path-dialog-filename").text(project.current_pathname())
-        dialog.find("input[type=text]").val("")
-    after_show  : (dialog) ->
-        dialog.find("input[type=text]").focus()
-
-move_path_dialog = new Dialog
-    dialog      : $("#project-move-path-dialog")
-    submit      : (dialog, project) ->
-        src      = project.current_pathname()
-        dest     = dialog.find("input[name=new-filename]").val()
-        if src == dest
-            # nothing to do
-            return
-        why      = dialog.find("input[name=why]").val()
-        if why == ""
-            why = "move #{src} to #{dest}"
-        project.path_action
-            action      : 'move'
-            branch      : project.meta.display_branch
-            path        : src
-            commit_mesg : why
-            extra_options : {dest:dest}
-    before_show : (dialog, project) ->
-        dialog.find(".project-move-path-dialog-filename").text(project.current_pathname())
-        dialog.find("input[name=new-filename]").val(project.current_pathname())
-        dialog.find("input[name=why]").val("")
-    after_show  : (dialog) ->
-        dialog.find("input[name=new-filename]").focus()
-
-
+# How long to cache public paths in this project
+PUBLIC_PATHS_CACHE_TIMEOUT_MS = 1000*60
 
 ##################################################
 # Define the project page class
@@ -135,36 +54,26 @@ move_path_dialog = new Dialog
 
 class ProjectPage
     constructor: (@project) ->
+        #window.p = @
+
+        # whether or not we have full access to the project or only very limited
+        # public access (since project is public)
+        @public_access = !!@project.public_access
+
+        # the html container for everything in the project.
         @container = templates.find(".salvus-project").clone()
         @container.data('project', @)
         $("body").append(@container)
         # ga('send', 'event', 'project', 'open', 'project_id', @project.project_id, {'nonInteraction': 1})
 
-        # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
-        @container.top_navbar
-            id    : @project.project_id
-            label : @project.project_id
-            icon  : 'fa-edit'
-            onclose : () =>
-                @editor?.close_all_open_files()
-                @save_browser_local_data()
-                delete project_pages[@project.project_id]
-                @project_log?.disconnect_from_session()
-                clearInterval(@_update_last_snapshot_time)
-            onshow: () =>
-                if @project?
-                    document.title = "Project - #{@project.title}"
-                    @push_state()
-                @editor?.refresh()
+        if @public_access
+            @container.find(".salvus-project-write-access").hide()
+            @container.find(".salvus-project-public-access").show()
+        else
+            @container.find(".salvus-project-write-access").show()
+            @container.find(".salvus-project-public-access").hide()
 
-
-            onfullscreen: (entering) =>
-                if @project?
-                    if entering
-                        @hide_tabs()
-                    else
-                        @show_tabs()
-                    $(window).resize()
+        @init_new_tab_in_navbar()
 
         $(window).resize () => @window_resize()
         @_update_file_listing_size()
@@ -179,8 +88,8 @@ class ProjectPage
         # current_path is a possibly empty list of directories, where
         # each one is contained in the one before it.
         @current_path = []
-
         @init_tabs()
+
         @update_topbar()
         @init_admin()
 
@@ -189,7 +98,6 @@ class ProjectPage
         @init_file_search()
 
         @init_new_file_tab()
-
         @init_refresh_files()
         @init_hidden_files_icon()
         @init_trash_link()
@@ -291,26 +199,35 @@ class ProjectPage
         #        @command_line_tab_complete()
         #        return false
 
-
-        # Make it so typing something into the "create a new branch..." box
-        # makes a new branch.
-        #@container.find(".project-branches").find('form').submit () ->
-        #    that.branch_op(branch:$(@).find("input").val(), op:'create')
-        #    return false
-
-        file_tools = @container.find(".project-file-tools")
-
-        file_tools.find("a[href=#delete]").click () ->
-            if not $(@).hasClass("disabled")
-                delete_path_dialog.show(that)
-            return false
-
-        file_tools.find("a[href=#move]").click () ->
-            if not $(@).hasClass("disabled")
-                move_path_dialog.show(that)
-            return false
-
         @init_file_sessions()
+
+    init_new_tab_in_navbar: () =>
+        # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
+        @container.top_navbar
+            id    : @project.project_id
+            label : @project.project_id
+            icon  : 'fa-edit'
+
+            onclose : () =>
+                @editor?.close_all_open_files()
+                @save_browser_local_data()
+                delete project_pages[@project.project_id]
+                @project_log?.disconnect_from_session()
+                clearInterval(@_update_last_snapshot_time)
+
+            onshow: () =>
+                if @project?
+                    document.title = "Project - #{@project.title}"
+                    @push_state()
+                @editor?.refresh()
+
+            onfullscreen: (entering) =>
+                if @project?
+                    if entering
+                        @hide_tabs()
+                    else
+                        @show_tabs()
+                    $(window).resize()
 
     init_sortable_file_list: () =>
         # make the list of open files user-sortable.
@@ -332,7 +249,7 @@ class ProjectPage
         @_file_list_is_sortable = false
 
     push_state: (url) =>
-        #console.log("push_state: ", url)
+        # console.log("push_state: ", url)
         if not url?
             url = @_last_history_state
         if not url?
@@ -355,13 +272,14 @@ class ProjectPage
     load_target: (target, foreground=true) =>
         #console.log("project -- load_target=#{target}")
         segments = target.split('/')
+        #console.log("segments=",segments)
         switch segments[0]
             when 'files'
                 if target[target.length-1] == '/'
                     # open a directory
-                    @display_tab("project-file-listing")
-                    @current_path = target.slice(0,target.length-1).split('/').slice(1)
+                    @current_path = segments.slice(1, segments.length-1)
                     @update_file_list_tab()
+                    @display_tab("project-file-listing")
                 else
                     # open a file
                     @display_tab("project-editor")
@@ -804,8 +722,6 @@ class ProjectPage
                 that.display_tab(link.data("target"))
                 return false
 
-            that.update_file_list_tab()
-
             if name == "project-file-listing"
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
@@ -870,7 +786,6 @@ class ProjectPage
                 that.display_tab(link.data("target"))
                 return false
 
-            that.update_file_list_tab()
         @display_tab("project-file-listing")
 
     create_editor: (initial_files) =>   # initial_files (optional)
@@ -955,19 +870,6 @@ class ProjectPage
     update_topbar: () ->
         if not @project?
             return
-
-        if @project.public
-            @container.find(".project-public").show()
-            @container.find(".project-private").hide()
-            @container.find(".project-heading-well").removeClass("private-project").addClass("public-project")
-            @container.find(".project-settings-make-public").hide()
-            @container.find(".project-settings-make-private").show()
-        else
-            @container.find(".project-public").hide()
-            @container.find(".project-private").show()
-            @container.find(".project-heading-well").addClass("private-project").removeClass("public-project")
-            @container.find(".project-settings-make-public").show()
-            @container.find(".project-settings-make-private").hide()
 
         @container.find(".project-project_title").html(@project.title).mathjax()
         @container.find(".project-project_description").html(@project.description).mathjax()
@@ -1381,21 +1283,50 @@ class ProjectPage
                 @download_file
                     path : obj.fullname
                 return false
+
         dialog.find("a[href=#delete-file]").click () =>
             dialog.modal('hide')
             @trash_file
                 path : obj.fullname
             return false
+
+        @is_path_published
+            path : obj.fullname
+            cb   : (err, pub) =>
+                publish = dialog.find(".salvus-project-published-desc")
+                publish.show()
+                if pub? and pub.public_path != obj.fullname
+                    publish.find(".salvus-project-in-published").show().find("span").text(pub.public_path)
+                    return
+                desc = publish.find("input").show()
+                if pub
+                    publish.find("a[href=#unpublish-path]").show().click () =>
+                        dialog.modal('hide')
+                        @unpublish_path
+                            path : obj.fullname
+                        return false
+                    desc.val(pub.description)
+                else
+                    dialog.find("a[href=#publish-path]").show().click () =>
+                        dialog.modal('hide')
+                        @publish_path
+                            path        : obj.fullname
+                            description : desc.val()
+                        return false
+                desc.keydown (evt) =>
+                    if evt.which == 13 and desc.val() # enter and nontrivial
+                        dialog.modal('hide')
+                        # update description
+                        @publish_path
+                            path        : obj.fullname
+                            description : desc.val()
+
         dialog.modal()
 
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: (no_focus) =>
-        if @_updating_file_list_tab_LOCK
-            return # already updating it
-        @_updating_file_list_tab_LOCK = true
         @_update_file_list_tab no_focus, () =>
             @_show_all_files = false
-            setTimeout( (() => @_updating_file_list_tab_LOCK = false), 500 )
 
     init_listing_show_all: () =>
         @container.find(".project-file-listing-show_all").click () =>
@@ -1405,313 +1336,316 @@ class ProjectPage
 
     _update_file_list_tab: (no_focus, cb) =>
 
-        spinner = @container.find(".project-file-listing-spinner")
-        timer = setTimeout( (() -> spinner.show().spin()), 1000 )
-
-        # TODO: ** must change this -- do *not* set @current_path until we get back the correct listing!!!!
-
         path = @current_path.join('/')
+        if path == @_requested_path
+            # already requested
+            return
 
-        url_path = path
-        if url_path.length > 0 and url_path[path.length-1] != '/'
-            url_path += '/'
-        @push_state('files/' + url_path)
+        if not @_requested_path?
+            spinner = @container.find(".project-file-listing-spinner")
+            @_file_list_tab_spinner_timer = setTimeout( (() -> spinner.show().spin()), 1000 )
 
-        that = @
-        click_file = (e) ->
-            obj = $(e.delegateTarget).closest(".project-path-link").data('obj')
-            target = $(e.target)
-            if target.hasClass("salvus-file-action") or target.parent().hasClass('salvus-file-action')
-                that.file_action_dialog(obj)
-            else
-                if obj.isdir
-                    that.set_current_path(obj.fullname)
-                    that.update_file_list_tab()
-                else
-                    that.open_file
-                        path       : obj.fullname
-                        foreground : not(e.which==2 or (e.ctrlKey or e.metaKey))
-            e.preventDefault()
+        if @public_access
+            f = salvus_client.public_project_directory_listing
+        else
+            f = salvus_client.project_directory_listing
 
-        @update_snapshot_link()
+        @_requested_path = path
 
-        tm = misc.walltime()
-        #console.log("calling project_directory_listing with path=#{path}")
-        salvus_client.project_directory_listing
+        f
             project_id : @project.project_id
             path       : path
             time       : @_sort_by_time
             hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
+            timeout    : 20
             cb         : (err, listing) =>
-                #console.log("got back listing=",listing)
-                clearTimeout(timer)
-                spinner.spin(false).hide()
+                if path != @_requested_path
+                    # requested another path after this one, so ignore
+                    # this now useless listing
+                    cb?()
+                    return
+                delete @_requested_path
 
-                tm = misc.walltime()
-
-                @set_current_path(path)
-
-                # Update the display of the path above the listing or file preview
-                @update_current_path()
+                clearTimeout(@_file_list_tab_spinner_timer)
+                @container.find(".project-file-listing-spinner").spin(false).hide()
 
                 if err
-                    #console.log("update_file_list_tab: error -- ", err)
-                    if @_last_path_without_error? and @_last_path_without_error != path
-                        @set_current_path(@_last_path_without_error)
-                        @_last_path_without_error = undefined # avoid any chance of infinite loop
-                        @update_file_list_tab(no_focus)
+                    alert_message(type:"error", message:"unable to show listing for #{path} -- #{err}")
+                    cb?(err)
+                else
+                    @render_file_listing
+                        path     : path
+                        listing  : listing
+                        no_focus : no_focus
+                        cb       : cb
+                    @update_snapshot_link()
+
+    render_file_listing: (opts) =>
+        {path, listing, no_focus, cb} = defaults opts,
+            path     : required     # directory we are rendering the listing for
+            listing  : required     # the listing data
+            no_focus : false
+            cb       : undefined
+
+        url_path = path
+        if url_path.length > 0 and url_path[path.length-1] != '/'
+            url_path += '/'
+
+        if @current_tab.name == "project-file-listing"
+            @push_state('files/' + url_path)
+
+        # Update the display of the path above the listing or file preview
+        @set_current_path(path)
+        @update_current_path()
+
+        # If the files haven't changed -- a VERY common case -- don't rebuild the whole listing.
+        files = misc.to_json(listing)  # use json to deep compare -- e.g., file size matters!
+        if @_update_file_list_tab_last_path == path and @_update_file_list_tab_last_path_files == files and @_update_file_sort_by_time == @_sort_by_time and @_last_show_all_files == @_show_all_files
+            cb?()
+            return
+        else
+            @_update_file_list_tab_last_path       = path
+            @_update_file_list_tab_last_path_files = files
+            @_update_file_sort_by_time             = @_sort_by_time
+            @_last_show_all_files                  = @_show_all_files
+
+        @_last_listing = listing
+
+        if @current_path[0] == '.trash'
+            @container.find("a[href=#empty-trash]").show()
+            @container.find("a[href=#trash]").hide()
+        else
+            @container.find("a[href=#empty-trash]").hide()
+            @container.find("a[href=#trash]").show()
+
+        # Now rendering the listing or file preview
+        file_or_listing = @container.find(".project-file-listing-file-list")
+
+        # TODO: for long listings this file_or_listing.empty() dominates.
+        # We should just change data/displayed names of entries or something and hide others -- be way more clever. For LATER.
+        file_or_listing.empty()
+
+        directory_is_empty = true
+
+        @container.find(".project-file-tools a").removeClass("disabled")
+
+        # Hide the edit button
+        @container.find(".project-file-tools a[href=#edit]").addClass("disabled")
+
+        # Hide the move and delete buttons if and only if this is the top level path
+        if path == ""
+            @container.find(".project-file-tools a[href=#move]").addClass("disabled")
+            @container.find(".project-file-tools a[href=#delete]").addClass("disabled")
+
+        click_file = (e) =>
+            obj = $(e.delegateTarget).closest(".project-path-link").data('obj')
+            target = $(e.target)
+            if target.hasClass("salvus-file-action") or target.parent().hasClass('salvus-file-action')
+                @file_action_dialog(obj)
+            else
+                if obj.isdir
+                    @set_current_path(obj.fullname)
+                    @update_file_list_tab()
+                else
+                    @open_file
+                        path       : obj.fullname
+                        foreground : not(e.which==2 or (e.ctrlKey or e.metaKey))
+            e.preventDefault()
+
+        # TODO: not used
+        ###
+        that = @
+        file_dropped_on_directory = (event, ui) ->
+            src = ui.draggable.data('name')
+            if not src?
+                return
+            dest = $(@).data('name')
+            that.move_file
+                src  : src
+                dest : dest
+                cb   : (err) =>
+                    if not err
+                        that.update_file_list_tab(true)
+        ###
+
+        if @current_path.length > 0
+            # Create special link to the parent directory
+            t = template_project_file.clone()
+            t.find("a[href=#file-action]").hide()
+            parent = @current_path.slice(0, @current_path.length-1).join('/')
+            if parent == ""
+                parent = "."
+            t.data('name', parent)
+            t.find(".project-file-name").html("Parent Directory")
+            t.find(".project-file-icon").removeClass("fa-file").addClass('fa-reply')
+            t.find("input").hide()  # hide checkbox, etc.
+            # Clicking to open the directory
+            t.click () =>
+                @current_path.pop()
+                @update_file_list_tab()
+                return false
+            #t.droppable(drop:file_dropped_on_directory, scope:'files')
+            t.find("a").tooltip
+                trigger : 'hover'
+                delay   : { show: 500, hide: 100 }
+            t.find(".fa-arrows").tooltip
+                trigger : 'hover'
+                delay   : { show: 500, hide: 100 }
+
+            file_or_listing.append(t)
+
+
+
+        #console.log("done updating misc stuff", misc.walltime(tm))
+
+        # Show the files
+        #console.log("building listing for #{path}...")
+
+        tm = misc.walltime()
+
+        masked_file_exts_bad  = (key for key of masked_file_exts)
+        masked_file_exts_good = (value for key, value of masked_file_exts)
+        masked_file_bad_index = []
+        masked_file_good_name = []
+        n = 0
+        @container.find(".project-file-listing-show_all").hide().find('span').text('')
+        search = @_file_search_box.val()
+        for obj, i in listing.files
+            if not search and (not @_show_all_files and n >= MAX_FILE_LISTING_SIZE)
+                @container.find(".project-file-listing-show_all").show().find('span').text(listing.files.length - n)
+                break
+            n += 1
+            t = template_project_file.clone()
+            t.data(obj:obj)
+            if obj.isdir
+                t.find(".project-file-name").text(obj.name)
+                date = undefined
+                if path == ".snapshots/master" and obj.name.length == '2014-04-04-061502'.length
+                    date = misc.parse_bup_timestamp(obj.name)
+                    t.find(".project-file-name").text(date)
+                else if obj.mtime
+                    date = new Date(obj.mtime*1000)
+                if date?
+                    t.find(".project-file-last-mod-date").attr('title', date.toISOString()).timeago()
+                name = obj.name
+                t.find(".project-file-icon").removeClass("fa-file").addClass("fa-folder-open-o").css('font-size':'21pt')
+            else
+                if obj.name.indexOf('.') != -1
+                    ext = filename_extension(obj.name)
+                    name = obj.name.slice(0,obj.name.length - ext.length - 1)
+                else
+                    ext = ''
+                    name = obj.name
+                t.find(".project-file-name").text(name)
+                if ext != ''
+                    if ext in masked_file_exts_bad
+                        masked_file_bad_index.push(i)
+                    if ext in masked_file_exts_good
+                        masked_file_good_name.push(obj.name)
+                    t.find(".project-file-name-extension").text('.' + ext)
+                    if file_associations[ext]? and file_associations[ext].icon?
+                        t.find(".project-file-icon").removeClass("fa-file").addClass(file_associations[ext].icon)
+                if obj.mtime?
+                    date = (new Date(obj.mtime*1000)).toISOString()
+                    t.find(".project-file-last-mod-date").attr('title', date).timeago()
+                if obj.size?
+                    t.find(".project-file-size").text(human_readable_size(obj.size))
+                if obj.commit?.date?
+                    date = (new Date(obj.commit.date*1000)).toISOString()
+                    t.find(".project-file-last-commit-date").attr('title', date).timeago()
+                else
+                    t.find(".project-file-last-commit-date-container").hide()
+                if obj.commit?.message?
+                    t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
+            #end if
+
+            obj.fullname = if path != "" then path + '/' + obj.name else obj.name
+            directory_is_empty = false
+            # Add our new listing entry to the list:
+            file_or_listing.append(t)
+            t.click(click_file)
+
+            continue
+            ###
+            # Define file actions using a closure
+            @_init_listing_actions(t, path, obj.name, obj.fullname, obj.isdir? and obj.isdir, obj.snapshot?)
+
+            # Drag handle for moving files via drag and drop.
+            handle = t.find(".project-file-drag-handle")
+            handle.click () =>
+                # do not want clicking on the handle to open the file.
+                return false
+            t.draggable
+                handle         : handle
+                zIndex         : 100
+                opacity        : 0.75
+                revertDuration : 200
+                revert         : "invalid"
+                axis           : 'y'
+                scope          : 'files'
+
+            t.find("a").tooltip
+                trigger : 'hover'
+                delay   : { show: 500, hide: 100 }
+            t.find(".fa-arrows").tooltip
+                trigger : 'hover'
+                delay   : { show: 500, hide: 100 }
+            ###
+
+        # Masks (greys out) files that the user probably doesn't want to open
+        if account.account_settings.settings.other_settings.mask_files
+            # mask compiled files corresponding to source files
+            for index in masked_file_bad_index
+                filename = listing.files[index].name
+                ext = filename_extension(filename)
+                name = filename.slice(0, filename.length - ext.length - 1)
+                compare_name = name
+
+                # TODO: other unusual cases may need to be added here
+                if ext == 'gz'
+                    second_extension = 'synctex'
+                    if filename_extension(name) == second_extension
+                        compare_name = name.slice(0, name.length - second_extension.length - 1)
                     else
-                        @set_current_path('')
-                        @_last_path_without_error = undefined # avoid any chance of infinite loop
-                        @update_file_list_tab(no_focus)
-                    cb?()
-                    return
+                        continue
 
-                # remember for later
-                @_last_path_without_error = path
+                good_name_index = masked_file_good_name.indexOf(compare_name + "." + masked_file_exts[ext])
+                if good_name_index != -1
+                    # mask the matched file
+                    i = if path == "" then index else index + 1 # skip over 'Parent Directory' link
+                    $(@container.find(".project-file-listing-file-list").children()[i]).addClass("project-file-listing-masked-file")
 
-                if not listing?
-                    cb?()
-                    return
+            # mask files starting with a '.'
+            for file, index in listing.files
+                if file.name.indexOf('.') == 0
+                    i = if path == "" then index else index + 1 # skip over 'Parent Directory' link
+                    $(@container.find(".project-file-listing-file-list").children()[i]).addClass("project-file-listing-masked-file")
 
-                # If the files haven't changed -- a VERY common case -- don't rebuild the whole listing.
-                files = misc.to_json(listing)  # use json to deep compare -- e.g., file size matters!
-                if @_update_file_list_tab_last_path == path and @_update_file_list_tab_last_path_files == files and @_update_file_sort_by_time == @_sort_by_time and @_last_show_all_files == @_show_all_files
-                    cb?()
-                    return
-                else
-                    @_update_file_list_tab_last_path = path
-                    @_update_file_list_tab_last_path_files = files
-                    @_update_file_sort_by_time = @_sort_by_time
-                    @_last_show_all_files = @_show_all_files
+        #@clear_file_search()
+        #console.log("done building listing in #{misc.walltime(tm)}")
+        tm = misc.walltime()
+        @update_file_search()
+        #console.log("done building file search #{misc.walltime(tm)}")
+        tm = misc.walltime()
 
-                @_last_listing = listing
+        # No files
+        if directory_is_empty and path != ".trash" and path.slice(0,10) != ".snapshots"
+            @container.find(".project-file-listing-no-files").show()
+        else
+            @container.find(".project-file-listing-no-files").hide()
 
-                if @current_path[0] == '.trash'
-                    @container.find("a[href=#empty-trash]").show()
-                    @container.find("a[href=#trash]").hide()
-                else
-                    @container.find("a[href=#empty-trash]").hide()
-                    @container.find("a[href=#trash]").show()
+        if path.slice(0,10) == '.snapshots'
+            @container.find(".project-file-listing-snapshot-warning").show()
+        else
+            @container.find(".project-file-listing-snapshot-warning").hide()
 
+        if no_focus? and no_focus
+            cb?(); return
 
-                # Now rendering the listing or file preview
-                file_or_listing = @container.find(".project-file-listing-file-list")
+        @focus_file_search()
+        #console.log("done with everything #{misc.walltime(tm)}")
 
-                # TODO: for long listings this file_or_listing.empty() dominates.
-                # We should just change data/displayed names of entries or something and hide others -- be way more clever. For LATER.
-                file_or_listing.empty()
-
-                directory_is_empty = true
-
-                # The path we are viewing.
-                path = @current_pathname()
-
-                @container.find(".project-file-tools a").removeClass("disabled")
-
-                # Show the command prompt
-                # @container.find("span.project-command-line").show().find("pre").hide()
-
-                # Hide the edit button
-                @container.find(".project-file-tools a[href=#edit]").addClass("disabled")
-
-                # Hide the move and delete buttons if and only if this is the top level path
-                if path == ""
-                    @container.find(".project-file-tools a[href=#move]").addClass("disabled")
-                    @container.find(".project-file-tools a[href=#delete]").addClass("disabled")
-
-                that = @
-
-                # TODO: not used
-                file_dropped_on_directory = (event, ui) ->
-                    src = ui.draggable.data('name')
-                    if not src?
-                        return
-                    dest = $(@).data('name')
-                    that.move_file
-                        src  : src
-                        dest : dest
-                        cb   : (err) =>
-                            if not err
-                                that.update_file_list_tab(true)
-
-                if that.current_path.length > 0
-                    # Create special link to the parent directory
-                    t = template_project_file.clone()
-                    t.find("a[href=#file-action]").hide()
-                    parent = that.current_path.slice(0, that.current_path.length-1).join('/')
-                    if parent == ""
-                        parent = "."
-                    t.data('name', parent)
-                    t.find(".project-file-name").html("Parent Directory")
-                    t.find(".project-file-icon").removeClass("fa-file").addClass('fa-reply')
-                    t.find("input").hide()  # hide checkbox, etc.
-                    # Clicking to open the directory
-                    t.click () ->
-                        that.current_path.pop()
-                        that.update_file_list_tab()
-                        return false
-                    t.droppable(drop:file_dropped_on_directory, scope:'files')
-                    t.find("a").tooltip
-                        trigger : 'hover'
-                        delay   : { show: 500, hide: 100 }
-                    t.find(".fa-arrows").tooltip
-                        trigger : 'hover'
-                        delay   : { show: 500, hide: 100 }
-
-                    file_or_listing.append(t)
-
-
-
-                #console.log("done updating misc stuff", misc.walltime(tm))
-
-                # Show the files
-                #console.log("building listing for #{path}...")
-
-                tm = misc.walltime()
-
-                masked_file_exts_bad  = (key for key of masked_file_exts)
-                masked_file_exts_good = (value for key, value of masked_file_exts)
-                masked_file_bad_index = []
-                masked_file_good_name = []
-                n = 0
-                that.container.find(".project-file-listing-show_all").hide().find('span').text('')
-                search = that._file_search_box.val()
-                for obj, i in listing.files
-                    if not search and (not that._show_all_files and n >= MAX_FILE_LISTING_SIZE)
-                        that.container.find(".project-file-listing-show_all").show().find('span').text(listing.files.length - n)
-                        break
-                    n += 1
-                    t = template_project_file.clone()
-                    t.data(obj:obj)
-                    if obj.isdir
-                        t.find(".project-file-name").text(obj.name)
-                        date = undefined
-                        if path == ".snapshots/master" and obj.name.length == '2014-04-04-061502'.length
-                            date = misc.parse_bup_timestamp(obj.name)
-                            t.find(".project-file-name").text(date)
-                        else if obj.mtime
-                            date = new Date(obj.mtime*1000)
-                        if date?
-                            t.find(".project-file-last-mod-date").attr('title', date.toISOString()).timeago()
-                        name = obj.name
-                        t.find(".project-file-icon").removeClass("fa-file").addClass("fa-folder-open-o").css('font-size':'21pt')
-                    else
-                        if obj.name.indexOf('.') != -1
-                            ext = filename_extension(obj.name)
-                            name = obj.name.slice(0,obj.name.length - ext.length - 1)
-                        else
-                            ext = ''
-                            name = obj.name
-                        t.find(".project-file-name").text(name)
-                        if ext != ''
-                            if ext in masked_file_exts_bad
-                                masked_file_bad_index.push(i)
-                            if ext in masked_file_exts_good
-                                masked_file_good_name.push(obj.name)
-                            t.find(".project-file-name-extension").text('.' + ext)
-                            if file_associations[ext]? and file_associations[ext].icon?
-                                t.find(".project-file-icon").removeClass("fa-file").addClass(file_associations[ext].icon)
-                        if obj.mtime?
-                            date = (new Date(obj.mtime*1000)).toISOString()
-                            t.find(".project-file-last-mod-date").attr('title', date).timeago()
-                        if obj.size?
-                            t.find(".project-file-size").text(human_readable_size(obj.size))
-                        if obj.commit?.date?
-                            date = (new Date(obj.commit.date*1000)).toISOString()
-                            t.find(".project-file-last-commit-date").attr('title', date).timeago()
-                        else
-                            t.find(".project-file-last-commit-date-container").hide()
-                        if obj.commit?.message?
-                            t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
-                    #end if
-
-                    obj.fullname = if path != "" then path + '/' + obj.name else obj.name
-                    directory_is_empty = false
-                    # Add our new listing entry to the list:
-                    file_or_listing.append(t)
-                    t.click(click_file)
-
-                    continue
-
-                    # Define file actions using a closure
-                    @_init_listing_actions(t, path, obj.name, obj.fullname, obj.isdir? and obj.isdir, obj.snapshot?)
-
-                    # Drag handle for moving files via drag and drop.
-                    handle = t.find(".project-file-drag-handle")
-                    handle.click () =>
-                        # do not want clicking on the handle to open the file.
-                        return false
-                    t.draggable
-                        handle         : handle
-                        zIndex         : 100
-                        opacity        : 0.75
-                        revertDuration : 200
-                        revert         : "invalid"
-                        axis           : 'y'
-                        scope          : 'files'
-
-                    t.find("a").tooltip
-                        trigger : 'hover'
-                        delay   : { show: 500, hide: 100 }
-                    t.find(".fa-arrows").tooltip
-                        trigger : 'hover'
-                        delay   : { show: 500, hide: 100 }
-
-                # Masks (greys out) files that the user probably doesn't want to open
-                if account.account_settings.settings.other_settings.mask_files
-                    # mask compiled files corresponding to source files
-                    for index in masked_file_bad_index
-                        filename = listing.files[index].name
-                        ext = filename_extension(filename)
-                        name = filename.slice(0, filename.length - ext.length - 1)
-                        compare_name = name
-
-                        # TODO: other unusual cases may need to be added here
-                        if ext == 'gz'
-                            second_extension = 'synctex'
-                            if filename_extension(name) == second_extension
-                                compare_name = name.slice(0, name.length - second_extension.length - 1)
-                            else
-                                continue
-
-                        good_name_index = masked_file_good_name.indexOf(compare_name + "." + masked_file_exts[ext])
-                        if good_name_index != -1
-                            # mask the matched file
-                            i = if path == "" then index else index + 1 # skip over 'Parent Directory' link
-                            $(@container.find(".project-file-listing-file-list").children()[i]).addClass("project-file-listing-masked-file")
-
-                    # mask files starting with a '.'
-                    for file, index in listing.files
-                        if file.name.indexOf('.') == 0
-                            i = if path == "" then index else index + 1 # skip over 'Parent Directory' link
-                            $(@container.find(".project-file-listing-file-list").children()[i]).addClass("project-file-listing-masked-file")
-
-                #@clear_file_search()
-                #console.log("done building listing in #{misc.walltime(tm)}")
-                tm = misc.walltime()
-                @update_file_search()
-                #console.log("done building file search #{misc.walltime(tm)}")
-                tm = misc.walltime()
-
-                # No files
-                if directory_is_empty and path != ".trash" and path.slice(0,10) != ".snapshots"
-                    @container.find(".project-file-listing-no-files").show()
-                else
-                    @container.find(".project-file-listing-no-files").hide()
-
-                if path.slice(0,10) == '.snapshots'
-                    @container.find(".project-file-listing-snapshot-warning").show()
-                else
-                    @container.find(".project-file-listing-snapshot-warning").hide()
-
-                if no_focus? and no_focus
-                    cb?(); return
-
-                @focus_file_search()
-                #console.log("done with everything #{misc.walltime(tm)}")
-
-                cb?()
+        cb?()
 
     _init_listing_actions: (t, path, name, fullname, isdir, is_snapshot) =>
         if not fullname?
@@ -3191,6 +3125,85 @@ class ProjectPage
                                 @visit_trash()
             return false
 
+    #***************************************
+    # public paths
+    #***************************************
+    publish_path: (opts) =>
+        opts = defaults opts,
+            path        : required
+            description : undefined  # if undefined, user will be interactively queried
+            cb          : undefined
+
+        salvus_client.publish_path
+            project_id  : @project.project_id
+            path        : opts.path
+            description : opts.description
+            cb          : (err) =>
+                delete @_public_paths_cache
+                opts.cb?(err)
+
+    unpublish_path: (opts)=>
+        opts = defaults opts,
+            path : required
+            cb   : undefined
+        salvus_client.unpublish_path
+            project_id : @project.project_id
+            path       : opts.path
+            cb         : (err) =>
+                delete @_public_paths_cache
+                opts.cb?(err)
+
+    is_path_published: (opts)=>
+        opts = defaults opts,
+            path : required
+            cb   : required     # cb(err, undefined or {public_path:..., path:path, description:description})
+        @paths_that_are_public
+            paths : [opts.path]
+            cb    : (err, v) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, v[0])
+
+    # return public paths in this project; cached for a while
+    _public_paths: (cb) =>    # cb(err, [{path:., description:.}])
+        if @_public_paths_cache?
+            cb(undefined, @_public_paths_cache)
+        else
+            salvus_client.get_public_paths
+                project_id : @project.project_id
+                cb         : (err, public_paths) =>
+                    if err
+                        cb(err)
+                    else
+                        @_public_paths_cache = public_paths
+                        setTimeout((()=>delete @_public_paths_cache), PUBLIC_PATHS_CACHE_TIMEOUT_MS)
+                        cb(undefined, public_paths)
+
+
+    # given a list of paths, returns list of those that are public; more
+    # precisely, returns list of {path:., description:.} of those that are
+    # public.
+    paths_that_are_public: (opts) =>
+        opts = defaults opts,
+            paths : required
+            cb    : required     # cb(err, )
+        @_public_paths (err, public_paths) =>
+            if err
+                opts.cb(err)
+            else
+                v = []
+                for path in opts.paths
+                    q = misc.path_is_in_public_paths(path, public_paths)
+                    if q
+                        v.push({path:path, description:q.description, public_path:q.path})
+                opts.cb(undefined, v)
+
+
+    #***************************************
+    # end public paths
+    #***************************************
+
     trash_file: (opts) =>
         opts = defaults opts,
             path : required
@@ -3267,149 +3280,6 @@ class ProjectPage
                     @display_tab("project-editor")
                 @editor.display_tab(path:opened_path, foreground:opts.foreground)
 
-    switch_displayed_branch: (new_branch) =>
-        if new_branch != @meta.display_branch
-            @meta.display_branch = new_branch
-            @update_file_list_tab()
-            @update_commits_tab()
-
-    update_commits_tab: () =>
-        {commit_list, commits} = @meta.logs[@meta.display_branch]
-
-        # Set the selector that allows one to choose the current branch.
-        select = @container.find(".project-commits-branch")
-        select.empty()
-        for branch in @meta.branches
-            select.append($("<option>").text(branch).attr("value",branch))
-        select.val(@meta.display_branch)
-        that = @
-        select.change  () ->
-            that.switch_displayed_branch($(@).val())
-            return false
-
-        # Set the list of commits for the current branch.
-        list = @container.find(".project-commits-list")
-        list.empty()
-        for id in commit_list
-            entry = commits[id]
-            t = template_project_commit_single.clone()
-            t.find(".project-commit-single-message").text(trunc(entry.message, 80))
-            t.find(".project-commit-single-author").text(entry.author)
-            t.find(".project-commit-single-date").attr('title', entry.date).timeago()
-            t.find(".project-commit-single-sha").text(id.slice(0,10))
-            list.append(t)
-
-    # Display all the branches, along with information about each one.
-    update_branches_tab: () =>
-        list = @container.find(".project-branches-list")
-        list.empty()
-
-        current_branch = @meta.current_branch
-        @container.find(".project-branch").text(current_branch)
-        that = @
-
-        for branch in @meta.branches
-            t = template_project_branch_single.clone()
-            t.find(".project-branch-single-name").text(branch)
-            if branch == current_branch
-                t.addClass("project-branch-single-current")
-                t.find("a[href=#checkout]").hide()
-                #t.find("a[href=#compare]").hide()
-                t.find("a[href=#merge]").hide()
-            t.data('branch', branch)
-
-            # TODO -- combine following three into a single loop
-
-            # Make it so clicking on the "Checkout" button checks out a given branch.
-            t.find("a[href=#checkout]").data("branch", branch).click (evt) ->
-                branch = $(@).data('branch')
-                that.branch_op(branch:branch, op:'checkout')
-                return false
-
-            t.find("a[href=#delete]").data("branch",branch).click (evt) ->
-                branch = $(@).data('branch')
-                # TODO -- stern warnings
-                that.branch_op(branch:branch, op:'delete')
-                return false
-
-            t.find("a[href=#merge]").data("branch",branch).click (evt) ->
-                branch = $(@).data('branch')
-                # TODO -- stern warnings
-                that.branch_op(branch:branch, op:'merge')
-                return false
-
-            list.append(t)
-
-        @container.find(".project-branches").find("input").attr('placeholder',"Create a new branch from '#{current_branch}'...")
-
-    #########################################
-    # Operations on files in a path and branch.
-    #########################################
-
-    path_action: (opts) =>
-        opts = defaults opts,
-            action  : required     # 'delete', 'move'
-            branch  : undefined    # defaults to displayed branch
-            path    : undefined    # defaults to displayed current_path
-            commit_mesg : required
-            extra_options : undefined  # needed for some actions
-
-        spin_timer = undefined
-
-        async.series([
-            # Display the file/listing spinner
-            (cb) =>
-                spinner = @container.find(".project-file-listing-spinner")
-                spin_timer = setTimeout((()->spinner.show().spin()), 500)
-                cb()
-            # Switch to different branch if necessary
-            (cb) =>
-                if opts.branch != @meta.current_branch
-                    @branch_op(branch:opts.branch, op:'checkout', cb:cb)
-                else
-                    cb()
-
-            # Carry out the action
-            (cb) =>
-                switch opts.action
-                    when 'delete'
-                        salvus_client.remove_file_from_project
-                            project_id : @project.project_id
-                            path       : opts.path
-                            cb         : (err, mesg) =>
-                                if err
-                                    cb(err)
-                                else if mesg.event == "error"
-                                    cb(mesg.error)
-                                else
-                                    @current_path.pop()
-                                    cb()
-                    when 'move'
-                        salvus_client.move_file_in_project
-                            project_id : @project.project_id
-                            src        : opts.path
-                            dest       : opts.extra_options.dest
-                            cb         : (err, mesg) =>
-                                if err
-                                    cb(err)
-                                else if mesg.event == "error"
-                                    cb(mesg.error)
-                                else
-                                    @current_path = opts.extra_options.dest.split('/')
-                                    cb()
-                    else
-                        cb("unknown path action #{opts.action}")
-
-            # Reload the files/branches/etc to take into account new commit, file deletions, etc.
-            (cb) =>
-                clearTimeout(spin_timer)
-                @update_file_list_tab()
-                cb()
-
-        ], (err) ->
-            if err
-                alert_message(type:"error", message:err)
-        )
 
 project_pages = {}
 
