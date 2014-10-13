@@ -2167,21 +2167,7 @@ class Client extends EventEmitter
     # Public/published projects data
     ################################################
     path_is_in_public_paths: (path, paths) =>
-        # Return true if (1) path is contained in one of the given paths (a list of strings), or if (2) path is undefined then
-        # true if paths has length at least 1.
-        winston.debug("path_is_in_public_paths: #{misc.to_json(path)}, #{misc.to_json(paths)}")
-        if path.indexOf('../') != -1
-            # just deny any potentially trickiery involving relative path segments (TODO: maybe too restrictive?)
-            return false
-        if not path?
-            return paths.length > 0
-        for p in paths
-            if path == p.path
-                # exact match
-                return true
-            if path.slice(0,p.path.length+1) == p.path + '/'
-                return true
-        return false
+        return misc.path_is_in_public_paths(path, paths)
 
     get_public_project: (opts) =>
         opts = defaults opts,

@@ -45,6 +45,8 @@ MAX_FILE_LISTING_SIZE = 300
 FROM_WEB_TIMEOUT_S = 45
 
 
+# How long to cache public paths in this project
+PUBLIC_PATHS_CACHE_TIMEOUT_MS = 1000*60
 
 ##################################################
 # Define the project page class
@@ -1281,11 +1283,44 @@ class ProjectPage
                 @download_file
                     path : obj.fullname
                 return false
+
         dialog.find("a[href=#delete-file]").click () =>
             dialog.modal('hide')
             @trash_file
                 path : obj.fullname
             return false
+
+        @is_path_published
+            path : obj.fullname
+            cb   : (err, pub) =>
+                publish = dialog.find(".salvus-project-published-desc")
+                publish.show()
+                if pub? and pub.public_path != obj.fullname
+                    publish.find(".salvus-project-in-published").show().find("span").text(pub.public_path)
+                    return
+                desc = publish.find("input").show()
+                if pub
+                    publish.find("a[href=#unpublish-path]").show().click () =>
+                        dialog.modal('hide')
+                        @unpublish_path
+                            path : obj.fullname
+                        return false
+                    desc.val(pub.description)
+                else
+                    dialog.find("a[href=#publish-path]").show().click () =>
+                        dialog.modal('hide')
+                        @publish_path
+                            path        : obj.fullname
+                            description : desc.val()
+                        return false
+                desc.keydown (evt) =>
+                    if evt.which == 13 and desc.val() # enter and nontrivial
+                        dialog.modal('hide')
+                        # update description
+                        @publish_path
+                            path        : obj.fullname
+                            description : desc.val()
+
         dialog.modal()
 
     # Update the listing of files in the current_path, or display of the current file.
@@ -3089,6 +3124,85 @@ class ProjectPage
                                 alert_message(type:"success", message:"Successfully deleted the contents of your trash.")
                                 @visit_trash()
             return false
+
+    #***************************************
+    # public paths
+    #***************************************
+    publish_path: (opts) =>
+        opts = defaults opts,
+            path        : required
+            description : undefined  # if undefined, user will be interactively queried
+            cb          : undefined
+
+        salvus_client.publish_path
+            project_id  : @project.project_id
+            path        : opts.path
+            description : opts.description
+            cb          : (err) =>
+                delete @_public_paths_cache
+                opts.cb?(err)
+
+    unpublish_path: (opts)=>
+        opts = defaults opts,
+            path : required
+            cb   : undefined
+        salvus_client.unpublish_path
+            project_id : @project.project_id
+            path       : opts.path
+            cb         : (err) =>
+                delete @_public_paths_cache
+                opts.cb?(err)
+
+    is_path_published: (opts)=>
+        opts = defaults opts,
+            path : required
+            cb   : required     # cb(err, undefined or {public_path:..., path:path, description:description})
+        @paths_that_are_public
+            paths : [opts.path]
+            cb    : (err, v) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, v[0])
+
+    # return public paths in this project; cached for a while
+    _public_paths: (cb) =>    # cb(err, [{path:., description:.}])
+        if @_public_paths_cache?
+            cb(undefined, @_public_paths_cache)
+        else
+            salvus_client.get_public_paths
+                project_id : @project.project_id
+                cb         : (err, public_paths) =>
+                    if err
+                        cb(err)
+                    else
+                        @_public_paths_cache = public_paths
+                        setTimeout((()=>delete @_public_paths_cache), PUBLIC_PATHS_CACHE_TIMEOUT_MS)
+                        cb(undefined, public_paths)
+
+
+    # given a list of paths, returns list of those that are public; more
+    # precisely, returns list of {path:., description:.} of those that are
+    # public.
+    paths_that_are_public: (opts) =>
+        opts = defaults opts,
+            paths : required
+            cb    : required     # cb(err, )
+        @_public_paths (err, public_paths) =>
+            if err
+                opts.cb(err)
+            else
+                v = []
+                for path in opts.paths
+                    q = misc.path_is_in_public_paths(path, public_paths)
+                    if q
+                        v.push({path:path, description:q.description, public_path:q.path})
+                opts.cb(undefined, v)
+
+
+    #***************************************
+    # end public paths
+    #***************************************
 
     trash_file: (opts) =>
         opts = defaults opts,

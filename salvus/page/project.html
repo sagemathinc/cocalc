@@ -79,7 +79,14 @@
                 <br><br>
                 <span class=" btn-group">
                     <a class="btn btn-lg btn-primary" href="#copy-file"><i class="fa fa-copy"> </i> Copy</a>
-                    <a class="btn btn-lg btn-primary" href="#copy-to-another-project"><i class="fa fa-send-o"> </i> To Another Project</a>
+                    <a class="btn btn-lg btn-primary" href="#copy-to-another-project"><i class="fa fa-send-o"> </i> Copy To Another Project</a>
+                </span>
+                <br><br>
+                <span class="salvus-project-published-desc hide">
+                    <input type="text" placeholder="Description of share..." class="form-control hide" style="width:50%;display: inline;">
+                    <a class="btn btn-lg btn-primary hide" href="#unpublish-path"><i class="fa fa-shield"> </i> Stop Sharing Publicly</a>
+                    <a class="btn btn-lg btn-primary hide" href="#publish-path"><i class="fa fa-share-square-o"> </i> Share Publicly</a>
+                    <span class="salvus-project-in-published hide">Public because it is contained in <span></span>.</span>
                 </span>
             </div>
             <div class="modal-footer">
@@ -946,6 +953,7 @@
     <div class="project-file-link-style project-file-link project-path-link row">
         <div class="col-sm-2" style="width: 8em;">
             <a href="#file-action" class="salvus-file-action btn btn-default btn-sm">
+                <!--<i class="fa fa-info-circle"></i>-->
                 <i class="fa fa-arrows"> </i> <i class="fa fa-cloud-download"></i>  <i class="fa fa-copy"></i>
                 <i class="fa fa-trash-o"> </i>
             </a>
