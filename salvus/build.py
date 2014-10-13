@@ -69,6 +69,12 @@ Up the number of watches (mainly for bup watch):
 
 Install https://github.com/williamstein/python-inotify and https://github.com/williamstein/bup-1 systemwide.
 
+# OBSPY --
+
+Add this to /etc/apt/sources.list then "apt-get update; apt-get install python-obspy":
+
+    deb http://deb.obspy.org trusty main
+
 # ATLAS:
 
          apt-get install libatlas3gf-base liblapack-dev
@@ -407,7 +413,9 @@ SAGE_PIP_PACKAGES = [
     'joblib',
     'colorpy',
     'rootpy',    # supports ROOT data analysis framework
-    'tabulate'
+    'tabulate',
+    'goslate',    # google translate api -- http://pythonhosted.org/goslate/
+    'certifi'    # dependency of https://github.com/obspy, which is installed systemwide from an ubuntu package repo
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
