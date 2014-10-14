@@ -201,9 +201,22 @@ class Console extends EventEmitter
             try
                 mesg = from_json(mesg)
                 switch mesg.event
-                    when 'open_file'
+                    when 'open'
+                        i = 0
+                        foreground = false
+                        for v in mesg.paths
+                            i += 1
+                            if i == mesg.paths.length
+                                foreground = true
+                            if v.file?
+                                @opts.editor?.editor.project_page.open_file(path:v.file, foreground:foreground)
+                            if v.directory? and foreground
+                                @opts.editor?.editor.project_page.chdir(v.directory)
+                                @opts.editor?.editor.project_page.display_tab("project-file-listing")
+
+                    when 'open_file'  # not used, but may be running in old projects
                         @opts.editor?.editor.project_page.open_file(path:mesg.name, foreground:true)
-                    when 'open_directory'
+                    when 'open_directory'   # not used, but may be running in old projects
                         @opts.editor?.editor.project_page.chdir(mesg.name)
                         @opts.editor?.editor.project_page.display_tab("project-file-listing")
             catch e

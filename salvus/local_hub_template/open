@@ -11,28 +11,32 @@ else:
     prefix = ''
     postfix = ''
 
-def process(arg):
-    filename = os.path.abspath(arg)
+def process(paths):
+    v = []
+    for path in paths:
+        if not os.path.exists(path):
+            raise RuntimeError("path '%s' does not exist"%path)
 
-    # determine name relative to home directory
-    if filename.startswith(home):
-        name = filename[len(home)+1:]
-    else:
-        name = filename
+        path = os.path.abspath(path)
+        # determine name relative to home directory
+        if path.startswith(home):
+            name = path[len(home)+1:]
+        else:
+            name = path
 
-    # Is it a file or directory
-    if os.path.exists(filename) and os.path.isdir(filename):
-        mesg = {"event":"open_directory","name":name}
-    else:
-        mesg = {"event":"open_file","name":name}
-    #print mesg
+        # Is it a file or directory?
+        if os.path.isdir(path):
+            v.append({'directory':name})
+        else:
+            v.append({'file':name})
 
-    print prefix + '\x1b]49;%s\x07'%json.dumps(mesg,separators=(',',':')) + postfix
+    if len(v) > 0:
+        mesg = {'event':'open', 'paths':v}
+        print prefix + '\x1b]49;%s\x07'%json.dumps(mesg,separators=(',',':')) + postfix
 
 if len(sys.argv) == 1:
-    print "Usage: open [filenames] "
+    print "Usage: open [path names] ..."
     print "Opens each file (or directory) in the Sagemath Cloud web-based editor from the shell."
-    print "If the named file doesn't exist, it is created."
+    print "If the named file doesn't exist, you get an error (the file is *not* created)."
 else:
-    for arg in sys.argv[1:]:
-        process(arg)
+    process(sys.argv[1:])
