@@ -871,9 +871,9 @@ $(".salvus_client_version_warning").draggable().find(".fa-times").click () ->
     $(".salvus_client_version_warning").hide()
 
 
-setTimeout(version_check, 15000)  # quick check on first connection too.
+setTimeout(version_check, 15000)  # check on first connection.
 
-setInterval(version_check, 5*60*1000)  # check once every five minutes; may increase time later as usage grows (?)
+setInterval(version_check, 3*60*1000)  # check once every three minutes
 
 
 # Connection information dialog

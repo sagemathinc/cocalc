@@ -69,8 +69,26 @@ cql     = require("node-cassandra-cql")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 
-salvus_version = require('salvus_version')
 
+SALVUS_VERSION = 0
+update_salvus_version = () ->
+    version_file = 'node_modules/salvus_version.js'
+    fs.readFile version_file, (err, data) ->
+        if err
+            winston.debug("update_salvus_version: WARNING: Error reading -- #{version_file}")
+        else
+            s = data.toString()
+            i = s.indexOf('=')
+            j = s.indexOf('\n')
+            if i != -1 and j != -1
+                SALVUS_VERSION = parseInt(s.slice(i+1,j))
+            # winston.debug("SALVUS_VERSION=#{SALVUS_VERSION}")
+
+init_salvus_version = () ->
+    update_salvus_version()
+    # update periodically, so we can inform users of new version without having
+    # to actually restart the server.
+    setInterval(update_salvus_version, 90*1000)
 
 snap = require("snap")
 
@@ -2093,7 +2111,7 @@ class Client extends EventEmitter
     # The version of the running server.
     ################################################
     mesg_get_version: (mesg) =>
-        mesg.version = salvus_version.version
+        mesg.version = SALVUS_VERSION
         @push_to_client(mesg)
 
     ################################################
@@ -4835,6 +4853,7 @@ exports.start_server = start_server = () ->
         max_delay   : 10000
         cb          : () =>
             winston.debug("connected to database.")
+            init_salvus_version()
             init_bup_server()
             init_http_server()
             init_http_proxy_server()
