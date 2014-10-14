@@ -382,7 +382,7 @@ exports.open_project = open_project = (opts) ->
         project : required
         item    : undefined
         target  : undefined
-        cb      : required   # cb(err, project)
+        cb      : undefined   # cb(err, project)
 
     project = opts.project
     if typeof(project) == 'string'
@@ -404,7 +404,7 @@ exports.open_project = open_project = (opts) ->
                             project_id : project
                             cb         : (err, p) ->
                                 if err
-                                    opts.cb("Unknown project with id '#{project}'")
+                                    opts.cb?("Unknown project with id '#{project}'")
                                 else
                                     open_project
                                         project : p
@@ -438,14 +438,14 @@ exports.open_project = open_project = (opts) ->
             cb         : (err, info) ->
                 if err
                     opts.item?.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
-                    opts.cb("error opening project -- #{err}")
+                    opts.cb?("error opening project -- #{err}")
                 else
                     if not info?.bup_location?
                         opts.item?.find(".projects-location").html("(none)")
                     else
                         project.location = info.bup_location
                         opts.item?.find(".projects-location").text("")
-                    opts.cb(undefined, proj)
+                    opts.cb?(undefined, proj)
 
 ################################################
 # Create a New Project

@@ -3,6 +3,8 @@
 # Project page -- browse the files in a project, etc.
 #
 ###############################################################################
+ENABLE_PUBLIC = false
+
 
 {IS_MOBILE}     = require("feature")
 {top_navbar}    = require('top_navbar')
@@ -1290,7 +1292,7 @@ class ProjectPage
                 path : obj.fullname
             return false
 
-        if not @public_access and not (obj.fullname == '.snapshots' or misc.startswith(obj.fullname,'.snapshots/'))
+        if ENABLE_PUBLIC and not @public_access and not (obj.fullname == '.snapshots' or misc.startswith(obj.fullname,'.snapshots/'))
             @is_path_published
                 path : obj.fullname
                 cb   : (err, pub) =>
@@ -3106,13 +3108,11 @@ class ProjectPage
                         else
                             @container.find("a[href=#restart-project]").removeClass("disabled")
 
-
     init_local_status_link: () =>
         @update_local_status_link()
         #@container.find(".salvus-project-status-indicator-button").click () =>
         #    @display_tab("project-settings")
         #    return false
-
 
     # browse to the snapshot viewer.
     visit_snapshot: () =>
