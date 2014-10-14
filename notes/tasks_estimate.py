@@ -34,7 +34,7 @@ for x in os.popen('%s | grep -v done\\":1'%('grep %s %s '%(tag, file) if tag els
         m = 0
     tm += 60*h + m
 
-print "-"*70    
+print "-"*70
 print "Total: (%s:%s)"%(tm//60,tm%60)
 
 for k in [4,8,9,12,16]:
