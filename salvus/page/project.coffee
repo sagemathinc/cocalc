@@ -1860,7 +1860,17 @@ class ProjectPage
         target_path       = undefined
         overwrite_newer   = undefined
         delete_missing    = undefined
+        project_list      = undefined
         async.series([
+            (cb) =>
+                require('projects').get_project_list
+                    update : false   # uses cached version if available, rather than downloading from server
+                    cb : (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            project_list = x
+                            cb()
             (cb) =>
                 if path.slice(0,'.snapshots/'.length) == '.snapshots/'
                     dest = path.slice('.snapshots/master/2014-04-06-052506/'.length)
@@ -1873,7 +1883,7 @@ class ProjectPage
                 else
                     dialog.find(".salvus-project-copy-file").show()
                 selector = dialog.find(".salvus-project-target-project-id")
-                v = ({project_id:x.project_id, title:x.title.slice(0,80)} for x in require('projects').get_project_list())
+                v = ({project_id:x.project_id, title:x.title.slice(0,80)} for x in project_list)
                 for project in v.slice(0,7)
                     selector.append("<option value='#{project.project_id}'>#{project.title}</option>")
                 v.sort (a,b) ->
