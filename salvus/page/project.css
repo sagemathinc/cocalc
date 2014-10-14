@@ -100,8 +100,13 @@
     margin-left:2em;
 }
 
+.project-directory-link {
+    background: #fafafa;
+    border: 1px solid #eee;
+    padding-top: 1px;
+}
+
 .project-file-link-style {
-    background-color : #ffffff;
     /*border-bottom    : 1px solid #eee;*/
     cursor           : pointer;
 }
@@ -300,7 +305,7 @@
     margin-left:0em;
     padding-left: 1em;
     padding-right: 1em;
-    padding-top: 5px;
+    margin-top: -1.5em;    
 }
 
 .project-command-line-input {
@@ -400,7 +405,6 @@
 }
 
 .salvus-project-search-for-file-input-container {
-    margin-top: 1em;
 }
 
 .project-listing-search-include {
@@ -490,6 +494,9 @@
 
 .salvus-file-action {
     color: #888;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    width : 4em;
 }
 
 .salvus-file-action:hover {

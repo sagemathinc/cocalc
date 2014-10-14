@@ -203,6 +203,23 @@ class ProjectPage
 
         @init_file_sessions()
 
+        @init_current_path_info_button()
+
+
+    init_current_path_info_button: () =>
+        e = @container.find("a[href=#file-action-current-path]")
+        e.click () =>
+            fullname = @current_pathname()
+            i = fullname.lastIndexOf('/')
+            if i != -1
+                name = fullname.slice(i+1)
+            else
+                name = fullname
+            @file_action_dialog
+                fullname : fullname
+                name     : name
+                isdir    : true
+
     init_new_tab_in_navbar: () =>
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
         @container.top_navbar
@@ -724,10 +741,12 @@ class ProjectPage
                 that.display_tab(link.data("target"))
                 return false
 
+            that.container.find(".project-file-top-current-path-display").show()
             if name == "project-file-listing"
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
                     that.update_file_list_tab()
+                    that.container.find(".project-file-top-current-path-display").hide()
             else if name == "project-editor"
                 tab.onshow = () ->
                     that.editor.onshow()
@@ -1233,47 +1252,125 @@ class ProjectPage
         @current_path = new_path
         @update_file_list_tab()
 
-    file_action_dialog: (obj) =>
+    file_action_dialog: (obj) => # obj = {name:?, fullname:?, isdir:?}
         dialog = $(".salvus-file-action-dialog").clone()
-        rename = () =>
-            new_name = name.text()
-            if new_name != obj.name
-                dialog.modal('hide')
-                path = misc.path_split(obj.fullname).head
-                @rename_file path, obj.name, new_name, (err) =>
-                    if err
-                        alert_message(type:"error", message:err)
-                    else
-                        obj.name = new_name
-                        if path != ""
-                            obj.fullname = path + "/" + new_name
+        dialog.find(".salvus-file-filename").text(obj.name)
+        if @public_access
+            dialog.find(".salvus-project-write-access").hide()
+            dialog.find(".salvus-project-public-access").show().css(display:'inline-block')
+        else
+            dialog.find(".salvus-project-write-access").show().css(display:'inline-block')
+            dialog.find(".salvus-project-public-access").hide()
+            # start write-able version
+            rename = () =>
+                new_name = name.text()
+                if new_name != obj.name
+                    dialog.modal('hide')
+                    path = misc.path_split(obj.fullname).head
+                    @rename_file path, obj.name, new_name, (err) =>
+                        if err
+                            alert_message(type:"error", message:err)
                         else
-                            obj.fullname = new_name
-                        @update_file_list_tab(true)
+                            if path != ""
+                                new_fullname = path + "/" + new_name
+                            else
+                                new_fullname = new_name
+                            if obj.fullname == @current_pathname()
+                                @chdir(new_fullname)
+                            obj.name = new_name
+                            obj.fullname = new_fullname
+                            @update_file_list_tab(true)
 
-        name = dialog.find(".salvus-file-filename").text(obj.name).blur(rename).keydown (evt) =>
-            if evt.which == 13
-                rename(); return false
-            else if evt.which == 27
-                name.text(obj.name).blur(); return false
+            if obj.fullname != ''
+                name = dialog.find(".salvus-file-filename").attr("contenteditable",true).blur(rename).keydown (evt) =>
+                    if evt.which == 13
+                        rename(); return false
+                    else if evt.which == 27
+                        name.text(obj.name).blur(); return false
+                dialog.find("a[href=#move-file]").click () =>
+                    dialog.modal('hide')
+                    @move_file_dialog(obj.fullname)
+                    return false
+            else
+                dialog.find("a[href=#move-file]").hide()
+
+            dialog.find("a[href=#copy-file]").click () =>
+                dialog.modal('hide')
+                @copy_file_dialog(obj.fullname, obj.isdir)
+                return false
+
+            if obj.fullname != ''
+                dialog.find("a[href=#delete-file]").click () =>
+                    dialog.modal('hide')
+                    @trash_file
+                        path : obj.fullname
+                    if obj.fullname == @current_pathname()
+                        @current_path.pop()
+                        @update_file_list_tab()
+                    return false
+            else
+                dialog.find("a[href=#delete-file]").hide()
+
+            if ENABLE_PUBLIC and not @public_access and not (obj.fullname == '.snapshots' or misc.startswith(obj.fullname,'.snapshots/'))
+                @is_path_published
+                    path : obj.fullname
+                    cb   : (err, pub) =>
+                        publish = dialog.find(".salvus-project-published-desc")
+                        publish.show()
+                        if pub? and pub.public_path != obj.fullname
+                            publish.find(".salvus-project-in-published").show().find("span").text(pub.public_path)
+                            return
+                        desc = publish.find("input").show()
+                        if pub
+                            publish.find("a[href=#unpublish-path]").show().click () =>
+                                dialog.modal('hide')
+                                @unpublish_path
+                                    path : obj.fullname
+                                    cb          : (err) =>
+                                        if err
+                                            alert_message(type:'error', message:"Error unpublishing '#{obj.fullname}' -- #{err}")
+                                        else
+                                            alert_message(message:"Unpublished '#{obj.fullname}'")
+
+                                return false
+                            desc.val(pub.description)
+                        else
+                            dialog.find("a[href=#publish-path]").show().click () =>
+                                dialog.modal('hide')
+                                @publish_path
+                                    path        : obj.fullname
+                                    description : desc.val()
+                                    cb          : (err) =>
+                                        if err
+                                            alert_message(type:'error', message:"Error publishing '#{obj.fullname}' -- #{err}")
+                                        else
+                                            alert_message(message:"Published '#{obj.fullname}' -- #{desc.val()}")
+
+                                return false
+                        desc.keydown (evt) =>
+                            if evt.which == 13 and desc.val() # enter and nontrivial
+                                dialog.modal('hide')
+                                # update description
+                                @publish_path
+                                    path        : obj.fullname
+                                    description : desc.val()
+                                    cb          : (err) =>
+                                        if err
+                                            alert_message(type:'error', message:"Error publishing '#{obj.fullname}' -- #{err}")
+                                        else
+                                            alert_message(message:"Published '#{obj.fullname}' -- #{desc.val()}")
+
+            # end write-able version
+
+        # init for both public and writeable
 
         dialog.find(".btn-close").click () =>
             dialog.modal('hide')
             return false
 
-        dialog.find("a[href=#copy-file]").click () =>
-            dialog.modal('hide')
-            @copy_file_dialog(obj.fullname, obj.isdir)
-            return false
-
         dialog.find("a[href=#copy-to-another-project]").click () =>
             dialog.modal('hide')
             @copy_to_another_project_dialog(obj.fullname, obj.isdir)
-            return false
-
-        dialog.find("a[href=#move-file]").click () =>
-            dialog.modal('hide')
-            @move_file_dialog(obj.fullname)
             return false
 
         if obj.isdir
@@ -1286,60 +1383,6 @@ class ProjectPage
                     path : obj.fullname
                 return false
 
-        dialog.find("a[href=#delete-file]").click () =>
-            dialog.modal('hide')
-            @trash_file
-                path : obj.fullname
-            return false
-
-        if ENABLE_PUBLIC and not @public_access and not (obj.fullname == '.snapshots' or misc.startswith(obj.fullname,'.snapshots/'))
-            @is_path_published
-                path : obj.fullname
-                cb   : (err, pub) =>
-                    publish = dialog.find(".salvus-project-published-desc")
-                    publish.show()
-                    if pub? and pub.public_path != obj.fullname
-                        publish.find(".salvus-project-in-published").show().find("span").text(pub.public_path)
-                        return
-                    desc = publish.find("input").show()
-                    if pub
-                        publish.find("a[href=#unpublish-path]").show().click () =>
-                            dialog.modal('hide')
-                            @unpublish_path
-                                path : obj.fullname
-                                cb          : (err) =>
-                                    if err
-                                        alert_message(type:'error', message:"Error unpublishing '#{obj.fullname}' -- #{err}")
-                                    else
-                                        alert_message(message:"Unpublished '#{obj.fullname}'")
-
-                            return false
-                        desc.val(pub.description)
-                    else
-                        dialog.find("a[href=#publish-path]").show().click () =>
-                            dialog.modal('hide')
-                            @publish_path
-                                path        : obj.fullname
-                                description : desc.val()
-                                cb          : (err) =>
-                                    if err
-                                        alert_message(type:'error', message:"Error publishing '#{obj.fullname}' -- #{err}")
-                                    else
-                                        alert_message(message:"Published '#{obj.fullname}' -- #{desc.val()}")
-
-                            return false
-                    desc.keydown (evt) =>
-                        if evt.which == 13 and desc.val() # enter and nontrivial
-                            dialog.modal('hide')
-                            # update description
-                            @publish_path
-                                path        : obj.fullname
-                                description : desc.val()
-                                cb          : (err) =>
-                                    if err
-                                        alert_message(type:'error', message:"Error publishing '#{obj.fullname}' -- #{err}")
-                                    else
-                                        alert_message(message:"Published '#{obj.fullname}' -- #{desc.val()}")
         dialog.modal()
 
     # Update the listing of files in the current_path, or display of the current file.
@@ -1390,6 +1433,7 @@ class ProjectPage
 
                 if err
                     alert_message(type:"error", message:"unable to show listing for #{path} -- #{err}")
+                    @current_path = []
                     cb?(err)
                 else
                     @render_file_listing
@@ -1490,6 +1534,7 @@ class ProjectPage
         if @current_path.length > 0
             # Create special link to the parent directory
             t = template_project_file.clone()
+            t.addClass('project-directory-link')
             t.find("a[href=#file-action]").hide()
             parent = @current_path.slice(0, @current_path.length-1).join('/')
             if parent == ""
@@ -1513,7 +1558,14 @@ class ProjectPage
 
             file_or_listing.append(t)
 
-
+        ###
+            i = parent.lastIndexOf('/')
+            if i == -1
+                name = parent
+            else
+                name = parent.slice(i+1)
+            t.data('obj', {fullname:parent, isdir:true, name:name})
+        ###
 
         #console.log("done updating misc stuff", misc.walltime(tm))
 
@@ -1537,6 +1589,7 @@ class ProjectPage
             t = template_project_file.clone()
             t.data(obj:obj)
             if obj.isdir
+                t.addClass('project-directory-link')
                 t.find(".project-file-name").text(obj.name)
                 date = undefined
                 if path == ".snapshots/master" and obj.name.length == '2014-04-04-061502'.length
@@ -1547,7 +1600,7 @@ class ProjectPage
                 if date?
                     t.find(".project-file-last-mod-date").attr('title', date.toISOString()).timeago()
                 name = obj.name
-                t.find(".project-file-icon").removeClass("fa-file").addClass("fa-folder-open-o").css('font-size':'21pt')
+                t.find(".project-file-icon").removeClass("fa-file").addClass("fa-folder-open-o")
             else
                 if obj.name.indexOf('.') != -1
                     ext = filename_extension(obj.name)
@@ -1983,6 +2036,8 @@ class ProjectPage
                             alert_message(type:"error", message:"Error moving #{new_src} to #{new_dest} -- #{output.stderr}")
                         else
                             alert_message(type:"success", message:"Successfully moved #{new_src} to #{new_dest}")
+                            if path == @current_pathname()
+                                @chdir(new_dest)
                             @update_file_list_tab()
                         cb(err)
         ], (err) => cb?(err))
