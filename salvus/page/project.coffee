@@ -1290,7 +1290,8 @@ class ProjectPage
                 path : obj.fullname
             return false
 
-        if not @public_access
+        # false since disabled until ready for prime time.
+        if false and not @public_access
             @is_path_published
                 path : obj.fullname
                 cb   : (err, pub) =>

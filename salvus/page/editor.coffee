@@ -1758,7 +1758,7 @@ class CodeMirrorEditor extends FileEditor
         # doing this "always" causes things to get properly fixed.  I don't know why.
         hack = $("<div>")
         $("body").append(hack)
-        setTimeout((()=>hack.remove()),1000)
+        setTimeout((()=>hack.remove()), 1000)
 
         for {cm,height,width} in v
             scroller = $(cm.getScrollerElement())
@@ -1767,13 +1767,18 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : height
                 width  : width
-            scroll = cm.getScrollInfo(); pos = cm.getCursor()
-            cm.refresh()  # NOTE: unfortunately, this can break the cursor location and scrollTo -- I've seen it happen.
-            scroll_after = cm.getScrollInfo(); pos_after = cm.getCursor()
-            if scroll.left != scroll_after.left or scroll.top != scroll_after.top or pos.line != pos_after.line or pos.ch != pos_after.ch
-                console.log("WARNING: codemirror refresh lost pos -- RESETTING position")
-                cm.scrollTo(scroll.left, scroll.top)
-                cm.setCursor(pos)
+        f = () =>
+            for {cm,height,width} in v
+                scroll = cm.getScrollInfo(); pos = cm.getCursor()
+                cm.refresh()  # NOTE: unfortunately, this can break the cursor location and scrollTo -- I've seen it happen.
+                ###
+scroll_after = cm.getScrollInfo(); pos_after = cm.getCursor()
+                if scroll.left != scroll_after.left or scroll.top != scroll_after.top or pos.line != pos_after.line or pos.ch != pos_after.ch
+                    console.log("WARNING: codemirror refresh lost pos -- RESETTING position; before=#{misc.to_json([scroll,pos])}, after=#{misc.to_json([scroll_after,pos_after])}")
+                    cm.setCursor(pos)
+                    cm.scrollTo(scroll.left, scroll.top)
+                ###
+        setTimeout(f, 1)
 
         @emit('show', height)
 
