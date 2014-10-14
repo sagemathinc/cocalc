@@ -1861,6 +1861,7 @@ class ProjectPage
         overwrite_newer   = undefined
         delete_missing    = undefined
         project_list      = undefined
+        is_public         = undefined
         async.series([
             (cb) =>
                 require('projects').get_project_list
@@ -1871,6 +1872,17 @@ class ProjectPage
                         else
                             project_list = x
                             cb()
+            (cb) =>
+                # determine whether or not the source path is available via public access
+                if @public_access
+                    is_public = true
+                    cb()
+                else
+                    @is_path_published
+                        path : path
+                        cb   : (err, x) =>
+                            is_public = x
+                            cb(err)
             (cb) =>
                 if path.slice(0,'.snapshots/'.length) == '.snapshots/'
                     dest = path.slice('.snapshots/master/2014-04-06-052506/'.length)
@@ -1916,6 +1928,7 @@ class ProjectPage
                     cb(); return
                 alert_message(type:'info', message:"Copying #{src_path} to #{target_path} in #{target_project}...")
                 salvus_client.copy_path_between_projects
+                    public            : is_public
                     src_project_id    : @project.project_id
                     src_path          : src_path
                     target_project_id : target_project_id

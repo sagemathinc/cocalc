@@ -2339,6 +2339,54 @@ class Client extends EventEmitter
                     @push_to_client(message.public_paths(id:mesg.id, paths:paths))
 
 
+    mesg_copy_public_path_between_projects: (mesg) =>
+        if not mesg.src_project_id?
+            @error_to_client(id:mesg.id, error:"src_project_id must be defined")
+            return
+        if not mesg.target_project_id?
+            @error_to_client(id:mesg.id, error:"target_project_id must be defined")
+            return
+        if not mesg.src_path?
+            @error_to_client(id:mesg.id, error:"src_path must be defined")
+            return
+        project = undefined
+        async.series([
+            (cb) =>
+                # ensure user can write to the target project
+                user_has_write_access_to_project
+                    project_id     : mesg.target_project_id
+                    account_id     : @account_id
+                    account_groups : @groups
+                    cb             : (err, result) =>
+                        if err
+                            cb(err)
+                        else if not result
+                            cb("user must have write access to target project #{mesg.target_project_id}")
+                        else
+                            cb()
+            (cb) =>
+                @get_public_project
+                    project_id : mesg.src_project_id
+                    path       : mesg.src_path
+                    cb         : (err, x) =>
+                        project = x
+                        cb(err)
+            (cb) =>
+                project.copy_path
+                    path            : mesg.src_path
+                    project_id      : mesg.target_project_id
+                    target_path     : mesg.target_path
+                    overwrite_newer : mesg.overwrite_newer
+                    delete_missing  : mesg.delete_missing
+                    timeout         : mesg.timeout
+                    cb              : cb
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.success(id:mesg.id))
+        )
+
 
     ################################################
     # Task list messages..
