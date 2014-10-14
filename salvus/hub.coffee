@@ -2284,6 +2284,9 @@ class Client extends EventEmitter
 
 
     mesg_publish_path: (mesg) =>
+        if mesg.path == '.snapshots' or misc.startswith(mesg.path,'.snapshots/')
+            @error_to_client(id:mesg.id, error:"you may not publish anything in the snapshots directory")
+            return
         @get_project mesg, 'write', (err, project) =>
             if not err
                 database.publish_path

@@ -1290,8 +1290,7 @@ class ProjectPage
                 path : obj.fullname
             return false
 
-        # false since disabled until ready for prime time.
-        if false and not @public_access
+        if not @public_access and not (obj.fullname == '.snapshots' or misc.startswith(obj.fullname,'.snapshots/'))
             @is_path_published
                 path : obj.fullname
                 cb   : (err, pub) =>
@@ -1306,6 +1305,12 @@ class ProjectPage
                             dialog.modal('hide')
                             @unpublish_path
                                 path : obj.fullname
+                                cb          : (err) =>
+                                    if err
+                                        alert_message(type:'error', message:"Error unpublishing '#{obj.fullname}' -- #{err}")
+                                    else
+                                        alert_message(message:"Unpublished '#{obj.fullname}'")
+
                             return false
                         desc.val(pub.description)
                     else
@@ -1314,6 +1319,12 @@ class ProjectPage
                             @publish_path
                                 path        : obj.fullname
                                 description : desc.val()
+                                cb          : (err) =>
+                                    if err
+                                        alert_message(type:'error', message:"Error publishing '#{obj.fullname}' -- #{err}")
+                                    else
+                                        alert_message(message:"Published '#{obj.fullname}' -- #{desc.val()}")
+
                             return false
                     desc.keydown (evt) =>
                         if evt.which == 13 and desc.val() # enter and nontrivial
@@ -1322,7 +1333,11 @@ class ProjectPage
                             @publish_path
                                 path        : obj.fullname
                                 description : desc.val()
-
+                                cb          : (err) =>
+                                    if err
+                                        alert_message(type:'error', message:"Error publishing '#{obj.fullname}' -- #{err}")
+                                    else
+                                        alert_message(message:"Published '#{obj.fullname}' -- #{desc.val()}")
         dialog.modal()
 
     # Update the listing of files in the current_path, or display of the current file.
