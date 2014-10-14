@@ -209,15 +209,8 @@ class ProjectPage
     init_current_path_info_button: () =>
         e = @container.find("a[href=#file-action-current-path]")
         e.click () =>
-            fullname = @current_pathname()
-            i = fullname.lastIndexOf('/')
-            if i != -1
-                name = fullname.slice(i+1)
-            else
-                name = fullname
             @file_action_dialog
-                fullname : fullname
-                name     : name
+                fullname : @current_pathname()
                 isdir    : true
 
     init_new_tab_in_navbar: () =>
@@ -1252,7 +1245,13 @@ class ProjectPage
         @current_path = new_path
         @update_file_list_tab()
 
-    file_action_dialog: (obj) => # obj = {name:?, fullname:?, isdir:?}
+    file_action_dialog: (obj) => # obj = {name:[optional], fullname:?, isdir:?}
+        if not obj.name?
+            i = obj.fullname.lastIndexOf('/')
+            if i != -1
+                obj.name = obj.fullname.slice(i+1)
+            else
+                obj.name = obj.fullname
         dialog = $(".salvus-file-action-dialog").clone()
         dialog.find(".salvus-file-filename").text(obj.name)
         if @public_access
