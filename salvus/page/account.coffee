@@ -55,7 +55,6 @@ show_page = (p) ->
 
 
 show_page("account-sign_in")
-#show_page("account-settings")
 
 top_navbar.on("show_page_account", (() -> $("##{focus[current_account_page]}").focus()))
 

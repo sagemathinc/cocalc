@@ -154,6 +154,19 @@ file_associations['sage-history'] =
     icon   : 'fa-history'
     opts   : {}
 
+
+
+PUBLIC_ACCESS_UNSUPPORTED = ['terminal','image','latex','history','pdf','tasks','course','ipynb']
+# public access file types *NOT* yet supported
+# (this should quickly shrink to zero)
+exports.public_access_supported = (filename) ->
+    ext = filename_extension(filename)
+    x = file_associations[ext]
+    if x?.editor in PUBLIC_ACCESS_UNSUPPORTED
+        return false
+    else
+        return true
+
 # Multiplex'd worksheet mode
 
 diffsync = require('diffsync')
@@ -1145,6 +1158,7 @@ class CodeMirrorEditor extends FileEditor
             bindings                  : editor_settings.bindings  # 'standard', 'vim', or 'emacs'
             theme                     : editor_settings.theme
             track_revisions           : editor_settings.track_revisions
+            public_access             : false
 
             # I'm making the times below very small for now.  If we have to adjust these to reduce load, due to lack
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters

@@ -16,7 +16,7 @@ misc            = require('misc')
 diffsync        = require('diffsync')
 account         = require('account')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
-{file_associations, Editor, local_storage} = require('editor')
+{file_associations, Editor, local_storage, public_access_supported} = require('editor')
 
 {Tasks} = require('tasks')
 
@@ -3364,6 +3364,13 @@ class ProjectPage
             foreground : true      # display in foreground as soon as possible
 
         ext = filename_extension(opts.path)
+
+        if not public_access_supported(opts.path)
+            @file_action_dialog
+                fullname : opts.path
+                isdir    : false
+            return
+
         @editor.open opts.path, (err, opened_path) =>
             if err
                 # ga('send', 'event', 'file', 'open', 'error', opts.path, {'nonInteraction': 1})
