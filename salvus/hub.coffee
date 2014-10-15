@@ -642,6 +642,9 @@ class Client extends EventEmitter
                     @remember_me_failed("no remember_me cookie")
                     return
                 x    = value.split('$')
+                if x.length != 4
+                    @remember_me_failed("invalid remember_me cookie")
+                    return
                 hash = generate_hash(x[0], x[1], x[2], x[3])
                 @remember_me_db.get
                     key         : hash
