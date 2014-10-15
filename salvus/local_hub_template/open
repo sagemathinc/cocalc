@@ -14,8 +14,8 @@ else:
 def process(paths):
     v = []
     for path in paths:
-        if not os.path.exists(path):
-            raise RuntimeError("path '%s' does not exist"%path)
+        #if not os.path.exists(path):
+        #    raise RuntimeError("path '%s' does not exist"%path)
 
         path = os.path.abspath(path)
         # determine name relative to home directory
