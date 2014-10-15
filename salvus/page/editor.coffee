@@ -994,21 +994,21 @@ class FileEditor extends EventEmitter
         if not element
             element = @element
         copy_btn     = element.find("a[href=#copy-to-another-project]")
-        download_btn = element.find("a[href=#download-file]")
+        #download_btn = element.find("a[href=#download-file]")
         info_btn     = element.find("a[href=#file-info]")
         project = @editor.project_page
         if project.public_access
             copy_btn.click () =>
                 project.copy_to_another_project_dialog(@filename, false)
                 return false
-            download_btn.click () =>
-                project.download_file
-                    path : @filename
-                return false
+            #download_btn.click () =>
+            #    project.download_file
+            #        path : @filename
+            #    return false
             info_btn.hide()
         else
             copy_btn.hide()
-            download_btn.hide()
+            #download_btn.hide()
             info_btn.click () =>
                 project.file_action_dialog
                     fullname : @filename
