@@ -127,19 +127,6 @@ file_associations['ipynb'] =
     icon   : 'fa-list-alt'
     opts   : {}
 
-file_associations['sage-worksheet'] =
-    editor : 'worksheet'
-    icon   : 'fa-list-ul'
-    opts   : {}
-
-file_associations['sage-spreadsheet'] =
-    editor : 'spreadsheet'
-    opts   : {}
-
-file_associations['sage-slideshow'] =
-    editor : 'slideshow'
-    opts   : {}
-
 for ext in ['png', 'jpg', 'gif', 'svg']
     file_associations[ext] =
         editor : 'image'
@@ -481,6 +468,7 @@ class exports.Editor
                             else
                                 content = data
                                 extra_opts.read_only = true
+                                extra_opts.public_access = true
                                 c()
                 else
                     c()
@@ -630,12 +618,13 @@ class exports.Editor
             typ = editor_name
         @project_page.project_activity({event:'open', filename:filename, type:typ})
 
-        # Some of the editors below might get the content later and will call @file_options again then.
+        # Some of the editors below might get the content later and will
+        # call @file_options again then.
         switch editor_name
             # TODO: JSON, since I have that jsoneditor plugin...
             # codemirror is the default...
             when 'codemirror', undefined
-                if opts.content? and extra_opts.read_only
+                if extra_opts.public_access
                     # This is used only for public access to files
                     editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
                     if filename_extension(filename) == 'sagews'
@@ -647,12 +636,6 @@ class exports.Editor
                     editor = codemirror_session_editor(@, filename, extra_opts)
             when 'terminal'
                 editor = new Terminal(@, filename, content, extra_opts)
-            when 'worksheet'
-                editor = new Worksheet(@, filename, content, extra_opts)
-            when 'spreadsheet'
-                editor = new Spreadsheet(@, filename, content, extra_opts)
-            when 'slideshow'
-                editor = new Slideshow(@, filename, content, extra_opts)
             when 'image'
                 editor = new Image(@, filename, content, extra_opts)
             when 'latex'
@@ -3710,165 +3693,7 @@ class Terminal extends FileEditor
             @element.css(left:0, top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
             @console.focus(true)
 
-class Worksheet extends FileEditor
-    constructor: (@editor, @filename, content, opts) ->
-        opts = @opts = defaults opts,
-            session_uuid : undefined
 
-        @element = $("<div>Opening worksheet...</div>")  # TODO -- make much nicer
-
-
-        if content?
-            @_set(content)
-        else
-            salvus_client.read_text_file_from_project
-                project_id : @editor.project_id
-                timeout    : 40
-                path       : filename
-                cb         : (err, mesg) =>
-                    if err
-                        alert_message(type:"error", message:"Communications issue loading worksheet #{@filename} -- #{err}")
-                    else if mesg.event == 'error'
-                        alert_message(type:"error", message:"Error loading worksheet #{@filename} -- #{to_json(mesg.error)}")
-                    else
-                        @_set(mesg.content)
-
-    connect_to_server: (session_uuid, cb) =>
-        if @session?
-            cb('already connected or attempting to connect')
-            return
-        @session = "init"
-        async.series([
-            (cb) =>
-                # If the worksheet specifies a specific session_uuid,
-                # try to connect to that one, in case it is still
-                # running.
-                if session_uuid?
-                    salvus_client.connect_to_session
-                        type         : 'sage'
-                        timeout      : 60
-                        project_id   : @editor.project_id
-                        session_uuid : session_uuid
-                        cb           : (err, _session) =>
-                            if err or _session.event == 'error'
-                                # NOPE -- try to make a new session (below)
-                                cb()
-                            else
-                                # Bingo -- got it!
-                                @session = _session
-                                cb()
-                else
-                    # No session_uuid requested.
-                    cb()
-            (cb) =>
-                if @session? and @session != "init"
-                    # We successfully got a session above.
-                    cb()
-                else
-                    # Create a completely new session on the given project.
-                    salvus_client.new_session
-                        timeout    : 60
-                        type       : "sage"
-                        project_id : @editor.project_id
-                        cb : (err, _session) =>
-                            if err
-                                @element.text(err)  # TODO -- nicer
-                                alert_message(type:'error', message:err)
-                                @session = undefined
-                            else
-                                @session = _session
-                            cb(err)
-        ], cb)
-
-    _get: () =>
-        if @worksheet?
-            obj = @worksheet.to_obj()
-            # Make JSON nice, so more human readable *and* more diff friendly (for git).
-            return JSON.stringify(obj, null, '\t')
-        else
-            return undefined
-
-    _set: (content) =>
-        content = $.trim(content)
-        if content.length > 0
-            {content, session_uuid} = from_json(content)
-        else
-            content = undefined
-            session_uuid = undefined
-
-        @connect_to_server session_uuid, (err) =>
-            if err
-                return
-            @element.salvus_worksheet
-                content     : content
-                path        : @filename
-                session     : @session
-                project_id  : @editor.project_id
-                cwd         : misc.path_split(@editor.project_path + '/' + @filename).head
-
-            @worksheet = @element.data("worksheet")
-            @worksheet.save(@filename)
-            @worksheet.on 'save', (new_filename) =>
-                if new_filename != @filename
-                    @editor.change_tab_filename(@filename, new_filename)
-                    @filename = new_filename
-
-            @worksheet.on 'change', () =>
-                @has_unsaved_changes(true)
-
-    focus: () =>
-        if not IS_MOBILE
-            @worksheet?.focus()
-
-    show: () =>
-        if not @is_active()
-            return
-        if not @worksheet?
-            return
-        @element.show()
-        win = $(window)
-        @element.width(win.width())
-        top = @editor.editor_top_position()
-        @element.css(top:top)
-        if top == 0
-            @element.css('position':'fixed')
-            @element.find(".salvus-worksheet-filename").hide()
-            @element.find(".salvus-worksheet-controls").hide()
-            @element.find(".salvus-cell-checkbox").hide()
-            # TODO: redo these three by adding/removing a CSS class!
-            input = @element.find(".salvus-cell-input")
-            @_orig_css_input =
-                'font-size' : input.css('font-size')
-                'line-height' : input.css('line-height')
-            input.css
-                'font-size':'11pt'
-                'line-height':'1.1em'
-            output = @element.find(".salvus-cell-output")
-            @_orig_css_input =
-                'font-size' : output.css('font-size')
-                'line-height' : output.css('line-height')
-            output.css
-                'font-size':'11pt'
-                'line-height':'1.1em'
-        else
-            @element.find(".salvus-worksheet-filename").show()
-            @element.find(".salvus-worksheet-controls").show()
-            @element.find(".salvus-cell-checkbox").show()
-            if @_orig_css_input?
-                @element.find(".salvus-cell-input").css(@_orig_css_input)
-                @element.find(".salvus-cell-output").css(@_orig_css_output)
-
-        @element.height(win.height() - top)
-        if top > 0
-            bar_height = @element.find(".salvus-worksheet-controls").height()
-            @element.find(".salvus-worksheet-worksheet").height(win.height() - top - bar_height)
-        else
-            @element.find(".salvus-worksheet-worksheet").height(win.height())
-
-    disconnect_from_session : (cb) =>
-        # We define it this way for now, since we don't have sync yet.
-        @worksheet?.save()
-        cb?()
 
 
 class Image extends FileEditor
@@ -4804,18 +4629,3 @@ class Course extends FileEditorWrapper
         @wrapped = @element.data('course')
 
 
-
-#**************************************************
-# other...
-#**************************************************
-
-
-class Spreadsheet extends FileEditor
-    constructor: (@editor, @filename, content, opts) ->
-        opts = @opts = defaults opts,{}
-        @element = $("<div>Salvus spreadsheet not implemented yet.</div>")
-
-class Slideshow extends FileEditor
-    constructor: (@editor, @filename, content, opts) ->
-        opts = @opts = defaults opts,{}
-        @element = $("<div>Salvus slideshow not implemented yet.</div>")
