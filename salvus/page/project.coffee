@@ -3,7 +3,7 @@
 # Project page -- browse the files in a project, etc.
 #
 ###############################################################################
-ENABLE_PUBLIC = false
+ENABLE_PUBLIC = true
 
 
 {IS_MOBILE}     = require("feature")
@@ -28,6 +28,7 @@ template_home_icon             = templates.find(".project-home-icon")
 template_segment_sep           = templates.find(".project-segment-sep")
 template_project_collab        = templates.find(".project-collab")
 template_project_linked        = templates.find(".project-linked")
+template_path_segment          = templates.find(".project-file-listing-path-segment-link")
 
 
 exports.masked_file_exts = masked_file_exts =
@@ -56,8 +57,6 @@ PUBLIC_PATHS_CACHE_TIMEOUT_MS = 1000*60
 
 class ProjectPage
     constructor: (@project) ->
-        #window.p = @
-
         # whether or not we have full access to the project or only very limited
         # public access (since project is public)
         @public_access = !!@project.public_access
@@ -289,23 +288,22 @@ class ProjectPage
             when 'files'
                 if target[target.length-1] == '/'
                     # open a directory
-                    @current_path = segments.slice(1, segments.length-1)
-                    @update_file_list_tab()
+                    @chdir(segments.slice(1, segments.length-1), false)
                     @display_tab("project-file-listing")
                 else
                     # open a file
+                    @chdir(segments.slice(1, segments.length-1), true)
                     @display_tab("project-editor")
                     @open_file(path:segments.slice(1).join('/'), foreground:foreground)
-                    @current_path = segments.slice(1, segments.length-1)
             when 'new'
-                @current_path = segments.slice(1)
+                @chdir(segments.slice(1), true)
                 @display_tab("project-new-file")
             when 'log'
                 @display_tab("project-activity")
             when 'settings'
                 @display_tab("project-settings")
             when 'search'
-                @current_path = segments.slice(1)
+                @chdir(segments.slice(1), true)
                 @display_tab("project-search")
 
     set_location: () =>
@@ -705,6 +703,12 @@ class ProjectPage
         @container.find(".project-pages").show()
         @container.find(".file-pages").show()
 
+    show_top_path: () =>
+        @container.find(".project-file-top-current-path-display").show()
+
+    hide_top_path: () =>
+        @container.find(".project-file-top-current-path-display").hide()
+
     init_tabs: () ->
         @tabs = []
         that = @
@@ -734,14 +738,14 @@ class ProjectPage
                 that.display_tab(link.data("target"))
                 return false
 
-            that.container.find(".project-file-top-current-path-display").show()
             if name == "project-file-listing"
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
                     that.update_file_list_tab()
-                    that.container.find(".project-file-top-current-path-display").hide()
+                    that.hide_top_path()
             else if name == "project-editor"
                 tab.onshow = () ->
+                    that.show_top_path()
                     that.editor.onshow()
                 t.find("a").click () ->
                     that.editor.hide()
@@ -749,11 +753,13 @@ class ProjectPage
                     return false
             else if name == "project-new-file"
                 tab.onshow = () ->
+                    that.show_top_path()
                     that.editor?.hide_editor_content()
                     that.push_state('new/' + that.current_path.join('/'))
                     that.show_new_file_tab()
             else if name == "project-activity"
                 tab.onshow = () =>
+                    that.show_top_path()
                     that.editor?.hide_editor_content()
                     that.push_state('log')
                     @render_project_activity_log()
@@ -762,6 +768,7 @@ class ProjectPage
 
             else if name == "project-settings"
                 tab.onshow = () ->
+                    that.show_top_path()
                     that.editor?.hide_editor_content()
                     that.push_state('settings')
                     that.update_topbar()
@@ -770,6 +777,7 @@ class ProjectPage
 
             else if name == "project-search"
                 tab.onshow = () ->
+                    that.show_top_path()
                     that.editor?.hide_editor_content()
                     that.push_state('search/' + that.current_path.join('/'))
                     that.container.find(".project-search-form-input").focus()
@@ -1007,13 +1015,18 @@ class ProjectPage
 
     # Set the current path array from a path string to a directory
     set_current_path: (path) =>
-        if path == "" or not path?
+        if not path?
             @current_path = []
-        else
-            if path.length > 0 and path[path.length-1] == '/'
+        else if typeof(path) == "string"
+            while path[path.length-1] == '/'
                 path = path.slice(0,path.length-1)
-            @current_path = path.split('/')
-        @container.find(".project-file-top-current-path-display").text(path)
+            @current_path = []
+            for segment in path.split('/')
+                if segment.length > 0
+                    @current_path.push(segment)
+        else
+            @current_path = path[..]  # copy the path
+        @container.find(".project-file-top-current-path-display").text(@current_path.join('/'))
 
     # Render the slash-separated and clickable path that sits above
     # the list of files (or current file)
@@ -1022,24 +1035,48 @@ class ProjectPage
 
         t = @container.find(".project-file-listing-current_path")
         t.empty()
-        #if @current_path.length == 0
-        #    return
 
-        t.append($("<a class=project-file-listing-path-segment-link>").html(template_home_icon.clone().click(() =>
-            @current_path=[]; @update_file_list_tab())))
+        paths = []
+        pathname = ''
+
+        # the home icon
+        e = template_path_segment.clone()
+        e.append(template_home_icon.clone())
+        paths.push({elt:e, path:[], pathname:pathname})
+        t.append(e)
 
         new_current_path = []
-        that = @
         for segment in @current_path
             new_current_path.push(segment)
+            if pathname
+                pathname += '/' + segment
+            else   #no leading /
+                pathname = segment
             t.append(template_segment_sep.clone())
-            t.append($("<a class=project-file-listing-path-segment-link>"
-            ).text(segment
-            ).data("current_path",new_current_path[..]  # [..] means "make a copy"
-            ).click((elt) =>
-                @current_path = $(elt.target).data("current_path")
+            e = template_path_segment.clone()
+            t.append(e)
+            e.text(segment)
+            paths.push({elt:e, path:new_current_path[..], pathname:pathname})
+
+        create_link = (elt, path) =>
+            elt.click () =>
+                @current_path = path
                 @update_file_list_tab()
-            ))
+
+        if @public_access
+            f = (p, cb) =>
+                @is_path_published
+                    path : p.pathname
+                    cb   : (err, x) =>
+                        if not err and x
+                            create_link(p.elt, p.path)
+                        else
+                            p.elt.css(color:'#888')
+                        cb()
+            async.mapSeries(paths.reverse(), f, ()->)
+        else
+            for p in paths
+                create_link(p.elt, p.path)
 
 
     focus: () =>
@@ -1159,9 +1196,6 @@ class ProjectPage
                 cb   : (err) =>
                     if not err
                         alert_message(type:"info", message:"Made directory '#{p}'")
-                        for segment in @new_file_tab_input.val().split('/')
-                            if segment.length > 0
-                                @current_path.push(segment)
                         @display_tab("project-file-listing")
             return false
 
@@ -1317,7 +1351,7 @@ class ProjectPage
                         publish = dialog.find(".salvus-project-published-desc")
                         publish.show()
                         if pub? and pub.public_path != obj.fullname
-                            publish.find(".salvus-project-in-published").show().find("span").text(pub.public_path)
+                            publish.find(".salvus-project-in-published").show().find(".salvus-project-in-published-path").text(pub.public_path)
                             return
                         desc = publish.find("input").show()
                         if pub
@@ -1536,8 +1570,6 @@ class ProjectPage
             t.addClass('project-directory-link')
             t.find("a[href=#file-action]").hide()
             parent = @current_path.slice(0, @current_path.length-1).join('/')
-            if parent == ""
-                parent = "."
             t.data('name', parent)
             t.find(".project-file-name").html("Parent Directory")
             t.find(".project-file-icon").removeClass("fa-file").addClass('fa-reply')
@@ -1555,21 +1587,15 @@ class ProjectPage
                 trigger : 'hover'
                 delay   : { show: 500, hide: 100 }
 
-            file_or_listing.append(t)
-
-        ###
-            i = parent.lastIndexOf('/')
-            if i == -1
-                name = parent
+            if @public_access
+                parent_link = t
+                @is_path_published
+                    path : parent
+                    cb   : (err, is_published) =>
+                        if is_published
+                            file_or_listing.prepend(parent_link)
             else
-                name = parent.slice(i+1)
-            t.data('obj', {fullname:parent, isdir:true, name:name})
-        ###
-
-        #console.log("done updating misc stuff", misc.walltime(tm))
-
-        # Show the files
-        #console.log("building listing for #{path}...")
+                file_or_listing.append(t)
 
         tm = misc.walltime()
 
@@ -1700,7 +1726,7 @@ class ProjectPage
         tm = misc.walltime()
 
         # No files
-        if directory_is_empty and path != ".trash" and path.slice(0,10) != ".snapshots"
+        if not @public_access and directory_is_empty and path != ".trash" and path.slice(0,10) != ".snapshots"
             @container.find(".project-file-listing-no-files").show()
         else
             @container.find(".project-file-listing-no-files").hide()

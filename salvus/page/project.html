@@ -91,7 +91,7 @@
                         <input type="text" placeholder="Description of share..." class="form-control hide" style="width:50%;display:inline;paddi4px;">
                         <a class="btn btn-primary hide" href="#unpublish-path"><i class="fa fa-shield"> </i> Stop Sharing Publicly</a>
                         <a class="btn btn-primary hide" href="#publish-path"><i class="fa fa-share-square-o"> </i> Share Publicly</a>
-                        <span class="salvus-project-in-published hide">Public because it is contained in <span></span>.</span>
+                        <span class="salvus-project-in-published hide">Public because it is contained in <tt class="salvus-project-in-published-path"></tt>.</span>
                     </span>
                 </span>
             </div>
@@ -402,7 +402,7 @@
                     </div>
 
                     <!-- The current path -->
-                    <div class="col-sm-4">
+                    <div class="col-sm-6">
                         <a href="#file-action-current-path" class="salvus-file-action btn btn-default">
                             <i class="fa fa-info-circle"></i>
                         </a>
@@ -981,15 +981,13 @@
 
     </div>
 
-    <a class="project-home-icon">
-        <i class="fa fa-home"> </i>
-    </a>
-
+    <i class="project-home-icon fa fa-home"> </i>
 
     <span class="project-segment-sep lighten">
         &nbsp; / &nbsp;
     </span>
 
+    <a class="project-file-listing-path-segment-link"></a>
 
     <div class="project-search-result">
         <b><a style="cursor:pointer"></a></b>

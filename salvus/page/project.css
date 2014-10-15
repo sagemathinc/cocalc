@@ -571,3 +571,9 @@
         width: calc(50% - 21px);
     }
 }
+
+.salvus-project-in-published-path {
+    background:#eaeaea;
+}
+
+
