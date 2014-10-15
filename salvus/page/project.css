@@ -188,8 +188,8 @@
 
 .project-pages {
     float: left;
+    margin-left: 5px;
 }
-
 .project-pages > li > a {
     padding: 8px 10px; /* BS3 increased this, which is no good */
 }
@@ -496,12 +496,16 @@
     color: #888;
     padding-top: 0px;
     padding-bottom: 0px;
-    width : 4em;
+    width : 6em;
 }
 
-.salvus-file-action:hover {
-    color: #000;
+
+
+.salvus-file-action-public {
+    padding-top: 0px;
+    padding-bottom: 0px;
 }
+
 .project-home-icon {
     font-size: 16pt;
 }
