@@ -88,10 +88,16 @@
                     </span>
                     <br><br>
                     <span class="salvus-project-published-desc hide">
-                        <input type="text" placeholder="Description of share..." class="form-control hide" style="width:50%;display:inline;paddi4px;">
-                        <a class="btn btn-primary hide" href="#unpublish-path"><i class="fa fa-shield"> </i> Stop Sharing Publicly</a>
-                        <a class="btn btn-primary hide" href="#publish-path"><i class="fa fa-share-square-o"> </i> Share Publicly</a>
+                        <hr>
+                        <br>
+                        <a class="btn btn-warning btn-lg hide" href="#unpublish-path"><i class="fa fa-shield"> </i> Stop Sharing Publicly</a>
+                        <a class="btn btn-primary btn-lg hide" href="#publish-path"><i class="fa fa-share-square-o"> </i> Share Publicly</a>
+                        <input type="text" placeholder="Description of share..."
+                               class="salvus-project-published-desc-input form-control hide">
                         <span class="salvus-project-in-published hide">Public because it is contained in <tt class="salvus-project-in-published-path"></tt>.</span>
+                        <span class="salvus-project-in-published-dir-meaning lighten hide"><br>Anybody can browse this directory by visiting <br></span>
+                        <span class="salvus-project-in-published-file-meaning lighten hide"><br>Anybody can view this file by visiting <br></span>
+                        <input class="form-control salvus-project-in-published-url hide">
                     </span>
                 </span>
             </div>
@@ -325,7 +331,7 @@
             </a>-->
 
             <!-- Tabs: place where you click on them -->
-            <ul class="nav nav-pills  project-pages">
+            <ul class="nav nav-pills  project-pages salvus-project-write-access">
                 <!-- Settings specific to this project -->
                 <!-- Browse through files in the project -->
                 <!-- Project settings -->
@@ -405,6 +411,7 @@
                     <div class="col-sm-6">
                         <a href="#file-action-current-path" class="salvus-file-action btn btn-default">
                             <i class="fa fa-info-circle"></i>
+                            <span class="salvus-file-action-public-label hide">Public</span>
                         </a>
 
                         <span class="project-file-listing-current_path"></span>
@@ -960,6 +967,7 @@
         <div class="col-sm-1">
             <a href="#file-action" class="salvus-file-action btn btn-default">
                 <i class="fa fa-info-circle"></i>
+                <span class="salvus-file-action-public-label hide">Public</span>
             </a>
         </div>
 

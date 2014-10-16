@@ -580,4 +580,16 @@
     background:#eaeaea;
 }
 
+.salvus-file-action-public-label {
+    color:orange;
+}
 
+.salvus-project-in-published-url {
+    cursor:pointer;
+    width:100%;
+}
+
+.salvus-project-published-desc-input {
+    margin-top:1.5em;
+    width:100%;
+}

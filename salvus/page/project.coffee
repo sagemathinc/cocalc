@@ -1350,24 +1350,41 @@ class ProjectPage
                     cb   : (err, pub) =>
                         publish = dialog.find(".salvus-project-published-desc")
                         publish.show()
-                        if pub? and pub.public_path != obj.fullname
-                            publish.find(".salvus-project-in-published").show().find(".salvus-project-in-published-path").text(pub.public_path)
-                            return
-                        desc = publish.find("input").show()
-                        if pub
-                            publish.find("a[href=#unpublish-path]").show().click () =>
-                                dialog.modal('hide')
-                                @unpublish_path
-                                    path : obj.fullname
-                                    cb          : (err) =>
-                                        if err
-                                            alert_message(type:'error', message:"Error unpublishing '#{obj.fullname}' -- #{err}")
-                                        else
-                                            alert_message(message:"Unpublished '#{obj.fullname}'")
+                        desc = publish.find(".salvus-project-published-desc-input")
 
-                                return false
-                            desc.val(pub.description)
+                        if pub
+                            if obj.isdir
+                                publish.find(".salvus-project-in-published-dir-meaning").show()
+                            else
+                                publish.find(".salvus-project-in-published-file-meaning").show()
+
+                            url = document.URL + obj.name
+                            if obj.isdir
+                                url += '/'
+                            the_url = publish.find(".salvus-project-in-published-url")
+                            the_url.show().val(url)
+                            the_url.click () ->
+                                $(this).select()
+
+                            if pub.public_path != obj.fullname
+                                publish.find(".salvus-project-in-published").show().find(".salvus-project-in-published-path").text(pub.public_path)
+                                return
+                            else
+                                desc.show()
+                                desc.val(pub.description)
+                                publish.find("a[href=#unpublish-path]").show().click () =>
+                                    dialog.modal('hide')
+                                    @unpublish_path
+                                        path : obj.fullname
+                                        cb          : (err) =>
+                                            if err
+                                                alert_message(type:'error', message:"Error unpublishing '#{obj.fullname}' -- #{err}")
+                                            else
+                                                alert_message(message:"Unpublished '#{obj.fullname}'")
+                                                @update_file_list_tab(true)
+                                    return false
                         else
+                            desc.show()
                             dialog.find("a[href=#publish-path]").show().click () =>
                                 dialog.modal('hide')
                                 @publish_path
@@ -1378,8 +1395,10 @@ class ProjectPage
                                             alert_message(type:'error', message:"Error publishing '#{obj.fullname}' -- #{err}")
                                         else
                                             alert_message(message:"Published '#{obj.fullname}' -- #{desc.val()}")
-
+                                            @update_file_list_tab(true)
                                 return false
+
+                        # whenever user changes the description and hits enter, have that new description get submitted
                         desc.keydown (evt) =>
                             if evt.which == 13 and desc.val() # enter and nontrivial
                                 dialog.modal('hide')
@@ -1392,6 +1411,7 @@ class ProjectPage
                                             alert_message(type:'error', message:"Error publishing '#{obj.fullname}' -- #{err}")
                                         else
                                             alert_message(message:"Published '#{obj.fullname}' -- #{desc.val()}")
+                                            @update_file_list_tab(true)
 
             # end write-able version
 
@@ -1476,6 +1496,9 @@ class ProjectPage
                         cb       : cb
                     @update_snapshot_link()
 
+    invalidate_render_file_listing_cache: () =>
+        delete @_update_file_list_tab_last_path
+
     render_file_listing: (opts) =>
         {path, listing, no_focus, cb} = defaults opts,
             path     : required     # directory we are rendering the listing for
@@ -1484,7 +1507,7 @@ class ProjectPage
             cb       : undefined
 
         url_path = path
-        if url_path.length > 0 and url_path[path.length-1] != '/'
+        if url_path.length > 0 and url_path[url_path.length-1] != '/'
             url_path += '/'
 
         if @current_tab.name == "project-file-listing"
@@ -1606,13 +1629,15 @@ class ProjectPage
         n = 0
         @container.find(".project-file-listing-show_all").hide().find('span').text('')
         search = @_file_search_box.val()
+        elts = {}
         for obj, i in listing.files
             if not search and (not @_show_all_files and n >= MAX_FILE_LISTING_SIZE)
                 @container.find(".project-file-listing-show_all").show().find('span').text(listing.files.length - n)
                 break
             n += 1
             t = template_project_file.clone()
-            t.data(obj:obj)
+
+            t.data('obj', obj)
             if obj.isdir
                 t.addClass('project-directory-link')
                 t.find(".project-file-name").text(obj.name)
@@ -1657,12 +1682,12 @@ class ProjectPage
             #end if
 
             obj.fullname = if path != "" then path + '/' + obj.name else obj.name
+            elts[obj.fullname] = t
             directory_is_empty = false
             # Add our new listing entry to the list:
             file_or_listing.append(t)
             t.click(click_file)
 
-            continue
             ###
             # Define file actions using a closure
             @_init_listing_actions(t, path, obj.name, obj.fullname, obj.isdir? and obj.isdir, obj.snapshot?)
@@ -1688,6 +1713,32 @@ class ProjectPage
                 trigger : 'hover'
                 delay   : { show: 500, hide: 100 }
             ###
+
+        if not @public_access
+            # Very explicitly label the public paths as such, so user is reminding
+            # that whatever they are changing is publicly visible.
+            @is_path_published
+                path : path
+                cb   : (err, is_published) =>
+                    if err or path != @current_pathname()
+                        # path changed since request, so don't mess things up
+                        return
+                    if is_published
+                        # show all public labels next to files/directories
+                        file_or_listing.find(".salvus-file-action-public-label").show()
+                        # also, show public label at top
+                        @container.find("a[href=#file-action-current-path]").find(".salvus-file-action-public-label").show()
+                    else
+                        @container.find("a[href=#file-action-current-path]").find(".salvus-file-action-public-label").hide()
+                        # determine which files/paths in the current directory
+                        # are public, and set their labels
+                        @paths_that_are_public
+                            paths : (obj.fullname for obj in listing.files)
+                            cb    : (err, public_paths) =>
+                                if not err and path == @current_pathname()
+                                    v = (x.path for x in public_paths)
+                                    for fullname in v
+                                        elts[fullname]?.find(".salvus-file-action-public-label").show()
 
         # Masks (greys out) files that the user probably doesn't want to open
         if account.account_settings.settings.other_settings.mask_files
@@ -1718,7 +1769,7 @@ class ProjectPage
                     i = if path == "" then index else index + 1 # skip over 'Parent Directory' link
                     $(@container.find(".project-file-listing-file-list").children()[i]).addClass("project-file-listing-masked-file")
 
-        #@clear_file_search()
+        @clear_file_search()
         #console.log("done building listing in #{misc.walltime(tm)}")
         tm = misc.walltime()
         @update_file_search()
@@ -3260,6 +3311,7 @@ class ProjectPage
             description : opts.description
             cb          : (err) =>
                 delete @_public_paths_cache
+                @invalidate_render_file_listing_cache()
                 opts.cb?(err)
 
     unpublish_path: (opts)=>
@@ -3271,6 +3323,7 @@ class ProjectPage
             path       : opts.path
             cb         : (err) =>
                 delete @_public_paths_cache
+                @invalidate_render_file_listing_cache()
                 opts.cb?(err)
 
     is_path_published: (opts)=>
