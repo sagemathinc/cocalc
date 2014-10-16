@@ -1473,7 +1473,7 @@ class ProjectPage
             path       : path
             time       : @_sort_by_time
             hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
-            timeout    : 20
+            timeout    : 60
             cb         : (err, listing) =>
                 if path != @_requested_path
                     # requested another path after this one, so ignore
