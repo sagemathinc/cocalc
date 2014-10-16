@@ -3445,7 +3445,7 @@ class ProjectPage
 
         ext = filename_extension(opts.path)
 
-        if not public_access_supported(opts.path)
+        if @public_access and not public_access_supported(opts.path)
             @file_action_dialog
                 fullname : opts.path
                 isdir    : false
