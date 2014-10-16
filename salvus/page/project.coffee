@@ -211,6 +211,7 @@ class ProjectPage
             @file_action_dialog
                 fullname : @current_pathname()
                 isdir    : true
+                url      : document.URL
 
     init_new_tab_in_navbar: () =>
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
@@ -1353,14 +1354,14 @@ class ProjectPage
                         desc = publish.find(".salvus-project-published-desc-input")
 
                         if pub
-                            if obj.isdir
-                                publish.find(".salvus-project-in-published-dir-meaning").show()
-                            else
-                                publish.find(".salvus-project-in-published-file-meaning").show()
+                            publish.find(".salvus-project-in-published-meaning").show()
 
-                            url = document.URL + obj.name
-                            if obj.isdir
-                                url += '/'
+                            if obj.url?
+                                url = obj.url
+                            else
+                                url = document.URL + obj.name
+                                if obj.isdir
+                                    url += '/'
                             the_url = publish.find(".salvus-project-in-published-url")
                             the_url.show().val(url)
                             the_url.click () ->
