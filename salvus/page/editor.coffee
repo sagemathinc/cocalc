@@ -1009,6 +1009,7 @@ class FileEditor extends EventEmitter
                 project.file_action_dialog
                     fullname : @filename
                     isdir    : false
+                    url      : document.URL
 
     init_autosave: () =>
         if @_autosave_interval?
