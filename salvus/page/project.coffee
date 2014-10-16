@@ -1486,8 +1486,9 @@ class ProjectPage
                 @container.find(".project-file-listing-spinner").spin(false).hide()
 
                 if err
-                    alert_message(type:"error", message:"unable to show listing for #{path} -- #{err}")
-                    @current_path = []
+                    if not @public_access
+                        alert_message(type:"error", message:"Error getting listing for '#{path}' -- #{misc.trunc(err,100)}")
+                        @current_path = []
                     cb?(err)
                 else
                     @render_file_listing
