@@ -22,4 +22,4 @@ cmd("bup init")
 for i in range(1,8):
     host = '10.1.%s.5'%i
     print host
-    cmd2("rsync -axvH --bwlimit 20000 --delete root@%s:/bup/bups/ %s/%s/"%(host, target, host))
+    cmd2("rsync -axvH --bwlimit 3000 --delete root@%s:/bup/bups/ %s/%s/"%(host, target, host))
