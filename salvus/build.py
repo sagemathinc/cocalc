@@ -284,7 +284,7 @@ In /etc/sysctl.conf, put:
 # Use different node-cassandra-cql with better reconnect support:
 # See https://github.com/jorgebay/node-cassandra-cql/issues/81
 
-    cd ~/salvus/salvus/node_modules/; mv node-cassandra-cql node-cassandra-cql.old; git clone  https://github.com/Applifier/node-cassandra-cql; cd node- cassandra-cql; npm install .
+    cd ~/salvus/salvus/node_modules/; mv node-cassandra-cql node-cassandra-cql.old; git clone  https://github.com/Applifier/node-cassandra-cql; cd node-cassandra-cql; npm install .
 
 
 """
