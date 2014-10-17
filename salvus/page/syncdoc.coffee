@@ -1316,7 +1316,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         for line in [start..stop]
             x = cm.getLine(line)
-            #console.log("line=#{line}: '#{x}'")
+            # console.log("line=#{line}: '#{misc.trunc(x,256)}'")
             if not x?
                 continue
 
@@ -1399,7 +1399,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                         # appearance of output shows output (bad design?)
                                         output.removeClass('sagews-output-hide')
                                         try
+                                            t = misc.mswalltime()
                                             @process_output_mesg(mesg:JSON.parse(s), element:output)
+                                            console.log("time to parse = ", misc.mswalltime(t))
                                             mark.processed += 1 + s.length
                                         catch e
                                             console.log(e.stack)
@@ -2025,7 +2027,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @sync () =>
                 setTimeout(f, 50)
 
-    # purely client-side markdown rendering for a markdown block -- an optimization
+    # purely client-side markdown rendering for a markdown, javascript, html, etc. block -- an optimization
     execute_cell_client_side: (opts) =>
         opts = defaults opts,
             block     : required

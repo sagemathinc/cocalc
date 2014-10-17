@@ -199,7 +199,10 @@ exports.define_codemirror_sagews_mode = () ->
     CodeMirror.defineMode "sagews", (config) ->
         options = []
         for x in sagews_decorator_modes
-            options.push(open:"%" + x[0], close : MARKERS.cell, mode : CodeMirror.getMode(config, x[1]))
+            # NOTE: very important to close on MARKERS.output rather than MARKERS.cell, or it will try to
+            # highlight the *hidden* output message line, which can be *enormous*, and could take a very
+            # very long time!
+            options.push(open:"%" + x[0], close : MARKERS.output, mode : CodeMirror.getMode(config, x[1]))
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"), options...)
 
 # Given a text file (defined by content), try to guess
