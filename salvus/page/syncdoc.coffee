@@ -1399,9 +1399,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                         # appearance of output shows output (bad design?)
                                         output.removeClass('sagews-output-hide')
                                         try
-                                            t = misc.mswalltime()
+                                            #t = misc.mswalltime()
                                             @process_output_mesg(mesg:JSON.parse(s), element:output)
-                                            console.log("time to parse = ", misc.mswalltime(t))
+                                            #console.log("time to parse = ", misc.mswalltime(t))
                                             mark.processed += 1 + s.length
                                         catch e
                                             console.log(e.stack)
