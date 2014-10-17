@@ -416,7 +416,7 @@ SAGE_PIP_PACKAGES = [
     'tabulate',
     'goslate',    # google translate api -- http://pythonhosted.org/goslate/
     'certifi',    # dependency of https://github.com/obspy, which is installed systemwide from an ubuntu package repo
-    'ez_setup,    # needed by fipy
+    'ez_setup',   # needed by fipy
     'pyparse',    # needed by fipy
     'fipy',       # requested by Evan Chenelly <echenelly@gmail.com> -- "A finite volume PDE solver in Python".
     ]
