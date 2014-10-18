@@ -670,6 +670,8 @@ class exports.Cassandra extends EventEmitter
                 @conn.execute query, vals, { consistency: consistency }, (error, results) =>
                     if not error
                         error = undefined   # it comes back as null
+                        if not results?
+                            error = "no error but no results"
                     if error
                         winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
                     # TODO - this test for "ResponseError: Operation timed out" is HORRIBLE.

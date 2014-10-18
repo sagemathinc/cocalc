@@ -4905,9 +4905,11 @@ exports.start_server = start_server = () ->
         cb          : () =>
             winston.debug("connected to database.")
             init_salvus_version()
-            init_bup_server()
             init_http_server()
-            init_http_proxy_server()
+
+            # proxy server relies on bup server having been created
+            init_bup_server () =>
+                init_http_proxy_server()
 
             # start updating stats cache every so often -- note: this is cached in the database, so it isn't
             # too big a problem if we call it too frequently...
