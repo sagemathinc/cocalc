@@ -134,9 +134,21 @@ MaxStartups 128
 
 # ROOT data analysis ipython notebook support systemwide:
 
+1.
+
    cd /usr/lib/x86_64-linux-gnu/root5.34
    wget https://gist.githubusercontent.com/mazurov/6194738/raw/67e851fdac969e670a11296642478f1801324b8d/rootnotes.py
    chmod a+r *
+
+2. Edit
+
+    /usr/local/sage/current/local/lib/python/sitecustomize.py
+
+to be:
+
+    import sys; sys.path.extend(['/usr/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7', '/usr/lib/x86_64-linux-gnu/root5.34/'])
+
+
 
 # Octave: needed by octave for plotting:
 
