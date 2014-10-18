@@ -46,8 +46,8 @@ assert  = require('assert')
 async   = require('async')
 winston = require('winston')                    # https://github.com/flatiron/winston
 
-cql     = require("node-cassandra-cql")
-Client  = cql.Client  # https://github.com/jorgebay/node-cassandra-cql; https://github.com/jorgebay/node-cassandra-cql/issues/81
+cql     = require("cassandra-driver")
+Client  = cql.Client  # https://github.com/datastax/nodejs-driver
 uuid    = require('node-uuid')
 {EventEmitter} = require('events')
 
@@ -393,9 +393,7 @@ class exports.Cassandra extends EventEmitter
             query_max_retry : 10    # max number of retries
             consistency     : undefined
             verbose         : false # quick hack for debugging...
-            conn_timeout_ms : 20000  # Maximum time in milliseconds to wait for a connection from the pool.
-            latency_limit   : 500
-            pool_size       : 2
+            conn_timeout_ms : 15000  # Maximum time in milliseconds to wait for a connection from the pool.
 
         @keyspace = opts.keyspace
         @query_timeout_s = opts.query_timeout_s
@@ -418,15 +416,17 @@ class exports.Cassandra extends EventEmitter
         if @conn?
             @conn.shutdown?()
             delete @conn
-        @conn = new Client
-            hosts                 : opts.hosts
+        o =
+            contactPoints         : opts.hosts
             keyspace              : opts.keyspace
-            username              : opts.username
-            password              : opts.password
-            getAConnectionTimeout : opts.conn_timeout_ms
-            latencyLimit          : opts.latency_limit
-            poolSize              : opts.pool_size
-            pageSize              : 10000000  # TODO!!
+            queryOptions          :
+                consistency : @consistency
+                prepare     : true
+            socketOptions         :
+                connectTimeout    : opts.conn_timeout_ms
+        if opts.username? and opts.password?
+            o.authProvider = new cql.auth.PlainTextAuthProvider(opts.username, opts.password)
+        @conn = new Client(o)
 
         if opts.verbose
             @conn.on 'log', (level, message) =>
@@ -666,7 +666,7 @@ class exports.Cassandra extends EventEmitter
             consistency = @consistency
         g = (c) =>
             try
-                @conn.execute query, vals, consistency, (error, results) =>
+                @conn.execute query, vals, { consistency: consistency }, (error, results) =>
                     if not error
                         error = undefined   # it comes back as null
                     if error

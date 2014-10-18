@@ -293,10 +293,6 @@ In /etc/sysctl.conf, put:
     umask 022
     cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/ && texhash
 
-# Use different node-cassandra-cql with better reconnect support:
-# See https://github.com/jorgebay/node-cassandra-cql/issues/81
-
-    cd ~/salvus/salvus/node_modules/; mv node-cassandra-cql node-cassandra-cql.old; git clone  https://github.com/Applifier/node-cassandra-cql; cd node-cassandra-cql; npm install .
 
 
 """
@@ -338,7 +334,7 @@ NODE_MODULES = [
     'winston',
     'primus',  # websocket abstraction
     'ws',      # fast low-level websocket depedency for primus
-    'node-cassandra-cql',
+    'cassandra-driver',
     'coffee-script',
     'node-uuid',
     'browserify@1.16.4',
