@@ -422,6 +422,7 @@ class exports.Cassandra extends EventEmitter
             queryOptions          :
                 consistency : @consistency
                 prepare     : true
+                fetchSize   : 150000  # TODO: this temporary - we need to rewrite various code in here to use paging, etc., which is now easy with new driver.
             socketOptions         :
                 connectTimeout    : opts.conn_timeout_ms
         if opts.username? and opts.password?
