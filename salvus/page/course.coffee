@@ -462,7 +462,8 @@ class Course
                 if not project_id?
                     alert_message(type:"error", message:"no project defined for #{v.first_name} #{v.last_name}")
                 else
-                    f = () => require('projects').open_project(project_id)
+                    f = () =>
+                        require('projects').open_project(project:project_id)
                     setTimeout(f, 1) # ugly hack Jon suggests for now.
                 return false
 

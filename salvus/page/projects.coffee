@@ -18,8 +18,25 @@ templates = $(".salvus-projects-templates")
 project_list = undefined
 hidden_project_list = undefined
 
-exports.get_project_list = () ->
-    return project_list
+# Return last downloaded project list
+exports.get_project_list = (opts) ->
+    opts = defaults opts,
+        update : false     # if false used cached local version if available,
+                           # though it may be out of date
+        cb     : required  # cb(err, project_list)
+    if not opts.update and project_list?
+        opts.cb(undefined, project_list)
+        return
+    salvus_client.get_projects
+        hidden : false
+        cb: (err, mesg) ->
+            if err
+                opts.cb(err)
+            else if mesg.event == 'error'
+                opts.cb(mesg.error)
+            else
+                project_list = mesg.projects
+                opts.cb(undefined, project_list)
 
 project_hashtags = {}
 compute_search_data = () ->
@@ -382,7 +399,7 @@ exports.open_project = open_project = (opts) ->
         project : required
         item    : undefined
         target  : undefined
-        cb      : required   # cb(err, project)
+        cb      : undefined   # cb(err, project)
 
     project = opts.project
     if typeof(project) == 'string'
@@ -404,7 +421,7 @@ exports.open_project = open_project = (opts) ->
                             project_id : project
                             cb         : (err, p) ->
                                 if err
-                                    opts.cb("Unknown project with id '#{project}'")
+                                    opts.cb?("Unknown project with id '#{project}'")
                                 else
                                     open_project
                                         project : p
@@ -438,14 +455,14 @@ exports.open_project = open_project = (opts) ->
             cb         : (err, info) ->
                 if err
                     opts.item?.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
-                    opts.cb("error opening project -- #{err}")
+                    opts.cb?("error opening project -- #{err}")
                 else
                     if not info?.bup_location?
                         opts.item?.find(".projects-location").html("(none)")
                     else
                         project.location = info.bup_location
                         opts.item?.find(".projects-location").text("")
-                    opts.cb(undefined, proj)
+                    opts.cb?(undefined, proj)
 
 ################################################
 # Create a New Project

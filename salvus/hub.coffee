@@ -69,8 +69,26 @@ cql     = require("node-cassandra-cql")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 
-salvus_version = require('salvus_version')
 
+SALVUS_VERSION = 0
+update_salvus_version = () ->
+    version_file = 'node_modules/salvus_version.js'
+    fs.readFile version_file, (err, data) ->
+        if err
+            winston.debug("update_salvus_version: WARNING: Error reading -- #{version_file}")
+        else
+            s = data.toString()
+            i = s.indexOf('=')
+            j = s.indexOf('\n')
+            if i != -1 and j != -1
+                SALVUS_VERSION = parseInt(s.slice(i+1,j))
+            # winston.debug("SALVUS_VERSION=#{SALVUS_VERSION}")
+
+init_salvus_version = () ->
+    update_salvus_version()
+    # update periodically, so we can inform users of new version without having
+    # to actually restart the server.
+    setInterval(update_salvus_version, 90*1000)
 
 snap = require("snap")
 
@@ -624,6 +642,9 @@ class Client extends EventEmitter
                     @remember_me_failed("no remember_me cookie")
                     return
                 x    = value.split('$')
+                if x.length != 4
+                    @remember_me_failed("invalid remember_me cookie")
+                    return
                 hash = generate_hash(x[0], x[1], x[2], x[3])
                 @remember_me_db.get
                     key         : hash
@@ -2093,7 +2114,7 @@ class Client extends EventEmitter
     # The version of the running server.
     ################################################
     mesg_get_version: (mesg) =>
-        mesg.version = salvus_version.version
+        mesg.version = SALVUS_VERSION
         @push_to_client(mesg)
 
     ################################################
@@ -2284,6 +2305,9 @@ class Client extends EventEmitter
 
 
     mesg_publish_path: (mesg) =>
+        if mesg.path == '.snapshots' or misc.startswith(mesg.path,'.snapshots/')
+            @error_to_client(id:mesg.id, error:"you may not publish anything in the snapshots directory")
+            return
         @get_project mesg, 'write', (err, project) =>
             if not err
                 database.publish_path
@@ -2317,6 +2341,54 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.public_paths(id:mesg.id, paths:paths))
 
+
+    mesg_copy_public_path_between_projects: (mesg) =>
+        if not mesg.src_project_id?
+            @error_to_client(id:mesg.id, error:"src_project_id must be defined")
+            return
+        if not mesg.target_project_id?
+            @error_to_client(id:mesg.id, error:"target_project_id must be defined")
+            return
+        if not mesg.src_path?
+            @error_to_client(id:mesg.id, error:"src_path must be defined")
+            return
+        project = undefined
+        async.series([
+            (cb) =>
+                # ensure user can write to the target project
+                user_has_write_access_to_project
+                    project_id     : mesg.target_project_id
+                    account_id     : @account_id
+                    account_groups : @groups
+                    cb             : (err, result) =>
+                        if err
+                            cb(err)
+                        else if not result
+                            cb("user must have write access to target project #{mesg.target_project_id}")
+                        else
+                            cb()
+            (cb) =>
+                @get_public_project
+                    project_id : mesg.src_project_id
+                    path       : mesg.src_path
+                    cb         : (err, x) =>
+                        project = x
+                        cb(err)
+            (cb) =>
+                project.copy_path
+                    path            : mesg.src_path
+                    project_id      : mesg.target_project_id
+                    target_path     : mesg.target_path
+                    overwrite_newer : mesg.overwrite_newer
+                    delete_missing  : mesg.delete_missing
+                    timeout         : mesg.timeout
+                    cb              : cb
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.success(id:mesg.id))
+        )
 
 
     ################################################
@@ -4832,6 +4904,7 @@ exports.start_server = start_server = () ->
         max_delay   : 10000
         cb          : () =>
             winston.debug("connected to database.")
+            init_salvus_version()
             init_bup_server()
             init_http_server()
             init_http_proxy_server()

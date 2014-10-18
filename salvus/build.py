@@ -296,7 +296,7 @@ In /etc/sysctl.conf, put:
 # Use different node-cassandra-cql with better reconnect support:
 # See https://github.com/jorgebay/node-cassandra-cql/issues/81
 
-    cd ~/salvus/salvus/node_modules/; mv node-cassandra-cql node-cassandra-cql.old; git clone  https://github.com/Applifier/node-cassandra-cql; cd node- cassandra-cql; npm install .
+    cd ~/salvus/salvus/node_modules/; mv node-cassandra-cql node-cassandra-cql.old; git clone  https://github.com/Applifier/node-cassandra-cql; cd node-cassandra-cql; npm install .
 
 
 """
@@ -428,7 +428,7 @@ SAGE_PIP_PACKAGES = [
     'tabulate',
     'goslate',    # google translate api -- http://pythonhosted.org/goslate/
     'certifi',    # dependency of https://github.com/obspy, which is installed systemwide from an ubuntu package repo
-    'ez_setup,    # needed by fipy
+    'ez_setup',   # needed by fipy
     'pyparse',    # needed by fipy
     'fipy',       # requested by Evan Chenelly <echenelly@gmail.com> -- "A finite volume PDE solver in Python".
     ]

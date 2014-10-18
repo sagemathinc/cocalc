@@ -54,7 +54,6 @@
 </div>
 
 
-
 <div class="modal salvus-file-action-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -63,30 +62,43 @@
                     <span style="font-size:20pt;">×</span>
                 </button>
                 <h3>
-                    <span contenteditable="true" class="salvus-file-filename lighten"></span>
-                    <span class="lighten pull-right" style="font-size: 11pt;color: #999;">(edit to rename)&nbsp;</span>
+                    <span class="salvus-file-filename lighten"></span>
+                    <span class="salvus-project-write-access  lighten pull-right" style="font-size: 11pt;color: #999;">(edit to rename)&nbsp;</span>
                 </h3>
             </div>
             <div class="center" style="padding-bottom: 1em; padding-top: 1em;">
-                <span class=" btn-group">
-                    <a class="btn btn-warning btn-lg" href="#move-file"><i class="fa fa-arrows"> </i> Move </a>
 
-                    <a class="btn btn-lg btn-success" href="#download-file"><i class="fa fa-cloud-download"> </i> Download</a>
-
-                    <a class="btn btn-danger btn-lg" href="#delete-file"><i class="fa fa-trash-o"> </i> Trash</a>
-
-                </span>
-                <br><br>
-                <span class=" btn-group">
-                    <a class="btn btn-lg btn-primary" href="#copy-file"><i class="fa fa-copy"> </i> Copy</a>
+                <span class="salvus-project-public-access">
                     <a class="btn btn-lg btn-primary" href="#copy-to-another-project"><i class="fa fa-send-o"> </i> Copy To Another Project</a>
+                    <!--<a class="btn btn-lg btn-success" href="#download-file"><i class="fa fa-cloud-download"> </i> Download</a>-->
                 </span>
-                <br><br>
-                <span class="salvus-project-published-desc hide">
-                    <input type="text" placeholder="Description of share..." class="form-control hide" style="width:50%;display:inline;paddi4px;">
-                    <a class="btn btn-primary hide" href="#unpublish-path"><i class="fa fa-shield"> </i> Stop Sharing Publicly</a>
-                    <a class="btn btn-primary hide" href="#publish-path"><i class="fa fa-share-square-o"> </i> Share Publicly</a>
-                    <span class="salvus-project-in-published hide">Public because it is contained in <span></span>.</span>
+
+                <span class="salvus-project-write-access">
+                    <span class=" btn-group">
+                        <a class="btn btn-warning btn-lg" href="#move-file"><i class="fa fa-arrows"> </i> Move </a>
+
+                        <a class="btn btn-lg btn-success" href="#download-file"><i class="fa fa-cloud-download"> </i> Download</a>
+
+                        <a class="btn btn-danger btn-lg" href="#delete-file"><i class="fa fa-trash-o"> </i> Trash</a>
+                    </span>
+                    <br><br>
+                    <span class="salvus-project-write-access  btn-group">
+                        <a class="btn btn-lg btn-primary" href="#copy-file"><i class="fa fa-copy"> </i> Copy</a>
+                        <a class="btn btn-lg btn-primary" href="#copy-to-another-project"><i class="fa fa-send-o"> </i> Copy To Another Project</a>
+                    </span>
+                    <br><br>
+                    <span class="salvus-project-published-desc hide">
+                        <hr>
+                        <br>
+                        <a class="btn btn-warning btn-lg hide" href="#unpublish-path"><i class="fa fa-shield"> </i> Stop Sharing Publicly</a>
+                        <a class="btn btn-primary btn-lg hide" href="#publish-path"><i class="fa fa-share-square-o"> </i> Share Publicly</a>
+                        <input type="text" placeholder="Description of share..."
+                               class="salvus-project-published-desc-input form-control hide">
+                        <span class="salvus-project-in-published hide">Public because it is contained in <tt class="salvus-project-in-published-path"></tt>.</span>
+                        <span class="salvus-project-in-published-meaning lighten hide"><br>Share the following link: <br></span>
+                        <input class="form-control salvus-project-in-published-url hide"><br>
+                        <span class="lighten">(Anybody may read these files; only collaborators may change them.)</span>
+                    </span>
                 </span>
             </div>
             <div class="modal-footer">
@@ -381,7 +393,7 @@
 
             <!-- List of all files in the project, which is browsable -->
             <div class="project-file-listing col-sm-12">
-                <div class="row">
+                <div class="row" style="padding-bottom: 1em;">
 
                     <div class="col-sm-3">
                         <div class="input-group salvus-project-search-for-file-input-container">
@@ -396,8 +408,13 @@
                     </div>
 
                     <!-- The current path -->
-                    <div class="col-sm-4">
-                        <div class="project-file-listing-current_path"></div>
+                    <div class="col-sm-6">
+                        <a href="#file-action-current-path" class="salvus-file-action btn btn-default">
+                            <i class="fa fa-info-circle"></i>
+                            <span class="salvus-file-action-public-label hide">Public</span>
+                        </a>
+
+                        <span class="project-file-listing-current_path"></span>
                     </div>
 
                     <div class="project-file-listing-buttons">
@@ -431,8 +448,8 @@
                     </div>
 
                     <!-- command line prompt -->
-                    <div class="project-command-line pull-right col-sm-4">
-                        <input class="project-command-line-input form-control salvus-project-write-access" type="text" placeholder="Terminal command..." data-toggle="tooltip" data-placement="top" title="Run command line in the current directory.">
+                    <div class="project-command-line pull-right col-sm-5">
+                        <input class="project-command-line-input form-control salvus-project-write-access" type="text" placeholder="Terminal command..." data-toggle="tooltip" data-placement="top" title="Run command line in the current directory." style="margin-bottom: 0px;">
                         <div class="project-command-line-output">
                             <div class="project-command-line-spinner hide"></div>
                             <pre class="project-command-line-stdout  hide"></pre>
@@ -947,11 +964,10 @@
 
 
     <div class="project-file-link-style project-file-link project-path-link row">
-        <div class="col-sm-2" style="width: 8em;">
-            <a href="#file-action" class="salvus-file-action btn btn-default btn-sm">
-                <!--<i class="fa fa-info-circle"></i>-->
-                <i class="fa fa-arrows"> </i> <i class="fa fa-cloud-download"></i>  <i class="fa fa-copy"></i>
-                <i class="fa fa-trash-o"> </i>
+        <div class="col-sm-2">
+            <a href="#file-action" class="salvus-file-action btn btn-default">
+                <i class="fa fa-info-circle"></i>
+                <span class="salvus-file-action-public-label hide">Public</span>
             </a>
         </div>
 
@@ -973,15 +989,13 @@
 
     </div>
 
-    <a class="project-home-icon">
-        <i class="fa fa-home"> </i>
-    </a>
-
+    <i class="project-home-icon fa fa-home"> </i>
 
     <span class="project-segment-sep lighten">
         &nbsp; / &nbsp;
     </span>
 
+    <a class="project-file-listing-path-segment-link"></a>
 
     <div class="project-search-result">
         <b><a style="cursor:pointer"></a></b>
@@ -1046,36 +1060,3 @@
 </div>
 
 
-<!--
-                            <div class="col-sm-6 well project-settings-well project-linked-projects-box">
-                                <div class="row">
-                                    <div class="col-sm-4">
-                                        <h4 class="pull-left"><i class="fa fa-link"> </i> Linked Projects</h4>
-                                        <br><br>
-                                    </div>
-                                    <div class="col-sm-8">
-                                        <input class="project-add-linked-project-input search-query" type="search" placeholder="Search by title or description...">
-                                        <div class="project-add-linked-projects-desc lighten"></div>
-                                        <select multiple="multiple" class="project-add-linked-project-select hide"> </select>
-
-                                        <div class="project-add-linked-project hide">
-                                            <a href="#add-linked-project" style="margin-bottom: 1ex; display: inline-block;" class="btn btn-lg btn-primary" data-toggle="tooltip" data-placement="right" title="Link selected projects.">
-                                            <i class="fa fa-plus"> </i>Add Selected
-                                            </a>
-                                        </div>
-                                        <br>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="project-linked-projects-loading hide row">
-                                        <div class="col-sm-8">
-                                            Loading linked projects... <i class="fa fa-spinner fa fa-spin"> </i>
-                                        </div>
-                                    </div>
-                                    <div class="project-linked-projects project-connections lighten">
-                                    </div>
-                                </div>
-
-                            </div>
-
--->

@@ -1198,6 +1198,7 @@ class exports.Connection extends EventEmitter
 
     copy_path_between_projects: (opts) =>
         opts = defaults opts,
+            public            : false
             src_project_id    : required    # id of source project
             src_path          : required    # relative path of director or file in the source project
             target_project_id : required    # if of target project
@@ -1207,14 +1208,21 @@ class exports.Connection extends EventEmitter
             timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
             cb                : undefined   # cb(err)
 
+        is_public = opts.public
+        delete opts.public
         cb = opts.cb
         delete opts.cb
 
         if not opts.target_path?
             opts.target_path = opts.src_path
 
+        if is_public
+            mesg = message.copy_public_path_between_projects(opts)
+        else
+            mesg = message.copy_path_between_projects(opts)
+
         @call
-            message : message.copy_path_between_projects(opts)
+            message : mesg
             cb      : (err, resp) =>
                 if err
                     cb?(err)
