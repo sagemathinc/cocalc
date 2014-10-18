@@ -670,7 +670,7 @@ class exports.Cassandra extends EventEmitter
                 @conn.execute query, vals, { consistency: consistency }, (error, results) =>
                     if not error
                         error = undefined   # it comes back as null
-                        if not results?
+                        if not results? # should never happen
                             error = "no error but no results"
                     if error
                         winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
@@ -682,7 +682,11 @@ class exports.Cassandra extends EventEmitter
                         @connect () =>
                             c(error)
                     else
-                        cb?(error, results?.rows)
+                        if not error
+                            rows = results?.rows
+                            if not rows?
+                                rows = []
+                        cb?(error, rows)
                         cb = undefined  # ensure is only called once
                         c()
             catch e
