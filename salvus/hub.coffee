@@ -1533,7 +1533,7 @@ class Client extends EventEmitter
             hidden     : mesg.hidden
             cb         : (error, projects) =>
                 if error
-                    @error_to_client(id: mesg.id, error: "Database error -- failed to obtain list of your projects.")
+                    @error_to_client(id: mesg.id, error: "There was a problem getting your projects (please try again) -- #{misc.to_json(error)}")
                 else
                     # sort them by last_edited (something db doesn't do)
                     projects.sort((a,b) -> if a.last_edited < b.last_edited then +1 else -1)

@@ -84,7 +84,9 @@ update_project_list = exports.update_project_list = (cb) ->
                 else
                     project_list = mesg.projects
             else
-                alert_message(type:"error", message:"Problem getting updated list of projects. #{error}. #{misc.to_json(mesg)}")
+                if not error and mesg?.event == 'error'
+                    error = mesg.error
+                alert_message(type:"error", message:"Problem getting updated list of projects -- #{error}")
 
                 #if salvus_client.account_id?
                 #    x = localStorage[salvus_client.account_id + 'project_list']
