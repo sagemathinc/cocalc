@@ -389,7 +389,7 @@ class exports.Cassandra extends EventEmitter
             keyspace        : undefined
             username        : undefined
             password        : undefined
-            query_timeout_s : 60    # any query that doesn't finish after this amount of time (due to cassandra/driver *bugs*) will be retried a few times (same as consistency causing retries)
+            query_timeout_s : 45    # any query that doesn't finish after this amount of time (due to cassandra/driver *bugs*) will be retried a few times (same as consistency causing retries)
             query_max_retry : 10    # max number of retries
             consistency     : undefined
             verbose         : false # quick hack for debugging...
@@ -678,9 +678,9 @@ class exports.Cassandra extends EventEmitter
                     # The 'any of its parents' is because often when the server is loaded it rejects requests sometimes
                     # with "no permissions. ... any of its parents".
                     if error? and ("#{error}".indexOf("peration timed out") != -1 or "#{error}".indexOf("any of its parents") != -1)
-                        winston.error("... so (probably) re-doing query after reconnecting")
-                        @connect () =>
-                            c(error)
+                        winston.error(error)
+                        winston.error("... so (probably) re-doing query")
+                        c(error)
                     else
                         if not error
                             rows = results?.rows
