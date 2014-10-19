@@ -2296,6 +2296,8 @@ class ProjectPage
             return false
 
     init_project_activity: () =>
+        if @public_access
+            return
         page = @container.find(".project-activity")
         page.find("h1").icon_spin(start:true, delay:500)
         @_project_activity_log = page.find(".project-activity-log")

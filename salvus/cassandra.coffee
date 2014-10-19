@@ -46,8 +46,8 @@ assert  = require('assert')
 async   = require('async')
 winston = require('winston')                    # https://github.com/flatiron/winston
 
-cql     = require("node-cassandra-cql")
-Client  = cql.Client  # https://github.com/jorgebay/node-cassandra-cql; https://github.com/jorgebay/node-cassandra-cql/issues/81
+cql     = require("cassandra-driver")
+Client  = cql.Client  # https://github.com/datastax/nodejs-driver
 uuid    = require('node-uuid')
 {EventEmitter} = require('events')
 
@@ -389,13 +389,11 @@ class exports.Cassandra extends EventEmitter
             keyspace        : undefined
             username        : undefined
             password        : undefined
-            query_timeout_s : 60    # any query that doesn't finish after this amount of time (due to cassandra/driver *bugs*) will be retried a few times (same as consistency causing retries)
+            query_timeout_s : 45    # any query that doesn't finish after this amount of time (due to cassandra/driver *bugs*) will be retried a few times (same as consistency causing retries)
             query_max_retry : 10    # max number of retries
             consistency     : undefined
             verbose         : false # quick hack for debugging...
-            conn_timeout_ms : 20000  # Maximum time in milliseconds to wait for a connection from the pool.
-            latency_limit   : 500
-            pool_size       : 2
+            conn_timeout_ms : 15000  # Maximum time in milliseconds to wait for a connection from the pool.
 
         @keyspace = opts.keyspace
         @query_timeout_s = opts.query_timeout_s
@@ -418,15 +416,18 @@ class exports.Cassandra extends EventEmitter
         if @conn?
             @conn.shutdown?()
             delete @conn
-        @conn = new Client
-            hosts                 : opts.hosts
+        o =
+            contactPoints         : opts.hosts
             keyspace              : opts.keyspace
-            username              : opts.username
-            password              : opts.password
-            getAConnectionTimeout : opts.conn_timeout_ms
-            latencyLimit          : opts.latency_limit
-            poolSize              : opts.pool_size
-            pageSize              : 10000000  # TODO!!
+            queryOptions          :
+                consistency : @consistency
+                prepare     : true
+                fetchSize   : 150000  # TODO: this temporary - we need to rewrite various code in here to use paging, etc., which is now easy with new driver.
+            socketOptions         :
+                connectTimeout    : opts.conn_timeout_ms
+        if opts.username? and opts.password?
+            o.authProvider = new cql.auth.PlainTextAuthProvider(opts.username, opts.password)
+        @conn = new Client(o)
 
         if opts.verbose
             @conn.on 'log', (level, message) =>
@@ -665,44 +666,42 @@ class exports.Cassandra extends EventEmitter
         if not consistency?
             consistency = @consistency
         g = (c) =>
-            try
-                @conn.execute query, vals, consistency, (error, results) =>
+            @conn.execute query, vals, { consistency: consistency }, (error, results) =>
+                if not error
+                    error = undefined   # it comes back as null
+                    if not results? # should never happen
+                        error = "no error but no results"
+                if error?
+                    winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
+                # TODO - this test for "ResponseError: Operation timed out" is HORRIBLE.
+                # The 'any of its parents' is because often when the server is loaded it rejects requests sometimes
+                # with "no permissions. ... any of its parents".
+                if error? and ("#{error}".indexOf("peration timed out") != -1 or "#{error}".indexOf("any of its parents") != -1)
+                    winston.error(error)
+                    winston.error("... so (probably) re-doing query")
+                    c(error)
+                else
                     if not error
-                        error = undefined   # it comes back as null
-                    if error
-                        winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
-                    # TODO - this test for "ResponseError: Operation timed out" is HORRIBLE.
-                    # The 'any of its parents' is because often when the server is loaded it rejects requests sometimes
-                    # with "no permissions. ... any of its parents".
-                    if error? and ("#{error}".indexOf("peration timed out") != -1 or "#{error}".indexOf("any of its parents") != -1)
-                        winston.error("... so (probably) re-doing query after reconnecting")
-                        @connect () =>
-                            c(error)
-                    else
-                        cb?(error, results?.rows)
-                        cb = undefined  # ensure is only called once
-                        c()
-            catch e
-                m = "exception doing cql query -- #{misc.to_json(e).slice(0,1000)}"
-                winston.error(m)
-                cb?(m)
-                cb = undefined  # ensure is only called once
-                c()
+                        rows = results?.rows
+                        if not rows?
+                            rows = []
+                    cb?(error, rows)
+                    cb = undefined  # ensure is only called once
+                    c()
 
         f = (c) =>
             failed = () =>
-                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying after reconnecting"
+                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- will likely retrying"
                 winston.error(m)
-                @connect () =>
-                    c?(m)
-                    c = undefined # ensure only called once
+                c?(m)
+                c = undefined # ensure only called once
             _timer = setTimeout(failed, 1000*@query_timeout_s)
             g (err) =>
                 clearTimeout(_timer)
                 c?(err)
                 c = undefined # ensure only called once
 
-        # If a query fails due to "Operation timed out", then we will keep retrying, up to 10 times, with exponential backoff.
+        # If a query fails due to "Operation timed out", then we will keep retrying, up to @query_max_retry times, with exponential backoff.
         # ** This is ABSOLUTELY critical, if we have a loaded system, slow nodes, want to use consistency level > 1, etc, **
         # since otherwise all our client code would have to do this...
         misc.retry_until_success
