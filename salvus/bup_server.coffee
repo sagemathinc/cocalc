@@ -2188,7 +2188,8 @@ class GlobalClient
                             result.health = (result.health + 0)/2.0
                     @database.update
                         table : 'storage_servers'
-                        set   : {health:{value:result.health,hint:'float'}}
+                        #set   : {health:{value:result.health,hint:'float'}}
+                        set   : {health:result.health}
                         where : {dummy:true, server_id:result.server_id}
                         cb    : cb
                 async.map(results, f, (err) => opts.cb?(err))
