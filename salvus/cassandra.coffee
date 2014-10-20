@@ -682,9 +682,7 @@ class exports.Cassandra extends EventEmitter
                     c(error)
                 else
                     if not error
-                        rows = results?.rows
-                        if not rows?
-                            rows = []
+                        rows = results.rows
                     cb?(error, rows)
                     cb = undefined  # ensure is only called once
                     c()
