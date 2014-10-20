@@ -81,69 +81,79 @@ class ProjectPage
 
         @init_sort_files_icon()
 
-        # Initialize the search form.
-        @init_search_form()
-
-        # Initialize new worksheet/xterm/etc. console buttons
 
         # current_path is a possibly empty list of directories, where
         # each one is contained in the one before it.
         @current_path = []
         @init_tabs()
-
         @update_topbar()
-        @init_admin()
-
         @create_editor()
-
         @init_file_search()
-
-        @init_new_file_tab()
         @init_refresh_files()
         @init_hidden_files_icon()
-        @init_trash_link()
-        @init_snapshot_link()
-        @init_local_status_link()
-
-        @init_project_activity()  # must be after @create_editor()
-
-        @init_project_download()
-
-        @init_project_restart()
-
-        @init_ssh()
-        @init_worksheet_server_restart()
-
         @init_listing_show_all()
-
-        @init_delete_project()
-        @init_undelete_project()
-
-        @init_hide_project()
-        @init_unhide_project()
-
-        @init_make_public()
-        @init_make_private()
-
-        @update_collaborators = @init_add_collaborators()
-        @init_add_noncloud_collaborator()
-
-        #@update_linked_projects = @init_linked_projects()
-
-        @init_move_project()
-
+        @init_sortable_editor_tabs()
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
-        if window.salvus_base_url != "" # TODO -- should use a better way to decide dev mode.
+
+        if not @public_access
+            # Initialize the search form.
+            @init_search_form()
+            @init_admin()
+            @init_new_file_tab()
+            @init_trash_link()
+            @init_snapshot_link()
+            @init_local_status_link()
+            @init_project_activity()  # must be after @create_editor()
+            @init_project_restart()
+            @init_ssh()
+            @init_worksheet_server_restart()
+            @init_delete_project()
+            @init_undelete_project()
+
+            @init_hide_project()
+            @init_unhide_project()
+
+            @init_make_public()
+            @init_make_private()
+
+            @update_collaborators = @init_add_collaborators()
+            @init_add_noncloud_collaborator()
+
+            #@update_linked_projects = @init_linked_projects()
+
+            @init_move_project()
+            @set_location()
+            @init_title_desc_edit()
+            @init_mini_command_line()
+            @init_current_path_info_button()
+
+        # Show a warning if using SMC in devel mode. (no longer supported)
+        if window.salvus_base_url != ""
+            # TODO -- should use a better way to decide dev mode.
             @container.find(".salvus-project-id-warning").show()
 
-        @set_location()
+    init_mini_command_line: () =>
+        # Activate the mini command line
+        cmdline = @container.find(".project-command-line-input").tooltip(delay:{ show: 500, hide: 100 })
+        cmdline.keydown (evt) =>
+            if evt.which == 13 # enter
+                try
+                    that.command_line_exec()
+                catch e
+                    console.log(e)
+                return false
+            if evt.which == 27 # escape
+                @container?.find(".project-command-line-output").hide()
+                return false
+        # TODO: this will be for command line tab completion
+        #cmdline.keydown (evt) =>
+        #    if evt.which == 9
+        #        @command_line_tab_complete()
+        #        return false
 
-        if @project.size? and @project.size
-            @container.find(".project-size").text(human_readable_size(@project.size))
-        else
-            @container.find(".project-size-label").hide()
 
+    init_title_desc_edit: () =>
         # Make it so editing the title and description of the project
         # sends a message to the hub.
         that = @
@@ -180,30 +190,6 @@ class ProjectPage
                             alert_message(type:'error', message:mesg.error)
                         else
                             that.project.description = new_desc
-
-        # Activate the command line
-        cmdline = @container.find(".project-command-line-input").tooltip(delay:{ show: 500, hide: 100 })
-        cmdline.keydown (evt) =>
-            if evt.which == 13 # enter
-                try
-                    that.command_line_exec()
-                catch e
-                    console.log(e)
-                return false
-            if evt.which == 27 # escape
-                @container?.find(".project-command-line-output").hide()
-                return false
-
-        # TODO: this will be for command line tab completion
-        #cmdline.keydown (evt) =>
-        #    if evt.which == 9
-        #        @command_line_tab_complete()
-        #        return false
-
-        @init_file_sessions()
-
-        @init_current_path_info_button()
-
 
     init_current_path_info_button: () =>
         e = @container.find("a[href=#file-action-current-path]")
@@ -387,11 +373,15 @@ class ProjectPage
         #    tab = @editor.create_tab(filename : obj.path, session_uuid:session_uuid)
         cb?()
 
+    ###
     init_file_sessions: (sessions, cb) =>
         for filename, data of local_storage(@project.project_id)
             if data.auto_open
                 tab = @editor.create_tab(filename : filename)
         cb?()
+    ###
+
+    init_sortable_editor_tabs: () =>
         @container.find(".nav.projects").sortable
             axis                 : 'x'
             delay                : 50
@@ -752,13 +742,13 @@ class ProjectPage
                     that.editor.hide()
                     that.editor.show_recent()
                     return false
-            else if name == "project-new-file"
+            else if name == "project-new-file" and not @public_access
                 tab.onshow = () ->
                     that.show_top_path()
                     that.editor?.hide_editor_content()
                     that.push_state('new/' + that.current_path.join('/'))
                     that.show_new_file_tab()
-            else if name == "project-activity"
+            else if name == "project-activity" and not @public_access
                 tab.onshow = () =>
                     that.show_top_path()
                     that.editor?.hide_editor_content()
@@ -767,7 +757,7 @@ class ProjectPage
                     if not IS_MOBILE
                         @container.find(".salvus-project-activity-search").focus()
 
-            else if name == "project-settings"
+            else if name == "project-settings" and not @public_access
                 tab.onshow = () ->
                     that.show_top_path()
                     that.editor?.hide_editor_content()
@@ -776,7 +766,7 @@ class ProjectPage
                     #that.update_linked_projects()
                     that.update_collaborators()
 
-            else if name == "project-search"
+            else if name == "project-search" and not @public_access
                 tab.onshow = () ->
                     that.show_top_path()
                     that.editor?.hide_editor_content()
@@ -2540,19 +2530,6 @@ class ProjectPage
 
                 @_project_activity_log.append(x)
 
-
-    init_project_download: () =>
-        # Download entire project -- not implemented!
-        ###
-        link = @container.find("a[href=#download-project]")
-        link.click () =>
-            link.find(".spinner").show()
-            @download_file
-                path   : ""
-                cb     : (err) =>
-                    link.find(".spinner").hide()
-            return false
-        ###
 
     init_delete_project: () =>
         if @project.deleted
