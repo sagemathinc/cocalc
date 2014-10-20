@@ -36,7 +36,7 @@ exports.masked_file_exts = masked_file_exts =
     'class'         : 'java'
     'exe'           : 'cs'
 
-for ext in misc.split('blg bbl glo idx toc aux log lof ind nav snm gz xyc out ilg')  # gz really synctex.gz
+for ext in misc.split('blg bbl glo idx toc aux log lof ind nav snm gz xyc out ilg fdb_latexmk fls')  # gz really synctex.gz
     masked_file_exts[ext] = 'tex'
 
 #many languages such as fortran or c++ have a default file name of "a.out." when compiled, so .out extensions are not masked
