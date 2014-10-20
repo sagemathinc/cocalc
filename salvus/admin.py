@@ -1391,7 +1391,6 @@ class Monitor(object):
         return [y for x,y in w]
 
     def compute(self):
-        hosts = self._hosts['cassandra']
         ans = []
         c = 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l && cd salvus/salvus; . salvus-env; ./bup_server status 2>/dev/null'
         for k, v in self._hosts('compute-2', c, wait=True, parallel=True).iteritems():
@@ -1415,8 +1414,8 @@ class Monitor(object):
                 if not d['bup_server']:
                     d['status'] = 'down'
                     self.attempt_to_heal_bup_server(d['host'])
-                ans.append(d)
-        w = [(-d['load15'], d) for d in ans]
+            ans.append(d)
+        w = [(-d.get('load15',0), d) for d in ans]
         w.sort()
         return [y for x,y in w]
 
