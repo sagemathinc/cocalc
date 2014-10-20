@@ -605,6 +605,7 @@ class BuildSage(object):
         self.install_basemap()
         self.install_4ti2()
         self.install_root_notebook()
+        self.install_pydelay()
         self.clean_up()
         self.extend_sys_path()
         self.fix_permissions()
@@ -856,6 +857,14 @@ class BuildSage(object):
         cmd("/usr/bin/git clone git@github.com:matplotlib/basemap.git", "/tmp")
         cmd("python setup.py install", "/tmp/basemap")
         shutil.rmtree("/tmp/basemap")
+
+    def install_pydelay(self):
+        """
+        Install pydelay -- a program which translates a system of delay differential equations (DDEs) into simulation C-code and compiles and runs the code (using scipy weave).  -- see http://pydelay.sourceforge.net/
+
+        Requested for UCLA by Jane Shevtsov: https://plus.google.com/115360165819500279592/posts/73vK9Pw4W6g
+        """
+        cmd("umask 022 &&  cd /tmp/ &&  rm -rf pydelay* &&  wget http://downloads.sourceforge.net/project/pydelay/pydelay-0.1.1.tar.gz &&  tar xf pydelay-0.1.1.tar.gz &&  cd pydelay-0.1.1 &&  python setup.py install &&  rm -rf /tmp/pydelay*")
 
     def install_4ti2(self):
         """
