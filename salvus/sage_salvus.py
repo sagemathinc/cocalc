@@ -2189,8 +2189,21 @@ def show_animation(obj, **kwds):
     os.unlink(t)
 
 def show_2d_plot_using_matplotlib(obj, svg, **kwds):
+    if isinstance(obj, matplotlib.image.AxesImage):
+        # The result of imshow, e.g.,
+        #
+        #     from matplotlib import numpy, pyplot
+        #     pyplot.imshow(numpy.random.random_integers(255, size=(100,100,3)))
+        #
+        t = tmp_filename(ext='.png')
+        obj.write_png(t)
+        salvus.file(t)
+        os.unlink(t)
+        return
+
     if isinstance(obj, matplotlib.axes.Axes):
         obj = obj.get_figure()
+
     if 'events' in kwds:
         from graphics import InteractiveGraphics
         ig = InteractiveGraphics(obj, **kwds['events'])
@@ -2260,7 +2273,7 @@ def show(obj, svg=True, **kwds):
             show(g, events={'click':c, 'mousemove':h}, svg=True, gridlines='major', ymin=ymin, ymax=ymax)
     """
     import graphics
-    if isinstance(obj, (Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes)):
+    if isinstance(obj, (Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes, matplotlib.image.AxesImage)):
         show_2d_plot_using_matplotlib(obj, svg=svg, **kwds)
     elif isinstance(obj, Animation):
         show_animation(obj, **kwds)
@@ -2982,7 +2995,7 @@ matplotlib.pyplot.show = _show_pyplot
 _system_sys_displayhook = sys.displayhook
 
 def displayhook(obj):
-    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes, Animation)):
+    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes, matplotlib.image.AxesImage, Animation)):
         show(obj)
     else:
         _system_sys_displayhook(obj)
