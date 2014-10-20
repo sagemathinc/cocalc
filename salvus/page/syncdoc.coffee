@@ -1615,7 +1615,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             val = mesg.file
             if not val.show? or val.show
                 if val.url?
-                    target = val.url
+                    target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that change
                 else
                     target = "#{window.salvus_base_url}/blobs/#{val.filename}?uuid=#{val.uuid}"
                 switch misc.filename_extension(val.filename)

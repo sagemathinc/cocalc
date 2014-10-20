@@ -1533,7 +1533,7 @@ class Client extends EventEmitter
             hidden     : mesg.hidden
             cb         : (error, projects) =>
                 if error
-                    @error_to_client(id: mesg.id, error: "Database error -- failed to obtain list of your projects.")
+                    @error_to_client(id: mesg.id, error: "There was a problem getting your projects (please try again) -- #{misc.to_json(error)}")
                 else
                     # sort them by last_edited (something db doesn't do)
                     projects.sort((a,b) -> if a.last_edited < b.last_edited then +1 else -1)
@@ -4496,15 +4496,19 @@ save_blob = (opts) ->
     opts = defaults opts,
         uuid  : undefined  # uuid=sha1-based from value; actually *required*, but instead of a traceback, get opts.cb(err)
         value : undefined  # actually *required*, but instead of a traceback, get opts.cb(err)
-        ttl   : undefined  # object in blobstore will have *at least* this ttl in seconds; if there is already something, in blobstore with longer ttl, we leave it; undefined = infinite ttl
-        check : true       # if true, return an error (via cb) if misc_node.uuidsha1(opts.value) != opts.uuid.  This is a check against bad user-supplied data.
+        ttl   : undefined  # object in blobstore will have *at least* this ttl in seconds;
+                           # if there is already something, in blobstore with longer ttl, we leave it; undefined = infinite ttl
+        check : true       # if true, return an error (via cb) if misc_node.uuidsha1(opts.value) != opts.uuid.
+                           # This is a check against bad user-supplied data.
         cb    : required   # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
+
+    dbg = (m) -> winston.debug("save_blob(uuid=#{opts.uuid}): #{m}")
+    dbg()
 
     if false  # enable this for testing -- HOWEVER, don't do this in production with
               # more than one hub, or things will break in subtle ways (obviously).
         blobs[opts.uuid] = opts.value
         opts.cb()
-        winston.debug("save_blob #{opts.uuid}")
         return
 
     err = undefined
@@ -4522,7 +4526,7 @@ save_blob = (opts) ->
         err = "save_blob: uuid=#{opts.uuid} must be derived from the Sha1 hash of value, but it is not (possible malicious attack)"
 
     if err?
-        winston.debug(err)
+        dbg(err)
         opts.cb(err)
         return
 
@@ -4532,42 +4536,58 @@ save_blob = (opts) ->
         uuid : opts.uuid
         cb   : (err, ttl) ->
             if err
+                dbg("failed to get ttl -- #{err}")
                 opts.cb(err); return
+            dbg("got ttl=#{ttl}")
             if ttl? and (ttl == 0 or ttl >= opts.ttl)
-                # nothing to store -- done.
+                dbg("nothing to store -- done.")
                 opts.cb(false, ttl)
             else
-                # store it in the database
+                dbg("store blob in the database with new ttl")
                 if not opts.ttl?
                     opts.ttl = 0
                 db.set
                     uuid  : opts.uuid
                     value : opts.value
                     ttl   : opts.ttl
-                    cb    : (err) -> opts.cb(err, ttl)
+                    cb    : (err) ->
+                        if err
+                            dbg("failed to store blob -- #{err}")
+                        else
+                            dbg("successfully stored blob")
+                        opts.cb(err, ttl)
 
 get_blob = (opts) ->
     opts = defaults opts,
         uuid        : required
         cb          : required
         max_retries : 5
-            # if blob isn't in the database yet, we retry up to max_retries many times, after waiting 300ms for it.
-            # We do this since Cassandra is only eventually consistent, and clients can be querying other nodes.
+        # if blob isn't in the database yet, we retry up to max_retries many times, after waiting 300ms for it.
+        # We do this since Cassandra is only eventually consistent, and clients can be querying other nodes.
     if false
         opts.cb(false, blobs[opts.uuid])
         winston.debug("get_blob #{opts.uuid}")
         return
+    dbg = (m) -> winston.debug("get_blob(uuid=#{opts.uuid}): #{m}")
+    dbg()
+
     database.uuid_blob_store(name:"blobs").get
         uuid : opts.uuid
         cb   : (err, result) ->
             if err
+                dbg("database call error getting blob -- #{err}")
                 opts.cb(err)
             else if not result? and opts.max_retries >= 1
+                dbg("failed to get blob since not available yet and max_retries={opts.max_retries}>=1, so retrying in 300ms.")
                 f = () ->
                     get_blob(uuid:opts.uuid, cb:opts.cb, max_retries:opts.max_retries-1)
                 setTimeout(f, 300)
             else
-                opts.cb(false, result)
+                if result?
+                    dbg("got the blob")
+                else
+                    dbg("no such blob")
+                opts.cb(undefined, result)
 
 
 # For each element of the array blob_ids, remove its ttl.
@@ -4905,9 +4925,11 @@ exports.start_server = start_server = () ->
         cb          : () =>
             winston.debug("connected to database.")
             init_salvus_version()
-            init_bup_server()
             init_http_server()
-            init_http_proxy_server()
+
+            # proxy server relies on bup server having been created
+            init_bup_server () =>
+                init_http_proxy_server()
 
             # start updating stats cache every so often -- note: this is cached in the database, so it isn't
             # too big a problem if we call it too frequently...
