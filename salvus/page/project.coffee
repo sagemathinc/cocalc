@@ -1971,9 +1971,37 @@ class ProjectPage
                         cb(err)
         ], (err) => cb?(err))
 
-    copy_to_another_project_dialog: (path, isdir) =>
-        dialog = $(".salvus-project-copy-to-another-project-dialog").clone()
+    copy_to_another_not_ready_dialog: (signed_in_already) =>
+        dialog = $(".salvus-project-copy-file-signin-dialog").clone()
+        dialog.find(".btn-close").click () ->
+            dialog.modal('hide')
+            return false
+        if signed_in_already
+            dialog.find('.salvus-signed-in-already').show()
+            dialog.find("a[href=#create-project]").click () ->
+                dialog.modal('hide')
+                require('projects').create_new_project()
+                return false
+        else
+            dialog.find('.salvus-not-signed-in-already').show()
+            dialog.find("a[href=#create-account]").click () ->
+                dialog.modal('hide')
+                top_navbar.switch_to_page('account')
+                account.show_page("account-create_account")
+                return false
+            dialog.find("a[href=#sign-in]").click () ->
+                dialog.modal('hide')
+                top_navbar.switch_to_page('account')
+                account.show_page("account-sign_in")
+                return false
         dialog.modal()
+
+    copy_to_another_project_dialog: (path, isdir) =>
+        if not require('account').account_settings.is_signed_in()
+            @copy_to_another_not_ready_dialog()
+            return
+
+        dialog = $(".salvus-project-copy-to-another-project-dialog").clone()
 
         src_path          = undefined
         target_project_id = undefined
@@ -1991,8 +2019,13 @@ class ProjectPage
                         if err
                             cb(err)
                         else
-                            project_list = x
-                            cb()
+                            project_list = (a for a in x when not a.deleted)
+                            if project_list.length == 0
+                                @copy_to_another_not_ready_dialog(true)
+                                cb('no projects')
+                            else
+                                dialog.modal()
+                                cb()
             (cb) =>
                 # determine whether or not the source path is available via public access
                 if @public_access

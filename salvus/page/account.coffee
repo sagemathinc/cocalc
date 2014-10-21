@@ -44,7 +44,7 @@ focus =
     'account-settings'        : ''
 
 current_account_page = null
-show_page = (p) ->
+show_page = exports.show_page  = (p) ->
     current_account_page = p
     for page, elt of focus
         if page == p
@@ -459,6 +459,9 @@ class AccountSettings
 
     account_id: () =>
         return account_id
+
+    is_signed_in: () =>
+        return account_id?
 
     load_from_server: (cb) =>
         salvus_client.get_account_settings
