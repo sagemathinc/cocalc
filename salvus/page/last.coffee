@@ -23,5 +23,5 @@ $(document).on "click", (e) ->
 misc_page.define_codemirror_extensions()
 editor.define_codemirror_sagews_mode()
 
-if window.salvus_target
+if window.salvus_target and not localStorage.remember_me
     require('history').load_target(window.salvus_target)

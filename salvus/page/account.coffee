@@ -56,7 +56,8 @@ show_page = exports.show_page  = (p) ->
 
 show_page("account-sign_in")
 
-top_navbar.on("show_page_account", (() -> $("##{focus[current_account_page]}").focus()))
+top_navbar.on "show_page_account", () ->
+    $("##{focus[current_account_page]}").focus()
 
 $("a[href='#account-create_account']").click (event) ->
     $.get "/registration", (val, status) ->
