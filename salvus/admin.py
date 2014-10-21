@@ -1609,7 +1609,7 @@ class Monitor(object):
 
         print "COMPUTE"
         vcompute = all['compute']
-        print "%s projects running"%(sum([x['nprojects'] for x in vcompute]))
+        print "%s projects running"%(sum([x.get('nprojects',0) for x in vcompute]))
         for x in all['compute'][:n]:
             print x
 
