@@ -439,15 +439,15 @@ DEFAULT_ACCOUNT_SETTINGS =
         auto_close_brackets       : true
         spaces_instead_of_tabs    : true
         multiple_cursors          : true
-        track_revisions           : true
+        track_revisions           : false
         first_line_number         : 1
         indent_unit               : 4
         tab_size                  : 4
-        bindings                  : "sublime"
+        bindings                  : "default"
         theme                     : "default"
         undo_depth                : 300
     other_settings  :
-        confirm_close : true
+        confirm_close : false  # non-logged in user shouldn't have to confirm leave.
         mask_files    : true
     email_address   : 'anonymous@example.com'
     groups          : []
