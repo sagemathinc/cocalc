@@ -139,12 +139,12 @@ class ProjectPage
         cmdline.keydown (evt) =>
             if evt.which == 13 # enter
                 try
-                    that.command_line_exec()
+                    @command_line_exec()
                 catch e
                     console.log(e)
                 return false
             if evt.which == 27 # escape
-                @container?.find(".project-command-line-output").hide()
+                @container.find(".project-command-line-output").hide()
                 return false
         # TODO: this will be for command line tab completion
         #cmdline.keydown (evt) =>
