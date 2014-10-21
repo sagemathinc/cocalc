@@ -1612,8 +1612,9 @@ class CodeMirrorEditor extends FileEditor
                             if err
                                 cb(err)
                             else
-                                window.open(mesg.url,'_blank')
-                                dialog.find(".salvus-file-printing-link").attr('href', mesg.url).text(pdf).show()
+                                url = mesg.url + "?nocache=#{Math.random()}"
+                                window.open(url,'_blank')
+                                dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
                                 cb()
             ], (err) =>
                 dialog.find(".btn-submit").icon_spin(false)
