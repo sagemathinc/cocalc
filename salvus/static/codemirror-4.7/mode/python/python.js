@@ -111,7 +111,7 @@
       var ch = stream.peek();
 
       // Handle Comments
-      if (ch == "#") {
+      if (ch == "#"  || ch == "\uFE21") {
         stream.skipToEnd();
         return "comment";
       }

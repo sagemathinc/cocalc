@@ -1,3 +1,6 @@
+git add * */* */*/* */*/*/*
+
+
 * In mode/python/python.js I add our unicode output character to be a comment starter:
 
       // Handle Comments
@@ -38,9 +41,9 @@ index 104ccd7..2ac716d 100644
 
 * Add modes:
 
-    cp -rv ../codemirror-4.5/mode/less mode/
-    cp -rv ../codemirror-4.5/mode/pari mode/
-    cp -rv ../codemirror-4.5/mode/ocaml mode/
+    cp -rv ../codemirror-4.6/mode/less mode/
+    cp -rv ../codemirror-4.6/mode/pari mode/
+    cp -rv ../codemirror-4.6/mode/ocaml mode/
 
 -----------------------------------------------------------------------------------------------
 
@@ -64,12 +67,14 @@ index f106f79..43a5711 100644
 
 * There are numerous changes to addon/search/search.js to make it bootstrap3 compatible (done by Andy).
 
-    diff ../codemirror-4.5/addon/search/search.js addon/search/search.js
-    cp ../codemirror-4.5/addon/search/search.js addon/search/
+    diff ../codemirror-4.6/addon/search/search.js addon/search/search.js
+    cp ../codemirror-4.6/addon/search/search.js addon/search/
 
 -----------------------------------------------------------------------------------------------
 
-Minify the main library:
+Minify everything into a single thing:
+
+
 
      cd lib
      uglifyjs2 codemirror.js > codemirror.min.js

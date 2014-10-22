@@ -28,19 +28,17 @@ http://ethanschoonover.com/solarized/img/solarized-palette.png
 /* Color scheme for code-mirror */
 
 .cm-s-solarized {
-  line-height: 1.45em;
+  line-height: 1.1em;
   color-profile: sRGB;
   rendering-intent: auto;
 }
 .cm-s-solarized.cm-s-dark {
   color: #839496;
   background-color:  #002b36;
-  text-shadow: #002b36 0 1px;
 }
 .cm-s-solarized.cm-s-light {
   background-color: #fdf6e3;
   color: #657b83;
-  text-shadow: #eee8d5 0 1px;
 }
 
 .cm-s-solarized .CodeMirror-widget {
@@ -113,9 +111,9 @@ http://ethanschoonover.com/solarized/img/solarized-palette.png
 
 /* Little shadow on the view-port of the buffer view */
 .cm-s-solarized.CodeMirror {
-  -moz-box-shadow: inset 7px 0 12px -6px #000;
+/*  -moz-box-shadow: inset 7px 0 12px -6px #000;
   -webkit-box-shadow: inset 7px 0 12px -6px #000;
-  box-shadow: inset 7px 0 12px -6px #000;
+  box-shadow: inset 7px 0 12px -6px #000;*/
 }
 
 /* Gutter border and some shadow from it  */
@@ -127,17 +125,17 @@ http://ethanschoonover.com/solarized/img/solarized-palette.png
 
 /* Dark */
 .cm-s-solarized.cm-s-dark .CodeMirror-gutters {
-  background-color:  #002b36;
+  background-color:  #073642;
   border-color: #00232c;
 }
 
 .cm-s-solarized.cm-s-dark .CodeMirror-linenumber {
-  text-shadow: #021014 0 -1px;
+/*  text-shadow: #021014 0 -1px; */
 }
 
 /* Light */
 .cm-s-solarized.cm-s-light .CodeMirror-gutters {
-  background-color: #fdf6e3;
+  background-color: #eee8d5;;
   border-color: #eee8d5;
 }
 
