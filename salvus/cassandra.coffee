@@ -162,7 +162,7 @@ class UUIDStore
             cb : (err, value) =>
                 if value?
                     @set
-                        uuid : opts.uuid
+                        uuid  : opts.uuid
                         value : value      # note -- the implicit conversion between buf and string is *necessary*, sadly.
                         ttl   : opts.ttl
                         cb    : opts.cb

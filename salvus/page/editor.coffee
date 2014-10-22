@@ -1652,7 +1652,6 @@ class CodeMirrorEditor extends FileEditor
                 display: 'inline-block'   # this is needed due to subtleties of jQuery show().
 
     click_save_button: () =>
-        window.cm = @ # TODO: debug
         if @_saving
             return
         @_saving = true

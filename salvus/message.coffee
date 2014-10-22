@@ -1204,6 +1204,12 @@ message
     error     : undefined    # if not saving, a message explaining why.
 
 
+# remove the ttls from blobs in the blobstore.
+# client --> hub
+message
+    event     : 'remove_blob_ttls'
+    id        : undefined
+    uuids     : required     # list of sha1 hashes of blobs stored in the blobstore
 
 message
     event      : 'storage'
