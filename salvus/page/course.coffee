@@ -279,9 +279,11 @@ class Course
                         if not result_emails[r]
                             result.push({email_address:r})
 
-                    # remove from search result every student who is already in the course
+                    # remove from search result every non-deleted student who is already in the course
                     already_student = {}
                     for z in @db.select({table : 'students'})
+                        if z.deleted  # don't omit deleted students; can't put deleted:false in search though since deleted is undefined for non-deleted students.
+                            continue
                         if z.account_id?
                             already_student[z.account_id] = true
                         if z.email_address?
