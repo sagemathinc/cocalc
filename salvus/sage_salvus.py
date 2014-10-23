@@ -2639,15 +2639,25 @@ def var(*args, **kwds):
         %var a,b,theta          # separate with commas
         %var x y z t            # separate with spaces
 
+    Use latex_name to customizing how the variables is typeset:
+
+        var1 = var('var1', latex_name=r'\sigma^2_1')
+        show(e^(var1**2))
+
     Multicolored variables made using the %var line decorator:
 
-        %var(latex_name=r"{\color{green}{\theta}}") theta
-        %var(latex_name=r"{\color{red}{S_{u,i}}}") sui
+        %var(latex_name=r"\color{green}{\theta}") theta
+        %var(latex_name=r"\color{red}{S_{u,i}}") sui
         show(expand((sui + x^3 + theta)^2))
+
+
 
     Here is the docstring for var in Sage:
 
     """
+    if 'latex_name' in kwds:
+        # wrap with braces -- sage should probably do this, but whatever.
+        kwds['latex_name'] = '{%s}'%kwds['latex_name']
     if len(args) > 0:
         return var0(*args, **kwds)
     else:
