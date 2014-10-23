@@ -60,6 +60,11 @@
     opacity: .85;   /* avoid confusion when project scrolls up and is covered by top bar */
 }
 
+.salvus-top_navbar-tab-active {
+    color:rgb(116, 92, 46);
+}
+
+
 .salvus-fullscreen-activate {
     position:fixed;
     z-index:100000;

@@ -133,6 +133,9 @@ class ProjectPage
             # TODO -- should use a better way to decide dev mode.
             @container.find(".salvus-project-id-warning").show()
 
+    activity_indicator: () =>
+        top_navbar.activity_indicator(@project.project_id)
+
     init_mini_command_line: () =>
         # Activate the mini command line
         cmdline = @container.find(".project-command-line-input").tooltip(delay:{ show: 500, hide: 100 })
@@ -2378,6 +2381,7 @@ class ProjectPage
             (cb) =>
                 log_output = page.find(".project-activity-log")
                 @project_log.on 'sync', () =>
+                    @activity_indicator()
                     @render_project_activity_log()
 
                 @project_activity({event:'open_project'})

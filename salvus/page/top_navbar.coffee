@@ -122,6 +122,22 @@ class TopNavbar  extends EventEmitter
         n.onshow?()
         ga('send', 'pageview', window.location.pathname)
 
+    activity_indicator: (id) =>
+        if not id?
+            id = @current_page_id
+        e = @pages[id]?.button
+        if not e?
+            return
+        if not @_activity_indicator_timers?
+            @_activity_indicator_timers = {}
+        timer = @_activity_indicator_timers[id]
+        if timer?
+            clearTimeout(timer)
+        e.find("i:last").addClass("salvus-top_navbar-tab-active")
+        f = () ->
+            e.find("i:last").removeClass("salvus-top_navbar-tab-active")
+        @_activity_indicator_timers[id] = setTimeout(f, 1000)
+
     fullscreen: (entering) =>
         @pages[@current_page_id]?.onfullscreen?(entering)
 

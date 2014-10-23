@@ -316,6 +316,8 @@ update_project_view = (show_all=false) ->
         return
     if only_hidden and not hidden_project_list?
         return
+    top_navbar.activity_indicator('projects')
+
     X = $("#projects-project_list")
     X.empty()
     # $("#projects-count").html(project_list.length)

@@ -574,6 +574,8 @@ class AccountSettings
         if @settings.groups? and 'admin' in @settings.groups
             $("#account-settings-admin-settings").show()
 
+        top_navbar.activity_indicator('account')
+
         for prop, value of @settings
             def = message.account_settings_defaults[prop]
             if typeof(def) == "object"

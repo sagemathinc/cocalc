@@ -358,6 +358,8 @@ class exports.Editor
             e.find("i:last").removeClass("salvus-editor-filename-pill-icon-active")
         @_activity_indicator_timers[filename] = setTimeout(f, 1000)
 
+        @project_page.activity_indicator()
+
     hide_editor_content: () =>
         @_editor_content_visible = false
         @element.find(".salvus-editor-content").hide()
