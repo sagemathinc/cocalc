@@ -10,6 +10,7 @@
     overflow-y    : auto;
     overflow-x    : hidden;
     margin-bottom : 2em;
+    padding-top   : 4px;
     background    : white;
     width         : 100%;
     border-top    : 1px solid #aaa;
@@ -62,6 +63,10 @@
 
 .salvus-course-student-email_address {
     font-family: monospace;
+}
+
+.salvus-course-assignment:hover {
+    background-color:#efe;
 }
 
 .salvus-course-assignment-path {
