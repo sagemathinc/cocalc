@@ -579,7 +579,7 @@ exports.account_settings_defaults =
         auto_close_brackets       : true
         spaces_instead_of_tabs    : true
         multiple_cursors          : true
-        track_revisions           : false
+        track_revisions           : true
         first_line_number         : 1
         indent_unit               : 4
         tab_size                  : 4

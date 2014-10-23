@@ -417,6 +417,9 @@ EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
 OTHER_SETTINGS_CHECKBOXES = ['confirm_close',
                              'mask_files']
 
+# These are not the *defaults* in the sense of account settings for a new users.
+# These are the defaults before a user has logged in, e.g., for anonymous users
+# viewing public files.
 DEFAULT_ACCOUNT_SETTINGS =
     account_id      : undefined
     first_name      : "Anonymous"
