@@ -1497,14 +1497,16 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     marker.clear()
 
     hide_output: (line) =>
-        mark = @find_output_mark(line)
-        if mark?
-            @elt_at_mark(mark).addClass('sagews-output-hide')
+        for cm in [@codemirror, @codemirror1]
+            mark = @find_output_mark(line, cm)
+            if mark?
+                @elt_at_mark(mark).addClass('sagews-output-hide')
 
     show_output: (line) =>
-        mark = @find_output_mark(line)
-        if mark?
-            @elt_at_mark(mark).removeClass('sagews-output-hide')
+        for cm in [@codemirror, @codemirror1]
+            mark = @find_output_mark(line, cm)
+            if mark?
+                @elt_at_mark(mark).removeClass('sagews-output-hide')
 
     execute_code: (opts) ->
         opts = defaults opts,
@@ -1844,10 +1846,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         return mark
 
-    find_output_line: (line) =>
+    find_output_line: (line, cm) =>
         # Given a line number in the editor, return the nearest (greater or equal) line number that
         # is an output line, or undefined if there is no output line before the next cell.
-        cm = @focused_codemirror()
+        if not cm?
+            cm = @focused_codemirror()
         if cm.getLine(line)[0] == MARKERS.output
             return line
         line += 1
@@ -1861,11 +1864,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
             line += 1
         return undefined
 
-    find_output_mark: (line) =>
+    find_output_mark: (line, cm) =>
         # Same as find_output_line, but returns the actual mark (or undefined).
-        n = @find_output_line(line)
+        if not cm?
+            cm = @focused_codemirror()
+        n = @find_output_line(line, cm)
         if n?
-            for mark in @focused_codemirror().findMarksAt({line:n, ch:0})
+            for mark in cm.findMarksAt({line:n, ch:0})
                 if mark.type == MARKERS.output
                     return mark
         return undefined
