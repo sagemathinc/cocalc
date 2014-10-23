@@ -1578,11 +1578,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
     remove_output_blob_ttls: (cb) =>
         v = {}
         for a in @cm_wrapper().find(".sagews-output")
-            for uuid in $(a).data('blobs')
-                v[uuid] = true
-        salvus_client.remove_blob_ttls
-            uuids : misc.keys(v)
-            cb    : cb
+            blobs = $(a).data('blobs')
+            if blobs?
+                for uuid in blobs
+                    v[uuid] = true
+        uuids = misc.keys(v)
+        if uuids?
+            salvus_client.remove_blob_ttls
+                uuids : uuids
+                cb    : cb
 
     process_output_mesg: (opts) =>
         opts = defaults opts,
