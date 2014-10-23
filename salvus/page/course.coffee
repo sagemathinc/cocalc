@@ -175,6 +175,7 @@ class Course
                                 @update_student_project_settings(prop:e.data('prop'))
 
     handle_changes: (changes) =>
+        @editor.activity_indicator(@filename)
         #console.log("handle_changes (#{misc.mswalltime()}): #{misc.to_json(changes)}")
         for x in changes
             if x.insert?.table == "settings"

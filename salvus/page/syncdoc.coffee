@@ -543,6 +543,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         if not @dsync_client?
             cb("not initialized")
             return
+        @editor.activity_indicator()
         super(cb)
 
     _connect: (cb) =>

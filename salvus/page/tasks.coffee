@@ -30,9 +30,9 @@ hashtag_button_template = templates.find(".salvus-tasks-hashtag-button")
 
 currently_focused_editor = undefined
 
-exports.task_list = (project_id, filename) ->
+exports.task_list = (project_id, filename, editor) ->
     element = templates.find(".salvus-tasks-editor").clone()
-    new TaskList(project_id, filename, element)
+    new TaskList(project_id, filename, element, editor)
     return element
 
 HEADINGS    = ['custom', 'description', 'due', 'last-edited']
@@ -55,7 +55,7 @@ CodeMirror.defineMode "tasks", (config) ->
 ###
 
 class TaskList
-    constructor : (@project_id, @filename, @element) ->
+    constructor : (@project_id, @filename, @element, @editor) ->
         @element.data('task_list', @)
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @elt_task_list = @element.find(".salvus-tasks-listing")
@@ -108,8 +108,11 @@ class TaskList
                     @set_clean()  # we have made no changes yet.
 
                     # UI indicators that sync started/stopped -- so user has a visual hint that their work is not saved.
-                    @db.on 'presync', () => @save_button.icon_spin(false); @save_button.icon_spin(start:true, delay:1000)
-                    @db.on 'sync', () => @save_button.icon_spin(false)
+                    @db.on 'presync', () =>
+                        @save_button.icon_spin(false); @save_button.icon_spin(start:true, delay:1000)
+                    @db.on 'sync', () =>
+                        @editor?.activity_indicator()
+                        @save_button.icon_spin(false)
 
                     # Handle any changes, merging in with current state.
                     @db.on 'change', @handle_changes

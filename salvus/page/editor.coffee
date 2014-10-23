@@ -344,6 +344,19 @@ class exports.Editor
                     @display_tab(path:filename)
                 return false
 
+    activity_indicator: (filename) =>
+        e = @tabs[filename]?.open_file_pill
+        if not e?
+            return
+        if not @_activity_indicator_timers?
+            @_activity_indicator_timers = {}
+        timer = @_activity_indicator_timers[filename]
+        if timer?
+            clearTimeout(timer)
+        e.find("i:last").addClass("salvus-editor-filename-pill-icon-active")
+        f = () ->
+            e.find("i:last").removeClass("salvus-editor-filename-pill-icon-active")
+        @_activity_indicator_timers[filename] = setTimeout(f, 1000)
 
     hide_editor_content: () =>
         @_editor_content_visible = false
@@ -985,6 +998,9 @@ class exports.Editor
 class FileEditor extends EventEmitter
     constructor: (@editor, @filename, content, opts) ->
         @val(content)
+
+    activity_indicator: () =>
+        @editor?.activity_indicator(@filename)
 
     is_active: () =>
         return @editor._active_tab_filename == @filename
@@ -4263,6 +4279,7 @@ class IPythonNotebook extends FileEditor
     sync: () =>
         if @readonly
             return
+        @activity_indicator()
         @save_button.icon_spin(start:true,delay:1000)
         @doc.sync () =>
             @save_button.icon_spin(false)
@@ -4632,7 +4649,7 @@ tasks = require('tasks')
 
 class TaskList extends FileEditorWrapper
     init_wrapped: () ->
-        @element = tasks.task_list(@editor.project_id, @filename)
+        @element = tasks.task_list(@editor.project_id, @filename, @)
         @wrapped = @element.data('task_list')
 
 

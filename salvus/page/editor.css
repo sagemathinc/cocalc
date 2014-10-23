@@ -43,6 +43,10 @@ Editor for files in a project
     cursor: pointer;
 }
 
+.salvus-editor-filename-pill-icon-active {
+    color:orange;
+}
+
 @media (max-width: 767px) {
     .salvus-editor-filename-pill {
         width: 50%;
