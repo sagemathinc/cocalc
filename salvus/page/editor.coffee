@@ -1311,6 +1311,11 @@ class CodeMirrorEditor extends FileEditor
             e = $(cm.getWrapperElement())
             e.attr('style', e.attr('style') + '; font-family:monospace !important')  # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
 
+            if opts.bindings == 'vim'
+                # annoying due to api change in vim mode
+                console.log("setting vimMode option true")
+                cm.setOption("vimMode", true)
+
             return cm
 
 
