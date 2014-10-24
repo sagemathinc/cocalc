@@ -604,13 +604,15 @@ class ProjectPage
 
 
     command_line_exec: () =>
+        if not @container?
+            return
         elt = @container.find(".project-command-line")
         input = elt.find("input")
         command0 = input.val()
         command = command0 + "\necho $HOME `pwd`"
         input.val("")
-        @container?.find(".project-command-line-output").show()
-        t = setTimeout((() => @container.find(".project-command-line-spinner").show().spin()), 300)
+        @container.find(".project-command-line-output").show()
+        t = setTimeout((() => @container?.find(".project-command-line-spinner").show().spin()), 300)
         salvus_client.exec
             project_id : @project.project_id
             command    : command
@@ -619,6 +621,8 @@ class ProjectPage
             bash       : true
             path       : @current_pathname()
             cb         : (err, output) =>
+                if not @container?
+                    return
                 clearTimeout(t)
                 @container.find(".project-command-line-spinner").spin(false).hide()
                 if err
@@ -627,6 +631,8 @@ class ProjectPage
                     # All this code below is to find the current path
                     # after the command is executed, and also strip
                     # the output of "pwd" from the output:
+                    if not output?.stdout?
+                        return
                     j = i = output.stdout.length-2
                     while i>=0 and output.stdout[i] != '\n'
                         i -= 1
