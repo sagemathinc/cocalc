@@ -32,13 +32,7 @@
 
 }
 
-#sign_in-email, #sign_in-password, #sign_in-button {
-    margin-bottom: 7px;    
-}
 
-input[id^="create_account-"] {
-    margin-bottom: 2px;
-}
 @media (min-width: 768px) {
     div[id^="account-settings-"].well {
         margin-left: 10px;

@@ -53,8 +53,10 @@ show_page = exports.show_page  = (p) ->
         else
             $("##{page}").hide()
 
-
-show_page("account-sign_in")
+if localStorage.remember_me
+    show_page("account-sign_in")
+else
+    show_page("account-create_account")
 
 top_navbar.on "show_page_account", () ->
     $("##{focus[current_account_page]}").focus()
@@ -72,7 +74,7 @@ $("a[href='#account-create_account']").click (event) ->
 
 $("a[href='#account-sign_in']").click (event) ->
     destroy_create_account_tooltips()
-    show_page("account-sign_in");
+    show_page("account-sign_in")
     return false
 
 ################################################
@@ -267,7 +269,7 @@ password_strength_meter = (input) ->
     if require("feature").IS_MOBILE
         return
     # TODO: move this html into account.html
-    display = $('<div class="progress progress-striped"><div class="progress-bar"></div>&nbsp;<font size=-1></font></div>')
+    display = $('<div class="progress progress-striped" style="margin-bottom: 3px;"><div class="progress-bar"></div>&nbsp;<font size=-1></font></div>')
     input.after(display)
     score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
     input.bind 'change keypress paste focus textInput input', () ->
