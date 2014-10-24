@@ -955,7 +955,10 @@ class Course
             student_name = @student_name(student, true)
             a = assignment.last_assignment?[student.student_id]
             if a?.time?
-                elt = $("<span>#{student_name} -- assigned <span></span></span>")
+                if a.error?
+                    elt = $("<span>#{student_name} -- ERROR assigning at <span></span> (#{a.error})</span>")
+                else
+                    elt = $("<span>#{student_name} -- assigned <span></span></span>")
                 elt.find("span").attr('title', (new Date(a.time)).toISOString()).timeago()
             else
                 if student.project_id?
@@ -988,7 +991,10 @@ class Course
             student_name = @student_name(student, true)
             a = assignment.last_collect?[student.student_id]
             if a?.time?
-                elt = $("<span>#{student_name} -- collected <span></span></span>")
+                if a.error?
+                    elt = $("<span>#{student_name} -- ERROR collecting at <span></span> (#{a.error})</span>")
+                else
+                    elt = $("<span>#{student_name} -- collected <span></span></span>")
                 elt.find("span").attr('title', (new Date(a.time)).toISOString()).timeago()
                 collected = true
             else
