@@ -188,8 +188,6 @@ class Course
         @update_student_count()
         @update_assignment_count()
 
-
-
     ###
     # Students
     ###
@@ -756,7 +754,7 @@ class Course
                             where : {table:'collaborators'}
                         @db.save(cb)
 
-    student_name: (student) =>
+    student_name: (student, no_invite) =>
         first_name = last_name = email_address = ''
         if student.first_name? then first_name = student.first_name
         if student.last_name? then last_name = student.last_name
@@ -767,7 +765,10 @@ class Course
                 s += " (#{email_address})"
             return s
         else
-            return "#{email_address} (invited)"
+            if no_invite
+                return email_address
+            else
+                return "#{email_address} (invited)"
 
     course_project_settings: (student_id) =>
         z = @db.select_one(table:'settings')
@@ -784,14 +785,13 @@ class Course
     init_create_all_projects_button: () =>
         e = @element.find("a[href=#create-all-projects]").click () =>
             n = e.find('span').text()
-            m = "Are you sure you want to create all #{n} projects for the students in this course."
+            m = "Create all #{n} projects for the students in this course at once?"
             bootbox.confirm m, (result) =>
-                if not result
-                    return
-                for x in @db.select({table : 'students'})
-                    if not x.project_id? and not x.deleted
-                        e = @element.find("[data-student_id='#{x.student_id}']")
-                        e.find("a[href=#create-project]").click()
+                if result
+                    for x in @db.select({table : 'students'})
+                        if not x.project_id? and not x.deleted
+                            e = @element.find("[data-student_id='#{x.student_id}']")
+                            e.find("a[href=#create-project]").click()
 
     ###
     # Assignment
@@ -916,45 +916,108 @@ class Course
             #    @open_directory(assignment.collect_path)
             #    return false
             assignment_button = e.find("a[href=#assignment-files]").click () =>
-                assignment_button.icon_spin(start:true)
-                @assign_files_to_students
-                    assignment_id : assignment.assignment_id
-                    cb       : (err) =>
-                        assignment_button.icon_spin(false)
-                        if err
-                            alert_message(type:'error', message:"error sharing files with students - #{err}")
+                bootbox.confirm "Copy assignment out to all students (newer files will not be overwritten)?", (result) =>
+                    if result
+                        assignment_button.icon_spin(start:true)
+                        @assign_files_to_students
+                            assignment_id : assignment.assignment_id
+                            cb       : (err) =>
+                                assignment_button.icon_spin(false)
+                                if err
+                                    alert_message(type:'error', message:"error sharing files with students - #{err}")
             collect_button = e.find("a[href=#collect-files]").click () =>
-                collect_button.icon_spin(start:true)
-                @collect_assignment_from_students
-                    assignment_id : assignment.assignment_id
-                    cb       : (err) =>
-                        collect_button.icon_spin(false)
+                bootbox.confirm "Collect assignment from all students?", (result) =>
+                    if result
+                        collect_button.icon_spin(start:true)
+                        @collect_assignment_from_students
+                            assignment_id : assignment.assignment_id
+                            cb       : (err) =>
+                                collect_button.icon_spin(false)
+
             return_button = e.find("a[href=#return-graded]").click () =>
-                return_button.icon_spin(start:true)
-                @return_graded_to_students
-                    assignment_id : assignment.assignment_id
-                    cb       : (err) =>
-                        return_button.icon_spin(false)
+                bootbox.confirm "Return graded assignments to all students?", (result) =>
+                    if result
+                        return_button.icon_spin(start:true)
+                        @return_graded_to_students
+                            assignment_id : assignment.assignment_id
+                            cb       : (err) =>
+                                return_button.icon_spin(false)
 
 
         e.find(".salvus-course-assignment-path").text(assignment.path)
         e.find(".salvus-course-collect-path").text(assignment.collect_path)
 
-        if assignment.last_collect?
-            # TODO: doing this every time is inefficient!
-            student_dropdown = e.find(".salvus-course-collected-assignment-students").empty()
-            for student in @students()
-                a = assignment.last_collect[student.student_id]
-                if a?.time?
-                    f = () =>
-                        which = {student:student, assignment:assignment}  # use a closure to save params
-                        t = template_student_collected.clone()
-                        t.find("a").text("#{@student_name(student)} #{new Date(a.time)}")
-                        t.click () =>
-                            @open_collected_assignment(which)
-                            return false
-                        student_dropdown.append(t)
-                    f()
+        # TODO: doing this every time is inefficient.
+        assign_dropdown = e.find(".salvus-course-assign-to-student").empty()
+        for student in @students()
+            if student.deleted
+                continue
+            student_name = @student_name(student, true)
+            a = assignment.last_assignment?[student.student_id]
+            if a?.time?
+                elt = $("<span>#{student_name} -- assigned <span></span></span>")
+                elt.find("span").attr('title', (new Date(a.time)).toISOString()).timeago()
+            else
+                if student.project_id?
+                    elt = $("<span>#{student_name} -- NOT assigned yet</span>")
+                else
+                    elt = $("<span>#{student_name} -- CREATE student project first</span>")
+            (() =>
+                # use a closure to save params
+                which = {student:student, assignment:assignment, name:student_name}
+                t = template_student_collected.clone()
+                t.find("a").empty().append(elt)
+                t.click () =>
+                    if not which.student.project_id?
+                        bootbox.alert("You must create #{student_name}'s project first.")
+                        return
+                    @assign_files_to_students
+                        assignment_id : which.assignment.assignment_id
+                        students      : [which.student]
+                        cb            : (err) =>
+                            if err
+                                alert_message(type:"error", message:"Error copying files to #{which.name} -- #{err}")
+                            else
+                                alert_message(message:"Successfully copied assignment to #{which.name}")
+                    return false
+                assign_dropdown.append(t))()
+
+        # TODO: doing this every time is inefficient!
+        collected_dropdown = e.find(".salvus-course-collected-assignment-students").empty()
+        for student in @students()
+            student_name = @student_name(student, true)
+            a = assignment.last_collect?[student.student_id]
+            if a?.time?
+                elt = $("<span>#{student_name} -- collected <span></span></span>")
+                elt.find("span").attr('title', (new Date(a.time)).toISOString()).timeago()
+                collected = true
+            else
+                if student.project_id?
+                    collected = false
+                    elt = $("<span>#{student_name} -- NOT collected yet</span>")
+                else
+                    collected = false
+                    elt = $("<span>#{student_name} -- CREATE student project first</span>")
+            # use a closure to save params
+            (() =>
+                which = {student:student, assignment:assignment, collected:collected}
+                t = template_student_collected.clone()
+                t.find("a").empty().append(elt)
+                t.click () =>
+                    if which.collected
+                        @open_collected_assignment(student:which.student, assignment:which.assignment)
+                    else
+                        @collect_assignment_from_students
+                            assignment_id : which.assignment.assignment_id
+                            students : [which.student]
+                            cb       : (err) =>
+                                if err
+                                    alert_message(type:"error", message:"Error collecting files from #{which.name} -- #{err}")
+                                else
+                                    alert_message(message:"Successfully collected assignment from #{which.name}")
+                    return false
+                collected_dropdown.append(t)
+            )()
 
         # NOTE: for now we just put everything -- visible or not -- in the DOM.  This is less
         # scalable -- but the number of assignments is likely <= 30...
@@ -1026,13 +1089,14 @@ class Course
         if not opts.students?
             opts.students = @students()
 
-        assignment = @db.select_one(table:'assignments', assignment_id:opts.assignment_id)
+        where = {table:'assignments', assignment_id:opts.assignment_id}
+        assignment = @db.select_one(where)
         if not assignment.last_assignment?
             assignment.last_assignment = {}
         assignment_with = (student, cb) =>
             #console.log("assigning '#{assignment.path}' to #{student.email_address}")
             if not student.project_id?
-                #console.log("can't assign to #{student.email_address} -- no project")
+                # console.log("can't assign to #{student.email_address} -- no project")
                 cb()
                 return
             salvus_client.copy_path_between_projects
@@ -1046,7 +1110,13 @@ class Course
                 cb                : (err) =>
                     #console.log("finished sending assignment to #{student.email_address} -- err=#{err}")
                     assignment.last_assignment[student.student_id] = {time:misc.mswalltime(), error:err}
-                    cb(err)
+                    if err
+                        cb(err)
+                    else
+                        @db.update
+                            set   : {last_assignment:assignment.last_assignment}
+                            where : where
+                        @db.save(cb)
         async.mapLimit(opts.students, MAP_LIMIT, assignment_with, (err) => opts.cb(err))
 
     return_graded_to_students: (opts) =>
