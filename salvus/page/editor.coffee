@@ -1313,7 +1313,6 @@ class CodeMirrorEditor extends FileEditor
 
             if opts.bindings == 'vim'
                 # annoying due to api change in vim mode
-                console.log("setting vimMode option true")
                 cm.setOption("vimMode", true)
 
             return cm
