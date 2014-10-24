@@ -944,6 +944,8 @@ class TaskList
 
         cm = CodeMirror.fromTextArea(elt.find("textarea")[0], opts)
         cm.save = @save
+        if editor_settings.bindings == 'vim'
+            cm.setOption("vimMode", true)
 
         e.data('cm',cm)
         if not task.desc?
