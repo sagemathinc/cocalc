@@ -34,6 +34,10 @@ top_navbar.css
     color: #666;
 }
 
+.lighten-2 {
+    color: #999;
+}
+
 .small {
     font-size:9pt;
 }
@@ -176,6 +180,14 @@ blockquote p {
 }
 
 input[type="text"], select {
+    margin-bottom: 10px;
+}
+
+input[type="email"], select {
+    margin-bottom: 10px;
+}
+
+input[type="password"], select {
     margin-bottom: 10px;
 }
 

@@ -243,6 +243,30 @@
     </div>
 </div>
 
+<div class="modal salvus-project-copy-file-signin-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close btn-close" aria-hidden="true">
+                    <span style="font-size:20pt;">×</span>
+                </button>
+                <h3><i class="fa fa-copy"> </i> Copy File or Directory</h3>
+            </div>
+            <div class="well">
+                <span class="salvus-signed-in-already hide">
+                     <a href="#create-project">Create a project</a> so you can copy files to it.
+                </span>
+                <span class="salvus-not-signed-in-already hide">
+                    <a href="#create-account">Create a free account</a> or <a href="#sign-in">sign in</a> so you can copy files to your own project.
+                </span>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-close btn-default btn-lg">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal salvus-project-copy-to-another-project-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -316,9 +340,7 @@
 <div id="salvus-project-templates" class="hide">
 
     <div class="container-fluid salvus-project">
-
-
-        <div class="row" style="width:100%">   <!-- TODO: width 100% probably hack around misues of Bootstrap -- without get horiz scrollbar -->
+        <div class="row" style="width:100%;margin-bottom:-15px">   <!-- TODO: width 100% probably hack around misues of Bootstrap -- without get horiz scrollbar; also margin-bottom:-15px another horrible hack. -->
             <!-- Displays the current path -->
             <div class="salvus-project-write-access">
                 <div class="hidden-xs project-file-top-current-path-container">
@@ -448,12 +470,26 @@
                     </div>
 
                     <!-- command line prompt -->
-                    <div class="project-command-line pull-right col-sm-5">
-                        <input class="project-command-line-input form-control salvus-project-write-access" type="text" placeholder="Terminal command..." data-toggle="tooltip" data-placement="top" title="Run command line in the current directory." style="margin-bottom: 0px;">
-                        <div class="project-command-line-output">
-                            <div class="project-command-line-spinner hide"></div>
-                            <pre class="project-command-line-stdout  hide"></pre>
+                    <div class="project-command-line pull-right col-sm-3">
+                        <div class="input-group" style="width:100%">
+                            <input class="project-command-line-input form-control salvus-project-write-access" type="text"
+                                   placeholder="Terminal command..." data-toggle="tooltip" data-placement="top"
+                                   title="Run terminal command in the current directory." style="margin-bottom: 0px;">
+                            <span class="input-group-btn">
+                                <button class="btn btn-default project-command-line-spinner hide" type="button">
+                                   <i class="fa fa-spinner fa-spin"></i>
+                                </button>
+                                <button class="btn btn-default project-command-line-submit" type="button">
+                                   <i class="fa fa-play"></i>
+                                </button>
+                            </span>
+                        </div>
+                        <div class="project-command-line-output hide">
+                            <a href="#clear" style="right: 5px;color: #666;font-size: 14pt;position:absolute;">
+                                <i class="fa fa-times"></i>
+                            </a>
                             <pre class="project-command-line-stderr hide"></pre>
+                            <pre class="project-command-line-stdout  hide"></pre>
                         </div>
                     </div>
 
@@ -761,14 +797,6 @@
                                     Include the project id
                                     <span class="project-id"></span> in your email.</span>
                             </span>
-
-
-
-                            <!-- Download the whole project -->
-                            <!--<a href="#download-project" class="btn  btn-success">
-<i class="fa fa-cloud-download"> </i> Download Project
-<span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
-</a>-->
                         </div>
                     </div>
                     <div class="row">

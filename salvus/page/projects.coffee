@@ -316,6 +316,8 @@ update_project_view = (show_all=false) ->
         return
     if only_hidden and not hidden_project_list?
         return
+    top_navbar.activity_indicator('projects')
+
     X = $("#projects-project_list")
     X.empty()
     # $("#projects-count").html(project_list.length)
@@ -469,9 +471,13 @@ exports.open_project = open_project = (opts) ->
 ################################################
 # Create a New Project
 ################################################
-$("#new_project-button").click () ->
+create_new_project = exports.create_new_project = () ->
     create_project.modal('show')
     create_project.find("#projects-create_project-title").focus()
+
+$("#new_project-button").click () ->
+    create_new_project()
+    return false
 
 create_project = $("#projects-create_project")
 title_input = $("#projects-create_project-title")

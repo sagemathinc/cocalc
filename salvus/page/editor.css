@@ -43,6 +43,10 @@ Editor for files in a project
     cursor: pointer;
 }
 
+.salvus-editor-filename-pill-icon-active {
+    color:orange;
+}
+
 @media (max-width: 767px) {
     .salvus-editor-filename-pill {
         width: 50%;
@@ -437,6 +441,8 @@ Editor for files in a project
 
 .salvus-ipython-notebook {
     background: white;
+    position: fixed;
+    width: 100%;
 }
 
 .salvus-ipython-notebook-buttons {

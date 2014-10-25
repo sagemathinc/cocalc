@@ -329,6 +329,7 @@ class AbstractSynchronizedDoc extends EventEmitter
                     else if resp.event == 'error'
                         cb(resp.error)
                     else if resp.event == 'success' or resp.event == 'codemirror_wrote_to_disk'
+                        @_post_save_success?()
                         if not resp.hash?
                             console.log("_save: please restart your project server to get updated hash support")
                             cb(); return
@@ -533,12 +534,16 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         return v
 
     focused_codemirror: () =>
-        return @editor.codemirror_with_last_focus
+        if @editor.codemirror_with_last_focus?
+            return @editor.codemirror_with_last_focus
+        else
+            return @codemirror
 
     _sync: (cb) =>
         if not @dsync_client?
             cb("not initialized")
             return
+        @editor.activity_indicator()
         super(cb)
 
     _connect: (cb) =>
@@ -1390,6 +1395,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                 mark.uuid = uuid
                                 output = @elt_at_mark(mark)
                                 output.html('')
+                                output.data('blobs',[])  # used to track visible files displaying data from database blob store
                             if mark.processed < x.length-1
                                 # new output to process
                                 t = x.slice(mark.processed, x.length-1)
@@ -1492,14 +1498,16 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     marker.clear()
 
     hide_output: (line) =>
-        mark = @find_output_mark(line)
-        if mark?
-            @elt_at_mark(mark).addClass('sagews-output-hide')
+        for cm in [@codemirror, @codemirror1]
+            mark = @find_output_mark(line, cm)
+            if mark?
+                @elt_at_mark(mark).addClass('sagews-output-hide')
 
     show_output: (line) =>
-        mark = @find_output_mark(line)
-        if mark?
-            @elt_at_mark(mark).removeClass('sagews-output-hide')
+        for cm in [@codemirror, @codemirror1]
+            mark = @find_output_mark(line, cm)
+            if mark?
+                @elt_at_mark(mark).removeClass('sagews-output-hide')
 
     execute_code: (opts) ->
         opts = defaults opts,
@@ -1564,6 +1572,22 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     that.jump_to_output_matching_jquery_selector($(t.target).attr('href'))
                     return false
 
+    _post_save_success: () =>
+        @remove_output_blob_ttls()
+
+    remove_output_blob_ttls: (cb) =>
+        v = {}
+        for a in @cm_wrapper().find(".sagews-output")
+            blobs = $(a).data('blobs')
+            if blobs?
+                for uuid in blobs
+                    v[uuid] = true
+        uuids = misc.keys(v)
+        if uuids?
+            salvus_client.remove_blob_ttls
+                uuids : uuids
+                cb    : cb
+
     process_output_mesg: (opts) =>
         opts = defaults opts,
             mesg    : required
@@ -1613,6 +1637,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         if mesg.file?
             val = mesg.file
+            if val.uuid?
+                blobs = opts.element.data('blobs')
+                if not blobs?
+                    blobs = [val.uuid]
+                    opts.element.data('blobs', blobs)
+                else
+                    blobs.push(val.uuid)
+
             if not val.show? or val.show
                 if val.url?
                     target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that change
@@ -1819,10 +1851,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         return mark
 
-    find_output_line: (line) =>
+    find_output_line: (line, cm) =>
         # Given a line number in the editor, return the nearest (greater or equal) line number that
         # is an output line, or undefined if there is no output line before the next cell.
-        cm = @focused_codemirror()
+        if not cm?
+            cm = @focused_codemirror()
         if cm.getLine(line)[0] == MARKERS.output
             return line
         line += 1
@@ -1836,11 +1869,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
             line += 1
         return undefined
 
-    find_output_mark: (line) =>
+    find_output_mark: (line, cm) =>
         # Same as find_output_line, but returns the actual mark (or undefined).
-        n = @find_output_line(line)
+        if not cm?
+            cm = @focused_codemirror()
+        n = @find_output_line(line, cm)
         if n?
-            for mark in @focused_codemirror().findMarksAt({line:n, ch:0})
+            for mark in cm.findMarksAt({line:n, ch:0})
                 if mark.type == MARKERS.output
                     return mark
         return undefined

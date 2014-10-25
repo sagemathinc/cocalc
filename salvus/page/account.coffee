@@ -30,9 +30,10 @@ set_account_tab_label = (signed_in, email_address) ->
 account_id = undefined
 
 top_navbar.on "switch_to_page-account", () ->
-    window.history.pushState("", "", window.salvus_base_url + '/settings')
-    if not account_id?
-        $("#sign_in-email").focus()
+    if account_id?
+        window.history.pushState("", "", window.salvus_base_url + '/settings')
+    else
+        window.history.pushState("", "", window.salvus_base_url)
 
 ################################################
 # Page Switching Control
@@ -44,7 +45,7 @@ focus =
     'account-settings'        : ''
 
 current_account_page = null
-show_page = (p) ->
+show_page = exports.show_page  = (p) ->
     current_account_page = p
     for page, elt of focus
         if page == p
@@ -53,10 +54,13 @@ show_page = (p) ->
         else
             $("##{page}").hide()
 
+if localStorage.remember_me
+    show_page("account-sign_in")
+else
+    show_page("account-create_account")
 
-show_page("account-sign_in")
-
-top_navbar.on("show_page_account", (() -> $("##{focus[current_account_page]}").focus()))
+top_navbar.on "show_page_account", () ->
+    $("##{focus[current_account_page]}").focus()
 
 $("a[href='#account-create_account']").click (event) ->
     $.get "/registration", (val, status) ->
@@ -71,7 +75,7 @@ $("a[href='#account-create_account']").click (event) ->
 
 $("a[href='#account-sign_in']").click (event) ->
     destroy_create_account_tooltips()
-    show_page("account-sign_in");
+    show_page("account-sign_in")
     return false
 
 ################################################
@@ -266,7 +270,7 @@ password_strength_meter = (input) ->
     if require("feature").IS_MOBILE
         return
     # TODO: move this html into account.html
-    display = $('<div class="progress progress-striped"><div class="progress-bar"></div>&nbsp;<font size=-1></font></div>')
+    display = $('<div class="progress progress-striped" style="margin-bottom: 3px;"><div class="progress-bar"></div>&nbsp;<font size=-1></font></div>')
     input.after(display)
     score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
     input.bind 'change keypress paste focus textInput input', () ->
@@ -416,9 +420,55 @@ EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
 OTHER_SETTINGS_CHECKBOXES = ['confirm_close',
                              'mask_files']
 
+# These are not the *defaults* in the sense of account settings for a new users.
+# These are the defaults before a user has logged in, e.g., for anonymous users
+# viewing public files.
+DEFAULT_ACCOUNT_SETTINGS =
+    account_id      : undefined
+    first_name      : "Anonymous"
+    last_name       : "Users"
+    default_system  : "sage"
+    evaluate_key    : "Shift-Enter"
+    enable_tooltips : true
+    autosave        : 45
+    terminal        :
+        font_size    : 6
+        color_scheme : "default"
+        font         :"monospace"
+    editor_settings :
+        strip_trailing_whitespace : true
+        show_trailing_whitespace  : true
+        line_wrapping             : true
+        line_numbers              : true
+        smart_indent              : true
+        electric_chars            : true
+        match_brackets            : true
+        auto_close_brackets       : true
+        spaces_instead_of_tabs    : true
+        multiple_cursors          : true
+        track_revisions           : false
+        first_line_number         : 1
+        indent_unit               : 4
+        tab_size                  : 4
+        bindings                  : "default"
+        theme                     : "default"
+        undo_depth                : 300
+    other_settings  :
+        confirm_close : false  # non-logged in user shouldn't have to confirm leave.
+        mask_files    : true
+    email_address   : 'anonymous@example.com'
+    groups          : []
+
 class AccountSettings
+    constructor: () ->
+        # defaults before loaded from backend or for non-logged-in-users
+        @settings = DEFAULT_ACCOUNT_SETTINGS
+
     account_id: () =>
         return account_id
+
+    is_signed_in: () =>
+        return account_id?
 
     load_from_server: (cb) =>
         salvus_client.get_account_settings
@@ -426,16 +476,10 @@ class AccountSettings
             cb         : (error, settings_mesg) =>
                 if error or settings_mesg.event == 'error'
                     $("#account-settings-error").show()
-                    if not @settings?
-                        # we only set the settings to error if they aren't already set, since we
-                        # don't want to just throw away the last known settings.
-                        @settings = 'error'
-
                     # try to get settings again in a bit to fix that the settings aren't known
                     f = () =>
                         @load_from_server()
                     setTimeout(f, 10000)
-
                     cb?(error)
                     return
 
@@ -532,6 +576,8 @@ class AccountSettings
 
         if @settings.groups? and 'admin' in @settings.groups
             $("#account-settings-admin-settings").show()
+
+        top_navbar.activity_indicator('account')
 
         for prop, value of @settings
             def = message.account_settings_defaults[prop]

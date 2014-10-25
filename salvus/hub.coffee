@@ -42,7 +42,7 @@ CACHE_PROJECT_PUBLIC_MS = 1000*60*15    # 15 minutes
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
-BLOB_TTL = 60*60*24*30   # 1 month
+BLOB_TTL = 60*60     # 1 hour
 
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
@@ -776,7 +776,7 @@ class Client extends EventEmitter
         # There is no point in signing the cookie since its
         # contents are random.
         #
-        # Regarding ttl, we use 1 month.  The database will forget
+        # Regarding ttl, we use 1 year.  The database will forget
         # the cookie automatically at the same time that the
         # browser invalidates it.
         #############################################################
@@ -2080,6 +2080,21 @@ class Client extends EventEmitter
                     else
                         @push_to_client(message.success(id:mesg.id))
 
+
+    ######################################################
+    # Blobs
+    ######################################################
+    mesg_remove_blob_ttls: (mesg) =>
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"not yet signed in"))
+        else
+            remove_blob_ttls
+                uuids : mesg.uuids
+                cb    : (err) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
 
     ################################################
     # Project snapshots -- interface to the snap servers
@@ -4490,6 +4505,19 @@ MAX_BLOB_SIZE = 12000000
 MAX_BLOB_SIZE_HUMAN = "12MB"
 
 blobs = {}
+
+# increase ttl of a blob in the blobstore database with given misc_node.uuidsha1 hash.
+remove_blob_ttls = (opts) ->
+    opts = defaults opts,
+        uuids : required   # uuid=sha1-based from value; actually *required*, but instead of a traceback, get opts.cb(err)
+        cb    : required    # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
+
+    winston.debug("remove_blob_ttls(uuid=#{misc.trunc(misc.to_json(opts.uuids),300)})")
+    database.uuid_blob_store(name:"blobs").set_ttls
+        uuids : opts.uuids
+        ttl   : 0
+        cb    : opts.cb
+
 
 # save a blob in the blobstore database with given misc_node.uuidsha1 hash.
 save_blob = (opts) ->

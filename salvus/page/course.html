@@ -191,12 +191,20 @@
 
     <div class="salvus-course-assignment">
         <div class="row">
-            <div class="salvus-course-field  col-sm-2" spellcheck="false">
+            <div class="salvus-course-field  col-sm-2" spellcheck="false" style="overflow-y: auto;">
                 <a class="salvus-course-assignment-path project-file-name">
                 </a>
             </div>
             <div class="salvus-course-field col-sm-2 ">
-                <a href="#assignment-files" class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Assign</a>
+                <div class="btn-group">
+                    <a href="#assignment-files" class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Assign all...</a>
+                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                        <i class="fa fa-user"> </i>  to&nbsp; <span class="caret"></span>
+                        <span class="sr-only">Toggle Dropdown</span>
+                    </button>
+                    <ul class="dropdown-menu salvus-course-assign-to-student" role="menu">
+                    </ul>
+                </div>
             </div>
             <!--
             <div class="salvus-course-field  col-sm-2" spellcheck="false">
@@ -205,7 +213,7 @@
             -->
             <div class="col-sm-3">
                 <div class="btn-group">
-                    <a href="#collect-files" class="btn btn-warning"><i class="fa fa-share-square-o fa-rotate-180"> </i>  Collect</a>
+                    <a href="#collect-files" class="btn btn-warning"><i class="fa fa-share-square-o fa-rotate-180"> </i>  Collect all...</a>
                     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
                         <i class="fa fa-eye"> </i> Grade <span class="caret"></span>
                         <span class="sr-only">Toggle Dropdown</span>
@@ -216,7 +224,7 @@
                 </div>
             </div>
             <div class="salvus-course-field col-sm-2 ">
-                <a href="#return-graded" class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Return Graded</a>
+                <a href="#return-graded" class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Return graded...</a>
             </div>
             <!--
             <div class="salvus-course-field col-sm-2">

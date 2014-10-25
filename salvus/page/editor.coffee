@@ -344,6 +344,21 @@ class exports.Editor
                     @display_tab(path:filename)
                 return false
 
+    activity_indicator: (filename) =>
+        e = @tabs[filename]?.open_file_pill
+        if not e?
+            return
+        if not @_activity_indicator_timers?
+            @_activity_indicator_timers = {}
+        timer = @_activity_indicator_timers[filename]
+        if timer?
+            clearTimeout(timer)
+        e.find("i:last").addClass("salvus-editor-filename-pill-icon-active")
+        f = () ->
+            e.find("i:last").removeClass("salvus-editor-filename-pill-icon-active")
+        @_activity_indicator_timers[filename] = setTimeout(f, 1000)
+
+        @project_page.activity_indicator()
 
     hide_editor_content: () =>
         @_editor_content_visible = false
@@ -986,6 +1001,9 @@ class FileEditor extends EventEmitter
     constructor: (@editor, @filename, content, opts) ->
         @val(content)
 
+    activity_indicator: () =>
+        @editor?.activity_indicator(@filename)
+
     is_active: () =>
         return @editor._active_tab_filename == @filename
 
@@ -1292,6 +1310,10 @@ class CodeMirrorEditor extends FileEditor
             # they've configured as "monospace" in their browser.  So we force that back:
             e = $(cm.getWrapperElement())
             e.attr('style', e.attr('style') + '; font-family:monospace !important')  # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
+
+            if opts.bindings == 'vim'
+                # annoying due to api change in vim mode
+                cm.setOption("vimMode", true)
 
             return cm
 
@@ -1612,8 +1634,9 @@ class CodeMirrorEditor extends FileEditor
                             if err
                                 cb(err)
                             else
-                                window.open(mesg.url,'_blank')
-                                dialog.find(".salvus-file-printing-link").attr('href', mesg.url).text(pdf).show()
+                                url = mesg.url + "?nocache=#{Math.random()}"
+                                window.open(url,'_blank')
+                                dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
                                 cb()
             ], (err) =>
                 dialog.find(".btn-submit").icon_spin(false)
@@ -1651,7 +1674,6 @@ class CodeMirrorEditor extends FileEditor
                 display: 'inline-block'   # this is needed due to subtleties of jQuery show().
 
     click_save_button: () =>
-        window.cm = @ # TODO: debug
         if @_saving
             return
         @_saving = true
@@ -4263,6 +4285,7 @@ class IPythonNotebook extends FileEditor
     sync: () =>
         if @readonly
             return
+        @activity_indicator()
         @save_button.icon_spin(start:true,delay:1000)
         @doc.sync () =>
             @save_button.icon_spin(false)
@@ -4632,7 +4655,7 @@ tasks = require('tasks')
 
 class TaskList extends FileEditorWrapper
     init_wrapped: () ->
-        @element = tasks.task_list(@editor.project_id, @filename)
+        @element = tasks.task_list(@editor.project_id, @filename, @)
         @wrapped = @element.data('task_list')
 
 

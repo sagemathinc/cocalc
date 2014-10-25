@@ -579,7 +579,7 @@ exports.account_settings_defaults =
         auto_close_brackets       : true
         spaces_instead_of_tabs    : true
         multiple_cursors          : true
-        track_revisions           : false
+        track_revisions           : true
         first_line_number         : 1
         indent_unit               : 4
         tab_size                  : 4
@@ -1204,6 +1204,12 @@ message
     error     : undefined    # if not saving, a message explaining why.
 
 
+# remove the ttls from blobs in the blobstore.
+# client --> hub
+message
+    event     : 'remove_blob_ttls'
+    id        : undefined
+    uuids     : required     # list of sha1 hashes of blobs stored in the blobstore
 
 message
     event      : 'storage'

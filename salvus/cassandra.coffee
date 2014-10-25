@@ -162,7 +162,7 @@ class UUIDStore
             cb : (err, value) =>
                 if value?
                     @set
-                        uuid : opts.uuid
+                        uuid  : opts.uuid
                         value : value      # note -- the implicit conversion between buf and string is *necessary*, sadly.
                         ttl   : opts.ttl
                         cb    : opts.cb
@@ -408,6 +408,14 @@ class exports.Cassandra extends EventEmitter
         #winston.debug("connect using: #{JSON.stringify(opts)}")  # DEBUG ONLY!! output contains sensitive info (the password)!!!
         @_opts = opts
         @connect()
+
+    reconnect: (cb) =>
+        if not @conn?
+            @connect(cb)
+            return
+        @conn.shutdown? () =>
+            delete @conn
+            @connect(cb)
 
     connect: (cb) =>
         winston.debug("connect: connecting to the database server")
@@ -693,6 +701,7 @@ class exports.Cassandra extends EventEmitter
                 winston.error(m)
                 c?(m)
                 c = undefined # ensure only called once
+                @reconnect()
             _timer = setTimeout(failed, 1000*@query_timeout_s)
             g (err) =>
                 clearTimeout(_timer)

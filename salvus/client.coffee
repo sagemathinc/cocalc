@@ -1259,11 +1259,33 @@ class exports.Connection extends EventEmitter
                 else
                     cb?(undefined, resp)
 
+    #################################################
+    # Blobs
+    #################################################
+    remove_blob_ttls: (opts) =>
+        opts = defaults opts,
+            uuids : required   # list of sha1 hashes of blobs stored in the blobstore
+            cb    : undefined
+        if opts.uuids.length == 0
+            opts.cb?()
+        else
+            @call
+                message :
+                    message.remove_blob_ttls
+                        uuids : opts.uuids
+                cb : (err, resp) =>
+                    if err
+                        opts.cb?(err)
+                    else if resp.event == 'error'
+                        opts.cb?(resp.error)
+                    else
+                        opts.cb?()
+
 
     #################################################
     # *PUBLIC* Projects
     #################################################
-    public_project_info: (opts) ->
+    public_project_info: (opts) =>
         opts = defaults opts,
             project_id : required
             cb         : required

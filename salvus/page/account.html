@@ -65,30 +65,14 @@
 </div>
 
 
-<div class="container-fluid constrained" id="account" style="padding-top: 1em;">
+<div class="container-fluid constrained hide" id="account" style="padding-top: 1em;">
 
     <div class="row hide" id="account-sign_in">
-        <div class="col-sm-7 ">
-            <h2><!--<i class="fa fa-cloud"> </i> -->
-                <img src="favicon-128.png" width="64" height="64" class="img img-rounded">
-                SageMathCloud™</h2>
-            <!-- <h3 class="hidden-xs">Computational mathematics in the cloud</h3>-->
-            <br>
-            <ul class="hidden-xs">
-                <li class="salvus-help-list">Use Sage, R, Octave, Python, Cython, GAP, Macaulay2, Singular, and much more</li>
-                <li class="salvus-help-list">Edit $\LaTeX$ documents with inverse and forward search and Sage mode</li>
-                <li class="salvus-help-list">Collaboratively edit IPython notebooks, Sage worksheets, and all other document types</li>
-                <li class="salvus-help-list">Write, compile, and run code in most programming languages</li>
-                <li class="salvus-help-list">Use command line terminals</li>
-            </ul>
-            <br>
-                <hr>
-            <span class="lighten">SageMathCloud is a free service with support from University of Washington, the National Science Foundation and Google.
-                Additional for-pay features will be available soon.   <!-- There are currently <b>288 cores</b>, <b>1.2TB RAM</b> and
-                    <b>50TB disk</b> space dedicated to the SageMathCloud cluster at University of Washington, and
-                    around <b>20 cores</b>, <b>128GB RAM</b>, and <b>2.5TB disk space</b> on Google Compute Engine. -->
-            </span>
+        <div class="col-sm-5">
+            <img src="favicon-128.png" width="64" height="64" class="img img-rounded">
+            <h2>Welcome Back to SageMathCloud™!</h2>
 
+            <!-- <h3 class="hidden-xs">Computational mathematics in the cloud</h3>-->
         </div>
         <!--
 <div class="col-sm-6 well well-cell">
@@ -104,7 +88,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 <span class="account-cell0"></span>
 </div>
 -->
-        <div class="well col-sm-5 ">
+        <div class="well col-sm-6 ">
             <div class="salvus-remember_me-message hide">
                 Loading <span></span>... <i class="fa fa-spin fa-refresh"></i>
             </div>
@@ -121,6 +105,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                 </div>
                 <div class="row">
                     <div class="col-sm-12 ">
+                        <br>
                         <a href="#account-forgot_password" style="font-size:12pt">Forgot your password?</a>
                     </div>
                 </div>
@@ -132,17 +117,28 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
     </div>
 
     <div class="row hide" id="account-create_account">
-        <div class="col-sm-7 ">
-
+        <div class="col-sm-6 ">
+            <img src="favicon-128.png" width="64" height="64" class="img img-rounded">
             <h2>Welcome to SageMathCloud™!</h2>
             <br class="hidden-xs">
-            <!-- <img alt="Cloud picture" class="col-sm-4 img-rounded hidden-xs" src="/art/cloud.png" style="width:110px">-->
-                <!--
-            <div class="hidden-xs">
-                <br>
-                <iframe width="90%" height="300" src="https://www.youtube.com/embed/eadnL5hDg9M" frameborder="0" allowfullscreen></iframe>
-            </div>
-                -->
+
+            <ul class="hidden-xs">
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-line-chart"></i>  <b>Mathematics software:</b> Use Sage, R, Octave, Python, Cython, GAP, Pari, Macaulay2, Singular, and more</li>
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-list-alt"></i>  <b>Interactive editing:</b> Collaboratively edit LaTeX documents, IPython notebooks and Sage worksheets</li>
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-file-code-o"></i>  <b>Programming:</b> Write, compile, and run code in most languages</li>
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-tasks"></i>  <b>Organize:</b> Manage todo list with hashtags</li>
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-graduation-cap"></i>  <b>Teach:</b> Organize teaching a course</li>
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-save"></i>  <b>Backed up:</b> All of your files are automatically snapshotted every few minutes</li>
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-terminal"></i>  <b>Shell access:</b> Full Linux accounts with color terminals</li>
+            </ul>
+            <br>
+            <hr>
+            <span class="lighten">SageMathCloud is a free service with support from University of Washington, the National Science Foundation and Google.
+                Additional for-pay features will be available soon.   <!-- There are currently <b>288 cores</b>, <b>1.2TB RAM</b> and
+                    <b>50TB disk</b> space dedicated to the SageMathCloud cluster at University of Washington, and
+                    around <b>20 cores</b>, <b>128GB RAM</b>, and <b>2.5TB disk space</b> on Google Compute Engine. -->
+            </span>
+
 
 
         </div>
@@ -150,22 +146,22 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
             <h4>Create an account (or <a href="#account-sign_in">sign in</a>)</h4>
             <br>
 
-            <span class="hidden-xs lighten">First name:</span>
-            <input class="form-control" type="text" placeholder="First name (everyone can see this)" id="create_account-first_name">
-            <span class="hidden-xs lighten">Last name:</span>
-            <input class="form-control" type="text" placeholder="Last name (everyone can see this)" id="create_account-last_name">
-            <span class="hidden-xs lighten">Email:</span>
-            <input class="form-control" type="email" placeholder="Email (this is private)" id="create_account-email_address">
-            <span class="hidden-xs lighten salvus-create_account-token hide">Token:</span>
+            <span class="hidden-xs lighten-2">First name</span>
+            <input class="form-control" type="text" placeholder="First name" id="create_account-first_name">
+            <span class="hidden-xs lighten-2">Last name</span>
+            <input class="form-control" type="text" placeholder="Last name" id="create_account-last_name">
+            <span class="hidden-xs lighten-2">Email</span>
+            <input class="form-control" type="email" placeholder="Email" id="create_account-email_address">
+            <span class="hidden-xs lighten-2 salvus-create_account-token hide">Token</span>
             <input class="form-control salvus-create_account-token hide" type="text" placeholder="Secret token that the site admin gave you" id="create_account-token">
-            <span class="hidden-xs lighten">Password:</span>
+            <span class="hidden-xs lighten-2">Password</span>
             <input class="salvus-password-meter form-control" type="password" placeholder="Password" id="create_account-password">
-            <span class="hidden-xs lighten">Retype Password:</span>
+            <span class="hidden-xs lighten-2">Retype password</span>
             <input class="form-control" type="password" placeholder="Retype password" id="create_account-retype_password">
 
-            <div class="checkbox"><label class="">
+            <div class="checkbox"><label style="margin-top: 1ex;margin-bottom: 1ex;">
                 <input type="checkbox" id="create_account-agreed_to_terms">
-                I agree to the <a href="#link-terms">SageMathCloud Terms</a>
+                Agree to the <a href="#link-terms">SageMathCloud Terms</a>
             </label></div>
             <button class="btn btn-success btn-lg" type="submit" id="create_account-button">Create account for free</button>
 

@@ -81,63 +81,13 @@ class Parser(HTMLParser.HTMLParser):
             self.result += '}'  # fallback
 
     def handle_data(self, data):
-        # Textnode data has to be escaped in order to appear the same in LaTeX.
-        # But only outside of $s and $$s, which indicate mathmode. So we iterate
-        # over the text, count opening and closing $s ($$s) and perform
-        # substitutions outside of those. The procedure assumes well-formed text
-        # and will likely not act consistent (i.e. escape exactly those
-        # characters which require escaping) with how LaTeX acts if the text is
-        # mal-formed. A.k.a. the hustler-loop:
-        source = data
-        dollar_at = 0
+        # safe because all math stuff has already been escaped.
+        self.result += data.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" )
 
-        while( dollar_at!=-1 ):
-            dollar_at = 0
-            while( True ):
-                dollar_at = source.find( "$",dollar_at+1 )
-                if( dollar_at<1 or source[ dollar_at-1 ]!="\\" ):
-                    break
-
-            # We seperate the optional $[$] which delimited the chunk from the actual chunk
-            # to replace all $s in the chunk (such as they occur when they were escaped)
-
-            dollars_so_far = self.dollars_found
-            if( dollar_at==-1 ):
-                chunk = source
-                tail = ""
-            else:
-                # Two $$ are treated exactly like one $, skip over the second
-                chunk = source[ :dollar_at ]
-                if( dollar_at<len( source )-1 and source[ dollar_at+1 ]=="$" ):
-                    dollar_at += 1
-                    tail = "$$"
-                else:
-                    tail = "$"
-
-                self.dollars_found += 1
-
-            if( dollars_so_far%2 ):
-                self.result += chunk+tail
-            else:
-                self.result += chunk.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" )+tail
-
-            source = source[ dollar_at+1: ]
-
-def html2tex(doc):
-    parser = Parser()
-    parser.result = ''
-    # The number of (unescaped) dollars or double-dollars found so far. An even
-    # number is assumed to indicate that we're outside of math and thus need to
-    # escape.
-    parser.dollars_found = 0
-    parser.feed(doc)
-    return parser.result
-
-def md2html(s):
-    from markdown2Mathjax import sanitizeInput, reconstructMath
-    from markdown2 import markdown
-
-    delims = [('\\(','\\)'), ('$$','$$'), ('\\[','\\]'),
+def sanitize_math_input(s):
+    from markdown2Mathjax import sanitizeInput
+    # it's critical that $$ be first!
+    delims = [('$$','$$'), ('\\(','\\)'), ('\\[','\\]'),
               ('\\begin{equation}', '\\end{equation}'), ('\\begin{equation*}', '\\end{equation*}'),
               ('\\begin{align}', '\\end{align}'), ('\\begin{align*}', '\\end{align*}'),
               ('\\begin{eqnarray}', '\\end{eqnarray}'), ('\\begin{eqnarray*}', '\\end{eqnarray*}'),
@@ -149,14 +99,35 @@ def md2html(s):
     for d in delims:
         tmp.append((sanitizeInput(tmp[-1][0][0], equation_delims=d), d))
 
-    extras = ['code-friendly', 'footnotes', 'smarty-pants', 'wiki-tables', 'fenced-code-blocks']
-    markedDownText = markdown(tmp[-1][0][0], extras=extras)
+    return tmp
 
+def reconstruct_math(s, tmp):
+    from markdown2Mathjax import reconstructMath
     while len(tmp) > 1:
-        markedDownText = reconstructMath(markedDownText, tmp[-1][0][1], equation_delims=tmp[-1][1])
+        s = reconstructMath(s, tmp[-1][0][1], equation_delims=tmp[-1][1])
         del tmp[-1]
+    return s
 
-    return markedDownText
+def html2tex(doc):
+    tmp = sanitize_math_input(doc)
+    parser = Parser()
+    parser.result = ''
+    # The number of (unescaped) dollars or double-dollars found so far. An even
+    # number is assumed to indicate that we're outside of math and thus need to
+    # escape.
+    parser.dollars_found = 0
+    print "sanitized input='%s'"%tmp[-1][0][0]
+    parser.feed(tmp[-1][0][0])
+    return reconstruct_math(parser.result, tmp)
+
+
+def md2html(s):
+    from markdown2 import markdown
+    extras = ['code-friendly', 'footnotes', 'smarty-pants', 'wiki-tables', 'fenced-code-blocks']
+
+    tmp = sanitize_math_input(s)
+    markedDownText = markdown(tmp[-1][0][0], extras=extras)
+    return reconstruct_math(markedDownText, tmp)
 
 def md2tex(doc):
     return html2tex(md2html(doc))

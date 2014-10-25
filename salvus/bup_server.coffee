@@ -761,6 +761,8 @@ class GlobalProject
                 if running_on.length == 0
                     dbg("find a place to run project")
                     v = (server_id for server_id, s of state when s not in ['error'])
+
+
                     if v.length == 0
                         v = misc.keys(state)
                     if target? and target in v
@@ -1678,7 +1680,15 @@ class GlobalProject
 
                 async.map servers, f, (err) => cb(err)
 
-        ], (err) => opts.cb?(err, @state)
+        ], (err) =>
+            opts.cb?(err, @state)
+
+            if not err and @state?
+                # Launch stops (no blocking) on all servers that do report an error,
+                # since it's critical those get cleaned up as soon
+                # as possible.  By cleaned up, I mean the user gets deleted,
+                # all processes get killed etc.    
+                @_stop_all((server_id for server_id, s of @state when s == 'error'))
         )
 
     # mount a remote project (or directory in one) so that it is accessible in this project
