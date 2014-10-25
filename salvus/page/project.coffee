@@ -146,15 +146,27 @@ class ProjectPage
                 catch e
                     console.log(e)
                 return false
-            if evt.which == 27 # escape
-                @container.find(".project-command-line-output").hide()
+            else if evt.which == 27 # escape
+                @hide_command_line_output()
                 return false
+
+        @container.find(".project-command-line-output").find("a[href=#clear]").click () =>
+            @hide_command_line_output()
+            return false
+
+        @container.find(".project-command-line-submit").click () =>
+            @command_line_exec()
+
         # TODO: this will be for command line tab completion
         #cmdline.keydown (evt) =>
         #    if evt.which == 9
         #        @command_line_tab_complete()
         #        return false
 
+    hide_command_line_output: () =>
+        @container.find(".project-command-line-output").hide()
+        @container.find(".project-command-line-spinner").hide()
+        @container.find(".project-command-line-submit").show()
 
     init_title_desc_edit: () =>
         # Make it so editing the title and description of the project
@@ -607,12 +619,15 @@ class ProjectPage
         if not @container?
             return
         elt = @container.find(".project-command-line")
+        elt.find(".project-command-line-output").hide()
         input = elt.find("input")
-        command0 = input.val()
+        command0 = input.val().trim()
+        if not command0
+            return
         command = command0 + "\necho $HOME `pwd`"
         input.val("")
-        @container.find(".project-command-line-output").show()
-        t = setTimeout((() => @container?.find(".project-command-line-spinner").show().spin()), 300)
+        @container.find(".project-command-line-submit").hide()
+        @container.find(".project-command-line-spinner").show()
         salvus_client.exec
             project_id : @project.project_id
             command    : command
@@ -623,8 +638,8 @@ class ProjectPage
             cb         : (err, output) =>
                 if not @container?
                     return
-                clearTimeout(t)
-                @container.find(".project-command-line-spinner").spin(false).hide()
+                @container.find(".project-command-line-spinner").hide()
+                @container.find(".project-command-line-submit").show()
                 if err
                     alert_message(type:'error', message:"#{command0} -- #{err}")
                 else
@@ -668,14 +683,19 @@ class ProjectPage
                     stdout = $.trim(output.stdout)
                     stderr = $.trim(output.stderr)
                     # We display the output of the command (or hide it)
+                    something = false
                     if stdout
+                        something = true
                         elt.find(".project-command-line-stdout").text(stdout).show()
                     else
                         elt.find(".project-command-line-stdout").hide()
                     if stderr
+                        something = true
                         elt.find(".project-command-line-stderr").text(stderr).show()
                     else
                         elt.find(".project-command-line-stderr").hide()
+                    if something
+                        elt.find(".project-command-line-output").show()
                 @update_file_list_tab(true)
 
     # command_line_tab_complete: () =>
@@ -1060,6 +1080,7 @@ class ProjectPage
 
         create_link = (elt, path) =>
             elt.click () =>
+                @hide_command_line_output()
                 @current_path = path
                 @update_file_list_tab()
 
@@ -1564,6 +1585,7 @@ class ProjectPage
                 @file_action_dialog(obj)
             else
                 if obj.isdir
+                    @hide_command_line_output()
                     @set_current_path(obj.fullname)
                     @update_file_list_tab()
                 else
@@ -2303,6 +2325,7 @@ class ProjectPage
 
     init_refresh_files: () =>
         @container.find("a[href=#refresh-listing]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
+            @hide_command_line_output()
             @update_file_list_tab()
             return false
 
@@ -3261,7 +3284,7 @@ class ProjectPage
                         d = $("<span>").attr('title', time.toISOString()).timeago()
                         c.replaceWith(d)
                     catch e
-                        console.log("error parsing last snapshot time: ", e)
+                        console.log("error parsing last snapshot time (stdout='#{output.stdout}'): ", e)
                         return
 
     update_local_status_link: () =>
