@@ -409,6 +409,14 @@ class exports.Cassandra extends EventEmitter
         @_opts = opts
         @connect()
 
+    reconnect: (cb) =>
+        if not @conn?
+            @connect(cb)
+            return
+        @conn.shutdown? () =>
+            delete @conn
+            @connect(cb)
+
     connect: (cb) =>
         winston.debug("connect: connecting to the database server")
         console.log("connecting...")
@@ -693,6 +701,7 @@ class exports.Cassandra extends EventEmitter
                 winston.error(m)
                 c?(m)
                 c = undefined # ensure only called once
+                @reconnect()
             _timer = setTimeout(failed, 1000*@query_timeout_s)
             g (err) =>
                 clearTimeout(_timer)
