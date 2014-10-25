@@ -30,9 +30,10 @@ set_account_tab_label = (signed_in, email_address) ->
 account_id = undefined
 
 top_navbar.on "switch_to_page-account", () ->
-    window.history.pushState("", "", window.salvus_base_url + '/settings')
-    if not account_id?
-        $("#sign_in-email").focus()
+    if account_id?
+        window.history.pushState("", "", window.salvus_base_url + '/settings')
+    else
+        window.history.pushState("", "", window.salvus_base_url)
 
 ################################################
 # Page Switching Control
