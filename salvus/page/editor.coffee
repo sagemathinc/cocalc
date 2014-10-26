@@ -192,6 +192,7 @@ sagews_decorator_modes = [
     ['sage'        , 'python'],
     ['script'      , 'shell'],
     ['sh'          , 'shell'],
+    ['julia'       , 'text/x-julia']
 ]
 
 exports.define_codemirror_sagews_mode = () ->
