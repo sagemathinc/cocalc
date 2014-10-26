@@ -394,6 +394,12 @@ Editor for files in a project
     color:red;
 }
 
+.sagews-output-code {
+    white-space: pre;
+    border: 2px solid lightblue;
+    padding: 1ex;
+}
+
 .sagews-output-tex {
     background: white;  /* so that tex is visible */
 }

@@ -850,7 +850,12 @@ class Salvus(object):
                 block = parsing.preparse_code(block)
             sys.stdout.reset(); sys.stderr.reset()
             try:
-                if block.lstrip().endswith('?'):
+                b = block.rstrip()
+                if b.endswith('??'):
+                    p = parsing.introspect(block,
+                                   namespace=namespace, preparse=False)
+                    self.code(source = p['result'], mode = "python")
+                elif b.endswith('?'):
                     print parsing.introspect(block, namespace=namespace, preparse=False)['result']
                 else:
                     exec compile(block+'\n', '', 'single') in namespace, locals
@@ -982,9 +987,9 @@ class Salvus(object):
         return self
 
     def code(self, source,            # actual source code
-                   filename = None,   # path of file it is contained in (if applicable)
-                   lineno   = None,   # line number where source starts (0-based)
                    mode     = None,   # the syntax highlight codemirror mode
+                   filename = None,   # path of file it is contained in (if applicable)
+                   lineno   = -1,   # line number where source starts (0-based)
                    done=False, once=None):
         """
         Send a code message, which is to be rendered as code by the client, with
@@ -993,7 +998,7 @@ class Salvus(object):
         source = source if isinstance(source, (str, unicode)) else unicode8(source)
         code = {'source'   : source,
                 'filename' : filename,
-                'lineno'   : lineno,
+                'lineno'   : int(lineno),
                 'mode'     : mode}
         self._send_output(code=code, done=done, id=self._id, once=once)
         return self
