@@ -2469,8 +2469,17 @@ class GlobalClient
                 opts.cb(err, status)
             )
 
-    # For every project, check that the bup_last_save times are all the same, so that everything is fully replicated.
-    # If not, replicate from the current location (or newest) out to others.
+    ###
+    For every project, check that the bup_last_save times are all the same,
+    so that everything is fully replicated.
+    If not, replicate from the current location (or newest) out to others.
+
+    CODE in console to use this:
+
+        x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
+    	status=[];x.c.repair(status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
+
+    ###
     repair: (opts) =>
         opts = defaults opts,
             limit       : 5           # number to do in parallel
