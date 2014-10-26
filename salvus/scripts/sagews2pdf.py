@@ -82,7 +82,7 @@ class Parser(HTMLParser.HTMLParser):
 
     def handle_data(self, data):
         # safe because all math stuff has already been escaped.
-        self.result += data.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" )
+        self.result += data.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" ).replace('%','\\%')
 
 def sanitize_math_input(s):
     from markdown2Mathjax import sanitizeInput
@@ -151,13 +151,14 @@ class Cell(object):
             self.output_uuid = w[0] if len(w) > 0 else ''
             self.output = []
             for x in w[1:]:
-                try:
-                    self.output.append(json.loads(x))
-                except ValueError:
+                if x:
                     try:
-                        print "**WARNING:** Unable to de-json '%s'"%x
-                    except:
-                        print "Unable to de-json some output"
+                        self.output.append(json.loads(x))
+                    except ValueError:
+                        try:
+                            print "**WARNING:** Unable to de-json '%s'"%x
+                        except:
+                            print "Unable to de-json some output"
         else:
             self.output = self.output_uuid = ''
 
@@ -220,12 +221,12 @@ class Cell(object):
                                 print msg
                         img = filename
                     else:
-                        cmd = 'rm "%s"; wget "%s" --output-document="%s"'%(filename, target, filename)
+                        cmd = 'rm -f "%s"; wget "%s" --output-document="%s"'%(filename, target, filename)
                         print cmd
                         if os.system(cmd) == 0:
                             if ext == 'svg':
                                 # hack for svg files; in perfect world someday might do something with vector graphics, see http://tex.stackexchange.com/questions/2099/how-to-include-svg-diagrams-in-latex
-                                cmd = 'rm "%s"; convert -antialias -density 150 "%s" "%s"'%(base+'.png',filename,base+'.png')
+                                cmd = 'rm -f "%s"; convert -antialias -density 150 "%s" "%s"'%(base+'.png',filename,base+'.png')
                                 os.system(cmd)
                                 filename = base+'.png'
                             img = filename
