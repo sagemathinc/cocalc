@@ -1972,6 +1972,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id  : required
             path        : required
+            timeout     : 90          # some things can take a long time to print!
             options     : undefined   # optional options that get passed to the specific backend for this file type
             cb          : undefined   # cp(err, relative path in project to printed file)
         @call_local_hub
@@ -1979,6 +1980,7 @@ class exports.Connection extends EventEmitter
             message    : message.print_to_pdf
                 path    : opts.path
                 options : opts.options
+            timeout    : opts.timeout
             cb         : (err, resp) =>
                 if err
                     opts.cb?(err)
