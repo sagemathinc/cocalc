@@ -294,12 +294,13 @@ class Worksheet(object):
     def latex_preamble(self, title='',author='', date='', contents=True):
         title = title.replace('_','\_')
         author = author.replace('_','\_')
+        # The utf8x instead of utf8 below is because of http://tex.stackexchange.com/questions/83440/inputenc-error-unicode-char-u8-not-set-up-for-use-with-latex, which I needed due to approx symbols, etc. causing trouble.
         #\usepackage{attachfile}
         s=r"""
 \documentclass{article}
 \usepackage{fullpage}
 \usepackage{amsmath}
-\usepackage[utf8]{inputenc}
+\usepackage[utf8x]{inputenc}
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{etoolbox}
