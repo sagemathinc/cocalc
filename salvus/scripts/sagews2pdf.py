@@ -181,10 +181,11 @@ class Cell(object):
         for x in self.output:
             if 'stdout' in x:
                 s += "\\begin{verbatim}" + wrap(x['stdout']) + "\\end{verbatim}"
-                #s += "\\begin{lstlisting}" + x['stdout'] + "\\end{lstlisting}"
             if 'stderr' in x:
                 s += "{\\color{dredcolor}\\begin{verbatim}" + wrap(x['stderr']) + "\\end{verbatim}}"
-                #s += "\\begin{lstlisting}" + x['stderr'] + "\\end{lstlisting}"
+            if 'code' in x:
+                # TODO: for now ignoring that not all code is Python...
+                s += "\\begin{lstlisting}" + x['code']['source'] + "\\end{lstlisting}"
             if 'html' in x:
                 s += html2tex(x['html'])
             if 'md' in x:
