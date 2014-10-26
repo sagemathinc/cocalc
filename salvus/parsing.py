@@ -426,9 +426,12 @@ def introspect(code, namespace, preparse=True):
                 import sage.misc.sageinspect
                 result = get_file()
                 try:
-                    result += "   Docstring:\n   " + eval('getdoc(O)', {'getdoc':sage.misc.sageinspect.sage_getdoc, 'O':O})
+                    def f(s):
+                        return sage.misc.sageinspect.sage_getdoc(s) #, embedded_override=True)
+                    result += "   Docstring:\n   " + eval('getdoc(O)', {'getdoc':f, 'O':O})
                 except Exception, err:
                     result += "Unable to read docstring (%s)"%err
+                result = result.lstrip().replace('\n   ','\n')  # Get rid of the 3 spaces in front of everything.
 
             elif get_source:
                 import sage.misc.sageinspect

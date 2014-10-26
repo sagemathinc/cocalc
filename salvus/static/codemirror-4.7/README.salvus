@@ -63,6 +63,15 @@ index f106f79..43a5711 100644
 +      minimal = false && hasCopyEvent &&
 
 
+
+
+*
+
+In mode/rst/rst.js,
+
+  var rx_examples = new RegExp('^\\s+(?:>>>|sage:|In \\[\\d+\\]:)\\s');
+
+
 -----------------------------------------------------------------------------------------------
 
 * There are numerous changes to addon/search/search.js to make it bootstrap3 compatible (done by Andy).

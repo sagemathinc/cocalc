@@ -148,7 +148,7 @@ CodeMirror.defineMode('rst-base', function (config) {
   var rx_link_tail = new RegExp(format('^:{0}', TAIL));
 
   var rx_verbatim = new RegExp('^::\\s*$');
-  var rx_examples = new RegExp('^\\s+(?:>>>|In \\[\\d+\\]:)\\s');
+  var rx_examples = new RegExp('^\\s+(?:>>>|sage:|In \\[\\d+\\]:)\\s');
 
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////

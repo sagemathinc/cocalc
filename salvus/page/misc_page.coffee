@@ -459,26 +459,24 @@ exports.define_codemirror_extensions = () ->
         opts = defaults opts,
             from      : required
             content   : required
-            type      : required   # 'docstring', 'source-code' -- TODO: curr ignored
+            type      : required   # 'docstring', 'source-code' -- TODO
             target    : required
         editor = @
-        element = templates.find(".salvus-codemirror-introspect").clone()
+        element = templates.find(".salvus-codemirror-introspect")
         element.find(".salvus-codemirror-introspect-title").text(opts.target)
-        element.find(".salvus-codemirror-introspect-content").text(opts.content)
-        element.find(".salvus-codemirror-introspect-close").click () -> element.remove()
-        pos = editor.cursorCoords(opts.from)
-        element.css
-            left : pos.left + 'px'
-            top  : pos.bottom + 'px'
-        $("body").prepend element
-        if not IS_MOBILE
-            element.draggable(handle: element.find(".salvus-codemirror-introspect-title")).resizable
-                alsoResize : element.find(".salvus-codemirror-introspect-content")
-                maxHeight: 650
-                handles : 'all'
-        element.focus()
-        return element
+        element.modal()
+        element.find(".salvus-codemirror-introspect-content-docstring").text('')
+        element.find(".salvus-codemirror-introspect-content-source-code").text('')
+        element.data('editor',editor)
+        if opts.type == 'source-code'
+            CodeMirror.runMode(opts.content, 'python', element.find(".salvus-codemirror-introspect-content-source-code")[0])
+        else
+            CodeMirror.runMode(opts.content, 'text/x-rst', element.find(".salvus-codemirror-introspect-content-docstring")[0])
 
+templates.find(".salvus-codemirror-introspect").find("button").click () ->
+    templates.find(".salvus-codemirror-introspect").modal('hide')
+    element.data('editor').focus()
+    element.data('editor',0)
 
 exports.download_file = (url) ->
     iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))

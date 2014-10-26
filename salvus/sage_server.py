@@ -856,7 +856,8 @@ class Salvus(object):
                                    namespace=namespace, preparse=False)
                     self.code(source = p['result'], mode = "python")
                 elif b.endswith('?'):
-                    print parsing.introspect(block, namespace=namespace, preparse=False)['result']
+                    p = parsing.introspect(block, namespace=namespace, preparse=False)
+                    self.code(source = p['result'], mode = "text/x-rst")
                 else:
                     exec compile(block+'\n', '', 'single') in namespace, locals
                 sys.stdout.flush()
