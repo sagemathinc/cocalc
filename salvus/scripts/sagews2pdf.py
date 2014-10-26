@@ -116,7 +116,6 @@ def html2tex(doc):
     # number is assumed to indicate that we're outside of math and thus need to
     # escape.
     parser.dollars_found = 0
-    print "sanitized input='%s'"%tmp[-1][0][0]
     parser.feed(tmp[-1][0][0])
     return reconstruct_math(parser.result, tmp)
 
