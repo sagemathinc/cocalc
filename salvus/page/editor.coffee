@@ -1195,6 +1195,8 @@ class CodeMirrorEditor extends FileEditor
             undo_depth                : editor_settings.undo_depth
             match_brackets            : editor_settings.match_brackets
             auto_close_brackets       : editor_settings.auto_close_brackets
+            match_xml_tags            : editor_settings.match_xml_tags
+            auto_close_xml_tags       : editor_settings.auto_close_xml_tags
             line_wrapping             : editor_settings.line_wrapping
             spaces_instead_of_tabs    : editor_settings.spaces_instead_of_tabs
             style_active_line         : 15    # editor_settings.style_active_line  # (a number between 0 and 127)
@@ -1284,6 +1286,9 @@ class CodeMirrorEditor extends FileEditor
 
             #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
 
+        if opts.match_xml_tags
+            extraKeys['Ctrl-J'] = "toMatchingTag"
+
         # We will replace this by a general framework...
         if misc.filename_extension(filename) == "sagews"
             evaluate_key = require('account').account_settings.settings.evaluate_key.toLowerCase()
@@ -1307,6 +1312,7 @@ class CodeMirrorEditor extends FileEditor
                 undoDepth               : opts.undo_depth
                 matchBrackets           : opts.match_brackets
                 autoCloseBrackets       : opts.auto_close_brackets
+                autoCloseTags           : opts.auto_close_xml_tags
                 lineWrapping            : opts.line_wrapping
                 readOnly                : opts.read_only
                 styleActiveLine         : opts.style_active_line
@@ -1314,6 +1320,10 @@ class CodeMirrorEditor extends FileEditor
                 showCursorWhenSelecting : true
                 extraKeys               : extraKeys
                 cursorScrollMargin      : 40
+
+            if opts.match_xml_tags
+                options.matchTags = {bothTags: true}
+
                 #foldGutter: true
                 #gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 
@@ -1341,6 +1351,7 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
+        window.cm = @codemirror
 
         elt1 = layout_elt.find(".salvus-editor-codemirror-input-box-1").find("textarea")
 
