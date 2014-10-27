@@ -272,7 +272,7 @@ class ProjectPage
             #window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.ownername + '/' + @project.name + '/' + url)
         # For now, we are just going to default to project-id based URL's, since they are stable and will always be supported.
         # I can extend to the above later in another release, without any harm.
-        window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.project_id + '/' + url)
+        window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.project_id + '/' + misc.encode_path(url))
         ga('send', 'pageview', window.location.pathname)
 
 
@@ -1117,7 +1117,7 @@ class ProjectPage
         if IS_MOBILE
             dz.append($('<span class="message" style="font-weight:bold;font-size:14pt">Tap to select files to upload</span>'))
         dz_container.append(dz)
-        dest_dir = encodeURIComponent(@new_file_tab.find(".project-new-file-path").text())
+        dest_dir = misc.encode_path(@new_file_tab.find(".project-new-file-path").text())
         dz.dropzone
             url: window.salvus_base_url + "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
             maxFilesize: 128 # in megabytes
@@ -3457,7 +3457,7 @@ class ProjectPage
                     alert_message(type:"error", message:"File download prevented -- (#{result.error})")
                     opts.cb?(result.error)
                 else
-                    url = result.url + "&download"
+                    url = misc.encode_path(result.url) + "&download"
                     if opts.prefix?
                         i = url.lastIndexOf('/')
                         url = url.slice(0,i+1) + opts.prefix + url.slice(i+1)
@@ -3471,7 +3471,7 @@ class ProjectPage
             timeout : 45
             cb      : undefined   # cb(err) when file download from browser starts.
 
-        url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{opts.path}"
+        url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{misc.encode_path(opts.path)}"
         download_file(url)
         bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3><b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")
         opts.cb?()
@@ -3481,8 +3481,7 @@ class ProjectPage
             project_id : @project.project_id
             path       : path
             cb         : (err, result) =>
-                window.open(result.url)
-
+                window.open(misc.encode_path(result.url))
 
     open_file: (opts) =>
         opts = defaults opts,

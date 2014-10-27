@@ -37,11 +37,19 @@ MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
 # TODO: this needs to use salvus.project_info() or an environment variable or something!
 site = 'https://cloud.sagemath.com'
 
-import argparse, base64, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile
+import argparse, base64, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile, urllib
 from uuid import uuid4
+
+def escape_path(s):
+    # see http://stackoverflow.com/questions/946170/equivalent-javascript-functions-for-pythons-urllib-quote-and-urllib-unquote
+    s = urllib.quote(unicode(s).encode('utf-8'), safe='~@#$&()*!+=:;,.?/\'')
+    return s.replace('#','%23').replace("?",'%3F')
 
 def wrap(s, c=90):
     return '\n'.join(['\n'.join(textwrap.wrap(x, c)) for x in s.splitlines()])
+
+def tex_escape(s):
+    return s.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" ).replace('%','\\%').replace('#','\\#')
 
 # create a subclass and override the handler methods
 
@@ -82,7 +90,7 @@ class Parser(HTMLParser.HTMLParser):
 
     def handle_data(self, data):
         # safe because all math stuff has already been escaped.
-        self.result += data.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" ).replace('%','\\%')
+        self.result += tex_escape(data)
 
 def sanitize_math_input(s):
     from markdown2Mathjax import sanitizeInput
@@ -205,7 +213,7 @@ class Cell(object):
                     filename = os.path.split(target)[-1]
                 else:
                     filename = os.path.split(val['filename'])[-1]
-                    target = "%s/blobs/%s?uuid=%s"%(site, filename, val['uuid'])
+                    target = "%s/blobs/%s?uuid=%s"%(site, escape_path(filename), val['uuid'])
 
                 base, ext = os.path.splitext(filename)
                 ext = ext.lower()[1:]
@@ -339,10 +347,10 @@ sensitive=true}
 \definecolor{dgraycolor}{rgb}{0.30,0.3,0.30}
 \definecolor{graycolor}{rgb}{0.35,0.35,0.35}
 """
-        s += "\\title{%s}\n"%title
-        s += "\\author{%s}\n"%author
+        s += "\\title{%s}\n"%tex_escape(title)
+        s += "\\author{%s}\n"%tex_escape(author)
         if date:
-            s += "\\date{%s}\n"%date
+            s += "\\date{%s}\n"%tex_escape(date)
         s += "\\begin{document}\n"
         s += "\\maketitle\n"
         #if self._filename:

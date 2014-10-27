@@ -1083,7 +1083,7 @@ class exports.Connection extends EventEmitter
             else
                 opts.path = '.sagemathcloud/root' + opts.path  # use root symlink, which is created by start_smc
 
-        url = encodeURI("#{base}/#{opts.project_id}/raw/#{opts.path}")
+        url = misc.encode_path("#{base}/#{opts.project_id}/raw/#{opts.path}")
 
         opts.cb(false, {url:url})
         # This is the old hub/database version -- too slow, and loads the database/server, way way too much.

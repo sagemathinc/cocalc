@@ -1657,7 +1657,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 if val.url?
                     target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that change
                 else
-                    target = "#{window.salvus_base_url}/blobs/#{val.filename}?uuid=#{val.uuid}"
+                    target = "#{window.salvus_base_url}/blobs/#{misc.encode_path(val.filename)}?uuid=#{val.uuid}"
                 switch misc.filename_extension(val.filename)
                     # TODO: harden DOM creation below?
 
