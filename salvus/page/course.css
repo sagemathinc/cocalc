@@ -55,6 +55,7 @@
     color:#888;
 }
 
+
 .salvus-course-student-first_name {
 }
 .salvus-course-student-last_name {
@@ -67,6 +68,12 @@
 .salvus-course-assignment:hover {
     background-color:#efe;
 }
+
+.salvus-course-assignment-deleted {
+    text-decoration: line-through;
+    opacity: .6;   /* since changing color is ugly */
+}
+
 
 .salvus-course-assignment-path {
     cursor: pointer;
@@ -88,5 +95,5 @@
 }
 
 .salvus-course-collected-assignment-students {
-    cursor: default;    
+    cursor: default;
 }

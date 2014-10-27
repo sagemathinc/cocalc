@@ -42,6 +42,11 @@
                                     <input type="checkbox" class="salvus-course-show-deleted-students">Show deleted students
                                 </label>
                             </div>
+                            <div class="checkbox">
+                                <label>
+                                    <input type="checkbox" class="salvus-course-show-deleted-assignments">Show deleted assignments
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -142,7 +147,7 @@
                             </div>
                             <div class="row">
                                 <div class="lighten salvus-course-search-describe col-sm-6">
-                                    <span class="salvus-course-search-contain hide">Only showing folders that contain <b><i><span class="salvus-course-search-query"></span></i></b>. </span>
+                                    <span class="salvus-course-search-contain hide">Only showing assignments that contain <b><i><span class="salvus-course-search-query"></span></i></b>. </span>
                                 </div>
                             </div>
                         </div>
@@ -191,7 +196,7 @@
 
     <div class="salvus-course-assignment">
         <div class="row">
-            <div class="salvus-course-field  col-sm-2" spellcheck="false" style="overflow-y: auto;">
+            <div class="salvus-course-field  salvus-course-assignment-props col-sm-2" spellcheck="false" style="overflow-y: auto;">
                 <a class="salvus-course-assignment-path project-file-name">
                 </a>
             </div>
@@ -223,16 +228,15 @@
                     </ul>
                 </div>
             </div>
-            <div class="salvus-course-field col-sm-2 ">
+            <div class="salvus-course-field col-sm-3 ">
                 <a href="#return-graded" class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Return graded...</a>
             </div>
-            <!--
             <div class="salvus-course-field col-sm-2">
                 <div class="pull-right">
                     <a href="#undelete" class="btn btn-default btn-sm hide"><i class="fa fa-trash-o"> </i> Undelete</a>
                     <a href="#delete" style="color: #888;font-size: 10pt;"><i class="fa fa-times"> </i></a>
                 </div>
-            </div>-->
+            </div>
         </div>
     </div>
 
