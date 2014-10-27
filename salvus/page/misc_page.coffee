@@ -480,7 +480,7 @@ templates.find(".salvus-codemirror-introspect").find("button").click () ->
 
 exports.download_file = (url) ->
     iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
-    setTimeout((() -> iframe.remove()), 30000)
+    setTimeout((() -> iframe.remove()), 60000)
 
 # Get the DOM node that the currently selected text starts at, as a jquery wrapped object;
 # if the selection is a caret (hence empty) returns empty object

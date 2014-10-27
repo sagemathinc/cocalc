@@ -3483,12 +3483,22 @@ class ProjectPage
     download_file: (opts) =>
         opts = defaults opts,
             path    : required
+            auto    : true
             timeout : 45
-            cb      : undefined   # cb(err) when file download from browser starts.
+            cb      : undefined   # cb(err) when file download from browser starts -- instant since we use raw path
+
+        if misc.filename_extension(opts.path) == 'pdf'
+            # unfortunately, download_file doesn't work for pdf these days...
+            opts.auto = false
 
         url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{misc.encode_path(opts.path)}"
-        download_file(url)
-        bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3><b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")
+        if opts.auto
+            download_file(url)
+            bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3><hr> If <b>#{opts.path}</b> isn't downloading <a target='_blank' href='#{url}'>open it in another tab</a>.")
+        else
+            window.open(url)
+            #bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3> <hr><a target='_blank' href='#{url}'> Open #{opts.path} in another tab</a>.")
+
         opts.cb?()
 
     open_file_in_another_browser_tab: (path) =>

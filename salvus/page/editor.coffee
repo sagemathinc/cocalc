@@ -3608,21 +3608,8 @@ class LatexEditor extends FileEditor
 
 
     download_pdf: () =>
-        button = @element.find("a[href=#pdf-download]")
-        button.icon_spin(true)
-        # TODO: THIS replicates code in project.coffee
-        salvus_client.read_file_from_project
-            project_id : @editor.project_id
-            path       : @filename.slice(0,@filename.length-3)+"pdf"
-            timeout    : 45
-            cb         : (err, result) =>
-                button.icon_spin(false)
-                if err
-                    alert_message(type:"error", message:"Error downloading PDF: #{err} -- #{misc.to_json(result)}")
-                else
-                    url = result.url + "&download"
-                    iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
-                    setTimeout((() -> iframe.remove()), 1000)
+        @editor.project_page.download_file
+            path : @filename.slice(0,@filename.length-3) + "pdf"
 
     _inverse_search: (opts) =>
         active = opts.active  # whether user actively clicked, in which case we may open a new file -- otherwise don't open anything.
