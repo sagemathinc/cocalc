@@ -2179,7 +2179,7 @@ class PDFLatexDocument
         sagetex_file = @base_filename + '.sagetex.sage'
         sha_marker = 'sha1sums'
         @_exec
-            command : command + "< /dev/null 2</dev/null; echo '#{sha_marker}'; sha1sum #{sagetex_file}"
+            command : command + "< /dev/null 2</dev/null; echo '#{sha_marker}'; sha1sum '#{sagetex_file}'"
             bash    : true
             timeout : 20
             err_on_exit : false
@@ -2207,7 +2207,11 @@ class PDFLatexDocument
                     if i != -1
                         j = log.indexOf(', and then run LaTeX', i)
                         if j != -1
-                            @_need_to_run.sage = log.slice(i + run_sage_on.length, j).trim()
+                            # the .replace(/"/g,'') is because sagetex tosses "'s around part of the filename
+                            # in some cases, e.g., when it has a space in it.  Tex itself won't accept
+                            # filenames with quotes, so this replacement isn't dangerous.  We don't need
+                            # or want these quotes, since we're not passing this command via bash/sh.
+                            @_need_to_run.sage = log.slice(i + run_sage_on.length, j).trim().replace(/"/g,'')
 
                     i = log.indexOf("No file #{@base_filename}.bbl.")
                     if i != -1
@@ -3099,7 +3103,6 @@ class LatexEditor extends FileEditor
                 #dragbar.css(left: )
                 @show()
 
-
     set_conf: (obj) =>
         conf = @load_conf()
         for k, v of obj
@@ -3554,6 +3557,8 @@ class LatexEditor extends FileEditor
             if @preview.pdflatex.filename_tex == file
                 @latex_editor.set_cursor_center_focus({line:mesg.line-1, ch:0})
             else
+                if @_path # make relative to home directory of project
+                    file = @_path + '/' + file
                 @editor.open file, (err, fname) =>
                     if not err
                         @editor.display_tab(path:fname)
