@@ -3,8 +3,6 @@
 # Project page -- browse the files in a project, etc.
 #
 ###############################################################################
-ENABLE_PUBLIC = true
-
 
 {IS_MOBILE}     = require("feature")
 {top_navbar}    = require('top_navbar')
@@ -47,6 +45,9 @@ MAX_FILE_LISTING_SIZE = 300
 # timeout in seconds when downloading files etc., from web in +New dialog.
 FROM_WEB_TIMEOUT_S = 45
 
+# for the new file dialog
+BAD_FILENAME_CHARACTERS = '\\/'
+BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%'
 
 # How long to cache public paths in this project
 PUBLIC_PATHS_CACHE_TIMEOUT_MS = 1000*60
@@ -1147,6 +1148,10 @@ class ProjectPage
             name = $.trim(@new_file_tab_input.val())
             if name.length == 0
                 return ''
+            for bad_char in BAD_FILENAME_CHARACTERS
+                if name.indexOf(bad_char) != -1
+                    bootbox.alert("Filenames must not contain the character '#{bad_char}'.")
+                    return ''
             s = $.trim(@new_file_tab.find(".project-new-file-path").text() + name)
             if ext?
                 if misc.filename_extension(s) != ext
@@ -1189,6 +1194,10 @@ class ProjectPage
 
         create_file = (ext) =>
             p = path(ext)
+
+            if not p
+                return false
+
             ext = misc.filename_extension(p)
 
             if ext == 'term'
@@ -1198,6 +1207,12 @@ class ProjectPage
             if ext in BANNED_FILE_TYPES
                 alert_message(type:"error", message:"Creation of #{ext} files not supported.", timeout:3)
                 return false
+
+            if ext == 'tex'
+                for bad_char in BAD_LATEX_FILENAME_CHARACTERS
+                    if p.indexOf(bad_char) != -1
+                        bootbox.alert("Filenames must not contain the character '#{bad_char}'.")
+                        return false
 
             if p.length == 0
                 @new_file_tab_input.focus()
@@ -1380,7 +1395,7 @@ class ProjectPage
             else
                 dialog.find("a[href=#delete-file]").hide()
 
-            if ENABLE_PUBLIC and not @public_access and not (obj.fullname == '.snapshots' or misc.startswith(obj.fullname,'.snapshots/'))
+            if not @public_access and not (obj.fullname == '.snapshots' or misc.startswith(obj.fullname,'.snapshots/'))
                 @is_path_published
                     path : obj.fullname
                     cb   : (err, pub) =>
