@@ -1276,11 +1276,12 @@ class CodeMirrorEditor extends FileEditor
 
             "Shift-Tab"    : (editor)   => editor.unindent_selection()
 
-            "Ctrl-Space"   : "indentAuto"
             "Ctrl-'"       : "indentAuto"
 
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
+
+            "Ctrl-Space"   : "autocomplete"
 
             #"Ctrl-Q"       : (cm) => cm.foldCode(cm.getCursor())
 
@@ -1303,7 +1304,7 @@ class CodeMirrorEditor extends FileEditor
             options =
                 firstLineNumber         : opts.first_line_number
                 autofocus               : false
-                mode                    : opts.mode
+                mode                    : {name:opts.mode, globalVars: true}
                 lineNumbers             : opts.line_numbers
                 showTrailingSpace       : opts.show_trailing_whitespace
                 indentUnit              : opts.indent_unit

@@ -8,7 +8,7 @@ for mode in 'clike clojure coffeescript commonlisp css diff dtd ecl eiffel erlan
     targets.append("mode/%s/%s.js"%(mode,mode))
 
 
-for addon in 'mode/multiplex.js mode/overlay.js selection/active-line.js comment/comment.js dialog/dialog.js search/searchcursor.js search/search.js edit/matchbrackets.js edit/closebrackets.js edit/trailingspace.js edit/continuelist.js edit/matchtags.js edit/closetag.js wrap/hardwrap.js runmode/runmode.js  fold/brace-fold.js fold/foldcode.js fold/foldgutter.js fold/markdown-fold.js fold/comment-fold.js fold/indent-fold.js fold/xml-fold.js'.split():
+for addon in 'mode/multiplex.js mode/overlay.js selection/active-line.js comment/comment.js dialog/dialog.js search/searchcursor.js search/search.js edit/matchbrackets.js edit/closebrackets.js edit/trailingspace.js edit/continuelist.js edit/matchtags.js edit/closetag.js wrap/hardwrap.js runmode/runmode.js  fold/brace-fold.js fold/foldcode.js fold/foldgutter.js fold/markdown-fold.js fold/comment-fold.js fold/indent-fold.js fold/xml-fold.js hint/anyword-hint.js  hint/css-hint.js  hint/html-hint.js  hint/javascript-hint.js  hint/python-hint.js  hint/show-hint.js  hint/sql-hint.js  hint/xml-hint.js'.split():
     targets.append('addon/%s'%addon)
 
 for keymap in 'vim emacs sublime'.split():
