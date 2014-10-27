@@ -322,12 +322,12 @@ class exports.Editor
 
     activate_handlers: () =>
         #console.log "activate_handlers - #{@project_id}"
-        $(document).keydown(@keydown_handler)
+        $(document).keyup(@keyup_handler)
         $(window).resize(@_window_resize_while_editing)
 
     remove_handlers: () =>
         #console.log "remove_handlers - #{@project_id}"
-        $(document).unbind 'keydown', @keydown_handler
+        $(document).unbind 'keyup', @keyup_handler
         $(window).unbind 'resize', @_window_resize_while_editing
 
     close_all_open_files: () =>
@@ -338,7 +338,7 @@ class exports.Editor
         @remove_handlers()
         @close_all_open_files()
 
-    keydown_handler: (ev) =>
+    keyup_handler: (ev) =>
         #console.log("keyup handler for -- #{@project_id}", ev)
         if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
             #console.log("editor keyup")
