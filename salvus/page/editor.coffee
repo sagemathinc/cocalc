@@ -1194,6 +1194,7 @@ class CodeMirrorEditor extends FileEditor
             electric_chars            : editor_settings.electric_chars
             undo_depth                : editor_settings.undo_depth
             match_brackets            : editor_settings.match_brackets
+            code_folding              : editor_settings.code_folding
             auto_close_brackets       : editor_settings.auto_close_brackets
             match_xml_tags            : editor_settings.match_xml_tags
             auto_close_xml_tags       : editor_settings.auto_close_xml_tags
@@ -1324,8 +1325,10 @@ class CodeMirrorEditor extends FileEditor
             if opts.match_xml_tags
                 options.matchTags = {bothTags: true}
 
-                #foldGutter: true
-                #gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+            if opts.code_folding
+                 extraKeys["Ctrl-Q"] = (cm) -> cm.foldCode(cm.getCursor())
+                 options.foldGutter  = true
+                 options.gutters     = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 
             if opts.bindings? and opts.bindings != "standard"
                 options.keyMap = opts.bindings

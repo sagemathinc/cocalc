@@ -577,6 +577,7 @@ exports.account_settings_defaults =
         electric_chars            : true
         match_brackets            : true
         auto_close_brackets       : true
+        code_folding              : true
         match_xml_tags            : true
         auto_close_xml_tags       : true
         spaces_instead_of_tabs    : true
