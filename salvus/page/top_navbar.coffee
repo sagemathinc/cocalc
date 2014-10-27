@@ -145,6 +145,7 @@ class TopNavbar  extends EventEmitter
         @pages[id]?.button.addClass("active")
 
     switch_to_next_available_page: (id) ->
+        #console.log('switch_to_next_available_page',id)
         # Switch to the next page after the page
         # with given id, unless there is no such page,
         # in which case, switch to the previous page.
@@ -161,8 +162,12 @@ class TopNavbar  extends EventEmitter
 
     switch_to_prev_available_page: (id) ->
         # There is always a previous page, because of the project page.
+        #console.log("switch_to_prev_available_page")
         p = @pages[id]
         prev_button = p.button.prev()
+        if prev_button.length == 0
+            @switch_to_page('projects')
+            return
         prev = prev_button.find("a")
         id = prev.data('id')
         if id?
