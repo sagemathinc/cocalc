@@ -52,7 +52,7 @@
 
 .salvus-course-student-deleted {
     text-decoration: line-through;
-    color:#888;
+    opacity: .6;
 }
 
 

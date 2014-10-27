@@ -447,12 +447,18 @@ class Course
             table         : undefined   # ignored
 
         e = @element.find("[data-student_id='#{opts.student_id}']")
+        name = @student_name(opts)
 
         if e.length == 0
             e = templates.find(".salvus-course-student").clone()
             e.attr("data-student_id", opts.student_id).attr("data-account_id", opts.account_id)
             e.find("a[href=#delete]").click () =>
-                @delete_student(student_id: opts.student_id)
+                mesg = "<h3><i class='fa fa-trash'></i> Delete Student</h3><hr>Delete #{name}?"
+                if not @_show_deleted_students.is(":checked")
+                    mesg += "<br><br><span class='lighten'>(Select 'Show deleted students' in settings to see deleted students.)</span>"
+                bootbox.confirm mesg, (result) =>
+                    if result
+                        @delete_student(student_id: opts.student_id)
                 return false
 
             e.find("a[href=#undelete]").click () =>
@@ -496,7 +502,6 @@ class Course
         create_project_btn = e.find("a[href=#create-project]")
         open_project_btn   = e.find("a[href=#open-project]")
 
-        name = @student_name(opts)
         e.find(".salvus-course-student-name").text(name)
         search_text = name.toLowerCase()
 
@@ -511,10 +516,12 @@ class Course
                 create_project_btn.hide()
 
         if opts.deleted
+            e.addClass('salvus-course-student-deleted')
             e.find(".salvus-course-student-props").addClass('salvus-course-student-deleted')
             e.find("a[href=#undelete]").show()
             e.find("a[href=#delete]").hide()
         else
+            e.removeClass('salvus-course-student-deleted')
             e.find(".salvus-course-student-props").removeClass('salvus-course-student-deleted')
             e.find("a[href=#undelete]").hide()
             e.find("a[href=#delete]").show()
@@ -856,7 +863,8 @@ class Course
                     select.attr(size:Math.min(10, resp.directories.length))
                     existing_assignments = {}
                     for x in @db.select(table:'assignments')
-                        existing_assignments[x.path] = true
+                        if not x.deleted
+                            existing_assignments[x.path] = true
                     for path in resp.directories
                         if not existing_assignments[path]
                             select.append($("<option>").attr(value:path, label:path).text(path))
@@ -909,6 +917,7 @@ class Course
     delete_assignment: (opts) =>
         opts = defaults opts,
             assignment_id : required
+
         @db.update
             set   : {deleted : true}
             where : {assignment_id : opts.assignment_id, table : 'assignments'}
@@ -943,7 +952,12 @@ class Course
 
             # delete assignment
             e.find("a[href=#delete]").click () =>
-                @delete_assignment(assignment_id: opts.assignment.assignment_id)
+                mesg = "<h3><i class='fa fa-trash'></i> Delete Assignment</h3><hr>Delete #{assignment.path}?"
+                if not @_show_deleted_assignments.is(":checked")
+                    mesg += "<br><br><span class='lighten'>(Select 'Show deleted assignments' in settings to see deleted assignments.)</span>"
+                bootbox.confirm mesg, (result) =>
+                    if result
+                        @delete_assignment(assignment_id: opts.assignment.assignment_id)
                 return false
 
             # undelete assignment
@@ -953,7 +967,7 @@ class Course
 
             # button: assign files to all students
             assignment_button = e.find("a[href=#assignment-files]").click () =>
-                bootbox.confirm "Copy assignment out to all students (newer files will not be overwritten)?", (result) =>
+                bootbox.confirm "Copy assignment '#{assignment.path}' to all students (newer files will not be overwritten)?", (result) =>
                     if result
                         assignment_button.icon_spin(start:true)
                         @assign_files_to_students
@@ -965,7 +979,7 @@ class Course
 
             # button: collect files from all students
             collect_button = e.find("a[href=#collect-files]").click () =>
-                bootbox.confirm "Collect assignment from all students?", (result) =>
+                bootbox.confirm "Collect assignment '#{assignment.path}' from all students?", (result) =>
                     if result
                         collect_button.icon_spin(start:true)
                         @collect_assignment_from_students
@@ -975,7 +989,7 @@ class Course
 
             # button: return graded assignments to students
             return_button = e.find("a[href=#return-graded]").click () =>
-                bootbox.confirm "Return graded assignments to all students?", (result) =>
+                bootbox.confirm "Return graded assignment '#{assignment.path}' to all students?", (result) =>
                     if result
                         return_button.icon_spin(start:true)
                         @return_graded_to_students
@@ -1015,10 +1029,12 @@ class Course
                 e.show()
 
         if assignment.deleted
+            e.addClass("salvus-course-assignment-deleted")
             e.find(".salvus-course-assignment-props").addClass('salvus-course-assignment-deleted')
             e.find("a[href=#undelete]").show()
             e.find("a[href=#delete]").hide()
         else
+            e.removeClass("salvus-course-assignment-deleted")
             e.find(".salvus-course-assignment-props").removeClass('salvus-course-assignment-deleted')
             e.find("a[href=#undelete]").hide()
             e.find("a[href=#delete]").show()
