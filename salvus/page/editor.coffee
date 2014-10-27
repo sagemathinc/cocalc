@@ -293,7 +293,6 @@ templates = $("#salvus-editor-templates")
 
 class exports.Editor
     constructor: (opts) ->
-
         opts = defaults opts,
             project_page  : required
             initial_files : undefined # if given, attempt to open these files on creation
@@ -321,29 +320,52 @@ class exports.Editor
             for filename in opts.initial_files
                 @open(filename)
 
-        # TODO -- maybe neither of these get freed properly when project is closed.
-        # Also -- it's a bit weird to call them even if project not currently visible.
-        # Add resize trigger
+    activate_handlers: () =>
+        #console.log "activate_handlers - #{@project_id}"
+        $(document).keydown(@keydown_handler)
         $(window).resize(@_window_resize_while_editing)
 
-        $(document).on 'keyup', (ev) =>
-            if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
-                @project_page.display_tab("project-file-listing")
-                return false
-            else if ev.ctrlKey or ev.metaKey or ev.altKey
-                if ev.keyCode == 219
-                    pgs = @project_page.container.find(".file-pages li > a > span")
-                    idx = $(".super-menu.salvus-editor-filename-pill.active").index()
-                    next = pgs[(idx - 1) %% pgs.length]
-                    filename = next.innerHTML
-                    @display_tab(path:filename)
-                else if ev.keyCode == 221
-                    pgs = @project_page.container.find(".file-pages li > a > span")
-                    idx = $(".super-menu.salvus-editor-filename-pill.active").index()
-                    next = pgs[(idx + 1) %% pgs.length]
-                    filename = next.innerHTML
-                    @display_tab(path:filename)
-                return false
+    remove_handlers: () =>
+        #console.log "remove_handlers - #{@project_id}"
+        $(document).unbind 'keydown', @keydown_handler
+        $(window).unbind 'resize', @_window_resize_while_editing
+
+    close_all_open_files: () =>
+        for filename, tab of @tabs
+            tab.close_editor()
+
+    destroy: () =>
+        @remove_handlers()
+        @close_all_open_files()
+
+    keydown_handler: (ev) =>
+        #console.log("keyup handler for -- #{@project_id}", ev)
+        if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
+            #console.log("editor keyup")
+            @project_page.display_tab("project-file-listing")
+            return false
+        else if ev.ctrlKey
+            #console.log("mod ", ev.keyCode)
+            if ev.keyCode == 219    # [{
+                @switch_tab(-1)
+            else if ev.keyCode == 221   # }]
+                @switch_tab(1)
+            return false
+
+    switch_tab: (delta) =>
+        #console.log("switch_tab", delta)
+        pgs = @project_page.container.find(".file-pages")
+        idx = pgs.find(".active").index()
+        if idx == -1 # nothing active
+            return
+        e = pgs.children()
+        n = (idx + delta) % e.length
+        if n < 0
+            n += e.length
+        path = $(e[n]).data('name')
+        if path
+            @display_tab
+                path : path
 
     activity_indicator: (filename) =>
         e = @tabs[filename]?.open_file_pill
@@ -386,6 +408,7 @@ class exports.Editor
         @_window_resize_while_editing()
 
     _window_resize_while_editing: () =>
+        #console.log("_window_resize_while_editing -- #{@project_id}")
         @resize_open_file_tabs()
         if not @active_tab? or not @_editor_content_visible
             return
@@ -403,6 +426,7 @@ class exports.Editor
 
             if event?
                 if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
+                    #console.log("keyup: openfile_search")
                     @project_page.display_tab("project-new-file")
                     return false
 
@@ -797,10 +821,6 @@ class exports.Editor
             if t.hasClass("salvus-editor-filename-pill")
                 x.push(t)
         return x
-
-    close_all_open_files: () =>
-        for filename, tab of @tabs
-            tab.close_editor()
 
     hide: () =>
         for filename, tab of @tabs

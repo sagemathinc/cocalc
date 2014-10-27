@@ -136,19 +136,23 @@ class ProjectPage
     activity_indicator: () =>
         top_navbar.activity_indicator(@project.project_id)
 
+    mini_command_line_keydown: (evt) =>
+        #console.log("mini_command_line_keydown")
+        if evt.which == 13 # enter
+            try
+                @command_line_exec()
+            catch e
+                console.log("mini command line bug -- ", e)
+            return false
+        else if evt.which == 27 # escape
+            @hide_command_line_output()
+            return false
+
     init_mini_command_line: () =>
         # Activate the mini command line
-        cmdline = @container.find(".project-command-line-input").tooltip(delay:{ show: 500, hide: 100 })
-        cmdline.keydown (evt) =>
-            if evt.which == 13 # enter
-                try
-                    @command_line_exec()
-                catch e
-                    console.log(e)
-                return false
-            else if evt.which == 27 # escape
-                @hide_command_line_output()
-                return false
+        @_cmdline = @container.find(".project-command-line-input")
+        @_cmdline.tooltip(delay:{ show: 500, hide: 100 })
+        @_cmdline.keydown(@mini_command_line_keydown)
 
         @container.find(".project-command-line-output").find("a[href=#clear]").click () =>
             @hide_command_line_output()
@@ -158,7 +162,7 @@ class ProjectPage
             @command_line_exec()
 
         # TODO: this will be for command line tab completion
-        #cmdline.keydown (evt) =>
+        #@_cmdline.keydown (evt) =>
         #    if evt.which == 9
         #        @command_line_tab_complete()
         #        return false
@@ -214,6 +218,15 @@ class ProjectPage
                 isdir    : true
                 url      : document.URL
 
+    # call when project is closed completely
+    destroy: () =>
+        @editor?.destroy()
+        @save_browser_local_data()
+        delete project_pages[@project.project_id]
+        @project_log?.disconnect_from_session()
+        clearInterval(@_update_last_snapshot_time)
+        @_cmdline?.unbind('keydown', @mini_command_line_keydown)
+
     init_new_tab_in_navbar: () =>
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
         @container.top_navbar
@@ -222,16 +235,16 @@ class ProjectPage
             icon  : 'fa-edit'
 
             onclose : () =>
-                @editor?.close_all_open_files()
-                @save_browser_local_data()
-                delete project_pages[@project.project_id]
-                @project_log?.disconnect_from_session()
-                clearInterval(@_update_last_snapshot_time)
+                @destroy()
+
+            onblur: () =>
+                @editor?.remove_handlers()
 
             onshow: () =>
                 if @project?
                     document.title = "Project - #{@project.title}"
                     @push_state()
+                @editor?.activate_handlers()
                 @editor?.refresh()
 
             onfullscreen: (entering) =>
@@ -412,8 +425,9 @@ class ProjectPage
 
     init_file_search: () =>
         @_file_search_box = @container.find(".salvus-project-search-for-file-input")
-        @_file_search_box.keyup (event) =>
+        @_file_search_box.keydown (event) =>
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79
+                #console.log("keyup: init_file_search")
                 @display_tab("project-new-file")
                 return false
             @update_file_search(event)
@@ -490,7 +504,7 @@ class ProjectPage
                 try
                     that.search(t.val())
                 catch e
-                    console.log(e)
+                    console.log("search bug ", e)
                 return false
 
         for x in ['recursive', 'case-sensitive', 'hidden', 'show-command']
@@ -1236,11 +1250,12 @@ class ProjectPage
         download_button = @new_file_tab.find("a[href=#new-download]").click(click_new_file_button)
 
         @new_file_tab.find("a[href=#new-folder]").click(create_folder)
-        @new_file_tab_input.keyup (event) =>
+        @new_file_tab_input.keydown (event) =>
             if event.keyCode == 13
                 click_new_file_button()
                 return false
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
+                #console.log("keyup: new_file_tab")
                 @display_tab("project-activity")
                 return false
 

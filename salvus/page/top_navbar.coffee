@@ -6,8 +6,8 @@
 
 
 $(document).on 'keydown', (ev) =>
-    #console.log(ev)
     if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79    # ctrl (or meta) o.
+        #console.log("document keydown ", ev)
         return false
 
 misc = require("misc")
