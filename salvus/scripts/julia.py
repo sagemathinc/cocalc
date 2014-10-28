@@ -84,7 +84,7 @@ class Julia(Expect):
             code = code.encode('utf8')
 
         START = "\x1b[?2004l\x1b[0m"
-        END   = "\r\n\r\n\x1b[0G\x1b[0K\x1b[0G\x1b[0Kjulia> "
+        END   = "\x1b[0G\x1b[0K\x1b[0G\x1b[0Kjulia> "
         if not self._expect:
             self._start()
         from sage.all import walltime
@@ -112,7 +112,7 @@ class Julia(Expect):
             if result.startswith("ERROR:"):
                 julia_error = result.replace("in anonymous at no file",'')
                 raise RuntimeError(julia_error)
-            return result
+            return result.rstrip()
 
     def _an_element_impl(self):
         """
