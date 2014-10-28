@@ -108,11 +108,11 @@ class Julia(Expect):
             i = result.find(END)
             if i == -1:
                 return result
-            result = result[:i]
+            result = result[:i].rstrip()
             if result.startswith("ERROR:"):
                 julia_error = result.replace("in anonymous at no file",'')
                 raise RuntimeError(julia_error)
-            return result.rstrip()
+            return result
 
     def _an_element_impl(self):
         """
