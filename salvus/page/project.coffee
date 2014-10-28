@@ -997,6 +997,8 @@ class ProjectPage
 
 
     init_admin: () ->
+        if not @container?
+            return
         usage = @container.find(".project-disk_usage")
         if not account?.account_settings?.settings?.groups?
             setTimeout(@init_admin, 15000)
@@ -2371,9 +2373,16 @@ class ProjectPage
 
     init_sort_files_icon: () =>
         elt = @container.find(".project-sort-files")
+
         @_sort_by_time = local_storage(@project.project_id, '', 'sort_by_time')
-        if not @_sort_by_time
-            @_sort_by_time = true
+
+        if not @_sort_by_time?
+            settings = account?.account_settings?.settings
+            if settings?
+                @_sort_by_time = settings.other_settings.default_file_sort == 'time'
+            else
+                @_sort_by_time = false
+
         if @_sort_by_time
             elt.find("a").toggle()
         elt.find("a").tooltip(delay:{ show: 500, hide: 100 }).click () =>

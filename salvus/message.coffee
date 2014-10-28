@@ -568,6 +568,7 @@ exports.account_settings_defaults =
     other_settings     :
         confirm_close             : false
         mask_files                : true
+        default_file_sort         : 'time'
     editor_settings    :
         strip_trailing_whitespace : false
         show_trailing_whitespace  : true
