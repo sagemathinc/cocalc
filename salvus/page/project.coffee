@@ -2046,7 +2046,7 @@ class ProjectPage
             dialog.find('.salvus-signed-in-already').show()
             dialog.find("a[href=#create-project]").click () ->
                 dialog.modal('hide')
-                require('projects').create_new_project()
+                require('projects').create_new_project_dialog()
                 return false
         else
             dialog.find('.salvus-not-signed-in-already').show()
