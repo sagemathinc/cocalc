@@ -1355,7 +1355,6 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
-        window.cm = @codemirror
 
         elt1 = layout_elt.find(".salvus-editor-codemirror-input-box-1").find("textarea")
 
@@ -2021,8 +2020,6 @@ class PDFLatexDocument
         @base_filename = @filename_tex.slice(0, @filename_tex.length-4)
         @filename_pdf  =  @base_filename + '.pdf'
 
-        window.e = @
-
     page: (n) =>
         if not @_pages[n]?
             @_pages[n] = {}
@@ -2191,6 +2188,8 @@ class PDFLatexDocument
                           cb(err)
                  else
                      cb()
+            (cb) =>
+                @update_number_of_pdf_pages(cb)
         ], (err) =>
             opts.cb?(err, log))
 
@@ -2239,15 +2238,6 @@ class PDFLatexDocument
                         @_need_to_run.bibtex = true
 
                     @last_latex_log = log
-                    before = @num_pages
-                    @_parse_latex_log_for_num_pages(log)
-
-                    # Delete trailing removed pages from our local view of things; otherwise, they won't properly
-                    # re-appear later if they look identical, etc.
-                    if @num_pages < before
-                        for n in [@num_pages ... before]
-                            delete @_pages[n]
-
                     cb?(false, log)
 
     _run_sage: (target, cb) =>
@@ -2278,16 +2268,35 @@ class PDFLatexDocument
                     @_need_to_run.latex = true
                     cb?(false, log)
 
-    _parse_latex_log_for_num_pages: (log) =>
-        i = log.indexOf("Output written")
-        if i != -1
-            i = log.indexOf("(", i)
-            if i != -1
-                j = log.indexOf(" pages", i)
-                try
-                    @num_pages = parseInt(log.slice(i+1,j))
-                catch e
-                    console.log("BUG parsing number of pages")
+    pdfinfo: (cb) =>   # cb(err, info)
+        @_exec
+            command     : "pdfinfo"
+            args        : [@filename_pdf]
+            bash        : false
+            err_on_exit : true
+            cb          : (err, output) =>
+                if err
+                    cb(err)
+                    return
+                v = {}
+                for x in output.stdout?.split('\n')
+                    w = x.split(':')
+                    if w.length == 2
+                        v[w[0].trim()] = w[1].trim()
+                cb(undefined, v)
+
+    update_number_of_pdf_pages: (cb) =>
+        before = @num_pages
+        @pdfinfo (err, info) =>
+            # if err maybe no pdf yet -- just don't do anything
+            if not err and info?.Pages?
+                @num_pages = info.Pages
+                # Delete trailing removed pages from our local view of things; otherwise, they won't properly
+                # re-appear later if they look identical, etc.
+                if @num_pages < before
+                    for n in [@num_pages ... before]
+                        delete @_pages[n]
+            cb()
 
     # runs pdftotext; updates plain text of each page.
     # (not used right now, since we are using synctex instead...)
@@ -3021,7 +3030,6 @@ class HistoryEditor extends FileEditor
 
 class LatexEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        window.l =@
         # The are three components:
         #     * latex_editor -- a CodeMirror editor
         #     * preview -- display the images (page forward/backward/resolution)
