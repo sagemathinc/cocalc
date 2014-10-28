@@ -192,6 +192,7 @@ sagews_decorator_modes = [
     ['sage'        , 'python'],
     ['script'      , 'shell'],
     ['sh'          , 'shell'],
+    ['julia'       , 'text/x-julia']
 ]
 
 exports.define_codemirror_sagews_mode = () ->
@@ -292,7 +293,6 @@ templates = $("#salvus-editor-templates")
 
 class exports.Editor
     constructor: (opts) ->
-
         opts = defaults opts,
             project_page  : required
             initial_files : undefined # if given, attempt to open these files on creation
@@ -320,29 +320,52 @@ class exports.Editor
             for filename in opts.initial_files
                 @open(filename)
 
-        # TODO -- maybe neither of these get freed properly when project is closed.
-        # Also -- it's a bit weird to call them even if project not currently visible.
-        # Add resize trigger
+    activate_handlers: () =>
+        #console.log "activate_handlers - #{@project_id}"
+        $(document).keyup(@keyup_handler)
         $(window).resize(@_window_resize_while_editing)
 
-        $(document).on 'keyup', (ev) =>
-            if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
-                @project_page.display_tab("project-file-listing")
-                return false
-            else if ev.ctrlKey or ev.metaKey or ev.altKey
-                if ev.keyCode == 219
-                    pgs = @project_page.container.find(".file-pages li > a > span")
-                    idx = $(".super-menu.salvus-editor-filename-pill.active").index()
-                    next = pgs[(idx - 1) %% pgs.length]
-                    filename = next.innerHTML
-                    @display_tab(path:filename)
-                else if ev.keyCode == 221
-                    pgs = @project_page.container.find(".file-pages li > a > span")
-                    idx = $(".super-menu.salvus-editor-filename-pill.active").index()
-                    next = pgs[(idx + 1) %% pgs.length]
-                    filename = next.innerHTML
-                    @display_tab(path:filename)
-                return false
+    remove_handlers: () =>
+        #console.log "remove_handlers - #{@project_id}"
+        $(document).unbind 'keyup', @keyup_handler
+        $(window).unbind 'resize', @_window_resize_while_editing
+
+    close_all_open_files: () =>
+        for filename, tab of @tabs
+            tab.close_editor()
+
+    destroy: () =>
+        @remove_handlers()
+        @close_all_open_files()
+
+    keyup_handler: (ev) =>
+        #console.log("keyup handler for -- #{@project_id}", ev)
+        if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
+            #console.log("editor keyup")
+            @project_page.display_tab("project-file-listing")
+            return false
+        else if ev.ctrlKey
+            #console.log("mod ", ev.keyCode)
+            if ev.keyCode == 219    # [{
+                @switch_tab(-1)
+            else if ev.keyCode == 221   # }]
+                @switch_tab(1)
+            return false
+
+    switch_tab: (delta) =>
+        #console.log("switch_tab", delta)
+        pgs = @project_page.container.find(".file-pages")
+        idx = pgs.find(".active").index()
+        if idx == -1 # nothing active
+            return
+        e = pgs.children()
+        n = (idx + delta) % e.length
+        if n < 0
+            n += e.length
+        path = $(e[n]).data('name')
+        if path
+            @display_tab
+                path : path
 
     activity_indicator: (filename) =>
         e = @tabs[filename]?.open_file_pill
@@ -385,6 +408,7 @@ class exports.Editor
         @_window_resize_while_editing()
 
     _window_resize_while_editing: () =>
+        #console.log("_window_resize_while_editing -- #{@project_id}")
         @resize_open_file_tabs()
         if not @active_tab? or not @_editor_content_visible
             return
@@ -402,6 +426,7 @@ class exports.Editor
 
             if event?
                 if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
+                    #console.log("keyup: openfile_search")
                     @project_page.display_tab("project-new-file")
                     return false
 
@@ -797,10 +822,6 @@ class exports.Editor
                 x.push(t)
         return x
 
-    close_all_open_files: () =>
-        for filename, tab of @tabs
-            tab.close_editor()
-
     hide: () =>
         for filename, tab of @tabs
             if tab?
@@ -1173,7 +1194,10 @@ class CodeMirrorEditor extends FileEditor
             electric_chars            : editor_settings.electric_chars
             undo_depth                : editor_settings.undo_depth
             match_brackets            : editor_settings.match_brackets
+            code_folding              : editor_settings.code_folding
             auto_close_brackets       : editor_settings.auto_close_brackets
+            match_xml_tags            : editor_settings.match_xml_tags
+            auto_close_xml_tags       : editor_settings.auto_close_xml_tags
             line_wrapping             : editor_settings.line_wrapping
             spaces_instead_of_tabs    : editor_settings.spaces_instead_of_tabs
             style_active_line         : 15    # editor_settings.style_active_line  # (a number between 0 and 127)
@@ -1252,16 +1276,20 @@ class CodeMirrorEditor extends FileEditor
 
             "Shift-Tab"    : (editor)   => editor.unindent_selection()
 
-            "Ctrl-Space"   : "indentAuto"
             "Ctrl-'"       : "indentAuto"
 
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
+            "Ctrl-Space"   : "autocomplete"
+
             #"Ctrl-Q"       : (cm) => cm.foldCode(cm.getCursor())
 
 
             #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
+
+        if opts.match_xml_tags
+            extraKeys['Ctrl-J'] = "toMatchingTag"
 
         # We will replace this by a general framework...
         if misc.filename_extension(filename) == "sagews"
@@ -1276,7 +1304,7 @@ class CodeMirrorEditor extends FileEditor
             options =
                 firstLineNumber         : opts.first_line_number
                 autofocus               : false
-                mode                    : opts.mode
+                mode                    : {name:opts.mode, globalVars: true}
                 lineNumbers             : opts.line_numbers
                 showTrailingSpace       : opts.show_trailing_whitespace
                 indentUnit              : opts.indent_unit
@@ -1286,6 +1314,7 @@ class CodeMirrorEditor extends FileEditor
                 undoDepth               : opts.undo_depth
                 matchBrackets           : opts.match_brackets
                 autoCloseBrackets       : opts.auto_close_brackets
+                autoCloseTags           : opts.auto_close_xml_tags
                 lineWrapping            : opts.line_wrapping
                 readOnly                : opts.read_only
                 styleActiveLine         : opts.style_active_line
@@ -1293,8 +1322,14 @@ class CodeMirrorEditor extends FileEditor
                 showCursorWhenSelecting : true
                 extraKeys               : extraKeys
                 cursorScrollMargin      : 40
-                #foldGutter: true
-                #gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+
+            if opts.match_xml_tags
+                options.matchTags = {bothTags: true}
+
+            if opts.code_folding
+                 extraKeys["Ctrl-Q"] = (cm) -> cm.foldCode(cm.getCursor())
+                 options.foldGutter  = true
+                 options.gutters     = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 
             if opts.bindings? and opts.bindings != "standard"
                 options.keyMap = opts.bindings
@@ -1320,6 +1355,7 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
+        window.cm = @codemirror
 
         elt1 = layout_elt.find(".salvus-editor-codemirror-input-box-1").find("textarea")
 
@@ -1985,6 +2021,8 @@ class PDFLatexDocument
         @base_filename = @filename_tex.slice(0, @filename_tex.length-4)
         @filename_pdf  =  @base_filename + '.pdf'
 
+        window.e = @
+
     page: (n) =>
         if not @_pages[n]?
             @_pages[n] = {}
@@ -2003,6 +2041,25 @@ class PDFLatexDocument
         #console.log(opts.path)
         #console.log(opts.command + ' ' + opts.args.join(' '))
         salvus_client.exec(opts)
+
+    spell_check: (opts) =>
+        opts = defaults opts,
+            lang : undefined
+            cb   : required
+        if not opts.lang?
+            opts.lang = misc_page.language()
+        if opts.lang == 'disable'
+            opts.cb(undefined,[])
+            return
+        @_exec
+            command : "cat '#{@filename_tex}'|aspell --mode=tex --lang=#{opts.lang} list|sort|uniq"
+            bash    : true
+            cb      : (err, output) =>
+                if err
+                    opts.cb(err); return
+                if output.stderr
+                    opts.cb(output.stderr); return
+                opts.cb(undefined, output.stdout.slice(0,output.stdout.length-1).split('\n'))  # have to slice final \n
 
     inverse_search: (opts) =>
         opts = defaults opts,
@@ -2143,7 +2200,7 @@ class PDFLatexDocument
         sagetex_file = @base_filename + '.sagetex.sage'
         sha_marker = 'sha1sums'
         @_exec
-            command : command + "< /dev/null 2</dev/null; echo '#{sha_marker}'; sha1sum #{sagetex_file}"
+            command : command + "< /dev/null 2</dev/null; echo '#{sha_marker}'; sha1sum '#{sagetex_file}'"
             bash    : true
             timeout : 20
             err_on_exit : false
@@ -2171,7 +2228,11 @@ class PDFLatexDocument
                     if i != -1
                         j = log.indexOf(', and then run LaTeX', i)
                         if j != -1
-                            @_need_to_run.sage = log.slice(i + run_sage_on.length, j).trim()
+                            # the .replace(/"/g,'') is because sagetex tosses "'s around part of the filename
+                            # in some cases, e.g., when it has a space in it.  Tex itself won't accept
+                            # filenames with quotes, so this replacement isn't dangerous.  We don't need
+                            # or want these quotes, since we're not passing this command via bash/sh.
+                            @_need_to_run.sage = log.slice(i + run_sage_on.length, j).trim().replace(/"/g,'')
 
                     i = log.indexOf("No file #{@base_filename}.bbl.")
                     if i != -1
@@ -2960,6 +3021,7 @@ class HistoryEditor extends FileEditor
 
 class LatexEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
+        window.l =@
         # The are three components:
         #     * latex_editor -- a CodeMirror editor
         #     * preview -- display the images (page forward/backward/resolution)
@@ -2980,8 +3042,7 @@ class LatexEditor extends FileEditor
         @latex_editor.syncdoc.on 'connect', () =>
             @preview.zoom_width = @load_conf().zoom_width
             @update_preview()
-
-
+            @spell_check()
 
         v = path_split(@filename)
         @_path = v.head
@@ -3041,6 +3102,16 @@ class LatexEditor extends FileEditor
             cm0.on 'change', @_pause_passive_search
             cm1.on 'change', @_pause_passive_search
 
+    spell_check: (cb) =>
+        @preview.pdflatex.spell_check
+            lang : @load_conf_doc().lang
+            cb   : (err, words) =>
+                if err
+                    cb?(err)
+                else
+                    @latex_editor.codemirror.spellcheck_highlight(words)
+                    @latex_editor.codemirror1.spellcheck_highlight(words)
+
     init_draggable_split: () =>
         @_split_pos = @local_storage("split_pos")
         @_dragbar = dragbar = @element.find(".salvus-editor-latex-resize-bar")
@@ -3062,7 +3133,6 @@ class LatexEditor extends FileEditor
                 @local_storage('split_pos', @_split_pos)
                 #dragbar.css(left: )
                 @show()
-
 
     set_conf: (obj) =>
         conf = @load_conf()
@@ -3300,6 +3370,7 @@ class LatexEditor extends FileEditor
                 @update_preview () =>
                     if @_current_page == 'pdf-preview'
                         @preview_embed.update()
+                @spell_check()
 
 
     update_preview: (cb) =>
@@ -3518,6 +3589,8 @@ class LatexEditor extends FileEditor
             if @preview.pdflatex.filename_tex == file
                 @latex_editor.set_cursor_center_focus({line:mesg.line-1, ch:0})
             else
+                if @_path # make relative to home directory of project
+                    file = @_path + '/' + file
                 @editor.open file, (err, fname) =>
                     if not err
                         @editor.display_tab(path:fname)
@@ -3567,21 +3640,8 @@ class LatexEditor extends FileEditor
 
 
     download_pdf: () =>
-        button = @element.find("a[href=#pdf-download]")
-        button.icon_spin(true)
-        # TODO: THIS replicates code in project.coffee
-        salvus_client.read_file_from_project
-            project_id : @editor.project_id
-            path       : @filename.slice(0,@filename.length-3)+"pdf"
-            timeout    : 45
-            cb         : (err, result) =>
-                button.icon_spin(false)
-                if err
-                    alert_message(type:"error", message:"Error downloading PDF: #{err} -- #{misc.to_json(result)}")
-                else
-                    url = result.url + "&download"
-                    iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
-                    setTimeout((() -> iframe.remove()), 1000)
+        @editor.project_page.download_file
+            path : @filename.slice(0,@filename.length-3) + "pdf"
 
     _inverse_search: (opts) =>
         active = opts.active  # whether user actively clicked, in which case we may open a new file -- otherwise don't open anything.

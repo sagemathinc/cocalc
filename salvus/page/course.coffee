@@ -116,6 +116,18 @@ class Course
                     @render_student(student)
             @update_student_count()
 
+        @_show_deleted_assignments = @element.find(".salvus-course-show-deleted-assignments")
+        @_show_deleted_assignments.prop("checked", @local_storage("show_deleted_assignments"))
+        @_show_deleted_assignments.change () =>
+            @local_storage("show_deleted_assignments", @_show_deleted_assignments.is(":checked"))
+            # now re-render all deleted assignments
+            for assignment in @db.select({table : 'assignments'})
+                if assignment.deleted
+                    @render_assignment
+                        assignment : assignment
+                        append     : true
+            @update_assignment_count()
+
     init_syncdb: (cb) =>
         @element.find(".salvus-course-loading").show()
         synchronized_db
@@ -435,12 +447,18 @@ class Course
             table         : undefined   # ignored
 
         e = @element.find("[data-student_id='#{opts.student_id}']")
+        name = @student_name(opts)
 
         if e.length == 0
             e = templates.find(".salvus-course-student").clone()
             e.attr("data-student_id", opts.student_id).attr("data-account_id", opts.account_id)
             e.find("a[href=#delete]").click () =>
-                @delete_student(student_id: opts.student_id)
+                mesg = "<h3><i class='fa fa-trash'></i> Delete Student</h3><hr>Delete #{name}?"
+                if not @_show_deleted_students.is(":checked")
+                    mesg += "<br><br><span class='lighten'>(Select 'Show deleted students' in settings to see deleted students.)</span>"
+                bootbox.confirm mesg, (result) =>
+                    if result
+                        @delete_student(student_id: opts.student_id)
                 return false
 
             e.find("a[href=#undelete]").click () =>
@@ -484,7 +502,6 @@ class Course
         create_project_btn = e.find("a[href=#create-project]")
         open_project_btn   = e.find("a[href=#open-project]")
 
-        name = @student_name(opts)
         e.find(".salvus-course-student-name").text(name)
         search_text = name.toLowerCase()
 
@@ -499,10 +516,12 @@ class Course
                 create_project_btn.hide()
 
         if opts.deleted
+            e.addClass('salvus-course-student-deleted')
             e.find(".salvus-course-student-props").addClass('salvus-course-student-deleted')
             e.find("a[href=#undelete]").show()
             e.find("a[href=#delete]").hide()
         else
+            e.removeClass('salvus-course-student-deleted')
             e.find(".salvus-course-student-props").removeClass('salvus-course-student-deleted')
             e.find("a[href=#undelete]").hide()
             e.find("a[href=#delete]").show()
@@ -844,7 +863,8 @@ class Course
                     select.attr(size:Math.min(10, resp.directories.length))
                     existing_assignments = {}
                     for x in @db.select(table:'assignments')
-                        existing_assignments[x.path] = true
+                        if not x.deleted
+                            existing_assignments[x.path] = true
                     for path in resp.directories
                         if not existing_assignments[path]
                             select.append($("<option>").attr(value:path, label:path).text(path))
@@ -894,6 +914,23 @@ class Course
     init_assignments: () =>
         @assignments_elt = @element.find(".salvus-course-assignments")
 
+    delete_assignment: (opts) =>
+        opts = defaults opts,
+            assignment_id : required
+
+        @db.update
+            set   : {deleted : true}
+            where : {assignment_id : opts.assignment_id, table : 'assignments'}
+        @db.save()
+
+    undelete_assignment: (opts) =>
+        opts = defaults opts,
+            assignment_id : required
+        @db.update
+            set   : {deleted : false}
+            where : {assignment_id : opts.assignment_id, table : 'assignments'}
+        @db.save()
+
     render_assignment: (opts) =>
         opts = defaults opts,
             assignment  : required
@@ -912,11 +949,25 @@ class Course
             e.find(".salvus-course-assignment-path").click () =>
                 @open_directory(assignment.path)
                 return false
-            #e.find(".salvus-course-collect-path").click () =>
-            #    @open_directory(assignment.collect_path)
-            #    return false
+
+            # delete assignment
+            e.find("a[href=#delete]").click () =>
+                mesg = "<h3><i class='fa fa-trash'></i> Delete Assignment</h3><hr>Delete #{assignment.path}?"
+                if not @_show_deleted_assignments.is(":checked")
+                    mesg += "<br><br><span class='lighten'>(Select 'Show deleted assignments' in settings to see deleted assignments.)</span>"
+                bootbox.confirm mesg, (result) =>
+                    if result
+                        @delete_assignment(assignment_id: opts.assignment.assignment_id)
+                return false
+
+            # undelete assignment
+            e.find("a[href=#undelete]").click () =>
+                @undelete_assignment(assignment_id: opts.assignment.assignment_id)
+                return false
+
+            # button: assign files to all students
             assignment_button = e.find("a[href=#assignment-files]").click () =>
-                bootbox.confirm "Copy assignment out to all students (newer files will not be overwritten)?", (result) =>
+                bootbox.confirm "Copy assignment '#{assignment.path}' to all students (newer files will not be overwritten)?", (result) =>
                     if result
                         assignment_button.icon_spin(start:true)
                         @assign_files_to_students
@@ -925,8 +976,10 @@ class Course
                                 assignment_button.icon_spin(false)
                                 if err
                                     alert_message(type:'error', message:"error sharing files with students - #{err}")
+
+            # button: collect files from all students
             collect_button = e.find("a[href=#collect-files]").click () =>
-                bootbox.confirm "Collect assignment from all students?", (result) =>
+                bootbox.confirm "Collect assignment '#{assignment.path}' from all students?", (result) =>
                     if result
                         collect_button.icon_spin(start:true)
                         @collect_assignment_from_students
@@ -934,14 +987,57 @@ class Course
                             cb       : (err) =>
                                 collect_button.icon_spin(false)
 
+            # button: return graded assignments to students
             return_button = e.find("a[href=#return-graded]").click () =>
-                bootbox.confirm "Return graded assignments to all students?", (result) =>
+                bootbox.confirm "Return graded assignment '#{assignment.path}' to all students?", (result) =>
                     if result
                         return_button.icon_spin(start:true)
                         @return_graded_to_students
                             assignment_id : assignment.assignment_id
                             cb       : (err) =>
                                 return_button.icon_spin(false)
+
+        # NOTE: for now we just put everything -- visible or not -- in the DOM.  This is less
+        # scalable -- but the number of assignments is likely <= 30...
+        contain = @element.find(".salvus-course-page-assignment").find(".salvus-course-search-contain")
+        hide = false
+        if @assignments_search_box?
+            v = @assignments_search_box.val().trim()
+            if v
+                contain.show().find(".salvus-course-search-query").text(v)
+                search = assignment.path + assignment.collect_path
+                hide = false
+                for x in v.split(' ')
+                    if search.indexOf(x) == -1
+                        hide = true
+                        break
+                if hide
+                    e.hide()
+                else
+                    e.show()
+            else
+                contain.hide()
+                e.show()
+
+        if not hide
+            if assignment.deleted
+                if @_show_deleted_assignments.is(":checked")
+                    e.show()
+                else
+                    e.hide()
+            else
+                e.show()
+
+        if assignment.deleted
+            e.addClass("salvus-course-assignment-deleted")
+            e.find(".salvus-course-assignment-props").addClass('salvus-course-assignment-deleted')
+            e.find("a[href=#undelete]").show()
+            e.find("a[href=#delete]").hide()
+        else
+            e.removeClass("salvus-course-assignment-deleted")
+            e.find(".salvus-course-assignment-props").removeClass('salvus-course-assignment-deleted')
+            e.find("a[href=#undelete]").hide()
+            e.find("a[href=#delete]").show()
 
 
         e.find(".salvus-course-assignment-path").text(assignment.path)
@@ -1025,26 +1121,6 @@ class Course
                 collected_dropdown.append(t)
             )()
 
-        # NOTE: for now we just put everything -- visible or not -- in the DOM.  This is less
-        # scalable -- but the number of assignments is likely <= 30...
-        contain = @element.find(".salvus-course-page-assignment").find(".salvus-course-search-contain")
-        if @assignments_search_box?
-            v = @assignments_search_box.val().trim()
-            if v
-                contain.show().find(".salvus-course-search-query").text(v)
-                search = assignment.path + assignment.collect_path
-                hide = false
-                for x in v.split(' ')
-                    if search.indexOf(x) == -1
-                        hide = true
-                        break
-                if hide
-                    e.hide()
-                else
-                    e.show()
-            else
-                contain.hide()
-                e.show()
 
     collect_assignment_from_students: (opts) =>
         opts = defaults opts,
@@ -1206,7 +1282,12 @@ class Course
         @db.select({table : 'assignments'})
 
     update_assignment_count: () =>
-        n = @assignments().length
+        v = @assignments()
+        if @_show_deleted_assignments.is(":checked")
+            n = v.length
+        else
+            n = (x for x in v when not x.deleted).length
+
         @element.find(".salvus-course-assignment-count").text("(#{n})")
         if n == 0
             @element.find(".salvus-course-assignments-none").show()

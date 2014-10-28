@@ -942,6 +942,12 @@ class TaskList
         if editor_settings.bindings != "standard"
             opts.keyMap = editor_settings.bindings
 
+        if editor_settings.code_folding
+             extraKeys["Ctrl-Q"] = (cm) -> cm.foldCode(cm.getCursor())
+             opts.foldGutter     = true
+             opts.gutters        = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+
+
         cm = CodeMirror.fromTextArea(elt.find("textarea")[0], opts)
         cm.save = @save
         if editor_settings.bindings == 'vim'

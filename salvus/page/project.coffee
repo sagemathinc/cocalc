@@ -3,8 +3,6 @@
 # Project page -- browse the files in a project, etc.
 #
 ###############################################################################
-ENABLE_PUBLIC = true
-
 
 {IS_MOBILE}     = require("feature")
 {top_navbar}    = require('top_navbar')
@@ -47,6 +45,9 @@ MAX_FILE_LISTING_SIZE = 300
 # timeout in seconds when downloading files etc., from web in +New dialog.
 FROM_WEB_TIMEOUT_S = 45
 
+# for the new file dialog
+BAD_FILENAME_CHARACTERS = '\\/'
+BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%'
 
 # How long to cache public paths in this project
 PUBLIC_PATHS_CACHE_TIMEOUT_MS = 1000*60
@@ -136,19 +137,23 @@ class ProjectPage
     activity_indicator: () =>
         top_navbar.activity_indicator(@project.project_id)
 
+    mini_command_line_keydown: (evt) =>
+        #console.log("mini_command_line_keydown")
+        if evt.which == 13 # enter
+            try
+                @command_line_exec()
+            catch e
+                console.log("mini command line bug -- ", e)
+            return false
+        else if evt.which == 27 # escape
+            @hide_command_line_output()
+            return false
+
     init_mini_command_line: () =>
         # Activate the mini command line
-        cmdline = @container.find(".project-command-line-input").tooltip(delay:{ show: 500, hide: 100 })
-        cmdline.keydown (evt) =>
-            if evt.which == 13 # enter
-                try
-                    @command_line_exec()
-                catch e
-                    console.log(e)
-                return false
-            else if evt.which == 27 # escape
-                @hide_command_line_output()
-                return false
+        @_cmdline = @container.find(".project-command-line-input")
+        @_cmdline.tooltip(delay:{ show: 500, hide: 100 })
+        @_cmdline.keydown(@mini_command_line_keydown)
 
         @container.find(".project-command-line-output").find("a[href=#clear]").click () =>
             @hide_command_line_output()
@@ -158,7 +163,7 @@ class ProjectPage
             @command_line_exec()
 
         # TODO: this will be for command line tab completion
-        #cmdline.keydown (evt) =>
+        #@_cmdline.keydown (evt) =>
         #    if evt.which == 9
         #        @command_line_tab_complete()
         #        return false
@@ -214,6 +219,15 @@ class ProjectPage
                 isdir    : true
                 url      : document.URL
 
+    # call when project is closed completely
+    destroy: () =>
+        @editor?.destroy()
+        @save_browser_local_data()
+        delete project_pages[@project.project_id]
+        @project_log?.disconnect_from_session()
+        clearInterval(@_update_last_snapshot_time)
+        @_cmdline?.unbind('keydown', @mini_command_line_keydown)
+
     init_new_tab_in_navbar: () =>
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
         @container.top_navbar
@@ -222,16 +236,16 @@ class ProjectPage
             icon  : 'fa-edit'
 
             onclose : () =>
-                @editor?.close_all_open_files()
-                @save_browser_local_data()
-                delete project_pages[@project.project_id]
-                @project_log?.disconnect_from_session()
-                clearInterval(@_update_last_snapshot_time)
+                @destroy()
+
+            onblur: () =>
+                @editor?.remove_handlers()
 
             onshow: () =>
                 if @project?
                     document.title = "Project - #{@project.title}"
                     @push_state()
+                @editor?.activate_handlers()
                 @editor?.refresh()
 
             onfullscreen: (entering) =>
@@ -272,7 +286,7 @@ class ProjectPage
             #window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.ownername + '/' + @project.name + '/' + url)
         # For now, we are just going to default to project-id based URL's, since they are stable and will always be supported.
         # I can extend to the above later in another release, without any harm.
-        window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.project_id + '/' + url)
+        window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.project_id + '/' + misc.encode_path(url))
         ga('send', 'pageview', window.location.pathname)
 
 
@@ -412,8 +426,9 @@ class ProjectPage
 
     init_file_search: () =>
         @_file_search_box = @container.find(".salvus-project-search-for-file-input")
-        @_file_search_box.keyup (event) =>
+        @_file_search_box.keydown (event) =>
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79
+                #console.log("keyup: init_file_search")
                 @display_tab("project-new-file")
                 return false
             @update_file_search(event)
@@ -490,7 +505,7 @@ class ProjectPage
                 try
                     that.search(t.val())
                 catch e
-                    console.log(e)
+                    console.log("search bug ", e)
                 return false
 
         for x in ['recursive', 'case-sensitive', 'hidden', 'show-command']
@@ -983,6 +998,9 @@ class ProjectPage
 
     init_admin: () ->
         usage = @container.find(".project-disk_usage")
+        if not account?.account_settings?.settings?.groups?
+            setTimeout(@init_admin, 15000)
+            return
 
         if 'admin' in account.account_settings.settings.groups
             @container.find(".project-quota-edit").show()
@@ -1117,7 +1135,7 @@ class ProjectPage
         if IS_MOBILE
             dz.append($('<span class="message" style="font-weight:bold;font-size:14pt">Tap to select files to upload</span>'))
         dz_container.append(dz)
-        dest_dir = encodeURIComponent(@new_file_tab.find(".project-new-file-path").text())
+        dest_dir = misc.encode_path(@new_file_tab.find(".project-new-file-path").text())
         dz.dropzone
             url: window.salvus_base_url + "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
             maxFilesize: 128 # in megabytes
@@ -1133,6 +1151,10 @@ class ProjectPage
             name = $.trim(@new_file_tab_input.val())
             if name.length == 0
                 return ''
+            for bad_char in BAD_FILENAME_CHARACTERS
+                if name.indexOf(bad_char) != -1
+                    bootbox.alert("Filenames must not contain the character '#{bad_char}'.")
+                    return ''
             s = $.trim(@new_file_tab.find(".project-new-file-path").text() + name)
             if ext?
                 if misc.filename_extension(s) != ext
@@ -1175,6 +1197,10 @@ class ProjectPage
 
         create_file = (ext) =>
             p = path(ext)
+
+            if not p
+                return false
+
             ext = misc.filename_extension(p)
 
             if ext == 'term'
@@ -1184,6 +1210,12 @@ class ProjectPage
             if ext in BANNED_FILE_TYPES
                 alert_message(type:"error", message:"Creation of #{ext} files not supported.", timeout:3)
                 return false
+
+            if ext == 'tex'
+                for bad_char in BAD_LATEX_FILENAME_CHARACTERS
+                    if p.indexOf(bad_char) != -1
+                        bootbox.alert("Filenames must not contain the character '#{bad_char}'.")
+                        return false
 
             if p.length == 0
                 @new_file_tab_input.focus()
@@ -1236,11 +1268,12 @@ class ProjectPage
         download_button = @new_file_tab.find("a[href=#new-download]").click(click_new_file_button)
 
         @new_file_tab.find("a[href=#new-folder]").click(create_folder)
-        @new_file_tab_input.keyup (event) =>
+        @new_file_tab_input.keydown (event) =>
             if event.keyCode == 13
                 click_new_file_button()
                 return false
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
+                #console.log("keyup: new_file_tab")
                 @display_tab("project-activity")
                 return false
 
@@ -1365,7 +1398,7 @@ class ProjectPage
             else
                 dialog.find("a[href=#delete-file]").hide()
 
-            if ENABLE_PUBLIC and not @public_access and not (obj.fullname == '.snapshots' or misc.startswith(obj.fullname,'.snapshots/'))
+            if not @public_access and not (obj.fullname == '.snapshots' or misc.startswith(obj.fullname,'.snapshots/'))
                 @is_path_published
                     path : obj.fullname
                     cb   : (err, pub) =>
@@ -3457,7 +3490,7 @@ class ProjectPage
                     alert_message(type:"error", message:"File download prevented -- (#{result.error})")
                     opts.cb?(result.error)
                 else
-                    url = result.url + "&download"
+                    url = misc.encode_path(result.url) + "&download"
                     if opts.prefix?
                         i = url.lastIndexOf('/')
                         url = url.slice(0,i+1) + opts.prefix + url.slice(i+1)
@@ -3468,12 +3501,22 @@ class ProjectPage
     download_file: (opts) =>
         opts = defaults opts,
             path    : required
+            auto    : true
             timeout : 45
-            cb      : undefined   # cb(err) when file download from browser starts.
+            cb      : undefined   # cb(err) when file download from browser starts -- instant since we use raw path
 
-        url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{opts.path}"
-        download_file(url)
-        bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3><b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")
+        if misc.filename_extension(opts.path) == 'pdf'
+            # unfortunately, download_file doesn't work for pdf these days...
+            opts.auto = false
+
+        url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{misc.encode_path(opts.path)}"
+        if opts.auto
+            download_file(url)
+            bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3><hr> If <b>#{opts.path}</b> isn't downloading <a target='_blank' href='#{url}'>open it in another tab</a>.")
+        else
+            window.open(url)
+            #bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3> <hr><a target='_blank' href='#{url}'> Open #{opts.path} in another tab</a>.")
+
         opts.cb?()
 
     open_file_in_another_browser_tab: (path) =>
@@ -3481,8 +3524,7 @@ class ProjectPage
             project_id : @project.project_id
             path       : path
             cb         : (err, result) =>
-                window.open(result.url)
-
+                window.open(misc.encode_path(result.url))
 
     open_file: (opts) =>
         opts = defaults opts,

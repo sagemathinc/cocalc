@@ -413,6 +413,9 @@ EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
                               'smart_indent',
                               'match_brackets',
                               'auto_close_brackets',
+                              'match_xml_tags',
+                              'auto_close_xml_tags',
+                              'code_folding'
                               'electric_chars',
                               'spaces_instead_of_tabs',
                               'track_revisions']
@@ -444,6 +447,9 @@ DEFAULT_ACCOUNT_SETTINGS =
         electric_chars            : true
         match_brackets            : true
         auto_close_brackets       : true
+        auto_close_xml_tags       : true
+        code_folding              : true
+        match_xml_tags            : true
         spaces_instead_of_tabs    : true
         multiple_cursors          : true
         track_revisions           : false

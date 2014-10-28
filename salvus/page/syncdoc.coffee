@@ -1607,6 +1607,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if mesg.stderr?
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
+        if mesg.code?
+            x = $("<div class='sagews-output-code'>")
+            output.append(x)
+            if mesg.code.mode
+                CodeMirror.runMode(mesg.code.source, mesg.code.mode, x[0])
+            else
+                x.text(mesg.code.source)
+
         if mesg.html?
             e = $("<span class='sagews-output-html'>").html(mesg.html).mathjax()
             output.append(e)
@@ -1649,7 +1657,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 if val.url?
                     target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that change
                 else
-                    target = "#{window.salvus_base_url}/blobs/#{val.filename}?uuid=#{val.uuid}"
+                    target = "#{window.salvus_base_url}/blobs/#{misc.encode_path(val.filename)}?uuid=#{val.uuid}"
                 switch misc.filename_extension(val.filename)
                     # TODO: harden DOM creation below?
 

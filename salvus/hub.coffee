@@ -191,10 +191,9 @@ init_http_server = () ->
                 #winston.debug("serving a blob: #{misc.to_json(query)}")
                 if not query.uuid?
                     res.writeHead(500, {'Content-Type':'text/plain'})
-                    res.end("internal error: #{error}")
+                    res.end("internal error")
                     return
                 get_blob uuid:query.uuid, cb:(error, data) ->
-                    #winston.debug("query got back: #{error}, #{misc.to_json(data)}")
                     if error
                         res.writeHead(500, {'Content-Type':'text/plain'})
                         res.end("internal error: #{error}")

@@ -3249,3 +3249,12 @@ def go(s):
             os.unlink(name)
         except:
             pass
+
+
+
+# Julia pexepect interface support
+import julia
+import sage.interfaces
+sage.interfaces.julia = julia # the module
+julia = julia.julia # specific instance
+sage.interfaces.all.julia = julia

@@ -37,11 +37,19 @@ MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
 # TODO: this needs to use salvus.project_info() or an environment variable or something!
 site = 'https://cloud.sagemath.com'
 
-import argparse, base64, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile
+import argparse, base64, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile, urllib
 from uuid import uuid4
+
+def escape_path(s):
+    # see http://stackoverflow.com/questions/946170/equivalent-javascript-functions-for-pythons-urllib-quote-and-urllib-unquote
+    s = urllib.quote(unicode(s).encode('utf-8'), safe='~@#$&()*!+=:;,.?/\'')
+    return s.replace('#','%23').replace("?",'%3F')
 
 def wrap(s, c=90):
     return '\n'.join(['\n'.join(textwrap.wrap(x, c)) for x in s.splitlines()])
+
+def tex_escape(s):
+    return s.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" ).replace('%','\\%').replace('#','\\#')
 
 # create a subclass and override the handler methods
 
@@ -82,7 +90,7 @@ class Parser(HTMLParser.HTMLParser):
 
     def handle_data(self, data):
         # safe because all math stuff has already been escaped.
-        self.result += data.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" )
+        self.result += tex_escape(data)
 
 def sanitize_math_input(s):
     from markdown2Mathjax import sanitizeInput
@@ -116,7 +124,6 @@ def html2tex(doc):
     # number is assumed to indicate that we're outside of math and thus need to
     # escape.
     parser.dollars_found = 0
-    print "sanitized input='%s'"%tmp[-1][0][0]
     parser.feed(tmp[-1][0][0])
     return reconstruct_math(parser.result, tmp)
 
@@ -152,13 +159,14 @@ class Cell(object):
             self.output_uuid = w[0] if len(w) > 0 else ''
             self.output = []
             for x in w[1:]:
-                try:
-                    self.output.append(json.loads(x))
-                except ValueError:
+                if x:
                     try:
-                        print "**WARNING:** Unable to de-json '%s'"%x
-                    except:
-                        print "Unable to de-json some output"
+                        self.output.append(json.loads(x))
+                    except ValueError:
+                        try:
+                            print "**WARNING:** Unable to de-json '%s'"%x
+                        except:
+                            print "Unable to de-json some output"
         else:
             self.output = self.output_uuid = ''
 
@@ -181,10 +189,11 @@ class Cell(object):
         for x in self.output:
             if 'stdout' in x:
                 s += "\\begin{verbatim}" + wrap(x['stdout']) + "\\end{verbatim}"
-                #s += "\\begin{lstlisting}" + x['stdout'] + "\\end{lstlisting}"
             if 'stderr' in x:
                 s += "{\\color{dredcolor}\\begin{verbatim}" + wrap(x['stderr']) + "\\end{verbatim}}"
-                #s += "\\begin{lstlisting}" + x['stderr'] + "\\end{lstlisting}"
+            if 'code' in x:
+                # TODO: for now ignoring that not all code is Python...
+                s += "\\begin{lstlisting}" + x['code']['source'] + "\\end{lstlisting}"
             if 'html' in x:
                 s += html2tex(x['html'])
             if 'md' in x:
@@ -204,7 +213,7 @@ class Cell(object):
                     filename = os.path.split(target)[-1]
                 else:
                     filename = os.path.split(val['filename'])[-1]
-                    target = "%s/blobs/%s?uuid=%s"%(site, filename, val['uuid'])
+                    target = "%s/blobs/%s?uuid=%s"%(site, escape_path(filename), val['uuid'])
 
                 base, ext = os.path.splitext(filename)
                 ext = ext.lower()[1:]
@@ -220,12 +229,12 @@ class Cell(object):
                                 print msg
                         img = filename
                     else:
-                        cmd = 'rm "%s"; wget "%s" --output-document="%s"'%(filename, target, filename)
+                        cmd = 'rm -f "%s"; wget "%s" --output-document="%s"'%(filename, target, filename)
                         print cmd
                         if os.system(cmd) == 0:
                             if ext == 'svg':
                                 # hack for svg files; in perfect world someday might do something with vector graphics, see http://tex.stackexchange.com/questions/2099/how-to-include-svg-diagrams-in-latex
-                                cmd = 'rm "%s"; convert -antialias -density 150 "%s" "%s"'%(base+'.png',filename,base+'.png')
+                                cmd = 'rm -f "%s"; convert -antialias -density 150 "%s" "%s"'%(base+'.png',filename,base+'.png')
                                 os.system(cmd)
                                 filename = base+'.png'
                             img = filename
@@ -293,12 +302,13 @@ class Worksheet(object):
     def latex_preamble(self, title='',author='', date='', contents=True):
         title = title.replace('_','\_')
         author = author.replace('_','\_')
+        # The utf8x instead of utf8 below is because of http://tex.stackexchange.com/questions/83440/inputenc-error-unicode-char-u8-not-set-up-for-use-with-latex, which I needed due to approx symbols, etc. causing trouble.
         #\usepackage{attachfile}
         s=r"""
 \documentclass{article}
 \usepackage{fullpage}
 \usepackage{amsmath}
-\usepackage[utf8]{inputenc}
+\usepackage[utf8x]{inputenc}
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{etoolbox}
@@ -337,10 +347,10 @@ sensitive=true}
 \definecolor{dgraycolor}{rgb}{0.30,0.3,0.30}
 \definecolor{graycolor}{rgb}{0.35,0.35,0.35}
 """
-        s += "\\title{%s}\n"%title
-        s += "\\author{%s}\n"%author
+        s += "\\title{%s}\n"%tex_escape(title)
+        s += "\\author{%s}\n"%tex_escape(author)
         if date:
-            s += "\\date{%s}\n"%date
+            s += "\\date{%s}\n"%tex_escape(date)
         s += "\\begin{document}\n"
         s += "\\maketitle\n"
         #if self._filename:

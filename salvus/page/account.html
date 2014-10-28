@@ -414,6 +414,15 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 
                         <div class="row">
                             <div class="col-sm-12 ">
+                                <div class="checkbox"><label class="" rel="tooltip" title="Fold/unfold blocks of code">
+                                    <input type="checkbox" checked="checked" class="account-settings-code_folding" rel="tooltip">Code folding:
+                                    <span class="lighten">fold code using ⌃Q</span>
+                                </label></div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-12 ">
                                 <div class="checkbox"><label class="" rel="tooltip" title="Whether to use the context sensitive indentation that the mode provides (or just indent the same as the line before).">
                                     <input type="checkbox" checked="checked" class="account-settings-smart_indent">Smart indent:
                                     <span class="lighten">context sensitive indentation</span>
@@ -444,6 +453,24 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                 <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically add the closing bracket.">
                                     <input type="checkbox" checked="checked" class="account-settings-auto_close_brackets">Auto brackets:
                                     <span class="lighten">automatically close brackets</span>
+                                </label></div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-12 ">
+                                <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically highlight and match tags in xml modes.">
+                                    <input type="checkbox" checked="checked" class="account-settings-match_xml_tags">Match XML tags:
+                                    <span class="lighten">automatically match XML tags</span>
+                                </label></div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-12 ">
+                                <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically add the closing tags in xml modes.">
+                                    <input type="checkbox" checked="checked" class="account-settings-auto_close_xml_tags">Auto XML tags:
+                                    <span class="lighten">automatically close XML tags</span>
                                 </label></div>
                             </div>
                         </div>
@@ -510,16 +537,142 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 
 
                         <div class="row">
-                            <div class="col-sm-6 " rel="tooltip" title="Set which key combination causes code to be evaluated (only applies to newly opened worksheets).">Worksheet evaluate key</div>
+                            <div class="col-sm-6 ">Next file tab</div>
+                            <div class="col-sm-3 ">
+                                ⌃]
+                            </div>
+                            <div class="col-sm-3 ">
+                                control+]
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-6 ">Previous file tab</div>
+                            <div class="col-sm-3 ">
+                                ⌃[
+                            </div>
+                            <div class="col-sm-3 ">
+                                control+[
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-6 ">Smaller text</div>
+                            <div class="col-sm-3 ">
+                                ⌃&lt;
+                            </div>
+                            <div class="col-sm-3 ">
+                                control+&lt;
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-6 ">Bigger text</div>
+                            <div class="col-sm-3 ">
+                                ⌃&gt;
+                            </div>
+                            <div class="col-sm-3 ">
+                                control+&gt;
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-6 ">Go to line</div>
+                            <div class="col-sm-3 ">
+                                ⌃L <span class="salvus-apple hide">or ⌘l</span>
+                            </div>
+                            <div class="col-sm-3 ">
+                                control+L <span class="salvus-apple hide">or command+L</span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-6 ">Fold/unfold code block</div>
+                            <div class="col-sm-3 ">
+                                ⌃Q
+                            </div>
+                            <div class="col-sm-3 ">
+                                control+Q
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-6 ">Shift selected text right</div>
+                            <div class="col-sm-3 ">
+                                ⇥
+                            </div>
+                            <div class="col-sm-3 ">
+                                tab
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-6 ">Shift selected text left</div>
+                            <div class="col-sm-3 ">
+                               ⇧⇥
+                            </div>
+                            <div class="col-sm-3 ">
+                                shift+tab
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-6 ">Split view in any editor</div>
+                            <div class="col-sm-3 ">
+                               ⌃I <span class="salvus-apple hide">or ⌘I</span>
+                            </div>
+                            <div class="col-sm-3 ">
+                                control+I <span class="salvus-apple hide">or command+I</span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-6 ">Autoindent selection</div>
+                            <div class="col-sm-3 ">
+                                ⌃'
+                            </div>
+                            <div class="col-sm-3 ">
+                               control+'
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-6 ">Simple autocomplete (any language)</div>
+                            <div class="col-sm-3 ">
+                               ⌃␣
+                            </div>
+                            <div class="col-sm-3 ">
+                                control+space
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-6 ">Sage worksheet autocomplete</div>
+                            <div class="col-sm-3 ">
+                               ⇥
+                            </div>
+                            <div class="col-sm-3 ">
+                                tab
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-6 ">Split cell in Sage worksheet</div>
+                            <div class="col-sm-3 ">
+                               ⌃; <span class="salvus-apple hide">or ⌘;</span>
+                            </div>
+                            <div class="col-sm-3 ">
+                                control+; <span class="salvus-apple hide">or command+;</span>
+                            </div>
+                        </div>
+
+
+                        <div class="row">
+                            <div class="col-sm-6 " rel="tooltip" title="Set which key combination causes code to be evaluated (only applies to newly opened worksheets).">Sage Worksheet evaluate key</div>
                             <div class="col-sm-6 ">
                                 <select id="account-settings-evaluate_key" class="form-control">
-                                    <option value="Shift-Enter">Shift-Enter</option>
-                                    <option value="Enter">Enter (Shift-Enter for newline)</option>
+                                    <option value="Shift-Enter">shift+enter</option>
+                                    <option value="Enter">enter (shift+enter for newline)</option>
                                 </select>
                                 <br><span class="lighten"></span>
                             </div>
                         </div>
-
 
                     </div>
 
