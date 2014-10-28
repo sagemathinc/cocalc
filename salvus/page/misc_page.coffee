@@ -473,6 +473,33 @@ exports.define_codemirror_extensions = () ->
         else
             CodeMirror.runMode(opts.content, 'text/x-rst', element.find(".salvus-codemirror-introspect-content-docstring")[0])
 
+    # Codemirror extension that takes as input an arrow of words (or undefined)
+    # and visibly keeps those marked as misspelled.  If given empty input, cancels this.
+    # If given another input, that replaces the current one.
+    CodeMirror.defineExtension 'spellcheck_highlight', (words) ->
+        cm = @
+        if cm._spellcheck_highlight_overlay?
+            cm.removeOverlay(cm._spellcheck_highlight_overlay)
+            delete cm._spellcheck_highlight_overlay
+        if words? and words.length > 0
+            v = {}
+            # make faster-to-check dictionary
+            for w in words
+                v[w] = true
+            words = v
+            # define overlay mode
+            token = (stream, state) ->
+                # stream.match(/^\w+/) means "begins with 1 or more word characters", and eats them all.
+                if stream.match(/^\w+/) and words[stream.current()]
+                    return 'spell-error'
+                # eat whitespace
+                while stream.next()?
+                    # stream.match(/^\w+/, false) means "begins with 1 or more word characters", but don't eat them up
+                    if stream.match(/^\w+/, false)
+                        return
+            cm._spellcheck_highlight_overlay = {token: token}
+            cm.addOverlay(cm._spellcheck_highlight_overlay)
+
 templates.find(".salvus-codemirror-introspect").find("button").click () ->
     templates.find(".salvus-codemirror-introspect").modal('hide')
     element.data('editor').focus()
@@ -611,4 +638,5 @@ exports.load_coffeescript_compiler = (cb) ->
 
 exports.html_to_text = (html) -> $($.parseHTML(html)).text()
 
-
+exports.language = () ->
+    (if navigator.languages then navigator.languages[0] else (navigator.language or navigator.userLanguage))

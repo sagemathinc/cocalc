@@ -2021,6 +2021,8 @@ class PDFLatexDocument
         @base_filename = @filename_tex.slice(0, @filename_tex.length-4)
         @filename_pdf  =  @base_filename + '.pdf'
 
+        window.e = @
+
     page: (n) =>
         if not @_pages[n]?
             @_pages[n] = {}
@@ -2039,6 +2041,25 @@ class PDFLatexDocument
         #console.log(opts.path)
         #console.log(opts.command + ' ' + opts.args.join(' '))
         salvus_client.exec(opts)
+
+    spell_check: (opts) =>
+        opts = defaults opts,
+            lang : undefined
+            cb   : required
+        if not opts.lang?
+            opts.lang = misc_page.language()
+        if opts.lang == 'disable'
+            opts.cb(undefined,[])
+            return
+        @_exec
+            command : "cat '#{@filename_tex}'|aspell --mode=tex --lang=#{opts.lang} list|sort|uniq"
+            bash    : true
+            cb      : (err, output) =>
+                if err
+                    opts.cb(err); return
+                if output.stderr
+                    opts.cb(output.stderr); return
+                opts.cb(undefined, output.stdout.slice(0,output.stdout.length-1).split('\n'))  # have to slice final \n
 
     inverse_search: (opts) =>
         opts = defaults opts,
@@ -3000,6 +3021,7 @@ class HistoryEditor extends FileEditor
 
 class LatexEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
+        window.l =@
         # The are three components:
         #     * latex_editor -- a CodeMirror editor
         #     * preview -- display the images (page forward/backward/resolution)
@@ -3020,8 +3042,7 @@ class LatexEditor extends FileEditor
         @latex_editor.syncdoc.on 'connect', () =>
             @preview.zoom_width = @load_conf().zoom_width
             @update_preview()
-
-
+            @spell_check()
 
         v = path_split(@filename)
         @_path = v.head
@@ -3080,6 +3101,16 @@ class LatexEditor extends FileEditor
             cm1.on 'cursorActivity', @_passive_forward_search
             cm0.on 'change', @_pause_passive_search
             cm1.on 'change', @_pause_passive_search
+
+    spell_check: (cb) =>
+        @preview.pdflatex.spell_check
+            lang : @load_conf_doc().lang
+            cb   : (err, words) =>
+                if err
+                    cb?(err)
+                else
+                    @latex_editor.codemirror.spellcheck_highlight(words)
+                    @latex_editor.codemirror1.spellcheck_highlight(words)
 
     init_draggable_split: () =>
         @_split_pos = @local_storage("split_pos")
@@ -3339,6 +3370,7 @@ class LatexEditor extends FileEditor
                 @update_preview () =>
                     if @_current_page == 'pdf-preview'
                         @preview_embed.update()
+                @spell_check()
 
 
     update_preview: (cb) =>

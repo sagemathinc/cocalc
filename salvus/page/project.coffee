@@ -998,6 +998,9 @@ class ProjectPage
 
     init_admin: () ->
         usage = @container.find(".project-disk_usage")
+        if not account?.account_settings?.settings?.groups?
+            setTimeout(@init_admin, 15000)
+            return
 
         if 'admin' in account.account_settings.settings.groups
             @container.find(".project-quota-edit").show()
