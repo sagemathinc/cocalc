@@ -29,7 +29,11 @@ for x in os.popen('%s | grep -v done\\":1'%('grep %s %s '%(tag, file) if tag els
     k = s.split(":")
     h = int(k[0])
     if len(k)>1:
-        m = int(k[1])
+        try:
+            m = int(k[1])
+        except:
+            print x
+            raise
     else:
         m = 0
     tm += 60*h + m
