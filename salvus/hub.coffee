@@ -736,6 +736,9 @@ class Client extends EventEmitter
         opts = defaults opts,
             name : required
             cb   : required   # cb(value)
+        if not @conn?.id?
+            # no connection or connection died
+            return
         #winston.debug("!!!!  get cookie '#{opts.name}'")
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
         @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:program.base_url+"/cookies"))
@@ -745,6 +748,10 @@ class Client extends EventEmitter
             name  : required
             value : required
             ttl   : undefined    # time in seconds until cookie expires
+        if not @conn?.id?
+            # no connection or connection died
+            return
+
         options = {}
         if opts.ttl?  # Todo: ignored
             options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
