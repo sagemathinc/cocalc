@@ -199,11 +199,18 @@ exports.define_codemirror_sagews_mode = () ->
 
     CodeMirror.defineMode "sagews", (config) ->
         options = []
+        close = new RegExp("[#{MARKERS.output}#{MARKERS.cell}]")
         for x in sagews_decorator_modes
-            # NOTE: very important to close on MARKERS.output rather than MARKERS.cell, or it will try to
-            # highlight the *hidden* output message line, which can be *enormous*, and could take a very
-            # very long time!
-            options.push(open:"%" + x[0], close : MARKERS.output, mode : CodeMirror.getMode(config, x[1]))
+            # NOTE: very important to close on both MARKERS.output *and* MARKERS.cell,
+            # rather than just MARKERS.cell, or it will try to
+            # highlight the *hidden* output message line, which can
+            # be *enormous*, and could take a very very long time, but is
+            # a complete waste, since we never see that markup.
+            options.push
+                open  : "%"+x[0]
+                close : close
+                mode  : CodeMirror.getMode(config, x[1])
+
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"), options...)
 
 # Given a text file (defined by content), try to guess
