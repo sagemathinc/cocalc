@@ -506,6 +506,7 @@ class SalvusThreeJS
 
             push_face3 = (a,b,c) =>
                 geometry.faces.push(new THREE.Face3(a-1,b-1,c-1))
+                geometry.faces.push(new THREE.Face3(b-1,a-1,c-1))   # both sides of faces, so material is visible from inside
 
             # include all faces defined by 3 vertices (triangles)
             for k in [0...face3.length] by 3
