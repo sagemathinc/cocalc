@@ -655,14 +655,78 @@
                 </div>
                 <div class="well col-sm-12">
                     <div class="row">
-                        <div class="well project-heading-well col-sm-6">
-                            <h4><i class="fa fa-gear"> </i>&nbsp;&nbsp;  Title and Description <span class="lighten"> (click to edit)</span></h4>
-                            <!-- Title of the project (editable) -->
-                            <h4>
-                                <span class="project-project_title" contenteditable="true"></span>
-                            </h4>
-                            <!-- Description of the project (editable) -->
-                            <div class="project-project_description" contenteditable="true">
+                        <div class="col-sm-6">
+                            <div class="well salvus-project-settings-heading-well">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <h5 style="margin-top:14px">
+                                            Title
+                                        </h5>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        <h4 class="project-project_title" contenteditable="true"></h4>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <h5 style="margin-top:12px">
+                                            Description
+                                        </h5>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        <div class="project-project_description" contenteditable="true">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="well salvus-project-settings-heading-well project-collaborators-box">
+                                <div class="row">
+                                    <div class="col-sm-4">
+                                        <h4 class="pull-left"><i class="fa fa-user"> </i>&nbsp;&nbsp; Collaborators</h4>
+                                    </div>
+                                    <div class="col-sm-8">
+                                        <div class="input-group">
+                                            <input type="search" class="project-add-collaborator-input form-control" placeholder="Email or name (multiple separated by commas)">
+                                            <span class="input-group-btn">
+                                                <button class="btn btn-default project-add-collaborator-button" type="button">
+                                                    <i class="fa fa-search project-collaborator-search-loaded"> </i>
+                                                    <i class="fa fa-spinner fa-spin project-collaborator-search-loading hide"> </i>
+                                                </button>
+                                            </span>
+                                        </div>
+
+                                        <select multiple="multiple" class="project-add-collaborator-select form-control hide"></select>
+
+
+                                        <div class="project-add-noncloud-collaborator hide">
+                                            <a href="#add-noncloud-collaborator" style="margin-bottom: 1ex; margin-top: 1ex;" class="btn btn-primary btn-lg">
+                                                <i class="fa fa-user"> </i> No matches.  Send Invitation...
+                                            </a>
+                                        </div>
+                                        <div class="project-add-collaborator hide">
+                                            <a href="#add-collaborator" style="margin-bottom: 1ex; display: inline-block;" class="btn btn-primary btn-lg" data-toggle="tooltip" data-placement="right" title="Add all selected users as collaborators on this project.">
+                                            <i class="fa fa-plus"> </i>Add Selected
+                                            </a>
+                                            <!-- NOT TRUE YET, so don't claim it!<br>
+                                            <span class="lighten">(To confirm identity, search for the user's email address; they <i>must</i> have access to that email account in order to collaborate on the project.)</span>-->
+                                        </div>
+                                        <br>
+                                        <!-- <a class="hide" href="#invite-friend">Didn't find who you were looking for?</a> -->
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <span class="lighten">Collaborators can <b>modify anything</b> in this project, except <a href="#snapshot">snapshots</a>.  They can add other collaborators, but can't remove the owner.</span>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-12 project-collaborators-loading hide">
+                                        Loading collaborators... <i class="fa fa-spinner fa-spin"> </i>
+                                    </div>
+                                    <div class="col-sm-12 well well-sm project-collaborators project-connections lighten">
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -703,62 +767,16 @@
                                 </div>
                             </div>
 
-                            <div class="project-settings-ssh row">
+                            <div class="project-settings-ssh row hide">
                                 <div class="col-sm-12">
-                                    <h5>SSH into your project <span class="lighten">(add a public key to <a href="#ssh">~/.ssh/authorized_keys</a>)</span></h5>
-                                    <pre><span class="salvus-project-ssh"></span></pre>
+                                    <h5>SSH into your project <span class="lighten">(you must add a public key to <a href="#ssh">~/.ssh/authorized_keys</a>)</span></h5>
+                                    <input class="form-control salvus-project-ssh">
                                 </div>
                             </div>
 
                         </div>
                     </div>
                     <div class="row">
-                        <div class="well project-settings-well project-collaborators-box col-sm-6">
-                            <div class="row">
-                                <div class="col-sm-4">
-                                    <h4 class="pull-left"><i class="fa fa-user"> </i>&nbsp;&nbsp; Collaborators</h4>
-                                    <br><br>
-                                    <span class="lighten">Can view and <b>modify</b> this project</span>
-                                </div>
-                                <div class="col-sm-8">
-                                    <div class="input-group">
-                                        <input type="search" class="project-add-collaborator-input form-control" placeholder="Email or name (multiple separated by commas)">
-                                        <span class="input-group-btn">
-                                            <button class="btn btn-default project-add-collaborator-button" type="button">
-                                                <i class="fa fa-search project-collaborator-search-loaded"> </i>
-                                                <i class="fa fa-spinner fa-spin project-collaborator-search-loading hide"> </i>
-                                            </button>
-                                        </span>
-                                    </div>
-
-                                    <select multiple="multiple" class="project-add-collaborator-select form-control hide"></select>
-
-
-                                    <div class="project-add-noncloud-collaborator hide">
-                                        <a href="#add-noncloud-collaborator" style="margin-bottom: 1ex; margin-top: 1ex;" class="btn btn-primary btn-lg">
-                                            <i class="fa fa-user"> </i> No matches.  Send Invitation...
-                                        </a>
-                                    </div>
-                                    <div class="project-add-collaborator hide">
-                                        <a href="#add-collaborator" style="margin-bottom: 1ex; display: inline-block;" class="btn btn-primary btn-lg" data-toggle="tooltip" data-placement="right" title="Add all selected users as collaborators on this project.">
-                                        <i class="fa fa-plus"> </i>Add Selected
-                                        </a>
-                                        <!-- NOT TRUE YET, so don't claim it!<br>
-                                        <span class="lighten">(To confirm identity, search for the user's email address; they <i>must</i> have access to that email account in order to collaborate on the project.)</span>-->
-                                    </div>
-                                    <br>
-                                    <!-- <a class="hide" href="#invite-friend">Didn't find who you were looking for?</a> -->
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-12 project-collaborators-loading hide">
-                                    Loading collaborators... <i class="fa fa-spinner fa-spin"> </i>
-                                </div>
-                                <div class="col-sm-12 well well-sm project-collaborators project-connections lighten">
-                                </div>
-                            </div>
-                        </div>
-
                         <div class="well project-settings-well col-sm-6 project-settings-static">
                             <a class="btn btn-default btn-sm project-quota-edit hide pull-right"> <i class="fa fa-pencil"> </i> Edit</a>
                             <h4><i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Quota</h4>
@@ -794,12 +812,10 @@
 
                                 </ul>
                                 <span class="lighten"> Email <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a> if you need me to raise a quota (which is currently <b><i>free</i></b>).
-                                    Include the project id
-                                    <span class="project-id"></span> in your email.</span>
+                                    Include the following URL in your email:
+                                    <input class="form-control salvus-settings-url" ></span>
                             </span>
                         </div>
-                    </div>
-                    <div class="row">
                         <div class="well project-settings-well col-sm-6">
                             <h4><i class="fa fa-refresh"> </i>&nbsp;&nbsp;  Restart Server</h4>
 
@@ -827,12 +843,15 @@
                             <br>
                             <div class="row">
                                 <div class="lighten col-sm-12">
-                                    Still not working after restarting the project server?!  Immediately email me (William Stein) at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>.  I want to know if anything isn't working!  Include the project id
-                                    <span class="project-id"></span> in your email.
+                                    Still not working after restarting the project server?!  <b><i>Immediately email me</i></b> (William Stein) at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>.  I want to know if anything isn't working!  Include the following URL in your email:
+                                    <input class="form-control salvus-settings-url" >
                                 </div>
 
                             </div>
                         </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6"></div>
                         <div class="well project-settings-well col-sm-6">
                             <h4><i class="fa fa-warning"> </i>&nbsp;&nbsp; Hide and Delete</h4>
 

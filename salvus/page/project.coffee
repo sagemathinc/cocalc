@@ -128,6 +128,8 @@ class ProjectPage
             @init_title_desc_edit()
             @init_mini_command_line()
             @init_current_path_info_button()
+            @init_settings_url()
+            @init_ssh_url_click()
 
         # Show a warning if using SMC in devel mode. (no longer supported)
         if window.salvus_base_url != ""
@@ -178,8 +180,11 @@ class ProjectPage
         # sends a message to the hub.
         that = @
         @container.find(".project-project_title").blur () ->
-            new_title = $(@).html()
+            new_title = $(@).html().trim()
             if new_title != that.project.title
+                if new_title == ""
+                    new_title = "No title"
+                    $(@).html(new_title)
                 salvus_client.update_project_data
                     project_id : that.project.project_id
                     data       : {title:new_title}
@@ -196,8 +201,11 @@ class ProjectPage
                             that.update_topbar()
 
         @container.find(".project-project_description").blur () ->
-            new_desc = $(@).html()
+            new_desc = $(@).html().trim()
             if new_desc != that.project.description
+                if new_desc == ""
+                    new_desc = "No description"
+                    $(@).html(new_desc)
                 salvus_client.update_project_data
                     project_id : that.project.project_id
                     data       : {description:new_desc}
@@ -218,6 +226,10 @@ class ProjectPage
                 fullname : @current_pathname()
                 isdir    : true
                 url      : document.URL
+
+    init_settings_url: () =>
+        @container.find(".salvus-settings-url").click () ->
+            $(this).select()
 
     # call when project is closed completely
     destroy: () =>
@@ -809,6 +821,7 @@ class ProjectPage
                     that.update_topbar()
                     #that.update_linked_projects()
                     that.update_collaborators()
+                    that.container.find(".salvus-settings-url").val(document.URL)
 
             else if name == "project-search" and not @public_access
                 tab.onshow = () ->
@@ -924,6 +937,9 @@ class ProjectPage
             cb      : opts.cb
             timeout : opts.timeout
 
+    init_ssh_url_click: () =>
+        @container.find(".salvus-project-ssh").click(() -> $(this).select())
+
     update_topbar: () ->
         if not @project?
             return
@@ -977,7 +993,7 @@ class ProjectPage
                         else
                             @container.find(".salvus-network-blocked").show()
                         if status.ssh
-                            @container.find(".project-settings-ssh").removeClass('lighten')
+                            @container.find(".project-settings-ssh").show()
                             username = @project.project_id.replace(/-/g, '')
                             v = status.ssh.split(':')
                             if v.length > 1
@@ -986,7 +1002,7 @@ class ProjectPage
                                 port = " "
                             address = v[0]
 
-                            @container.find(".salvus-project-ssh").text("ssh#{port}#{username}@#{address}")
+                            @container.find(".salvus-project-ssh").val("ssh#{port}#{username}@#{address}")
                         else
                             @container.find(".project-settings-ssh").addClass('lighten')
 
@@ -3363,6 +3379,7 @@ class ProjectPage
     # browse to the snapshot viewer.
     visit_snapshot: () =>
         @current_path = ['.snapshots', 'master']
+        @display_tab("project-file-listing")
         @update_file_list_tab()
 
     init_trash_link: () =>
