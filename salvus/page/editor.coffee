@@ -1290,9 +1290,6 @@ class CodeMirrorEditor extends FileEditor
 
             "Ctrl-Space"   : "autocomplete"
 
-            #"Ctrl-Q"       : (cm) => cm.foldCode(cm.getCursor())
-
-
             #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
 
         if opts.match_xml_tags
@@ -1334,7 +1331,7 @@ class CodeMirrorEditor extends FileEditor
                 options.matchTags = {bothTags: true}
 
             if opts.code_folding
-                 extraKeys["Ctrl-Q"] = (cm) -> cm.foldCode(cm.getCursor())
+                 extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
                  options.foldGutter  = true
                  options.gutters     = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 
@@ -1362,6 +1359,8 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
+
+        window.cm = @codemirror
 
         elt1 = layout_elt.find(".salvus-editor-codemirror-input-box-1").find("textarea")
 
