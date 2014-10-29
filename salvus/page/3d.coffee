@@ -126,6 +126,8 @@ get_renderer = (scene) ->
 
     return _renderer
 
+MIN_WIDTH = MIN_HEIGHT = 16
+
 class SalvusThreeJS
     constructor: (opts) ->
         @opts = defaults opts,
@@ -161,10 +163,13 @@ class SalvusThreeJS
         # width, then after 8 3d renders, things get foobared in WebGL mode.  This happens even with the simplest
         # demo using the basic cube example from their site with R68.  It even sometimes happens with this workaround, but
         # at least retrying a few times can fix it.
-        if not @opts.width?
+        if not @opts.width? or @opts.width < MIN_WIDTH
+            # ignore width/height less than a cutoff -- some graphics,
+            # e.g., "Polyhedron([(0,0,0),(0,1,0),(0,2,1),(1,0,0),(1,2,3),(2,1,1)]).plot()"
+            # weirdly set it very small.
             @opts.width  = $(window).width()*.5
 
-        @opts.height = if @opts.height? then @opts.height else @opts.width*2/3
+        @opts.height = if @opts.height? and @opts.height >= MIN_HEIGHT then @opts.height else @opts.width*2/3
         @opts.container.css(width:"#{@opts.width+50}px")
 
         @set_dynamic_renderer()
