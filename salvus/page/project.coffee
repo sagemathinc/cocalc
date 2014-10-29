@@ -1044,7 +1044,10 @@ class ProjectPage
 
                 else
                     for a in quotalist
-                        usage.find(".salvus-" + a).attr("contenteditable", true).css('-webkit-appearance': 'textfield', '-moz-appearance': 'textfield')
+                        usage.find(".salvus-" + a).attr("contenteditable", true).css
+                            '-webkit-appearance' : 'textfield'
+                            '-moz-appearance'    : 'textfield'
+                            'border'             : '1px solid black'
                     @container.find(".project-quota-edit").html('<i class="fa fa-thumbs-up"> </i> Done')
                     usage.find(".project-settings-network-access-checkbox").show()
                     usage.find(".project-settings-unlimited-timeout").show()
