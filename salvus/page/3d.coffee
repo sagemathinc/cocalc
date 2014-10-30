@@ -98,10 +98,10 @@ load_threejs = (cb) ->
 
 
 _scene_using_renderer  = undefined
-_renderer = undefined
+_renderer = {webgl:undefined, canvas:undefined}
 dynamic_renderer_type = undefined
 
-get_renderer = (scene) ->
+get_renderer = (scene, type) ->
     # if there is a scene currently using this renderer, tell it to switch to
     # the static renderer.
     if _scene_using_renderer? and _scene_using_renderer._id != scene._id
@@ -109,22 +109,24 @@ get_renderer = (scene) ->
 
     # now scene takes over using this renderer
     _scene_using_renderer = scene
-    if not _renderer?
+    if Detector.webgl and (not type? or type == 'webgl')
+        type = 'webgl'
+    else
+        type = 'canvas'
+    dynamic_renderer_type = type
+    if not _renderer[type]?
         # get the best-possible THREE.js renderer (once and for all)
-        if Detector.webgl
-            dynamic_renderer_type = 'webgl'
-            _renderer = new THREE.WebGLRenderer
+        if type == 'webgl'
+            _renderer[type] = new THREE.WebGLRenderer
                 antialias             : true
                 alpha                 : true
                 preserveDrawingBuffer : true
         else
-            dynamic_renderer_type = 'canvas'
-            _renderer = new THREE.CanvasRenderer
+            _renderer[type] = new THREE.CanvasRenderer
                 antialias : true
                 alpha     : true
-        $(_renderer.domElement).addClass("salvus-3d-dynamic-renderer")
-
-    return _renderer
+        $(_renderer[type].domElement).addClass("salvus-3d-dynamic-renderer")
+    return _renderer[type]
 
 MIN_WIDTH = MIN_HEIGHT = 16
 
@@ -135,7 +137,7 @@ class SalvusThreeJS
             container       : required
             width           : undefined
             height          : undefined
-            renderer        : undefined  # ignored now
+            renderer        : undefined  # 'webgl' or 'canvas' or undefined to choose best
             background      : "#fafafa"
             foreground      : undefined
             spin            : false      # if true, image spins by itself when mouse is over it.
@@ -227,7 +229,7 @@ class SalvusThreeJS
         if @renderer_type == 'dynamic'
             # already have it
             return
-        @renderer = get_renderer(@)
+        @renderer = get_renderer(@, @opts.renderer)
         @renderer_type = 'dynamic'
         # place renderer in correct place in the DOM
         @opts.element.find(".salvus-3d-canvas").empty().append($(@renderer.domElement))
@@ -318,8 +320,6 @@ class SalvusThreeJS
                 @rescale_objects()
                 @renderer.render(@scene, @camera)
 
-
-
     add_camera: (opts) =>
         opts = defaults opts,
             distance : 10
@@ -339,8 +339,6 @@ class SalvusThreeJS
         @camera.up = new THREE.Vector3(0,0,1)
 
     init_light: (color= 0xffffff) =>
-
-        # console.log 'init_light'
 
         ambient = new THREE.AmbientLight(0x404040)
         @scene.add(ambient)
@@ -506,7 +504,7 @@ class SalvusThreeJS
 
             push_face3 = (a,b,c) =>
                 geometry.faces.push(new THREE.Face3(a-1,b-1,c-1))
-                geometry.faces.push(new THREE.Face3(b-1,a-1,c-1))   # both sides of faces, so material is visible from inside
+                #geometry.faces.push(new THREE.Face3(b-1,a-1,c-1))   # both sides of faces, so material is visible from inside -- but makes some things like look really crappy; disable.
 
             # include all faces defined by 3 vertices (triangles)
             for k in [0...face3.length] by 3

@@ -2235,13 +2235,16 @@ def show(obj, svg=True, **kwds):
     Show a 2d or 3d graphics object, animation, or matplotlib figure, or show an
     expression typeset nicely using LaTeX.
 
-       - display: (default: True); if true use display math for expression (big and centered).
+       - display: (default: True); if True, use display math for expression (big and centered).
 
        - svg: (default: True); if True, render graphics using svg (otherwise use png)
 
-       - renderer: (default: 'webgl'); for 3d graphics, try to use 'webgl' (faster); otherwise use 'canvas2d' (slower)
+       - renderer: (default: 'webgl'); for 3d graphics
+           - 'webgl' (fastest) using hardware accelerated 3d;
+           - 'canvas' (slower) using a 2d canvas, but may work better with transparency;
+           - 'tachyon' -- a ray traced static image.
 
-       - spin: (default: False); spins 3d plot, with number determining speed (requires webgl and mouse over plot)
+       - spin: (default: False); spins 3d plot, with number determining speed (requires mouse over plot)
 
        - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly

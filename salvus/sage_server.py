@@ -594,7 +594,8 @@ class Salvus(object):
                aspect_ratio = None,
                frame_aspect_ratio = None,  # synonym for aspect_ratio
 
-               done         = False
+               done         = False,
+               renderer     = None,   # None, 'webgl', or 'canvas'
               ):
 
         from graphics import graphics3d_to_jsonable, json_float as f
@@ -602,7 +603,8 @@ class Salvus(object):
         # process options, combining ones set explicitly above with ones inherited from 3d scene
         opts = { 'width':width, 'height':height,
                  'background':background, 'foreground':foreground,
-                 'spin':spin, 'aspect_ratio':aspect_ratio}
+                 'spin':spin, 'aspect_ratio':aspect_ratio,
+                  'renderer':renderer}
 
         extra_kwds = {} if g._extra_kwds is None else g._extra_kwds
 
@@ -624,7 +626,7 @@ class Salvus(object):
 
         opts['aspect_ratio'] = aspect_ratio
 
-        for k in ['spin', 'height', 'width', 'background', 'foreground', 'aspect_ratio']:
+        for k in ['spin', 'height', 'width', 'background', 'foreground', 'aspect_ratio', 'renderer']:
             if k in extra_kwds and not opts.get(k,None):
                 opts[k] = extra_kwds[k]
 
