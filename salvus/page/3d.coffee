@@ -44,7 +44,7 @@ VERSION = '68'
 $.ajaxSetup(cache: true) # when using getScript, cache result.
 
 load_threejs = (cb) ->
-    if Detector?
+    if Detector? and THREE?
         cb(); return
     _loading_threejs_callbacks.push(cb)
     #console.log("load_threejs")
@@ -83,7 +83,7 @@ load_threejs = (cb) ->
         (cb) -> load("/static/threejs/r#{VERSION}/Detector.min.js", cb)
         (cb) ->
             f = () ->
-                if Detector?
+                if Detector? and THREE?
                     cb()
                 else
                     #console.log("load_threejs: waiting for THREEJS...")
