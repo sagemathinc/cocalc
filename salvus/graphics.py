@@ -85,7 +85,7 @@ class ThreeJS(object):
         if frame_aspect_ratio is not None:
             aspect_ratio = frame_aspect_ratio
         if aspect_ratio is not None:
-            if aspect_ratio == 1:
+            if aspect_ratio == 1 or aspect_ratio=='automatic':
                 aspect_ratio = None
             elif not (isinstance(aspect_ratio, (list, tuple)) and len(aspect_ratio) == 3):
                 raise TypeError("aspect_ratio must be None, 1 or a 3-tuple ")
