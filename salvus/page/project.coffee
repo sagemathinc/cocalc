@@ -3249,7 +3249,7 @@ class ProjectPage
         link.click () =>
             async.series([
                 (cb) =>
-                    m = "Are you sure you want to restart the project server?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed."
+                    m = "<h2><i class='fa fa-refresh'> </i> Restart Project Server</h2><hr><br>Are you sure you want to restart the project server?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed."
                     bootbox.confirm m, (result) =>
                         if result
                             cb()
