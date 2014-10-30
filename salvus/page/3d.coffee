@@ -44,11 +44,13 @@ VERSION = '68'
 $.ajaxSetup(cache: true) # when using getScript, cache result.
 
 load_threejs = (cb) ->
+    if Detector?
+        cb(); return
     _loading_threejs_callbacks.push(cb)
     #console.log("load_threejs")
     if _loading_threejs_callbacks.length > 1
         #console.log("load_threejs: already loading...")
-        return
+        return  # will get called later below
 
     load = (script, name, cb) ->
         if typeof(name) != 'string'
@@ -81,7 +83,7 @@ load_threejs = (cb) ->
         (cb) -> load("/static/threejs/r#{VERSION}/Detector.min.js", cb)
         (cb) ->
             f = () ->
-                if THREE?
+                if Detector?
                     cb()
                 else
                     #console.log("load_threejs: waiting for THREEJS...")
@@ -93,8 +95,6 @@ load_threejs = (cb) ->
             cb(err)
         _loading_threejs_callbacks = []
     )
-
-window.load_threejs = load_threejs
 
 
 _scene_using_renderer  = undefined
@@ -140,13 +140,15 @@ class SalvusThreeJS
             foreground      : undefined
             spin            : false      # if true, image spins by itself when mouse is over it.
             camera_distance : 10
-            aspect_ratio    : undefined  # undefined does nothing or a triple [x,y,z] of length three, which scales the x,y,z coordinates of everything by the given values.
+            aspect_ratio    : undefined  # undefined does nothing or a triple [x,y,z] of length three,
+                                         # which scales the x,y,z coordinates of everything by the given values.
             stop_when_gone  : undefined  # if given, animation, etc., stops when this html element (not jquery!) is no longer in the DOM
             frame           : undefined  # if given call set_frame with opts.frame as input when init_done called
             cb              : undefined  # opts.cb(undefined, this object)
 
         @init_eval_note()
-        opts.cb?(undefined, @)
+        load_threejs () =>
+            opts.cb?(undefined, @)
 
     # client code should call this when start adding objects to the scene
     init: () =>
