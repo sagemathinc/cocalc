@@ -1,5 +1,5 @@
 r"""
-Julia pexpect-based Interface
+Pexpect-based interface to Julia
 
 EXAMPLES::
 
@@ -25,7 +25,6 @@ from uuid import uuid4
 def uuid():
     return str(uuid4())
 
-
 from sage.interfaces.expect import Expect, ExpectElement, ExpectFunction, FunctionElement, gc_disabled
 from sage.structure.element import RingElement
 
@@ -39,10 +38,7 @@ class Julia(Expect):
                  server              = None,
                  server_tmpdir       = None):
         """
-        EXAMPLES::
-
-            sage: julia == loads(dumps(julia))
-            True
+        Pexpect-based interface to Julia
         """
         self._prompt = 'julia>'
         Expect.__init__(self,
@@ -58,11 +54,7 @@ class Julia(Expect):
                         restart_on_ctrlc    = False,
                         verbose_start       = False,
 
-                        logfile             = logfile,
-
-                        # If an input is longer than this number of characters, then
-                        # try to switch to outputting to a file.
-                        eval_using_file_cutoff = 1024) # TODO: don't need (?)
+                        logfile             = logfile)
 
         self.__seq = 0
         self.__in_seq = 1
@@ -78,7 +70,6 @@ class Julia(Expect):
 
     def eval(self, code, **ignored):
         """
-        EXAMPLES::
         """
         if isinstance(code, unicode):
             code = code.encode('utf8')
@@ -87,8 +78,6 @@ class Julia(Expect):
         END   = "\x1b[0G\x1b[0K\x1b[0G\x1b[0Kjulia> "
         if not self._expect:
             self._start()
-        from sage.all import walltime
-        t = walltime()
         with gc_disabled():
             s = self._expect
             u = uuid()
@@ -157,11 +146,6 @@ class Julia(Expect):
         return out
 
     def _repr_(self):
-        """
-        EXAMPLES::
-
-            sage: ??
-        """
         return 'Julia Interpreter'
 
     def __reduce__(self):
@@ -169,7 +153,6 @@ class Julia(Expect):
         EXAMPLES::
 
             sage: julia.__reduce__()
-
         """
         return reduce_load_Julia, tuple([])
 
@@ -187,7 +170,7 @@ class Julia(Expect):
         EXAMPLES::
 
             sage: julia._quit_string()
-            '(quit);'
+            'quit()'
 
             sage: l = Julia()
             sage: l._start()
@@ -210,11 +193,18 @@ class Julia(Expect):
         EXAMPLES::
 
             sage: julia.trait_names()
-            Traceback (most recent call last):
-            ...
-            NotImplementedError
+            ['ANY', ..., 'zip']
         """
-        raise NotImplementedError
+        s = julia.eval('\t\t')
+        v = []
+        for x in s.split('\x1b[')[:-1]:
+            i = x.find("G")
+            if i != -1:
+                c = x[i+1:].strip()
+                if c and c.isalnum():
+                    v.append(c)
+        v.sort()
+        return v
 
     def kill(self, var):
         """
@@ -323,6 +313,10 @@ class Julia(Expect):
         return self.new("%s(%s)"%(function, ",".join([s.name() for s in args])))
 
 class JuliaElement(ExpectElement):
+    def trait_names(self):
+        # for now... (until I understand types)
+        return self._check_valid().trait_names()
+
     def __cmp__(self, other):
         """
         EXAMPLES::
@@ -430,9 +424,7 @@ class JuliaFunctionElement(FunctionElement):
 
             sage: two = julia(2)
             sage: two.sin._sage_doc_()
-            Traceback (most recent call last):
-            ...
-            NotImplementedError
+            'Base.sin(x)\r\n\r\n   Compute sine of "x", where "x" is in radians'
         """
         M = self._obj.parent()
         return M.help(self._name)
