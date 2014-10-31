@@ -1928,6 +1928,16 @@ class Client extends EventEmitter
                     account_id : @account_id
                     filename   : mesg.message.path
 
+            # Scan for activity
+            if @account_id?
+                fullname = @fullname()
+                if fullname?
+                    scan_local_hub_message_for_activity
+                        account_id : @account_id
+                        project_id : mesg.project_id
+                        message    : mesg.message
+                        fullname   : fullname
+
             # Make the actual call
             project.call
                 mesg           : mesg.message
@@ -1941,6 +1951,14 @@ class Client extends EventEmitter
                         if not mesg.multi_response
                             resp.id = mesg.id
                         @push_to_client(resp)
+
+                        if resp.event == 'codemirror_session' and typeof(resp.path) == 'string'
+                            # track this so it can be used by
+                            # scan_local_hub_message_for_activity
+                            key = "#{mesg.project_id}-#{resp.session_uuid}"
+                            if resp.path.slice(0,2) == './'
+                                path = resp.path.slice(2)
+                            codemirror_sessions[key] = {path:path, readonly:resp.readonly}
 
     ## -- user search
     mesg_user_search: (mesg) =>
@@ -2413,116 +2431,204 @@ class Client extends EventEmitter
 
 
     ################################################
-    # Task list messages..
+    # Activity
     ################################################
-    # The code below all work(ed) when written, but I had not
-    # implemented limitations and authentication.  Also, I don't
-    # plan now to use this code.  So I'm disabling handling any
-    # of these messages, as a security precaution.
-    ###
-    mesg_create_task_list: (mesg) =>
-        # TODO: add verification that owners is valid
-        # TODO: error if user (or project) already has too many task lists (?)
-        database.create_task_list
-            owners      : mesg.owners    # list of project or account id's that are allowed to edit this task list.
-            cb          : (err, task_list_id) =>
+    mesg_path_activity: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in")
+            return
+        if not mesg.project_id
+            @error_to_client(id:mesg.id, error:"project_id must be specified")
+        if not mesg.path
+            @error_to_client(id:mesg.id, error:"path must be specified")
+        path_activity
+            account_id : @account_id
+            project_id : mesg.project_id
+            path       : mesg.path
+            cb         : (err) =>
                 if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    mesg = message.task_list_created
-                        id           : mesg.id
-                        task_list_id : task_list_id
-                    @push_to_client(mesg)
-
-    mesg_edit_task_list: (mesg) =>
-        # TODO: add verification that this client can edit the given task list
-        database.edit_task_list
-            task_list_id : mesg.task_list_id
-            data         : mesg.data
-            deleted      : mesg.deleted
-            cb           : (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
+                    @error_to_client(id:mesg.id, error:"error recording path activity -- #{err}")
                 else
                     @push_to_client(message.success(id:mesg.id))
 
-    mesg_get_task_list: (mesg) =>
-        # TODO: add verification that this client can view the given task list
-        database.get_task_list
-            task_list_id : mesg.task_list_id
-            columns      : mesg.columns
-            include_deleted : mesg.include_deleted
-            cb           : (err, task_list) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    mesg = message.task_list_resp
-                        id        : mesg.id
-                        task_list : task_list
-                    @push_to_client(mesg)
 
-    mesg_get_task_list_last_edited: (mesg) =>
-        # TODO: add verification that this client can view the given task list
-        database.get_task_list_last_edited
-            task_list_id : mesg.task_list_id
-            cb           : (err, last_edited) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    mesg = message.task_list_resp
-                        id        : mesg.id
-                        task_list : {last_edited : last_edited}
-                    @push_to_client(mesg)
+##############################
+# User activity tracking
+##############################
 
-    mesg_set_project_task_list: (mesg) =>
-        # TODO: add verification ...
-        database.set_project_task_list
-            task_list_id : mesg.task_list_id
-            project_id   : mesg.project_id
-            cb           : (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.success(id:mesg.id))
+# record activity on a file with at most this frequency
+# TODO: for initial testing/development I've lowered this to 15 seconds
+MIN_ACTIVITY_INTERVAL_S = 15 # 60*5  # -- 5 minutes
 
-    mesg_create_task: (mesg) =>
-        # TODO: add verification that this client can edit the given task list
-        # TODO: error if title is too long
-        database.create_task
-            task_list_id : mesg.task_list_id
-            title        : mesg.title
-            position     : mesg.position
-            cb          : (err, task_id) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    mesg = message.task_created
-                        id      : mesg.id
-                        task_id : task_id
-                    @push_to_client(mesg)
+# notify when somebody edits a file that you edited within this many days
+RECENT_NOTIFICATION_D = 14
+
+ACTIVITY_NOTIFICATION_TTL_S = 7 * 3600*12  # 1 week
+
+normalize_path = (path) ->
+    # Rules:
+    # kdkd/tmp/.test.sagews.sage-chat --> kdkd/tmp/test.sagews, comment "chat"
+    ext = misc.filename_extension(path)
+    comment = undefined
+    if ext == "sage-chat"
+        comment = 'chat'
+        path = path.slice(0, path.length-'.sage-chat'.length)
+        {head, tail} = misc.path_split(path)
+        tail = tail.slice(1) # get rid of .
+        if head?
+            path = head + '/' + tail
+        else
+            path = tail
+    else if ext == "sage-history"
+        path = undefined
+    return {path:path, comment:comment}
+
+path_activity_cache = {}
+path_activity = (opts) ->
+    opts = defaults opts,
+        account_id : required
+        project_id : required
+        path       : required
+        fullname   : required
+        cb         : undefined
+
+    #dbg = (m) -> winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{opts.path}): #{m}")
+
+    {path, comment} = normalize_path(opts.path)
+    if not path?
+        opts.cb?()
+        return
+
+    key = "#{opts.account_id}-#{opts.project_id}-#{path}"
+    #dbg("checking local cache")
+    if path_activity_cache[key]?
+        opts.cb?()
+        return
+
+    path_activity_cache[key] = true
+    setTimeout( (()=>delete path_activity_cache[key]), MIN_ACTIVITY_INTERVAL_S*1000)
+
+    now_time        = cass.now()
+    min_time        = cass.seconds_ago(MIN_ACTIVITY_INTERVAL_S)
+    recent_time     = cass.days_ago(RECENT_NOTIFICATION_D)
+
+    fullname        = opts.fullname
+
+    recent_activity = undefined
+    is_new_activity = true
+    async.series([
+        (cb) ->
+            #dbg("get recent activity")
+            database.select
+                table   : 'activity_by_path'
+                where   : {project_id:opts.project_id, path:path, timestamp:{'>=':recent_time}}
+                columns : ['timestamp', 'account_id']
+                cb      : (err, result) ->
+                    if err
+                        cb(err)
+                    else
+                        result.sort (a,b) ->
+                            if a[0] < b[0]
+                                return -1
+                            else if a[0] > b[0]
+                                return 1
+                            else
+                                return 0
+                        recent_activity = result
+                        for x in result
+                            if x[0] < min_time
+                                break
+                            else if x[1] == opts.account_id
+                                is_new_activity = false
+                                break
+                        cb()
+        (cb) ->
+            if not is_new_activity
+                cb(); return
+            #dbg("record new activity and notification")
+            where = {project_id:opts.project_id, path:path, timestamp:now_time}
+            async.parallel([
+                (cb) ->
+                    #dbg('set activity_by_path')
+                    database.update
+                        table : 'activity_by_path'
+                        where : where
+                        set   : {account_id:opts.account_id, fullname:fullname}
+                        cb    : cb
+                (cb) ->
+                    #dbg('set activity_by_project')
+                    database.update
+                        table : 'activity_by_project'
+                        where : where
+                        set   : {account_id:opts.account_id, fullname:fullname}
+                        cb    : cb
+                (cb) ->
+                    #dbg('set activity_by_user')
+                    database.update
+                        table : 'activity_by_user'
+                        where : {account_id:opts.account_id, timestamp:now_time}
+                        set   : {project_id:opts.project_id, path:path, fullname:fullname}
+                        cb    : cb
+                (cb) ->
+                    #dbg('set activity_notifications')
+                    # make keys of x everybody but account_id that has recently, and values how
+                    # recently they have looked at this file (not used yet).
+                    x = {}
+                    for y in recent_activity
+                        if y[1] != opts.account_id
+                            t = x[y[1]]
+                            if not t? or t < y[0]
+                                x[y[1]] = y[0]
+
+                    targets = misc.keys(x)
+                    if targets.length == 0
+                        cb()
+                    else
+                        #dbg("notifying #{targets.length} interested users")
+                        database.update
+                            table : 'activity_notifications'
+                            where :
+                                account_id : {'in':targets}
+                                timestamp  : now_time
+                                project_id : opts.project_id
+                                path       : path
+                                user_id    : opts.account_id
+                            set   : {read:false, comment:comment, fullname:fullname}
+                            ttl   : ACTIVITY_NOTIFICATION_TTL_S
+                            cb    : cb
+            ], (err) -> cb(err))
+    ], (err) -> opts.cb?(err))
+
+codemirror_sessions = {} # this is updated in mesg_local_hub
+
+scan_local_hub_message_for_activity = (opts) ->
+    opts = defaults opts,
+        account_id : required
+        project_id : required
+        fullname   : required
+        message    : required
+        cb         : undefined
+    #dbg = (m) -> winston.debug("scan_local_hub_message_for_activity(#{opts.account_id},#{opts.project_id}): #{m}")
+    #dbg(misc.to_json(codemirror_sessions))
+    if opts.message.event == 'codemirror_diffsync' and opts.message.edit_stack?
+        if opts.message.edit_stack.length > 0 and opts.message.session_uuid?
+            key = "#{opts.project_id}-#{opts.message.session_uuid}"
+            path = codemirror_sessions[key]?.path
+            if path?
+                path_activity
+                    account_id : opts.account_id
+                    project_id : opts.project_id
+                    path       : path
+                    fullname   : opts.fullname
+                    cb         : opts.cb
+                return
+    opts.cb?()
 
 
-    mesg_edit_task: (mesg) =>
-        #winston.debug("edit_task: mesg=#{misc.to_json(mesg)}")
-        # TODO: add verification that this client can edit the given task
-        database.edit_task
-            task_list_id : mesg.task_list_id
-            task_id      : mesg.task_id
-            title        : mesg.title
-            position     : mesg.position
-            data         : mesg.data
-            done         : mesg.done
-            deleted      : mesg.deleted
-            sub_task_list_id : mesg.sub_task_list_id
-            cb           : (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.success(id:mesg.id))
-    ###
 
-
-
+##############################
+# Server Statistics
+##############################
 _server_stats_cache = undefined
 server_stats = (cb) ->
     if _server_stats_cache?

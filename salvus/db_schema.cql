@@ -351,6 +351,7 @@ CREATE TABLE activity_by_path (
    path        varchar,
    timestamp   timestamp,
    account_id  uuid,
+   fullname    varchar,
    PRIMARY KEY (project_id, path, timestamp)
 );
 
@@ -359,6 +360,7 @@ CREATE TABLE activity_by_project (
    timestamp   timestamp,
    path        varchar,
    account_id  uuid,
+   fullname    varchar,
    PRIMARY KEY (project_id, path, timestamp)
 );
 
@@ -367,6 +369,7 @@ CREATE TABLE activity_by_user (
    timestamp   timestamp,
    project_id  uuid,
    path        varchar,
+   fullname    varchar,
    PRIMARY KEY (account_id, timestamp)
 );
 
@@ -377,6 +380,8 @@ CREATE TABLE activity_notifications (
    path        varchar,
    user_id     uuid,
    read        boolean,
+   comment     varchar,
+   fullname    varchar,
    PRIMARY KEY (account_id, timestamp, project_id, path, user_id)
 );
 

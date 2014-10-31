@@ -693,6 +693,17 @@ message
     value       : undefined  # value to set cookie to
 
 
+######################################################################################
+# Activity loging and notification
+######################################################################################
+#
+# client --> hub to indicate that there was some activity by this user on the given path
+#
+message
+    event       : 'path_activity'
+    id          : undefined
+    project_id  : required
+    path        : required
 
 
 ###################################################################################

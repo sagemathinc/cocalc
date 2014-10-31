@@ -1502,6 +1502,27 @@ class exports.Connection extends EventEmitter
                 opts.cb?(undefined, ans)
 
     #################################################
+    # Activity
+    #################################################
+    report_path_activity: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : undefined   # cb(err)
+        @call
+            message : message.path_activity
+                project_id  : opts.project_id
+                path        : opts.path
+            cb      : (err, mesg) =>
+                if err
+                    opts.cb?(err)
+                else if mesg.event == 'error'
+                    opts.cb?(mesg.error)
+                else
+                    opts.cb?()
+
+
+    #################################################
     # Git Commands
     # TODO: this is all deprecated (?).
     #################################################
