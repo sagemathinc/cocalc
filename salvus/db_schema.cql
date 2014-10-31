@@ -342,6 +342,45 @@ CREATE TABLE admin_log (
 );
 
 
+////////////////////
+// Record of and notifications about activity on specific paths
+///////////////////
+
+CREATE TABLE activity_by_path (
+   project_id  uuid,
+   path        varchar,
+   timestamp   timestamp,
+   account_id  uuid,
+   PRIMARY KEY (project_id, path, timestamp)
+);
+
+CREATE TABLE activity_by_project (
+   project_id  uuid,
+   timestamp   timestamp,
+   path        varchar,
+   account_id  uuid,
+   PRIMARY KEY (project_id, path, timestamp)
+);
+
+CREATE TABLE activity_by_user (
+   account_id  uuid,
+   timestamp   timestamp,
+   project_id  uuid,
+   path        varchar,
+   PRIMARY KEY (account_id, timestamp)
+);
+
+CREATE TABLE activity_notifications (
+   account_id  uuid,
+   timestamp   timestamp,
+   project_id  uuid,
+   path        varchar,
+   user_id     uuid,
+   read        boolean,
+   PRIMARY KEY (account_id, timestamp, project_id, path, user_id)
+);
+
+
 
 ////////////////////
 // Server stats
