@@ -1,5 +1,7 @@
 # activity.coffee
 
+misc = require('misc')
+
 # key: project_id, path, user_id
 # value: the actual notification
 notifications = {}
@@ -31,7 +33,11 @@ render_notifications = () ->
 
     unread_count = 0
     notification_list_body.empty()
-    console.log(v)
+    search = []
+    for x in misc.search_split($(".salvus-notification-list-search").val().toLowerCase())
+        x = $.trim(x).toLowerCase()
+        search.push(x)
+
     for x in v
         n = template_notification.clone()
         if x.comment == 'chat'
@@ -45,14 +51,23 @@ render_notifications = () ->
             d = "<b>#{x.fullname}</b> #{action} <a>#{x.path}</a>"
             if x.project_title?
                 d += " in <a>#{x.project_title}</a>"
-        n.find(".salvus-notification-desc").html(d)
-        notification_list_body.prepend(n)
-        date = new Date(x.timestamp)
-        n.find(".salvus-notification-time").attr('title', date.toISOString()).timeago()
+
         if x.read
             n.addClass('salvus-notification-read')
         else
             unread_count += 1
+        include = true
+        if search.length > 0
+            d0 = d.toLowerCase()
+        for s in search
+            if d0.indexOf(s) == -1
+                include = false
+                break
+        if include
+            n.find(".salvus-notification-desc").html(d)
+            notification_list_body.prepend(n)
+            date = new Date(x.timestamp)
+            n.find(".salvus-notification-time").attr('title', date.toISOString()).timeago()
 
     if v.length == 0
         notification_list_body.append("<span class='lighten'>No notifications loaded...</span>")
@@ -65,13 +80,19 @@ render_notifications = () ->
 
     require('misc_page').set_window_title()
 
+
+$(".salvus-notification-list-search").keyup (e) =>
+    if e?.keyCode == 27
+        $(".salvus-notification-list-search").val('')
+    render_notifications()
+
 hidden = true
 
 f = (e) ->
     target = $(e.target)
     if target.hasClass('salvus-notification-list-search')
         return
-    console.log(target)
+    #console.log(target)
     $(document).unbind('click', f)
     notification_list.hide()
     hidden = true
