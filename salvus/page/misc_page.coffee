@@ -503,7 +503,7 @@ exports.define_codemirror_extensions = () ->
             for n in [start_line .. end_line]
                 pos = CodeMirror.Pos(n)
                 if mode?
-                    cm.foldCode(pos, null, mode)
+                    editor.foldCode(pos, null, mode)
                 else
                     # try to toggle and see if anything happens
                     is_folded = editor.isFolded(pos)
