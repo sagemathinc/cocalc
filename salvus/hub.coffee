@@ -2449,17 +2449,40 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.success(id:mesg.id))
 
+    mesg_add_comment_to_activity_notification_stream: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in")
+            return
+        if not mesg.project_id?
+            @error_to_client(id:mesg.id, error:"project_id must be set")
+        if not mesg.path?
+            @error_to_client(id:mesg.id, error:"path must be set")
+        if not mesg.comment?
+            @error_to_client(id:mesg.id, error:"comment must be set")
+        add_comment_to_activity_notification_stream
+            account_id : @account_id
+            project_id : mesg.project_id
+            path       : mesg.path
+            comment    : mesg.comment
+            cb         : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:"error marking #{path} as read -- #{err}")
+                else
+                    @push_to_client(message.success(id:mesg.id))
+
 
 ##############################
 # User activity tracking
 ##############################
 
 # record activity on a file with at most this frequency
-# TODO: for initial testing/development I've lowered this to 15 seconds
-MIN_ACTIVITY_INTERVAL_S = 5 # 60*5  # -- 5 minutes
+MIN_ACTIVITY_INTERVAL_S = 60  # -- 1 minutes
+
 # notify when somebody edits a file that you edited within this many days
 RECENT_NOTIFICATION_D = 14
-ACTIVITY_NOTIFICATION_TTL_S = 7 * 3600*12  # 1 week
+
+ACTIVITY_NOTIFICATION_TTL_S = 7 * 3600*24  # 1 week
+
 POLL_DB_FOR_ACTIVITY_INTERVAL_S = 10  # for now -- frequent for testing.
 
 MAX_ACTIVITY_NAME_LENGTH = 50
@@ -2638,7 +2661,7 @@ _poll_database_for_activity_notifications_lock = undefined
 
 poll_database_for_activity_notifications = () ->
     dbg = (m) -> winston.debug("poll activity_notifications: #{m}")
-    dbg()
+    #dbg()
 
     if not database?
         dbg("no database yet")
@@ -2668,14 +2691,14 @@ poll_database_for_activity_notifications = () ->
 
     result1 = []
     result2 = []
-    columns = ['account_id', 'timestamp', 'project_id', 'path', 'user_id', 'read', 'comment', 'fullname', 'project_title']
+    columns = ['account_id', 'timestamp', 'project_id', 'path', 'user_id', 'comment', 'fullname', 'project_title']
     table   = 'activity_notifications'
     consistency = 1  # missing a notification isn't the end of the world
     async.parallel([
         (cb) ->
             if need_to_get_all.length == 0
                 cb(); return
-            dbg("need_to_get_all=#{misc.to_json(need_to_get_all)}")
+            #dbg("need_to_get_all=#{misc.to_json(need_to_get_all)}")
             database.select
                 table       : table
                 where       : {account_id:{'in':need_to_get_all}}
@@ -2691,7 +2714,7 @@ poll_database_for_activity_notifications = () ->
         (cb) ->
             if need_to_get_new.length == 0
                 cb(); return
-            dbg("need_to_get_new=#{misc.to_json(need_to_get_new)}")
+            #dbg("need_to_get_new=#{misc.to_json(need_to_get_new)}")
             last_time = _last_poll_database_for_activity_notifications
             _last_poll_database_for_activity_notifications = cass.now()
             where = {account_id:{'in':need_to_get_new}}
@@ -2712,7 +2735,7 @@ poll_database_for_activity_notifications = () ->
     ], (err) =>
         if not err
             result = result1.concat(result2)
-            dbg("now collating and pushing results: #{misc.to_json(result)}")
+            #dbg("now collating and pushing results")
             for r in result
                 m = misc.copy(r)  # since same user could be connected multiple times
                 m.sent = false
@@ -2744,7 +2767,7 @@ push_activity_notifications = () ->
     for id, c of clients
         cache = c.activity_notifications_cache
         if cache?
-            to_push = (x for x in cache when not x.sent)
+            to_push = (x for x in cache when not x.sent and x.path != '.sagemathcloud.log')
             if to_push.length > 0
                 mesg = message.activity_notifications
                     notifications : (notification_to_send(x) for x in to_push)
@@ -2752,6 +2775,28 @@ push_activity_notifications = () ->
                 c.push_to_client(mesg)
                 for x in to_push
                     x.sent = true
+
+add_comment_to_activity_notification_stream = (opts) ->
+    opts = defaults opts,
+        account_id : required
+        project_id : required
+        path       : required
+        comment    : required   # 'read', 'seen'
+        cb         : undefined
+    database.update
+        table : 'activity_notifications'
+        where :
+            account_id : opts.account_id
+            timestamp  : cass.now()
+            project_id : opts.project_id
+            path       : opts.path
+            user_id    : opts.account_id
+        set   :
+            read          : false
+            comment       : opts.comment
+        ttl   : ACTIVITY_NOTIFICATION_TTL_S
+        cb    : opts.cb
+
 
 ##############################
 # Server Statistics
@@ -4221,8 +4266,6 @@ run_all_account_creation_actions = (cb) ->
             # We could do it in parallel and be way faster, but not necessary.
             async.mapSeries(users, f, (err) -> cb(err))
     ], cb)
-
-
 
 
 change_password = (mesg, client_ip_address, push_to_client) ->

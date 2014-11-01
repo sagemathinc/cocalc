@@ -33,7 +33,8 @@
     top: 43px;
     background: white;
     right: 2em;
-    overflow-x: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
     font-size: 10pt;
 }
 
@@ -48,8 +49,8 @@
     margin: 0;
     height: 5em;
     background: #f4f4f4;
-    padding-left: 1ex;
-    padding-right: 1ex;
+    padding-left: 1em;
+    padding-right: 1em;
     padding-top: 1ex;
 }
 
@@ -62,7 +63,6 @@
 }
 
 .salvus-notification-list-search {
-    width:100%;
 }
 
 .salvus-notification-action-icon {

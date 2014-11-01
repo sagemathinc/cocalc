@@ -2,8 +2,24 @@
 
 <div class="salvus-notification-list hide">
     <div class="salvus-notification-list-head">
-        <input class="salvus-notification-list-search search-query form-control" placeholder="Search notifications...">
+        <div class="row">
+            <div class="col-sm-8">
+                <div class="input-group" style="100%">
+                    <input class="salvus-notification-list-search search-query form-control hide" placeholder="Search notifications...">
+                    <span class="input-group-btn">
+                        <button class="btn btn-default salvus-notification-list-search-clear" type="button">
+                            <i class="fa fa-times-circle"></i>
+                        </button>
+                    </span>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <a href="#mark-all-read" class="btn btn-warning pull-right">Mark all Read</a>
+            </div>
+        </div>
     </div>
+    <span class='salvus-notification-list-loading lighten'>Loading notifications...</span>
+    <span class='salvus-notification-list-none hide lighten'>No notifications...</span>
     <div class="salvus-notification-list-body">
 
     </div>
@@ -24,7 +40,7 @@
         <div class="row">
             <div class="col-sm-1">
             </div>
-            <div class="col-sm-11 lighten-2 salvus-notification-time">
+            <div class="col-sm-11 lighten salvus-notification-time">
 
             </div>
         </div>

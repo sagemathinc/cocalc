@@ -380,7 +380,6 @@ CREATE TABLE activity_notifications (
    project_id  uuid,
    path        varchar,
    user_id     uuid,
-   read        boolean,
    comment     varchar,
    fullname    varchar,
    project_title varchar,

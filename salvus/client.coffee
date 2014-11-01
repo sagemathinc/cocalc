@@ -1523,6 +1523,26 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb?()
 
+    add_comment_to_activity_notification_stream: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            comment    : required
+            cb         : undefined   # cb(err)
+        @call
+            message : message.add_comment_to_activity_notification_stream
+                project_id  : opts.project_id
+                path        : opts.path
+                comment     : opts.comment
+            cb      : (err, mesg) =>
+                if err
+                    opts.cb?(err)
+                else if mesg.event == 'error'
+                    opts.cb?(mesg.error)
+                else
+                    opts.cb?()
+
+
 
     #################################################
     # Git Commands

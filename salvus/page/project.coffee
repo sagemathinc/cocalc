@@ -256,7 +256,7 @@ class ProjectPage
 
             onshow: () =>
                 if @project?
-                    misc_page.set_window_title("Project - #{@project.title}")
+                    misc_page.set_window_title(@project.title)
                     @push_state()
                 @editor?.activate_handlers()
                 @editor?.refresh()
@@ -953,7 +953,7 @@ class ProjectPage
             alert_message(type:"error", message:"Project #{@project.project_id} is corrupt. Please report.")
         label = $("<div>").html(@project.title).text()  # plain text for this...
         top_navbar.set_button_label(@project.project_id, label)
-        misc_page.set_window_title("Sagemath: #{label}")
+        misc_page.set_window_title(label)
 
         if not @_computing_status
             @_computing_usage = true

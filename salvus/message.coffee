@@ -705,11 +705,14 @@ message
     project_id  : required
     path        : required
 
-# Mark all activity/notifications for project_id/path as read.
+# Add a comment, e.g., "read" or "seen", to this users activity notification
+# stream for the given path.
 message
-    event       : 'activity_mark_as_read'
+    event       : 'add_comment_to_activity_notification_stream'
     id          : undefined
-    activities  : required   # array of [timestamp,project_id,path] tuples
+    project_id  : required
+    path        : required
+    comment     : required
 
 message
     event         : 'activity_notifications'
