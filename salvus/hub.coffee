@@ -2620,7 +2620,6 @@ path_activity = (opts) ->
                                 path       : path
                                 user_id    : opts.account_id
                             set   :
-                                read          : false
                                 comment       : comment
                                 fullname      : opts.fullname
                                 project_title : opts.project_title
@@ -2759,7 +2758,6 @@ notification_to_send = (x) ->
         path          : x.path
         account_id    : x.user_id
         fullname      : x.fullname
-        read          : x.read
         comment       : x.comment
     return y
 
@@ -2792,7 +2790,6 @@ add_comment_to_activity_notification_stream = (opts) ->
             path       : opts.path
             user_id    : opts.account_id
         set   :
-            read          : false
             comment       : opts.comment
         ttl   : ACTIVITY_NOTIFICATION_TTL_S
         cb    : opts.cb
