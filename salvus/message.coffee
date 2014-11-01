@@ -705,6 +705,10 @@ message
     project_id  : required
     path        : required
 
+message
+    event         : 'activity_notifications'
+    notifications : required
+    update        : false   # if specified then only giving update since the given time
 
 ###################################################################################
 #

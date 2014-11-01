@@ -370,6 +370,7 @@ CREATE TABLE activity_by_user (
    project_id  uuid,
    path        varchar,
    fullname    varchar,
+   project_title varchar,
    PRIMARY KEY (account_id, timestamp)
 );
 
@@ -382,6 +383,7 @@ CREATE TABLE activity_notifications (
    read        boolean,
    comment     varchar,
    fullname    varchar,
+   project_title varchar,
    PRIMARY KEY (account_id, timestamp, project_id, path, user_id)
 );
 

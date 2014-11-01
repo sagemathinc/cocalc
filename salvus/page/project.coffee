@@ -11,6 +11,7 @@ message         = require('message')
 {alert_message} = require('alerts')
 async           = require('async')
 misc            = require('misc')
+misc_page       = require('misc_page')
 diffsync        = require('diffsync')
 account         = require('account')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
@@ -18,7 +19,7 @@ account         = require('account')
 
 {Tasks} = require('tasks')
 
-{scroll_top, human_readable_size, download_file} = require('misc_page')
+{scroll_top, human_readable_size, download_file} = misc_page
 
 templates = $("#salvus-project-templates")
 template_project_file          = templates.find(".project-file-link")
@@ -255,7 +256,7 @@ class ProjectPage
 
             onshow: () =>
                 if @project?
-                    document.title = "Project - #{@project.title}"
+                    misc_page.set_window_title("Project - #{@project.title}")
                     @push_state()
                 @editor?.activate_handlers()
                 @editor?.refresh()
@@ -952,7 +953,7 @@ class ProjectPage
             alert_message(type:"error", message:"Project #{@project.project_id} is corrupt. Please report.")
         label = $("<div>").html(@project.title).text()  # plain text for this...
         top_navbar.set_button_label(@project.project_id, label)
-        document.title = "Sagemath: #{label}"
+        misc_page.set_window_title("Sagemath: #{label}")
 
         if not @_computing_status
             @_computing_usage = true

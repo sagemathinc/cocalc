@@ -1933,10 +1933,11 @@ class Client extends EventEmitter
                 fullname = @fullname()
                 if fullname?
                     scan_local_hub_message_for_activity
-                        account_id : @account_id
-                        project_id : mesg.project_id
-                        message    : mesg.message
-                        fullname   : fullname
+                        account_id    : @account_id
+                        project_id    : mesg.project_id
+                        project_title : project.cached_info?.title
+                        message       : mesg.message
+                        fullname      : fullname
 
             # Make the actual call
             project.call
@@ -2458,12 +2459,14 @@ class Client extends EventEmitter
 
 # record activity on a file with at most this frequency
 # TODO: for initial testing/development I've lowered this to 15 seconds
-MIN_ACTIVITY_INTERVAL_S = 15 # 60*5  # -- 5 minutes
-
+MIN_ACTIVITY_INTERVAL_S = 5 # 60*5  # -- 5 minutes
 # notify when somebody edits a file that you edited within this many days
 RECENT_NOTIFICATION_D = 14
-
 ACTIVITY_NOTIFICATION_TTL_S = 7 * 3600*12  # 1 week
+POLL_DB_FOR_ACTIVITY_INTERVAL_S = 10  # for now -- frequent for testing.
+
+MAX_ACTIVITY_NAME_LENGTH = 50
+MAX_ACTIVITY_TITLE_LENGTH = 60
 
 normalize_path = (path) ->
     # Rules:
@@ -2486,11 +2489,12 @@ normalize_path = (path) ->
 path_activity_cache = {}
 path_activity = (opts) ->
     opts = defaults opts,
-        account_id : required
-        project_id : required
-        path       : required
-        fullname   : required
-        cb         : undefined
+        account_id    : required
+        project_id    : required
+        path          : required
+        fullname      : required
+        project_title : undefined
+        cb            : undefined
 
     #dbg = (m) -> winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{opts.path}): #{m}")
 
@@ -2512,10 +2516,12 @@ path_activity = (opts) ->
     min_time        = cass.seconds_ago(MIN_ACTIVITY_INTERVAL_S)
     recent_time     = cass.days_ago(RECENT_NOTIFICATION_D)
 
-    fullname        = opts.fullname
-
     recent_activity = undefined
     is_new_activity = true
+
+    opts.fullname      = misc.trunc(opts.fullname, MAX_ACTIVITY_NAME_LENGTH)
+    opts.project_title = misc.trunc(opts.project_title, MAX_ACTIVITY_TITLE_LENGTH)
+
     async.series([
         (cb) ->
             #dbg("get recent activity")
@@ -2553,21 +2559,21 @@ path_activity = (opts) ->
                     database.update
                         table : 'activity_by_path'
                         where : where
-                        set   : {account_id:opts.account_id, fullname:fullname}
+                        set   : {account_id:opts.account_id, fullname:opts.fullname}
                         cb    : cb
                 (cb) ->
                     #dbg('set activity_by_project')
                     database.update
                         table : 'activity_by_project'
                         where : where
-                        set   : {account_id:opts.account_id, fullname:fullname}
+                        set   : {account_id:opts.account_id, fullname:opts.fullname}
                         cb    : cb
                 (cb) ->
                     #dbg('set activity_by_user')
                     database.update
                         table : 'activity_by_user'
                         where : {account_id:opts.account_id, timestamp:now_time}
-                        set   : {project_id:opts.project_id, path:path, fullname:fullname}
+                        set   : {project_id:opts.project_id, path:path, fullname:opts.fullname, project_title:opts.project_title}
                         cb    : cb
                 (cb) ->
                     #dbg('set activity_notifications')
@@ -2593,7 +2599,11 @@ path_activity = (opts) ->
                                 project_id : opts.project_id
                                 path       : path
                                 user_id    : opts.account_id
-                            set   : {read:false, comment:comment, fullname:fullname}
+                            set   :
+                                read          : false
+                                comment       : comment
+                                fullname      : opts.fullname
+                                project_title : opts.project_title
                             ttl   : ACTIVITY_NOTIFICATION_TTL_S
                             cb    : cb
             ], (err) -> cb(err))
@@ -2603,11 +2613,12 @@ codemirror_sessions = {} # this is updated in mesg_local_hub
 
 scan_local_hub_message_for_activity = (opts) ->
     opts = defaults opts,
-        account_id : required
-        project_id : required
-        fullname   : required
-        message    : required
-        cb         : undefined
+        account_id    : required
+        project_id    : required
+        fullname      : required
+        message       : required
+        project_title : undefined
+        cb            : undefined
     #dbg = (m) -> winston.debug("scan_local_hub_message_for_activity(#{opts.account_id},#{opts.project_id}): #{m}")
     #dbg(misc.to_json(codemirror_sessions))
     if opts.message.event == 'codemirror_diffsync' and opts.message.edit_stack?
@@ -2616,15 +2627,134 @@ scan_local_hub_message_for_activity = (opts) ->
             path = codemirror_sessions[key]?.path
             if path?
                 path_activity
-                    account_id : opts.account_id
-                    project_id : opts.project_id
-                    path       : path
-                    fullname   : opts.fullname
-                    cb         : opts.cb
+                    account_id    : opts.account_id
+                    project_id    : opts.project_id
+                    path          : path
+                    fullname      : opts.fullname
+                    project_title : opts.project_title
+                    cb            : opts.cb
                 return
     opts.cb?()
 
+_last_poll_database_for_activity_notifications = undefined
+_poll_database_for_activity_notifications_lock = undefined
 
+poll_database_for_activity_notifications = () ->
+    dbg = (m) -> winston.debug("poll activity_notifications: #{m}")
+    dbg()
+
+    if not database?
+        dbg("no database yet")
+        return
+
+    if _poll_database_for_activity_notifications_lock
+        dbg("locked")
+        return
+
+    _poll_database_for_activity_notifications_lock = true
+    timer = setTimeout((()->_poll_database_for_activity_notifications_lock=false), 60000)
+
+    need_to_get_all = []
+    need_to_get_new = []
+    clients_by_account_id = {}
+    for id, c of clients
+        account_id = c.account_id
+        if account_id?
+            if not c.activity_notifications_cache?
+                need_to_get_all.push(account_id)
+            else
+                need_to_get_new.push(account_id)
+            if not clients_by_account_id[account_id]?
+                clients_by_account_id[account_id] = [c]
+            else
+                clients_by_account_id[account_id].push(c)
+
+    result1 = []
+    result2 = []
+    columns = ['account_id', 'timestamp', 'project_id', 'path', 'user_id', 'read', 'comment', 'fullname', 'project_title']
+    table   = 'activity_notifications'
+    consistency = 1  # missing a notification isn't the end of the world
+    async.parallel([
+        (cb) ->
+            if need_to_get_all.length == 0
+                cb(); return
+            dbg("need_to_get_all=#{misc.to_json(need_to_get_all)}")
+            database.select
+                table       : table
+                where       : {account_id:{'in':need_to_get_all}}
+                columns     : columns
+                consistency : consistency
+                objectify   : true
+                cb          : (err, r) ->
+                    if err
+                        cb(err)
+                    else
+                        result1 = r
+                        cb()
+        (cb) ->
+            if need_to_get_new.length == 0
+                cb(); return
+            dbg("need_to_get_new=#{misc.to_json(need_to_get_new)}")
+            last_time = _last_poll_database_for_activity_notifications
+            _last_poll_database_for_activity_notifications = cass.now()
+            where = {account_id:{'in':need_to_get_new}}
+            if last_time?
+                where.timestamp = {'>':last_time}
+            database.select
+                table       : table
+                where       : where
+                columns     : columns
+                consistency : consistency
+                objectify   : true
+                cb          : (err, r) ->
+                    if err
+                        cb(err)
+                    else
+                        result2 = r
+                        cb()
+    ], (err) =>
+        if not err
+            result = result1.concat(result2)
+            dbg("now collating and pushing results: #{misc.to_json(result)}")
+            for r in result
+                m = misc.copy(r)  # since same user could be connected multiple times
+                m.sent = false
+                for c in clients_by_account_id[m.account_id]
+                    if not c.activity_notifications_cache?
+                        c.activity_notifications_cache = [m]
+                    else
+                        c.activity_notifications_cache.push(m)
+            push_activity_notifications()
+        else
+            dbg("error -- #{err}")
+        _poll_database_for_activity_notifications_lock = false
+        clearTimeout(timer)
+    )
+
+notification_to_send = (x) ->
+    y =
+        timestamp     : x.timestamp
+        project_id    : x.project_id
+        project_title : x.project_title
+        path          : x.path
+        account_id    : x.user_id
+        fullname      : x.fullname
+        read          : x.read
+        comment       : x.comment
+    return y
+
+push_activity_notifications = () ->
+    for id, c of clients
+        cache = c.activity_notifications_cache
+        if cache?
+            to_push = (x for x in cache when not x.sent)
+            if to_push.length > 0
+                mesg = message.activity_notifications
+                    notifications : (notification_to_send(x) for x in to_push)
+                    update        : to_push.length != cache.length
+                c.push_to_client(mesg)
+                for x in to_push
+                    x.sent = true
 
 ##############################
 # Server Statistics
@@ -3345,6 +3475,10 @@ class Project
                     @local_hub = hub
                     cb(undefined, @)
 
+        # we always look this up and cache it; it can be useful, e.g., in
+        # the activity table.
+        @get_info()
+
     dbg: (m) =>
         winston.debug("project(#{@project_id}): #{m}")
 
@@ -3374,9 +3508,10 @@ class Project
             columns    : cass.PROJECT_COLUMNS
             cb         : (err, result) =>
                 if err
-                    cb(err)
+                    cb?(err)
                 else
-                    cb(err, result)
+                    @cached_info = result
+                    cb?(err, result)
 
     call: (opts) =>
         opts = defaults opts,
@@ -5079,6 +5214,10 @@ exports.start_server = start_server = () ->
             init_primus_server()
             init_stateless_exec()
             http_server.listen(program.port, program.host)
+
+            # start polling for new user activity
+            setInterval(poll_database_for_activity_notifications,
+                        POLL_DB_FOR_ACTIVITY_INTERVAL_S*1000)
 
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 

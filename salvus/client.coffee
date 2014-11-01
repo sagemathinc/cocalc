@@ -362,7 +362,7 @@ class exports.Connection extends EventEmitter
 
     handle_json_data: (data) =>
         mesg = misc.from_json(data)
-        #console.log("handle_json_data: #{data}")
+        # console.log("handle_json_data: #{data}")
         switch mesg.event
             when "execute_javascript"
                 if mesg.session_uuid?
@@ -403,6 +403,8 @@ class exports.Connection extends EventEmitter
             when "codemirror_diffsync_ready"
                 @emit(mesg.event, mesg)
             when "codemirror_bcast"
+                @emit(mesg.event, mesg)
+            when "activity_notifications"
                 @emit(mesg.event, mesg)
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.

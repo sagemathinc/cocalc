@@ -666,3 +666,21 @@ exports.html_to_text = (html) -> $($.parseHTML(html)).text()
 
 exports.language = () ->
     (if navigator.languages then navigator.languages[0] else (navigator.language or navigator.userLanguage))
+
+
+# Calling set_window_title will set the title, but also put a notification
+# count to the left of the title; if called with no arguments just updates
+# the count, maintaining the previous title.
+last_title = ''
+exports.set_window_title = (title) ->
+    if not title?
+        title = last_title
+    u = require('activity').unread_count()
+    last_title = title
+    if u
+        title = "(#{u}) #{title}"
+    document.title = title
+
+
+
+

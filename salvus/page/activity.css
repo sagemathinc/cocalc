@@ -1,0 +1,62 @@
+/* activity.css */
+
+.salvus-notification-indicator {
+    position: relative;
+    top: 4px;
+    font-size: 17pt;
+    color: #666;
+    cursor : pointer;
+    margin-right: 6px;
+}
+
+.salvus-notification-indicator:hover {
+    color: #222;
+}
+
+.salvus-notification-unseen-count {
+    font-size: 8pt;
+    color: red;
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    font-weight: bold;
+    background: white;
+}
+
+.salvus-notification-list {
+    width: 40%;
+    z-index: 10;
+    margin-left: 0px;
+    position: absolute;
+    box-shadow: 0px 0px 7px #aaa;
+    border: 2px solid #ccc;
+    top: 43px;
+    max-height: 35em;
+    background: white;
+    right: 2em;
+    overflow-x: auto;
+}
+
+.salvus-notification-list-body {
+    cursor:pointer;
+}
+
+.salvus-notification {
+    width: 100%;
+    overflow: hidden;
+    border-bottom: 1px solid #ddd;
+    margin: 0;
+    height: 4em;
+    background: #f8f8f8;
+    padding-left: 1ex;
+    padding-right: 1ex;
+    padding-top: 1ex;
+}
+
+.salvus-notification-read {
+    background: #fdfdfd;
+}
+
+.salvus-notification-list-search {
+    width:100%;
+}

@@ -42,4 +42,6 @@ help.coffee
 
 history.coffee
 
+activity.coffee
+
 last.coffee
