@@ -2856,7 +2856,6 @@ init_primus_server = () ->
         winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id}")
         clients[conn.id] = new Client(conn)
 
-
 #######################################################
 # Pushing a message to clients; querying for clients
 # This is (or will be) subtle, due to having
