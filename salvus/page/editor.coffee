@@ -155,6 +155,8 @@ file_associations['sage-history'] =
     opts   : {}
 
 
+exports.file_icon_class = file_icon_class = (ext) ->
+    if (file_associations[ext]? and file_associations[ext].icon?) then file_associations[ext].icon else 'fa-file-o'
 
 PUBLIC_ACCESS_UNSUPPORTED = ['terminal','image','latex','history','pdf','tasks','course','ipynb']
 # public access file types *NOT* yet supported
@@ -732,7 +734,7 @@ class exports.Editor
 
         # Add an icon to the file tab based on the extension. Default icon is fa-file-o
         ext = filename_extension(filename)
-        file_icon = if (file_associations[ext]? and file_associations[ext].icon?) then file_associations[ext].icon else 'fa-file-o'
+        file_icon = file_icon_class(ext)
         link_filename.prepend("<i class='fa #{file_icon}' style='font-size:10pt'> </i> ")
 
         open_file = (name) =>
@@ -3806,9 +3808,6 @@ class Terminal extends FileEditor
             e.height(ht)
             @element.css(left:0, top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
             @console.focus(true)
-
-
-
 
 class Image extends FileEditor
     constructor: (@editor, @filename, url, opts) ->

@@ -705,11 +705,11 @@ message
     project_id  : required
     path        : required
 
-# Mark all activity/notifications for project_id/path as read.    
+# Mark all activity/notifications for project_id/path as read.
 message
     event       : 'activity_mark_as_read'
     id          : undefined
-    activities  : required   # array of [project_id,path] tuples
+    activities  : required   # array of [timestamp,project_id,path] tuples
 
 message
     event         : 'activity_notifications'

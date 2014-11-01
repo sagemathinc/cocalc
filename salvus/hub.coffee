@@ -580,9 +580,6 @@ init_http_proxy_server = () =>
                 proxy.ws(req, socket, head)
 
 
-
-
-
 #############################################################
 # Client = a client that is connected via a persistent connection to the hub
 #############################################################
@@ -2478,7 +2475,7 @@ normalize_path = (path) ->
         path = path.slice(0, path.length-'.sage-chat'.length)
         {head, tail} = misc.path_split(path)
         tail = tail.slice(1) # get rid of .
-        if head?
+        if head
             path = head + '/' + tail
         else
             path = tail
@@ -5179,8 +5176,6 @@ init_bup_server = (cb) ->
                 winston.debug("ERROR creating bup server -- #{err}")
             bup_server = x
             cb?(err)
-
-
 
 
 

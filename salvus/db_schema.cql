@@ -389,6 +389,8 @@ CREATE TABLE activity_notifications (
 
 
 
+
+
 ////////////////////
 // Server stats
 ///////////////////

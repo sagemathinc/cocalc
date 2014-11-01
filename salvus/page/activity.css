@@ -31,10 +31,10 @@
     box-shadow: 0px 0px 7px #aaa;
     border: 2px solid #ccc;
     top: 43px;
-    max-height: 35em;
     background: white;
     right: 2em;
     overflow-x: auto;
+    font-size: 10pt;
 }
 
 .salvus-notification-list-body {
@@ -47,16 +47,33 @@
     border-bottom: 1px solid #ddd;
     margin: 0;
     height: 5em;
-    background: #f8f8f8;
+    background: #f4f4f4;
     padding-left: 1ex;
     padding-right: 1ex;
     padding-top: 1ex;
 }
 
+.salvus-notification:hover {
+    background: #fcfcfc;
+}
+
 .salvus-notification-read {
-    background: #fdfdfd;
+    background: #fefefe;
 }
 
 .salvus-notification-list-search {
     width:100%;
 }
+
+.salvus-notification-action-icon {
+    font-size: 16pt;
+    color: #888;
+}
+
+.salvus-notification-path-icon {
+    font-size: 16pt;
+    color: #888;
+    margin-left: -1ex;
+}
+
+
