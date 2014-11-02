@@ -2534,6 +2534,10 @@ POLL_DB_FOR_ACTIVITY_INTERVAL_S = 10  # for now -- frequent for testing.
 MAX_ACTIVITY_NAME_LENGTH = 50
 MAX_ACTIVITY_TITLE_LENGTH = 60
 
+MAX_NOTIFICATIONS_LIMIT = 150 # maximum number of total notifications sent during
+                              # init for a given account; sends the first this
+                              # many newest ones
+
 normalize_path = (path) ->
     # Rules:
     # kdkd/tmp/.test.sagews.sage-chat --> kdkd/tmp/test.sagews, comment "chat"
@@ -2558,6 +2562,8 @@ normalize_path = (path) ->
         else
             path = tail
     else if ext == "sage-history"
+        path = undefined
+    else if ext == '.sagemathcloud.log'  # ignore for now
         path = undefined
     return {path:path, comment:comment}
 
@@ -2822,8 +2828,20 @@ push_activity_notifications = () ->
         if cache?
             to_push = (x for x in cache when not x.sent and x.path != '.sagemathcloud.log')
             if to_push.length > 0
+                v = (notification_to_send(x) for x in to_push)
+                if v.length > MAX_NOTIFICATIONS_LIMIT
+                    winston.debug("truncating notifications before sending")
+                    v.sort (a,b) ->
+                        if a.timestamp > b.timestamp
+                            return -1
+                        else if a.timestamp < b.timestamp
+                            return 1
+                        return 0
+                    winston.debug("v=#{misc.to_json(v)}")
+                    v = v.slice(0,MAX_NOTIFICATIONS_LIMIT)
+                    winston.debug("truncated v=#{misc.to_json(v)}")
                 mesg = message.activity_notifications
-                    notifications : (notification_to_send(x) for x in to_push)
+                    notifications : v
                     update        : to_push.length != cache.length
                 c.push_to_client(mesg)
                 for x in to_push

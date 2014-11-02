@@ -37,8 +37,10 @@ process_notification_stream = (n) ->
     if n.length == 0
         return m
     i = 0
+    valid = false
     for x in n
         if x.account_id != account_id
+            valid = true
             for k,v of x
                 m[k] = v
             if x.comment != 'chat'
@@ -53,13 +55,18 @@ process_notification_stream = (n) ->
         else
             m[x.comment] = true  # 'read', 'seen'
         i += 1
-    return m
+    if not valid  # due to truncation/ttl, not enough notification to even know the path -- so no point in retaining.
+        return undefined
+    else
+        return m
 
 process_notifications = () ->
     #console.log("process_notifications")
     processed_notifications = []
     for k, n of notifications
-        processed_notifications.push(process_notification_stream(n))
+        m = process_notification_stream(n)
+        if m?
+            processed_notifications.push(m)
     processed_notifications.sort(timestamp_cmp)
 
 
@@ -148,7 +155,10 @@ render_notifications = () ->
                 open_notification($(@))
             notification_list_body.append(n)
             date = new Date(x.timestamp)
-            n.find(".salvus-notification-time").attr('title', date.toISOString()).timeago()
+            try
+                n.find(".salvus-notification-time").attr('title', date.toISOString()).timeago()
+            catch
+                console.log("activity notification invalid time ", x)
 
     if number_shown == 0
         notification_list_none.show()

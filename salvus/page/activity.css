@@ -27,7 +27,7 @@
     width: 40%;
     z-index: 10;
     margin-left: 0px;
-    position: absolute;
+    position: fixed;
     box-shadow: 0px 0px 7px #aaa;
     border: 2px solid #ccc;
     top: 43px;
@@ -76,4 +76,12 @@
     margin-left: -1ex;
 }
 
+
+.salvus-notification-list-loading {
+    margin:1em;
+}
+
+.salvus-notification-list-none {
+    margin:1em;
+}
 
