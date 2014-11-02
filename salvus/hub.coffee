@@ -3717,13 +3717,14 @@ user_has_read_access_to_project = (opts) ->
                 else
                     if not done and in_group
                         #dbg("yes, since in group")
-                        main_cb(undefined, true)
                         done = true
+                        main_cb(undefined, true)
                     cb()
             user_is_in_project_group(opts)
     ], (err) ->
         #dbg("nope, since neither in group nor public")
         if not done
+            done = true
             main_cb(err, false)
     )
 
