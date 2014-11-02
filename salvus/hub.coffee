@@ -5236,26 +5236,26 @@ exports.start_server = start_server = () ->
         cb          : () =>
             winston.debug("connected to database.")
             init_salvus_version()
-            init_http_server()
 
-            # proxy server relies on bup server having been created
+            # proxy server and http server, etc. relies on bup server having been created
             init_bup_server () =>
+                init_http_server()
                 init_http_proxy_server()
 
-            # start updating stats cache every so often -- note: this is cached in the database, so it isn't
-            # too big a problem if we call it too frequently...
-            update_server_stats(); setInterval(update_server_stats, 120*1000)
-            register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
+                # start updating stats cache every so often -- note: this is cached in the database, so it isn't
+                # too big a problem if we call it too frequently...
+                update_server_stats(); setInterval(update_server_stats, 120*1000)
+                register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 
-            init_primus_server()
-            init_stateless_exec()
-            http_server.listen(program.port, program.host)
+                init_primus_server()
+                init_stateless_exec()
+                http_server.listen(program.port, program.host)
 
-            # start polling for new user activity
-            setInterval(poll_database_for_activity_notifications,
-                        POLL_DB_FOR_ACTIVITY_INTERVAL_S*1000)
+                # start polling for new user activity
+                setInterval(poll_database_for_activity_notifications,
+                            POLL_DB_FOR_ACTIVITY_INTERVAL_S*1000)
 
-            winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+                winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
 ###
 # Command line admin stuff -- should maybe be moved to another program?
