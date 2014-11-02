@@ -4320,9 +4320,9 @@ class IPythonNotebook extends FileEditor
                             # then the thing hangs and reconnecting then doesn't work (the user has to do a full frame refresh).
                             # TODO: understand this and fix it properly.  This is entirely related to the complicated proxy server
                             # stuff in SMC, not sync!
-                            #websocket_reconnect = () =>
-                            #    @nb?.kernel?.start_channels()
-                            #@_reconnect_interval = setInterval(websocket_reconnect, 15000)
+                            websocket_reconnect = () =>
+                                @nb?.kernel?.start_channels()
+                            @_reconnect_interval = setInterval(websocket_reconnect, 15000)
 
                             @status()
                             cb()
