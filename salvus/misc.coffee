@@ -453,7 +453,7 @@ class RetryUntilSuccess
             @f (err) =>
                 @attempts += 1
                 @_calling = false
-                if err? and err
+                if err
                     if @opts.max_tries? and @attempts >= @opts.max_tries
                         while @_cb_stack.length > 0
                             @_cb_stack.pop()(err)

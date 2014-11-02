@@ -2226,7 +2226,7 @@ class exports.Salvus extends exports.Cassandra
             columns    : (c for c in PROJECT_COLUMNS when c.indexOf('invited') == -1)
             where      : { project_id : opts.project_id }
             cb         : (err, results) =>
-                if err?
+                if err
                     opts.cb(err)
                 else
                     v = []
@@ -3178,7 +3178,7 @@ class ChunkedStorage
                             opts.cb(err)
                         else
                             fs.mkdir path, 0o700, (err) =>
-                                if err?
+                                if err
                                     if err.code == 'EEXIST'
                                         opts.cb()
                                     else

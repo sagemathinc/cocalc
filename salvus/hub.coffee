@@ -1295,7 +1295,7 @@ class Client extends EventEmitter
         else if not @account_id?
             err = "user must be signed in before accessing projects"
 
-        if err?
+        if err
             if mesg.id?
                 @error_to_client(id:mesg.id, error:err)
             cb(err)
@@ -1304,8 +1304,10 @@ class Client extends EventEmitter
         key = mesg.project_id + permission
         project = @_project_cache?[key]
         if project?
-            # Use the cached project so we don't have to re-verify authentication for the user again below, which
-            # is very expensive.  This cache does expire, in case user is kicked out of the project.
+            # Use the cached project so we don't have to re-verify authentication
+            # for the user again below, which
+            # is very expensive.  This cache does expire, in case user
+            # is kicked out of the project.
             cb(undefined, project)
             return
 
@@ -1350,16 +1352,17 @@ class Client extends EventEmitter
                         database.touch_project(project_id:mesg.project_id)
                         cb()
         ], (err) =>
-                if err
-                    if mesg.id?
-                        @error_to_client(id:mesg.id, error:err)
-                    cb(err)
-                else
-                    if not @_project_cache?
-                        @_project_cache = {}
-                    @_project_cache[key] = project
-                    setTimeout((()=>delete @_project_cache[key]), CACHE_PROJECT_AUTH_MS)  # cache for a while
-                    cb(undefined, project)
+            if err
+                if mesg.id?
+                    @error_to_client(id:mesg.id, error:err)
+                cb(err)
+            else
+                if not @_project_cache?
+                    @_project_cache = {}
+                @_project_cache[key] = project
+                # cache for a while
+                setTimeout((()=>delete @_project_cache[key]), CACHE_PROJECT_AUTH_MS)
+                cb(undefined, project)
         )
 
     # Mark a project as "deleted" in the database.  This is non-destructive by design --
@@ -3477,24 +3480,23 @@ new_project = (project_id, cb, delay) ->   # cb(err, project)
             if not delay?
                 delay = 500
             else
-                delay = Math.min(30000, 1.2*delay)
+                delay = Math.min(15000, 1.2*delay)
             # Try again; We must believe that the code
             # doing the instantiation will terminate and correctly set P.
-            setTimeout((() -> new_project(project_id, cb)), delay)
+            setTimeout((() -> new_project(project_id, cb, delay)), delay)
         else
-            cb(false, P)
+            cb(undefined, P)
     else
         _project_cache[project_id] = "instantiating"
         start_time = misc.walltime()
-        new Project(project_id, (err, P) ->
+        new Project project_id, (err, P) ->
             winston.debug("new Project(#{project_id}): time= #{misc.walltime() - start_time}")
             if err
                 delete _project_cache[project_id]
+                cb(err)
             else
                 _project_cache[project_id] = P
-            cb(err, P)
-        )
-
+                cb(undefined, P)
 
 
 class Project
@@ -3508,7 +3510,7 @@ class Project
             project_id : @project_id
             cb         : (err, hub) =>
                 if err
-                    cb(err, @)
+                    cb(err)
                 else
                     @local_hub = hub
                     cb(undefined, @)
@@ -3549,7 +3551,7 @@ class Project
                     cb?(err)
                 else
                     @cached_info = result
-                    cb?(err, result)
+                    cb?(undefined, result)
 
     call: (opts) =>
         opts = defaults opts,
@@ -4836,7 +4838,7 @@ save_blob = (opts) ->
     else if opts.check and opts.uuid != misc_node.uuidsha1(opts.value)
         err = "save_blob: uuid=#{opts.uuid} must be derived from the Sha1 hash of value, but it is not (possible malicious attack)"
 
-    if err?
+    if err
         dbg(err)
         opts.cb(err)
         return

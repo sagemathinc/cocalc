@@ -1311,7 +1311,7 @@ class GlobalProject
                                 cb(err)
                             project.status(opts)
                     ], (err) =>
-                        if not err?
+                        if not err
                             resp.ssh = ssh
                             orig_cb(undefined, resp)
                         else
@@ -1687,7 +1687,7 @@ class GlobalProject
                 # Launch stops (no blocking) on all servers that do report an error,
                 # since it's critical those get cleaned up as soon
                 # as possible.  By cleaned up, I mean the user gets deleted,
-                # all processes get killed etc.    
+                # all processes get killed etc.
                 @_stop_all((server_id for server_id, s of @state when s == 'error'))
         )
 

@@ -294,7 +294,7 @@ class exports.Connection extends EventEmitter
             message : message.ping()
             timeout : 20  # 20 second timeout
             cb      : (err, pong) =>
-                if not err? and pong?.event == 'pong'
+                if not err and pong?.event == 'pong'
                     latency = new Date() - @_last_ping
                     @emit "ping", latency
                 # try again later
@@ -323,7 +323,7 @@ class exports.Connection extends EventEmitter
                 timeout : opts.timeout
                 cb      : (err, pong) =>
                     heading = "#{i}/#{opts.packets}: "
-                    if not err? and pong?.event == 'pong'
+                    if not err and pong?.event == 'pong'
                         ping_time = new Date() - t
                         bar = ('*' for j in [0...Math.floor(ping_time/10)]).join('')
                         mesg = "#{heading}time=#{ping_time}ms"
