@@ -293,7 +293,7 @@ $("#projects").top_navbar
 
 $("#account").top_navbar
     id     : "account"
-    label  : "Sign in"
+    label  : "Account"
     pull_right : true
     close   : false
     icon : 'fa-signin'
