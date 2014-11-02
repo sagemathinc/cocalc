@@ -2494,11 +2494,20 @@ MAX_ACTIVITY_TITLE_LENGTH = 60
 normalize_path = (path) ->
     # Rules:
     # kdkd/tmp/.test.sagews.sage-chat --> kdkd/tmp/test.sagews, comment "chat"
+    # foo/bar/.2014-11-01-175408.ipynb.syncdoc --> foo/bar/2014-11-01-175408.ipynb
     ext = misc.filename_extension(path)
     comment = undefined
     if ext == "sage-chat"
         comment = 'chat'
         path = path.slice(0, path.length-'.sage-chat'.length)
+        {head, tail} = misc.path_split(path)
+        tail = tail.slice(1) # get rid of .
+        if head
+            path = head + '/' + tail
+        else
+            path = tail
+    else if ext == 'syncdoc'   # for IPython, and possibly other things later
+        path = path.slice(0, path.length-'.syncdoc'.length)
         {head, tail} = misc.path_split(path)
         tail = tail.slice(1) # get rid of .
         if head
