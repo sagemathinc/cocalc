@@ -4320,9 +4320,9 @@ class IPythonNotebook extends FileEditor
                             # then the thing hangs and reconnecting then doesn't work (the user has to do a full frame refresh).
                             # TODO: understand this and fix it properly.  This is entirely related to the complicated proxy server
                             # stuff in SMC, not sync!
-                            websocket_reconnect = () =>
-                                @nb?.kernel?.start_channels()
-                            @_reconnect_interval = setInterval(websocket_reconnect, 15000)
+                            #websocket_reconnect = () =>
+                            #    @nb?.kernel?.start_channels()
+                            #@_reconnect_interval = setInterval(websocket_reconnect, 15000)
 
                             @status()
                             cb()
@@ -4394,7 +4394,8 @@ class IPythonNotebook extends FileEditor
         #t += "<h4>Connect to this IPython kernel in a terminal</h4>"
         #t += "<pre>ipython console --existing #{@kernel_id}</pre>"
         t += "<h4>Pure IPython notebooks</h4>"
-        t += "You can also directly use an <a target='_blank' href='#{@server.url}'>unmodified version of the IPython Notebook server</a> (this link works for all project collaborators).  "
+        if @server?.url?
+            t += "You can also directly use an <a target='_blank' href='#{@server.url}'>unmodified version of the IPython Notebook server</a> (this link works for all project collaborators).  "
         t += "<br><br>To start your own unmodified IPython Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
         t += "<h4>Known Issues</h4>"
         t += "If two people edit the same <i>cell</i> simultaneously, the cursor will jump to the start of the cell."

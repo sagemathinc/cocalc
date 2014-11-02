@@ -333,7 +333,7 @@ init_http_proxy_server = () =>
         dbg = (m) -> winston.debug("_remember_me_check_for_access_to_project: #{m}")
         account_id       = undefined
         email_address    = undefined
-        has_access = false
+        has_access       = false
         hash             = undefined
         async.series([
             (cb) ->
@@ -436,20 +436,34 @@ init_http_proxy_server = () =>
                 opts.cb(err, has_access)
 
     _target_cache = {}
-    target = (remember_me, url, cb) ->
+
+    invalidate_target_cache = (remember_me, url) ->
+        {key} = target_parse_req(remember_me, url)
+        winston.debug("invalidate_target_cache: #{url}")
+        delete _target_cache[key]
+
+    target_parse_req = (remember_me, url) ->
         v          = url.split('/')
         project_id = v[1]
         type       = v[2]  # 'port' or 'raw'
-        key = remember_me + project_id + type
+        key        = remember_me + project_id + type
         if type == 'port'
             key += v[3]
+            port = parseInt(v[3])
+        return {key:key, type:type, project_id:project_id, port_number:port}
+
+    target = (remember_me, url, cb) ->
+        {key, type, project_id, port_number} = target_parse_req(remember_me, url)
+
         t = _target_cache[key]
         if t?
             cb(false, t)
             return
 
+        dbg = (m) -> winston.debug("target(#{key}): #{m}")
+        dbg("url=#{url}")
+
         tm = misc.walltime()
-        winston.debug("target: setting up proxy: #{v}")
         host       = undefined
         port       = undefined
         async.series([
@@ -458,7 +472,7 @@ init_http_proxy_server = () =>
                     # remember_me = undefined means "allow"; this is used for the websocket upgrade.
                     cb(); return
 
-                # It's still unclear if we will ever grant read access to the raw server.
+                # It's still unclear if we will ever grant read access to the raw server...
                 #if type == 'raw'
                 #    access_type = 'read'
                 #else
@@ -470,6 +484,7 @@ init_http_proxy_server = () =>
                     remember_me : remember_me
                     type        : access_type
                     cb          : (err, has_access) ->
+                        dbg("finished remember_me_check_for_access_to_project (mark: #{misc.walltime(tm)}) -- #{err}")
                         if err
                             cb(err)
                         else if not has_access
@@ -483,6 +498,7 @@ init_http_proxy_server = () =>
                     bup_server.project
                         project_id : project_id
                         cb         : (err, project) ->
+                            dbg("first bup_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
                             if err
                                 cb(err)
                             else
@@ -491,17 +507,19 @@ init_http_proxy_server = () =>
             (cb) ->
                 # determine the port
                 if type == 'port'
-                    port = parseInt(v[3])
+                    port = port_number
                     cb()
                 else if type == 'raw'
                     bup_server.project
                         project_id : project_id
                         cb         : (err, project) ->
+                            dbg("second bup_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
                             if err
                                 cb(err)
                             else
                                 project.status
                                     cb : (err, status) ->
+                                        dbg("project.status finished (mark: #{misc.walltime(tm)})")
                                         if err
                                             cb(err)
                                         else if not status['raw.port']?
@@ -512,30 +530,36 @@ init_http_proxy_server = () =>
                 else
                     cb("unknown url type -- #{type}")
             ], (err) ->
-                winston.debug("target: setup proxy; time=#{misc.walltime(tm)} seconds -- err=#{err}; host=#{host}; port=#{port}; type=#{type}")
+                dbg("all finished (mark: #{misc.walltime(tm)}): host=#{host}; port=#{port}; type=#{type} -- #{err}")
                 if err
                     cb(err)
                 else
                     t = {host:host, port:port}
                     _target_cache[key] = t
+                    cb(false, t)
+                    # THIS IS NOW DISABLED.
+                    #            Instead if the proxy errors out below, then it directly invalidates this cache
+                    #            by calling invalidate_target_cache
                     # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
-                    # but also if the user is suddenly granted permission to the project, or the project server
+                    # but also if a new user is granted permission to the project they didn't have, or the project server
                     # is restarted, this should be reflected.  Since there are dozens (at least) of hubs,
                     # and any could cause a project restart at any time, we just timeout this info after
-                    # a few seconds.  This helps enormously when there is a burst of requests.
-                    setTimeout((()->delete _target_cache[key]), 1000*30)
-                    cb(false, t)
+                    # a few minutes.  This helps enormously when there is a burst of requests.
+                    #setTimeout((()->delete _target_cache[key]), 1000*60*3)
             )
 
     #proxy = httpProxy.createProxyServer(ws:true)
-
+    proxy_cache = {}
     http_proxy_server = http.createServer (req, res) ->
+        tm = misc.walltime()
         req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
         if req_url == "/alive"
             res.end('')
             return
 
         #buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
+
+        dbg = (m) -> winston.debug("http_proxy_server(#{req_url}): #{m}")
 
         cookies = new Cookies(req, res)
         remember_me = cookies.get(program.base_url + 'remember_me')
@@ -546,15 +570,32 @@ init_http_proxy_server = () =>
             return
 
         target remember_me, req_url, (err, location) ->
+            #dbg("got target: #{misc.walltime(tm)}")
             if err
                 winston.debug("proxy denied -- #{err}")
                 res.writeHead(500, {'Content-Type':'text/html'})
                 res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
             else
                 t = "http://#{location.host}:#{location.port}"
-                proxy = httpProxy.createProxyServer(ws:false, target:t, timeout:0)
-                proxy.on "error", (e) ->
-                    winston.debug("non-websocket http proxy -- create proxy #{t}; error -- #{e}")
+                if proxy_cache[t]?
+                    # we already have the proxy server for this remote location in the cache, so use it.
+                    proxy = proxy_cache[t]
+                    #dbg("used cached proxy object: #{misc.walltime(tm)}")
+                else
+                    # make a new proxy server connecting to this remote location
+                    proxy = httpProxy.createProxyServer(ws:false, target:t, timeout:0)
+                    # and cache it.
+                    proxy_cache[t] = proxy
+                    dbg("created new proxy: #{misc.walltime(tm)}")
+                    # setup error handler, so that if something goes wrong with this proxy (it will,
+                    # e.g., on project restart), we properly invalidate it.
+                    proxy.on "error", (e) ->
+                        dbg("http proxy error -- #{e}")
+                        delete proxy_cache[t]
+                        invalidate_target_cache(remember_me, req_url)
+                    #proxy.on 'proxyRes', (res) ->
+                    #    dbg("(mark: #{misc.walltime(tm)}) got response from the target")
+
                 proxy.web(req, res)
 
     http_proxy_server.listen(program.proxy_port, program.host)
@@ -562,21 +603,23 @@ init_http_proxy_server = () =>
     _ws_proxy_servers = {}
     http_proxy_server.on 'upgrade', (req, socket, head) ->
         req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
+        dbg = (m) -> winston.debug("http_proxy_server websocket(#{req_url}): #{m}")
         target undefined, req_url, (err, location) ->
             if err
-                winston.debug("websocket upgrade error --  this shouldn't happen since upgrade would only happen after normal thing *worked*. #{err}")
+                dbg("websocket upgrade error -- #{err}")
             else
-                winston.debug("websocket upgrade -- ws://#{location.host}:#{location.port}")
+                dbg("websocket upgrade success -- ws://#{location.host}:#{location.port}")
                 t = "ws://#{location.host}:#{location.port}"
                 proxy = _ws_proxy_servers[t]
                 if not proxy?
-                    winston.debug("websocket upgrade #{t}: not using cache")
+                    dbg("websocket upgrade #{t} -- not using cache")
                     proxy = httpProxy.createProxyServer(ws:true, target:t, timeout:0)
                     proxy.on "error", (e) ->
-                        winston.debug("websocket upgrade -- create proxy #{t}; error -- #{e}")
+                        dbg("websocket proxy error, so clearing cache -- #{e}")
+                        delete _ws_proxy_servers[t]
                     _ws_proxy_servers[t] = proxy
                 else
-                    winston.debug("websocket upgrade: using cache")
+                    dbg("websocket upgrade -- using cache")
                 proxy.ws(req, socket, head)
 
 
