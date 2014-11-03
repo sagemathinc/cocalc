@@ -438,7 +438,7 @@ def introspect(code, namespace, preparse=True):
                         while defaults:
                             d = defaults.pop()
                             k = args.pop()
-                            v.insert(0,'%s=%s'%(k,d))
+                            v.insert(0,'%s=%r'%(k,d))
                         v = args + v
                         t = "   Signature : %s(%s)\n"%(obj, ', '.join(v))
                         t += "   Docstring :\n" + sage.misc.sageinspect.sage_getdoc(s).strip()
