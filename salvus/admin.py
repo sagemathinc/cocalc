@@ -1419,6 +1419,29 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
+    def compute_ssh(self):
+        this = int(socket.gethostname()[5:]) # 'cloud[m]'
+        v = []
+        for n in range(1,8) + range(10,22):  # hard coded to our HARDWARE
+            if n == this:
+                if this == 3: # monitor runs on 10 and 3
+                    other = '10'
+                else:
+                    other = '3'
+                cmd = 'ssh cloud%s "source ~/.ssh/agent; ssh cloud%s -o StrictHostKeyChecking=no -p 2222 hostname"'%(
+                     other, n)
+            else:
+                cmd = 'ssh cloud%s -o StrictHostKeyChecking=no -p 2222 hostname'%n
+            v.append(((cmd, 'compute%s'%n),{}))
+
+        def f(cmd, host):
+            return {'host'    : host,
+                    'service' : 'compute-ssh',
+                    'status'  : 'up' if os.popen(cmd).read().startswith(host) else 'down'}
+
+        # We do the ssh's in parallel, to save an enormous amount of time.
+        return misc.thread_map(f, v)
+
     def load(self):
         """
         Return normalized load on *everything*, sorted by highest current load first.
@@ -1562,13 +1585,14 @@ class Monitor(object):
 
     def all(self):
         return {
-            'timestamp' : time.time(),
-            'dns'       : self.dns(),
+            'timestamp'   : time.time(),
+            'dns'         : self.dns(),
             #'zfs'       : self.zfs(),
-            'load'      : self.load(),
-            'cassandra' : self.cassandra(),
-            'stats'     : self.stats(),
-            'compute'   : self.compute()
+            'load'        : self.load(),
+            'cassandra'   : self.cassandra(),
+            'stats'       : self.stats(),
+            'compute'     : self.compute(),
+            'compute-ssh' : self.compute_ssh()
         }
 
     def down(self, all):
@@ -1611,6 +1635,11 @@ class Monitor(object):
         vcompute = all['compute']
         print "%s projects running"%(sum([x.get('nprojects',0) for x in vcompute]))
         for x in all['compute'][:n]:
+            print x
+
+        print "COMPUTE-SSH"
+        vcompute = all['compute-ssh']
+        for x in all['compute-ssh'][:n]:
             print x
 
     def update_db(self, all=None):
@@ -1668,7 +1697,6 @@ class Monitor(object):
                 email(m, subject="SMC issue")
             except Exception, msg:
                 print "Failed to send email! -- %s\n%s"%(msg, m)
-
 
     def go(self, interval=5, residue=0):
         """
