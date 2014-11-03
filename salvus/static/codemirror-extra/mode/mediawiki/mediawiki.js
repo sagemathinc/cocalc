@@ -312,7 +312,7 @@ CodeMirror.defineMode( 'mediawiki', function( config/*, parserConfig */ ) {
 //					if ( !stream.eatSpace() ) {
 //						state.ImInBlock.push( 'LinkTrail' );
 //					}
-		} 
+		}
 		if ( stream.match( /[\s\u00a0]*[^\s\u00a0#\|\]\&~\{]+/ ) || stream.eatSpace() ) { //FIXME '{{' brokes Link, sample [[z{{page]]
 			return makeStyle( 'mw-link-pagename mw-pagename', state );
 		}
@@ -390,7 +390,7 @@ CodeMirror.defineMode( 'mediawiki', function( config/*, parserConfig */ ) {
 				state.tokenize = state.stack.pop();
 				return makeLocalStyle( (isHtmlTag ? 'mw-htmltag-name' : 'mw-exttag-name'), state );
 			}
-			
+
 			if ( isHtmlTag ) {
 				if ( isCloseTag ) {
 					state.tokenize = eatChar( '>', 'mw-htmltag-bracket' );
@@ -684,7 +684,7 @@ CodeMirror.defineMode( 'mediawiki', function( config/*, parserConfig */ ) {
 					var tagname = stream.match( /[^>\/\s\u00a0\.\*\,\[\]\{\}\$\^\+\?\|\/\\'`~<=!@#%&\(\)-]+/ );
 					if ( tagname ) {
 						tagname = tagname[0].toLowerCase();
-						if ( tagname in config.mwextTags ) { // Parser function
+						if ( config.mwextTags && tagname in config.mwextTags ) { // Parser function
 							if ( isCloseTag === true ) {
 								// @todo message
 								return 'error';
