@@ -11,6 +11,7 @@ message         = require('message')
 {alert_message} = require('alerts')
 async           = require('async')
 misc            = require('misc')
+misc_page       = require('misc_page')
 diffsync        = require('diffsync')
 account         = require('account')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
@@ -18,7 +19,7 @@ account         = require('account')
 
 {Tasks} = require('tasks')
 
-{scroll_top, human_readable_size, download_file} = require('misc_page')
+{scroll_top, human_readable_size, download_file} = misc_page
 
 templates = $("#salvus-project-templates")
 template_project_file          = templates.find(".project-file-link")
@@ -128,6 +129,8 @@ class ProjectPage
             @init_title_desc_edit()
             @init_mini_command_line()
             @init_current_path_info_button()
+            @init_settings_url()
+            @init_ssh_url_click()
 
         # Show a warning if using SMC in devel mode. (no longer supported)
         if window.salvus_base_url != ""
@@ -178,8 +181,11 @@ class ProjectPage
         # sends a message to the hub.
         that = @
         @container.find(".project-project_title").blur () ->
-            new_title = $(@).html()
+            new_title = $(@).html().trim()
             if new_title != that.project.title
+                if new_title == ""
+                    new_title = "No title"
+                    $(@).html(new_title)
                 salvus_client.update_project_data
                     project_id : that.project.project_id
                     data       : {title:new_title}
@@ -196,8 +202,11 @@ class ProjectPage
                             that.update_topbar()
 
         @container.find(".project-project_description").blur () ->
-            new_desc = $(@).html()
+            new_desc = $(@).html().trim()
             if new_desc != that.project.description
+                if new_desc == ""
+                    new_desc = "No description"
+                    $(@).html(new_desc)
                 salvus_client.update_project_data
                     project_id : that.project.project_id
                     data       : {description:new_desc}
@@ -218,6 +227,10 @@ class ProjectPage
                 fullname : @current_pathname()
                 isdir    : true
                 url      : document.URL
+
+    init_settings_url: () =>
+        @container.find(".salvus-settings-url").click () ->
+            $(this).select()
 
     # call when project is closed completely
     destroy: () =>
@@ -243,7 +256,7 @@ class ProjectPage
 
             onshow: () =>
                 if @project?
-                    document.title = "Project - #{@project.title}"
+                    misc_page.set_window_title(@project.title)
                     @push_state()
                 @editor?.activate_handlers()
                 @editor?.refresh()
@@ -809,6 +822,7 @@ class ProjectPage
                     that.update_topbar()
                     #that.update_linked_projects()
                     that.update_collaborators()
+                    that.container.find(".salvus-settings-url").val(document.URL)
 
             else if name == "project-search" and not @public_access
                 tab.onshow = () ->
@@ -924,6 +938,9 @@ class ProjectPage
             cb      : opts.cb
             timeout : opts.timeout
 
+    init_ssh_url_click: () =>
+        @container.find(".salvus-project-ssh").click(() -> $(this).select())
+
     update_topbar: () ->
         if not @project?
             return
@@ -936,7 +953,7 @@ class ProjectPage
             alert_message(type:"error", message:"Project #{@project.project_id} is corrupt. Please report.")
         label = $("<div>").html(@project.title).text()  # plain text for this...
         top_navbar.set_button_label(@project.project_id, label)
-        document.title = "Sagemath: #{label}"
+        misc_page.set_window_title(label)
 
         if not @_computing_status
             @_computing_usage = true
@@ -977,7 +994,7 @@ class ProjectPage
                         else
                             @container.find(".salvus-network-blocked").show()
                         if status.ssh
-                            @container.find(".project-settings-ssh").removeClass('lighten')
+                            @container.find(".project-settings-ssh").show()
                             username = @project.project_id.replace(/-/g, '')
                             v = status.ssh.split(':')
                             if v.length > 1
@@ -986,7 +1003,7 @@ class ProjectPage
                                 port = " "
                             address = v[0]
 
-                            @container.find(".salvus-project-ssh").text("ssh#{port}#{username}@#{address}")
+                            @container.find(".salvus-project-ssh").val("ssh#{port}#{username}@#{address}")
                         else
                             @container.find(".project-settings-ssh").addClass('lighten')
 
@@ -997,6 +1014,8 @@ class ProjectPage
 
 
     init_admin: () ->
+        if not @container?
+            return
         usage = @container.find(".project-disk_usage")
         if not account?.account_settings?.settings?.groups?
             setTimeout(@init_admin, 15000)
@@ -1042,7 +1061,10 @@ class ProjectPage
 
                 else
                     for a in quotalist
-                        usage.find(".salvus-" + a).attr("contenteditable", true).css('-webkit-appearance': 'textfield', '-moz-appearance': 'textfield')
+                        usage.find(".salvus-" + a).attr("contenteditable", true).css
+                            '-webkit-appearance' : 'textfield'
+                            '-moz-appearance'    : 'textfield'
+                            'border'             : '1px solid black'
                     @container.find(".project-quota-edit").html('<i class="fa fa-thumbs-up"> </i> Done')
                     usage.find(".project-settings-network-access-checkbox").show()
                     usage.find(".project-settings-unlimited-timeout").show()
@@ -2044,7 +2066,7 @@ class ProjectPage
             dialog.find('.salvus-signed-in-already').show()
             dialog.find("a[href=#create-project]").click () ->
                 dialog.modal('hide')
-                require('projects').create_new_project()
+                require('projects').create_new_project_dialog()
                 return false
         else
             dialog.find('.salvus-not-signed-in-already').show()
@@ -2371,9 +2393,16 @@ class ProjectPage
 
     init_sort_files_icon: () =>
         elt = @container.find(".project-sort-files")
+
         @_sort_by_time = local_storage(@project.project_id, '', 'sort_by_time')
-        if not @_sort_by_time
-            @_sort_by_time = true
+
+        if not @_sort_by_time?
+            settings = account?.account_settings?.settings
+            if settings?
+                @_sort_by_time = settings.other_settings.default_file_sort == 'time'
+            else
+                @_sort_by_time = false
+
         if @_sort_by_time
             elt.find("a").toggle()
         elt.find("a").tooltip(delay:{ show: 500, hide: 100 }).click () =>
@@ -3221,7 +3250,7 @@ class ProjectPage
         link.click () =>
             async.series([
                 (cb) =>
-                    m = "Are you sure you want to restart the project server?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed."
+                    m = "<h2><i class='fa fa-refresh'> </i> Restart Project Server</h2><hr><br>Are you sure you want to restart the project server?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed."
                     bootbox.confirm m, (result) =>
                         if result
                             cb()
@@ -3351,6 +3380,7 @@ class ProjectPage
     # browse to the snapshot viewer.
     visit_snapshot: () =>
         @current_path = ['.snapshots', 'master']
+        @display_tab("project-file-listing")
         @update_file_list_tab()
 
     init_trash_link: () =>

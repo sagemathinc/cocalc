@@ -471,17 +471,17 @@ exports.open_project = open_project = (opts) ->
 ################################################
 # Create a New Project
 ################################################
-create_new_project = exports.create_new_project = () ->
+create_project = $("#projects-create_project")
+title_input = $("#projects-create_project-title")
+description_input = $("#projects-create_project-description")
+
+create_new_project_dialog = exports.create_new_project_dialog = () ->
     create_project.modal('show')
     create_project.find("#projects-create_project-title").focus()
 
 $("#new_project-button").click () ->
-    create_new_project()
+    create_new_project_dialog()
     return false
-
-create_project = $("#projects-create_project")
-title_input = $("#projects-create_project-title")
-description_input = $("#projects-create_project-description")
 
 close_create_project = () ->
     create_project.modal('hide').find('input').val('')
@@ -493,7 +493,8 @@ $("#projects-create_project-button-cancel").click((event) -> close_create_projec
 
 create_project.on("shown", () -> $("#projects-create_project-title").focus())
 
-new_project_button = $("#projects-create_project-button-create_project").click((event) -> create_new_project())
+new_project_button = $("#projects-create_project-button-create_project").click (event) ->
+    create_new_project()
 
 # pressing enter on title_input brings you to description_input
 title_input.keyup (e) ->

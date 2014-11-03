@@ -594,7 +594,8 @@ class Salvus(object):
                aspect_ratio = None,
                frame_aspect_ratio = None,  # synonym for aspect_ratio
 
-               done         = False
+               done         = False,
+               renderer     = None,   # None, 'webgl', or 'canvas'
               ):
 
         from graphics import graphics3d_to_jsonable, json_float as f
@@ -602,7 +603,8 @@ class Salvus(object):
         # process options, combining ones set explicitly above with ones inherited from 3d scene
         opts = { 'width':width, 'height':height,
                  'background':background, 'foreground':foreground,
-                 'spin':spin, 'aspect_ratio':aspect_ratio}
+                 'spin':spin, 'aspect_ratio':aspect_ratio,
+                  'renderer':renderer}
 
         extra_kwds = {} if g._extra_kwds is None else g._extra_kwds
 
@@ -615,16 +617,16 @@ class Salvus(object):
             elif 'aspect_ratio' in extra_kwds:
                 aspect_ratio = extra_kwds['aspect_ratio']
         if aspect_ratio is not None:
-            if aspect_ratio == 1:
+            if aspect_ratio == 1 or aspect_ratio == "automatic":
                 aspect_ratio = None
             elif not (isinstance(aspect_ratio, (list, tuple)) and len(aspect_ratio) == 3):
-                raise TypeError("aspect_ratio must be None, 1 or a 3-tuple ")
+                raise TypeError("aspect_ratio must be None, 1 or a 3-tuple, but it is '%s'"%(aspect_ratio,))
             else:
                 aspect_ratio = [f(x) for x in aspect_ratio]
 
         opts['aspect_ratio'] = aspect_ratio
 
-        for k in ['spin', 'height', 'width', 'background', 'foreground', 'aspect_ratio']:
+        for k in ['spin', 'height', 'width', 'background', 'foreground', 'renderer']:
             if k in extra_kwds and not opts.get(k,None):
                 opts[k] = extra_kwds[k]
 

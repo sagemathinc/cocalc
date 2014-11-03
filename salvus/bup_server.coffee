@@ -1311,7 +1311,7 @@ class GlobalProject
                                 cb(err)
                             project.status(opts)
                     ], (err) =>
-                        if not err?
+                        if not err
                             resp.ssh = ssh
                             orig_cb(undefined, resp)
                         else

@@ -460,8 +460,9 @@ DEFAULT_ACCOUNT_SETTINGS =
         theme                     : "default"
         undo_depth                : 300
     other_settings  :
-        confirm_close : false  # non-logged in user shouldn't have to confirm leave.
-        mask_files    : true
+        confirm_close     : false  # non-logged in user shouldn't have to confirm leave.
+        mask_files        : true
+        default_file_sort : 'filename'
     email_address   : 'anonymous@example.com'
     groups          : []
 
@@ -560,6 +561,9 @@ class AccountSettings
                     for x in OTHER_SETTINGS_CHECKBOXES
                         val[x] = element.find(".account-settings-other_settings-#{x}").is(":checked")
 
+                    # Default file sort order
+                    val.default_file_sort = element.find(".account-settings-other_settings-default_file_sort").val()
+
                 else
                     val = element.val()
 
@@ -634,6 +638,7 @@ class AccountSettings
                 when 'other_settings'
                     for x in OTHER_SETTINGS_CHECKBOXES
                         element.find(".account-settings-other_settings-#{x}").prop("checked", value[x])
+                        element.find(".account-settings-other_settings-default_file_sort").val(value.default_file_sort)
                 else
                     set(element, value)
 

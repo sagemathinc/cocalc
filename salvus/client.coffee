@@ -294,7 +294,7 @@ class exports.Connection extends EventEmitter
             message : message.ping()
             timeout : 20  # 20 second timeout
             cb      : (err, pong) =>
-                if not err? and pong?.event == 'pong'
+                if not err and pong?.event == 'pong'
                     latency = new Date() - @_last_ping
                     @emit "ping", latency
                 # try again later
@@ -323,7 +323,7 @@ class exports.Connection extends EventEmitter
                 timeout : opts.timeout
                 cb      : (err, pong) =>
                     heading = "#{i}/#{opts.packets}: "
-                    if not err? and pong?.event == 'pong'
+                    if not err and pong?.event == 'pong'
                         ping_time = new Date() - t
                         bar = ('*' for j in [0...Math.floor(ping_time/10)]).join('')
                         mesg = "#{heading}time=#{ping_time}ms"
@@ -362,7 +362,7 @@ class exports.Connection extends EventEmitter
 
     handle_json_data: (data) =>
         mesg = misc.from_json(data)
-        #console.log("handle_json_data: #{data}")
+        # console.log("handle_json_data: #{data}")
         switch mesg.event
             when "execute_javascript"
                 if mesg.session_uuid?
@@ -403,6 +403,8 @@ class exports.Connection extends EventEmitter
             when "codemirror_diffsync_ready"
                 @emit(mesg.event, mesg)
             when "codemirror_bcast"
+                @emit(mesg.event, mesg)
+            when "activity_notifications"
                 @emit(mesg.event, mesg)
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
@@ -1500,6 +1502,47 @@ class exports.Connection extends EventEmitter
                     project_id  : opts.project_id
                     directories : v
                 opts.cb?(undefined, ans)
+
+    #################################################
+    # Activity
+    #################################################
+    report_path_activity: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : undefined   # cb(err)
+        @call
+            message : message.path_activity
+                project_id  : opts.project_id
+                path        : opts.path
+            cb      : (err, mesg) =>
+                if err
+                    opts.cb?(err)
+                else if mesg.event == 'error'
+                    opts.cb?(mesg.error)
+                else
+                    opts.cb?()
+
+    add_comment_to_activity_notification_stream: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            comment    : required
+            cb         : undefined   # cb(err)
+        @call
+            message : message.add_comment_to_activity_notification_stream
+                project_id  : opts.project_id
+                path        : opts.path
+                comment     : opts.comment
+            cb      : (err, mesg) =>
+                if err
+                    opts.cb?(err)
+                else if mesg.event == 'error'
+                    opts.cb?(mesg.error)
+                else
+                    opts.cb?()
+
+
 
     #################################################
     # Git Commands

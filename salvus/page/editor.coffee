@@ -155,6 +155,8 @@ file_associations['sage-history'] =
     opts   : {}
 
 
+exports.file_icon_class = file_icon_class = (ext) ->
+    if (file_associations[ext]? and file_associations[ext].icon?) then file_associations[ext].icon else 'fa-file-o'
 
 PUBLIC_ACCESS_UNSUPPORTED = ['terminal','image','latex','history','pdf','tasks','course','ipynb']
 # public access file types *NOT* yet supported
@@ -199,11 +201,18 @@ exports.define_codemirror_sagews_mode = () ->
 
     CodeMirror.defineMode "sagews", (config) ->
         options = []
+        close = new RegExp("[#{MARKERS.output}#{MARKERS.cell}]")
         for x in sagews_decorator_modes
-            # NOTE: very important to close on MARKERS.output rather than MARKERS.cell, or it will try to
-            # highlight the *hidden* output message line, which can be *enormous*, and could take a very
-            # very long time!
-            options.push(open:"%" + x[0], close : MARKERS.output, mode : CodeMirror.getMode(config, x[1]))
+            # NOTE: very important to close on both MARKERS.output *and* MARKERS.cell,
+            # rather than just MARKERS.cell, or it will try to
+            # highlight the *hidden* output message line, which can
+            # be *enormous*, and could take a very very long time, but is
+            # a complete waste, since we never see that markup.
+            options.push
+                open  : "%"+x[0]
+                close : close
+                mode  : CodeMirror.getMode(config, x[1])
+
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"), options...)
 
 # Given a text file (defined by content), try to guess
@@ -725,7 +734,7 @@ class exports.Editor
 
         # Add an icon to the file tab based on the extension. Default icon is fa-file-o
         ext = filename_extension(filename)
-        file_icon = if (file_associations[ext]? and file_associations[ext].icon?) then file_associations[ext].icon else 'fa-file-o'
+        file_icon = file_icon_class(ext)
         link_filename.prepend("<i class='fa #{file_icon}' style='font-size:10pt'> </i> ")
 
         open_file = (name) =>
@@ -1283,9 +1292,6 @@ class CodeMirrorEditor extends FileEditor
 
             "Ctrl-Space"   : "autocomplete"
 
-            #"Ctrl-Q"       : (cm) => cm.foldCode(cm.getCursor())
-
-
             #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
 
         if opts.match_xml_tags
@@ -1327,7 +1333,7 @@ class CodeMirrorEditor extends FileEditor
                 options.matchTags = {bothTags: true}
 
             if opts.code_folding
-                 extraKeys["Ctrl-Q"] = (cm) -> cm.foldCode(cm.getCursor())
+                 extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
                  options.foldGutter  = true
                  options.gutters     = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 
@@ -1355,6 +1361,7 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
+
         window.cm = @codemirror
 
         elt1 = layout_elt.find(".salvus-editor-codemirror-input-box-1").find("textarea")
@@ -2021,8 +2028,6 @@ class PDFLatexDocument
         @base_filename = @filename_tex.slice(0, @filename_tex.length-4)
         @filename_pdf  =  @base_filename + '.pdf'
 
-        window.e = @
-
     page: (n) =>
         if not @_pages[n]?
             @_pages[n] = {}
@@ -2191,6 +2196,8 @@ class PDFLatexDocument
                           cb(err)
                  else
                      cb()
+            (cb) =>
+                @update_number_of_pdf_pages(cb)
         ], (err) =>
             opts.cb?(err, log))
 
@@ -2239,15 +2246,6 @@ class PDFLatexDocument
                         @_need_to_run.bibtex = true
 
                     @last_latex_log = log
-                    before = @num_pages
-                    @_parse_latex_log_for_num_pages(log)
-
-                    # Delete trailing removed pages from our local view of things; otherwise, they won't properly
-                    # re-appear later if they look identical, etc.
-                    if @num_pages < before
-                        for n in [@num_pages ... before]
-                            delete @_pages[n]
-
                     cb?(false, log)
 
     _run_sage: (target, cb) =>
@@ -2278,16 +2276,35 @@ class PDFLatexDocument
                     @_need_to_run.latex = true
                     cb?(false, log)
 
-    _parse_latex_log_for_num_pages: (log) =>
-        i = log.indexOf("Output written")
-        if i != -1
-            i = log.indexOf("(", i)
-            if i != -1
-                j = log.indexOf(" pages", i)
-                try
-                    @num_pages = parseInt(log.slice(i+1,j))
-                catch e
-                    console.log("BUG parsing number of pages")
+    pdfinfo: (cb) =>   # cb(err, info)
+        @_exec
+            command     : "pdfinfo"
+            args        : [@filename_pdf]
+            bash        : false
+            err_on_exit : true
+            cb          : (err, output) =>
+                if err
+                    cb(err)
+                    return
+                v = {}
+                for x in output.stdout?.split('\n')
+                    w = x.split(':')
+                    if w.length == 2
+                        v[w[0].trim()] = w[1].trim()
+                cb(undefined, v)
+
+    update_number_of_pdf_pages: (cb) =>
+        before = @num_pages
+        @pdfinfo (err, info) =>
+            # if err maybe no pdf yet -- just don't do anything
+            if not err and info?.Pages?
+                @num_pages = info.Pages
+                # Delete trailing removed pages from our local view of things; otherwise, they won't properly
+                # re-appear later if they look identical, etc.
+                if @num_pages < before
+                    for n in [@num_pages ... before]
+                        delete @_pages[n]
+            cb()
 
     # runs pdftotext; updates plain text of each page.
     # (not used right now, since we are using synctex instead...)
@@ -3021,7 +3038,6 @@ class HistoryEditor extends FileEditor
 
 class LatexEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        window.l =@
         # The are three components:
         #     * latex_editor -- a CodeMirror editor
         #     * preview -- display the images (page forward/backward/resolution)
@@ -3793,9 +3809,6 @@ class Terminal extends FileEditor
             @element.css(left:0, top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
             @console.focus(true)
 
-
-
-
 class Image extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
         opts = @opts = defaults opts,{}
@@ -4381,7 +4394,8 @@ class IPythonNotebook extends FileEditor
         #t += "<h4>Connect to this IPython kernel in a terminal</h4>"
         #t += "<pre>ipython console --existing #{@kernel_id}</pre>"
         t += "<h4>Pure IPython notebooks</h4>"
-        t += "You can also directly use an <a target='_blank' href='#{@server.url}'>unmodified version of the IPython Notebook server</a> (this link works for all project collaborators).  "
+        if @server?.url?
+            t += "You can also directly use an <a target='_blank' href='#{@server.url}'>unmodified version of the IPython Notebook server</a> (this link works for all project collaborators).  "
         t += "<br><br>To start your own unmodified IPython Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
         t += "<h4>Known Issues</h4>"
         t += "If two people edit the same <i>cell</i> simultaneously, the cursor will jump to the start of the cell."

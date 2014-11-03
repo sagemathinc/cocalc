@@ -515,7 +515,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @sync()
                 @init_cursorActivity_event()
                 @codemirror.on 'change', (instance, changeObj) =>
-                    #console.log("change #{misc.to_json(changeObj)}")
                     if changeObj.origin?
                         if changeObj.origin == 'undo'
                             @on_undo(instance, changeObj)

@@ -217,6 +217,13 @@ exports.len = (obj) ->
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
 exports.keys = (obj) -> (key for key of obj)
 
+# as in python, makes a map from an array of pairs [(x,y),(z,w)] --> {x:y, z:w}
+exports.dict = (obj) ->
+    x = {}
+    for a in obj
+        x[a[0]] = a[1]
+    return x
+
 # remove first occurrence of value (just like in python);
 # throws an exception if val not in list.
 exports.remove = (obj, val) ->
@@ -446,7 +453,7 @@ class RetryUntilSuccess
             @f (err) =>
                 @attempts += 1
                 @_calling = false
-                if err? and err
+                if err
                     if @opts.max_tries? and @attempts >= @opts.max_tries
                         while @_cb_stack.length > 0
                             @_cb_stack.pop()(err)

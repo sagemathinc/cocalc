@@ -85,7 +85,7 @@ class ThreeJS(object):
         if frame_aspect_ratio is not None:
             aspect_ratio = frame_aspect_ratio
         if aspect_ratio is not None:
-            if aspect_ratio == 1:
+            if aspect_ratio == 1 or aspect_ratio=='automatic':
                 aspect_ratio = None
             elif not (isinstance(aspect_ratio, (list, tuple)) and len(aspect_ratio) == 3):
                 raise TypeError("aspect_ratio must be None, 1 or a 3-tuple ")
@@ -176,52 +176,33 @@ def jsonable(x):
     return x
 
 def graphics3d_to_jsonable(p):
-
     obj_list = []
 
     def parse_obj(obj):
-        model = []
+        material_name  = ''
+        face3 = []
+        face4 = []
+        face5 = []
         for item in obj.split("\n"):
-            if "usemtl" in item:
-                tmp = str(item.strip())
-                tmp_list = {}
-                try:
-                    tmp_list = {"material_name":name,"face3":face3,"face4":face4,"face5":face5}
-                    model.append(tmp_list)
-                except (ValueError,UnboundLocalError):
-                    pass
-                face3 = []
-                face4 = []
-                face5 = []
-                tmp_list = []
-                name = tmp.split()[1]
+            tmp = str(item.strip())
+            if not tmp:
+                continue
+            k = tmp.split()
+            if k[0] == "usemtl":  # material name
+                material_name = k[1]
+            elif k[0] == 'f': # face
+                v = [int(a) for a in k[1:]]
+                if len(v) == 3:
+                    face3.extend(v)
+                elif len(v) == 4:
+                    face4.extend(v)
+                elif len(v) == 6:  # actually 6 vertices (not 5!) -- used by polytopes.permutahedron(4).plot()
+                    face5.extend(v)
+                else:
+                    raise NotImplementedError("unable to parse %s"%tmp)
+            # other types are parse elsewhere in a different pass.
 
-
-            if "f" in item:
-                tmp = str(item.strip())
-                face_num = len(tmp.split())
-                for t in tmp.split():
-                    if face_num == 4:
-                        try:
-                            face3.append(int(t))
-                        except ValueError:
-                            pass
-
-                    elif face_num == 6:
-                        try:
-                            face5.append(int(t))
-                        except ValueError:
-                            pass
-                    else:
-                        try:
-                            face4.append(int(t))
-                        except ValueError:
-                            pass
-
-        model.append({"material_name":name,"face3":face3,"face4":face4,"face5":face5})
-
-        return model
-
+        return [{"material_name":material_name,"face3":face3,"face4":face4,"face5":face5}]
 
     def parse_texture(p):
         texture_dict = []
@@ -344,7 +325,13 @@ def graphics3d_to_jsonable(p):
 
         return all_material
 
-    def convert_index_face_set(p):
+    #####################################
+    # Conversion functions
+    #####################################
+
+    def convert_index_face_set(p, T, extra_kwds):
+        if T is not None:
+            p = p.transform(T=T)
         face_geometry = parse_obj(p.obj())
         material = parse_mtl(p)
         vertex_geometry = []
@@ -357,7 +344,10 @@ def graphics3d_to_jsonable(p):
                         vertex_geometry.append(json_float(t))
                     except ValueError:
                         pass
-        myobj = {"face_geometry":face_geometry,"type":'index_face_set',"vertex_geometry":vertex_geometry,"material":material}
+        myobj = {"face_geometry"   : face_geometry,
+                 "type"            : 'index_face_set',
+                 "vertex_geometry" : vertex_geometry,
+                 "material"        : material}
         for e in ['wireframe', 'mesh']:
             if p._extra_kwds is not None:
                 v = p._extra_kwds.get(e, None)
@@ -365,65 +355,43 @@ def graphics3d_to_jsonable(p):
                     myobj[e] = jsonable(v)
         obj_list.append(myobj)
 
-    def convert_text3d(p):
-        text3d_sub_obj = p.all[0]
-        text_content = text3d_sub_obj.string
-        color = "#" + text3d_sub_obj.get_texture().hex_rgb()
+    def convert_text3d(p, T, extra_kwds):
+        obj_list.append(
+                {"type"          : "text",
+                 "text"          : p.string,
+                 "pos"           : [0,0,0] if T is None else T([0,0,0]),
+                 "color"         : "#" + p.get_texture().hex_rgb(),
+                 'fontface'      : str(extra_kwds.get('fontface', 'Arial')),
+                 'constant_size' : bool(extra_kwds.get('constant_size', True)),
+                 'fontsize'      : int(extra_kwds.get('fontsize', 12))})
 
-        # support for extra options not supported in sage
-        extra_opts = p._extra_kwds
-        fontsize = int(extra_opts.get('fontsize', 12))
-        fontface = str(extra_opts.get('fontface', 'Arial'))
-        constant_size = bool(extra_opts.get('constant_size', True))
-
-        myobj = {"type":"text",
-                 "text":text_content,
-                 "pos":list(p.bounding_box()[0]),
-                 "color":color,
-                 'fontface':fontface,
-                 'constant_size':constant_size,
-                 'fontsize':fontsize}
-        obj_list.append(myobj)
-
-    def convert_line(p):
-        if isinstance(p, sage.plot.plot3d.base.TransformGroup):
-            # converting a transformed line
-            assert len(p.all) == 1, "not implemented"
-            g = p.all[0]
-            points = g.points
-            # apply transformation
-            T = p.get_transformation()
-            points = [T.transform_point(point) for point in points]
-        else:
-            # a regular line (not transformed)
-            points = p.points
-            g = p
-
+    def convert_line(p, T, extra_kwds):
         obj_list.append({"type"       : "line",
-                         "points"     : points,
-                         "thickness"  : jsonable(g.thickness),
-                         "color"      : "#" + g.get_texture().hex_rgb(),
-                         "arrow_head" : bool(g.arrow_head)})
+                         "points"     : p.points if T is None else [T.transform_point(point) for point in p.points],
+                         "thickness"  : jsonable(p.thickness),
+                         "color"      : "#" + p.get_texture().hex_rgb(),
+                         "arrow_head" : bool(p.arrow_head)})
 
-    def convert_point(p):
-        obj_list.append({"type" : "point",
-                         "loc"  : p.loc,
-                         "size" : json_float(p.size),
+    def convert_point(p, T, extra_kwds):
+        obj_list.append({"type"  : "point",
+                         "loc"   : p.loc if T is None else T(p.loc),
+                         "size"  : json_float(p.size),
                          "color" : "#" + p.get_texture().hex_rgb()})
 
-    def convert_combination(p):
+    def convert_combination(p, T, extra_kwds):
         for x in p.all:
-            handler(x)(x)
+            handler(x)(x, T, p._extra_kwds)
 
-    def convert_inner(p):
-        if isinstance(p.all[0], sage.plot.plot3d.base.TransformGroup):
-            convert_index_face_set(p)
+    def convert_transform_group(p, T, extra_kwds):
+        if T is not None:
+            T = T * p.get_transformation()
         else:
-            handler(p.all[0])(p)
+            T = p.get_transformation()
+        for x in p.all:
+            handler(x)(x, T, p._extra_kwds)
 
-    def nothing(p):
+    def nothing(p, T, extra_kwds):
         pass
-
 
     def handler(p):
         if isinstance(p, sage.plot.plot3d.index_face_set.IndexFaceSet):
@@ -431,7 +399,7 @@ def graphics3d_to_jsonable(p):
         elif isinstance(p, sage.plot.plot3d.shapes.Text):
             return convert_text3d
         elif isinstance(p, sage.plot.plot3d.base.TransformGroup):
-            return convert_inner
+            return convert_transform_group
         elif isinstance(p, sage.plot.plot3d.base.Graphics3dGroup):
             return convert_combination
         elif isinstance(p, sage.plot.plot3d.shapes2.Line):
@@ -447,8 +415,10 @@ def graphics3d_to_jsonable(p):
             raise NotImplementedError("unhandled type ", type(p))
 
 
-    handler(p)(p)
+    # start it going -- this modifies obj_list
+    handler(p)(p, None, None)
 
+    # now obj_list is full of the objects
     return obj_list
 
 

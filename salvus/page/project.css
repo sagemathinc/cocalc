@@ -78,6 +78,10 @@
     max-height: 13em;
     overflow-y: auto;
     background-color: #eee;
+    margin-left: 3%;
+    margin-top: 1em;
+    margin-bottom: 0px;
+    width: 94%;
 }
 
 .project-file-listing {
@@ -217,11 +221,6 @@
 }
 .project-search-output-path-heading {
     margin-top: 7px;
-}
-
-.project-project_description {
-    font-size:12pt;
-    color: #666;
 }
 
 .project-file-listing-cwd {
@@ -581,6 +580,11 @@
     }
 }
 
+.salvus-project-settings-heading-well {
+    background: white;
+}
+
+
 .salvus-project-in-published-path {
     background:#eaeaea;
 }
@@ -597,4 +601,18 @@
 .salvus-project-published-desc-input {
     margin-top:1.5em;
     width:100%;
+}
+
+.project-project_description {
+    font-size:11pt;
+    color: #666;
+    max-height: 6em;
+    overflow-y: auto;
+    border: 1px solid lightgrey;
+    padding: 1ex;
+    border-radius: 3px;
+}
+
+.salvus-settings-url {
+    font-size: 10pt;
 }

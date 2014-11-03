@@ -261,7 +261,7 @@ $("#salvus-help").top_navbar
     label   : "Help"
     icon    : 'fa-question-circle'
     close   : false
-    onshow: () -> document.title = "SageMathCloud - Help"
+    onshow: () -> misc_page.set_window_title("Help")
 
 
 
@@ -289,15 +289,15 @@ $("#projects").top_navbar
     label   : "Projects"
     icon : 'fa-tasks'
     close   : false
-    onshow: () -> document.title = "SageMathCloud - Projects"
+    onshow: () -> misc_page.set_window_title("Projects")
 
 $("#account").top_navbar
     id     : "account"
-    label  : "Sign in"
+    label  : "Account"
     pull_right : true
     close   : false
     icon : 'fa-signin'
-    onshow: () -> document.title = "SageMathCloud - Account"
+    onshow: () -> misc_page.set_window_title("Account")
 
 #$("#worksheet2").top_navbar
 #    id      : "worksheet2"

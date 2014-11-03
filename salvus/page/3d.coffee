@@ -44,11 +44,13 @@ VERSION = '68'
 $.ajaxSetup(cache: true) # when using getScript, cache result.
 
 load_threejs = (cb) ->
+    if Detector? and THREE?
+        cb(); return
     _loading_threejs_callbacks.push(cb)
     #console.log("load_threejs")
     if _loading_threejs_callbacks.length > 1
         #console.log("load_threejs: already loading...")
-        return
+        return  # will get called later below
 
     load = (script, name, cb) ->
         if typeof(name) != 'string'
@@ -81,7 +83,7 @@ load_threejs = (cb) ->
         (cb) -> load("/static/threejs/r#{VERSION}/Detector.min.js", cb)
         (cb) ->
             f = () ->
-                if THREE?
+                if Detector? and THREE?
                     cb()
                 else
                     #console.log("load_threejs: waiting for THREEJS...")
@@ -94,14 +96,12 @@ load_threejs = (cb) ->
         _loading_threejs_callbacks = []
     )
 
-window.load_threejs = load_threejs
-
 
 _scene_using_renderer  = undefined
-_renderer = undefined
+_renderer = {webgl:undefined, canvas:undefined}
 dynamic_renderer_type = undefined
 
-get_renderer = (scene) ->
+get_renderer = (scene, type) ->
     # if there is a scene currently using this renderer, tell it to switch to
     # the static renderer.
     if _scene_using_renderer? and _scene_using_renderer._id != scene._id
@@ -109,22 +109,26 @@ get_renderer = (scene) ->
 
     # now scene takes over using this renderer
     _scene_using_renderer = scene
-    if not _renderer?
+    if Detector.webgl and (not type? or type == 'webgl')
+        type = 'webgl'
+    else
+        type = 'canvas'
+    dynamic_renderer_type = type
+    if not _renderer[type]?
         # get the best-possible THREE.js renderer (once and for all)
-        if Detector.webgl
-            dynamic_renderer_type = 'webgl'
-            _renderer = new THREE.WebGLRenderer
+        if type == 'webgl'
+            _renderer[type] = new THREE.WebGLRenderer
                 antialias             : true
                 alpha                 : true
                 preserveDrawingBuffer : true
         else
-            dynamic_renderer_type = 'canvas'
-            _renderer = new THREE.CanvasRenderer
+            _renderer[type] = new THREE.CanvasRenderer
                 antialias : true
                 alpha     : true
-        $(_renderer.domElement).addClass("salvus-3d-dynamic-renderer")
+        $(_renderer[type].domElement).addClass("salvus-3d-dynamic-renderer")
+    return _renderer[type]
 
-    return _renderer
+MIN_WIDTH = MIN_HEIGHT = 16
 
 class SalvusThreeJS
     constructor: (opts) ->
@@ -133,18 +137,20 @@ class SalvusThreeJS
             container       : required
             width           : undefined
             height          : undefined
-            renderer        : undefined  # ignored now
+            renderer        : undefined  # 'webgl' or 'canvas' or undefined to choose best
             background      : "#fafafa"
             foreground      : undefined
             spin            : false      # if true, image spins by itself when mouse is over it.
             camera_distance : 10
-            aspect_ratio    : undefined  # undefined does nothing or a triple [x,y,z] of length three, which scales the x,y,z coordinates of everything by the given values.
+            aspect_ratio    : undefined  # undefined does nothing or a triple [x,y,z] of length three,
+                                         # which scales the x,y,z coordinates of everything by the given values.
             stop_when_gone  : undefined  # if given, animation, etc., stops when this html element (not jquery!) is no longer in the DOM
             frame           : undefined  # if given call set_frame with opts.frame as input when init_done called
             cb              : undefined  # opts.cb(undefined, this object)
 
         @init_eval_note()
-        opts.cb?(undefined, @)
+        load_threejs () =>
+            opts.cb?(undefined, @)
 
     # client code should call this when start adding objects to the scene
     init: () =>
@@ -161,10 +167,13 @@ class SalvusThreeJS
         # width, then after 8 3d renders, things get foobared in WebGL mode.  This happens even with the simplest
         # demo using the basic cube example from their site with R68.  It even sometimes happens with this workaround, but
         # at least retrying a few times can fix it.
-        if not @opts.width?
+        if not @opts.width? or @opts.width < MIN_WIDTH
+            # ignore width/height less than a cutoff -- some graphics,
+            # e.g., "Polyhedron([(0,0,0),(0,1,0),(0,2,1),(1,0,0),(1,2,3),(2,1,1)]).plot()"
+            # weirdly set it very small.
             @opts.width  = $(window).width()*.5
 
-        @opts.height = if @opts.height? then @opts.height else @opts.width*2/3
+        @opts.height = if @opts.height? and @opts.height >= MIN_HEIGHT then @opts.height else @opts.width*2/3
         @opts.container.css(width:"#{@opts.width+50}px")
 
         @set_dynamic_renderer()
@@ -220,7 +229,7 @@ class SalvusThreeJS
         if @renderer_type == 'dynamic'
             # already have it
             return
-        @renderer = get_renderer(@)
+        @renderer = get_renderer(@, @opts.renderer)
         @renderer_type = 'dynamic'
         # place renderer in correct place in the DOM
         @opts.element.find(".salvus-3d-canvas").empty().append($(@renderer.domElement))
@@ -311,8 +320,6 @@ class SalvusThreeJS
                 @rescale_objects()
                 @renderer.render(@scene, @camera)
 
-
-
     add_camera: (opts) =>
         opts = defaults opts,
             distance : 10
@@ -332,8 +339,6 @@ class SalvusThreeJS
         @camera.up = new THREE.Vector3(0,0,1)
 
     init_light: (color= 0xffffff) =>
-
-        # console.log 'init_light'
 
         ambient = new THREE.AmbientLight(0x404040)
         @scene.add(ambient)
@@ -497,16 +502,15 @@ class SalvusThreeJS
             for k in [0...vertices.length] by 3
                 geometry.vertices.push(@vector(vertices.slice(k, k+3)))
 
-            # console.log("vertices=",misc.to_json(geometry.vertices))
-
             push_face3 = (a,b,c) =>
                 geometry.faces.push(new THREE.Face3(a-1,b-1,c-1))
+                #geometry.faces.push(new THREE.Face3(b-1,a-1,c-1))   # both sides of faces, so material is visible from inside -- but makes some things like look really crappy; disable.
 
             # include all faces defined by 3 vertices (triangles)
             for k in [0...face3.length] by 3
                 push_face3(face3[k], face3[k+1], face3[k+2])
 
-            # include all faces defined by 4 vertices (squares), which for THREE.js we must define using two triangles
+            # include all  *polyogonal* faces defined by 4 vertices (squares), which for THREE.js we must define using two triangles
             push_face4 = (a,b,c,d) =>
                 push_face3(a,b,c)
                 push_face3(a,c,d)
@@ -514,14 +518,13 @@ class SalvusThreeJS
             for k in [0...face4.length] by 4
                 push_face4(face4[k], face4[k+1], face4[k+2], face4[k+3])
 
-            # include all faces defined by 5 vertices (???), which for THREE.js we must define using ten triangles (?)
-            for k in [0...face5.length] by 5
-                push_face4(face5[k],   face5[k+1], face5[k+2], face5[k+4])
-                push_face4(face5[k],   face5[k+1], face5[k+2], face5[k+3])
-                push_face4(face5[k],   face5[k+1], face5[k+2], face5[k+4])
-                push_face4(face5[k],   face5[k+2], face5[k+3], face5[k+4])
-                push_face4(face5[k+1], face5[k+2], face5[k+3], face5[k+4])
-           # console.log("faces=",misc.to_json(geometry.faces))
+            # include all *polyogonal* faces defined by 6 vertices (see http://people.cs.clemson.edu/~dhouse/courses/405/docs/brief-obj-file-format.html)
+            for k in [0...face5.length] by 6
+                [a,b,c,d,e,f] = face5.slice(k, k+6)
+                push_face3(a, b, c)
+                push_face3(a, c, d)
+                push_face3(a, d, e)
+                push_face3(a, e, f)
 
             geometry.mergeVertices()
             #geometry.computeCentroids()

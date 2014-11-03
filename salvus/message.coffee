@@ -568,6 +568,7 @@ exports.account_settings_defaults =
     other_settings     :
         confirm_close             : false
         mask_files                : true
+        default_file_sort         : 'time'
     editor_settings    :
         strip_trailing_whitespace : false
         show_trailing_whitespace  : true
@@ -692,7 +693,31 @@ message
     value       : undefined  # value to set cookie to
 
 
+######################################################################################
+# Activity loging and notification
+######################################################################################
+#
+# client --> hub to indicate that there was some activity by this user on the given path
+#
+message
+    event       : 'path_activity'
+    id          : undefined
+    project_id  : required
+    path        : required
 
+# Add a comment, e.g., "read" or "seen", to this users activity notification
+# stream for the given path.
+message
+    event       : 'add_comment_to_activity_notification_stream'
+    id          : undefined
+    project_id  : required
+    path        : required
+    comment     : required
+
+message
+    event         : 'activity_notifications'
+    notifications : required
+    update        : false   # if specified then only giving update since the given time
 
 ###################################################################################
 #

@@ -278,31 +278,21 @@ exports.define_codemirror_extensions = () ->
     CodeMirror.defineExtension 'unindent_selection', () ->
         editor     = @
 
-        start = editor.getCursor('head')
-        end   = editor.getCursor('anchor')
-        if end.line <= start.line or (end.line ==start.line and end.ch <= start.ch)
-            # swap start and end.
-            t = start
-            start = end
-            end = t
-
-        start_line = start.line
-        end_line   = if end.ch > 0 then end.line else end.line - 1
-        if end_line < start_line
-            end_line = start_line
-        all_need_unindent = true
-        for n in [start_line .. end_line]
-            s = editor.getLine(n)
-            if not s?
-                return
-            if s.length ==0 or s[0] == '\t' or s[0] == ' '
-                continue
-            else
-                all_need_unindent = false
-                break
-        if all_need_unindent
+        for selection in editor.listSelections()
+            {start_line, end_line} = cm_start_end(selection)
+            all_need_unindent = true
             for n in [start_line .. end_line]
-                editor.indentLine(n, "subtract")
+                s = editor.getLine(n)
+                if not s?
+                    return
+                if s.length ==0 or s[0] == '\t' or s[0] == ' '
+                    continue
+                else
+                    all_need_unindent = false
+                    break
+            if all_need_unindent
+                for n in [start_line .. end_line]
+                    editor.indentLine(n, "subtract")
 
     CodeMirror.defineExtension 'tab_as_space', () ->
         cursor = @getCursor()
@@ -500,6 +490,42 @@ exports.define_codemirror_extensions = () ->
             cm._spellcheck_highlight_overlay = {token: token}
             cm.addOverlay(cm._spellcheck_highlight_overlay)
 
+    CodeMirror.defineExtension 'foldCodeSelectionAware', (mode) ->
+        editor = @
+        # The variable mode determines whether we are mode or unfolding *everything*
+        # selected.  If mode='fold', mode everything; if mode='unfold', unfolding everything;
+        # and if mode=undefined, not yet decided.  If undecided, it's decided on the first
+        # thing that we would toggle, e.g., if the first fold point is unfolded, we make sure
+        # everything is folded in all ranges, but if the first fold point is not folded, we then
+        # make everything unfolded.
+        for selection in editor.listSelections()
+            {start_line, end_line} = cm_start_end(selection)
+            for n in [start_line .. end_line]
+                pos = CodeMirror.Pos(n)
+                if mode?
+                    editor.foldCode(pos, null, mode)
+                else
+                    # try to toggle and see if anything happens
+                    is_folded = editor.isFolded(pos)
+                    editor.foldCode(pos)
+                    if editor.isFolded(pos) != is_folded
+                        # this is a foldable line, and what did we do?  keep doing it.
+                        mode = if editor.isFolded(pos) then "fold" else "unfold"
+
+
+cm_start_end = (selection) ->
+    {head, anchor} = selection
+    start = head
+    end   = anchor
+    if end.line <= start.line or (end.line ==start.line and end.ch <= start.ch)
+        [start, end] = [end, start]
+    start_line = start.line
+    end_line   = if end.ch > 0 then end.line else end.line - 1
+    if end_line < start_line
+        end_line = start_line
+    return {start_line:start_line, end_line:end_line}
+
+
 templates.find(".salvus-codemirror-introspect").find("button").click () ->
     templates.find(".salvus-codemirror-introspect").modal('hide')
     element.data('editor').focus()
@@ -640,3 +666,21 @@ exports.html_to_text = (html) -> $($.parseHTML(html)).text()
 
 exports.language = () ->
     (if navigator.languages then navigator.languages[0] else (navigator.language or navigator.userLanguage))
+
+
+# Calling set_window_title will set the title, but also put a notification
+# count to the left of the title; if called with no arguments just updates
+# the count, maintaining the previous title.
+last_title = ''
+exports.set_window_title = (title) ->
+    if not title?
+        title = last_title
+    u = require('activity').unseen_count()
+    last_title = title
+    if u
+        title = "(#{u}) #{title}"
+    document.title = title
+
+
+
+

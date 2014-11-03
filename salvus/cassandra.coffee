@@ -673,6 +673,7 @@ class exports.Cassandra extends EventEmitter
             consistency = undefined
         if not consistency?
             consistency = @consistency
+        done = false  # set to true right before calling cb, so it can only be called once
         g = (c) =>
             @conn.execute query, vals, { consistency: consistency }, (error, results) =>
                 if not error
@@ -691,17 +692,18 @@ class exports.Cassandra extends EventEmitter
                 else
                     if not error
                         rows = results.rows
-                    cb?(error, rows)
-                    cb = undefined  # ensure is only called once
+                    if not done
+                        done = true
+                        cb?(error, rows)
                     c()
 
         f = (c) =>
             failed = () =>
-                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- will likely retrying"
+                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- will likely retry"
                 winston.error(m)
-                c?(m)
-                c = undefined # ensure only called once
-                @reconnect()
+                @reconnect (err) =>
+                    c?(m)
+                    c = undefined # ensure only called once
             _timer = setTimeout(failed, 1000*@query_timeout_s)
             g (err) =>
                 clearTimeout(_timer)
@@ -717,11 +719,11 @@ class exports.Cassandra extends EventEmitter
             max_delay : 3000
             cb        : (err) =>
                 if err
-                    cb?("query failed even after #{@query_max_retry} attempts -- giving up -- #{err}")
-                else
-                    cb?()
-                cb = undefined  # ensure only called once
-
+                    err = "query failed even after #{@query_max_retry} attempts -- giving up -- #{err}"
+                    winston.debug(err)
+                if not done
+                    done = true
+                    cb?(err)
 
     key_value_store: (opts={}) -> # key_value_store(name:"the name")
         new KeyValueStore(@, opts)
@@ -2089,7 +2091,7 @@ class exports.Salvus extends exports.Cassandra
                 if err
                     opts.cb(err)
                 else
-                    opts.cb(false, opts.account_id in _.flatten(result))
+                    opts.cb(undefined, opts.account_id in _.flatten(result))
 
     # all id's of projects having anything to do with the given account
     get_project_ids_with_user: (opts) =>
@@ -2108,7 +2110,7 @@ class exports.Salvus extends exports.Cassandra
                 for r in result
                     if r?
                         v = v.concat(r)
-                opts.cb(false, v)
+                opts.cb(undefined, v)
 
     get_hidden_project_ids: (opts) =>
         opts = defaults opts,
@@ -2226,7 +2228,7 @@ class exports.Salvus extends exports.Cassandra
             columns    : (c for c in PROJECT_COLUMNS when c.indexOf('invited') == -1)
             where      : { project_id : opts.project_id }
             cb         : (err, results) =>
-                if err?
+                if err
                     opts.cb(err)
                 else
                     v = []
@@ -3178,7 +3180,7 @@ class ChunkedStorage
                             opts.cb(err)
                         else
                             fs.mkdir path, 0o700, (err) =>
-                                if err?
+                                if err
                                     if err.code == 'EEXIST'
                                         opts.cb()
                                     else
