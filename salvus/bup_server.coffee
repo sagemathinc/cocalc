@@ -1687,7 +1687,7 @@ class GlobalProject
                 # Launch stops (no blocking) on all servers that do report an error,
                 # since it's critical those get cleaned up as soon
                 # as possible.  By cleaned up, I mean the user gets deleted,
-                # all processes get killed etc.    
+                # all processes get killed etc.
                 @_stop_all((server_id for server_id, s of @state when s == 'error'))
         )
 
@@ -2477,7 +2477,10 @@ class GlobalClient
     CODE in console to use this:
 
         x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
-    	status=[];x.c.repair(status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
+    	x.c.repair(dryrun:true, cb:(e,projects)->console.log("DONE",e);x.projects=projects)
+        x.projects.length
+
+        status=[];x.c.repair(status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
 
     ###
     repair: (opts) =>
