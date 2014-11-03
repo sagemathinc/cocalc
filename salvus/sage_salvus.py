@@ -2900,11 +2900,12 @@ def wiki(doc=None, hide=True):
     """
     Mediawiki markup cell decorator.   E.g.,
 
-    %wiki(hide=False)
-    * ''Unordered lists'' and math like $x^3 - y^2$ are both easy
-    ** Start every line with a star.
-    *** More stars indicate a deeper level.
-    """
+    EXAMPLE::
+
+        %wiki(hide=False)
+        * ''Unordered lists'' and math like $x^3 - y^2$ are both easy
+        ** Start every line with a star.
+        *** More stars indicate a deeper level.    """
     if doc is None:
         return lambda doc: wiki(doc=doc, hide=hide) if doc else ''
     html(pandoc('mediawiki', doc=doc), hide=hide)
