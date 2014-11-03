@@ -444,7 +444,6 @@ def introspect(code, namespace, preparse=True):
                         t += "   Docstring :\n" + sage.misc.sageinspect.sage_getdoc(s).strip()
                         return t
                     result += eval('getdoc(O)', {'getdoc':f, 'O':O})
-                    result += "   Docstring:\n   " + eval('getdoc(O)', {'getdoc':f, 'O':O})
                 except Exception, err:
                     result += "Unable to read docstring (%s)"%err
                 result = result.lstrip().replace('\n   ','\n')  # Get rid of the 3 spaces in front of everything.
