@@ -107,6 +107,11 @@ file_associations['html'] =
     icon   : 'fa-file-code-o'
     opts   : {mode:'htmlmixed', indent_unit:4, tab_size:4}
 
+file_associations['wiki'] =
+    editor : 'codemirror'
+    icon   : 'fa-file-code-o'
+    opts   : {mode:'mediawiki', indent_unit:4, tab_size:4}
+
 file_associations['css'] =
     editor : 'codemirror'
     icon   : 'fa-file-code-o'
@@ -194,7 +199,8 @@ sagews_decorator_modes = [
     ['sage'        , 'python'],
     ['script'      , 'shell'],
     ['sh'          , 'shell'],
-    ['julia'       , 'text/x-julia']
+    ['julia'       , 'text/x-julia'],
+    ['wiki'        , 'mediawiki']
 ]
 
 exports.define_codemirror_sagews_mode = () ->

@@ -14,6 +14,8 @@ for addon in 'mode/multiplex.js mode/overlay.js selection/active-line.js comment
 for keymap in 'vim emacs sublime'.split():
     targets.append("keymap/%s.js"%keymap)
 
+for mode in 'mediawiki'.split():
+    targets.append("../codemirror-extra/mode/%s/%s.js"%(mode,mode))
 
 cmd = 'uglifyjs2 ' + ' '.join(targets) + ' -m  > codemirror.min.js'
 print cmd
