@@ -427,7 +427,23 @@ def introspect(code, namespace, preparse=True):
                 result = get_file()
                 try:
                     def f(s):
-                        return sage.misc.sageinspect.sage_getdoc(s) #, embedded_override=True)
+                        x = sage.misc.sageinspect.sage_getargspec(s)
+                        defaults = list(x.defaults) if x.defaults else []
+                        args = list(x.args) if x.defaults else []
+                        v = []
+                        if x.keywords:
+                            v.insert(0,'**kwds')
+                        if x.varargs:
+                            v.insert(0,'*args')
+                        while defaults:
+                            d = defaults.pop()
+                            k = args.pop()
+                            v.insert(0,'%s=%s'%(k,d))
+                        v = args + v
+                        t = "   Signature : %s(%s)\n"%(obj, ', '.join(v))
+                        t += "   Docstring :\n" + sage.misc.sageinspect.sage_getdoc(s).strip()
+                        return t
+                    result += eval('getdoc(O)', {'getdoc':f, 'O':O})
                     result += "   Docstring:\n   " + eval('getdoc(O)', {'getdoc':f, 'O':O})
                 except Exception, err:
                     result += "Unable to read docstring (%s)"%err
