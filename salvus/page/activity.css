@@ -38,6 +38,13 @@
     font-size: 10pt;
 }
 
+@media (max-width: 767px) {
+    .salvus-notification-list {
+        width: 75%;
+    }
+}
+
+
 .salvus-notification-list-body {
     cursor:pointer;
 }
