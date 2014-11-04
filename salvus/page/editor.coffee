@@ -221,6 +221,24 @@ exports.define_codemirror_sagews_mode = () ->
 
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"), options...)
 
+    ###
+    $.get '/static/codemirror-extra/data/sage-completions.txt', (data) ->
+        s = data.split('\n')
+        sagews_hint = (editor) ->
+            console.log("sagews_hint")
+            cur   = editor.getCursor()
+            token = editor.getTokenAt(cur)
+            console.log(token)
+            t = token.string
+            completions = (a for a in s when a.slice(0,t.length) == t)
+            ans =
+                list : completions,
+                from : CodeMirror.Pos(cur.line, token.start)
+                to   : CodeMirror.Pos(cur.line, token.end)
+        CodeMirror.registerHelper("hint", "sagews", sagews_hint)
+    ###
+
+
 # Given a text file (defined by content), try to guess
 # what the extension should be.
 guess_file_extension_type = (content) ->
