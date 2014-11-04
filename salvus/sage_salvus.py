@@ -2888,7 +2888,9 @@ def pandoc(fmt, doc=None, hide=True):
         return lambda x : html(pandoc(fmt, x), hide=hide) if x is not None else ''
     import subprocess
     p = subprocess.Popen(['pandoc', '-f', fmt,  '--mathjax'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-    p.stdin.write(doc)
+    if not isinstance(doc, unicode):
+        doc = unicode(doc, 'utf8')
+    p.stdin.write(doc.encode('UTF-8'))
     p.stdin.close()
     err = p.stderr.read()
     if err:

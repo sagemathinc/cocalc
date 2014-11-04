@@ -58,6 +58,7 @@ uuid = sage_salvus.uuid
 
 def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
+    # TODO: see http://stackoverflow.com/questions/21897664/why-does-unicodeu-passed-an-errors-parameter-raise-typeerror for how to fix.
     try:
         return unicode(s, 'utf8')
     except:
