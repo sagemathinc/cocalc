@@ -51,6 +51,37 @@ def wrap(s, c=90):
 def tex_escape(s):
     return s.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" ).replace('%','\\%').replace('#','\\#')
 
+
+# Parallel computing can be useful for IO bound tasks.
+def thread_map(callable, inputs):
+    """
+    Computing [callable(args) for args in inputs]
+    in parallel using len(inputs) separate *threads*.
+
+    If an exception is raised by any thread, a RuntimeError exception
+    is instead raised.
+    """
+    print "Doing the following in parallel:\n%s"%('\n'.join(inputs))
+    from threading import Thread
+    class F(Thread):
+        def __init__(self, x):
+            self._x = x
+            Thread.__init__(self)
+            self.start()
+        def run(self):
+            try:
+                self.result = callable(self._x)
+                self.fail = False
+            except Exception, msg:
+                self.result = msg
+                self.fail = True
+    results = [F(x) for x in inputs]
+    for f in results: f.join()
+    e = [f.result for f in results if f.fail]
+    if e: raise RuntimeError(e)
+    return [f.result for f in results]
+
+
 # create a subclass and override the handler methods
 
 class Parser(HTMLParser.HTMLParser):
@@ -172,7 +203,13 @@ class Cell(object):
 
 
     def latex(self):
-        return self.latex_input() + self.latex_output()
+        """
+        Returns the latex represenation of this cell along with a list of commands
+        that should be executed in the shell in order to obtain remote data files,
+        etc., to render this cell.
+        """
+        self._commands = []
+        return self.latex_input() + self.latex_output(), self._commands
 
     def latex_input(self):
         if 'i' in self.input_codes:   # hide input
@@ -229,19 +266,18 @@ class Cell(object):
                                 print msg
                         img = filename
                     else:
-                        cmd = 'rm -f "%s"; wget "%s" --output-document="%s"'%(filename, target, filename)
-                        print cmd
-                        if os.system(cmd) == 0:
-                            if ext == 'svg':
-                                # hack for svg files; in perfect world someday might do something with vector graphics, see http://tex.stackexchange.com/questions/2099/how-to-include-svg-diagrams-in-latex
-                                cmd = 'rm -f "%s"; convert -antialias -density 150 "%s" "%s"'%(base+'.png',filename,base+'.png')
-                                os.system(cmd)
-                                filename = base+'.png'
-                            img = filename
-                    if img:
-                        s += '\\includegraphics[width=\\textwidth]{%s}\n'%img
-                    else:
-                        s += "(problem loading \\verb|'%s'|)"%filename
+                        # Get the file from remote server
+                        c = 'rm -f "%s"; wget "%s" --output-document="%s"'%(filename, target, filename)
+                        # If we succeeded, convert it to a png, which is what we can easily embed
+                        # in a latex document (svg's don't work...)
+                        self._commands.append(c)
+                        if ext == 'svg':
+                            # hack for svg files; in perfect world someday might do something with vector graphics, see http://tex.stackexchange.com/questions/2099/how-to-include-svg-diagrams-in-latex
+                            c += ' && rm -f "%s"; convert -antialias -density 150 "%s" "%s"'%(base+'.png',filename,base+'.png')
+                            self._commands.append(c)
+                            filename = base+'.png'
+                        img = filename
+                    s += '\\includegraphics[width=\\textwidth]{%s}\n'%img
                 elif ext == 'sage3d' and 'sage3d' in extra_data and 'uuid' in val:
                     # render a static image, if available
                     v = extra_data['sage3d']
@@ -363,7 +399,16 @@ sensitive=true}
     def latex(self, title='', author='', date='', contents=True):
         if not title:
             title = self._default_title
-        return self.latex_preamble(title=title, author=author, date=date, contents=contents) + '\n'.join(c.latex() for c in self._cells) + r"\end{document}"
+        commands = []
+        tex = []
+        for c in self._cells:
+            t, cmd = c.latex()
+            tex.append(t)
+            if cmd:
+                commands.extend(cmd)
+        if commands:
+            thread_map(os.system, commands)
+        return self.latex_preamble(title=title, author=author, date=date, contents=contents) + '\n'.join(tex) + r"\end{document}"
 
 
 def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=True, remove_tmpdir=True):

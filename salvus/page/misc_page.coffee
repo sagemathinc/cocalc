@@ -512,6 +512,20 @@ exports.define_codemirror_extensions = () ->
                         # this is a foldable line, and what did we do?  keep doing it.
                         mode = if editor.isFolded(pos) then "fold" else "unfold"
 
+    $.get '/static/codemirror-extra/data/latex-completions.txt', (data) ->
+        s = data.split('\n')
+        tex_hint = (editor) ->
+            cur   = editor.getCursor()
+            token = editor.getTokenAt(cur)
+            console.log(token)
+            t = token.string
+            completions = (a for a in s when a.slice(0,t.length) == t)
+            ans =
+                list : completions,
+                from : CodeMirror.Pos(cur.line, token.start)
+                to   : CodeMirror.Pos(cur.line, token.end)
+        CodeMirror.registerHelper("hint", "stex", tex_hint)
+
 
 cm_start_end = (selection) ->
     {head, anchor} = selection

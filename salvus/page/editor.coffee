@@ -107,6 +107,11 @@ file_associations['html'] =
     icon   : 'fa-file-code-o'
     opts   : {mode:'htmlmixed', indent_unit:4, tab_size:4}
 
+file_associations['wiki'] =
+    editor : 'codemirror'
+    icon   : 'fa-file-code-o'
+    opts   : {mode:'mediawiki', indent_unit:4, tab_size:4}
+
 file_associations['css'] =
     editor : 'codemirror'
     icon   : 'fa-file-code-o'
@@ -194,7 +199,8 @@ sagews_decorator_modes = [
     ['sage'        , 'python'],
     ['script'      , 'shell'],
     ['sh'          , 'shell'],
-    ['julia'       , 'text/x-julia']
+    ['julia'       , 'text/x-julia'],
+    ['wiki'        , 'mediawiki']
 ]
 
 exports.define_codemirror_sagews_mode = () ->
@@ -214,6 +220,24 @@ exports.define_codemirror_sagews_mode = () ->
                 mode  : CodeMirror.getMode(config, x[1])
 
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"), options...)
+
+    ###
+    $.get '/static/codemirror-extra/data/sage-completions.txt', (data) ->
+        s = data.split('\n')
+        sagews_hint = (editor) ->
+            console.log("sagews_hint")
+            cur   = editor.getCursor()
+            token = editor.getTokenAt(cur)
+            console.log(token)
+            t = token.string
+            completions = (a for a in s when a.slice(0,t.length) == t)
+            ans =
+                list : completions,
+                from : CodeMirror.Pos(cur.line, token.start)
+                to   : CodeMirror.Pos(cur.line, token.end)
+        CodeMirror.registerHelper("hint", "sagews", sagews_hint)
+    ###
+
 
 # Given a text file (defined by content), try to guess
 # what the extension should be.
