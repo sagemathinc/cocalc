@@ -1,3 +1,5 @@
+/* WTF: What kind of evil BS is this?! -- commented out.
+
 .CodeMirror {
 	border: 1px solid #CCC;
 	font-size: medium;
@@ -7,6 +9,7 @@
 .CodeMirrorIE {
 	font-size: small;
 }
+*/
 
 .cm-mw-pagename { text-decoration: underline; }
 
