@@ -41,7 +41,7 @@
             </div>
 
             <div class="salvus-tasks-list-heading row" style="padding-top: 0.5ex;">
-                <div class="col-sm-6">
+                <div class="col-sm-6" style="margin-right: 5em;">  <!-- TODO: fix; this is very hackish for now -->
                     <span class="btn-group salvus-tasks-action-buttons">
                         <a class="btn btn-default" href="#create-task"><i class="fa fa-plus-circle"> </i> New</a>
                         <a class="btn salvus-tasks-buttons-pos-move btn-default" href="#move-task-to-top"><i class="fa fa-hand-o-up"> </i>  </a>
@@ -54,15 +54,15 @@
                     </span>
                 </div>
 
-                <div class="lighten salvus-tasks-header  salvus-task-sort-custom col-sm-2">
+                <div class="lighten salvus-tasks-header  salvus-task-sort-custom col-sm-3">
                     Custom Order
                     <i class="fa fa-sort-desc pull-right hide salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
                 </div>
-                <div class="lighten salvus-tasks-header  salvus-task-sort-due col-sm-2">
+                <div class="lighten salvus-tasks-header  salvus-task-sort-due col-sm-1">
                     Due <span class="salvus-tasks-show-done hide"> / Done</span>
                     <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
                 </div>
-                <div class="lighten salvus-tasks-header  salvus-task-sort-last-edited col-sm-2">
+                <div class="lighten salvus-tasks-header  salvus-task-sort-last-edited col-sm-1">
                     Changed <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
                 </div>
 
@@ -90,16 +90,16 @@
             <i class="fa fa-square-o salvus-task-viewer-not-done salvus-task-icon-done-box"> </i>
             <a class="btn btn-danger salvus-task-undelete hide btn-ms">Undelete</a>
         </div>
-        <div class="salvus-tasks-desc-column col-sm-7">
+        <div class="salvus-tasks-desc-column col-sm-9">
             <div class="salvus-task-desc"></div>
         </div>
 
-        <div class="salvus-task-due-div col-sm-2">
+        <div class="salvus-task-due-div col-sm-1">
             <span class="salvus-task-due">none</span>
             <i class="fa fa-times salvus-task-icon salvus-task-due-clear hide"> </i>
             <span class="salvus-task-done hide"><br>completed <span></span></span>
         </div>
-        <div class="col-sm-2">
+        <div class="col-sm-1">
             <span class="salvus-task-last-edited"></span>
         </div>
 
