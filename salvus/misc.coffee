@@ -199,6 +199,22 @@ exports.from_json = (x) ->
         console.log("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
         throw err
 
+# convert to JSON even if there are circular references
+# http://stackoverflow.com/questions/4816099/chrome-sendrequest-error-typeerror-converting-circular-structure-to-json
+
+censor = (censor) ->
+    i = 0
+    return (key, value) ->
+        if i and typeof(censor) == 'object' and typeof(value) == 'object' and censor == value
+            return '[Circular]'
+        if i >= 29 # seems to be a harded maximum of 30 serialized objects?
+            return '[Unknown]';
+        ++i # so we know we aren't using the original object anymore
+        return value
+
+exports.to_json_circular = (x) ->
+    JSON.stringify(x, censor(x))
+
 # converts a Date object to an ISO string in UTC.
 # NOTE -- we remove the +0000 (or whatever) timezone offset, since *all* machines within
 # the SMC servers are assumed to be on UTC.
