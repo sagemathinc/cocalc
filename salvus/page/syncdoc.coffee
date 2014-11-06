@@ -1556,7 +1556,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         for x in cm.getAllMarks()
             t = $(x.replacedWith).find(selector)
             if t.length > 0
-                cm.scrollIntoView(x.find().from)
+                cm.scrollIntoView(x.find().from, cm.getScrollInfo().clientHeight/2)
                 return
 
     process_html_output: (e) =>
