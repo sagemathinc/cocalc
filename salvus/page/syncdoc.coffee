@@ -472,10 +472,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             sync_interval     : 750     # never send sync messages up stream more often than this
             revision_tracking : account.account_settings.settings.editor_settings.track_revisions   # if true, save every revision in @.filename.sage-history
         @project_id = @editor.project_id
-
-        @filename    = @editor.filename
-
-        #@connect    = misc.retry_until_success_wrapper(f:@_connect, max_tries:3)#, logname:'connect')
+        @filename   = @editor.filename
         @connect    = @_connect
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
         @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
@@ -959,7 +956,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @codemirror1 = @editor.codemirror1
 
         if @opts.static_viewer
-            @readonly = true
+            @readonly   = true
+            @project_id = @editor.project_id
+            @filename   = @editor.filename
             return
 
         opts0 =

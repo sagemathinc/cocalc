@@ -330,9 +330,7 @@ class exports.Editor
             project_page  : required
             initial_files : undefined # if given, attempt to open these files on creation
             counter       : undefined # if given, is a jQuery set of DOM objs to set to the number of open files
-
         @counter = opts.counter
-
         @project_page  = opts.project_page
         @project_path = opts.project_page.project.location?.path
         if not @project_path
