@@ -1944,7 +1944,7 @@ scroll_after = cm.getScrollInfo(); pos_after = cm.getCursor()
             chat_input_top = $(window).height()-chat_input.height() - 15
 
             chat_input.offset({top:chat_input_top})
-            chat_output.height(chat_input_top - top - 41)
+            chat_output.height(chat_input_top - top - 60)
 
 
     focus: () =>
