@@ -656,7 +656,6 @@ class exports.Editor
                 else
                     editor = @create_editor(create_editor_opts)
                     @element.find(".salvus-editor-content").append(editor.element.hide())
-                    @create_opened_file_tab(filename)
                     return editor
 
             hide_editor : () -> editor?.hide()
@@ -933,13 +932,13 @@ class exports.Editor
     warn_user: (filename, cb) =>
         cb(true)
 
-    # Make the tab appear in the tabs at the top, and if foreground=true, also make that tab active.
+    # Make the tab appear in the tabs at the top, and
+    # if foreground=true, also make that tab active.
     display_tab: (opts) =>
         opts = defaults opts,
             path       : required
             foreground : true      # display in foreground as soon as possible
         filename = opts.path
-
         if not @tabs[filename]?
             return
 
@@ -951,26 +950,21 @@ class exports.Editor
         prev_active_tab = @active_tab
         for name, tab of @tabs
             if name == filename
-                @active_tab = tab
-                ed = tab.editor()
+                if not tab.open_file_pill?
+                    @create_opened_file_tab(filename)
 
                 if opts.foreground
+                    # make sure that there is a tab and show it if necessary, and also
+                    # set it to the active tab (if necessary).
+                    @active_tab = tab
+                    @make_open_file_pill_active(tab.open_file_pill)
+                    ed = tab.editor()
                     ed.show()
                     ed.focus()
 
-                top_link = @active_tab.open_file_pill
-                if top_link?
-                    if opts.foreground
-                        @make_open_file_pill_active(top_link)
-                else
-                    @create_opened_file_tab(filename)
-                    if opts.foreground
-                        @make_open_file_pill_active(@active_tab.open_file_pill)
-            else
+            else if opts.foreground
+                # ensure all other tabs are hidden.
                 tab.hide_editor()
-
-        if prev_active_tab? and prev_active_tab.filename != @active_tab.filename and @tabs[prev_active_tab.filename]?   # ensure is still open!
-            @nav_tabs.prepend(prev_active_tab.link)
 
         @project_page.init_sortable_file_list()
 
@@ -1871,8 +1865,8 @@ class CodeMirrorEditor extends FileEditor
         # CRAZY HACK: add and remove an HTML element to the DOM.
         # I don't know why this works, but it gets around a *massive bug*, where after
         # aggressive resizing, the codemirror editor gets all corrupted. For some reason,
-        # doing this "always" causes things to get properly fixed.  I don't know why.
-        hack = $("<div>")
+        # doing this "usually" causes things to get properly fixed.  I don't know why.
+        hack = $("<div><br><br></div>")
         $("body").append(hack)
         setTimeout((()=>hack.remove()), 1000)
 

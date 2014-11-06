@@ -318,13 +318,17 @@ class ProjectPage
                 if target[target.length-1] == '/'
                     # open a directory
                     @chdir(segments.slice(1, segments.length-1), false)
+                    # NOTE: foreground option meaningless
                     @display_tab("project-file-listing")
                 else
-                    # open a file
-                    @chdir(segments.slice(1, segments.length-1), true)
-                    @display_tab("project-editor")
-                    @open_file(path:segments.slice(1).join('/'), foreground:foreground)
-            when 'new'
+                    # open a file -- foreground option is relevant here.
+                    if foreground
+                        @chdir(segments.slice(1, segments.length-1), true)
+                        @display_tab("project-editor")
+                    @open_file
+                        path       : segments.slice(1).join('/')
+                        foreground : foreground
+            when 'new'  # ignore foreground for these and below, since would be nonsense
                 @chdir(segments.slice(1), true)
                 @display_tab("project-new-file")
             when 'log'
@@ -3577,7 +3581,11 @@ class ProjectPage
                 # ga('send', 'event', 'file', 'open', 'success', opts.path, {'nonInteraction': 1})
                 if opts.foreground
                     @display_tab("project-editor")
-                @editor.display_tab(path:opened_path, foreground:opts.foreground)
+
+                # make tab for this file actually visible in the editor
+                @editor.display_tab
+                    path       : opened_path
+                    foreground : opts.foreground
 
 
 project_pages = {}

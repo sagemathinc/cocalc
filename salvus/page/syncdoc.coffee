@@ -41,7 +41,6 @@ misc_page = require('misc_page')
 
 message  = require('message')
 
-
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
 
@@ -383,7 +382,10 @@ class AbstractSynchronizedDoc extends EventEmitter
     draw_other_cursor: (pos, color, name) =>
         # overload this in derived class
 
-
+    file_path: () =>
+        if not @_file_path?
+            @_file_path = misc.path_split(@filename).head
+        return @_file_path
 
 class SynchronizedString extends AbstractSynchronizedDoc
     # "connect(cb)": Connect to the given server; will retry until it succeeds.
@@ -1560,16 +1562,63 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 return
 
     process_html_output: (e) =>
-        e.find("table").addClass('table')   # makes bootstrap tables look MUCH nicer
+        # makes tables look MUCH nicer
+        e.find("table").addClass('table')
+
+        # handle a links
         a = e.find('a')
-        a.attr("target","_blank") # make all links open in a new tab
+
+        # make links open in a new tab
+        a.attr("target","_blank")
+
         that = @
         for x in a
             y = $(x)
-            if y.attr('href')?[0] == '#'  # target is internal anchor to id
-                y.click (t) ->
-                    that.jump_to_output_matching_jquery_selector($(t.target).attr('href'))
-                    return false
+            href = y.attr('href')
+            if href?
+                if href[0] == '#'
+                    # target is internal anchor to id
+                    # make internal links in the same document scroll the target into view.
+                    y.click (e) ->
+                        that.jump_to_output_matching_jquery_selector($(e.target).attr('href'))
+                        return false
+                else if href.indexOf(document.location.origin) == 0
+                    # target starts with cloud URL or is absolute, so we open the
+                    # link directly inside this browser tab
+                    y.click (e) ->
+                        n = (document.location.origin + '/projects/').length
+                        target = $(@).attr('href').slice(n)
+                        require('projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        return false
+                else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0
+                    # internal link
+                    y.click (e) ->
+                        target = $(@).attr('href')
+                        if target.indexOf('/projects/') == 0
+                            # fully absolute (but without https://...)
+                            target = decodeURI(target.slice('/projects/'.length))
+                        else if target[0] == '/' and target[37] == '/' and misc.is_valid_uuid_string(target.slice(1,37))
+                            # absolute path with /projects/ omitted -- /..project_id../files/....
+                            target = decodeURI(target.slice(1))  # just get rid of leading slash
+                        else if target[0] == '/'
+                            # absolute inside of project
+                            target = "#{that.project_id}/files#{decodeURI(target)}"
+                        else
+                            # realtive to current path
+                            target = "#{that.project_id}/files/#{that.file_path()}/#{decodeURI(target)}"
+                        require('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        return false
+
+        # make relative links to images use the raw server
+        a = e.find("img")
+        for x in a
+            y = $(x)
+            src = y.attr('src')
+            if src.indexOf('://') != -1
+                continue
+            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
+            y.attr('src', new_src)
+
 
     _post_save_success: () =>
         @remove_output_blob_ttls()
