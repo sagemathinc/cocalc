@@ -2,45 +2,43 @@
     <div class="well row">
         <div class="col-sm-12">
             <div class="row">
-                <div class="col-sm-3">
-                    <h3> <a href="#refresh-projects"><i class="fa fa-refresh"> </i></a> Projects</h3>
-                    <button class="btn btn-primary btn-lg" style="width:100%" type="submit" id="new_project-button"><i class="fa fa-plus-circle"> </i>  New Project...</button>
+                <div class="col-sm-4">
+                    <h3 style="margin:0;margin-top:1ex;"> <a href="#refresh-projects"><i class="fa fa-refresh"> </i></a> Projects</h3>
                 </div>
-                <div class="col-sm-9">
-                    <div class="row">
-                        <div class="col-sm-7">
-                            <span class="btn-group">
-                                <button class="btn btn-warning btn-sm" id="projects-all-button">
-                                    <i class="fa fa-tasks"></i> Default
-                                </button>
-                                <button class="btn btn-info btn-sm" id="projects-deleted-button">
-                                    <i class="fa fa-trash-o"></i> Deleted
-                                </button>
-                                <button class="btn btn-info btn-sm" id="projects-hidden-button">
-                                    <i class="fa fa-eye-slash"></i> Hidden
-                                </button>
-                            </span>
-                        </div>
-                        <div class="col-sm-5">
-                            <div class="input-group">
-                                <input class="projects-find-input search-query form-control" type="search" placeholder="Find a project...">
-                                <span class="input-group-btn">
-                                    <button class="btn btn-default projects-search-form-input-clear" type="button">
-                                        <i class="fa fa-times-circle"></i>
-                                    </button>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row" style="margin-top: 1ex;">
-                        <div class="col-sm-12">
-                            <span class="salvus-hashtag-buttons btn-group" style="white-space: normal">
-                            </span>
-                        </div>
-                    </div>
+                <div class="col-sm-3">
+                    <button class="btn btn-primary" style="width:100%; margin-top:1ex;" type="submit" id="new_project-button"><i class="fa fa-plus-circle"> </i>  Create New Project...</button>
+                </div>
+                <div class="col-sm-5">
+                    <span class="btn-group pull-right" style="margin-top:1ex;">
+                        <button class="btn btn-warning" id="projects-all-button">
+                            <i class="fa fa-tasks"></i> Default
+                        </button>
+                        <button class="btn btn-info" id="projects-deleted-button">
+                            <i class="fa fa-trash-o"></i> Deleted
+                        </button>
+                        <button class="btn btn-info" id="projects-hidden-button">
+                            <i class="fa fa-eye-slash"></i> Hidden
+                        </button>
+                    </span>
                 </div>
             </div>
 
+            <div class="row">
+                <div class="col-sm-4">
+                    <div class="input-group"  style="margin-top:1ex;">
+                        <input class="projects-find-input search-query form-control" type="search" placeholder="Search for projects...">
+                        <span class="input-group-btn">
+                            <button class="btn btn-default projects-search-form-input-clear" type="button">
+                                <i class="fa fa-times-circle"></i>
+                            </button>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-sm-8">
+                    <span class="salvus-hashtag-buttons btn-group" style="white-space: normal; margin-top:1ex;">
+                    </span>
+                </div>
+            </div>
             <div class="row">
                 <div class="lighten projects-describe-listing col-sm-12">
                 </div>
