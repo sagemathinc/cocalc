@@ -256,7 +256,7 @@ class ProjectPage
 
             onshow: () =>
                 if @project?
-                    misc_page.set_window_title(@project.title)
+                    misc_page.set_window_title($("<div>").html(@project.title).text())
                     @push_state()
                 @editor?.activate_handlers()
                 @editor?.refresh()

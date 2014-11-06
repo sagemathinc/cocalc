@@ -2859,6 +2859,62 @@ class Marked(object):
 
 md = Marked()
 
+#####
+# Generic Pandoc cell decorator
+
+def pandoc(fmt, doc=None, hide=True):
+    """
+    INPUT:
+
+    - fmt -- one of 'docbook', 'haddock', 'html', 'json', 'latex', 'markdown', 'markdown_github',
+                 'markdown_mmd', 'markdown_phpextra', 'markdown_strict', 'mediawiki',
+                 'native', 'opml', 'rst', 'textile'
+
+    - doc -- a string in the given format
+
+    OUTPUT:
+
+    - Called directly, you get the HTML rendered version of doc as a string.
+
+    - If you use this as a cell decorator, it displays the HTML output, e.g.,
+
+        %pandoc('mediawiki')
+        * ''Unordered lists'' are easy to do:
+        ** Start every line with a star.
+        *** More stars indicate a deeper level.
+
+    """
+    if doc is None:
+        return lambda x : html(pandoc(fmt, x), hide=hide) if x is not None else ''
+    import subprocess
+    p = subprocess.Popen(['pandoc', '-f', fmt,  '--mathjax'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+    if not isinstance(doc, unicode):
+        doc = unicode(doc, 'utf8')
+    p.stdin.write(doc.encode('UTF-8'))
+    p.stdin.close()
+    err = p.stderr.read()
+    if err:
+        raise RuntimeError(err)
+    return p.stdout.read()
+
+
+def wiki(doc=None, hide=True):
+    """
+    Mediawiki markup cell decorator.   E.g.,
+
+    EXAMPLE::
+
+        %wiki(hide=False)
+        * ''Unordered lists'' and math like $x^3 - y^2$ are both easy
+        ** Start every line with a star.
+        *** More stars indicate a deeper level.    """
+    if doc is None:
+        return lambda doc: wiki(doc=doc, hide=hide) if doc else ''
+    html(pandoc('mediawiki', doc=doc), hide=hide)
+
+
+######
+
 def load_html_resource(filename):
     fl = filename.lower()
     if fl.startswith('http://') or fl.startswith('https://'):

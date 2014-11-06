@@ -916,7 +916,7 @@ class TaskList
 
         editor_settings = require('account').account_settings.settings.editor_settings
         extraKeys =
-            "Enter"       : "newlineAndIndentContinueMarkdownList"
+            #"Enter"       : "newlineAndIndentContinueMarkdownList"  # plugin is buggy, inserting NaN
             "Shift-Enter" : stop_editing
             "Shift-Tab"   : (editor) -> editor.unindent_selection()
             "Ctrl-S"      : (editor) => @save()

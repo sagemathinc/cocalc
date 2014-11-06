@@ -58,6 +58,7 @@ uuid = sage_salvus.uuid
 
 def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
+    # TODO: see http://stackoverflow.com/questions/21897664/why-does-unicodeu-passed-an-errors-parameter-raise-typeerror for how to fix.
     try:
         return unicode(s, 'utf8')
     except:
@@ -1551,7 +1552,7 @@ def serve(port, host):
                      'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
                      'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
                      'reset', 'restore', 'md', 'load', 'runfile', 'typeset_mode', 'default_mode',
-                     'sage_chat', 'fortran', 'magics', 'go', 'julia']:
+                     'sage_chat', 'fortran', 'magics', 'go', 'julia', 'pandoc', 'wiki']:
             namespace[name] = getattr(sage_salvus, name)
 
         sage_salvus.default_namespace = dict(namespace)
