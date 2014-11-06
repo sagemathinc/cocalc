@@ -1555,6 +1555,11 @@ def serve(port, host):
                      'sage_chat', 'fortran', 'magics', 'go', 'julia', 'pandoc', 'wiki']:
             namespace[name] = getattr(sage_salvus, name)
 
+        # alias pretty_print_default to typeset_mode, since sagenb has/uses that.
+        namespace['pretty_print_default'] = namespace['typeset_mode']
+        # and monkey patch it
+        sage.misc.latex.pretty_print_default = namespace['pretty_print_default']
+
         sage_salvus.default_namespace = dict(namespace)
         log("setup namespace with extra functions")
 
