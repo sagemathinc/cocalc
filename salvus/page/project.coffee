@@ -443,12 +443,13 @@ class ProjectPage
 
     init_file_search: () =>
         @_file_search_box = @container.find(".salvus-project-search-for-file-input")
-        @_file_search_box.keydown (event) =>
+        @_file_search_box.keyup (event) =>
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79
                 #console.log("keyup: init_file_search")
                 @display_tab("project-new-file")
                 return false
             @update_file_search(event)
+            return false
         @container.find(".salvus-project-search-for-file-input-clear").click () =>
             @_file_search_box.val('').focus()
             @update_file_search()
