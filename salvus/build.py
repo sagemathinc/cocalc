@@ -402,7 +402,7 @@ SAGE_PIP_PACKAGES = [
     'tables',
     'scikit_learn',
     'theano',
-    'scikits-image',
+    'scikit-image',
     'Shapely',
     'SimPy',
     'xlrd',
