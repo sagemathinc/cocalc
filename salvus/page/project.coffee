@@ -3365,12 +3365,14 @@ class ProjectPage
             cb          : (err, output) =>
                 if not err
                     try
-                        time = misc.parse_bup_timestamp(output.stdout.split('\n')[0])
-                        @_last_snapshot_time = time
-                        # critical to use replaceWith!
-                        c = @container.find(".project-snapshot-last-timeago span")
-                        d = $("<span>").attr('title', time.toISOString()).timeago()
-                        c.replaceWith(d)
+                        time = output.stdout.split('\n')[0].trim()
+                        if time  # could be empty, e.g., if no snapshots
+                            time = misc.parse_bup_timestamp(time)
+                            @_last_snapshot_time = time
+                            # critical to use replaceWith!
+                            c = @container.find(".project-snapshot-last-timeago span")
+                            d = $("<span>").attr('title', time.toISOString()).timeago()
+                            c.replaceWith(d)
                     catch e
                         console.log("error parsing last snapshot time (stdout='#{output.stdout}'): ", e)
                         return
