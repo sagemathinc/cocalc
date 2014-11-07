@@ -1542,24 +1542,45 @@ class ProjectPage
             @_file_list_tab_spinner_timer = setTimeout( (() -> spinner.show().spin()), 1000 )
 
         if @public_access
-            f = salvus_client.public_project_directory_listing
+            g = salvus_client.public_project_directory_listing
         else
-            f = salvus_client.project_directory_listing
+            g = salvus_client.project_directory_listing
 
         @_requested_path = path
 
-        f
-            project_id : @project.project_id
-            path       : path
-            time       : @_sort_by_time
-            hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
-            timeout    : 60
-            cb         : (err, listing) =>
+        listing = undefined
+        f = (cb) =>
+            if path != @_requested_path
+                # requested another path after this one, so ignore
+                # this now useless listing
+                cb()
+                return
+            g
+                project_id : @project.project_id
+                path       : path
+                time       : @_sort_by_time
+                hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
+                timeout    : 10
+                cb         : (err, _listing) =>
+                    if err
+                        cb(err)
+                    else
+                        listing = _listing
+                        cb()
+
+        misc.retry_until_success
+            f           : f
+            start_delay : 3000
+            max_delay   : 10000
+            factor      : 1.5
+            max_tries   : 10
+            cb          : (err) =>
                 if path != @_requested_path
                     # requested another path after this one, so ignore
                     # this now useless listing
                     cb?()
                     return
+
                 delete @_requested_path
 
                 clearTimeout(@_file_list_tab_spinner_timer)
