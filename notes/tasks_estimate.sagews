@@ -1,4 +1,4 @@
-︠2fb58d82-2770-41e6-90d1-73469686ab2casi︠
+︠2fb58d82-2770-41e6-90d1-73469686ab2cias︠
 %auto
 %hide
 print "click for code"
@@ -31,10 +31,12 @@ def task_estimate(tag='today', file='smc.tasks'):
     for k in [4,8,9,12,16]:
         print "- %5.1f days at %2s hours/day"%(tm/60./k, k)
 
-︡e724ab1b-c8c9-4e1a-9623-86f80675ff25︡{"auto":true}︡{"stdout":"click for code\n"}︡
-︠853e9733-f142-410d-bcdc-395dc94e5e3a︠
-task_estimate()
-︡b257d883-0b5f-43dd-95be-3a770d349269︡{"stdout":"{\"desc\":\"(0:30?) #ui #tasks #today\\nshow due dates in past in done tasks NOT in red.\\n\\n> When Done \n{\"desc\":\"(0:30?) #today #urgent #bug #analytics\\nProblem with google analytics event tracking code.\\\n{\"desc\":\"(1:30?) (0:17) #today #urgent #bug #ipython\\nupgrade ipython to fix bugs, including latex f\n{\"desc\":\"(0:20?) #today #ui\\nmove project search to left for consistency with other searches (file, \n{\"desc\":\"(0:30?) #today #bug\\nin the file browser, the \\\"Showing only files that contain \\\" is often\n{\"desc\":\"(0:45?) #today\\nfix the \\\"undefined undefined\\\" in invitation email.\\n\\nhttps://mail.google\n{\"desc\":\"(3:00?) #sagews #feature #today\\nability to graphically edit html (?) text to annotate\\n\\nT\n{\"desc\":\"(0:20?) #today\\n`<br>` in project title\\n\\nhttps://mail.google.com/mail/u/0/#inbox/1497ad43\n{\"desc\":\"(0:20?) #today #urgent\\nThis code in misc_page.coffee is totally wrong -- what is element?\\\n----------------------------------------------------------------------\nTotal: (7:45)\n-   1.9 days at  4 hours/day\n-   1.0 days at  8 hours/day\n-   0.9 days at  9 hours/day\n-   0.6 days at 12 hours/day\n-   0.5 days at 16 hours/day\n"}︡
+︡344a6b01-f305-44ab-b2ed-83b0fdf239ca︡{"auto":true}︡{"stdout":"click for code\n"}︡
+︠853e9733-f142-410d-bcdc-395dc94e5e3as︠
+@interact
+def f(update=['Update'], tag='today'):
+   task_estimate(tag=tag)
+︡9e5071d8-9c0d-40a8-9442-b090321f0738︡{"interact":{"style":"None","flicker":false,"layout":[[["update",12,null]],[["tag",12,null]],[["",12,null]]],"id":"b8260523-cc68-4d67-b189-37d46c48283e","controls":[{"buttons":true,"control_type":"selector","ncols":null,"button_classes":null,"default":0,"lbls":["Update"],"label":"update","nrows":null,"width":null,"var":"update"},{"control_type":"input-box","default":"today","label":"tag","nrows":1,"width":null,"readonly":false,"submit_button":null,"var":"tag","type":"<type 'str'>"}]}}︡
 ︠4061ad2d-2122-42cf-89db-fe6122a59a67︠
 
 
