@@ -318,13 +318,17 @@ class ProjectPage
                 if target[target.length-1] == '/'
                     # open a directory
                     @chdir(segments.slice(1, segments.length-1), false)
+                    # NOTE: foreground option meaningless
                     @display_tab("project-file-listing")
                 else
-                    # open a file
-                    @chdir(segments.slice(1, segments.length-1), true)
-                    @display_tab("project-editor")
-                    @open_file(path:segments.slice(1).join('/'), foreground:foreground)
-            when 'new'
+                    # open a file -- foreground option is relevant here.
+                    if foreground
+                        @chdir(segments.slice(1, segments.length-1), true)
+                        @display_tab("project-editor")
+                    @open_file
+                        path       : segments.slice(1).join('/')
+                        foreground : foreground
+            when 'new'  # ignore foreground for these and below, since would be nonsense
                 @chdir(segments.slice(1), true)
                 @display_tab("project-new-file")
             when 'log'
@@ -439,12 +443,13 @@ class ProjectPage
 
     init_file_search: () =>
         @_file_search_box = @container.find(".salvus-project-search-for-file-input")
-        @_file_search_box.keydown (event) =>
+        @_file_search_box.keyup (event) =>
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79
                 #console.log("keyup: init_file_search")
                 @display_tab("project-new-file")
                 return false
             @update_file_search(event)
+            return false
         @container.find(".salvus-project-search-for-file-input-clear").click () =>
             @_file_search_box.val('').focus()
             @update_file_search()
@@ -1537,24 +1542,45 @@ class ProjectPage
             @_file_list_tab_spinner_timer = setTimeout( (() -> spinner.show().spin()), 1000 )
 
         if @public_access
-            f = salvus_client.public_project_directory_listing
+            g = salvus_client.public_project_directory_listing
         else
-            f = salvus_client.project_directory_listing
+            g = salvus_client.project_directory_listing
 
         @_requested_path = path
 
-        f
-            project_id : @project.project_id
-            path       : path
-            time       : @_sort_by_time
-            hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
-            timeout    : 60
-            cb         : (err, listing) =>
+        listing = undefined
+        f = (cb) =>
+            if path != @_requested_path
+                # requested another path after this one, so ignore
+                # this now useless listing
+                cb()
+                return
+            g
+                project_id : @project.project_id
+                path       : path
+                time       : @_sort_by_time
+                hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
+                timeout    : 10
+                cb         : (err, _listing) =>
+                    if err
+                        cb(err)
+                    else
+                        listing = _listing
+                        cb()
+
+        misc.retry_until_success
+            f           : f
+            start_delay : 3000
+            max_delay   : 10000
+            factor      : 1.5
+            max_tries   : 10
+            cb          : (err) =>
                 if path != @_requested_path
                     # requested another path after this one, so ignore
                     # this now useless listing
                     cb?()
                     return
+
                 delete @_requested_path
 
                 clearTimeout(@_file_list_tab_spinner_timer)
@@ -3577,7 +3603,11 @@ class ProjectPage
                 # ga('send', 'event', 'file', 'open', 'success', opts.path, {'nonInteraction': 1})
                 if opts.foreground
                     @display_tab("project-editor")
-                @editor.display_tab(path:opened_path, foreground:opts.foreground)
+
+                # make tab for this file actually visible in the editor
+                @editor.display_tab
+                    path       : opened_path
+                    foreground : opts.foreground
 
 
 project_pages = {}

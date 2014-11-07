@@ -1091,7 +1091,7 @@ class TaskList
             d.setUTCMilliseconds(task.due_date)
             e.attr('title',d.toISOString()).timeago()
             e.attr('title',d.toISOString())
-            if d < new Date()
+            if not task.done and d < new Date()
                 e.addClass("salvus-task-overdue")
         else
             task.element.find(".salvus-task-due-clear").hide()
