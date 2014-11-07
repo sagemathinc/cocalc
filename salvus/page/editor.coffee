@@ -549,6 +549,7 @@ class exports.Editor
                     salvus_client.public_get_text_file
                         project_id : @project_id
                         path       : filename
+                        timeout    : 60
                         cb         : (err, data) =>
                             if err
                                 c(err)

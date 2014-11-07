@@ -26,7 +26,7 @@ their 900 clients in parallel.
 # seconds to wait for synchronized doc editing session, before reporting an error.
 # Don't make this too short, since when we open a link to a file in a project that
 # hasn't been opened in a while, it can take a while.
-CONNECT_TIMEOUT_S = 70
+CONNECT_TIMEOUT_S = 20
 
 DEFAULT_TIMEOUT   = 35
 
@@ -208,7 +208,14 @@ class AbstractSynchronizedDoc extends EventEmitter
         @project_id = @opts.project_id   # must also be set by derived classes that don't call this constructor!
         @filename   = @opts.filename
 
-        @connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
+        @connect    = misc.retry_until_success_wrapper
+            f         : @_connect
+            max_delay : 7000
+            max_tries : 25
+            #logname   : 'connect'
+            #verbose   : true
+        ##@connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
+
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
         @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
 
@@ -290,7 +297,7 @@ class AbstractSynchronizedDoc extends EventEmitter
         snapshot = @live()
         @dsync_client.push_edits (err) =>
             if err
-                if err.indexOf('retry') != -1
+                if typeof(err)=='string' and err.indexOf('retry') != -1
                     # This is normal -- it's because the diffsync algorithm only allows sync with
                     # one client (and upstream) at a time.
                     cb?(err)
@@ -402,7 +409,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
         delete @session_uuid
         #console.log("_connect -- '#{@filename}'")
         @call
-            timeout : CONNECT_TIMEOUT_S    # a reasonable amount of time, since file could be *large*
+            timeout : CONNECT_TIMEOUT_S    # a reasonable amount of time, since file could be *large* and don't want to timeout when sending it to the client over a slow connection...
             message : message.codemirror_get_session
                 path         : @filename
                 project_id   : @project_id
@@ -473,7 +480,15 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             revision_tracking : account.account_settings.settings.editor_settings.track_revisions   # if true, save every revision in @.filename.sage-history
         @project_id = @editor.project_id
         @filename   = @editor.filename
-        @connect    = @_connect
+
+        # @connect    = @_connect
+        @connect    = misc.retry_until_success_wrapper
+            f         : @_connect
+            max_delay : 7000
+            max_tries : 25
+            #logname   : 'connect'
+            #verbose   : true
+
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
         @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
 
@@ -617,6 +632,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                         message : message.codemirror_revision_tracking
                             session_uuid : @session_uuid
                             enable       : true
+                        timeout : 120
                         cb      : (err, resp) =>
                             if resp.event == 'error'
                                 err = resp.error
@@ -2104,18 +2120,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
             @set_cell_flag(marker, FLAGS.execute)
             # sync (up to a certain number of times) until either computation happens or is acknowledged.
-            # Just successfully calling sync could return and mean that a sync started before this computation
-            # started had completed.
+            # Just successfully calling sync could return and mean that a sync started
+            # before this computation started had completed.
             wait = 50
             f = () =>
                 fs = @get_cell_flagstring(marker)
-                if fs? and FLAGS.execute in fs
+                if not fs? or FLAGS.execute in fs
                     @sync () =>
-                        wait = wait*1.2
+                        wait = wait*1.4
                         if wait < 15000
                             setTimeout(f, wait)
             @sync () =>
-                setTimeout(f, 50)
+                setTimeout(f, wait)
 
     # purely client-side markdown rendering for a markdown, javascript, html, etc. block -- an optimization
     execute_cell_client_side: (opts) =>
