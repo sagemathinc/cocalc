@@ -113,7 +113,7 @@ winston = require('winston')            # logging -- https://github.com/flatiron
 
 # Set the log level
 winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, level: 'debug')
+winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 # defaults
 # TEMPORARY until we flesh out the account types
