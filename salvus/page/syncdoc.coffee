@@ -459,6 +459,8 @@ class SynchronizedString extends AbstractSynchronizedDoc
 
     disconnect_from_session: (cb) =>
         @_remove_listeners()
+        delete @dsync_client
+        delete @dsync_server
         if @session_uuid? # no need to re-disconnect if not connected (and would cause serious error!)
             @call
                 timeout : DEFAULT_TIMEOUT

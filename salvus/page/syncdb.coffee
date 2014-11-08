@@ -50,6 +50,11 @@ class SynchronizedDB extends EventEmitter
                             @_doc.sync()
                     cb(undefined, @)
 
+    destroy: () =>
+        @_doc?.disconnect_from_session()
+        delete @_doc
+        delete @_data
+
     # set the data object to equal what is defined in the syncdoc
     #
     _set_data_from_doc: () =>

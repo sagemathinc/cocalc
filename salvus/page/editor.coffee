@@ -673,15 +673,6 @@ class exports.Editor
 
 
         link.data('tab', @tabs[filename])
-        ###
-        link.draggable
-            zIndex      : 1000
-            #containment : @element
-            stop        : () =>
-                ignore_clicks = true
-                setTimeout( (() -> ignore_clicks=false), 100)
-        ###
-
         @nav_tabs.append(link)
 
         @update_counter()
@@ -4718,6 +4709,9 @@ class FileEditorWrapper extends FileEditor
 
     terminate_session: () =>
 
+    disconnect_from_session: () =>
+        @wrapped.destroy?()
+
     remove: () =>
         @element.remove()
         @wrapped.destroy?()
@@ -4748,7 +4742,6 @@ class TaskList extends FileEditorWrapper
     init_wrapped: () ->
         @element = tasks.task_list(@editor.project_id, @filename, @)
         @wrapped = @element.data('task_list')
-
 
 ###
 # A Course one is managing (or taking?)
