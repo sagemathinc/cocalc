@@ -23,20 +23,20 @@ exports.get_project_list = (opts) ->
     opts = defaults opts,
         update : false     # if false used cached local version if available,
                            # though it may be out of date
-        cb     : required  # cb(err, project_list)
+        cb     : undefined  # cb(err, project_list)
     if not opts.update and project_list?
-        opts.cb(undefined, project_list)
+        opts.cb?(undefined, project_list)
         return
     salvus_client.get_projects
         hidden : false
         cb: (err, mesg) ->
             if err
-                opts.cb(err)
+                opts.cb?(err)
             else if mesg.event == 'error'
-                opts.cb(mesg.error)
+                opts.cb?(mesg.error)
             else
                 project_list = mesg.projects
-                opts.cb(undefined, project_list)
+                opts.cb?(undefined, project_list)
 
 project_hashtags = {}
 compute_search_data = () ->
