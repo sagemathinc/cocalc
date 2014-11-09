@@ -107,8 +107,6 @@ uuid    = require('node-uuid')
 Cookies = require('cookies')            # https://github.com/jed/cookies
 
 
-diffsync = require('diffsync')
-
 winston = require('winston')            # logging -- https://github.com/flatiron/winston
 
 # Set the log level

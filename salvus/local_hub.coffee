@@ -768,8 +768,8 @@ class DiffSyncFile_client extends diffsync.DiffSync
         @connect(@server)
         @server.connect(@)
 
-# The CodeMirrorDiffSyncHub class represents a
-# downstream remote client for this local hub.  There may be dozens of thes.
+# The CodeMirrorDiffSyncHub class represents a downstream
+# remote client for this local hub.  There may be dozens of these.
 # The local hub has no upstream server, except the on-disk file itself.
 #
 # NOTE: These have *nothing* a priori to do with CodeMirror -- the name is
@@ -1296,8 +1296,6 @@ class CodeMirrorSession
             output_insert += diffsync.MARKERS.cell + uuid.v4() + diffsync.MARKERS.cell + '\n'
         @content = @content.slice(0, output_start) + output_insert + @content.slice(output_start)
         return {code:code.trim(), output_id:output_id}
-
-
 
 
     ##############################

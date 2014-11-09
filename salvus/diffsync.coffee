@@ -217,7 +217,6 @@ class DiffSync
     # This is for debugging.
     status: () => {'id':@id, 'live':@live, 'shadow':@shadow, 'shadow_version':@shadow_version, 'edit_stack':@edit_stack}
 
-
 class CustomDiffSync extends DiffSync
     constructor: (opts) ->
         #IMPORTANT: (1) None of the custom functions below take callbacks
