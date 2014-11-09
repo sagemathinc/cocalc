@@ -2836,9 +2836,9 @@ push_activity_notifications = () ->
                         else if a.timestamp < b.timestamp
                             return 1
                         return 0
-                    winston.debug("v=#{misc.to_json(v)}")
+                    #winston.debug("v=#{misc.to_json(v)}")
                     v = v.slice(0,MAX_NOTIFICATIONS_LIMIT)
-                    winston.debug("truncated v=#{misc.to_json(v)}")
+                    #winston.debug("truncated v=#{misc.to_json(v)}")
                 mesg = message.activity_notifications
                     notifications : v
                     update        : to_push.length != cache.length
