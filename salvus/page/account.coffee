@@ -975,4 +975,4 @@ salvus_client.on "remember_me_failed", () ->
 
 salvus_client.on "signed_in", () ->
     $(".salvus-remember_me-message").hide()
-    require('projects').get_project_list(update:false)
+    require('projects').update_project_list()
