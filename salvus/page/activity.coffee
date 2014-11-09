@@ -21,6 +21,9 @@ notifications = {}
 processed_notifications = []
 account_id = undefined
 
+# this is useful for debugging
+exports.notifications = () -> return notifications
+
 timestamp_cmp = (a,b) ->
     if a.timestamp > b.timestamp
         return -1
@@ -38,13 +41,14 @@ process_notification_stream = (n) ->
         return m
     i = 0
     valid = false
+    n.sort(timestamp_cmp)
     for x in n
         if x.account_id != account_id
             valid = true
             for k,v of x
                 m[k] = v
             if x.comment != 'chat'
-                # check if there was a chat after any older read/seen
+                # check if there was a chat before any older read/seen
                 for j in [i+1...n.length]
                     if n[j].comment in ['read', 'seen']
                         break
@@ -64,9 +68,13 @@ process_notifications = () ->
     #console.log("process_notifications")
     processed_notifications = []
     for k, n of notifications
+        #console.log("input: #{misc.to_json(n)}")
         m = process_notification_stream(n)
         if m?
+            if m.project_title?
+                m.project_title = $("<div>").html(m.project_title).text()  # TODO: ugly
             processed_notifications.push(m)
+        #console.log("output: #{misc.to_json(m)}")
     processed_notifications.sort(timestamp_cmp)
 
 

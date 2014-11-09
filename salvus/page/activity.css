@@ -92,3 +92,7 @@
     margin:1em;
 }
 
+.salvus-notification-desc {
+    max-height: 3em;
+    overflow: hidden;
+}
