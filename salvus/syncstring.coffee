@@ -23,13 +23,15 @@
 async    = require('async')
 
 diffsync = require('diffsync')
-misc     = require("misc")
+misc     = require('misc')
+message  = require('message')
 
 {defaults, required} = misc
 
+
 # Connection to the database
-database = undefined
-exports.connect_to_database = (db) -> database = db
+#database = undefined
+#exports.connect_to_database = (db) -> database = db
 
 # Client that monitors the database, and sets its live to the contents
 # of the database when the database changes.  Also, when it changes
@@ -60,6 +62,30 @@ class SyncStringClient extends diffsync.DiffSync
         @server.connect(@)
         @connect(@server)
 
+
+class SyncStringBrowserClient extends diffsync.DiffSync
+    constructor : (@push_to_client) ->
+        @init(doc:"test string")
+
+    write_mesg: (event, obj) =>
+        if not obj?
+            obj = {}
+        mesg = message['syncstring_' + event](obj)
+        @push_to_client(mesg)
+
+    push_edits_to_browser: (id) =>
+        @push_edits (err) =>
+            if err
+                @push_to_client(message.error(error:err, id:id))
+            else
+                @write_mesg 'diffsync',
+                    id               : id
+                    edit_stack       : @edit_stack
+                    last_version_ack : @last_version_received
+
+    sync_ready: () =>
+        @write_mesg('diffsync_ready')
+
 _syncstring_servers = {}
 _create_syncstring_server_queue = {}
 syncstring_server = (string_id, cb) ->
@@ -86,17 +112,19 @@ syncstring_server = (string_id, cb) ->
 
 exports.syncstring = (opts) ->
     opts = defaults opts,
-        string_id : required
-        id        : ""
-        cb        : required
+        string_id      : required
+        push_to_client : required    # function that allows for sending a JSON message to remote client
+        cb             : required
     syncstring_server opts.string_id, (err, server) ->
         if err
             opts.cb(err)
         else
-            opts.cb(undefined, new SyncStringClient(server, opts.id))
+            client = new SyncStringClient(server, opts.id)
+            remote = new SyncStringBrowserClient(opts.push_to_client)
+            client.remote = remote
+            opts.cb(undefined, client)
 
 
 
 
 
-            

@@ -1373,7 +1373,7 @@ class CodeMirrorSession
 
         @_client_sync_lock = true
         before = @content
-        ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
+        ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>  # TODO: why is this err ignored?
             @set_content(ds_client.live)
             @_client_sync_lock = false
             @process_new_content?()

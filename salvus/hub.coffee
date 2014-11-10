@@ -90,7 +90,8 @@ init_salvus_version = () ->
     # to actually restart the server.
     setInterval(update_salvus_version, 90*1000)
 
-snap = require("snap")
+
+syncstring = require('syncstring')
 
 misc_node = require('misc_node')
 
@@ -2513,6 +2514,57 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.success(id:mesg.id))
 
+
+    ################################################
+    # Synchronized Strings (not associated to any particular project)
+    ################################################
+
+    # Get a new syncstring session for the string with given id.
+    # Returns message with a session_id and also the value of the string.
+    mesg_syncstring_get_session: (mesg) =>
+        if not @_syncstrings?
+            @_syncstrings = {by_string_id:{}, by_session_id:{}}
+
+        session_id = misc.uuid()
+        syncstring.syncstring
+            string_id      : mesg.string_id
+            push_to_client : (m) => m.session_id = session_id; @push_to_client(m)
+            cb             : (err, client) =>
+                if err
+                    @error_to_client(error:err)
+                else
+                    @_syncstrings.by_session_id[session_id] = client
+                    v = @_syncstrings.by_string_id[mesg.string_id]
+                    if not v?
+                        @_syncstrings.by_string_id[mesg.string_id] = [client]
+                    else
+                        v.push(client)
+                    resp = message.syncstring_session
+                        id         : mesg.id
+                        session_id : session_id
+                        string     : client.remote.live
+                    @push_to_client(resp)
+
+    mesg_syncstring_diffsync: (mesg) =>
+        dbg = (m) => winston.debug("mesg_syncstring_diffsync(#{mesg.session_id}): #{m}")
+        client = @_syncstrings?.by_session_id[mesg.session_id]
+        if not client?
+            dbg("no such session")
+            @push_to_client(message.syncstring_disconnect(id:mesg.id, session_id:mesg.session_id))
+            return
+        # apply their edits to our object that represents the remote user
+        # TODO: lock and give error if called again before previous one done.
+        c = client.remote
+        dbg("got session; live before recv_edits='#{c.live}'")
+        c.recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
+            if err
+                dbg("recv_edits err=#{err}")
+                @error_to_client(err)
+                return
+            # Send back our own edits to the remote user, in case client.remote has changed
+            # since last sync.
+            dbg("got session; live after recv_edits='#{c.live}'")
+            c.push_edits_to_browser(mesg.id)
 
 ##############################
 # User activity tracking

@@ -128,17 +128,16 @@ class DiffSync
                 @remote.push_edits(cb)
 
     # Create a list of new edits, then send all edits not yet
-    # processed to the other end of the connection.
-    push_edits: (cb) =>
+    # processed to @remote, if defined.  If @remote, not defined then
+    #     cb(undefined, edit_stack, last_version_received)
+    # caller, please don't modify edit_stack!
+    push_edits: (cb) =>    #
         @snapshot (err, snapshot) =>
             if err
-                cb(err); return
+                cb?(err); return
 
             if not snapshot?
-                cb("snapshot computed in push_edits is undefined"); return
-
-            if not @remote?
-                cb("@remote in push_edits is undefined"); return
+                cb?("snapshot computed in push_edits is undefined"); return
 
             edits = {edits:@_compute_edits(@shadow, snapshot)}
 
@@ -150,11 +149,14 @@ class DiffSync
                 @shadow_version += 1
 
             if SIMULATE_LOSS and Math.random() < .5  # Simulate packet loss
-                console.log("Simulating loss!"); cb(true); return
+                console.log("Simulating loss!"); cb?(true); return
 
             # Push any remaining edits from the stack, *AND* report the last version we have received so far.
             #console.log("DiffSync.push_edits: push any remaining edits from the stack, *AND* report the last version (=#{@last_version_received}) we have received so far.")
-            @remote.recv_edits(@edit_stack, @last_version_received, cb)
+            if @remote?
+                @remote.recv_edits(@edit_stack, @last_version_received, cb)
+            else
+                cb?()
 
     # Receive and process the edits from the other end of the sync connection.
     recv_edits: (edit_stack, last_version_ack, cb) =>

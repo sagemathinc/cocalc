@@ -11,9 +11,11 @@ doesn't use localStorage.  HN discussion: <https://news.ycombinator.com/item?id=
 ###
 
 
+{EventEmitter} = require('events')
+
+
 {defaults, required, from_json, hash_string, len} = require('misc')
 syncdoc = require('syncdoc')
-{EventEmitter} = require('events')
 
 misc = require('misc')
 

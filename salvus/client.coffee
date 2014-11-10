@@ -1542,6 +1542,27 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb?()
 
+    #################################################
+    # Synchronized Strings (database backed)
+    # x={};require('syncstring').syncstring({string_id:'foo',cb:function(e,s){console.log(e,s);x.s=s}})
+    # x.s.live='hub'+x.s.live
+    # x.s.sync(function(e,f){console.log("done",e,f)})
+    ##################################################
+    syncstring_get_session: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            cb        : undefined   # cb(err, {session_id:?, string:?, readonly:?})
+        @call
+            message :
+                message.syncstring_get_session
+                    string_id : opts.string_id
+            cb      : (err, resp) =>
+                if err
+                    opts.cb?(err)
+                else if resp.event == 'error'
+                    opts.cb?(resp.error)
+                else
+                    opts.cb?(undefined, resp)
 
 
     #################################################

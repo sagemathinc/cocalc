@@ -281,10 +281,13 @@ message
 # sync operation.
 # hub --> client
 message
-    event         : 'syncstring_diffsync_retry_later'
-    id            : undefined
+    event      : 'syncstring_diffsync_retry_later'
+    id         : undefined
 
-
+message
+    event      : 'syncstring_disconnect'
+    id         : undefined
+    session_id : undefined  # gets filled in
 
 ############################################
 # CodeMirror editor sessions
