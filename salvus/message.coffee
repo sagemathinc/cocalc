@@ -241,6 +241,49 @@ message
 
 
 
+##################################################
+# Synchronized strings, which are not affiliated
+# with any project.
+##################################################
+
+# client --> hub
+message
+    event      : 'syncstring_get_session'
+    string_id  : required
+    id         : undefined
+
+# hub --> client
+message
+    event      : 'syncstring_session'
+    id         : undefined
+    session_id : required
+    string     : required
+    readonly   : false       # if true, string is read only -- though it can get changed by server
+
+# A list of edits that should be applied, along with the
+# last version of edits received before.
+# client <--> hub
+message
+    event            : 'syncstring_diffsync'
+    id               : undefined
+    session_id       : undefined
+    edit_stack       : required
+    last_version_ack : required
+
+# Tell other that there is data ready to be synced:
+# client <--> hub
+message
+    event       : 'syncstring_diffsync_ready'
+    session_id  : undefined
+
+# Hub uses this message to tell client that client should try to
+# sync later, since hub is busy now with some other locking
+# sync operation.
+# hub --> client
+message
+    event         : 'syncstring_diffsync_retry_later'
+    id            : undefined
+
 
 
 ############################################

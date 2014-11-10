@@ -27,12 +27,9 @@ misc     = require("misc")
 
 {defaults, required} = misc
 
-
-
 # Connection to the database
 database = undefined
 exports.connect_to_database = (db) -> database = db
-
 
 # Client that monitors the database, and sets its live to the contents
 # of the database when the database changes.  Also, when it changes
@@ -100,3 +97,6 @@ exports.syncstring = (opts) ->
 
 
 
+
+
+            
