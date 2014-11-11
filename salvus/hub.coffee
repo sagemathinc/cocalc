@@ -658,6 +658,7 @@ class Client extends EventEmitter
             delete clients[@conn.id]
             for id,f of c.call_callbacks
                 f("connection closed")
+            delete c.call_callbacks
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
@@ -744,9 +745,10 @@ class Client extends EventEmitter
                 @call_callbacks = {}
             @call_callbacks[mesg.id] = cb
             f = () =>
-                if @call_callbacks[mesg.id]?
-                    cb("timed out")
+                g = @call_callbacks[mesg.id]
+                if g?
                     delete @call_callbacks[mesg.id]
+                    g("timed out")
             setTimeout(f, 20000) # timeout after 20 seconds (for now)
 
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
@@ -1023,8 +1025,8 @@ class Client extends EventEmitter
         if @call_callbacks? and mesg.id?
             f = @call_callbacks[mesg.id]
             if f?
-                f(undefined, mesg)
                 delete @call_callbacks[mesg.id]
+                f(undefined, mesg)
                 return
 
         handler = @["mesg_#{mesg.event}"]
@@ -2614,7 +2616,7 @@ class Client extends EventEmitter
             client.push_edits_to_browser mesg.id, (err) =>
                 dbg("done pushing edits to browser (#{err})")
 
-                
+
 ##############################
 # User activity tracking
 ##############################

@@ -57,6 +57,9 @@ class SyncString extends diffsync.DiffSync
                     cb    : (err, resp) =>
                         if err
                             cb?(err)
+                        else if resp.event != 'syncstring_diffsync'
+                            # TODO: will have to reconnect
+                            cb?(resp.event)
                         else
                             @recv_edits(resp.edit_stack, resp.last_version_ack, cb)
 

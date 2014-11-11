@@ -41,9 +41,9 @@ message  = require('message')
 class SyncStringDB extends diffsync.DiffSync
 
 class SyncStringBrowser extends diffsync.DiffSync
-    constructor : (doc, @session_id, @push_to_client) ->
+    constructor : (@syncstring, @session_id, @push_to_client) ->
         misc.call_lock(obj:@)
-        @init(doc:doc)
+        @init(doc:@syncstring.head)
 
     _write_mesg: (event, obj, cb) =>
         if not obj?
@@ -58,7 +58,7 @@ class SyncStringBrowser extends diffsync.DiffSync
     push_edits_to_browser: (id, cb) =>
         f = (cb) =>
             @_push_edits_to_browser(id, cb)
-            S.sync()
+            @syncstring.sync()
         @_call_with_lock(f, cb)
 
     _push_edits_to_browser: (id, cb) =>
@@ -90,21 +90,54 @@ class SyncStringBrowser extends diffsync.DiffSync
 
 class SynchronizedString
     constructor: () ->
+        misc.call_lock(obj:@)
         @clients = {}
-        @root = new diffsync.DiffSync(doc:'')
-
-    set_live: (live) =>
-        @root.live = live
+        @head = ''
 
     new_browser_client: (session_id, push_to_client) =>
-        outside = new SyncStringBrowser(@root.live, session_id, push_to_client)
-        outside.id = session_id
-        inside = new diffsync.DiffSync(doc:@root.live)
-        inside.connect(@root)
-        @clients[session_id] = {outside:outside, inside:inside}
-        return outside
+        client = new SyncStringBrowser(@, session_id, push_to_client)
+        client.id = session_id
+        @clients[session_id] = client
+        return client
 
     sync: (cb) =>
+        @_call_with_lock(@_sync, cb)
+
+    _sync: (cb) =>
+        last = @head
+        winston.debug("sync: last='#{last}'")
+        all = {}
+        all[last] = true
+        for _, client of @clients
+            all[client.live] = true
+        if misc.len(all) <= 1
+            # nothing to do
+            winston.debug("sync: nothing to do")
+            cb?()
+            return
+
+        v = []
+        for _, client of @clients
+            v.push(client)
+            patch = diffsync.dmp.patch_make(last, client.live)
+            @head = diffsync.dmp.patch_apply(patch, @head)[0]
+            winston.debug("sync: new head='#{@head}' from patch=#{misc.to_json(patch)}")
+        for _, client of @clients
+            client.live = @head
+        # Sync any that changed (all at once, in parallel).
+        f = (client, cb) =>
+            if client.shadow != @head
+                winston.debug("syncing '#{client.shadow}' <--> '#{@head}'")
+                client.sync(cb)
+            else
+                cb()
+        async.map v, f, (err) =>
+            if err
+                cb?(err)
+            else
+                @_sync(cb)
+
+    sync0: (cb) =>
         # Set the live state of all inside diffsyncs to the corresponding
         # live states of the outside diffsync clients.
         for _, x of @clients
