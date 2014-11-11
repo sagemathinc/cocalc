@@ -390,10 +390,19 @@ CREATE TABLE activity_notifications (
 ////////////////////
 // Database-backed synchronized strings
 ////////////////////
-CREATE TABLE syncstrings (
+CREATE TABLE syncstrings0 (
     string_id  uuid   PRIMARY KEY,
-    hash       uuid,       /* sha-1 hash of string, so we know that it has changed */
+    hash       uuid,       /* sha-1 hash of string, so we know when it has changed */
     string     varchar
+);
+
+
+CREATE TABLE syncstrings (
+    string_id  uuid   ,
+    timestamp  timestamp,
+    patch      varchar,
+    is_first   boolean,
+    PRIMARY KEY (string_id, timestamp)
 );
 
 

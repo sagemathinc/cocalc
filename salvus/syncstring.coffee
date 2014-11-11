@@ -27,6 +27,8 @@ winston = require('winston')
 diffsync = require('diffsync')
 misc     = require('misc')
 message  = require('message')
+cass     = require("cassandra")
+
 
 {defaults, required} = misc
 
@@ -124,6 +126,7 @@ class SynchronizedString
             winston.debug("sync: new head='#{@head}' from patch=#{misc.to_json(patch)}")
         for _, client of @clients
             client.live = @head
+
         # Sync any that changed (all at once, in parallel).
         successful_live = {}
         successful_live[@head] = true
@@ -162,6 +165,234 @@ exports.syncstring = (opts) ->
     return S.new_browser_client(opts.session_id, opts.push_to_client)
 
 
+# oldest first -- unlike in page/activity.coffee
+timestamp_cmp = (a,b) ->
+    if a.timestamp < b.timestamp
+        return -1
+    else if a.timestamp > b.timestamp
+        return +1
+    return 0
+
+# Class that models storing a distributed collection of strings, indexed by a uuid,
+# in an eventually consistent database (Cassandra).
+# It queries periodically, with exponetial backoff, for updates about strings that
+# we're watching.  It assembles the patch stream in the database together to give
+# a consistent view for each string, and also writes patches to propogate that view.
+INIT_POLL_INTERVAL = 1000
+MAX_POLL_INTERVAL  = 2000   # for testing
+POLL_DECAY_RATIO   = 1.3
+TIMESTAMP_OVERLAP  = 60000  # assume that eventual consistency happens after this much time
+class exports.StringsDB
+    constructor : (@db) ->
+        @dbg("constructor")
+        if not @db?
+            # temporary
+            @db = new cass.Salvus
+                hosts       : ['localhost']
+                keyspace    : 'salvus'
+                consistency : 1
+                cb          : (err) =>
+                    if err
+                        console.log("FAILED to connect to db")
+                    else
+                        console.log("connected to db")
+        misc.call_lock(obj:@)
+        @strings = {}    # synchronized strings we're watching
+        @poll_for_updates() # start polling
+
+    dbg: (f, m) =>
+        #winston.debug("StringsDB.#{f}: #{m}")
+        console.log("StringsDB.#{f}: #{m}")
+
+    get_string: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            cb        : required
+        s = @strings[opts.string_id]
+        if s?
+            opts.cb(undefined, s)
+        else
+            # If this gets called multiple times, then do only once and call all callbacks
+            if not @_get_string_queue?
+                @_get_string_queue = {}
+            if @_get_string_queue[opts.string_id]?
+                @_get_string_queue[opts.string_id].push(opts.cb)
+                return
+            f = (args...) =>
+                for cb in @_get_string_queue[opts.string_id]
+                    cb(args...)
+
+            @_get_string_queue[opts.string_id] = [opts.cb]
+
+            @_read_updates_from_db [opts.string_id], 0, (err) =>
+                if err
+                    f(err)
+                else
+                    s = @strings[opts.string_id]
+                    if not s?
+                        s = @strings[opts.string_id] = {applied_patches:{}, db_string:'', live:'', timestamp:0}
+                    s.live = s.db_string # start initialized to what is in db
+                    f(undefined, s)
+
+    poll_for_updates: (interval=INIT_POLL_INTERVAL) =>
+        retry = (interval) =>
+            next_interval = Math.max(INIT_POLL_INTERVAL,Math.min(MAX_POLL_INTERVAL, POLL_DECAY_RATIO*interval))
+            setTimeout((()=>@poll_for_updates(next_interval)), interval)
+
+        if misc.len(@strings) == 0
+            # not watching for anything
+            retry(interval); return
+
+        @read_updates_from_db misc.keys(@strings), TIMESTAMP_OVERLAP, (err, new_updates) =>
+            if err
+                retry(interval)
+            else
+                if new_updates
+                    # something new -- poll again soon
+                    retry(0)
+                else
+                    # nothing new -- try again after further exponential decay
+                    retry(interval)
+
+    sync: (cb) =>
+        @dbg("sync")
+        @_call_with_lock(@_write_updates_to_db, cb)
+
+    _write_updates_to_db: (cb) =>
+        dbg = (m) => @dbg("_write_updates_to_db", m)
+        if not @db?
+            cb("database not initialized"); return
+        dbg()
+        f = (string_id, cb) =>
+            dbg(string_id)
+            string = @strings[string_id]
+            dbg("string.db_string='#{string.db_string}'")
+            dbg("string.live='#{string.live}'")
+            if string.db_string == string.live
+                dbg("nothing to do for #{string_id}")
+                cb() # nothing to do
+            else
+                patch = diffsync.dmp.patch_make(string.db_string, string.live)
+                dbg("patch for #{string_id} = #{misc.to_json(patch)}")
+                timestamp = cass.now() - 0
+                @db.update
+                    table : 'syncstrings'
+                    set   : {patch:misc.to_json(patch)}
+                    where : {string_id:string_id, timestamp:timestamp}
+                    cb    : (err) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("success for #{string_id}")
+                            string.db_string = string.live
+                            string.applied_patches[timestamp] = {patch:patch, timestamp:timestamp}
+                            string.timestamp = timestamp
+                            cb()
+        async.map(misc.keys(@strings), f, (err) => cb(err))
+
+    read_updates_from_db: (string_ids, age, cb) =>
+        @_call_with_lock(((cb)=>@_read_updates_from_db(string_ids, age, cb)), cb)
+
+    _read_updates_from_db: (string_ids, age, cb) =>
+        #@dbg("_read_updates_from_db", misc.to_json(string_ids))
+        if not @db?
+            cb("database not initialized"); return
+        where = {string_id:{'in':string_ids}}
+        if age
+            where.timestamp = {'>=' : cass.now() - age}
+        @db.select
+            table     : 'syncstrings'
+            columns   : ['string_id','timestamp','patch','is_first']
+            objectify : true
+            where     : where
+            cb        : (err, updates) =>
+                if err
+                    cb(err)
+                else
+                    new_updates = @_process_updates updates, (err) =>
+                        # ignore err, since it would be in writing back
+                        cb(undefined, new_updates)
+
+    _process_updates: (updates, cb) =>
+        #
+        # updates is a list of {string_id:?,timestamp:?,patch:?,is_first:?} objects, where
+        #
+        #   string_id = string uuid
+        #   timestamp = Date object
+        #   patch     = string representation of a patch (since we don't want to de-JSON if not needed)
+        #   is_first  = boolean; if true, start with this patch; used only to avoid race conditions when trimming history.
+
+        # WARNING!
+        # We first implement a very inefficient stupid version of this business, and
+        # will later implement things to make faster.  If this database sync thing
+        # turns out to be sensible.
+        #  SIMPLIFIED: ignore is_first and never trim.
+        new_patches = {}
+        for update in updates
+            update.timestamp = update.timestamp - 0  # better to key map based on string of timestamp as number
+            string = @strings[update.string_id]
+            if not string?
+                string = @strings[update.string_id] = {applied_patches:{}, db_string:'', live:'', timestamp:0}
+            if not string.applied_patches[update.timestamp]?
+                # a new patch
+                update.patch = misc.from_json(update.patch)
+                if not new_patches[update.string_id]?
+                    new_patches[update.string_id] = [update]
+                else
+                    new_patches[update.string_id].push(update)
+
+        if misc.len(new_patches) == 0
+            # nothing further to do
+            cb()
+            return false
+
+        if updates.length > 0
+            @dbg("_process_updates",misc.to_json(new_patches))
+
+        # There are new patches
+        write_updates = false
+        for string_id, patches of new_patches
+            string = @strings[string_id]
+            db_string_before = string.db_string
+
+            patches.sort(timestamp_cmp)
+            if patches[0].timestamp > string.timestamp
+                # If timestamps not all bigger than last patch time, we merge everything
+                # together and apply all patches in order, starting from scratch.
+                # (TODO: optimize this.)
+                for _, patch of string.applied_patches
+                    patches.push(patch)
+                patches.sort(timestamp_cmp)
+                # reset string
+                string.db_string = ''
+                string.timestamp = 0
+                string.applied_patches = {}
+
+            # Apply unapplied patches in order.
+            for p in patches
+                @dbg("_process_updates","applying unapplied patch #{misc.to_json(p.patch)}")
+                string.db_string = diffsync.dmp.patch_apply(p.patch, string.db_string)[0]
+                string.applied_patches[p.timestamp] = p
+            # string's timestamp = Newest applied patch
+            string.timestamp = patches[patches.length - 1].timestamp
+
+            # apply effective changes from db to live.
+            if db_string_before != string.db_string
+                patch = diffsync.dmp.patch_make(db_string_before, string.db_string)
+                string.live = diffsync.dmp.patch_apply(patch, string.live)[0]
+
+            # If live != db_string, write changes back to database
+            if string.live != string.db_string
+                write_updates = true
+
+        if write_updates
+            @dbg("_process_updates","writing our own updates back")
+            @_write_updates_to_db(cb)  # safe to call skipping lock, since we have the lock
+        else
+            @dbg("_process_updates","no further updates from us (stable)")
+            cb()
+
+        return true  # there were patches to apply
 
 # Connection to the database
 #database = undefined
