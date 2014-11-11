@@ -17,6 +17,10 @@ message  = require('message')
 class SyncString extends diffsync.DiffSync
     constructor: (string, @session_id, @string_id) ->
         @init(doc:string)
+        salvus_client.on("syncstring_diffsync2-#{@session_id}", @handle_diffsync_mesg)
+
+    destroy: () =>
+        salvus_client.removeListener("syncstring_diffsync2-#{@session_id}", @handle_diffsync_mesg)
 
     write_mesg: (opts) =>
         opts = defaults opts,
@@ -50,6 +54,30 @@ class SyncString extends diffsync.DiffSync
                             cb(err)
                         else
                             @recv_edits(resp.edit_stack, resp.last_version_ack, cb)
+
+    handle_diffsync_mesg: (mesg) =>
+        #dbg = (m) => console.log("handle_diffsync_mesg: #{m}")
+        #dbg(misc.to_json(mesg))
+        @recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
+            if err
+                dbg("recv_edits: #{err}")
+                # would have to reset at this point (?)
+                return
+            # Send back our own edits to the hub
+            #dbg("send back our own edits to hub")
+            @push_edits (err) =>
+                # call to push_edits just computed @edit_stack and @last_version_received
+                if err
+                    #dbg("error in push_edits -- #{err}")
+                    salvus_client.send(message.error(error:err, id:mesg.id))
+                else
+                    #dbg("now sending our own edits out")
+                    resp = message.syncstring_diffsync
+                        id               : mesg.id
+                        edit_stack       : @edit_stack
+                        last_version_ack : @last_version_received
+                    salvus_client.send(resp)
+
 
 exports.syncstring = (opts) ->
     opts = defaults opts,

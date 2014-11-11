@@ -22,11 +22,64 @@
 
 async    = require('async')
 
+winston = require('winston')
+
 diffsync = require('diffsync')
 misc     = require('misc')
 message  = require('message')
 
 {defaults, required} = misc
+
+######################################################################################
+# Building block:  This is a complete synchronized
+# string session between one single browser client and the hub.
+# With this, we can reduce all complicated multi-user sync
+# stuff as happening within the hub (first move from a remote computer
+# to local via sync, then do everything locally).
+######################################################################################
+
+class SyncStringBrowser extends diffsync.DiffSync
+    constructor : (string, @_push_to_client) ->
+        @init(doc:string)
+
+    _write_mesg: (event, obj, cb) =>
+        if not obj?
+            obj = {}
+        mesg = message['syncstring_' + event](obj)
+        @_push_to_client(mesg, cb)
+
+    # After receiving and processing edits from the client, we then
+    # call push_edits_to_browser to push our edits back to the
+    # browser (in the response message.)
+    push_edits_to_browser: (id, cb) =>
+        # if id is given, then we are responding to a sync request from the client.
+        # if id not given, we are initiating the sync request.
+        #dbg = (m) => winston.debug("push_edits_to_browser: #{m}")
+        @push_edits (err) =>
+            # this just computed @edit_stack and @last_version_received
+            if err
+                @_push_to_client(message.error(error:err, id:id))
+            else
+                mesg =
+                    id               : id
+                    edit_stack       : @edit_stack
+                    last_version_ack : @last_version_received
+                @_write_mesg "diffsync#{if id? then '' else '2'}", mesg, (err, resp) =>
+                    if err
+                        cb(err)
+                    else
+                        if resp?
+                            @recv_edits(resp.edit_stack, resp.last_version_ack, cb)
+
+    sync: (cb) =>
+        @push_edits_to_browser(undefined, cb)
+
+exports.syncstring = (opts) ->
+    opts = defaults opts,
+        string         : required
+        push_to_client : required    # function that allows for sending a JSON message to remote client
+    return new SyncStringBrowser(opts.string, opts.push_to_client)
+
 
 
 # Connection to the database
@@ -63,29 +116,6 @@ class SyncStringClient extends diffsync.DiffSync
         @connect(@server)
 
 
-class SyncStringBrowserClient extends diffsync.DiffSync
-    constructor : (@push_to_client) ->
-        @init(doc:"test string")
-
-    write_mesg: (event, obj) =>
-        if not obj?
-            obj = {}
-        mesg = message['syncstring_' + event](obj)
-        @push_to_client(mesg)
-
-    push_edits_to_browser: (id) =>
-        @push_edits (err) =>
-            if err
-                @push_to_client(message.error(error:err, id:id))
-            else
-                @write_mesg 'diffsync',
-                    id               : id
-                    edit_stack       : @edit_stack
-                    last_version_ack : @last_version_received
-
-    sync_ready: () =>
-        @write_mesg('diffsync_ready')
-
 _syncstring_servers = {}
 _create_syncstring_server_queue = {}
 syncstring_server = (string_id, cb) ->
@@ -110,7 +140,9 @@ syncstring_server = (string_id, cb) ->
                 cb(undefined, server)
         _create_syncstring_server_queue[string_id] = undefined
 
-exports.syncstring = (opts) ->
+# a database-backed string that is synchronized between database and users and hub
+# NOT DONE
+exports.syncstring_db = (opts) ->
     opts = defaults opts,
         string_id      : required
         push_to_client : required    # function that allows for sending a JSON message to remote client
@@ -120,7 +152,7 @@ exports.syncstring = (opts) ->
             opts.cb(err)
         else
             client = new SyncStringClient(server, opts.id)
-            remote = new SyncStringBrowserClient(opts.push_to_client)
+            remote = new SyncStringBrowser(opts.push_to_client)
             client.remote = remote
             opts.cb(undefined, client)
 

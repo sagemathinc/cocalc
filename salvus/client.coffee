@@ -348,6 +348,7 @@ class exports.Connection extends EventEmitter
 
     # Send a JSON message to the hub server.
     send: (mesg) ->
+        #console.log("send at #{misc.mswalltime()}", mesg)
         @write_data(JSON_CHANNEL, misc.to_json(mesg))
 
     # Send raw data via certain channel to the hub server.
@@ -406,6 +407,8 @@ class exports.Connection extends EventEmitter
                 @emit(mesg.event, mesg)
             when "activity_notifications"
                 @emit(mesg.event, mesg)
+            when "syncstring_diffsync2"
+                @emit("syncstring_diffsync2-#{mesg.session_id}", mesg)
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?

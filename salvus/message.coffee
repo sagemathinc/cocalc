@@ -260,11 +260,21 @@ message
     string     : required
     readonly   : false       # if true, string is read only -- though it can get changed by server
 
+# Client initiated sync.
 # A list of edits that should be applied, along with the
 # last version of edits received before.
 # client <--> hub
 message
     event            : 'syncstring_diffsync'
+    id               : undefined
+    session_id       : undefined
+    edit_stack       : required
+    last_version_ack : required
+
+# Hub-initiated sync
+# hub <--> client
+message
+    event            : 'syncstring_diffsync2'
     id               : undefined
     session_id       : undefined
     edit_stack       : required

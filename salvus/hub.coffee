@@ -654,7 +654,10 @@ class Client extends EventEmitter
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  CLOSED")
             @emit 'close'
             @compute_session_uuids = []
+            c = clients[@conn.id]
             delete clients[@conn.id]
+            for id,f of c.call_callbacks
+                f("connection closed")
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
@@ -725,10 +728,31 @@ class Client extends EventEmitter
     #######################################################
     # Pushing messages to this particular connected client
     #######################################################
-    push_to_client: (mesg) =>
+    push_to_client: (mesg, cb) =>
         if mesg.event != 'pong'
             winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
+
+        # If cb *is* given and mesg.id is *not* defined, then
+        # we also setup a listener for a response from the client.
+        listen = cb? and not mesg.id?
+        if listen
+            # This message is not a response to a client request.
+            # Instead, we are initiating a request to the user and we
+            # want a result back (hence cb? being defined).
+            mesg.id = misc.uuid()
+            if not @call_callbacks?
+                @call_callbacks = {}
+            @call_callbacks[mesg.id] = cb
+            f = () =>
+                if @call_callbacks[mesg.id]?
+                    cb("timed out")
+                    delete @call_callbacks[mesg.id]
+            setTimeout(f, 30000) # timeout after 30 seconds (for now)
+
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
+        if not listen
+            cb?()
+            return
 
     push_data_to_client: (channel, data) ->
         #winston.debug("push_data_to_client(#{channel},'#{data}')")
@@ -994,6 +1018,15 @@ class Client extends EventEmitter
         #winston.debug("got message: #{data}")
         if mesg.event != 'codemirror_bcast' and mesg.event != 'ping'
             winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 300)}")
+
+        # check for message that is coming back in response to a request from the hub
+        if @call_callbacks? and mesg.id?
+            f = @call_callbacks[mesg.id]
+            if f?
+                f(undefined, mesg)
+                delete @call_callbacks[mesg.id]
+                return
+
         handler = @["mesg_#{mesg.event}"]
         if handler?
             handler(mesg)
@@ -2518,10 +2551,7 @@ class Client extends EventEmitter
     ################################################
     # Synchronized Strings (not associated to any particular project)
     ################################################
-
-    # Get a new syncstring session for the string with given id.
-    # Returns message with a session_id and also the value of the string.
-    mesg_syncstring_get_session: (mesg) =>
+    xxx_mesg_syncstring_get_session: (mesg) =>
         if not @_syncstrings?
             @_syncstrings = {by_string_id:{}, by_session_id:{}}
 
@@ -2545,27 +2575,45 @@ class Client extends EventEmitter
                         string     : client.remote.live
                     @push_to_client(resp)
 
+    # Get a new syncstring session for the string with given id.
+    # Returns message with a session_id and also the value of the string.
+    mesg_syncstring_get_session: (mesg) =>
+        if not @_syncstrings?
+            @_syncstrings = {}
+
+        session_id = misc.uuid()
+        client = syncstring.syncstring
+            string         : 'test string'
+            push_to_client : (m, cb) => m.session_id = session_id; @push_to_client(m, cb)
+        @_syncstrings[session_id] = client
+        resp = message.syncstring_session
+            id         : mesg.id
+            session_id : session_id
+            string     : client.live
+        @push_to_client(resp)
+
     mesg_syncstring_diffsync: (mesg) =>
         dbg = (m) => winston.debug("mesg_syncstring_diffsync(#{mesg.session_id}): #{m}")
-        client = @_syncstrings?.by_session_id[mesg.session_id]
+        client = @_syncstrings?[mesg.session_id]
         if not client?
             dbg("no such session")
             @push_to_client(message.syncstring_disconnect(id:mesg.id, session_id:mesg.session_id))
             return
         # apply their edits to our object that represents the remote user
-        # TODO: lock and give error if called again before previous one done.
-        c = client.remote
-        dbg("got session; live before recv_edits='#{c.live}'")
-        c.recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
+        # TODO: lock and give error if called again before previous call done.
+        dbg("got session; live before recv_edits='#{client.live}'")
+        client.recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
             if err
                 dbg("recv_edits err=#{err}")
                 @error_to_client(err)
                 return
             # Send back our own edits to the remote user, in case client.remote has changed
             # since last sync.
-            dbg("got session; live after recv_edits='#{c.live}'")
-            c.push_edits_to_browser(mesg.id)
+            dbg("got session; live after recv_edits='#{client.live}'")
+            client.push_edits_to_browser mesg.id, (err) =>
+                dbg("done pushing edits to browser (#{err})")
 
+                
 ##############################
 # User activity tracking
 ##############################
