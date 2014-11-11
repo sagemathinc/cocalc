@@ -652,6 +652,7 @@ class Client extends EventEmitter
 
         @conn.on "end", () =>
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  CLOSED")
+            @closed = true
             @emit 'close'
             @compute_session_uuids = []
             c = clients[@conn.id]
@@ -730,6 +731,10 @@ class Client extends EventEmitter
     # Pushing messages to this particular connected client
     #######################################################
     push_to_client: (mesg, cb) =>
+        if @closed
+            cb?("disconnected")
+            return
+
         if mesg.event != 'pong'
             winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
 
@@ -745,11 +750,11 @@ class Client extends EventEmitter
                 @call_callbacks = {}
             @call_callbacks[mesg.id] = cb
             f = () =>
-                g = @call_callbacks[mesg.id]
+                g = @call_callbacks?[mesg.id]
                 if g?
                     delete @call_callbacks[mesg.id]
                     g("timed out")
-            setTimeout(f, 20000) # timeout after 20 seconds (for now)
+            setTimeout(f, 15000) # timeout after some seconds
 
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
         if not listen
@@ -757,6 +762,8 @@ class Client extends EventEmitter
             return
 
     push_data_to_client: (channel, data) ->
+        if @closed
+            return
         #winston.debug("push_data_to_client(#{channel},'#{data}')")
         @conn.write(channel + data)
 
@@ -1019,7 +1026,7 @@ class Client extends EventEmitter
             return
         #winston.debug("got message: #{data}")
         if mesg.event != 'codemirror_bcast' and mesg.event != 'ping'
-            winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 300)}")
+            winston.debug("hub <-- client (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 300)}")
 
         # check for message that is coming back in response to a request from the hub
         if @call_callbacks? and mesg.id?
