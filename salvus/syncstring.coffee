@@ -133,10 +133,12 @@ class SynchronizedString
                 t = misc.mswalltime()
                 client.sync (err) =>
                     winston.debug("sync time=#{misc.mswalltime(t)}")
-                    if not err
-                        successful_live[client.live] = true
-                    else
+                    if err == 'disconnected'
+                        delete @clients[client.id]
+                    if err
                         winston.debug("sync err = #{err}")
+                    else
+                        successful_live[client.live] = true
                     cb()
             else
                 cb()
@@ -148,14 +150,16 @@ class SynchronizedString
                 winston.debug("not syncing again since successful_live='#{misc.to_json(successful_live)}'")
                 cb?()
 
-S = new SynchronizedString()
-
+sync_strings = {}
 exports.syncstring = (opts) ->
     opts = defaults opts,
+        string_id      : required
         session_id     : required
         push_to_client : required    # function that allows for sending a JSON message to remote client
+    S = sync_strings[opts.string_id]
+    if not S?
+        S = sync_strings[opts.string_id] = new SynchronizedString()
     return S.new_browser_client(opts.session_id, opts.push_to_client)
-
 
 
 

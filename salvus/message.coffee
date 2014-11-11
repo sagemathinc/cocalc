@@ -249,7 +249,7 @@ message
 # client --> hub
 message
     event      : 'syncstring_get_session'
-    string_id  : required
+    string_id  : required     # new connection to session with this string_id
     id         : undefined
 
 # hub --> client

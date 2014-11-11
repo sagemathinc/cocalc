@@ -1553,8 +1553,8 @@ class exports.Connection extends EventEmitter
     ##################################################
     syncstring_get_session: (opts) =>
         opts = defaults opts,
-            string_id : required
-            cb        : undefined   # cb(err, {session_id:?, string:?, readonly:?})
+            string_id  : required
+            cb         : undefined   # cb(err, {session_id:?, string:?, readonly:?})
         @call
             message :
                 message.syncstring_get_session

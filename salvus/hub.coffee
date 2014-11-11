@@ -2560,38 +2560,18 @@ class Client extends EventEmitter
     ################################################
     # Synchronized Strings (not associated to any particular project)
     ################################################
-    xxx_mesg_syncstring_get_session: (mesg) =>
-        if not @_syncstrings?
-            @_syncstrings = {by_string_id:{}, by_session_id:{}}
-
-        session_id = misc.uuid()
-        syncstring.syncstring
-            string_id      : mesg.string_id
-            push_to_client : (m) => m.session_id = session_id; @push_to_client(m)
-            cb             : (err, client) =>
-                if err
-                    @error_to_client(error:err)
-                else
-                    @_syncstrings.by_session_id[session_id] = client
-                    v = @_syncstrings.by_string_id[mesg.string_id]
-                    if not v?
-                        @_syncstrings.by_string_id[mesg.string_id] = [client]
-                    else
-                        v.push(client)
-                    resp = message.syncstring_session
-                        id         : mesg.id
-                        session_id : session_id
-                        string     : client.remote.live
-                    @push_to_client(resp)
-
     # Get a new syncstring session for the string with given id.
     # Returns message with a session_id and also the value of the string.
     mesg_syncstring_get_session: (mesg) =>
+        if not misc.is_valid_uuid_string(mesg.string_id)
+            @error_to_client(id:mesg.id, error:"invalid string_id uuid")
+
         if not @_syncstrings?
             @_syncstrings = {}
 
-        session_id = misc.uuid()
+        session_id = misc.uuid()       # create a new session
         client = syncstring.syncstring
+            string_id      : mesg.string_id
             session_id     : session_id
             push_to_client : @push_to_client
 
