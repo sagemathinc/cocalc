@@ -2583,8 +2583,9 @@ class Client extends EventEmitter
 
         session_id = misc.uuid()
         client = syncstring.syncstring
-            string         : 'test string'
-            push_to_client : ((m, cb) => m.session_id = session_id; @push_to_client(m, cb))
+            session_id     : session_id
+            push_to_client : @push_to_client
+
         @_syncstrings[session_id] = client
         resp = message.syncstring_session
             id         : mesg.id
@@ -2599,7 +2600,7 @@ class Client extends EventEmitter
             dbg("no such session")
             @push_to_client(message.syncstring_disconnect(id:mesg.id, session_id:mesg.session_id))
             return
-        # apply their edits to our object that represents the remote user
+        # Apply their edits to our object that represents the remote user
         # TODO: lock and give error if called again before previous call done.
         dbg("got session; live before recv_edits='#{client.live}'")
         client.recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
@@ -2613,13 +2614,7 @@ class Client extends EventEmitter
             client.push_edits_to_browser mesg.id, (err) =>
                 dbg("done pushing edits to browser (#{err})")
 
-        f = () =>
-            client.live = "0" + client.live
-            dbg("initiating test sync")
-            client.sync (err) =>
-                dbg("finished test sync (#{err})")
-        setTimeout(f, 3000)
-
+                
 ##############################
 # User activity tracking
 ##############################

@@ -38,22 +38,28 @@ message  = require('message')
 # to local via sync, then do everything locally).
 ######################################################################################
 
+class SyncStringDB extends diffsync.DiffSync
+
 class SyncStringBrowser extends diffsync.DiffSync
-    constructor : (string, @_push_to_client) ->
+    constructor : (doc, @session_id, @push_to_client) ->
         misc.call_lock(obj:@)
-        @init(doc:string)
+        @init(doc:doc)
 
     _write_mesg: (event, obj, cb) =>
         if not obj?
             obj = {}
+        obj.session_id = @session_id
         mesg = message['syncstring_' + event](obj)
-        @_push_to_client(mesg, cb)
+        @push_to_client(mesg, cb)
 
     # After receiving and processing edits from the client, we then
     # call push_edits_to_browser to push our edits back to the
     # browser (in the response message.)
     push_edits_to_browser: (id, cb) =>
-        @_call_with_lock(((cb)=>@_push_edits_to_browser(id, cb)), cb)
+        f = (cb) =>
+            @_push_edits_to_browser(id, cb)
+            S.sync()
+        @_call_with_lock(f, cb)
 
     _push_edits_to_browser: (id, cb) =>
         # if id is given, then we are responding to a sync request from the client.
@@ -62,13 +68,14 @@ class SyncStringBrowser extends diffsync.DiffSync
         @push_edits (err) =>
             # this just computed @edit_stack and @last_version_received
             if err
-                @_push_to_client(message.error(error:err, id:id))
+                @push_to_client(message.error(error:err, id:id))
                 cb?(err)
             else
                 mesg =
                     id               : id
                     edit_stack       : @edit_stack
                     last_version_ack : @last_version_received
+                # diffsync2 when sync initiated by hub; diffsync when initiated by browser client.
                 @_write_mesg "diffsync#{if id? then '' else '2'}", mesg, (err, resp) =>
                     if err
                         cb?(err)
@@ -81,11 +88,68 @@ class SyncStringBrowser extends diffsync.DiffSync
     sync: (cb) =>
         @push_edits_to_browser(undefined, cb)
 
+class SynchronizedString
+    constructor: () ->
+        @clients = {}
+        @root = new diffsync.DiffSync(doc:'')
+
+    set_live: (live) =>
+        @root.live = live
+
+    new_browser_client: (session_id, push_to_client) =>
+        outside = new SyncStringBrowser(@root.live, session_id, push_to_client)
+        outside.id = session_id
+        inside = new diffsync.DiffSync(doc:@root.live)
+        inside.connect(@root)
+        @clients[session_id] = {outside:outside, inside:inside}
+        return outside
+
+    sync: (cb) =>
+        # Set the live state of all inside diffsyncs to the corresponding
+        # live states of the outside diffsync clients.
+        for _, x of @clients
+            x.inside.live = x.outside.live
+
+        # Synchronize everything entirely in-memory and blocking.
+        n = 0
+        max_attempts = 3
+        while true
+            vals = {}
+            n += 1
+            if n > max_attempts
+                winston.debug("WARNING: syncing not converging after #{max_attempts} attempts -- bailing!!!")
+                break
+            for _, x of @clients
+                winston.debug("before: x.inside='#{x.inside.live}' and root='#{@root.live}'")
+                x.inside.sync (err) =>  # actually synchronous!
+                    winston.debug("after :x.inside='#{x.inside.live}' and root='#{@root.live}'")
+                    if err
+                        winston.debug("ERROR syncing -- #{err}")
+                    vals[x.inside.live] = true
+                    winston.debug("vals=#{misc.to_json(vals)}; root='#{@root.live}'")
+            if misc.len(vals) <= 1
+                break
+
+        # Now set all the outside live to the common inside live
+        changed = []
+        for _, x of @clients
+            before = x.outside.live
+            x.outside.live = x.inside.live
+            if before != x.inside.live
+                changed.push(x.outside)
+
+        # Sync any that changed (all at once, in parallel).
+        async.map(changed, ((client, c)->client.sync(c)), (err) => cb?(err))
+
+
+S = new SynchronizedString()
+
 exports.syncstring = (opts) ->
     opts = defaults opts,
-        string         : required
+        session_id     : required
         push_to_client : required    # function that allows for sending a JSON message to remote client
-    return new SyncStringBrowser(opts.string, opts.push_to_client)
+    return S.new_browser_client(opts.session_id, opts.push_to_client)
+
 
 
 
