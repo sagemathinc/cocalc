@@ -747,7 +747,7 @@ class Client extends EventEmitter
                 if @call_callbacks[mesg.id]?
                     cb("timed out")
                     delete @call_callbacks[mesg.id]
-            setTimeout(f, 30000) # timeout after 30 seconds (for now)
+            setTimeout(f, 20000) # timeout after 20 seconds (for now)
 
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
         if not listen
@@ -2584,7 +2584,7 @@ class Client extends EventEmitter
         session_id = misc.uuid()
         client = syncstring.syncstring
             string         : 'test string'
-            push_to_client : (m, cb) => m.session_id = session_id; @push_to_client(m, cb)
+            push_to_client : ((m, cb) => m.session_id = session_id; @push_to_client(m, cb))
         @_syncstrings[session_id] = client
         resp = message.syncstring_session
             id         : mesg.id
@@ -2613,7 +2613,13 @@ class Client extends EventEmitter
             client.push_edits_to_browser mesg.id, (err) =>
                 dbg("done pushing edits to browser (#{err})")
 
-                
+        f = () =>
+            client.live = "0" + client.live
+            dbg("initiating test sync")
+            client.sync (err) =>
+                dbg("finished test sync (#{err})")
+        setTimeout(f, 3000)
+
 ##############################
 # User activity tracking
 ##############################

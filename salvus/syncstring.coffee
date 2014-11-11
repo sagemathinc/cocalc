@@ -40,6 +40,7 @@ message  = require('message')
 
 class SyncStringBrowser extends diffsync.DiffSync
     constructor : (string, @_push_to_client) ->
+        misc.call_lock(obj:@)
         @init(doc:string)
 
     _write_mesg: (event, obj, cb) =>
@@ -52,6 +53,9 @@ class SyncStringBrowser extends diffsync.DiffSync
     # call push_edits_to_browser to push our edits back to the
     # browser (in the response message.)
     push_edits_to_browser: (id, cb) =>
+        @_call_with_lock(((cb)=>@_push_edits_to_browser(id, cb)), cb)
+
+    _push_edits_to_browser: (id, cb) =>
         # if id is given, then we are responding to a sync request from the client.
         # if id not given, we are initiating the sync request.
         #dbg = (m) => winston.debug("push_edits_to_browser: #{m}")
@@ -59,6 +63,7 @@ class SyncStringBrowser extends diffsync.DiffSync
             # this just computed @edit_stack and @last_version_received
             if err
                 @_push_to_client(message.error(error:err, id:id))
+                cb?(err)
             else
                 mesg =
                     id               : id
@@ -66,10 +71,12 @@ class SyncStringBrowser extends diffsync.DiffSync
                     last_version_ack : @last_version_received
                 @_write_mesg "diffsync#{if id? then '' else '2'}", mesg, (err, resp) =>
                     if err
-                        cb(err)
+                        cb?(err)
                     else
                         if resp?
                             @recv_edits(resp.edit_stack, resp.last_version_ack, cb)
+                        else
+                            cb?()
 
     sync: (cb) =>
         @push_edits_to_browser(undefined, cb)
