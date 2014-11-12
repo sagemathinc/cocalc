@@ -21,7 +21,7 @@
 #################################################################
 
 async    = require('async')
-
+{EventEmitter} = require('events')
 winston = require('winston')
 
 diffsync = require('diffsync')
@@ -40,12 +40,11 @@ cass     = require("cassandra")
 # to local via sync, then do everything locally).
 ######################################################################################
 
-class SyncStringDB extends diffsync.DiffSync
-
 class SyncStringBrowser extends diffsync.DiffSync
     constructor : (@syncstring, @session_id, @push_to_client) ->
         misc.call_lock(obj:@)
         @init(doc:@syncstring.head)
+        @last_sync = @shadow
 
     _write_mesg: (event, obj, cb) =>
         if not obj?
@@ -73,6 +72,7 @@ class SyncStringBrowser extends diffsync.DiffSync
                 @push_to_client(message.error(error:err, id:id))
                 cb?(err)
             else
+                @last_sync = @shadow
                 mesg =
                     id               : id
                     edit_stack       : @edit_stack
@@ -84,23 +84,49 @@ class SyncStringBrowser extends diffsync.DiffSync
                     else
                         if resp?
                             @recv_edits(resp.edit_stack, resp.last_version_ack, cb)
+                            @last_sync = @shadow
                         else
                             cb?()
 
     sync: (cb) =>
         @push_edits_to_browser(undefined, cb)
 
+# A string that is synchronized amongst all connected clients.
 class SynchronizedString
-    constructor: () ->
+    constructor: (@string_id) ->
         misc.call_lock(obj:@)
         @clients = {}
         @head = ''
 
-    new_browser_client: (session_id, push_to_client) =>
+    new_browser_client: (session_id, push_to_client, cb) =>
         client = new SyncStringBrowser(@, session_id, push_to_client)
         client.id = session_id
         @clients[session_id] = client
-        return client
+        cb(undefined, client)
+
+    new_in_memory_client: (session_id, cb) =>
+        # Used so that the hub itself (the process where this code is running)
+        # can modify this SynchronizedString, rather than just remote clients.
+        client = new diffsync.DiffSync(doc:@head)
+        client.id = session_id
+        client.sync = (cb) =>   # trivial sync
+            client.shadow = client.live
+            client.last_sync = client.live
+            cb()
+        @clients[session_id] = client
+        cb(undefined, client)
+
+    new_database_client: (session_id, cb) =>
+        # Used for synchronizing/persisting the string using the database, so
+        # it gets sync'd across all hubs (across data centers).
+        syncstring_db.get_string
+            string_id : @string_id
+            cb        : (err, client) =>
+                if err
+                    cb(err)
+                else
+                    @clients[session_id] = client
+                    cb(undefined, client)
 
     sync: (cb) =>
         @_call_with_lock(@_sync, cb)
@@ -131,8 +157,8 @@ class SynchronizedString
         successful_live = {}
         successful_live[@head] = true
         f = (client, cb) =>
-            if client.shadow != @head
-                winston.debug("syncing '#{client.shadow}' <--> '#{@head}'")
+            if client.last_sync != @head
+                winston.debug("syncing '#{client.last_sync}' <--> '#{@head}'")
                 t = misc.mswalltime()
                 client.sync (err) =>
                     winston.debug("sync time=#{misc.mswalltime(t)}")
@@ -154,15 +180,62 @@ class SynchronizedString
                 cb?()
 
 sync_strings = {}
+
+get_syncstring = (string_id, cb) ->
+    S = sync_strings[string_id]
+    if S?
+        cb(undefined, S); return
+
+    S = new SynchronizedString(string_id)
+    async.series([
+        (cb) =>
+            S.new_database_client misc.uuid(), (err, client) ->
+                if err
+                    cb(err)
+                else
+                    S.db_client = client
+                    S.head = client.live
+                    client.on 'change', S.sync  # whenever database changes, sync everything
+                    cb()
+        (cb) =>
+            S.new_in_memory_client misc.uuid(), (err, client) ->
+                if err
+                    cb(err)
+                else
+                    S.in_memory_client = client
+                    cb()
+    ], (err) =>
+        if err
+            # TODO: undo any other harm
+            cb(err)
+        else
+            sync_strings[string_id] = S
+            cb(undefined, S)
+    )
+
 exports.syncstring = (opts) ->
     opts = defaults opts,
         string_id      : required
         session_id     : required
         push_to_client : required    # function that allows for sending a JSON message to remote client
-    S = sync_strings[opts.string_id]
-    if not S?
-        S = sync_strings[opts.string_id] = new SynchronizedString()
-    return S.new_browser_client(opts.session_id, opts.push_to_client)
+        cb             : required
+    get_syncstring opts.string_id, (err, S) =>
+        if err
+            opts.cb(err)
+        else
+            S.new_browser_client opts.session_id, opts.push_to_client, (err, client) ->
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, client)
+
+# The hub has to call this on startup in order for syncstring to work.
+syncstring_db = undefined
+exports.init_syncstring_db = (database) =>
+    syncstring_db = new exports.StringsDB(database)
+
+
+
 
 
 # oldest first -- unlike in page/activity.coffee
@@ -201,11 +274,22 @@ TIMESTAMP_OVERLAP      = 60000
 # interesting...)
 DB_PATCH_SQUASH_THRESH = 100
 
+# emits a 'change' event whenever live is changed as a result of syncing with the database
+class StringsDBString extends EventEmitter
+    constructor: (@strings_db, @string_id) ->
+        @applied_patches = {}
+        @last_sync = ''
+        @live = ''
+        @timestamp = 0
+
+    sync: (cb) =>
+        @strings_db.sync(cb)   # NOTE: actually sync's all strings to db that have changed (not just this one)
+
 class exports.StringsDB
     constructor : (@db) ->
         @dbg("constructor")
         if not @db?
-            # temporary
+            # TODO: for testing only
             @db = new cass.Salvus
                 hosts       : ['localhost']
                 keyspace    : 'salvus'
@@ -220,8 +304,8 @@ class exports.StringsDB
         @poll_for_updates() # start polling
 
     dbg: (f, m) =>
-        #winston.debug("StringsDB.#{f}: #{m}")
-        console.log("StringsDB.#{f}: #{m}")
+        winston.debug("StringsDB.#{f}: #{m}")
+        #console.log("StringsDB.#{f}: #{m}")
 
     get_string: (opts) =>
         opts = defaults opts,
@@ -249,8 +333,8 @@ class exports.StringsDB
                 else
                     s = @strings[opts.string_id]
                     if not s?
-                        s = @strings[opts.string_id] = {applied_patches:{}, db_string:'', live:'', timestamp:0}
-                    s.live = s.db_string # start initialized to what is in db
+                        s = @strings[opts.string_id] = new StringsDBString(@, opts.string_id)
+                    s.live = s.last_sync # start initialized to what is in db
                     f(undefined, s)
 
     poll_for_updates: (interval=INIT_POLL_INTERVAL) =>
@@ -285,13 +369,13 @@ class exports.StringsDB
         f = (string_id, cb) =>
             dbg(string_id)
             string = @strings[string_id]
-            dbg("string.db_string='#{string.db_string}'")
+            dbg("string.last_sync='#{string.last_sync}'")
             dbg("string.live='#{string.live}'")
-            if string.db_string == string.live
+            if string.last_sync == string.live
                 dbg("nothing to do for #{string_id}")
                 cb() # nothing to do
             else
-                patch = diffsync.dmp.patch_make(string.db_string, string.live)
+                patch = diffsync.dmp.patch_make(string.last_sync, string.live)
                 dbg("patch for #{string_id} = #{misc.to_json(patch)}")
                 timestamp = cass.now() - 0
                 @db.update
@@ -303,7 +387,7 @@ class exports.StringsDB
                             cb(err)
                         else
                             dbg("success for #{string_id}")
-                            string.db_string = string.live
+                            string.last_sync = string.live
                             string.applied_patches[timestamp] = {patch:patch, timestamp:timestamp}
                             string.timestamp = timestamp
                             cb()
@@ -313,7 +397,7 @@ class exports.StringsDB
         @_call_with_lock(((cb)=>@_read_updates_from_db(string_ids, age, cb)), cb)
 
     _read_updates_from_db: (string_ids, age, cb) =>
-        #@dbg("_read_updates_from_db", misc.to_json(string_ids))
+        @dbg("_read_updates_from_db", misc.to_json(string_ids))
         if not @db?
             cb("database not initialized"); return
         where = {string_id:{'in':string_ids}}
@@ -351,7 +435,7 @@ class exports.StringsDB
             update.timestamp = update.timestamp - 0  # better to key map based on string of timestamp as number
             string = @strings[update.string_id]
             if not string?
-                string = @strings[update.string_id] = {applied_patches:{}, db_string:'', live:'', timestamp:0}
+                string = @strings[update.string_id] = new StringsDBString(@, update.string_id)
             if not string.applied_patches[update.timestamp]?
                 # a new patch
                 update.patch = misc.from_json(update.patch)
@@ -372,7 +456,7 @@ class exports.StringsDB
         write_updates = false
         for string_id, patches of new_patches
             string = @strings[string_id]
-            db_string_before = string.db_string
+            last_sync_before = string.last_sync
 
             patches.sort(timestamp_cmp)
 
@@ -398,12 +482,12 @@ class exports.StringsDB
                     patches.push(patch)
                 patches.sort(timestamp_cmp)
                 # reset string
-                string.db_string = ''
+                string.last_sync = ''
                 string.timestamp = 0
                 string.applied_patches = {}
 
             # Apply unapplied patches in order.
-            if string.db_string == '' and patches.length > DB_PATCH_SQUASH_THRESH
+            if string.last_sync == '' and patches.length > DB_PATCH_SQUASH_THRESH
                 squash = true
                 squash_time = new Date() - 1.2*TIMESTAMP_OVERLAP
             else
@@ -414,13 +498,13 @@ class exports.StringsDB
             i = 0
             for p in patches
                 @dbg("_process_updates","applying unapplied patch #{misc.to_json(p.patch)}")
-                string.db_string = diffsync.dmp.patch_apply(p.patch, string.db_string)[0]
+                string.last_sync = diffsync.dmp.patch_apply(p.patch, string.last_sync)[0]
                 string.applied_patches[p.timestamp] = p
                 if squash and p.timestamp <= squash_time and (i == patches.length-1 or patches[i+1].timestamp > squash_time)
                     @_squash_patches
                         to_delete : patches.slice(0, i)
                         string_id : string_id
-                        db_string : string.db_string
+                        last_sync    : string.last_sync
                         timestamp : p.timestamp
                 i += 1
 
@@ -429,12 +513,13 @@ class exports.StringsDB
             string.timestamp = patches[patches.length - 1].timestamp
 
             # apply effective changes from db to live.
-            if db_string_before != string.db_string
-                patch = diffsync.dmp.patch_make(db_string_before, string.db_string)
+            if last_sync_before != string.last_sync
+                patch = diffsync.dmp.patch_make(last_sync_before, string.last_sync)
                 string.live = diffsync.dmp.patch_apply(patch, string.live)[0]
+                string.emit('change')
 
-            # If live != db_string, write changes back to database
-            if string.live != string.db_string
+            # If live != last_sync, write changes back to database
+            if string.live != string.last_sync
                 write_updates = true
 
         if write_updates
@@ -450,14 +535,14 @@ class exports.StringsDB
         opts = defaults opts,
             to_delete : required
             string_id : required
-            db_string : required
+            last_sync    : required
             timestamp : required
             cb        : undefined
         @dbg("_squash_patches", misc.to_json(opts))
         async.series([
             (cb) =>
                 # write big new patch
-                patch = diffsync.dmp.patch_make('', opts.db_string)
+                patch = diffsync.dmp.patch_make('', opts.last_sync)
                 @db.update
                     table : 'syncstrings'
                     set   :
@@ -478,5 +563,4 @@ class exports.StringsDB
                         cb    : cb
                 async.map opts.to_delete, f, (err) => cb(err)
         ], (err) => opts.cb?(err))
-
 

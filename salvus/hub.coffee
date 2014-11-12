@@ -2570,17 +2570,20 @@ class Client extends EventEmitter
             @_syncstrings = {}
 
         session_id = misc.uuid()       # create a new session
-        client = syncstring.syncstring
+        syncstring.syncstring
             string_id      : mesg.string_id
             session_id     : session_id
             push_to_client : @push_to_client
-
-        @_syncstrings[session_id] = client
-        resp = message.syncstring_session
-            id         : mesg.id
-            session_id : session_id
-            string     : client.live
-        @push_to_client(resp)
+            cb             : (err, client) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                    return
+                @_syncstrings[session_id] = client
+                resp = message.syncstring_session
+                    id         : mesg.id
+                    session_id : session_id
+                    string     : client.live
+                @push_to_client(resp)
 
     mesg_syncstring_diffsync: (mesg) =>
         dbg = (m) => winston.debug("mesg_syncstring_diffsync(#{mesg.session_id}): #{m}")
@@ -5394,6 +5397,7 @@ exports.start_server = start_server = () ->
         cb          : () =>
             winston.debug("connected to database.")
             init_salvus_version()
+            syncstring.init_syncstring_db(database)
 
             # proxy server and http server, etc. relies on bup server having been created
             init_bup_server () =>
