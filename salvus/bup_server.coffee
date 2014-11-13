@@ -2480,7 +2480,7 @@ class GlobalClient
     	x.c.repair(dryrun:true, cb:(e,projects)->console.log("DONE",e);x.projects=projects)
         x.projects.length
 
-        status=[];x.c.repair(status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
+        status=[];x.c.repair(limit:1, status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
 
     ###
     repair: (opts) =>
