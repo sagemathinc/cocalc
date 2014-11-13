@@ -116,7 +116,7 @@ class SyncString extends diffsync.DiffSync
         #dbg(misc.to_json(mesg))
         @recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
             if err
-                dbg("recv_edits: #{err}")
+                #dbg("recv_edits: #{err}")
                 # would have to reset at this point (?)
                 cb?(err)
                 return

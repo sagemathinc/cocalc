@@ -397,7 +397,7 @@ class exports.StringsDB
         @_call_with_lock(((cb)=>@_read_updates_from_db(string_ids, age, cb)), cb)
 
     _read_updates_from_db: (string_ids, age, cb) =>
-        @dbg("_read_updates_from_db", misc.to_json(string_ids))
+        #@dbg("_read_updates_from_db", misc.to_json(string_ids))
         if not @db?
             cb("database not initialized"); return
         where = {string_id:{'in':string_ids}}

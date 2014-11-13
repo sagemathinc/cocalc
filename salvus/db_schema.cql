@@ -392,11 +392,17 @@ CREATE TABLE activity_notifications (
 ////////////////////
 
 CREATE TABLE syncstrings (
-    string_id  uuid   ,
+    string_id  uuid,
     timestamp  timestamp,
     patch      varchar,
     is_first   boolean,
     PRIMARY KEY (string_id, timestamp)
+);
+
+
+CREATE TABLE syncstring_acls (
+    string_id  uuid  PRIMARY KEY,
+    acl        map<uuid,varchar>     /* account_id:'write', account2_id:'read' */
 );
 
 

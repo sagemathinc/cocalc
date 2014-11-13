@@ -2562,49 +2562,86 @@ class Client extends EventEmitter
     ################################################
     # Get a new syncstring session for the string with given id.
     # Returns message with a session_id and also the value of the string.
-    mesg_syncstring_get_session: (mesg) =>
-        if not misc.is_valid_uuid_string(mesg.string_id)
-            @error_to_client(id:mesg.id, error:"invalid string_id uuid")
-
+    get_syncstring: (mesg, cb) =>
         if not @_syncstrings?
             @_syncstrings = {}
 
-        session_id = misc.uuid()       # create a new session
-        syncstring.syncstring
-            string_id      : mesg.string_id
-            session_id     : session_id
-            push_to_client : @push_to_client
-            cb             : (err, client) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                    return
-                @_syncstrings[session_id] = client
-                resp = message.syncstring_session
-                    id         : mesg.id
-                    session_id : session_id
-                    string     : client.live
-                @push_to_client(resp)
+        # Get the the session client
+        if mesg.session_id?
+            # Authentication already happened in order for client
+            # to be placed in @_syncstrings.
+            session_id = mesg.session_id
+            client = @_syncstrings?[mesg.session_id]
+            if not client?
+                @push_to_client(message.syncstring_disconnect(id:mesg.id, session_id:mesg.session_id))
+            else
+                cb(undefined, client)
+            return
+
+        client = undefined
+        async.series([
+            (cb) =>
+                # check that mesg.string_id is valid
+                if not misc.is_valid_uuid_string(mesg.string_id)
+                    cb("invalid string_id uuid")
+                else
+                    cb()
+            (cb) =>
+                # check permissions
+                user_has_access_to_syncstring
+                    account_id : @account_id
+                    type       : 'write'
+                    string_id  : mesg.string_id
+                    cb         : (err, has_access) =>
+                        if err
+                            cb(err)
+                        else if not has_access
+                            cb("access to syncstring denied")
+                        else
+                            cb()
+            (cb) =>
+                # get and cache actual syncstring session
+                session_id = misc.uuid()       # create a new session
+                syncstring.syncstring
+                    string_id      : mesg.string_id
+                    session_id     : session_id
+                    push_to_client : @push_to_client
+                    cb             : (err, _client) =>
+                        if err
+                            cb(err)
+                        else
+                            client = @_syncstrings[session_id] = _client
+                            cb()
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            cb(err, client)
+        )
+
+    mesg_syncstring_get_session: (mesg) =>
+        @get_syncstring mesg, (err, client) =>
+            if err
+                return
+            resp = message.syncstring_session
+                id         : mesg.id
+                session_id : client.session_id
+                string     : client.live
+            @push_to_client(resp)
 
     mesg_syncstring_diffsync: (mesg) =>
-        dbg = (m) => winston.debug("mesg_syncstring_diffsync(#{mesg.session_id}): #{m}")
-        client = @_syncstrings?[mesg.session_id]
-        if not client?
-            dbg("no such session")
-            @push_to_client(message.syncstring_disconnect(id:mesg.id, session_id:mesg.session_id))
-            return
-        # Apply their edits to our object that represents the remote user
-        # TODO: lock and give error if called again before previous call done.
-        dbg("got session; live before recv_edits='#{client.live}'")
-        client.recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
+        @get_syncstring mesg, (err, client) =>
             if err
-                dbg("recv_edits err=#{err}")
-                @error_to_client(err)
                 return
-            # Send back our own edits to the remote user, in case client.remote has changed
-            # since last sync.
-            dbg("got session; live after recv_edits='#{client.live}'")
-            client.push_edits_to_browser mesg.id, (err) =>
-                dbg("done pushing edits to browser (#{err})")
+            # Apply their edits to our object that represents the remote user.
+            # TODO: do we need to lock and give error if called again before previous call done?
+            client.recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
+                if err
+                    @error_to_client(err)
+                else
+                    # Send back our own edits to the remote user, in case client.remote has changed
+                    # since last sync.
+                    client.push_edits_to_browser mesg.id, (err) =>
+                        #winston.debug("done pushing edits to browser (#{err})")
 
 
 ##############################
@@ -3887,6 +3924,62 @@ user_has_read_access_to_project = (opts) ->
             done = true
             main_cb(err, false)
     )
+
+
+########################################
+# Permissions related to syncstrings
+########################################
+
+# 60 minutes -- forget "yes" approval for access after this much time:
+ACCESS_TO_SYNCSTRING_CACHE_MS = 60*60*1000
+_access_to_syncstring_cache = {}
+user_has_access_to_syncstring = (opts) ->
+    opts = defaults opts,
+        account_id : undefined   # if not given, means completely public
+        string_id  : required
+        type       : 'write'
+        cb         : required
+    if not opts.account_id?
+        opts.cb(undefined, false)  # no such strings for now
+        return
+
+    #winston.debug("user_has_access_to_syncstring (account_id=#{opts.account_id}, string_id=#{opts.string_id}, type=#{opts.type})")
+    t = _access_to_syncstring_cache[opts.string_id]?[opts.account_id]
+    if t? and (t == opts.type or (opts.type=='read' and t=='write'))
+        # cached access granted
+        opts.cb(undefined, true)
+        return
+
+    database.select
+        table   : 'syncstring_acls'
+        where   : {string_id : opts.string_id}
+        columns : ['acl']
+        cb      : (err, r) =>
+            if err
+                opts.cb(err)
+            else
+                #winston.debug("syncstring_acl db query output = #{misc.to_json(r)}")
+                if r.length == 0
+                    opts.cb(undefined, false)
+                else
+                    v = _access_to_syncstring_cache[opts.string_id] = {}
+                    for account_id, type of r[0][0]
+                        v[account_id] = type
+                    destruct = () =>
+                        delete _access_to_syncstring_cache[opts.string_id]
+                    setTimeout(destruct, ACCESS_TO_SYNCSTRING_CACHE_MS)
+                    t = v[opts.account_id]
+                    #winston.debug("v = #{misc.to_json(v)}; t=#{t}; opts.type=#{opts.type}")
+                    opts.cb(undefined, t == opts.type or (opts.type=='read' and t=='write'))
+
+set_syncstring_access = (opts) ->
+    opts = defaults opts,
+        account_id : undefined   # if not given, means completely public
+        string_id  : required
+        type       : 'write'     #   'write', 'read', ''
+        cb         : undefined
+    query = "UPDATE syncstring_acls SET acl[?]=? WHERE string_id=?"
+    database.cql(query, [opts.account_id, opts.type, opts.string_id], opts.cb)
 
 
 
