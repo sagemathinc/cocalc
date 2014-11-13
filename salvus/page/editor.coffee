@@ -2991,17 +2991,22 @@ class HistoryEditor extends FileEditor
         return obj
 
     goto_revision: (num) ->
+        #t = misc.mswalltime()
         @element.find(".salvus-editor-history-revision-number").text("Revision " + num)
         if num == 0
             @element.find(".salvus-editor-history-revision-time").text("")
         else
             @element.find(".salvus-editor-history-revision-time").text(new Date(@parse_logstring(@log[@nlines-num+1]).time).toLocaleString())
         if @revision_num - num > 2
+            #console.log("goto_revision #{num} from #{@revision_num}"); t = misc.mswalltime()
             text = @history_editor.codemirror.getValue()
             text_old = text
+            #console.log("got value", misc.mswalltime(t)); t = misc.mswalltime()
             for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
                 text = diffsync.dmp.patch_apply(@parse_logstring(patch).patch, text)[0]
-            @diffsync.patch_in_place(diffsync.dmp.patch_make(text_old, text))
+            #console.log("patched text", misc.mswalltime(t)); t = misc.mswalltime()
+            @history_editor.codemirror.setValue(text)
+            #console.log("changed editor", misc.mswalltime(t)); t = misc.mswalltime()
         else if @revision_num > num
             for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
                 @diffsync.patch_in_place(@parse_logstring(patch).patch)
@@ -3010,7 +3015,7 @@ class HistoryEditor extends FileEditor
             text_old = text
             for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
                 text = diffsync.dmp.patch_apply(@parse_logstring_inverse(patch).patch, text)[0]
-            @diffsync.patch_in_place(diffsync.dmp.patch_make(text_old, text))
+            @history_editor.codemirror.setValue(text)
         else
             for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
                 @diffsync.patch_in_place(@parse_logstring_inverse(patch).patch)
@@ -3025,6 +3030,7 @@ class HistoryEditor extends FileEditor
             @forward_button.removeClass("disabled")
         if @ext == 'sagews'
             @worksheet.process_sage_updates()
+        #console.log("going to revision #{num} took #{misc.mswalltime(t)}ms")
 
     render_history: (first) =>
         @log = @file_history.live().split("\n")
