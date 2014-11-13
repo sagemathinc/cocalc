@@ -29,6 +29,7 @@ SIMULATE_LOSS = false
 #SIMULATE_LOSS = true
 
 async = require('async')
+{EventEmitter} = require('events')
 
 diff_match_patch = require('googlediff')  # TODO: this greatly increases the size of browserify output (unless we compress it) -- watch out.
 
@@ -52,7 +53,7 @@ misc = require('misc')
 #     catch e
 #         # nothing
 
-class DiffSync
+class DiffSync extends EventEmitter  #not used here, but may be in derived classes
     constructor: (opts) ->
         @init(opts)
 
@@ -633,9 +634,11 @@ doesn't use localStorage.  HN discussion: <https://news.ycombinator.com/item?id=
 ###
 For now _doc -- in the constructor of SynchronizedDB
 has a different API than DiffSync objects above.
+The wrapper object below allows you to use a DiffSync
+object with this API.
 
-    _doc._presync -- function that is called before syncing
-    _doc.on 'sync' -- event emitted on sync
+    _doc._presync -- if set, is called before syncing
+    _doc.on 'sync' -- event emitted on successful sync
     _doc.live() -- returns current live string
     _doc.live('new value') -- set current live string
     _doc.sync(cb) -- cause sync of _doc
@@ -643,7 +646,25 @@ has a different API than DiffSync objects above.
     _doc.readonly -- true if and only if doc is readonly
 
 ###
-{EventEmitter} = require('events')
+class exports.SynchronizedDB_DiffSyncWrapper extends EventEmitter
+    constructor: (@doc) ->
+
+    sync: (cb) =>
+        @_presync?()
+        @doc.sync (err) =>
+            if not err
+                @emit('sync')
+            cb?(err)
+
+    live: (value) =>
+        if not value?
+            return @doc.live
+        else
+            @doc.live = value
+
+    save: (cb) => @doc.save(cb)
+
+
 class exports.SynchronizedDB extends EventEmitter
     constructor: (@_doc, @to_json, @from_json) ->
         if not @to_json?
@@ -852,6 +873,22 @@ class exports.SynchronizedDB extends EventEmitter
             @_set_doc_from_data()
 
 
+# Here's what a patch looks like
+#
+# [{"diffs":[[1,"{\"x\":5,\"y\":3}"]],"start1":0,"start2":0,"length1":0,"length2":13},...]
+#
+exports.compress_patch = (patch) ->
+    ([p.diffs, p.start1, p.start2, p.length1, p.length2] for p in patch)
+
+exports.decompress_patch = decompress_patch = (patch) ->
+    ({diffs:p[0], start1:p[1], start2:p[2], length1:p[3], length2:p[4]} for p in patch)
+
+# this work on non-compressed patches as well.
+exports.decompress_patch_compat = (patch) ->
+    if patch[0]?.diffs?
+        patch
+    else 
+        decompress_patch(patch)
 
 
 

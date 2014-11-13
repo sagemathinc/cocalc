@@ -51,15 +51,15 @@ class SyncString extends diffsync.DiffSync
         @_call_with_lock(@_reconnect, cb)
 
     _reconnect: (cb) =>
-        console.log("_reconnect")
+        #console.log("_reconnect")
         salvus_client.removeListener("syncstring_diffsync2-#{@session_id}", @handle_diffsync_mesg)
         # remember anything we did when offline
         need_patch = @last_sync != @live
         if need_patch
             patch = diffsync.dmp.patch_make(@last_sync, @live)
-            console.log("reconnect: offline changes that need to be applied: #{misc.to_json(patch)}")
+            #console.log("reconnect: offline changes that need to be applied: #{misc.to_json(patch)}")
         else
-            console.log("reconnect: no offline changes to apply")
+            #console.log("reconnect: no offline changes to apply")
         salvus_client.syncstring_get_session
             string_id : @string_id
             cb        : (err, resp) =>
@@ -71,9 +71,9 @@ class SyncString extends diffsync.DiffSync
                     @last_sync = resp.string
                     salvus_client.on("syncstring_diffsync2-#{@session_id}", @handle_diffsync_mesg)
                     if need_patch
-                        console.log("applying offline patch: before='#{@live}'")
+                        #console.log("applying offline patch: before='#{@live}'")
                         @live = diffsync.dmp.patch_apply(patch, @live)[0]
-                        console.log("applying offline patch: after='#{@live}'")
+                        #console.log("applying offline patch: after='#{@live}'")
                         @_sync(cb)   # skip call with lock, since we're already in a lock
                     else
                         cb()
@@ -83,9 +83,9 @@ class SyncString extends diffsync.DiffSync
 
     _sync: (cb) =>
         # TODO: lock so this can only be called once at a time
-        console.log("_sync: '#{@shadow}', '#{@live}'")
+        #console.log("_sync: '#{@shadow}', '#{@live}'")
         @push_edits (err) =>
-            console.log("_sync: after push_edits -- '#{@shadow}', '#{@live}'")
+            #console.log("_sync: after push_edits -- '#{@shadow}', '#{@live}'")
             if err
                 cb?(err)
             else
@@ -95,7 +95,7 @@ class SyncString extends diffsync.DiffSync
                         edit_stack       : @edit_stack
                         last_version_ack : @last_version_received
                     cb    : (err, resp) =>
-                        console.log("_sync: after write_mesg -- '#{@shadow}', '#{@live}'")
+                        #console.log("_sync: after write_mesg -- '#{@shadow}', '#{@live}'")
                         if err
                             cb?(err)
                         else if resp.event == 'syncstring_disconnect'
@@ -103,7 +103,8 @@ class SyncString extends diffsync.DiffSync
                         else if resp.event == 'syncstring_diffsync'
                             @recv_edits(resp.edit_stack, resp.last_version_ack, cb)
                             @last_sync = @shadow
-                            console.log("_sync: after recv_edits -- '#{@shadow}', '#{@live}'")
+                            @emit('sync')
+                            #console.log("_sync: after recv_edits -- '#{@shadow}', '#{@live}'")
                         else
                             # unknown/weird error
                             cb?(resp.event)
@@ -123,6 +124,7 @@ class SyncString extends diffsync.DiffSync
             # Send back our own edits to the hub
             #dbg("send back our own edits to hub")
             @last_sync = @shadow
+            @emit('sync')
             @push_edits (err) =>
                 # call to push_edits just computed @edit_stack and @last_version_received
                 if err
@@ -138,7 +140,7 @@ class SyncString extends diffsync.DiffSync
                     cb?()
 
 
-exports.syncstring = (opts) ->
+exports.syncstring = syncstring = (opts) ->
     opts = defaults opts,
         string_id : required
         cb        : required
@@ -149,5 +151,32 @@ exports.syncstring = (opts) ->
                 opts.cb(err)
             else
                 opts.cb(undefined, new SyncString(resp.string, resp.session_id, opts.string_id))
+
+
+#---------------------------------------------------------------------
+# Synchronized document-oriented database, based on SynchronizedString
+# This is the version run by clients.
+# There is a corresponding implementation run by hubs.
+#---------------------------------------------------------------------
+
+_syncdb_cache = {}
+exports.syncdb = (opts) ->
+    opts = defaults opts,
+        string_id      : required
+        cb             : required
+    d = _syncdb_cache[opts.string_id]
+    if d?
+        opts.cb(undefined, d)
+        return
+    syncstring
+        string_id : opts.string_id
+        cb        : (err, client) ->
+            if err
+                opts.cb(err)
+            else
+                doc = new diffsync.SynchronizedDB_DiffSyncWrapper(client)
+                client.on 'sync', () -> doc.emit("sync")
+                d = _syncdb_cache[opts.string_id] = new diffsync.SynchronizedDB(doc)
+                opts.cb(undefined, d)
 
 

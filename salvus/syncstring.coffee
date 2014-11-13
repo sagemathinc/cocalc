@@ -232,7 +232,7 @@ exports.syncstring = (opts) ->
 # The hub has to call this on startup in order for syncstring to work.
 syncstring_db = undefined
 exports.init_syncstring_db = (database) =>
-    syncstring_db = new exports.StringsDB(database)
+    syncstring_db = new StringsDB(database)
 
 
 
@@ -285,7 +285,7 @@ class StringsDBString extends EventEmitter
     sync: (cb) =>
         @strings_db.sync(cb)   # NOTE: actually sync's all strings to db that have changed (not just this one)
 
-class exports.StringsDB
+class StringsDB
     constructor : (@db) ->
         @dbg("constructor")
         if not @db?
@@ -302,6 +302,10 @@ class exports.StringsDB
         misc.call_lock(obj:@)
         @strings = {}    # synchronized strings we're watching
         @poll_for_updates() # start polling
+
+    # DO NOT CHANGE THESE TWO FUNCTIONS, ever!  It'll break everything in the db
+    patch_to_string: (patch) => JSON.stringify(diffsync.compress_patch(patch))
+    string_to_patch: (patch) => diffsync.decompress_patch(JSON.parse(patch))
 
     dbg: (f, m) =>
         winston.debug("StringsDB.#{f}: #{m}")
@@ -380,7 +384,7 @@ class exports.StringsDB
                 timestamp = cass.now() - 0
                 @db.update
                     table : 'syncstrings'
-                    set   : {patch:misc.to_json(patch)}
+                    set   : {patch:@patch_to_string(patch)}
                     where : {string_id:string_id, timestamp:timestamp}
                     cb    : (err) =>
                         if err
@@ -438,7 +442,7 @@ class exports.StringsDB
                 string = @strings[update.string_id] = new StringsDBString(@, update.string_id)
             if not string.applied_patches[update.timestamp]?
                 # a new patch
-                update.patch = misc.from_json(update.patch)
+                update.patch = @string_to_patch(update.patch)
                 if not new_patches[update.string_id]?
                     new_patches[update.string_id] = [update]
                 else
@@ -563,4 +567,32 @@ class exports.StringsDB
                         cb    : cb
                 async.map opts.to_delete, f, (err) => cb(err)
         ], (err) => opts.cb?(err))
+
+
+
+#---------------------------------------------------------------------
+# Synchronized document-oriented database, based on SynchronizedString
+# This is the version run by hubs.
+# There is a corresponding implementation run by clients.
+#---------------------------------------------------------------------
+
+_syncdb_cache = {}
+exports.syncdb = (opts) ->
+    opts = defaults opts,
+        string_id      : required
+        cb             : required
+    d = _syncdb_cache[opts.string_id]
+    if d?
+        opts.cb(undefined, d)
+        return
+    get_syncstring opts.string_id, (err, S) =>
+        if err
+            opts.cb(err)
+        else
+            doc = new diffsync.SynchronizedDB_DiffSyncWrapper(S.in_memory_client)
+            S.db_client.on 'changed', () =>
+                doc.emit("sync")
+            d = _syncdb_cache[opts.string_id] = new diffsync.SynchronizedDB(doc)
+            opts.cb(undefined, d)
+
 
