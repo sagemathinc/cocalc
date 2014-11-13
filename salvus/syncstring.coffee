@@ -109,10 +109,12 @@ class SynchronizedString
         # can modify this SynchronizedString, rather than just remote clients.
         client = new diffsync.DiffSync(doc:@head)
         client.id = session_id
-        client.sync = (cb) =>   # trivial sync
-            client.shadow = client.live
+        client.sync = (cb) =>
+            client.shadow    = client.live
             client.last_sync = client.live
-            cb()
+            client.emit('sync')
+            @sync()
+            cb?()
         @clients[session_id] = client
         cb(undefined, client)
 
@@ -133,14 +135,14 @@ class SynchronizedString
 
     _sync: (cb) =>
         last = @head
-        winston.debug("sync: last='#{last}'")
+        #winston.debug("sync: last='#{last}'")
         all = {}
         all[last] = true
         for _, client of @clients
             all[client.live] = true
         if misc.len(all) <= 1
             # nothing to do
-            winston.debug("sync: nothing to do")
+            #winston.debug("sync: nothing to do")
             cb?()
             return
 
@@ -149,7 +151,7 @@ class SynchronizedString
             v.push(client)
             patch = diffsync.dmp.patch_make(last, client.live)
             @head = diffsync.dmp.patch_apply(patch, @head)[0]
-            winston.debug("sync: new head='#{@head}' from patch=#{misc.to_json(patch)}")
+            #winston.debug("sync: new head='#{@head}' from patch=#{misc.to_json(patch)}")
         for _, client of @clients
             client.live = @head
 
@@ -158,10 +160,10 @@ class SynchronizedString
         successful_live[@head] = true
         f = (client, cb) =>
             if client.last_sync != @head
-                winston.debug("syncing '#{client.last_sync}' <--> '#{@head}'")
+                #winston.debug("syncing '#{client.last_sync}' <--> '#{@head}'")
                 t = misc.mswalltime()
                 client.sync (err) =>
-                    winston.debug("sync time=#{misc.mswalltime(t)}")
+                    #winston.debug("sync time=#{misc.mswalltime(t)}")
                     if err == 'disconnected'
                         delete @clients[client.id]
                     if err
@@ -173,10 +175,10 @@ class SynchronizedString
                 cb()
         async.map v, f, () =>
             if misc.len(successful_live) > 1 # if not stable (with ones with no err), do again.
-                winston.debug("syncing again")
+                #winston.debug("syncing again")
                 @_sync(cb)
             else
-                winston.debug("not syncing again since successful_live='#{misc.to_json(successful_live)}'")
+                #winston.debug("not syncing again since successful_live='#{misc.to_json(successful_live)}'")
                 cb?()
 
 sync_strings = {}
@@ -231,8 +233,19 @@ exports.syncstring = (opts) ->
 
 # The hub has to call this on startup in order for syncstring to work.
 syncstring_db = undefined
-exports.init_syncstring_db = (database) =>
-    syncstring_db = new StringsDB(database)
+exports.init_syncstring_db = (database, cb) ->
+    if not database?  # for debugging/testing on command line
+        database = new cass.Salvus
+            hosts       : ['localhost']
+            keyspace    : 'salvus'
+            username    : 'hub'
+            cb          : (err) ->
+                if not err
+                    syncstring_db = new StringsDB(database)
+                cb?(err)
+    else
+        syncstring_db = new StringsDB(database)
+        cb?()
 
 
 
@@ -287,7 +300,6 @@ class StringsDBString extends EventEmitter
 
 class StringsDB
     constructor : (@db) ->
-        @dbg("constructor")
         if not @db?
             # TODO: for testing only
             @db = new cass.Salvus
@@ -362,25 +374,24 @@ class StringsDB
                     retry(interval)
 
     sync: (cb) =>
-        @dbg("sync")
         @_call_with_lock(@_write_updates_to_db, cb)
 
     _write_updates_to_db: (cb) =>
-        dbg = (m) => @dbg("_write_updates_to_db", m)
+        #dbg = (m) => @dbg("_write_updates_to_db", m)
         if not @db?
             cb("database not initialized"); return
-        dbg()
+        #dbg()
         f = (string_id, cb) =>
-            dbg(string_id)
+            #dbg(string_id)
             string = @strings[string_id]
-            dbg("string.last_sync='#{string.last_sync}'")
-            dbg("string.live='#{string.live}'")
+            #dbg("string.last_sync='#{string.last_sync}'")
+            #dbg("string.live='#{string.live}'")
             if string.last_sync == string.live
-                dbg("nothing to do for #{string_id}")
+                #dbg("nothing to do for #{string_id}")
                 cb() # nothing to do
             else
                 patch = diffsync.dmp.patch_make(string.last_sync, string.live)
-                dbg("patch for #{string_id} = #{misc.to_json(patch)}")
+                #dbg("patch for #{string_id} = #{misc.to_json(patch)}")
                 timestamp = cass.now() - 0
                 @db.update
                     table : 'syncstrings'
@@ -390,7 +401,7 @@ class StringsDB
                         if err
                             cb(err)
                         else
-                            dbg("success for #{string_id}")
+                            #dbg("success for #{string_id}")
                             string.last_sync = string.live
                             string.applied_patches[timestamp] = {patch:patch, timestamp:timestamp}
                             string.timestamp = timestamp
@@ -453,8 +464,8 @@ class StringsDB
             cb()
             return false
 
-        if updates.length > 0
-            @dbg("_process_updates",misc.to_json(new_patches))
+        #if updates.length > 0
+        #    @dbg("_process_updates",misc.to_json(new_patches))
 
         # There are new patches
         write_updates = false
@@ -479,7 +490,7 @@ class StringsDB
                 i -= 1
 
             if patches[0].timestamp < string.timestamp
-                @dbg("_process_updates", "timestamps not all bigger than last patch time (=#{misc.to_json(string.timestamp)}): patches=#{misc.to_json(patches)}")
+                #@dbg("_process_updates", "timestamps not all bigger than last patch time (=#{misc.to_json(string.timestamp)}): patches=#{misc.to_json(patches)}")
                 # If timestamps not all bigger than last patch time, we make list of all patches
                 # apply all in order, starting from scratch.  (TODO: optimize)
                 for _, patch of string.applied_patches
@@ -497,11 +508,11 @@ class StringsDB
             else
                 squash = false
 
-            @dbg("_process_updates", "squash=#{squash}; squash_time=#{squash_time}")
+            #@dbg("_process_updates", "squash=#{squash}; squash_time=#{squash_time}")
 
             i = 0
             for p in patches
-                @dbg("_process_updates","applying unapplied patch #{misc.to_json(p.patch)}")
+                #@dbg("_process_updates","applying unapplied patch #{misc.to_json(p.patch)}")
                 string.last_sync = diffsync.dmp.patch_apply(p.patch, string.last_sync)[0]
                 string.applied_patches[p.timestamp] = p
                 if squash and p.timestamp <= squash_time and (i == patches.length-1 or patches[i+1].timestamp > squash_time)
@@ -527,10 +538,10 @@ class StringsDB
                 write_updates = true
 
         if write_updates
-            @dbg("_process_updates","writing our own updates back")
+            #@dbg("_process_updates","writing our own updates back")
             @_write_updates_to_db(cb)  # safe to call skipping lock, since we have the lock
         else
-            @dbg("_process_updates","no further updates from us (stable)")
+            #@dbg("_process_updates","no further updates from us (stable)")
             cb()
 
         return true  # there were patches to apply

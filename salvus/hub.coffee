@@ -635,6 +635,19 @@ class Client extends EventEmitter
         # A unique id -- can come in handy
         @id = @conn.id
 
+        syncstring.syncdb
+            string_id : 'db28e567-b4f6-495c-89d3-9f5add670329'
+            cb        : (err, d) ->
+                if err
+                    winston.debug("syncdb ERROR -- #{err}")
+                else
+                    winston.debug(JSON.stringify(d.select()))
+                    d.update
+                        set : { ip_address: @ip_address, 'foo':'bar'}
+                        where : {'timestamp':new Date()}
+                    d.sync (err) ->
+                        winston.debug("syncdb sync err--#{err}")
+
 
         # The variable account_id is either undefined or set to the
         # account id of the user that this session has successfully

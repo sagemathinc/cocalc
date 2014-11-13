@@ -3005,7 +3005,7 @@ class HistoryEditor extends FileEditor
             for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
                 text = diffsync.dmp.patch_apply(@parse_logstring(patch).patch, text)[0]
             #console.log("patched text", misc.mswalltime(t)); t = misc.mswalltime()
-            @history_editor.codemirror.setValue(text)
+            @history_editor.codemirror.setValueNoJump(text)
             #console.log("changed editor", misc.mswalltime(t)); t = misc.mswalltime()
         else if @revision_num > num
             for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
@@ -3015,7 +3015,7 @@ class HistoryEditor extends FileEditor
             text_old = text
             for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
                 text = diffsync.dmp.patch_apply(@parse_logstring_inverse(patch).patch, text)[0]
-            @history_editor.codemirror.setValue(text)
+            @history_editor.codemirror.setValueNoJump(text)
         else
             for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
                 @diffsync.patch_in_place(@parse_logstring_inverse(patch).patch)

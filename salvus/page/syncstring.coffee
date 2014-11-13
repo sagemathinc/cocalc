@@ -74,9 +74,7 @@ class SyncString extends diffsync.DiffSync
                         #console.log("applying offline patch: before='#{@live}'")
                         @live = diffsync.dmp.patch_apply(patch, @live)[0]
                         #console.log("applying offline patch: after='#{@live}'")
-                        @_sync(cb)   # skip call with lock, since we're already in a lock
-                    else
-                        cb()
+                    @_sync(cb)   # skip call with lock, since we're already in a lock
 
     sync: (cb) =>
         @_call_with_lock(@_sync, cb)

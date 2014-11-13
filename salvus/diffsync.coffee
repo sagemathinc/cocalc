@@ -648,13 +648,11 @@ object with this API.
 ###
 class exports.SynchronizedDB_DiffSyncWrapper extends EventEmitter
     constructor: (@doc) ->
+        @doc.on 'sync', () => @emit('sync')
 
     sync: (cb) =>
         @_presync?()
-        @doc.sync (err) =>
-            if not err
-                @emit('sync')
-            cb?(err)
+        @doc.sync(cb)
 
     live: (value) =>
         if not value?
@@ -733,7 +731,7 @@ class exports.SynchronizedDB extends EventEmitter
             v = @_doc.live().split('\n')
             v[d.line] = @to_json(d.data)
         else
-            # major change to doc (e.g., deleting records)
+            # major change to doc (e.g., deleting or adding records)
             m = []
             for hash, x of @_data
                 m[x.line] = {hash:hash, x:x}
