@@ -1576,7 +1576,7 @@ class CodeMirrorSession
             # and rest all the patches, with our one new patch inserted at the front.
             # TODO: redo without doing a split for efficiency.
             i = @revision_tracking_doc.content.indexOf('\n')
-            entry = {patch:patch, time:new Date() - 0}
+            entry = {patch:diffsync.compress_patch(patch), time:new Date() - 0}
             @revision_tracking_doc.content = misc.to_json(@content) + '\n' + \
                         misc.to_json(entry) + \
                         (if i != -1 then @revision_tracking_doc.content.slice(i) else "")
@@ -2264,7 +2264,7 @@ program.usage('[start/stop/restart/status] [options]')
 if program._name.split('.')[0] == 'local_hub'
     if program.debug
         winston.remove(winston.transports.Console)
-        winston.add(winston.transports.Console, level: program.debug)
+        winston.add(winston.transports.Console, {level: program.debug, timestamp:true, colorize:true})
 
     winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)

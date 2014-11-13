@@ -887,8 +887,23 @@ exports.decompress_patch = decompress_patch = (patch) ->
 exports.decompress_patch_compat = (patch) ->
     if patch[0]?.diffs?
         patch
-    else 
+    else
         decompress_patch(patch)
 
+
+exports.invert_patch_in_place = (patch) ->
+    # Beware of potential bugs in the following code -- I have only tried
+    # it, not proved it correct.
+    # I conjecture that this correctly computes the "inverse" of
+    # a DMP patch, assuming the patch applies cleanly.  -- Jonathan Lee
+    if patch.length == 0
+        return patch
+    for i in [0..patch.length-1]
+        temp = patch[i].length1
+        patch[i].length1 = patch[i].length2
+        patch[i].length2 = temp
+        for j in [0..patch[i].diffs.length-1]
+            patch[i].diffs[j][0] = -patch[i].diffs[j][0]
+    patch = patch.reverse()
 
 
