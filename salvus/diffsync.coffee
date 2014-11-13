@@ -13,7 +13,8 @@
 # SYMMETRY: The implementation below is completely symmetric.  However,
 # you *cannot* randomly initiate the synchronization from either the
 # "client" or "server" -- if one of the two initiates a sync, then
-# that one has to stay the initiater until the sync succeeds. E.g., if you run
+# that one has to stay the initiater until the sync succeeds. E.g.,
+# if you run
 #             client.push_edits( (err) =>
 #                if not err
 #                    server.push_edits()
@@ -34,15 +35,15 @@ diff_match_patch = require('googlediff')  # TODO: this greatly increases the siz
 # maximum time in seconds that diff_main will BLOCK optimizing the diff -- see https://code.google.com/p/google-diff-match-patch/wiki/API
 
 dmp = new diff_match_patch()
-dmp.Diff_Timeout = 0.2
-dmp.Match_Threshold = 0.3   # make matching more conservative
-dmp.Patch_DeleteThreshold = 0.3  # make deleting more conservative
+dmp.Diff_Timeout = 0.25
+#dmp.Match_Threshold = 0.3   # make matching more conservative
+#dmp.Patch_DeleteThreshold = 0.3  # make deleting more conservative
 
 
 exports.dmp = dmp
 
 misc = require('misc')
-{defaults, required} = misc
+{defaults, required, hash_string, len} = misc
 
 # debug = (s) ->
 #     w = 'winston'
@@ -610,6 +611,245 @@ exports.uuids_of_linked_files = (doc) ->
         i = j
 
 
+#---------------------------------------------------------------------------------------------------------
+# Support for using a synchronized doc as a synchronized document database
+# storing one record per line in JSON.
+#---------------------------------------------------------------------------------------------------------
+
+
+###
+(c) William Stein, 2014
+
+Synchronized document-oriented database, based on differential synchronization.
+
+
+NOTE: The API is sort of like <http://hood.ie/#docs>, though I found that *after* I wrote this.
+The main difference is my syncdb doesn't use a database, instead using a file, and also it
+doesn't use localStorage.  HN discussion: <https://news.ycombinator.com/item?id=7767765>
+
+###
+
+
+###
+For now _doc -- in the constructor of SynchronizedDB
+has a different API than DiffSync objects above.
+
+    _doc._presync -- function that is called before syncing
+    _doc.on 'sync' -- event emitted on sync
+    _doc.live() -- returns current live string
+    _doc.live('new value') -- set current live string
+    _doc.sync(cb) -- cause sync of _doc
+    _doc.save(cb) -- cause save of _doc to persistent storage
+    _doc.readonly -- true if and only if doc is readonly
+
+###
+{EventEmitter} = require('events')
+class exports.SynchronizedDB extends EventEmitter
+    constructor: (@_doc, @to_json, @from_json) ->
+        if not @to_json?
+            @to_json = misc.to_json
+        if not @from_json?
+            @from_json = misc.from_json
+        @readonly = @_doc.readonly
+        @_data = {}
+        @_set_data_from_doc()
+        @_doc._presync = () =>
+            @_live_before_sync = @_doc.live()
+        @_doc.on('sync', @_on_sync)
+
+    _on_sync: () =>
+        @emit('sync')
+        #console.log("syncdb -- syncing")
+        if not @_set_data_from_doc() and @_live_before_sync?
+            #console.log("DEBUG: invalid/corrupt sync request; revert it")
+            @_doc.live(@_live_before_sync)
+            @_set_data_from_doc()
+            @emit('presync')
+            @_doc.sync()
+
+    destroy: () =>
+        @_doc?.removeListener('sync', @_on_sync)
+        @_doc?.disconnect_from_session()
+        delete @_doc
+        delete @_data
+
+    # set the data object to equal what is defined in the syncdoc
+    #
+    _set_data_from_doc: () =>
+        # change/add anything that has changed or been added
+        i = 0
+        hashes = {}
+        changes = []
+        is_valid = true
+        for x in @_doc.live().split('\n')
+            if x.length > 0
+                h = hash_string(x)
+                hashes[h] = true
+                if not @_data[h]?
+                    try
+                        data = @from_json(x)
+                    catch
+                        # invalid/corrupted json -- still, we try out best
+                        # WE will revert this, unless it is on the initial load.
+                        data = {'corrupt':x}
+                        is_valid = false
+                    @_data[h] = {data:data, line:i}
+                    changes.push({insert:misc.deep_copy(data)})
+            i += 1
+        # delete anything that was deleted
+        for h,v of @_data
+            if not hashes[h]?
+                changes.push({remove:v.data})
+                delete @_data[h]
+        if changes.length > 0
+            @emit("change", changes)
+        return is_valid
+
+    _set_doc_from_data: (hash) =>
+        if hash?
+            # only one line changed
+            d = @_data[hash]
+            v = @_doc.live().split('\n')
+            v[d.line] = @to_json(d.data)
+        else
+            # major change to doc (e.g., deleting records)
+            m = []
+            for hash, x of @_data
+                m[x.line] = {hash:hash, x:x}
+            m = (x for x in m when x?)
+            line = 0
+            v = []
+            for z in m
+                if not z?
+                    continue
+                z.x.line = line
+                v.push(@to_json(z.x.data))
+                line += 1
+        @_doc.live(v.join('\n'))
+        @emit('presync')
+        @_doc.sync()
+
+    save: (cb) =>
+        @sync (err) =>
+            if err
+                setTimeout((()=>@save(cb)), 3000)
+            else
+                @_doc.save(cb)
+
+    sync: (cb) =>
+        @_doc.sync(cb)
+
+    # change (or create) exactly *one* database entry that matches the given where criterion.
+    update: (opts) =>
+        opts = defaults opts,
+            set   : required
+            where : required
+        set = opts.set
+        where = opts.where
+        i = 0
+        for hash, val of @_data
+            match = true
+            x = val.data
+            for k, v of where
+                if x[k] != v
+                    match = false
+                    break
+            if match
+                for k, v of set
+                    x[k] = v
+                @_set_doc_from_data(hash)
+                return
+            i += 1
+        new_obj = {}
+        for k, v of set
+            new_obj[k] = v
+        for k, v of where
+            new_obj[k] = v
+        hash = hash_string(@to_json(new_obj))
+        @_data[hash] = {data:new_obj, line:len(@_data)}
+        @_set_doc_from_data(hash)
+
+    # return list of all database objects that match given condition.
+    select: (where={}) =>
+        result = []
+        for hash, val of @_data
+            x = val.data
+            match = true
+            for k, v of where
+                if x[k] != v
+                    match = false
+                    break
+            if match
+                result.push(x)
+        return misc.deep_copy(result)
+
+    # return first database objects that match given condition or undefined if there are no matches
+    select_one: (where={}) =>
+        result = []
+        for hash, val of @_data
+            x = val.data
+            match = true
+            for k, v of where
+                if x[k] != v
+                    match = false
+                    break
+            if match
+                return misc.deep_copy(x)
+
+    # delete everything that matches the given criterion; returns number of deleted items
+    delete: (where, one=false) =>
+        result = []
+        i = 0
+        for hash, val of @_data
+            x = val.data
+            match = true
+            for k, v of where
+                if x[k] != v
+                    match = false
+                    break
+            if match
+                i += 1
+                delete @_data[hash]
+                if one
+                    break
+        @_set_doc_from_data()
+        return i
+
+    # delete first thing in db that matches the given criterion
+    delete_one: (where) =>
+        @delete(where, true)
+
+    # anything that couldn't be parsed from JSON as a map gets converted to {key:thing}.
+    ensure_objects: (key) =>
+        changes = {}
+        for h,v of @_data
+            if typeof(v.data) != 'object'
+                x = v.data
+                v.data = {}
+                v.data[key] = x
+                h2 = hash_string(@to_json(v.data))
+                delete @_data[h]
+                changes[h2] = v
+        if misc.len(changes) > 0
+            for h, v of changes
+                @_data[h] = v
+            @_set_doc_from_data()
+
+    # ensure that every db entry has a distinct uuid value for the given key
+    ensure_uuid_primary_key: (key) =>
+        uuids   = {}
+        changes = {}
+        for h,v of @_data
+            if not v.data[key]? or uuids[v.data[key]]  # not defined or seen before
+                v.data[key] = misc.uuid()
+                h2 = hash_string(@to_json(v.data))
+                delete @_data[h]
+                changes[h2] = v
+            uuids[v.data[key]] = true
+        if misc.len(changes) > 0
+            for h, v of changes
+                @_data[h] = v
+            @_set_doc_from_data()
 
 
 
