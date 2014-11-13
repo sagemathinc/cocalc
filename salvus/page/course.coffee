@@ -80,6 +80,10 @@ class Course
                 alert_message(type:"error", message:"error initializing course (try re-opening the course) -- #{err}")
         )
 
+    destroy: () =>
+        @db?.destroy()
+        @element.removeData()
+
     default_settings: (cb) =>
         settings = @db.select_one(table:'settings')
         need_update = false

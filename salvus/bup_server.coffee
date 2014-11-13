@@ -28,7 +28,7 @@ cql       = require("node-cassandra-cql")
 
 # Set the log level
 winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, level: 'debug')
+winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 {defaults, required} = misc
 
@@ -3299,7 +3299,7 @@ if not program.address
 main = () ->
     if program.debug
         winston.remove(winston.transports.Console)
-        winston.add(winston.transports.Console, level: program.debug)
+        winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
     winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)

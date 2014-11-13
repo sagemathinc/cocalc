@@ -393,8 +393,8 @@ exports.retry_until_success = (opts) ->
     opts = exports.defaults opts,
         f           : exports.required   # f((err) => )
         start_delay : 100             # milliseconds
-        max_delay   : 30000           # milliseconds -- stop increasing time at this point
-        factor      : 1.5             # multiply delay by this each time
+        max_delay   : 20000           # milliseconds -- stop increasing time at this point
+        factor      : 1.4             # multiply delay by this each time
         max_tries   : undefined
         cb          : undefined       # called with cb() on *success*; cb(error) if max_tries is exceeded
 
@@ -441,6 +441,7 @@ class RetryUntilSuccess
             max_tries    : undefined
             min_interval : 100   # if defined, all calls to f will be separated by *at least* this amount of time (to avoid overloading services, etc.)
             logname      : undefined
+            verbose      : false
         if @opts.min_interval?
             if @opts.start_delay < @opts.min_interval
                 @opts.start_delay = @opts.min_interval
@@ -470,6 +471,8 @@ class RetryUntilSuccess
                 @attempts += 1
                 @_calling = false
                 if err
+                    if @opts.verbose
+                        console.log("#{@opts.logname}: error=#{err}")
                     if @opts.max_tries? and @attempts >= @opts.max_tries
                         while @_cb_stack.length > 0
                             @_cb_stack.pop()(err)

@@ -113,7 +113,7 @@ winston = require('winston')            # logging -- https://github.com/flatiron
 
 # Set the log level
 winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, level: 'debug')
+winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 # defaults
 # TEMPORARY until we flesh out the account types
@@ -2115,11 +2115,10 @@ class Client extends EventEmitter
                         else
                             cb()
                             # send an email to the user -- async, not blocking user.
-                            # TODO: this can take a while -- we need to take some actionif it fails, e.g., change a setting in the projects table!
-                            s = @signed_in_mesg
+                            # TODO: this can take a while -- we need to take some action
+                            # if it fails, e.g., change a setting in the projects table!
                             send_email
                                 to      : email_address
-                                from    : if s? then "#{s.first_name} #{s.last_name} <#{s.email_address}>" else undefined
                                 subject : "SageMathCloud Invitation"
                                 body    : email.replace("https://cloud.sagemath.com", "Sign up at https://cloud.sagemath.com using the email address #{email_address}.")
                                 cb      : (err) =>
@@ -2837,9 +2836,9 @@ push_activity_notifications = () ->
                         else if a.timestamp < b.timestamp
                             return 1
                         return 0
-                    winston.debug("v=#{misc.to_json(v)}")
+                    #winston.debug("v=#{misc.to_json(v)}")
                     v = v.slice(0,MAX_NOTIFICATIONS_LIMIT)
-                    winston.debug("truncated v=#{misc.to_json(v)}")
+                    #winston.debug("truncated v=#{misc.to_json(v)}")
                 mesg = message.activity_notifications
                     notifications : v
                     update        : to_push.length != cache.length
@@ -4788,7 +4787,7 @@ exports.send_email = send_email = (opts={}) ->
     opts = defaults opts,
         subject : required
         body    : required
-        from    : 'SageMathCloud <wstein@uw.edu>'          # obviously change this at some point.  But it is the best "reply to right now"
+        from    : 'SageMathCloud <wstein@uw.edu>'  # obviously change this at some point.  But it is the best "reply to right now"
         to      : required
         cc      : ''
         cb      : undefined

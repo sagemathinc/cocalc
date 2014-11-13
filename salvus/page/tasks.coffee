@@ -75,6 +75,11 @@ class TaskList
         #@element.find(".salvus-tasks-hashtags").resizable
         #     handles  : "s"
 
+    destroy: () =>
+        delete @tasks
+        @element.removeData()
+        @db?.destroy()
+
     init_syncdb: (cb) =>
         synchronized_db
             project_id : @project_id
@@ -268,9 +273,6 @@ class TaskList
                     task.changed = true
 
         @render_task_list()
-
-    destroy: () =>
-        @element.removeData()
 
     local_storage: (key, value) =>
         {local_storage}   = require('editor')

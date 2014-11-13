@@ -1452,14 +1452,18 @@ def file(path):
 
 def timeit(*args, **kwds):
     """
-    Time execution of a command or block of commands.  This command has been
-    enhanced for Salvus so you may use it as a block decorator as well, e.g.,
+    Time execution of a command or block of commands.
+
+    This command has been enhanced for Salvus so you may use it as
+    a block decorator as well, e.g.,
 
         %timeit 2+3
 
     and
 
         %timeit(number=10, preparse=False)  2^3
+
+        %timeit(number=10, seconds=True)  2^3
 
     and
 
@@ -1470,10 +1474,10 @@ def timeit(*args, **kwds):
     Here is the original docstring for timeit:
 
     """
-    def go(code, **kwds):
+    def go(code):
         print sage.misc.sage_timeit.sage_timeit(code, globals_dict=salvus.namespace, **kwds)
     if len(args) == 0:
-        return lambda code : go(code, **kwds)
+        return lambda code : go(code)
     else:
         go(*args)
 
