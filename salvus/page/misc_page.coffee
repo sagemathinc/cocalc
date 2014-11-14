@@ -680,7 +680,7 @@ last_title = ''
 exports.set_window_title = (title) ->
     if not title?
         title = last_title
-    u = require('activity').unseen_count()
+    u = require('activity').important_count()
     last_title = title
     if u
         title = "(#{u}) #{title}"

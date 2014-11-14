@@ -268,8 +268,8 @@ timestamp_cmp = (a,b) ->
 
 # Polling parameters:
 INIT_POLL_INTERVAL     = 1000
-MAX_POLL_INTERVAL      = 2000   # TODO: for testing -- for deploy make longer!
-POLL_DECAY_RATIO       = 1.3
+MAX_POLL_INTERVAL      = 5000   # TODO: for testing -- for deploy make longer!
+POLL_DECAY_RATIO       = 1.2
 
 # We grab patches that are up to TIMESTAMP_OVERLAP old from db each time polling.
 # We are assuming a write to the database propogates to
@@ -513,13 +513,16 @@ class StringsDB
             i = 0
             for p in patches
                 #@dbg("_process_updates","applying unapplied patch #{misc.to_json(p.patch)}")
-                string.last_sync = diffsync.dmp.patch_apply(p.patch, string.last_sync)[0]
+                try
+                    string.last_sync = diffsync.dmp.patch_apply(p.patch, string.last_sync)[0]
+                catch e
+                    winston.debug("syncstring database error applying a patch -- failed due to corruption (?) -- #{misc.to_json(p.patch)}")
                 string.applied_patches[p.timestamp] = p
                 if squash and p.timestamp <= squash_time and (i == patches.length-1 or patches[i+1].timestamp > squash_time)
                     @_squash_patches
                         to_delete : patches.slice(0, i)
                         string_id : string_id
-                        last_sync    : string.last_sync
+                        last_sync : string.last_sync
                         timestamp : p.timestamp
                 i += 1
 

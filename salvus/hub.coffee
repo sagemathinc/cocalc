@@ -2748,9 +2748,9 @@ get_notifications_syncdb = (account_id, cb) ->
 MIN_ACTIVITY_INTERVAL_S = 60  # -- 1 minutes
 
 # notify when somebody edits a file that you edited within this many days
-RECENT_NOTIFICATION_D = 14
+RECENT_NOTIFICATION_D = 60
 
-ACTIVITY_NOTIFICATION_TTL_S = 7 * 3600*24  # 1 week
+#ACTIVITY_NOTIFICATION_TTL_S = 7 * 3600*24  # 1 week
 
 POLL_DB_FOR_ACTIVITY_INTERVAL_S = 10  # for now -- frequent for testing.
 
@@ -2766,9 +2766,9 @@ normalize_path = (path) ->
     # kdkd/tmp/.test.sagews.sage-chat --> kdkd/tmp/test.sagews, comment "chat"
     # foo/bar/.2014-11-01-175408.ipynb.syncdoc --> foo/bar/2014-11-01-175408.ipynb
     ext = misc.filename_extension(path)
-    comment = undefined
+    action = 'edit'
     if ext == "sage-chat"
-        comment = 'chat'
+        action = 'comment'
         path = path.slice(0, path.length-'.sage-chat'.length)
         {head, tail} = misc.path_split(path)
         tail = tail.slice(1) # get rid of .
@@ -2788,7 +2788,7 @@ normalize_path = (path) ->
         path = undefined
     #else if ext == '.sagemathcloud.log'  # ignore for now
     #    path = undefined
-    return {path:path, comment:comment}
+    return {path:path, action:action}
 
 path_activity_cache = {}
 path_activity = (opts) ->
@@ -2802,7 +2802,7 @@ path_activity = (opts) ->
 
     #dbg = (m) -> winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{opts.path}): #{m}")
 
-    {path, comment} = normalize_path(opts.path)
+    {path, action} = normalize_path(opts.path)
     if not path?
         opts.cb?()
         return
@@ -2896,13 +2896,6 @@ path_activity = (opts) ->
                         table         : 'activity'
                         project_id    : opts.project_id
                         path          : path
-                        project_title : opts.project_title
-
-                    entry =
-                        timestamp     : now_time - 0
-                        user_id       : opts.account_id
-                        fullname      : opts.fullname
-                        comment       : comment
 
                     f = (account_id, cb) =>
                         get_notifications_syncdb account_id, (err, db) =>
@@ -2910,12 +2903,21 @@ path_activity = (opts) ->
                                 cb(err)
                             else
                                 x = db.select_one(where:where)
-                                if not x? or not x.log?
-                                    log = []
-                                else
-                                    log = x.log
-                                log.unshift(entry)
-                                db.update(where : where, set : {log:log})
+                                actions ={}
+                                if x?
+                                    if not x.read
+                                        actions = x.actions
+                                actions[action] = true
+                                db.update
+                                    where : where
+                                    set :
+                                        timestamp     : now_time - 0
+                                        user_id       : opts.account_id
+                                        fullname      : opts.fullname
+                                        actions       : actions
+                                        seen          : false
+                                        read          : false
+                                        project_title : opts.project_title
                                 cb()
 
                     async.map(targets, f, (err)=>cb(err))
@@ -2949,157 +2951,6 @@ scan_local_hub_message_for_activity = (opts) ->
                     cb            : opts.cb
                 return
     opts.cb?()
-
-_last_poll_database_for_activity_notifications = undefined
-_poll_database_for_activity_notifications_lock = undefined
-
-poll_database_for_activity_notifications = () ->
-    dbg = (m) -> winston.debug("poll activity_notifications: #{m}")
-    #dbg()
-
-    if not database?
-        dbg("no database yet")
-        return
-
-    if _poll_database_for_activity_notifications_lock
-        dbg("locked")
-        return
-
-    _poll_database_for_activity_notifications_lock = true
-    timer = setTimeout((()->_poll_database_for_activity_notifications_lock=false), 60000)
-
-    need_to_get_all = []
-    need_to_get_new = []
-    clients_by_account_id = {}
-    for id, c of clients
-        account_id = c.account_id
-        if account_id?
-            if not c.activity_notifications_cache?
-                need_to_get_all.push(account_id)
-            else
-                need_to_get_new.push(account_id)
-            if not clients_by_account_id[account_id]?
-                clients_by_account_id[account_id] = [c]
-            else
-                clients_by_account_id[account_id].push(c)
-
-    result1 = []
-    result2 = []
-    columns = ['account_id', 'timestamp', 'project_id', 'path', 'user_id', 'comment', 'fullname', 'project_title']
-    table   = 'activity_notifications'
-    consistency = 1  # missing a notification isn't the end of the world
-    async.parallel([
-        (cb) ->
-            if need_to_get_all.length == 0
-                cb(); return
-            #dbg("need_to_get_all=#{misc.to_json(need_to_get_all)}")
-            database.select
-                table       : table
-                where       : {account_id:{'in':need_to_get_all}}
-                columns     : columns
-                consistency : consistency
-                objectify   : true
-                cb          : (err, r) ->
-                    if err
-                        cb(err)
-                    else
-                        result1 = r
-                        cb()
-        (cb) ->
-            if need_to_get_new.length == 0
-                cb(); return
-            #dbg("need_to_get_new=#{misc.to_json(need_to_get_new)}")
-            last_time = _last_poll_database_for_activity_notifications
-            _last_poll_database_for_activity_notifications = cass.now()
-            where = {account_id:{'in':need_to_get_new}}
-            if last_time?
-                where.timestamp = {'>':last_time}
-            database.select
-                table       : table
-                where       : where
-                columns     : columns
-                consistency : consistency
-                objectify   : true
-                cb          : (err, r) ->
-                    if err
-                        cb(err)
-                    else
-                        result2 = r
-                        cb()
-    ], (err) =>
-        if not err
-            result = result1.concat(result2)
-            #dbg("now collating and pushing results")
-            for r in result
-                m = misc.copy(r)  # since same user could be connected multiple times
-                m.sent = false
-                for c in clients_by_account_id[m.account_id]
-                    if not c.activity_notifications_cache?
-                        c.activity_notifications_cache = [m]
-                    else
-                        c.activity_notifications_cache.push(m)
-            push_activity_notifications()
-        else
-            dbg("error -- #{err}")
-        _poll_database_for_activity_notifications_lock = false
-        clearTimeout(timer)
-    )
-
-notification_to_send = (x) ->
-    y =
-        timestamp     : x.timestamp
-        project_id    : x.project_id
-        project_title : x.project_title
-        path          : x.path
-        account_id    : x.user_id
-        fullname      : x.fullname
-        comment       : x.comment
-    return y
-
-push_activity_notifications = () ->
-    for id, c of clients
-        cache = c.activity_notifications_cache
-        if cache?
-            to_push = (x for x in cache when not x.sent and x.path != '.sagemathcloud.log')
-            if to_push.length > 0
-                v = (notification_to_send(x) for x in to_push)
-                if v.length > MAX_NOTIFICATIONS_LIMIT
-                    winston.debug("truncating notifications before sending")
-                    v.sort (a,b) ->
-                        if a.timestamp > b.timestamp
-                            return -1
-                        else if a.timestamp < b.timestamp
-                            return 1
-                        return 0
-                    #winston.debug("v=#{misc.to_json(v)}")
-                    v = v.slice(0,MAX_NOTIFICATIONS_LIMIT)
-                    #winston.debug("truncated v=#{misc.to_json(v)}")
-                mesg = message.activity_notifications
-                    notifications : v
-                    update        : to_push.length != cache.length
-                c.push_to_client(mesg)
-                for x in to_push
-                    x.sent = true
-
-add_comment_to_activity_notification_stream = (opts) ->
-    opts = defaults opts,
-        account_id : required
-        project_id : required
-        path       : required
-        comment    : required   # 'read', 'seen'
-        cb         : undefined
-    database.update
-        table : 'activity_notifications'
-        where :
-            account_id : opts.account_id
-            timestamp  : cass.now()
-            project_id : opts.project_id
-            path       : opts.path
-            user_id    : opts.account_id
-        set   :
-            comment       : opts.comment
-        ttl   : ACTIVITY_NOTIFICATION_TTL_S
-        cb    : opts.cb
 
 
 ##############################
@@ -5612,10 +5463,6 @@ exports.start_server = start_server = () ->
                 init_primus_server()
                 init_stateless_exec()
                 http_server.listen(program.port, program.host)
-
-                # start polling for new user activity
-                setInterval(poll_database_for_activity_notifications,
-                            POLL_DB_FOR_ACTIVITY_INTERVAL_S*1000)
 
                 winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
