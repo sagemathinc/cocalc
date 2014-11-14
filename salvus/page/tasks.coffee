@@ -254,7 +254,7 @@ class TaskList
             # something changed, so allow the save button. (TODO: this is of course not really right)
             @set_dirty()
         for task_id, _ of c
-            t = @db.select_one(task_id:task_id)
+            t = @db.select_one(where:{task_id:task_id})
             if not t?
                 # deleted
                 delete @tasks[task_id]

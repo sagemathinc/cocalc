@@ -660,6 +660,7 @@ class Client extends EventEmitter
                 f("connection closed")
             delete c.call_callbacks
 
+
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
         cookies = new Cookies(@conn.request)
@@ -791,6 +792,17 @@ class Client extends EventEmitter
             remember_me   : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
             email_address : signed_in_mesg.email_address
             account_id    : signed_in_mesg.account_id
+
+        ###
+        get_notifications_syncdb @account_id, (err, db) =>
+            db.update
+                where :
+                    table     :'log'
+                    timestamp : new Date()
+                set   :
+                    action     : 'signed_in'
+                    ip_address : @ip_address
+        ###
 
     # Return the full name if user has signed in; otherwise returns undefined.
     fullname: () =>
@@ -2645,66 +2657,10 @@ class Client extends EventEmitter
     ################################################
     # Synchronized databases (associated to user not project)
     ################################################
-    notifications_syncdb: (cb) =>
-        if not @account_id?
-            cb("User must be signed in")
-            return
 
-        if notifications_syncdb_cache[@account_id]?
-            cb(undefined, notifications_syncdb_cache[@account_id])
-            return
-
-        string_id = undefined
-        db        = undefined
-        async.series([
-            (cb) =>
-                # get the notifications syncdb string_id
-                database.select_one
-                    table   : 'accounts'
-                    where   : {account_id : @account_id}
-                    columns : ['notifications_syncdb']
-                    cb      : (err, result) =>
-                        if err
-                            cb(err)
-                        else
-                            string_id = result[0]
-                            cb()
-            (cb) =>
-                if string_id?
-                    cb(); return
-                # no notifications syncdb yet, so create it and save back to db
-                string_id = misc.uuid()
-                database.update
-                    table : 'accounts'
-                    where : {account_id : @account_id}
-                    set   : {notifications_syncdb:string_id}
-                    cb    : cb
-            (cb) =>
-                # grant user write access to this syncdb
-                set_syncstring_access
-                    account_id : @account_id
-                    string_id  : string_id
-                    type       : 'write'
-                    cb         : cb
-            (cb) =>
-                # now initialize our local copy
-                syncstring.syncdb
-                    string_id : string_id
-                    cb        : (err, _db) ->
-                        if err
-                            cb(err)
-                        else
-                            db = _db
-                            notifications_syncdb_cache[@account_id] = db
-                            cb()
-        ], (err) =>
-            if err
-                cb(err)
-            else
-                cb(undefined, db))
 
     mesg_get_notifications_syncdb: (mesg) =>
-        @notifications_syncdb (err, db) =>
+        get_notifications_syncdb @account_id, (err, db) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
@@ -2730,6 +2686,63 @@ class Client extends EventEmitter
 
 # one notifications syncdb per *account* (not connection); keys are account id's
 notifications_syncdb_cache = {}
+get_notifications_syncdb = (account_id, cb) ->
+    if not account_id?
+        cb("user must be signed in")
+        return
+
+    if notifications_syncdb_cache[account_id]?
+        cb(undefined, notifications_syncdb_cache[account_id])
+        return
+
+    string_id = undefined
+    db        = undefined
+    async.series([
+        (cb) =>
+            # get the notifications syncdb string_id
+            database.select_one
+                table   : 'accounts'
+                where   : {account_id : account_id}
+                columns : ['notifications_syncdb']
+                cb      : (err, result) =>
+                    if err
+                        cb(err)
+                    else
+                        string_id = result[0]
+                        cb()
+        (cb) =>
+            if string_id?
+                cb(); return
+            # no notifications syncdb yet, so create it and save back to db
+            string_id = misc.uuid()
+            database.update
+                table : 'accounts'
+                where : {account_id : account_id}
+                set   : {notifications_syncdb:string_id}
+                cb    : cb
+        (cb) =>
+            # grant user write access to this syncdb
+            set_syncstring_access
+                account_id : account_id
+                string_id  : string_id
+                type       : 'write'
+                cb         : cb
+        (cb) =>
+            # now initialize our local copy
+            syncstring.syncdb
+                string_id : string_id
+                cb        : (err, _db) ->
+                    if err
+                        cb(err)
+                    else
+                        db = _db
+                        notifications_syncdb_cache[account_id] = db
+                        cb()
+    ], (err) =>
+        if err
+            cb(err)
+        else
+            cb(undefined, db))
 
 # record activity on a file with at most this frequency
 MIN_ACTIVITY_INTERVAL_S = 60  # -- 1 minutes
@@ -2773,8 +2786,8 @@ normalize_path = (path) ->
             path = tail
     else if ext == "sage-history"
         path = undefined
-    else if ext == '.sagemathcloud.log'  # ignore for now
-        path = undefined
+    #else if ext == '.sagemathcloud.log'  # ignore for now
+    #    path = undefined
     return {path:path, comment:comment}
 
 path_activity_cache = {}
@@ -2878,24 +2891,35 @@ path_activity = (opts) ->
                                 x[y[1]] = y[0]
 
                     targets = misc.keys(x)
-                    if targets.length == 0
-                        cb()
-                    else
-                        #dbg("notifying #{targets.length} interested users")
-                        database.update
-                            table : 'activity_notifications'
-                            where :
-                                account_id : {'in':targets}
-                                timestamp  : now_time
-                                project_id : opts.project_id
-                                path       : path
-                                user_id    : opts.account_id
-                            set   :
-                                comment       : comment
-                                fullname      : opts.fullname
-                                project_title : opts.project_title
-                            ttl   : ACTIVITY_NOTIFICATION_TTL_S
-                            cb    : cb
+
+                    where =
+                        table         : 'activity'
+                        project_id    : opts.project_id
+                        path          : path
+                        project_title : opts.project_title
+
+                    entry =
+                        timestamp     : now_time - 0
+                        user_id       : opts.account_id
+                        fullname      : opts.fullname
+                        comment       : comment
+
+                    f = (account_id, cb) =>
+                        get_notifications_syncdb account_id, (err, db) =>
+                            if err
+                                cb(err)
+                            else
+                                x = db.select_one(where:where)
+                                if not x? or not x.log?
+                                    log = []
+                                else
+                                    log = x.log
+                                log.unshift(entry)
+                                db.update(where : where, set : {log:log})
+                                cb()
+
+                    async.map(targets, f, (err)=>cb(err))
+
             ], (err) -> cb(err))
     ], (err) -> opts.cb?(err))
 

@@ -789,7 +789,9 @@ class exports.SynchronizedDB extends EventEmitter
         @_set_doc_from_data(hash)
 
     # return list of all database objects that match given condition.
-    select: (where={}) =>
+    select: (opts={}) =>
+        {where} = defaults opts,
+            where : {}
         result = []
         for hash, val of @_data
             x = val.data
@@ -803,8 +805,9 @@ class exports.SynchronizedDB extends EventEmitter
         return misc.deep_copy(result)
 
     # return first database objects that match given condition or undefined if there are no matches
-    select_one: (where={}) =>
-        result = []
+    select_one: (opts={}) =>
+        {where} = defaults opts,
+            where : {}
         for hash, val of @_data
             x = val.data
             match = true
@@ -816,7 +819,10 @@ class exports.SynchronizedDB extends EventEmitter
                 return misc.deep_copy(x)
 
     # delete everything that matches the given criterion; returns number of deleted items
-    delete: (where, one=false) =>
+    delete: (opts) =>
+        {where, one} = defaults opts,
+            where : required  # give {} to delete everything ?!
+            one   : false
         result = []
         i = 0
         for hash, val of @_data
@@ -835,8 +841,9 @@ class exports.SynchronizedDB extends EventEmitter
         return i
 
     # delete first thing in db that matches the given criterion
-    delete_one: (where) =>
-        @delete(where, true)
+    delete_one: (opts) =>
+        opts.one = true
+        @delete(opts)
 
     # anything that couldn't be parsed from JSON as a map gets converted to {key:thing}.
     ensure_objects: (key) =>
