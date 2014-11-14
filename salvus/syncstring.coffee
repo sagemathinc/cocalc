@@ -604,6 +604,7 @@ exports.syncdb = (opts) ->
             S.db_client.on 'changed', () =>
                 doc.emit("sync")
             d = _syncdb_cache[opts.string_id] = new diffsync.SynchronizedDB(doc)
+            d.string_id = opts.string_id
             opts.cb(undefined, d)
 
 

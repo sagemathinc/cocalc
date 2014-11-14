@@ -1545,6 +1545,19 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb?()
 
+    get_notifications_syncdb: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @call
+            message : message.get_notifications_syncdb()
+            cb      : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else if mesg.event == 'error'
+                    opts.cb(mesg.error)
+                else
+                    opts.cb(undefined, mesg.string_id)
+
     #################################################
     # Synchronized Strings (database backed)
     # x={};require('syncstring').syncstring({string_id:'foo',cb:function(e,s){console.log(e,s);x.s=s}})

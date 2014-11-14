@@ -109,6 +109,9 @@ CREATE TABLE accounts (
     hidden_projects      set<uuid>,   /* projects that this user doesn't normally see by default (e.g., all students in their course) */
 
     groups               set<varchar>,  /* groups that this account is a member of; e.g., 'admin', which grants extreme power */
+
+    notifications_syncdb uuid,
+    /* syncdbs              map<varchar:uuid>, */ /* synchronized databases that user has access to */
 );
 
 CREATE TABLE email_address_to_account_id (

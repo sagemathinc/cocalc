@@ -15,6 +15,26 @@ notification_list_none = $(".salvus-notification-list-none")
 notification_search    = $(".salvus-notification-list-search")
 
 
+notifications_syncdb = undefined
+exports.get_notifications_syncdb = get_notifications_syncdb = (cb) ->
+    if notifications_syncdb?
+        cb(undefined, notifications_syncdb)
+        return
+    salvus_client.get_notifications_syncdb
+        cb : (err, string_id) =>
+            if err
+                cb(err)
+            else
+                require('syncstring').syncdb
+                    string_id : string_id
+                    cb        : (err, db) =>
+                        if err
+                            cb(err)
+                        else
+                            notifications_syncdb = db
+                            cb(undefined, db)
+
+
 # key: project_id/path
 # value: the actual notifications for that project_id/path
 notifications = {}

@@ -635,20 +635,6 @@ class Client extends EventEmitter
         # A unique id -- can come in handy
         @id = @conn.id
 
-        syncstring.syncdb
-            string_id : 'db28e567-b4f6-495c-89d3-9f5add670329'
-            cb        : (err, d) ->
-                if err
-                    winston.debug("syncdb ERROR -- #{err}")
-                else
-                    winston.debug(JSON.stringify(d.select()))
-                    d.update
-                        set : { ip_address: @ip_address, 'foo':'bar'}
-                        where : {'timestamp':new Date()}
-                    d.sync (err) ->
-                        winston.debug("syncdb sync err--#{err}")
-
-
         # The variable account_id is either undefined or set to the
         # account id of the user that this session has successfully
         # authenticated as.  Use @account_id to decide whether or not
@@ -693,41 +679,41 @@ class Client extends EventEmitter
                 @_validate_remember_me(value)
 
     _validate_remember_me: (value) =>
-                #winston.debug("_validate_remember_me: #{value}")
-                if not value?
-                    @remember_me_failed("no remember_me cookie")
+        #winston.debug("_validate_remember_me: #{value}")
+        if not value?
+            @remember_me_failed("no remember_me cookie")
+            return
+        x    = value.split('$')
+        if x.length != 4
+            @remember_me_failed("invalid remember_me cookie")
+            return
+        hash = generate_hash(x[0], x[1], x[2], x[3])
+        @remember_me_db.get
+            key         : hash
+            #consistency : cql.types.consistencies.one
+            cb          : (error, signed_in_mesg) =>
+                if error
+                    @remember_me_failed("error accessing database")
                     return
-                x    = value.split('$')
-                if x.length != 4
-                    @remember_me_failed("invalid remember_me cookie")
+                if not signed_in_mesg?
+                    @remember_me_failed("remember_me deleted or expired")
                     return
-                hash = generate_hash(x[0], x[1], x[2], x[3])
-                @remember_me_db.get
-                    key         : hash
-                    #consistency : cql.types.consistencies.one
-                    cb          : (error, signed_in_mesg) =>
-                        if error
-                            @remember_me_failed("error accessing database")
-                            return
-                        if not signed_in_mesg?
-                            @remember_me_failed("remember_me deleted or expired")
-                            return
-                        database.is_banned_user
-                            email_address : signed_in_mesg.email_address
-                            cb            : (err, is_banned) =>
-                                if err
-                                    @remember_me_failed("error checking whether or not user is banned")
-                                else if is_banned
-                                    # delete this auth key, since banned users are a waste of space.
-                                    # TODO: probably want to log this attempt...
-                                    @remember_me_failed("user is banned")
-                                    @remember_me_db.delete(key : hash)
-                                else
-                                    # good -- sign them in
-                                    signed_in_mesg.hub = program.host + ':' + program.port
-                                    @hash_session_id = hash
-                                    @signed_in(signed_in_mesg)
-                                    @push_to_client(signed_in_mesg)
+                database.is_banned_user
+                    email_address : signed_in_mesg.email_address
+                    cb            : (err, is_banned) =>
+                        if err
+                            @remember_me_failed("error checking whether or not user is banned")
+                        else if is_banned
+                            # delete this auth key, since banned users are a waste of space.
+                            # TODO: probably want to log this attempt...
+                            @remember_me_failed("user is banned")
+                            @remember_me_db.delete(key : hash)
+                        else
+                            # good -- sign them in
+                            signed_in_mesg.hub = program.host + ':' + program.port
+                            @hash_session_id = hash
+                            @signed_in(signed_in_mesg)
+                            @push_to_client(signed_in_mesg)
 
     #######################################################
     # Capping resource limits; client can request anything.
@@ -2571,7 +2557,7 @@ class Client extends EventEmitter
 
 
     ################################################
-    # Synchronized Strings (not associated to any particular project)
+    # Synchronized Strings (associated to user not project)
     ################################################
     # Get a new syncstring session for the string with given id.
     # Returns message with a session_id and also the value of the string.
@@ -2656,10 +2642,94 @@ class Client extends EventEmitter
                     client.push_edits_to_browser mesg.id, (err) =>
                         #winston.debug("done pushing edits to browser (#{err})")
 
+    ################################################
+    # Synchronized databases (associated to user not project)
+    ################################################
+    notifications_syncdb: (cb) =>
+        if not @account_id?
+            cb("User must be signed in")
+            return
+
+        if notifications_syncdb_cache[@account_id]?
+            cb(undefined, notifications_syncdb_cache[@account_id])
+            return
+
+        string_id = undefined
+        db        = undefined
+        async.series([
+            (cb) =>
+                # get the notifications syncdb string_id
+                database.select_one
+                    table   : 'accounts'
+                    where   : {account_id : @account_id}
+                    columns : ['notifications_syncdb']
+                    cb      : (err, result) =>
+                        if err
+                            cb(err)
+                        else
+                            string_id = result[0]
+                            cb()
+            (cb) =>
+                if string_id?
+                    cb(); return
+                # no notifications syncdb yet, so create it and save back to db
+                string_id = misc.uuid()
+                database.update
+                    table : 'accounts'
+                    where : {account_id : @account_id}
+                    set   : {notifications_syncdb:string_id}
+                    cb    : cb
+            (cb) =>
+                # grant user write access to this syncdb
+                set_syncstring_access
+                    account_id : @account_id
+                    string_id  : string_id
+                    type       : 'write'
+                    cb         : cb
+            (cb) =>
+                # now initialize our local copy
+                syncstring.syncdb
+                    string_id : string_id
+                    cb        : (err, _db) ->
+                        if err
+                            cb(err)
+                        else
+                            db = _db
+                            notifications_syncdb_cache[@account_id] = db
+                            cb()
+        ], (err) =>
+            if err
+                cb(err)
+            else
+                cb(undefined, db))
+
+    mesg_get_notifications_syncdb: (mesg) =>
+        @notifications_syncdb (err, db) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.notifications_syncdb(id:mesg.id, string_id:db.string_id))
+
+
+    # Get a list of names and string_ids of the syncdbs that this user has access to.
+    #mesg_get_all_syncdbs: (mesg) =>
+
+    # Get access to a particular syncb given by its name or string_id
+    #mesg_get_syncdb: (mesg) =>
+
+    # Create a new syncdb
+    #mesg_create_syncdb: (mesg) =>
+
+    # Delete a syncdb
+    #mesg_delete_syncdb: (mesg) =>
+
 
 ##############################
 # User activity tracking
 ##############################
+
+# one notifications syncdb per *account* (not connection); keys are account id's
+notifications_syncdb_cache = {}
 
 # record activity on a file with at most this frequency
 MIN_ACTIVITY_INTERVAL_S = 60  # -- 1 minutes

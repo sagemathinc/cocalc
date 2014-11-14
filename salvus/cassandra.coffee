@@ -1286,7 +1286,6 @@ class exports.Salvus extends exports.Cassandra
                              'first_name', 'last_name', 'email_address',
                              'default_system', 'evaluate_key',
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
-                             'connect_Github', 'connect_Google', 'connect_Dropbox',
                              'autosave', 'terminal', 'editor_settings', 'other_settings',
                              'groups']
 

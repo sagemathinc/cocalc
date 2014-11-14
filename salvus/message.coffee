@@ -299,6 +299,7 @@ message
     id         : undefined
     session_id : undefined  # gets filled in
 
+
 ############################################
 # CodeMirror editor sessions
 #############################################
@@ -774,6 +775,18 @@ message
     event         : 'activity_notifications'
     notifications : required
     update        : false   # if specified then only giving update since the given time
+
+
+# client --> hub
+message
+    event      : "get_notifications_syncdb"
+    id         : undefined
+
+# hub --> client
+message
+    event      : "notifications_syncdb"
+    id         : undefined
+    string_id  : required
 
 ###################################################################################
 #
