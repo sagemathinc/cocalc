@@ -896,6 +896,9 @@ class exports.Editor
         delete @tabs[filename]
         @update_counter()
 
+    show_chat_window: (path) =>
+        @tabs[path]?.editor()?.show_chat_window()
+
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>
         tab = @tabs[filename]
@@ -1041,6 +1044,9 @@ class FileEditor extends EventEmitter
 
     activity_indicator: () =>
         @editor?.activity_indicator(@filename)
+
+    show_chat_window: () =>
+        @syncdoc?.show_chat_window()
 
     is_active: () =>
         return @editor._active_tab_filename == @filename
@@ -2892,6 +2898,9 @@ class HistoryEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts.mode = ''
 
+        @_parse_logstring_cache = {}
+        @_parse_logstring_inverse_cache = {}
+
         # create history editor
         @element = templates.find(".salvus-editor-history").clone()
         @history_editor = codemirror_session_editor(@editor, @filename, opts)
@@ -2955,30 +2964,67 @@ class HistoryEditor extends FileEditor
 
     @revision_num = -1
 
+    parse_logstring: (s) =>
+        ##return JSON.parse(s)
+        # In goto_revision below it looks like parse_logstring can get frequently called,
+        # often on the same log entry repeatedly.  So we cache the parsing.
+        obj = @_parse_logstring_cache[s]
+        if obj?
+            return obj
+        try
+            obj = JSON.parse(s)
+            obj.patch = diffsync.decompress_patch_compat(obj.patch)
+        catch e
+            # It's better to do this than have the entire history become completely unusable.
+            # Also, we should always *assume* any file can get corrupted.
+            console.log("ERROR -- corrupt line in history -- '#{s}'")
+            obj = {time:0, patch:[]}
+        @_parse_logstring_cache[s] = obj
+        return obj
+
+    # same as parse_logstring above, but patch is replaced by its inverse
+    parse_logstring_inverse: (s) =>
+        ##obj = JSON.parse(s); diffsync.invert_patch_in_place(obj.patch)
+        ##return obj
+        # In goto_revision below it looks like parse_logstring can get frequently called,
+        # often on the same log entry repeatedly.  So we cache the parsing.
+        obj = @_parse_logstring_inverse_cache[s]
+        if obj?
+            return obj
+        obj = misc.deep_copy(@parse_logstring(s))
+        diffsync.invert_patch_in_place(obj.patch)
+        @_parse_logstring_inverse_cache[s] = obj
+        return obj
+
     goto_revision: (num) ->
+        #t = misc.mswalltime()
         @element.find(".salvus-editor-history-revision-number").text("Revision " + num)
         if num == 0
             @element.find(".salvus-editor-history-revision-time").text("")
         else
-            @element.find(".salvus-editor-history-revision-time").text(new Date(JSON.parse(@log[@nlines-num+1]).time).toLocaleString())
+            @element.find(".salvus-editor-history-revision-time").text(new Date(@parse_logstring(@log[@nlines-num+1]).time).toLocaleString())
         if @revision_num - num > 2
+            #console.log("goto_revision #{num} from #{@revision_num}"); t = misc.mswalltime()
             text = @history_editor.codemirror.getValue()
             text_old = text
+            #console.log("got value", misc.mswalltime(t)); t = misc.mswalltime()
             for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
-                text = diffsync.dmp.patch_apply(JSON.parse(patch)['patch'],text)[0]
-            @diffsync.patch_in_place(diffsync.dmp.patch_make(text_old, text))
+                text = diffsync.dmp.patch_apply(@parse_logstring(patch).patch, text)[0]
+            #console.log("patched text", misc.mswalltime(t)); t = misc.mswalltime()
+            @history_editor.codemirror.setValueNoJump(text)
+            #console.log("changed editor", misc.mswalltime(t)); t = misc.mswalltime()
         else if @revision_num > num
             for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
-                @diffsync.patch_in_place(JSON.parse(patch)['patch'])
+                @diffsync.patch_in_place(@parse_logstring(patch).patch)
         else if num - @revision_num > 2
             text = @history_editor.codemirror.getValue()
             text_old = text
             for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
-                text = diffsync.dmp.patch_apply(@invert_patch(JSON.parse(patch))['patch'],text)[0]
-            @diffsync.patch_in_place(diffsync.dmp.patch_make(text_old, text))
+                text = diffsync.dmp.patch_apply(@parse_logstring_inverse(patch).patch, text)[0]
+            @history_editor.codemirror.setValueNoJump(text)
         else
             for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
-                @diffsync.patch_in_place(@invert_patch(JSON.parse(patch))['patch'])
+                @diffsync.patch_in_place(@parse_logstring_inverse(patch).patch)
         @revision_num = num
         if @revision_num == 0
             @back_button.addClass("disabled")
@@ -2990,18 +3036,7 @@ class HistoryEditor extends FileEditor
             @forward_button.removeClass("disabled")
         if @ext == 'sagews'
             @worksheet.process_sage_updates()
-
-    invert_patch: (patch) =>
-        # Beware of potential bugs in the following code -- I have only tried it, not proved it correct.
-        # I conjecture that this correctly computes the "inverse" of a DMP patch, assuming the patch applies cleanly.  -- Jonathan Lee
-        for i in [0..patch.patch.length-1]
-            temp = patch.patch[i].length1
-            patch.patch[i].length1 = patch.patch[i].length2
-            patch.patch[i].length2 = temp
-            for j in [0..patch.patch[i].diffs.length-1]
-                patch.patch[i].diffs[j][0] = -patch.patch[i].diffs[j][0]
-        patch.patch = patch.patch.reverse()
-        return patch
+        #console.log("going to revision #{num} took #{misc.mswalltime(t)}ms")
 
     render_history: (first) =>
         @log = @file_history.live().split("\n")
@@ -3012,7 +3047,7 @@ class HistoryEditor extends FileEditor
                 @element.find(".salvus-editor-history-revision-time").text("")
                 @back_button.addClass("disabled")
             else
-                @element.find(".salvus-editor-history-revision-time").text(new Date(JSON.parse(@log[1]).time).toLocaleString())
+                @element.find(".salvus-editor-history-revision-time").text(new Date(@parse_logstring(@log[1]).time).toLocaleString())
             @history_editor.codemirror.setValue(JSON.parse(@log[0]))
             @revision_num = @nlines
             if @ext != "" and require('editor').file_associations[@ext].opts.mode?
@@ -3025,6 +3060,7 @@ class HistoryEditor extends FileEditor
                 value   : @revision_num
                 slide  : (event, ui) =>
                     @goto_revision(ui.value)
+
         else
             @slider.slider
                 max : @nlines

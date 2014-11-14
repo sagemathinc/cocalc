@@ -750,4 +750,38 @@ exports.encode_path = (path) ->
     return path.replace(/#/g,'%23').replace(/\?/g,'%3F')
 
 
+# add a method _call_with_lock to obj, which makes it so it's easy to make it so only
+# one method can be called at a time of an object -- all calls until completion
+# of the first one get an error.
+
+exports.call_lock = (opts) ->
+    opts = exports.defaults opts,
+        obj       : exports.required
+        timeout_s : 30  # lock expire timeout after this many seconds
+
+    obj = opts.obj
+
+    obj._call_lock = () ->
+        obj.__call_lock = true
+        obj.__call_lock_timeout = () ->
+            obj.__call_lock = false
+            delete obj.__call_lock_timeout
+        setTimeout(obj.__call_lock_timeout, opts.timeout_s * 1000)
+
+    obj._call_unlock = () ->
+        if obj.__call_lock_timeout?
+            clearTimeout(obj.__call_lock_timeout)
+            delete obj.__call_lock_timeout
+        obj.__call_lock = false
+
+    obj._call_with_lock = (f, cb) ->
+        if obj.__call_lock
+            cb?("error -- hit call_lock")
+            return
+        obj._call_lock()
+        f (args...) ->
+            obj._call_unlock()
+            cb?(args...)
+
+
 

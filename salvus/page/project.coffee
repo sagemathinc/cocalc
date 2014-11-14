@@ -889,6 +889,8 @@ class ProjectPage
             @editor?.hide()
             @editor?.resize_open_file_tabs()
 
+    show_editor_chat_window: (path) =>
+        @editor?.show_chat_window(path)
 
     save_browser_local_data: (cb) =>
         @editor.save(undefined, cb)

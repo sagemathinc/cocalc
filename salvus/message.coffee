@@ -241,6 +241,63 @@ message
 
 
 
+##################################################
+# Synchronized strings, which are not affiliated
+# with any project.
+##################################################
+
+# client --> hub
+message
+    event      : 'syncstring_get_session'
+    string_id  : required     # new connection to session with this string_id
+    id         : undefined
+
+# hub --> client
+message
+    event      : 'syncstring_session'
+    id         : undefined
+    session_id : required
+    string     : required
+    readonly   : false       # if true, string is read only -- though it can get changed by server
+
+# Client initiated sync.
+# A list of edits that should be applied, along with the
+# last version of edits received before.
+# client <--> hub
+message
+    event            : 'syncstring_diffsync'
+    id               : undefined
+    session_id       : undefined
+    edit_stack       : required
+    last_version_ack : required
+
+# Hub-initiated sync
+# hub <--> client
+message
+    event            : 'syncstring_diffsync2'
+    id               : undefined
+    session_id       : undefined
+    edit_stack       : required
+    last_version_ack : required
+
+# Tell other that there is data ready to be synced:
+# client <--> hub
+message
+    event       : 'syncstring_diffsync_ready'
+    session_id  : undefined
+
+# Hub uses this message to tell client that client should try to
+# sync later, since hub is busy now with some other locking
+# sync operation.
+# hub --> client
+message
+    event      : 'syncstring_diffsync_retry_later'
+    id         : undefined
+
+message
+    event      : 'syncstring_disconnect'
+    id         : undefined
+    session_id : undefined  # gets filled in
 
 
 ############################################
@@ -718,6 +775,18 @@ message
     event         : 'activity_notifications'
     notifications : required
     update        : false   # if specified then only giving update since the given time
+
+
+# client --> hub
+message
+    event      : "get_notifications_syncdb"
+    id         : undefined
+
+# hub --> client
+message
+    event      : "notifications_syncdb"
+    id         : undefined
+    string_id  : required
 
 ###################################################################################
 #
