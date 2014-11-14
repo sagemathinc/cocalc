@@ -823,7 +823,15 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             elt2.show()
 
     render_chat_log: () =>
+        if not @chat_session?
+            # try again in a few seconds -- not done loading
+            setTimeout(@render_chat_log, 5000)
+            return
         messages = @chat_session.live()
+        if not messages?
+            # try again in a few seconds -- not done loading
+            setTimeout(@render_chat_log, 5000)
+            return
         if not @_last_size?
             @_last_size = messages.length
 

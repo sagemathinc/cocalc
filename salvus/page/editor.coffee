@@ -896,6 +896,9 @@ class exports.Editor
         delete @tabs[filename]
         @update_counter()
 
+    show_chat_window: (path) =>
+        @tabs[path]?.editor()?.show_chat_window()
+
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>
         tab = @tabs[filename]
@@ -1041,6 +1044,9 @@ class FileEditor extends EventEmitter
 
     activity_indicator: () =>
         @editor?.activity_indicator(@filename)
+
+    show_chat_window: () =>
+        @syncdoc?.show_chat_window()
 
     is_active: () =>
         return @editor._active_tab_filename == @filename

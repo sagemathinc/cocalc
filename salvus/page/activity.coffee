@@ -78,7 +78,7 @@ render_notification = (x, init) ->
     if not elt?
         notification_elements[name] = elt = template_notification.clone()
         notification_list_body.append(elt)
-        elt.data(project_id:x.project_id, path:x.path, name:name)
+        elt.data(project_id:x.project_id, path:x.path, name:name, comment:x.actions?['comment'])
         elt.find(".salvus-notification-path-icon").addClass(editor.file_icon_class(misc.filename_extension(x.path)))
         elt.click () ->
             open_notification($(@))
@@ -89,7 +89,10 @@ render_notification = (x, init) ->
     else
         actions = []
         if x.actions?['comment']
-            actions.push('<i>commented on</i>')
+            actions.push('<i class="salvus-notification-commented">commented on</i>')
+            elt.find(".salvus-notification-action-icon").addClass("salvus-notification-action-icon-comment")
+        else
+            elt.find(".salvus-notification-action-icon").removeClass("salvus-notification-action-icon-comment")
         if x.actions?['edit']
             actions.push('edited')
         if actions.length == 0
@@ -154,13 +157,22 @@ sort_notifications = () ->
         return 0
     v.detach().appendTo(notification_list_body)
 
+DELETE_OLD_DAYS = 30
 render_notifications = () ->
     #console.log("render_notifications")
     notification_list_body.empty()
     important_count = 0
     v = notifications_syncdb.select(where:{table:'activity'})
     v.sort(timestamp_cmp)
+    too_old = new Date() - 1000*60*60*24*DELETE_OLD_DAYS
+    i = 0
     for x in v
+        i += 1
+        # only bother deleting old notifications after we have a lot of them.
+        if i>40 and x.timestamp? and x.timestamp <= too_old
+            notifications_syncdb.delete(where:{table:'activity',project_id:x.project_id,path:x.path})
+            continue
+
         render_notification(x, true)
         if is_important(x)
             important_count += 1
@@ -195,6 +207,7 @@ update_notifications = (changes) ->
             render_notification(c.insert)
     update_important_count(true)
     sort_notifications()
+    resize_notification_list()
 
 update_which_notifications_are_shown = () ->
     update_search_list()
@@ -233,6 +246,7 @@ notification_list_is_hidden = true
 open_notification = (target) ->
     project_id = target.data('project_id')
     path = target.data('path')
+    comment = target.data('comment')
     notifications_syncdb?.update
         set   : {read:true}
         where :
@@ -242,16 +256,23 @@ open_notification = (target) ->
         history.load_target("projects/#{project_id}")
     else
         history.load_target("projects/#{project_id}/files/#{path}")
+        if comment
+            p = require('project').project_page(project_id:project_id)
+            p.show_editor_chat_window(path)
+
 
 unbind_handlers = () ->
     $(document).unbind('click', notification_list_click)
     $(window).unbind('resize', resize_notification_list)
 
 resize_notification_list = () ->
+    if not notification_list.is(":visible")
+        return
     notification_list.removeAttr('style')  # gets rid of the custom height from before
     max_height = $(window).height() - notification_list.offset().top - 50
     if notification_list.height() > max_height
         notification_list.height(max_height)
+    notification_list.hide(); notification_list.show()  # hack since on some browser scrollbar looks wrong otherwise.
 
 notification_list_click = (e) ->
     target = $(e.target)
@@ -265,9 +286,11 @@ notification_list_click = (e) ->
 $(".salvus-notification-indicator").click () ->
     if notification_list_is_hidden
         notification_list.show()
+        notification_search.focus()
         mark_visible_notifications_seen()
         $(document).click(notification_list_click)
         $(window).resize(resize_notification_list)
+        resize_notification_list()
     else
         notification_list.hide()
         unbind_handlers()

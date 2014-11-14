@@ -1036,8 +1036,8 @@ class Client extends EventEmitter
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
         #winston.debug("got message: #{data}")
-        if mesg.event != 'codemirror_bcast' and mesg.event != 'ping'
-            winston.debug("hub <-- client (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 300)}")
+        if mesg.message?.event not in ['codemirror_bcast'] and mesg.event != 'ping'
+            winston.debug("hub <-- client (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 120)}")
 
         # check for message that is coming back in response to a request from the hub
         if @call_callbacks? and mesg.id?
@@ -2536,15 +2536,24 @@ class Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"project_id must be specified")
         if not mesg.path
             @error_to_client(id:mesg.id, error:"path must be specified")
-        path_activity
-            account_id : @account_id
-            project_id : mesg.project_id
-            path       : mesg.path
-            cb         : (err) =>
+        user_has_write_access_to_project
+            project_id     : mesg.project_id
+            account_id     : mesg.account_id
+            cb             : (err, result) =>
                 if err
-                    @error_to_client(id:mesg.id, error:"error recording path activity -- #{err}")
+                    @error_to_client(id:mesg.id, error:err)
+                else if not result
+                    @error_to_client(id:mesg.id, error:"user must have write access to project")
                 else
-                    @push_to_client(message.success(id:mesg.id))
+                    path_activity
+                        account_id : @account_id
+                        project_id : mesg.project_id
+                        path       : mesg.path
+                        cb         : (err) =>
+                            if err
+                                @error_to_client(id:mesg.id, error:"error recording path activity -- #{err}")
+                            else
+                                @push_to_client(message.success(id:mesg.id))
 
     mesg_add_comment_to_activity_notification_stream: (mesg) =>
         if not @account_id?
@@ -2744,11 +2753,12 @@ get_notifications_syncdb = (account_id, cb) ->
         else
             cb(undefined, db))
 
-# record activity on a file with at most this frequency
-MIN_ACTIVITY_INTERVAL_S = 60  # -- 1 minutes
+# update notifications about non-comment activity on a file with at most this frequency
+MIN_ACTIVITY_INTERVAL_S = 60
+#MIN_ACTIVITY_INTERVAL_S = 10   # shorter for testing
 
-# notify when somebody edits a file that you edited within this many days
-RECENT_NOTIFICATION_D = 60
+# prioritize notify when somebody edits a file that you edited within this many days
+RECENT_NOTIFICATION_D = 7
 
 #ACTIVITY_NOTIFICATION_TTL_S = 7 * 3600*24  # 1 week
 
@@ -2790,6 +2800,30 @@ normalize_path = (path) ->
     #    path = undefined
     return {path:path, action:action}
 
+_activity_get_project_users_cache = {}
+activity_get_project_users = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required
+    users = _activity_get_project_users_cache[opts.project_id]
+    if users?
+        opts.cb(undefined, users); return
+
+    database.select_one
+        table       : 'projects'
+        columns     : misc.PROJECT_GROUPS
+        objectify   : false
+        consistency : 1
+        where       : {project_id : opts.project_id}
+        cb          : (err, x) ->
+            if err
+                opts.cb(err); return
+            users = _.flatten([g for g in x when g?])
+            _activity_get_project_users_cache[opts.project_id] = users
+            # timeout after a few minutes
+            setTimeout( (()->delete _activity_get_project_users_cache[opts.project_id]), 60*1000*5 )
+            opts.cb(undefined, users)
+
 path_activity_cache = {}
 path_activity = (opts) ->
     opts = defaults opts,
@@ -2809,7 +2843,7 @@ path_activity = (opts) ->
 
     key = "#{opts.account_id}-#{opts.project_id}-#{path}"
     #dbg("checking local cache")
-    if path_activity_cache[key]?
+    if action != 'comment' and path_activity_cache[key]?
         opts.cb?()
         return
 
@@ -2826,9 +2860,15 @@ path_activity = (opts) ->
     opts.fullname      = misc.trunc(opts.fullname, MAX_ACTIVITY_NAME_LENGTH)
     opts.project_title = misc.trunc(opts.project_title, MAX_ACTIVITY_TITLE_LENGTH)
 
+    # who gets notified
+    targets = undefined
     async.series([
         (cb) ->
             #dbg("get recent activity")
+            if action == 'comment'
+                is_new_activity = true # comments always count as new activity
+                cb(); return
+
             database.select
                 table   : 'activity_by_path'
                 where   : {project_id:opts.project_id, path:path, timestamp:{'>=':recent_time}}
@@ -2880,50 +2920,76 @@ path_activity = (opts) ->
                         set   : {project_id:opts.project_id, path:path, fullname:opts.fullname, project_title:opts.project_title}
                         cb    : cb
                 (cb) ->
-                    #dbg('set activity_notifications')
-                    # make keys of x everybody but account_id that has recently, and values how
-                    # recently they have looked at this file (not used yet).
-                    x = {}
-                    for y in recent_activity
-                        if y[1] != opts.account_id
-                            t = x[y[1]]
-                            if not t? or t < y[0]
-                                x[y[1]] = y[0]
+                    #dbg('add to notifications')
+                    async.series([
+                        (cb) ->
+                            #dbg('determine project users')
+                            # everybody except opts.account_id will get a notification about this activity,
+                            # though to minimize db access we cache list of users for a few minutes, so
+                            # newly added users might not get notifications immediately (which is fine).
+                            activity_get_project_users
+                                project_id : opts.project_id
+                                cb         : (err, users) =>
+                                    #dbg("got back #{err}, #{misc.to_json(users)}")
+                                    if err
+                                        cb(err)
+                                    else
+                                        targets = (a for a in users when a != opts.account_id)
+                                        #dbg("set targets=#{misc.to_json(targets)}")
+                                        cb()
+                        (cb) ->
+                            if not targets? or targets.length == 0
+                                #dbg("no targets?! -- #{misc.to_json(targets)}")
+                                # nobody to report to -- e.g., common case of no project collaborators
+                                cb(); return
 
-                    targets = misc.keys(x)
+                            #dbg('set activity_notifications')
+                            # make keys of last everybody but opts.account_id that has
+                            # recently touched the file, and values how recently they touched it.
+                            last = {}
+                            if recent_activity?
+                                for y in recent_activity
+                                    if y[1] != opts.account_id
+                                        t = last[y[1]]
+                                        if not t? or t < y[0]
+                                            last[y[1]] = y[0]
 
-                    where =
-                        table         : 'activity'
-                        project_id    : opts.project_id
-                        path          : path
+                            where =
+                                table         : 'activity'
+                                project_id    : opts.project_id
+                                path          : path
 
-                    f = (account_id, cb) =>
-                        get_notifications_syncdb account_id, (err, db) =>
-                            if err
-                                cb(err)
-                            else
-                                x = db.select_one(where:where)
-                                actions ={}
-                                if x?
-                                    if not x.read
-                                        actions = x.actions
-                                actions[action] = true
-                                db.update
-                                    where : where
-                                    set :
-                                        timestamp     : now_time - 0
-                                        user_id       : opts.account_id
-                                        fullname      : opts.fullname
-                                        actions       : actions
-                                        seen          : false
-                                        read          : false
-                                        project_title : opts.project_title
-                                cb()
+                            f = (account_id, cb) =>
+                                get_notifications_syncdb account_id, (err, db) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        x = db.select_one(where:where)
+                                        actions ={}
+                                        if x?
+                                            if not x.read
+                                                actions = x.actions
+                                        actions[action] = true
+                                        set =
+                                            timestamp     : now_time - 0
+                                            user_id       : opts.account_id
+                                            fullname      : opts.fullname
+                                            actions       : actions
+                                            seen          : false
+                                            read          : false
+                                            project_title : opts.project_title
+                                        if last[account_id]?
+                                            set.last_edit = last[account_id]
+                                        db.update
+                                            where : where
+                                            set : set
+                                        cb()
 
-                    async.map(targets, f, (err)=>cb(err))
-
+                            async.map(targets, f, (err)=>cb(err))
+                    ], cb)
             ], (err) -> cb(err))
     ], (err) -> opts.cb?(err))
+
 
 codemirror_sessions = {} # this is updated in mesg_local_hub
 
