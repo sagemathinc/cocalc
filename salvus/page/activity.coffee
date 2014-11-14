@@ -122,6 +122,7 @@ render_notification = (x, init) ->
         elt.hide()
     else
         elt.show()
+        $(".salvus-notification-list-none").hide()
 
 timestamp_cmp = (a,b) ->
     a = a.timestamp
@@ -223,7 +224,8 @@ notification_search.keyup (e) ->
 
 $(".salvus-notification-list-search-clear").click () ->
     notification_search.val('')
-    render_notifications()
+    notification_search.focus()
+    update_which_notifications_are_shown()
     return false
 
 notification_list_is_hidden = true

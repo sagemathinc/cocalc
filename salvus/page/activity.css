@@ -36,6 +36,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     font-size: 10pt;
+    padding: 4px;
 }
 
 @media (max-width: 767px) {
