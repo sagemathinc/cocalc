@@ -540,8 +540,9 @@ except:
 log.info("detected %s cpus", NCPU)
 
 
-def cmd(s, path):
-    s = 'cd "%s" && '%path + s
+def cmd(s, path=None):
+    if path is not None:
+        s = 'cd "%s" && '%path + s
     log.info("cmd: %s", s)
     t0 = time.time()
     if os.system(s):
