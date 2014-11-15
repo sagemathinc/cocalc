@@ -1873,10 +1873,18 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : height
                 width  : width
+
+        # This is another hack that specifically hopefully addresses an
+        # issue where when I open a tab often the scrollbar is completely
+        # hosed.  Zooming in and out manually always fixes it, so maybe
+        # what's below will also.  Testing it.
         f = () =>
             for {cm,height,width} in v
-                scroll = cm.getScrollInfo(); pos = cm.getCursor()
-                cm.refresh()  # NOTE: unfortunately, this can break the cursor location and scrollTo -- I've seen it happen.
+                @change_font_size(cm,+1)
+                @change_font_size(cm,-1)
+
+                #scroll = cm.getScrollInfo(); pos = cm.getCursor()
+                #cm.refresh()  # NOTE: unfortunately, this can break the cursor location and scrollTo -- I've seen it happen.
                 ###
 scroll_after = cm.getScrollInfo(); pos_after = cm.getCursor()
                 if scroll.left != scroll_after.left or scroll.top != scroll_after.top or pos.line != pos_after.line or pos.ch != pos_after.ch
