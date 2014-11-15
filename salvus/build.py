@@ -511,7 +511,7 @@ SAGE_OPTIONAL_PACKAGES = [
     'pyzmq',
     'qhull',
     'topcom',
-    'zeromq'   #,'stein-watkins-ecdb'
+    'zeromq'
 ]
 
 ENTHOUGHT_PACKAGES = [
@@ -619,6 +619,7 @@ class BuildSage(object):
         self.install_4ti2()
         self.install_root_notebook()
         self.install_pydelay()
+        self.install_stein_watkins()
         self.clean_up()
         self.extend_sys_path()
         self.fix_permissions()
@@ -881,6 +882,9 @@ class BuildSage(object):
         Requested for UCLA by Jane Shevtsov: https://plus.google.com/115360165819500279592/posts/73vK9Pw4W6g
         """
         cmd("umask 022 &&  cd /tmp/ &&  rm -rf pydelay* &&  wget http://downloads.sourceforge.net/project/pydelay/pydelay-0.1.1.tar.gz &&  tar xf pydelay-0.1.1.tar.gz &&  cd pydelay-0.1.1 &&  python setup.py install &&  rm -rf /tmp/pydelay*")
+
+    def install_stein_watkins(self):
+        cmd("umask 022 && cd /usr/local/sage/current/data && rm -f stein_watkins stein-watkins-ecdb && ln -sf /usr/local/sage/stein-watkins-ecdb stein-watkins-ecdb && ln -sf /usr/local/sage/stein-watkins-ecdb stein_watkins")
 
     def install_4ti2(self):
         """
