@@ -618,7 +618,6 @@ class BuildSage(object):
         self.install_neuron()
         self.install_basemap()
         self.install_4ti2()
-        self.install_root_notebook()
         self.install_pydelay()
         self.install_stein_watkins()
         self.clean_up()
