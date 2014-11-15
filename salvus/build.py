@@ -511,8 +511,7 @@ SAGE_OPTIONAL_PACKAGES = [
     'pyzmq',
     'qhull',
     'topcom',
-    'zeromq',
-    'stein-watkins-ecdb'
+    'zeromq'   #,'stein-watkins-ecdb'
 ]
 
 ENTHOUGHT_PACKAGES = [
