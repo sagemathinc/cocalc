@@ -775,12 +775,15 @@ class BuildSage(object):
         c = 'install.packages(c(%s), repos="http://cran.cs.wwu.edu/")'%s
         self.cmd("echo '%s' | R --no-save"%c)
 
-    def install_optional_packages(self):
+    def install_optional_packages(self, skip=[]):
         from sage.all import install_package
         if 'MAKE' not in os.environ:
             # some packages, e.g., chomp, won't build without MAKE being set.
             os.environ['MAKE'] = "make -j%s"%NCPU
         for package in SAGE_OPTIONAL_PACKAGES:
+            if package in skip:
+                log.info("** Skipping %s **"%package)
+                continue
             log.info("** Installing/upgrading %s **"%package)
             #install_package(package)
             # We have to do this (instead of use install_package) because Sage's install_package
