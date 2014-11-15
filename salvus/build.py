@@ -470,7 +470,8 @@ R_PACKAGES = [
     'Cairo',
     #'xlsx',
     'XML',
-    'data.table'
+    'data.table',
+    'brian'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
@@ -480,7 +481,6 @@ SAGE_OPTIONAL_PACKAGES = [
     'database_odlyzko_zeta',
     'database_pari',
     'biopython',
-    'brian',
     'cbc',
     'cluster_seed',
     'coxeter3',
