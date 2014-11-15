@@ -36,6 +36,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     font-size: 10pt;
+    padding: 4px;
 }
 
 @media (max-width: 767px) {
@@ -77,6 +78,10 @@
     color: #888;
 }
 
+.salvus-notification-action-icon-comment {
+    color:darkred;
+}
+
 .salvus-notification-path-icon {
     font-size: 16pt;
     color: #888;
@@ -95,4 +100,9 @@
 .salvus-notification-desc {
     max-height: 3em;
     overflow: hidden;
+}
+
+.salvus-notification-commented {
+    color: darkred;
+    font-weight: bold;
 }

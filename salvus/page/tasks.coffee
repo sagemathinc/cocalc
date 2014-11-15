@@ -254,7 +254,7 @@ class TaskList
             # something changed, so allow the save button. (TODO: this is of course not really right)
             @set_dirty()
         for task_id, _ of c
-            t = @db.select_one(task_id:task_id)
+            t = @db.select_one(where:{task_id:task_id})
             if not t?
                 # deleted
                 delete @tasks[task_id]
@@ -1296,7 +1296,9 @@ class TaskList
         bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h4>Permanently erase the deleted items?</h4><br> <span class='lighten'>Old versions of this list may be available as snapshots.</span>  ", (result) =>
             currently_focused_editor = prev
             if result == true
-                a = @db.delete({deleted : true}, false)
+                a = @db.delete
+                    where : {deleted : true}
+                    one   : false
                 for task_id, task of @tasks
                     if task.deleted
                         delete @tasks[task_id]

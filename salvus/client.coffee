@@ -348,6 +348,7 @@ class exports.Connection extends EventEmitter
 
     # Send a JSON message to the hub server.
     send: (mesg) ->
+        #console.log("send at #{misc.mswalltime()}", mesg)
         @write_data(JSON_CHANNEL, misc.to_json(mesg))
 
     # Send raw data via certain channel to the hub server.
@@ -406,6 +407,8 @@ class exports.Connection extends EventEmitter
                 @emit(mesg.event, mesg)
             when "activity_notifications"
                 @emit(mesg.event, mesg)
+            when "syncstring_diffsync2"
+                @emit("syncstring_diffsync2-#{mesg.session_id}", mesg)
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
@@ -1523,25 +1526,40 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb?()
 
-    add_comment_to_activity_notification_stream: (opts) =>
+    get_notifications_syncdb: (opts) =>
         opts = defaults opts,
-            project_id : required
-            path       : required
-            comment    : required
-            cb         : undefined   # cb(err)
+            cb : required
         @call
-            message : message.add_comment_to_activity_notification_stream
-                project_id  : opts.project_id
-                path        : opts.path
-                comment     : opts.comment
+            message : message.get_notifications_syncdb()
             cb      : (err, mesg) =>
                 if err
-                    opts.cb?(err)
+                    opts.cb(err)
                 else if mesg.event == 'error'
-                    opts.cb?(mesg.error)
+                    opts.cb(mesg.error)
                 else
-                    opts.cb?()
+                    opts.cb(undefined, mesg.string_id)
 
+    #################################################
+    # Synchronized Strings (database backed)
+    # x={};require('syncstring').syncstring({string_id:'foo',cb:function(e,s){console.log(e,s);x.s=s}})
+    # x.s.live='hub'+x.s.live
+    # x.s.sync(function(e,f){console.log("done",e,f)})
+    ##################################################
+    syncstring_get_session: (opts) =>
+        opts = defaults opts,
+            string_id  : required
+            cb         : undefined   # cb(err, {session_id:?, string:?, readonly:?})
+        @call
+            message :
+                message.syncstring_get_session
+                    string_id : opts.string_id
+            cb      : (err, resp) =>
+                if err
+                    opts.cb?(err)
+                else if resp.event == 'error'
+                    opts.cb?(resp.error)
+                else
+                    opts.cb?(undefined, resp)
 
 
     #################################################

@@ -109,6 +109,9 @@ CREATE TABLE accounts (
     hidden_projects      set<uuid>,   /* projects that this user doesn't normally see by default (e.g., all students in their course) */
 
     groups               set<varchar>,  /* groups that this account is a member of; e.g., 'admin', which grants extreme power */
+
+    notifications_syncdb uuid,
+    /* syncdbs              map<varchar:uuid>, */ /* synchronized databases that user has access to */
 );
 
 CREATE TABLE email_address_to_account_id (
@@ -387,7 +390,23 @@ CREATE TABLE activity_notifications (
 );
 
 
+////////////////////
+// Database-backed synchronized strings
+////////////////////
 
+CREATE TABLE syncstrings (
+    string_id  uuid,
+    timestamp  timestamp,
+    patch      varchar,
+    is_first   boolean,
+    PRIMARY KEY (string_id, timestamp)
+);
+
+
+CREATE TABLE syncstring_acls (
+    string_id  uuid  PRIMARY KEY,
+    acl        map<uuid,varchar>     /* account_id:'write', account2_id:'read' */
+);
 
 
 ////////////////////
