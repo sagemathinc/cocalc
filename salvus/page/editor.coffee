@@ -1880,13 +1880,12 @@ class CodeMirrorEditor extends FileEditor
         # what's below will also.  Testing it.
         f = () =>
             for {cm,height,width} in v
-                @change_font_size(cm,+1)
-                @change_font_size(cm,-1)
-
-                #scroll = cm.getScrollInfo(); pos = cm.getCursor()
-                #cm.refresh()  # NOTE: unfortunately, this can break the cursor location and scrollTo -- I've seen it happen.
+                cm.refresh()
+                setTimeout((()=>cm.refresh), 1)
                 ###
-scroll_after = cm.getScrollInfo(); pos_after = cm.getCursor()
+                scroll = cm.getScrollInfo(); pos = cm.getCursor()
+                # above refresh
+                scroll_after = cm.getScrollInfo(); pos_after = cm.getCursor()
                 if scroll.left != scroll_after.left or scroll.top != scroll_after.top or pos.line != pos_after.line or pos.ch != pos_after.ch
                     console.log("WARNING: codemirror refresh lost pos -- RESETTING position; before=#{misc.to_json([scroll,pos])}, after=#{misc.to_json([scroll_after,pos_after])}")
                     cm.setCursor(pos)
