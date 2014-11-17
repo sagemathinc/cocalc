@@ -442,6 +442,7 @@ SAGE_PIP_PACKAGES = [
     'pyparse',    # needed by fipy
     'fipy',       # requested by Evan Chenelly <echenelly@gmail.com> -- "A finite volume PDE solver in Python".
     'python-igraph', # requested by Santhust <santhust31@gmail.com> -- "High performance graph data structures and algorithms" -- https://pypi.python.org/pypi/python-igraph/0.7
+    'mygene'   # requested by Luca Beltrame for a bioinformatics course
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -884,6 +885,7 @@ class BuildSage(object):
         cmd("umask 022 &&  cd /tmp/ &&  rm -rf pydelay* &&  wget http://downloads.sourceforge.net/project/pydelay/pydelay-0.1.1.tar.gz &&  tar xf pydelay-0.1.1.tar.gz &&  cd pydelay-0.1.1 &&  python setup.py install &&  rm -rf /tmp/pydelay*")
 
     def install_stein_watkins(self):
+        # The package itself is "sage -i database_stein_watkins"
         cmd("umask 022 && cd /usr/local/sage/current/data && rm -f stein_watkins stein-watkins-ecdb && ln -sf /usr/local/sage/stein-watkins-ecdb stein-watkins-ecdb && ln -sf /usr/local/sage/stein-watkins-ecdb stein_watkins")
 
     def install_4ti2(self):
