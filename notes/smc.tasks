@@ -853,3 +853,4 @@
 {"desc":"#sage #install\nnormaliz: sage-6.4 resulted ina broken sage optional package \n\n\tsage -i normaliz\n\nhttps://mail.google.com/mail/u/0/#sent/149b4a643a10b4f6","position":-81.14453125,"last_edited":1416103302492,"task_id":"e905f6c7-a22a-4285-9485-c62fb1f9a3d4"}
 {"desc":"#money #urgent\ncreate a donation-encouragment system","position":-81.21484375,"last_edited":1416242621602,"task_id":"b20b97ba-97d3-4769-b29e-885b435c2a10"}
 {"desc":"#scilab #sage #bug\ninput size issue\n\nhttps://mail.google.com/mail/u/0/#inbox/149be04c0798daba","position":-81.208984375,"last_edited":1416242589782,"task_id":"f440f809-19aa-45d0-b6c0-4f7290f1509a"}
+{"desc":"#urgent #bug #activity #today\ndon't allow future timestamp -- just make it \"now\" if corrupted at all or suspicious.","position":-81.220703125,"last_edited":1416247408053,"task_id":"434a864f-6194-47c1-8e80-deb33afb27ec"}
