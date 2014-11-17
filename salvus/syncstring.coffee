@@ -267,9 +267,9 @@ timestamp_cmp = (a,b) ->
 # Times below are in milliseconds.
 
 # Polling parameters:
-INIT_POLL_INTERVAL     = 1000
-MAX_POLL_INTERVAL      = 5000   # TODO: for testing -- for deploy make longer!
-POLL_DECAY_RATIO       = 1.2
+INIT_POLL_INTERVAL     = 3000
+MAX_POLL_INTERVAL      = 30000   # TODO: for testing -- for deploy make longer!
+POLL_DECAY_RATIO       = 1.3
 
 # We grab patches that are up to TIMESTAMP_OVERLAP old from db each time polling.
 # We are assuming a write to the database propogates to
