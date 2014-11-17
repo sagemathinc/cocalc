@@ -267,9 +267,9 @@ timestamp_cmp = (a,b) ->
 # Times below are in milliseconds.
 
 # Polling parameters:
-INIT_POLL_INTERVAL     = 1000
-MAX_POLL_INTERVAL      = 5000   # TODO: for testing -- for deploy make longer!
-POLL_DECAY_RATIO       = 1.2
+INIT_POLL_INTERVAL     = 5000
+MAX_POLL_INTERVAL      = 30000   # TODO: for testing -- for deploy make longer!
+POLL_DECAY_RATIO       = 1.3
 
 # We grab patches that are up to TIMESTAMP_OVERLAP old from db each time polling.
 # We are assuming a write to the database propogates to
@@ -285,7 +285,9 @@ TIMESTAMP_OVERLAP      = 60000
 # having to apply hundreds of patches when opening a string, and saves
 # space.   (Of course, having the complete history could also be
 # interesting...)
-DB_PATCH_SQUASH_THRESH = 100
+#DB_PATCH_SQUASH_THRESH = 100
+# basically disable for now until we more carefully debug this.
+DB_PATCH_SQUASH_THRESH = 1000000000
 
 # emits a 'change' event whenever live is changed as a result of syncing with the database
 class StringsDBString extends EventEmitter
@@ -356,6 +358,7 @@ class StringsDB
     poll_for_updates: (interval=INIT_POLL_INTERVAL) =>
         retry = (interval) =>
             next_interval = Math.max(INIT_POLL_INTERVAL,Math.min(MAX_POLL_INTERVAL, POLL_DECAY_RATIO*interval))
+            @dbg("poll_for_updates", "waiting #{next_interval}ms...")
             setTimeout((()=>@poll_for_updates(next_interval)), interval)
 
         if misc.len(@strings) == 0
@@ -412,7 +415,7 @@ class StringsDB
         @_call_with_lock(((cb)=>@_read_updates_from_db(string_ids, age, cb)), cb)
 
     _read_updates_from_db: (string_ids, age, cb) =>
-        #@dbg("_read_updates_from_db", misc.to_json(string_ids))
+        @dbg("_read_updates_from_db", misc.to_json(string_ids))
         if not @db?
             cb("database not initialized"); return
         where = {string_id:{'in':string_ids}}
@@ -445,6 +448,7 @@ class StringsDB
         # will later implement things to make faster.  If this database sync thing
         # turns out to be sensible.
         #  SIMPLIFIED: ignore is_first and never trim.
+        @dbg("_process_updates", "process #{updates.length} updates")
         new_patches = {}
         for update in updates
             update.timestamp = update.timestamp - 0  # better to key map based on string of timestamp as number
