@@ -2893,8 +2893,6 @@ path_activity = (opts) ->
                                 break
                         cb()
         (cb) ->
-            if not is_new_activity
-                cb(); return
             #dbg("record new activity and notification")
             where = {project_id:opts.project_id, path:path, timestamp:now_time}
             async.parallel([
@@ -2920,6 +2918,8 @@ path_activity = (opts) ->
                         set   : {project_id:opts.project_id, path:path, fullname:opts.fullname, project_title:opts.project_title}
                         cb    : cb
                 (cb) ->
+                    # DISABLE temporarily; probably causing trouble.
+                    cb(); return
                     #dbg('add to notifications')
                     async.series([
                         (cb) ->
