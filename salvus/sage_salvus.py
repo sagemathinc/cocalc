@@ -3035,9 +3035,10 @@ runfile = load
 
 ## Make it so pylab (matplotlib) figures display, at least using pylab.show
 import pylab
-def _show_pylab():
+def _show_pylab(svg=True):
     try:
-        filename = uuid()+'.png'
+        ext = '.svg' if svg else '.png'
+        filename = uuid() + ext
         pylab.savefig(filename)
         salvus.file(filename)
     finally:
@@ -3050,9 +3051,10 @@ pylab.show = _show_pylab
 matplotlib.figure.Figure.show = show
 
 import matplotlib.pyplot
-def _show_pyplot():
+def _show_pyplot(svg=True):
     try:
-        filename = uuid()+'.png'
+        ext = '.svg' if svg else '.png'
+        filename = uuid() + ext
         matplotlib.pyplot.savefig(filename)
         salvus.file(filename)
     finally:
