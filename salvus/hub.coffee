@@ -2834,6 +2834,10 @@ path_activity = (opts) ->
         project_title : undefined
         cb            : undefined
 
+    # completely disable
+    opts.cb?()
+    return
+
     #dbg = (m) -> winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{opts.path}): #{m}")
 
     {path, action} = normalize_path(opts.path)
