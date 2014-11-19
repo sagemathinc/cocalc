@@ -2919,7 +2919,7 @@ path_activity = (opts) ->
                         cb    : cb
                 (cb) ->
                     # DISABLE temporarily; probably causing trouble.
-                    cb(); return
+                    ## cb(); return
                     #dbg('add to notifications')
                     async.series([
                         (cb) ->
