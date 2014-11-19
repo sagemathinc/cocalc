@@ -4,7 +4,7 @@
 _running      = os.popen('virsh list').read()
 base          = os.path.splitext([_x for _x in sorted(os.listdir('/home/salvus/vm/images/base3')) if _x.split('.')[0] not in _running][-1])[0]
 
-cassandra_ram = 10
+cassandra_ram = 12
 cassandra_cpu = 2
 
 web_ram       = 10
@@ -13,8 +13,8 @@ web_cpu       = 2
 old_compute_ram = 2
 old_compute_cpu = 1
 
-compute_ram   = 60
-compute_ram_med = 40
+compute_ram   = 50
+compute_ram_med = 30
 compute_cpu   = 12   # DO *NOT* change compute_cpu willy-nilly; if you change it, you must rebuild ATLAS, which takes 12 hours.
                      # if you don't rebuild ATLAS, then it will crash on this benchmark
                      # sage: n=1000;import numpy; a=numpy.random.randn(n,n);
@@ -173,7 +173,7 @@ cloud20  {'hostname':'compute20dc0',  'vcpus':compute_cpu,   'ram':compute_ram, 
 cloud21  {'hostname':'compute21dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute21dc0', 'vnc':13100}
 
 # Cassandra nodes
-[cassandra] {'auto_bootstrap':True, 'timeout':60, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer', 'incremental_backups':True}
+[cassandra] {'auto_bootstrap':True, 'timeout':60, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer', 'incremental_backups':True, 'MAX_HEAP_SIZE':'8G', 'HEAP_NEWSIZE':'1G'}
 
 # DC1: padelford
 cassandra1    {'seed':True,  'topology':'DC1:RAC0', 'num_tokens':256}
