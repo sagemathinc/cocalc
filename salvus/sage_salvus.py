@@ -3036,6 +3036,13 @@ runfile = load
 ## Make it so pylab (matplotlib) figures display, at least using pylab.show
 import pylab
 def _show_pylab(svg=True):
+    """
+    Show a Pylab plot in a Sage Worksheet.
+
+    INPUTS:
+
+       - svg -- boolean (default: True); if True use an svg; otherwise, use a png.
+    """
     try:
         ext = '.svg' if svg else '.png'
         filename = uuid() + ext
@@ -3052,6 +3059,13 @@ matplotlib.figure.Figure.show = show
 
 import matplotlib.pyplot
 def _show_pyplot(svg=True):
+    """
+    Show a Pylab plot in a Sage Worksheet.
+
+    INPUTS:
+
+       - svg -- boolean (default: True); if True use an svg; otherwise, use a png.
+    """
     try:
         ext = '.svg' if svg else '.png'
         filename = uuid() + ext
