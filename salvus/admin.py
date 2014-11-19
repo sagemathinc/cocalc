@@ -340,7 +340,7 @@ class Process(object):
         except KeyError:
             try:
                 self._pids[file] = self._parse_pidfile(readfile(file).strip())
-            except IOError: # no file
+            except: # no file
                 self._pids[file] = None
         return self._pids[file]
 
