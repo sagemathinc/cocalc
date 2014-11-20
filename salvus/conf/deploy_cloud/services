@@ -173,7 +173,7 @@ cloud20  {'hostname':'compute20dc0',  'vcpus':compute_cpu,   'ram':compute_ram, 
 cloud21  {'hostname':'compute21dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute21dc0', 'vnc':13100}
 
 # Cassandra nodes
-[cassandra] {'auto_bootstrap':True, 'timeout':60, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer', 'incremental_backups':True, 'MAX_HEAP_SIZE':'4G', 'HEAP_NEWSIZE':'100M'}
+[cassandra] {'auto_bootstrap':True, 'timeout':60, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer', 'incremental_backups':True}
 
 # DC1: padelford
 cassandra1    {'seed':True,  'topology':'DC1:RAC0', 'num_tokens':256}
