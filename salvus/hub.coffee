@@ -2837,8 +2837,8 @@ path_activity = (opts) ->
         cb            : undefined
 
     # completely disable
-    ##opts.cb?()
-    ##return
+    opts.cb?()
+    return
 
     dbg = (m) -> winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{opts.path}): #{m}")
 
