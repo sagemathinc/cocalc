@@ -2753,8 +2753,10 @@ get_notifications_syncdb = (account_id, cb) ->
         else
             cb(undefined, db))
 
-# update notifications about non-comment activity on a file with at most this frequency
-MIN_ACTIVITY_INTERVAL_S = 60
+# update notifications about non-comment activity on a file with at most this frequency.
+
+# In deployment, I tried "1 minute" and it killed the system!
+MIN_ACTIVITY_INTERVAL_S = 60*15  # 15 minutes
 #MIN_ACTIVITY_INTERVAL_S = 10   # shorter for testing
 
 # prioritize notify when somebody edits a file that you edited within this many days
@@ -2834,7 +2836,11 @@ path_activity = (opts) ->
         project_title : undefined
         cb            : undefined
 
-    #dbg = (m) -> winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{opts.path}): #{m}")
+    # completely disable
+    opts.cb?()
+    return
+
+    dbg = (m) -> winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{opts.path}): #{m}")
 
     {path, action} = normalize_path(opts.path)
     if not path?
@@ -2847,6 +2853,7 @@ path_activity = (opts) ->
         opts.cb?()
         return
 
+    dbg("recording new activity")
     path_activity_cache[key] = true
     setTimeout( (()=>delete path_activity_cache[key]), MIN_ACTIVITY_INTERVAL_S*1000)
 
@@ -2893,8 +2900,6 @@ path_activity = (opts) ->
                                 break
                         cb()
         (cb) ->
-            if not is_new_activity
-                cb(); return
             #dbg("record new activity and notification")
             where = {project_id:opts.project_id, path:path, timestamp:now_time}
             async.parallel([
@@ -2920,6 +2925,8 @@ path_activity = (opts) ->
                         set   : {project_id:opts.project_id, path:path, fullname:opts.fullname, project_title:opts.project_title}
                         cb    : cb
                 (cb) ->
+                    # DISABLE temporarily; probably causing trouble.
+                    ## cb(); return
                     #dbg('add to notifications')
                     async.series([
                         (cb) ->

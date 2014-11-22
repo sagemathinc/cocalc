@@ -380,10 +380,10 @@ class StringsDB
         @_call_with_lock(@_write_updates_to_db, cb)
 
     _write_updates_to_db: (cb) =>
-        #dbg = (m) => @dbg("_write_updates_to_db", m)
         if not @db?
             cb("database not initialized"); return
-        #dbg()
+        dbg = (m) => @dbg("_write_updates_to_db", m)
+        dbg()
         f = (string_id, cb) =>
             #dbg(string_id)
             string = @strings[string_id]
@@ -415,9 +415,9 @@ class StringsDB
         @_call_with_lock(((cb)=>@_read_updates_from_db(string_ids, age, cb)), cb)
 
     _read_updates_from_db: (string_ids, age, cb) =>
-        @dbg("_read_updates_from_db", misc.to_json(string_ids))
         if not @db?
             cb("database not initialized"); return
+        @dbg("_read_updates_from_db", misc.to_json(string_ids))
         where = {string_id:{'in':string_ids}}
         if age
             where.timestamp = {'>=' : cass.now() - age}
