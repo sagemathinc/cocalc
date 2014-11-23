@@ -752,7 +752,9 @@ class Cassandra(Process):
                         # put it at the end -- some VALID options, e.g. auto_bootstrap, aren't even in the file
                         r += "\n\n%s: %s\n"%(k,v)
                         continue
-                    if r[i-2] == "#":
+                    if r[i-1] == "#":
+                        i = i - 1
+                    elif r[i-2] == "#":
                         i = i - 2
 
                     j = r[i:].find('\n')
