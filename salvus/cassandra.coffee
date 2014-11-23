@@ -716,7 +716,8 @@ class exports.Cassandra extends EventEmitter
         misc.retry_until_success
             f         : f
             max_tries : @query_max_retry
-            max_delay : 3000
+            max_delay : 15000
+            factor    : 1.6
             cb        : (err) =>
                 if err
                     err = "query failed even after #{@query_max_retry} attempts -- giving up -- #{err}"
