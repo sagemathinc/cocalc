@@ -1,5 +1,5 @@
 """
-parser.py
+sage_parser.py
 
 Code for parsing Sage code blocks sensibly.
 """
