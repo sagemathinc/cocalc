@@ -312,7 +312,7 @@ In /etc/sysctl.conf, put:
 """
 
 TINC_VERSION       = '1.0.23'    # options here -- http://tinc-vpn.org/packages/
-CASSANDRA_VERSION  = '2.0.8'     # options here -- http://downloads.datastax.com/community/
+CASSANDRA_VERSION  = '2.1.2'     # options here -- http://downloads.datastax.com/community/
 NODE_VERSION       = '0.10.32'   # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
 PYTHON_VERSION     = '2.7.6'     # options here -- https://www.python.org/ftp/python/
 SETUPTOOLS_VERSION = '3.4.4'     # options here (bottom!) -- https://pypi.python.org/pypi/setuptools

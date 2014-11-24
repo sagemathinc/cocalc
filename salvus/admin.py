@@ -752,7 +752,9 @@ class Cassandra(Process):
                         # put it at the end -- some VALID options, e.g. auto_bootstrap, aren't even in the file
                         r += "\n\n%s: %s\n"%(k,v)
                         continue
-                    if r[i-2] == "#":
+                    if r[i-1] == "#":
+                        i = i - 1
+                    elif r[i-2] == "#":
                         i = i - 2
 
                     j = r[i:].find('\n')
@@ -1351,7 +1353,7 @@ class Monitor(object):
         self._services = services  # used for self-healing
 
     def attempt_to_heal_cassandra_server(self, host):
-        self._services.start('cassandra', host=host)
+        self._services.start('cassandra', host=host, wait=False)
 
     def attempt_to_heal_bup_server(self, host):
         self._hosts(host,'cd salvus/salvus; . salvus-env; bup_server restart')
@@ -1369,7 +1371,7 @@ class Monitor(object):
             v = self._hosts(h, "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False, timeout=45)
             r = v[v.keys()[0]]
             status = {}
-            for z in [x for x in r['stdout'].splitlines() if '%' in x]:
+            for z in [x for x in r['stdout'].splitlines() if 'RAC' in x]:
                 w = z.split()
                 status[w[1]] = 'up' if w[0] == "UN" else 'down'
             if len(status) > 0:
