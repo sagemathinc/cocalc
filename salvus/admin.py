@@ -1689,7 +1689,7 @@ class Monitor(object):
         if len(down) > 0:
                 m += "The following are down: %s"%down
         for x in all['load']:
-            if x['load15'] > 100:
+            if x['load15'] > 400:
                 m += "A machine is going *crazy* with load!: %s"%x
         #for x in all['zfs']:
         #    if x['nproc'] > 10000:
