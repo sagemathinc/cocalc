@@ -390,7 +390,7 @@ class exports.Cassandra extends EventEmitter
             username        : undefined
             password        : undefined
             query_timeout_s : 45    # any query that doesn't finish after this amount of time (due to cassandra/driver *bugs*) will be retried a few times (same as consistency causing retries)
-            query_max_retry : 10    # max number of retries
+            query_max_retry : 5    # max number of retries
             consistency     : undefined
             verbose         : false # quick hack for debugging...
             conn_timeout_ms : 15000  # Maximum time in milliseconds to wait for a connection from the pool.

@@ -363,13 +363,20 @@ console_sessions = new ConsoleSessions()
 # Direct Sage socket session -- used internally in local hub, e.g., to assist CodeMirror editors...
 ###############################################
 
+_restarting_sage_server = false
 restart_sage_server = (cb) ->
+    if _restarting_sage_server
+        cb("already restarting sage server")
+        return
+    _restarting_sage_server = true
     misc_node.execute_code
         command     : "sage_server stop; sage_server start"
         timeout     : 30
         err_on_exit : true
         bash        : true
-        cb          : cb
+        cb          : (err) ->
+            _restarting_sage_server = false
+            cb(err)
 
 get_sage_socket = (cb) ->
     _get_sage_socket (err, socket) ->
