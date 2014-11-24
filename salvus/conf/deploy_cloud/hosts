@@ -9,44 +9,44 @@
 # DC1:RAC0   128.95.242.135 cloud1   # 06salvus
 10.1.1.1 dc1     kvm-host   admin edge  cloud1    cassandra-2
 10.1.1.2 dc1     kvm        cassandra1  cassandra
-10.1.1.3 dc0     kvm        web1  hub  nginx
+10.1.1.3 dc1     kvm        web1  hub  nginx
 10.1.1.5 dc1     kvm        compute-2     compute1dc1
 
 # DC1:RAC0   128.95.242.137 cloud2   # 07salvus
 10.1.2.1 dc1     kvm-host   edge        cloud2    cassandra-2
 10.1.2.2 dc1     kvm        cassandra2  cassandra
-10.1.2.3 dc0     kvm        web2  hub nginx
+10.1.2.3 dc1     kvm        web2  hub nginx
 10.1.2.5 dc1     kvm        compute-2     compute2dc1
 
 # DC1:RAC0   128.95.224.237 cloud3   # 03salvus
 10.1.3.1 dc1 kvm-host   admin edge  cloud3    cassandra-2
 10.1.3.2 dc1 kvm        cassandra3 cassandra
-10.1.3.3 dc0 kvm        hub nginx   web3
+10.1.3.3 dc1 kvm        hub nginx   web3
 10.1.3.5 dc1     kvm        compute-2     compute3dc1
 
 # DC1:RAC0   128.95.224.230 cloud4
 10.1.4.1 dc1 kvm-host   edge        cloud4    cassandra-2
 10.1.4.2 dc1 kvm        cassandra4  cassandra
-10.1.4.3 dc0 kvm        hub nginx   web4
+10.1.4.3 dc1 kvm        hub nginx   web4
 10.1.4.5 dc1     kvm        compute-2     compute4dc1
 
 # DC1:RAC0   cloud5
 10.1.5.1 dc1 kvm-host  edge            cloud5    cassandra-2
 10.1.5.2 dc1 kvm          cassandra    cassandra5
-10.1.5.3 dc0 kvm       hub nginx web5
+10.1.5.3 dc1 kvm       hub nginx web5
 10.1.5.5 dc1     kvm        compute-2     compute5dc1
 
 # DC1:RAC0   cloud6
 10.1.6.1 dc1 kvm-host  edge            cloud6    cassandra-2
 10.1.6.2 dc1 kvm              cassandra6   cassandra
-10.1.6.3 dc0 kvm       hub nginx web6
+10.1.6.3 dc1 kvm       hub nginx web6
 10.1.6.5 dc1     kvm        compute-2     compute6dc1
 
 
 # DC1:RAC0   cloud7
 10.1.7.1 dc1 kvm-host  edge            cloud7    cassandra-2
 10.1.7.2 dc1 kvm              cassandra7    cassandra
-10.1.7.3 dc0 kvm       hub nginx   web7
+10.1.7.3 dc1 kvm       hub nginx   web7
 10.1.7.5 dc1     kvm        compute-2     compute7dc1
 
 # DC0:RAC0   cloud10
