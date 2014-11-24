@@ -1,6 +1,4 @@
 
-    git add * */* */*/* */*/*/* */*/*/*/*
-
 
 * In mode/python/python.js I add our unicode output character to be a comment starter:
 
@@ -68,4 +66,12 @@ Minify all javascript into a single thing:
      cp ../codemirror-4.7/salvus_minify.py .
 
      ./salvus_minify.py
+
+-----
+
+Add to git:
+
+    git add * */* */*/* */*/*/* */*/*/*/*
+
+
 
