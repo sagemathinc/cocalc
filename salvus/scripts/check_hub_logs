@@ -14,7 +14,7 @@ def count(f, s, lines):
     else:
         c = "cat %s"%fname
     # exclude 'Error: read ' since those are caused by db driver and aren't worth worrying about (they don't seem to cause trouble)
-    c += " | grep '%s'  wc -l"%s
+    c += " | grep '%s' | wc -l"%s
     #print c
     n = int(os.popen(c).read())
     #print n
