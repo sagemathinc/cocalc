@@ -1353,7 +1353,7 @@ class Monitor(object):
         self._services = services  # used for self-healing
 
     def attempt_to_heal_cassandra_server(self, host):
-        self._services.start('cassandra', host=host)
+        self._services.start('cassandra', host=host, wait=False)
 
     def attempt_to_heal_bup_server(self, host):
         self._hosts(host,'cd salvus/salvus; . salvus-env; bup_server restart')
@@ -1371,7 +1371,7 @@ class Monitor(object):
             v = self._hosts(h, "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False, timeout=45)
             r = v[v.keys()[0]]
             status = {}
-            for z in [x for x in r['stdout'].splitlines() if '%' in x]:
+            for z in [x for x in r['stdout'].splitlines() if 'RAC' in x]:
                 w = z.split()
                 status[w[1]] = 'up' if w[0] == "UN" else 'down'
             if len(status) > 0:
@@ -1689,7 +1689,7 @@ class Monitor(object):
         if len(down) > 0:
                 m += "The following are down: %s"%down
         for x in all['load']:
-            if x['load15'] > 100:
+            if x['load15'] > 400:
                 m += "A machine is going *crazy* with load!: %s"%x
         #for x in all['zfs']:
         #    if x['nproc'] > 10000:
