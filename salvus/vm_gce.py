@@ -237,7 +237,7 @@ class Instance(object):
 
     def init_base_pool(self):
         self.log("init_base_pool: export and import the pool, and make sure mounted")
-        self.ssh("zpool export pool; zpool import -f pool; df -h |grep pool", max_tries=10, user='root')
+        self.ssh("zpool export pool; zpool import -f pool; df -h |grep pool", max_tries=25, user='root')
 
     def init_hostname(self):
         self.ssh("echo '%s' > /etc/hostname && hostname %s && echo '127.0.1.1  %s' >> /etc/hosts"%(self.hostname, self.hostname, self.hostname), user='root')

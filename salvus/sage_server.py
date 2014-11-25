@@ -52,7 +52,7 @@ import sagenb.notebook.interact
 import json, resource, shutil, signal, socket, struct, \
        tempfile, time, traceback, pwd
 
-import parsing, sage_salvus
+import sage_parsing, sage_salvus
 
 uuid = sage_salvus.uuid
 
@@ -288,7 +288,7 @@ def client1(port, hostname):
     id = 0
     while True:
         try:
-            code = parsing.get_input('sage [%s]: '%id)
+            code = sage_parsing.get_input('sage [%s]: '%id)
             if code is None:  # EOF
                 break
             conn.send_json(message.execute_code(code=code, id=id))
@@ -845,21 +845,21 @@ class Salvus(object):
         if pylab is not None:
             pylab.clf()
 
-        #code   = parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print x"
-        blocks = parsing.divide_into_blocks(code)
+        #code   = sage_parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print x"
+        blocks = sage_parsing.divide_into_blocks(code)
 
         for start, stop, block in blocks:
             if preparse:
-                block = parsing.preparse_code(block)
+                block = sage_parsing.preparse_code(block)
             sys.stdout.reset(); sys.stderr.reset()
             try:
                 b = block.rstrip()
                 if b.endswith('??'):
-                    p = parsing.introspect(block,
+                    p = sage_parsing.introspect(block,
                                    namespace=namespace, preparse=False)
                     self.code(source = p['result'], mode = "python")
                 elif b.endswith('?'):
-                    p = parsing.introspect(block, namespace=namespace, preparse=False)
+                    p = sage_parsing.introspect(block, namespace=namespace, preparse=False)
                     self.code(source = p['result'], mode = "text/x-rst")
                 else:
                     exec compile(block+'\n', '', 'single') in namespace, locals
@@ -882,7 +882,7 @@ class Salvus(object):
             code_decorators = [code_decorators]
 
         if preparse:
-            code_decorators = map(parsing.preparse_code, code_decorators)
+            code_decorators = map(sage_parsing.preparse_code, code_decorators)
 
         code_decorators = [eval(code_decorator, self.namespace) for code_decorator in code_decorators]
 
@@ -1377,8 +1377,8 @@ def session(conn):
                             cell_id       = mesg.get('cell_id',None),
                             preparse      = mesg['preparse'],
                             message_queue = mq)
-                except:
-                    pass
+                except Exception, err:
+                    log("ERROR -- exception raised '%s' when executing '%s'"%(err, mesg['code']))
             elif event == 'introspect':
                 try:
                     introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg['preparse'])
@@ -1401,7 +1401,7 @@ def session(conn):
 
 def introspect(conn, id, line, preparse):
     salvus = Salvus(conn=conn, id=id) # so salvus.[tab] works -- note that Salvus(...) modifies namespace.
-    z = parsing.introspect(line, namespace=namespace, preparse=preparse)
+    z = sage_parsing.introspect(line, namespace=namespace, preparse=preparse)
     if z['get_completions']:
         mesg = message.introspect_completions(id=id, completions=z['result'], target=z['target'])
     elif z['get_help']:
@@ -1546,7 +1546,7 @@ def serve(port, host):
         for k,v in sage_salvus.interact_functions.iteritems():
             namespace[k] = sagenb.notebook.interact.__dict__[k] = v
 
-        namespace['_salvus_parsing'] = parsing
+        namespace['_salvus_parsing'] = sage_parsing
 
         for name in ['coffeescript', 'javascript', 'time', 'timeit', 'capture', 'cython',
                      'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',

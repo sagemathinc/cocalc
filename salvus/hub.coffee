@@ -2755,23 +2755,14 @@ get_notifications_syncdb = (account_id, cb) ->
 
 # update notifications about non-comment activity on a file with at most this frequency.
 
-# In deployment, I tried "1 minute" and it killed the system!
-MIN_ACTIVITY_INTERVAL_S = 60*15  # 15 minutes
-#MIN_ACTIVITY_INTERVAL_S = 10   # shorter for testing
+MIN_ACTIVITY_INTERVAL_S = 60*5  # 5 minutes
+#MIN_ACTIVITY_INTERVAL_S = 10   # short for testing
 
 # prioritize notify when somebody edits a file that you edited within this many days
-RECENT_NOTIFICATION_D = 7
-
-#ACTIVITY_NOTIFICATION_TTL_S = 7 * 3600*24  # 1 week
-
-POLL_DB_FOR_ACTIVITY_INTERVAL_S = 10  # for now -- frequent for testing.
+RECENT_NOTIFICATION_D = 14
 
 MAX_ACTIVITY_NAME_LENGTH = 50
 MAX_ACTIVITY_TITLE_LENGTH = 60
-
-MAX_NOTIFICATIONS_LIMIT = 150 # maximum number of total notifications sent during
-                              # init for a given account; sends the first this
-                              # many newest ones
 
 normalize_path = (path) ->
     # Rules:
@@ -2836,9 +2827,8 @@ path_activity = (opts) ->
         project_title : undefined
         cb            : undefined
 
-    # completely disable
-    opts.cb?()
-    return
+    ## completely disable notifications and login by uncommenting this:
+    ##opts.cb?(); return
 
     dbg = (m) -> winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{opts.path}): #{m}")
 
