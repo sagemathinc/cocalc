@@ -680,7 +680,7 @@ class exports.Cassandra extends EventEmitter
         winston.debug("cql: '#{misc.trunc(query,100)}', consistency=#{consistency}")
         @conn.execute query, vals, { consistency: consistency }, (err, results) =>
             if err?
-                winston.error("cql: ERROR ('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) error = \n#{err}")
+                winston.error("cql ERROR: ('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) error = #{err}")
             else
                 results = results.rows
             cb?(err, results)

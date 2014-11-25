@@ -776,11 +776,13 @@ class exports.Connection extends EventEmitter
             cb         : required
         # this lock is basically a temporary ugly hack
         if @_get_account_settings_lock
+            console.log("WARNING: hit account settings lock")
             opts.cb("already getting account settings")
+            return
         @_get_account_settings_lock = true
         f = () =>
             delete @_get_account_settings_lock
-        setTimeout(f, 5000)
+        setTimeout(f, 3000)
 
         @call
             message : message.get_account_settings(account_id: opts.account_id)
