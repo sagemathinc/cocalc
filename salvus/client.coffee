@@ -774,11 +774,20 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             account_id : required
             cb         : required
+        # this lock is basically a temporary ugly hack
+        if @_get_account_settings_lock
+            opts.cb("already getting account settings")
+        @_get_account_settings_lock = true
+        f = () =>
+            delete @_get_account_settings_lock
+        setTimeout(f, 5000)
 
         @call
             message : message.get_account_settings(account_id: opts.account_id)
             timeout : DEFAULT_TIMEOUT
-            cb      : opts.cb
+            cb      : (err, settings) =>
+                delete @_get_account_settings_lock
+                opts.cb(err, settings)
 
     # restricted settings are only saved if the password is set; otherwise they are ignored.
     save_account_settings: (opts) ->
