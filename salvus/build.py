@@ -612,6 +612,7 @@ class BuildSage(object):
         self.install_pip()
         self.install_pip_packages()
         self.install_R_packages()
+        self.install_rstan()
         self.install_optional_packages()
         self.install_snappy()
         #self.install_enthought_packages()
@@ -776,6 +777,16 @@ class BuildSage(object):
         s = ','.join(['"%s"'%name for name in R_PACKAGES])
         c = 'install.packages(c(%s), repos="http://cran.cs.wwu.edu/")'%s
         self.cmd("echo '%s' | R --no-save"%c)
+
+    def install_rstan(self):
+        """
+        Install the R stan pain-to-install package into R.
+        See the following for why/how
+            https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started
+            https://github.com/stan-dev/stan/tree/master
+            https://groups.google.com/forum/#!topic/stan-users/Qbkuu51QZvU
+        """
+        self.cmd(r"""echo 'install.packages(c("inline", "BH", "RcppEigen", "Rcpp"), repos="http://cran.cs.wwu.edu/")' | R --no-save && cd /tmp && rm -rf rstan && git clone --recursive https://github.com/stan-dev/rstan.git && cd rstan/rstan && echo 'CXXFLAGS = -O2 $(LTO)' > R_Makevars && make install && rm -rf rstan""")
 
     def install_optional_packages(self, skip=[]):
         from sage.all import install_package
