@@ -1269,6 +1269,17 @@ class Client extends EventEmitter
         else if @account_id != mesg.account_id
             @push_to_client(message.error(id:mesg.id, error:"not signed in as user with id #{mesg.account_id}."))
         else
+            if @get_account_settings_lock?
+                # there is a bug in the client that is causing a burst of these messages
+                winston.debug("ignoring too many account_settings request")
+                #@push_to_client(message.error(id:mesg.id, error:"too many requests"))
+                return
+
+            @get_account_settings_lock = true
+            f = () =>
+                delete @get_account_settings_lock
+            setTimeout(f, 2000)
+
             database.get_account
                 account_id : @account_id
                 cb : (err, data) =>
