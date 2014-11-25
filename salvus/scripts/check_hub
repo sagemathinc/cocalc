@@ -1,0 +1,2 @@
+cat /proc/loadavg
+check_hub_logs  5000

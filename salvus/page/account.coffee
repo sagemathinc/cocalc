@@ -254,7 +254,8 @@ $("#create_account-button").click (event) ->
             when "signed_in"
                 ga('send', 'event', 'account', 'create_account')    # custom google analytic event -- user created an account
                 alert_message(type:"success", message: "Account created!  You are now signed in as #{mesg.first_name} #{mesg.last_name}.")
-                signed_in(mesg)
+                ## THIS is taken care of by an event handler elsewhere
+                # signed_in(mesg)
             else
                 # should never ever happen
                 alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
@@ -322,8 +323,10 @@ sign_in = () ->
             switch mesg.event
                 when 'sign_in_failed'
                     alert_message(type:"error", message: mesg.reason)
+
                 when 'signed_in'
-                    signed_in(mesg)
+                    # Signed_in gets handled by the signed_in event listener below -- do not do it here also.
+                    pass=0
                 when 'error'
                     alert_message(type:"error", message: mesg.reason)
                 else
@@ -481,10 +484,12 @@ class AccountSettings
         salvus_client.get_account_settings
             account_id : account_id
             cb         : (error, settings_mesg) =>
+                #console.log("load got back ", error, settings_mesg)
                 if error or settings_mesg.event == 'error'
                     $("#account-settings-error").show()
                     # try to get settings again in a bit to fix that the settings aren't known
                     f = () =>
+                        #console.log("calling again")
                         @load_from_server()
                     setTimeout(f, 10000)
                     cb?(error)

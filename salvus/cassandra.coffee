@@ -389,8 +389,8 @@ class exports.Cassandra extends EventEmitter
             keyspace        : undefined
             username        : undefined
             password        : undefined
-            query_timeout_s : 45    # any query that doesn't finish after this amount of time (due to cassandra/driver *bugs*) will be retried a few times (same as consistency causing retries)
-            query_max_retry : 5    # max number of retries
+            query_timeout_s : 30    # any query that doesn't finish after this amount of time (due to cassandra/driver *bugs*) will be retried a few times (same as consistency causing retries)
+            query_max_retry : 3    # max number of retries
             consistency     : undefined
             verbose         : false # quick hack for debugging...
             conn_timeout_ms : 15000  # Maximum time in milliseconds to wait for a connection from the pool.
@@ -410,10 +410,14 @@ class exports.Cassandra extends EventEmitter
         @connect()
 
     reconnect: (cb) =>
-        if not @conn?
+        winston.debug("reconnect to database server")
+        if not @conn? or not @conn.shutdown?
+            winston.debug("directly connecting")
             @connect(cb)
             return
-        @conn.shutdown? () =>
+        winston.debug("reconnect to database server -- first shutting down")
+        @conn.shutdown (err) =>
+            winston.debug("reconnect to database server -- shutdown returned #{err}")
             delete @conn
             @connect(cb)
 
@@ -663,7 +667,26 @@ class exports.Cassandra extends EventEmitter
         @select(opts)
 
     cql: (query, vals, consistency, cb) =>
-        #winston.debug("cql: '#{query}'")
+        if typeof vals == 'function'
+            cb = vals
+            vals = []
+            consistency = undefined
+        if typeof consistency == 'function'
+            cb = consistency
+            consistency = undefined
+        if not consistency?
+            consistency = @consistency
+
+        winston.debug("cql: '#{misc.trunc(query,100)}', consistency=#{consistency}")
+        @conn.execute query, vals, { consistency: consistency }, (err, results) =>
+            if err?
+                winston.error("cql ERROR: ('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) error = #{err}")
+            else
+                results = results.rows
+            cb?(err, results)
+
+    cql0: (query, vals, consistency, cb) =>
+        winston.debug("cql: '#{query}'")
         if typeof vals == 'function'
             cb = vals
             vals = []
