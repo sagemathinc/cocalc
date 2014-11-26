@@ -1,6 +1,12 @@
 I created these files as follows:
 
+    # for websockets
     primus = new require('primus')(require('http').createServer(), {transformer: 'websockets',  pathname : '/hub'}); fs.writeFileSync('static/primus/primus.js',primus.library());
+
+    # for engine.io -- CURRENTLY USED
+
+    primus = new require('primus')(require('http').createServer(), {transformer: 'engine.io',  pathname : '/hub'}); fs.writeFileSync('static/primus/primus.js',primus.library());
+
 
   cd static/primus; uglifyjs2 primus.js > primus.min.js; cd ../..
 

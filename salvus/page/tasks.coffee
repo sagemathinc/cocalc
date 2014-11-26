@@ -929,7 +929,7 @@ class TaskList
             extraKeys["Esc"] = stop_editing
 
         opts =
-            mode                : 'gfm'
+            mode                : 'gfm2'
             lineNumbers         : false
             theme               : editor_settings.theme
             lineWrapping        : editor_settings.line_wrapping
