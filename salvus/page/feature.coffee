@@ -4,10 +4,10 @@
 #
 ####################################################
 
-if not window.WebSocket?  # websocket support -- mark of a modern browser.
-    $(".salvus_client_browser_warning").draggable().find(".fa-times").click () ->
-        $(".salvus_client_browser_warning").hide()
-    $(".salvus_client_browser_warning").show()
+#if not window.WebSocket?  # websocket support -- mark of a modern browser.
+#    $(".salvus_client_browser_warning").draggable().find(".fa-times").click () ->
+#        $(".salvus_client_browser_warning").hide()
+#    $(".salvus_client_browser_warning").show()
 
 isMobile = exports.isMobile =
     Android    : () -> if navigator.userAgent.match(/Android/i) then true else false
@@ -26,4 +26,4 @@ exports.IS_MOBILE = exports.isMobile.any()
 if $.browser.chrome
     $(".salvus-chrome-only").show()
 
-$.browser.firefox = navigator.userAgent.toLowerCase().indexOf('firefox') > 0    
+$.browser.firefox = navigator.userAgent.toLowerCase().indexOf('firefox') > 0

@@ -646,10 +646,17 @@ class exports.Connection extends EventEmitter
     server_version: (opts) =>
         opts = defaults opts,
             cb : required
+        ($.get "/static/salvus_version.js", (data) =>
+            opts.cb(undefined, parseInt(data.split('=')[1]))).fail (err) =>
+                opts.cb("failed to get version -- #{err}")
+        # the following is an older socket version; the above is better since it
+        # even works if we're switching protocols (e.g., between websocket and engine.io)
+        ###
         @call
             message : message.get_version()
             cb      : (err, mesg) =>
                 opts.cb(err, mesg.version)
+        ###
 
     #################################################
     # Stats

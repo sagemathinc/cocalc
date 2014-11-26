@@ -23,9 +23,13 @@ class Connection extends client.Connection
         conn = new Primus(url, opts)
         @_conn = conn
         conn.on 'open', () =>
-            console.log("websocket -- connected in #{walltime(t)} seconds")
             @_connected = true
-            @emit("connected", 'websocket')
+            if window.WebSocket?
+                protocol = 'websocket'
+            else
+                protocol = 'polling'
+            console.log("#{protocol} -- connected in #{walltime(t)} seconds")
+            @emit("connected", protocol)
 
         conn.on 'message', (evt) =>
             #console.log("websocket -- message: ", evt)
