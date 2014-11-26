@@ -3086,7 +3086,7 @@ primus_server = undefined
 init_primus_server = () ->
     Primus = require('primus')
     opts =
-        transformer : 'websockets'
+        transformer : 'engine.io'
         pathname    : '/hub'
     primus_server = new Primus(http_server, opts)
     winston.debug("primus_server: listening on #{opts.pathname}")
