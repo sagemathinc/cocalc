@@ -14,14 +14,14 @@ def count(f, s, lines):
     else:
         c = "cat %s"%fname
     # exclude 'Error: read ' since those are caused by db driver and aren't worth worrying about (they don't seem to cause trouble)
-    c += " | grep '%s' | grep -v 'Error: read ' | grep -v 'Error: This socket is closed.' | wc -l"%s
+    c += " | grep '%s' | wc -l"%s
     #print c
     n = int(os.popen(c).read())
     #print n
     return n
 
 def check(num):
-    strings = [('timed out with no response',num), ('PoolConnectionError',num), ('debug: Uncaught exception:',num)]
+    strings = [('cql ERROR:',num), ('PoolConnectionError',num), ('debug: Uncaught exception:',num)]
 
     for f in sorted(os.listdir(LOGS)):
         if f.startswith('hub-') and f.endswith('.log'):
