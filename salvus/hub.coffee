@@ -92,6 +92,7 @@ init_salvus_version = () ->
 
 
 syncstring = require('syncstring')
+SYNCSTRING_DISABLED = true
 
 misc_node = require('misc_node')
 
@@ -2594,6 +2595,10 @@ class Client extends EventEmitter
     # Get a new syncstring session for the string with given id.
     # Returns message with a session_id and also the value of the string.
     get_syncstring: (mesg, cb) =>
+        if SYNCSTRING_DISABLED
+            @error_to_client(id:mesg.id, error:"syncstrings currently disabled")
+            cb("syncstrings currently disabled")
+            return
         if not @_syncstrings?
             @_syncstrings = {}
 
@@ -2707,6 +2712,9 @@ class Client extends EventEmitter
 # one notifications syncdb per *account* (not connection); keys are account id's
 notifications_syncdb_cache = {}
 get_notifications_syncdb = (account_id, cb) ->
+    if SYNCSTRING_DISABLED
+        cb("syncstring disabled")
+        return
     if not account_id?
         cb("user must be signed in")
         return
@@ -2926,8 +2934,9 @@ path_activity = (opts) ->
                         set   : {project_id:opts.project_id, path:path, fullname:opts.fullname, project_title:opts.project_title}
                         cb    : cb
                 (cb) ->
-                    # DISABLE temporarily; probably causing trouble.
-                    ## cb(); return
+                    if SYNCSTRING_DISABLED
+                        # DISABLE temporarily; probably causing trouble.
+                        cb(); return
                     #dbg('add to notifications')
                     async.series([
                         (cb) ->
@@ -3077,7 +3086,7 @@ primus_server = undefined
 init_primus_server = () ->
     Primus = require('primus')
     opts =
-        transformer : 'websockets'
+        transformer : 'engine.io'
         pathname    : '/hub'
     primus_server = new Primus(http_server, opts)
     winston.debug("primus_server: listening on #{opts.pathname}")
@@ -5522,7 +5531,8 @@ exports.start_server = start_server = () ->
         cb          : () =>
             winston.debug("connected to database.")
             init_salvus_version()
-            syncstring.init_syncstring_db(database)
+            if not SYNCSTRING_DISABLED
+                syncstring.init_syncstring_db(database)
 
             # proxy server and http server, etc. relies on bup server having been created
             init_bup_server () =>

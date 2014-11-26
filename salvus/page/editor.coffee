@@ -59,7 +59,7 @@ codemirror_associations =
     js     : 'javascript'
     lua    : 'lua'
     m      : 'text/x-octave'
-    md     : 'gfm'
+    md     : 'gfm2'
     ml     : 'text/x-ocaml'
     mysql  : 'text/x-sql'
     patch  : 'text/x-diff'
@@ -81,7 +81,7 @@ codemirror_associations =
     spyx   : 'python'
     sql    : 'text/x-sql'
     txt    : 'text'
-    tex    : 'stex'
+    tex    : 'stex2'
     toml   : 'text/x-toml'
     bib    : 'stex'
     bbl    : 'stex'
@@ -100,7 +100,7 @@ for ext, mode of codemirror_associations
 file_associations['tex'] =
     editor : 'latex'
     icon   : 'fa-file-excel-o'
-    opts   : {mode:'stex', indent_unit:4, tab_size:4}
+    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
 
 file_associations['html'] =
     editor : 'codemirror'
@@ -188,7 +188,7 @@ sagews_decorator_modes = [
     ['javascript'  , 'javascript'],
     ['latex'       , 'stex']
     ['lisp'        , 'ecl'],
-    ['md'          , 'gfm'],
+    ['md'          , 'gfm2'],
     ['gp'          , 'text/pari'],
     ['go'          , 'text/x-go']
     ['perl'        , 'text/x-perl'],
@@ -204,6 +204,28 @@ sagews_decorator_modes = [
 ]
 
 exports.define_codemirror_sagews_mode = () ->
+
+    CodeMirror.defineMode "gfm2", (config) ->
+        options = []
+        for x in [['$$','$$'], ['$','$'], ['\\[','\\]'], ['\\(','\\)']]
+            options.push
+                open  : x[0]
+                close : x[1]
+                mode  : CodeMirror.getMode(config, 'stex')
+        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "gfm"), options...)
+
+    CodeMirror.defineMode "stex2", (config) ->
+        options = []
+        for x in ['sagesilent', 'sageblock']
+            options.push
+                open  : "\\begin{#{x}}"
+                close : "\\end{#{x}}"
+                mode  : CodeMirror.getMode(config, 'sagews')
+        options.push
+            open  : "\\sage{"
+            close : "}"
+            mode  : CodeMirror.getMode(config, 'sagews')
+        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex"), options...)
 
     CodeMirror.defineMode "sagews", (config) ->
         options = []
@@ -3093,7 +3115,7 @@ class LatexEditor extends FileEditor
         #     * latex_editor -- a CodeMirror editor
         #     * preview -- display the images (page forward/backward/resolution)
         #     * log -- log of latex command
-        opts.mode = 'stex'
+        opts.mode = 'stex2'
 
         @element = templates.find(".salvus-editor-latex").clone()
 
