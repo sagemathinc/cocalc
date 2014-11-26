@@ -611,8 +611,10 @@ class BuildSage(object):
         self.install_projlib()
         self.install_pip()
         self.install_pip_packages()
+        self.install_pymc()
         self.install_R_packages()
         self.install_rstan()
+        self.install_pystan()
         self.install_optional_packages()
         self.install_snappy()
         #self.install_enthought_packages()
@@ -773,6 +775,9 @@ class BuildSage(object):
             e = ' '.join(["%s=%s"%x for x in SAGE_PIP_PACKAGES_ENV[package].items()]) if package in SAGE_PIP_PACKAGES_ENV else ''
             self.cmd("%s pip install %s --no-deps %s"%(e, '--upgrade' if upgrade else '', package))
 
+    def install_pymc(self):
+        self.cmd("pip install git+https://github.com/pymc-devs/pymc")
+
     def install_R_packages(self):
         s = ','.join(['"%s"'%name for name in R_PACKAGES])
         c = 'install.packages(c(%s), repos="http://cran.cs.wwu.edu/")'%s
@@ -786,7 +791,10 @@ class BuildSage(object):
             https://github.com/stan-dev/stan/tree/master
             https://groups.google.com/forum/#!topic/stan-users/Qbkuu51QZvU
         """
-        self.cmd(r"""echo 'install.packages(c("inline", "BH", "RcppEigen", "Rcpp"), repos="http://cran.cs.wwu.edu/")' | R --no-save && cd /tmp && rm -rf rstan && git clone --recursive https://github.com/stan-dev/rstan.git && cd rstan/rstan && echo 'CXXFLAGS = -O2 $(LTO)' > R_Makevars && make install && rm -rf rstan""")
+        self.cmd(r"""echo 'install.packages(c("inline", "BH", "RcppEigen", "Rcpp"), repos="http://cran.cs.wwu.edu/")' | R --no-save && cd /tmp && rm -rf rstan && git clone --recursive https://github.com/stan-dev/rstan.git && cd rstan/rstan && echo 'CXXFLAGS = -O2 $(LTO)' > R_Makevars && make install && rm -rf /tmp/rstan""")
+
+    def install_pystan(self):
+        self.cmd(r"""cd /tmp && rm -rf pystan && git clone --recursive https://github.com/stan-dev/pystan.git && cd pystan && python setup.py install && rm -rf /tmp/pystan""")
 
     def install_optional_packages(self, skip=[]):
         from sage.all import install_package
