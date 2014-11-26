@@ -1,0 +1,9 @@
+#!/bin/sh
+
+cd $SALVUS_ROOT
+node static/primus/update_primus.js
+
+cd static/primus
+uglifyjs2 primus-websockets.js > primus-websockets.min.js
+uglifyjs2 primus-engine.js > primus-engine.min.js
+uglifyjs2 primus-sockjs.js > primus-sockjs.min.js
