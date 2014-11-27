@@ -348,6 +348,8 @@ NODE_MODULES = [
     'winston',
     'primus',  # websocket abstraction
     'ws',      # fast low-level websocket depedency for primus
+    'sockjs',  # not used but is optionally available in hub/primeus/client
+    'engine.io',  # this is the one we use -- seems by far the best overall.  CAREFUL WITH DNS!
     'cassandra-driver',
     'coffee-script',
     'node-uuid',
@@ -378,7 +380,7 @@ NODE_MODULES = [
     'rimraf',
     'net-ping',
     'marked',
-    'http-proxy'     # https://github.com/nodejitsu/node-http-proxy
+    'http-proxy'    # https://github.com/nodejitsu/node-http-proxy
     ]
 
 PYTHON_PACKAGES = [
