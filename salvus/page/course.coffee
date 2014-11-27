@@ -1219,7 +1219,9 @@ class Course
             assignment.last_return_graded = {}
         assignment_with = (student, cb) =>
             #console.log("returning '#{assignment.path}' to #{student.email_address}")
-            if not student.project_id?
+            # Only try to return if the student's project has been created *and* the assignment
+            # for this student was collected (otherwise trying to return it results in an error).
+            if not student.project_id? or not assignment.last_collect[student.student_id]?
                 #console.log("can't return assignment to #{student.email_address} -- no project")
                 cb()
                 return
