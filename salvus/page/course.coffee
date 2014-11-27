@@ -999,6 +999,10 @@ class Course
                         @return_graded_to_students
                             assignment_id : assignment.assignment_id
                             cb       : (err) =>
+                                if err
+                                    alert_message(type:"error", message:"Error returning collected assignments (report to wstein@uw.edu) -- #{err}", timeout:15)
+                                else
+                                    alert_message(message:"Successfully returned collected assignments to students", timeout:3)
                                 return_button.icon_spin(false)
 
         # NOTE: for now we just put everything -- visible or not -- in the DOM.  This is less
