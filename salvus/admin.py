@@ -1263,7 +1263,7 @@ class Hosts(object):
         if self[hostname] == ['127.0.0.1']:
             print "Not enabling firewall on 127.0.0.1"
             return
-        cmd = ' && '.join(['ufw disable'] +
+        cmd = ' && '.join(['/home/salvus/salvus/salvus/scripts/ufw_clear'] + ['ufw disable'] +
                           ['ufw default allow incoming'] + ['ufw default allow outgoing'] + ['ufw --force reset']
                           + ['ufw ' + c for c in commands] +
                              (['ufw --force enable'] if commands else []))
