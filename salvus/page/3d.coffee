@@ -847,17 +847,29 @@ exports.render_3d_scene = (opts) ->
             if opts.scene?
                 cb()
             else
-                $.ajax(
-                    url     : opts.url
-                    timeout : 30000
-                    success : (data) ->
-                        try
-                            opts.scene = misc.from_json(data)
+                f = (cb) ->
+                    $.ajax(
+                        url     : opts.url
+                        timeout : 30000
+                        success : (data) ->
+                            try
+                                opts.scene = misc.from_json(data)
+                                cb()
+                            catch e
+                                #console.log("ERROR")
+                                cb(e)
+                    ).fail () ->
+                        #console.log("FAIL")
+                        cb(true)
+                misc.retry_until_success
+                    f         : f
+                    max_tries : 10
+                    max_delay : 5
+                    cb        : (err) ->
+                        if err
+                            cb("error downloading #{opts.url}")
+                        else
                             cb()
-                        catch e
-                            cb(e)
-                ).fail () ->
-                    cb("error downloading #{opts.url}")
         (cb) =>
             # do this initialization *after* we create the 3d renderer
             init = (err, s) ->

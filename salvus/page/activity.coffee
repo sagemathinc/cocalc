@@ -1,4 +1,8 @@
 # activity.coffee
+DISABLE_NOTIFICATIONS = true
+
+if DISABLE_NOTIFICATIONS
+    $(".salvus-notification-indicator").hide()
 
 misc = require('misc')
 editor = require('editor')
@@ -36,7 +40,7 @@ exports.get_notifications_syncdb = get_notifications_syncdb = (cb) ->
 
 _init_notifications_done = false
 init_notifications = () ->
-    if _init_notifications_done
+    if _init_notifications_done or DISABLE_NOTIFICATIONS
         return
     #console.log('initializing notifications')
     get_notifications_syncdb (err, db) ->

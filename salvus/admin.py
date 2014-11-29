@@ -1263,7 +1263,7 @@ class Hosts(object):
         if self[hostname] == ['127.0.0.1']:
             print "Not enabling firewall on 127.0.0.1"
             return
-        cmd = ' && '.join(['ufw disable'] +
+        cmd = ' && '.join(['/home/salvus/salvus/salvus/scripts/ufw_clear'] + ['ufw disable'] +
                           ['ufw default allow incoming'] + ['ufw default allow outgoing'] + ['ufw --force reset']
                           + ['ufw ' + c for c in commands] +
                              (['ufw --force enable'] if commands else []))
@@ -1368,7 +1368,7 @@ class Monitor(object):
         for i in range(len(hosts)):
             h = random.choice(hosts)
             print "cassandra host = ", h
-            v = self._hosts(h, "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False, timeout=45)
+            v = self._hosts(h, "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False, timeout=80)
             r = v[v.keys()[0]]
             status = {}
             for z in [x for x in r['stdout'].splitlines() if 'RAC' in x]:
@@ -1378,7 +1378,7 @@ class Monitor(object):
                 # keep trying until we at least get some output.
                 break
         ans = []
-        for k, v in self._hosts('cassandra', 'df -h /mnt/cassandra', wait=True, parallel=True, verbose=False, timeout=45).iteritems():
+        for k, v in self._hosts('cassandra', 'df -h /mnt/cassandra', wait=True, parallel=True, verbose=False, timeout=80).iteritems():
             if v.get('exit_status',1) or 'stdout' not in v:
                 ans.append({'service':'cassandra', 'host':k[0], 'status':'down'})
             else:
@@ -1395,7 +1395,7 @@ class Monitor(object):
     def compute(self):
         ans = []
         c = 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l && cd salvus/salvus; . salvus-env; ./bup_server status 2>/dev/null'
-        for k, v in self._hosts('compute-2', c, wait=True, parallel=True).iteritems():
+        for k, v in self._hosts('compute-2', c, wait=True, parallel=True, timeout=80).iteritems():
             d = {'host':k[0], 'service':'compute'}
             stdout = v.get('stdout','')
             m = stdout.splitlines()
@@ -1449,7 +1449,7 @@ class Monitor(object):
         Return normalized load on *everything*, sorted by highest current load first.
         """
         ans = []
-        for k, v in self._hosts('all', 'nproc && uptime', parallel=True, wait=True).iteritems():
+        for k, v in self._hosts('all', 'nproc && uptime', parallel=True, wait=True, timeout=80).iteritems():
             d = {'host':k[0]}
             m = v.get('stdout','').splitlines()
             if v.get('exit_status',1) != 0 or len(m) < 2:
@@ -1491,7 +1491,7 @@ class Monitor(object):
         h = ' '.join([host for host in self._hosts[hosts] if host not in exclude])
         if not h:
             return []
-        for k, v in self._hosts(h, cmd, parallel=True, wait=True, timeout=60).iteritems():
+        for k, v in self._hosts(h, cmd, parallel=True, wait=True, timeout=80).iteritems():
             d = {'host':k[0], 'service':'dns'}
             exit_code = v.get('stdout','').strip()
             if exit_code == '':
@@ -1513,7 +1513,7 @@ class Monitor(object):
         cmd = "ps ax |grep zfs | grep -v flush | wc -l; cat zpool.list"
         ans = []
         # zpool list can take a while when host is loaded, but still work fine.
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=60, username='storage').iteritems():
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=80, username='storage').iteritems():
             x = v['stdout'].split()
             try:
                 nproc = int(x[0]) - 2
@@ -1548,7 +1548,7 @@ class Monitor(object):
         """
         cmd = "ps ax |grep zfs | grep -v flush | wc -l"
         ans = []
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=20, username='storage').iteritems():
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=80, username='storage').iteritems():
             x = v['stdout'].split()
             try:
                 nproc = int(x[0]) - 2
@@ -1561,7 +1561,7 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
-    def stats(self, timeout=60):
+    def stats(self, timeout=90):
         """
         Get all ip addresses that SITENAME resolves to, then verify that https://ip_address/stats returns
         valid data, for each ip.  This tests that all stunnel and haproxy servers are running.
