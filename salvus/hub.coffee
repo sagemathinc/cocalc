@@ -4275,14 +4275,12 @@ sign_in = (client, mesg) =>
                         sign_in_error("Incorrect password.")
                         cb(true); return
                     else
-
                         signed_in_mesg = message.signed_in
                             id            : mesg.id
                             account_id    : account.account_id
                             email_address : mesg.email_address
                             remember_me   : false
                             hub           : program.host + ':' + program.port
-
                         client.signed_in(signed_in_mesg)
                         client.push_to_client(signed_in_mesg)
                         cb()
