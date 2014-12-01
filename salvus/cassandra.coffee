@@ -184,15 +184,18 @@ class UUIDStore
             where   : {name:@opts.name, uuid:{'in':opts.uuids}}
             objectify : true
             cb      : (err, results) =>
-                f = (r, cb) =>
-                    if r['ttl(value)'] != opts.ttl
-                        @_set_ttl
-                            uuid : r.uuid
-                            ttl  : opts.ttl
-                            cb   : cb
-                    else
-                        cb()
-                async.map(results, f, opts.cb)
+                if err
+                    opts.cb?(err)
+                else
+                    f = (r, cb) =>
+                        if r['ttl(value)'] != opts.ttl
+                            @_set_ttl
+                                uuid : r.uuid
+                                ttl  : opts.ttl
+                                cb   : cb
+                        else
+                            cb()
+                    async.map(results, f, opts.cb)
 
     # Set ttl only for one ttl; expensive if needs to change ttl, but cheap otherwise.
     set_ttl: (opts) =>
@@ -971,10 +974,13 @@ class exports.Salvus extends exports.Cassandra
             where     : {account_id:{'in':opts.account_ids}}
             objectify : true
             cb        : (err, results) =>
-                v = {}
-                for r in results
-                    v[r.account_id] = {first_name:r.first_name, last_name:r.last_name}
-                opts.cb(err, v)
+                if err
+                    opts.cb?(err)
+                else
+                    v = {}
+                    for r in results
+                        v[r.account_id] = {first_name:r.first_name, last_name:r.last_name}
+                    opts.cb(err, v)
 
     #####################################
     # Managing compute servers
