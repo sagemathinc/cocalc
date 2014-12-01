@@ -2353,12 +2353,17 @@ class exports.Salvus extends exports.Cassandra
                         stats.last_week_projects = val
                         cb(err)
             (cb) =>
+                cb(); return
+                ###
+                # TODO: this has got too big and is now too
+                # slow, causing timeouts.
                 @count
                     table : 'recently_modified_projects'
                     where : {ttl : 'month'}
                     cb    : (err, val) =>
                         stats.last_month_projects = val
                         cb(err)
+                ###
             (cb) =>
                 @select
                     table     : 'hub_servers'
