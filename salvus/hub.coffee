@@ -4145,13 +4145,79 @@ password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_tim
 #############################################################################
 # User sign in
 #
-# Anti-DOS cracking throttling policy:
+# Anti-DOS cracking throttling policy is basically like this, except we reset the counters
+# each minute and hour, so a crafty attacker could get twice as many tries by finding the
+# reset interval and hitting us right before and after.  This is an acceptable tradeoff
+# for making the data structure trivial.
 #
-#   * POLICY 1: A given email address is allowed at most 5 failed login attempts per minute.
-#   * POLICY 2: A given email address is allowed at most 100 failed login attempts per hour.
-#   * POLICY 3: A given ip address is allowed at most 100 failed login attempts per minute.
-#   * POLICY 4: A given ip address is allowed at most 250 failed login attempts per hour.
+#   * POLICY 1: A given email address is allowed at most 3 failed login attempts per minute.
+#   * POLICY 2: A given email address is allowed at most 30 failed login attempts per hour.
+#   * POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
+#   * POLICY 4: A given ip address is allowed at most 50 failed login attempts per hour.
 #############################################################################
+sign_in_fails = {email_m:{}, email_h:{}, ip_m:{}, ip_h:{}}
+
+clear_sign_in_fails_m = () ->
+    sign_in_fails.email_m = {}
+    sign_in_fails.ip_m = {}
+
+clear_sign_in_fails_h = () ->
+    sign_in_fails.email_h = {}
+    sign_in_fails.ip_h = {}
+
+_sign_in_fails_intervals = undefined
+
+record_sign_in_fail = (opts) ->
+    {email, ip} = defaults opts,
+        email : required
+        ip    : required
+    if not _sign_in_fails_intervals?
+        # only start clearing if there has been a failure...
+        _sign_in_fails_intervals = [setInterval(clear_sign_in_fails_m, 60000), setInterval(clear_sign_in_fails_h, 60*60000)]
+
+    winston.debug("WARNING: record_sign_in_fail(#{email}, #{ip})")
+    s = sign_in_fails
+    if not s.email_m[email]?
+        s.email_m[email] = 0
+    if not s.ip_m[ip]?
+        s.ip_m[ip] = 0
+    if not s.email_h[email]?
+        s.email_h[email] = 0
+    if not s.ip_h[ip]?
+        s.ip_h[ip] = 0
+    s.email_m[email] += 1
+    s.email_h[email] += 1
+    s.ip_m[ip] += 1
+    s.ip_h[ip] += 1
+    ### old database approach
+        database.update
+            table       : 'failed_sign_ins_by_ip_address'
+            set         : {email_address:opts.email_address}
+            where       : {time:cass.now(), ip_address:opts.ip_address}
+            consistency : cql.types.consistencies.one
+        database.update
+            table       : 'failed_sign_ins_by_email_address'
+            set         : {ip_address:opts.ip_address}
+            where       : {time:cass.now(), email_address:opts.email_address}
+            consistency : cql.types.consistencies.one
+
+    ###
+
+sign_in_check = (opts) ->
+    {email, ip} = defaults opts,
+        email : required
+        ip    : required
+    s = sign_in_fails
+    if s.email_m[email] > 3
+        return "A given email address is allowed at most 3 failed login attempts per minute."
+    if s.email_h[email] > 30
+        return "A given email address is allowed at most 30 failed login attempts per hour."
+    if s.ip_m[ip] > 10
+        return "A given ip address is allowed at most 10 failed login attempts per minute."
+    if s.ip_h[ip] > 50
+        return "A given ip address is allowed at most 50 failed login attempts per hour."
+    return false
+
 sign_in = (client, mesg) =>
     #winston.debug("sign_in")
     sign_in_error = (error) ->
@@ -4167,89 +4233,33 @@ sign_in = (client, mesg) =>
 
     mesg.email_address = misc.lower_email_address(mesg.email_address)
 
+    m = sign_in_check
+        email : mesg.email_address
+        ip    : client.ip_address
+    if m
+        winston.debug("WARNING: sign_in fail(email=#{mesg.email}, ip=#{client.ip_address}): #{m}")
+        sign_in_error(m)
+        return
+
     signed_in_mesg = null
-
-    ### (this commented out code was in the series below, indented one level)
-    # URGENT todo: change these so they take almost no time -- e.g., since user
-    # hits same server due to sticky cookies and DNS, could use an in-memory
-    # cache mostly; also, don't do range query on time, but have specific name.
-    # And validate user in parallel?
-    # POLICY 1: A given email address is allowed at most 5 failed login attempts per minute.
-    (cb) ->
-        database.count
-            table       : "failed_sign_ins_by_email_address"
-            where       : {email_address:mesg.email_address, time: {'>=':cass.minutes_ago(1)}}
-            consistency : cql.types.consistencies.one
-            cb          : (error, count) ->
-                if error
-                    sign_in_error(error)
-                    cb(true); return
-                if count > 5
-                    sign_in_error("A given email address is allowed at most 5 failed login attempts per minute. Please wait.")
-                    cb(true); return
-                cb()
-    # POLICY 2: A given email address is allowed at most 100 failed login attempts per hour.
-    (cb) ->
-        database.count
-            table       : "failed_sign_ins_by_email_address"
-            where       : {email_address:mesg.email_address, time: {'>=':cass.hours_ago(1)}}
-            consistency : cql.types.consistencies.one
-            cb          : (error, count) ->
-                if error
-                    sign_in_error(error)
-                    cb(true); return
-                if count > 100
-                    sign_in_error("A given email address is allowed at most 100 failed login attempts per hour. Please wait.")
-                    cb(true); return
-                cb()
-
-    # POLICY 3: A given ip address is allowed at most 100 failed login attempts per minute.
-    (cb) ->
-        database.count
-            table       : "failed_sign_ins_by_ip_address"
-            where       : {ip_address:client.ip_address, time: {'>=':cass.minutes_ago(1)}}
-            consistency : cql.types.consistencies.one
-            cb          : (error, count) ->
-                if error
-                    sign_in_error(error)
-                    cb(true); return
-                if count > 100
-                    sign_in_error("A given ip address is allowed at most 100 failed login attempts per minute. Please wait.")
-                    cb(true); return
-                cb()
-
-    # POLICY 4: A given ip address is allowed at most 250 failed login attempts per hour.
-    (cb) ->
-        database.count
-            table       : "failed_sign_ins_by_ip_address"
-            where       : {ip_address:client.ip_address, time: {'>=':cass.hours_ago(1)}}
-            consistency : cql.types.consistencies.one
-            cb          : (error, count) ->
-                if error
-                    sign_in_error(error)
-                    cb(true); return
-                if count > 250
-                    sign_in_error("A given ip address is allowed at most 250 failed login attempts per hour. Please wait.")
-                    cb(true); return
-                cb()
-
-    # POLICY: Don't allow banned users to sign in.
-    (cb) ->
-        database.is_banned_user
-            email_address : mesg.email_address
-            cb            : (err, is_banned) ->
-                if err
-                    sign_in_error(err)
-                    cb(err)
-                else
-                    if is_banned
-                        sign_in_error("User '#{mesg.email_address}' is banned from SageMathCloud due to violation of the terms of usage.")
-                        cb(true)
-                    else
-                        cb()
-
-    ###
     async.series([
+        # POLICY: Don't allow banned users to sign in.  Slow to check and kind of pointless
+        # since it is so easy for a user to just make a different account.  Of course,
+        # forcing them to lose access to all their work is useful.
+        (cb) ->
+            database.is_banned_user
+                email_address : mesg.email_address
+                cb            : (err, is_banned) ->
+                    if err
+                        sign_in_error(err)
+                        cb(err)
+                    else
+                        if is_banned
+                            sign_in_error("User '#{mesg.email_address}' is banned from SageMathCloud due to violation of the terms of usage.")
+                            cb(true)
+                        else
+                            cb()
+
         (cb) ->
             # get account and check credentials
             # NOTE: Despite people complaining, we do give away info about whether the e-mail address is for a valid user or not.
@@ -4304,16 +4314,9 @@ record_sign_in = (opts) ->
         account_id    : undefined
         remember_me   : false
     if not opts.successful
-        database.update
-            table       : 'failed_sign_ins_by_ip_address'
-            set         : {email_address:opts.email_address}
-            where       : {time:cass.now(), ip_address:opts.ip_address}
-            consistency : cql.types.consistencies.one
-        database.update
-            table       : 'failed_sign_ins_by_email_address'
-            set         : {ip_address:opts.ip_address}
-            where       : {time:cass.now(), email_address:opts.email_address}
-            consistency : cql.types.consistencies.one
+        record_sign_in_fail
+            email : opts.email_address
+            ip    : opts.ip_address
     else
         database.update
             table       : 'successful_sign_ins'
