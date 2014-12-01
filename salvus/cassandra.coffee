@@ -1106,6 +1106,7 @@ class exports.Salvus extends exports.Cassandra
                         last_name     : opts.last_name
                         email_address : opts.email_address
                         password_hash : opts.password_hash
+                        created       : now()
                     where : {account_id:account_id}
                     cb    : cb
             (cb) =>
@@ -1929,6 +1930,7 @@ class exports.Salvus extends exports.Cassandra
                         last_edited : now()
                         description : opts.description
                         public      : opts.public
+                        created     : now()
                     where : {project_id: opts.project_id}
                     cb    : (error, result) ->
                         if error
