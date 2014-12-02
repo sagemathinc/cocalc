@@ -20,6 +20,34 @@
 #
 #################################################################
 
+# The StringsDB class below models storing a distributed collection of strings, indexed by a uuid,
+# in an eventually consistent database (Cassandra).
+# It queries periodically, with exponetial backoff, for updates about strings that
+# we're watching.  It assembles the patch stream in the database together to give
+# a consistent view for each string, and also writes patches to propogate that view.
+# Times below are in milliseconds.
+
+# Polling parameters:
+INIT_POLL_INTERVAL     = 3000
+MAX_POLL_INTERVAL      = 20000   # TODO: for testing -- for deploy make longer!
+POLL_DECAY_RATIO       = 1.4
+
+# We grab patches that are up to TIMESTAMP_OVERLAP old from db each time polling.
+# We are assuming a write to the database propogates to
+# all DC's after this much time.  Any change that failed to
+# propogate after this long may be lost.  This way we still eventually see
+# patches that were written to the database, but that we missed
+# due to them not being propogates to all data centers.
+TIMESTAMP_OVERLAP      = 60000
+
+# If there are more than DB_PATCH_SQUASH_THRESH patches for a given string,
+# we squash the old patch history into a single patch the first time
+# we read the given synchronized string from the database.  This avoids
+# having to apply hundreds of patches when opening a string, and saves
+# space.   (Of course, having the complete history could also be
+# interesting...)
+DB_PATCH_SQUASH_THRESH = 50
+
 async    = require('async')
 {EventEmitter} = require('events')
 winston = require('winston')
@@ -260,33 +288,7 @@ timestamp_cmp = (a,b) ->
         return +1
     return 0
 
-# Class that models storing a distributed collection of strings, indexed by a uuid,
-# in an eventually consistent database (Cassandra).
-# It queries periodically, with exponetial backoff, for updates about strings that
-# we're watching.  It assembles the patch stream in the database together to give
-# a consistent view for each string, and also writes patches to propogate that view.
-# Times below are in milliseconds.
 
-# Polling parameters:
-INIT_POLL_INTERVAL     = 5000
-MAX_POLL_INTERVAL      = 30000   # TODO: for testing -- for deploy make longer!
-POLL_DECAY_RATIO       = 1.3
-
-# We grab patches that are up to TIMESTAMP_OVERLAP old from db each time polling.
-# We are assuming a write to the database propogates to
-# all DC's after this much time.  Any change that failed to
-# propogate after this long may be lost.  This way we still eventually see
-# patches that were written to the database, but that we missed
-# due to them not being propogates to all data centers.
-TIMESTAMP_OVERLAP      = 60000
-
-# If there are more than DB_PATCH_SQUASH_THRESH patches for a given string,
-# we squash the old patch history into a single patch the first time
-# we read the given synchronized string from the database.  This avoids
-# having to apply hundreds of patches when opening a string, and saves
-# space.   (Of course, having the complete history could also be
-# interesting...)
-DB_PATCH_SQUASH_THRESH = 50
 
 # emits a 'change' event whenever live is changed as a result of syncing with the database
 class StringsDBString extends EventEmitter
