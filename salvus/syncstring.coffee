@@ -183,7 +183,7 @@ class SynchronizedString
 
 sync_strings = {}
 
-get_syncstring = (string_id, cb) ->
+exports.get_syncstring = get_syncstring = (string_id, cb) ->
     S = sync_strings[string_id]
     if S?
         cb(undefined, S); return
