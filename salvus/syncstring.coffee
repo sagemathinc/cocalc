@@ -359,7 +359,7 @@ class StringsDB
 
     poll_for_updates: (interval=INIT_POLL_INTERVAL) =>
         retry = (interval) =>
-            next_interval = Math.max(INIT_POLL_INTERVAL,Math.min(MAX_POLL_INTERVAL, POLL_DECAY_RATIO*interval))
+            next_interval = Math.max(INIT_POLL_INTERVAL, Math.min(MAX_POLL_INTERVAL, POLL_DECAY_RATIO*interval))
             @dbg("poll_for_updates", "waiting #{next_interval}ms...")
             setTimeout((()=>@poll_for_updates(next_interval)), interval)
 
@@ -432,7 +432,7 @@ class StringsDB
                 if err
                     cb(err)
                 else
-                    new_updates = @_process_updates updates, (err) =>
+                    @_process_updates updates, (err, new_updates) =>
                         # ignore err, since it would be in writing back
                         cb(undefined, new_updates)
 
@@ -467,12 +467,13 @@ class StringsDB
                     new_patches[update.string_id].push(update)
 
         if misc.len(new_patches) == 0
-            # nothing further to do
-            cb()
-            return false
+            @dbg("_process_updates", "no new patches, so nothing further to do")
+            cb(undefined, false)
+            return
 
         #if updates.length > 0
         #    @dbg("_process_updates",misc.to_json(new_patches))
+        @dbg("_process_updates", "#{misc.len(new_patches)} new patches")
 
         # There are new patches
         write_updates = false
@@ -557,12 +558,13 @@ class StringsDB
 
         if write_updates
             #@dbg("_process_updates","writing our own updates back")
-            @_write_updates_to_db(cb)  # safe to call skipping lock, since we have the lock
+            # safe to call skipping lock, since we have the lock
+            @_write_updates_to_db (err) =>
+                cb(err, true)
         else
             #@dbg("_process_updates","no further updates from us (stable)")
-            cb()
+            cb(undefined, true)
 
-        return true  # there were patches to apply
 
     _squash_patches: (opts) =>
         opts = defaults opts,
