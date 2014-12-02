@@ -716,7 +716,7 @@ class GlobalProject
             where   : {project_id: @project_id}
             cb      : (err, result) =>
                 dbg("got settings from database: #{misc.to_json(result[0])}")
-                if err or not result[0]?   # result[0] = undefined if no special settings
+                if err or not result? or not result[0]?   # result[0] = undefined if no special settings
                     cb?(err)
                 else
                     opts = result[0]

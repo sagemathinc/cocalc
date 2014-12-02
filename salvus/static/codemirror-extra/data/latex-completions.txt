@@ -91,6 +91,8 @@
 \begin{picture}(width,height)(xoffset,yoffset)
 \begin{quotation}
 \begin{quote}
+\begin{sageblock}
+\begin{sagesilent}
 \begin{sloppypar}
 \begin{tabbing}
 \begin{table}
@@ -332,6 +334,8 @@
 \end{picture}
 \end{quotation}
 \end{quote}
+\end{sageblock}
+\end{sagesilent}
 \end{sloppypar}
 \end{tabbing}
 \end{table}
@@ -988,6 +992,7 @@
 \romannumeral
 \rule[lift]{width}{thickness}
 \rule{width}{thickness}
+\sage
 \samepage
 \savebox{cmd}{text}
 \savebox{cmd}[width][pos]{text}

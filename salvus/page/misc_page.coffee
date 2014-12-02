@@ -516,7 +516,7 @@ exports.define_codemirror_extensions = () ->
         tex_hint = (editor) ->
             cur   = editor.getCursor()
             token = editor.getTokenAt(cur)
-            console.log(token)
+            #console.log(token)
             t = token.string
             completions = (a for a in s when a.slice(0,t.length) == t)
             ans =

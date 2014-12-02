@@ -1,14 +1,19 @@
 I created these files as follows:
 
     # for websockets
-    primus = new require('primus')(require('http').createServer(), {transformer: 'websockets',  pathname : '/hub'}); fs.writeFileSync('static/primus/primus.js',primus.library());
+    primus = new require('primus')(require('http').createServer(), {transformer: 'websockets',  pathname : '/hub'}); fs.writeFileSync('static/primus/primus-websockets.js',primus.library());
 
-    # for engine.io -- CURRENTLY USED
+    # for engine.io
+    primus = new require('primus')(require('http').createServer(), {transformer: 'engine.io',  pathname : '/hub'}); fs.writeFileSync('static/primus/primus-engine.js',primus.library());
 
-    primus = new require('primus')(require('http').createServer(), {transformer: 'engine.io',  pathname : '/hub'}); fs.writeFileSync('static/primus/primus.js',primus.library());
+    # for engine.io
+    primus = new require('primus')(require('http').createServer(), {transformer: 'sockjs',  pathname : '/hub'}); fs.writeFileSync('static/primus/primus-sockjs.js',primus.library());
 
 
-  cd static/primus; uglifyjs2 primus.js > primus.min.js; cd ../..
+  cd static/primus
+  uglifyjs2 primus-websockets.js > primus-websockets.min.js
+  uglifyjs2 primus-engine.js > primus-engine.min.js
+  uglifyjs2 primus-sockjs.js > primus-sockjs.min.js
 
 
 If we change the transport, then have to do the above again...
