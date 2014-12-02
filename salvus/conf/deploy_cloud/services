@@ -40,10 +40,10 @@ localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-hi
 localhost    {'hostname':'backup1dc2', 'disk':'backup1:4000', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
 
 # cassandra cluster
-localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
-localhost    {'hostname':'cassandra2dc2', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
-localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
-localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra2dc2', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
 
 # web servers/hubs
 localhost    {'hostname':'web1dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
@@ -67,10 +67,10 @@ localhost     {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'n1-h
 #localhost    {'hostname':'compute4dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
 
 # cassandra cluster
-localhost    {'hostname':'cassandra1dc3', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
-localhost    {'hostname':'cassandra2dc3', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
-localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
-localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra-ssd:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra1dc3', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra2dc3', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
 
 # web servers/hubs
 localhost    {'hostname':'web1dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
