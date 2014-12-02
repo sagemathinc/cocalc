@@ -248,7 +248,8 @@ exports.init_syncstring_db = (database, cb) ->
         cb?()
 
 
-
+exports.get_syncstring_db = () ->
+    return syncstring_db
 
 
 # oldest first -- unlike in page/activity.coffee
@@ -285,9 +286,7 @@ TIMESTAMP_OVERLAP      = 60000
 # having to apply hundreds of patches when opening a string, and saves
 # space.   (Of course, having the complete history could also be
 # interesting...)
-#DB_PATCH_SQUASH_THRESH = 100
-# basically disable for now until we more carefully debug this.
-DB_PATCH_SQUASH_THRESH = 1000000000
+DB_PATCH_SQUASH_THRESH = 50
 
 # emits a 'change' event whenever live is changed as a result of syncing with the database
 class StringsDBString extends EventEmitter
@@ -319,7 +318,8 @@ class StringsDB
 
     # DO NOT CHANGE THESE TWO FUNCTIONS, ever!  It'll break everything in the db
     patch_to_string: (patch) => JSON.stringify(diffsync.compress_patch(patch))
-    string_to_patch: (patch) => diffsync.decompress_patch(JSON.parse(patch))
+
+    string_to_patch: (patch) => diffsync.decompress_patch_compat(JSON.parse(patch))
 
     dbg: (f, m) =>
         winston.debug("StringsDB.#{f}: #{m}")
@@ -449,6 +449,7 @@ class StringsDB
         # turns out to be sensible.
         #  SIMPLIFIED: ignore is_first and never trim.
         @dbg("_process_updates", "process #{updates.length} updates")
+        #@dbg("_process_updates", "#{misc.to_json(updates)}")
         new_patches = {}
         for update in updates
             update.timestamp = update.timestamp - 0  # better to key map based on string of timestamp as number
@@ -489,6 +490,14 @@ class StringsDB
             i = patches.length - 1
             while i > 0
                 if patches[i].is_first
+                    if i > 0
+                        winston.debug("some older patches are no longer needed -- deleting from DB")
+                    for p in patches.slice(0,i)
+                        @db.delete
+                            table : 'syncstrings'
+                            where :
+                                string_id : string_id
+                                timestamp : p.timestamp
                     patches = patches.slice(i)
                     break
                 i -= 1
@@ -520,7 +529,7 @@ class StringsDB
                 try
                     string.last_sync = diffsync.dmp.patch_apply(p.patch, string.last_sync)[0]
                 catch e
-                    winston.debug("syncstring database error applying a patch -- failed due to corruption (?) -- #{misc.to_json(p.patch)}")
+                    winston.debug("syncstring database error applying a patch -- failed due to corruption (?) -- #{misc.to_json(p.patch)} -- err=#{e}")
                 string.applied_patches[p.timestamp] = p
                 if squash and p.timestamp <= squash_time and (i == patches.length-1 or patches[i+1].timestamp > squash_time)
                     @_squash_patches
@@ -568,7 +577,7 @@ class StringsDB
                 @db.update
                     table : 'syncstrings'
                     set   :
-                        patch    : misc.to_json(patch)
+                        patch    : @patch_to_string(patch)
                         is_first : true
                     where :
                         string_id : opts.string_id
