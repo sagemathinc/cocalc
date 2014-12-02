@@ -118,7 +118,7 @@ MaxStartups 128
 # Additional packages (mainly for users, not building).
 
 
-   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html quantlib-ruby r-cran-rquantlib  libf2c2-dev libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps mesa-utils libpangox-1.0-dev octave-signal octave-audio octave-benchmark octave-bim octave-biosig octave-communications octave-communications-common octave-data-smoothing octave-dataframe octave-dbg octave-doc octave-econometrics octave-epstk octave-financial octave-fpl octave-ga octave-gdf octave-geometry  octave-gmt octave-gsl octave-htmldoc octave-image octave-info octave-io octave-lhapdf octave-linear-algebra octave-mapping octave-miscellaneous octave-missing-functions octave-mpi octave-msh octave-nan octave-nlopt octave-nnet octave-nurbs octave-ocs octave-octcdf octave-octgpr octave-odepkg octave-openmpi-ext octave-optim octave-optiminterp  octave-parallel octave-pfstools octave-pkg-dev octave-plot octave-psychtoolbox-3 octave-quaternion octave-secs1d octave-secs2d octave-sockets octave-splines octave-statistics octave-strings octave-struct octave-sundials octave-tsa octave-vlfeat octave-vrml octave-zenity gnugo libapr1-dev  libcap2-bin npm coffeescript lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34 gmsh libmed1 libhdf5-openmpi-7 csh x11vnc x11-apps meld aspell-*
+   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html quantlib-ruby r-cran-rquantlib  libf2c2-dev libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps mesa-utils libpangox-1.0-dev octave-signal octave-audio octave-benchmark octave-bim octave-biosig octave-communications octave-communications-common octave-data-smoothing octave-dataframe octave-dbg octave-doc octave-econometrics octave-epstk octave-financial octave-fpl octave-ga octave-gdf octave-geometry  octave-gmt octave-gsl octave-htmldoc octave-image octave-info octave-io octave-lhapdf octave-linear-algebra octave-mapping octave-miscellaneous octave-missing-functions octave-mpi octave-msh octave-nan octave-nlopt octave-nnet octave-nurbs octave-ocs octave-octcdf octave-octgpr octave-odepkg octave-openmpi-ext octave-optim octave-optiminterp  octave-parallel octave-pfstools octave-pkg-dev octave-plot octave-psychtoolbox-3 octave-quaternion octave-secs1d octave-secs2d octave-sockets octave-splines octave-statistics octave-strings octave-struct octave-sundials octave-tsa octave-vlfeat octave-vrml octave-zenity gnugo libapr1-dev  libcap2-bin npm coffeescript lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34 gmsh libmed1 libhdf5-openmpi-7 csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev libfaac-dev libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev
 
 # NOTE: as of April 27 the quantlib python indings that get installed above don't work in Ubuntu 14.04 (e.g., 'import QuantLib' fails)
 
@@ -131,6 +131,20 @@ MaxStartups 128
 
    sudo add-apt-repository ppa:pippijn/ppa
    sudo apt-get update; sudo apt-get install aldor open-axiom*
+
+# OpenCV Computer Vision:
+
+	add-apt-repository ppa:mc3man/trusty-media
+	apt-get update ; sudo apt-get install ffmpeg gstreamer0.10-ffmpeg
+
+    cd /tmp; mkdir opencv; cd opencv; wget http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.4.9/opencv-2.4.9.zip
+    unzip opencv-2.4.9.zip
+    cd opencv-2.4.9; mkdir build; cd build; time cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON ..
+	time make -j8
+	make install
+	sh -c 'echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf' && sudo ldconfig
+
+
 
 # ROOT data analysis ipython notebook support systemwide:
 
@@ -298,7 +312,7 @@ In /etc/sysctl.conf, put:
 """
 
 TINC_VERSION       = '1.0.23'    # options here -- http://tinc-vpn.org/packages/
-CASSANDRA_VERSION  = '2.0.8'     # options here -- http://downloads.datastax.com/community/
+CASSANDRA_VERSION  = '2.1.2'     # options here -- http://downloads.datastax.com/community/
 NODE_VERSION       = '0.10.32'   # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
 PYTHON_VERSION     = '2.7.6'     # options here -- https://www.python.org/ftp/python/
 SETUPTOOLS_VERSION = '3.4.4'     # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
@@ -334,6 +348,8 @@ NODE_MODULES = [
     'winston',
     'primus',  # websocket abstraction
     'ws',      # fast low-level websocket depedency for primus
+    'sockjs',  # not used but is optionally available in hub/primeus/client
+    'engine.io',  # this is the one we use -- seems by far the best overall.  CAREFUL WITH DNS!
     'cassandra-driver',
     'coffee-script',
     'node-uuid',
@@ -364,7 +380,7 @@ NODE_MODULES = [
     'rimraf',
     'net-ping',
     'marked',
-    'http-proxy'     # https://github.com/nodejitsu/node-http-proxy
+    'http-proxy'    # https://github.com/nodejitsu/node-http-proxy
     ]
 
 PYTHON_PACKAGES = [
@@ -388,7 +404,7 @@ SAGE_PIP_PACKAGES = [
     'tables',
     'scikit_learn',
     'theano',
-    'scikits-image',
+    'scikit-image',
     'Shapely',
     'SimPy',
     'xlrd',
@@ -428,6 +444,7 @@ SAGE_PIP_PACKAGES = [
     'pyparse',    # needed by fipy
     'fipy',       # requested by Evan Chenelly <echenelly@gmail.com> -- "A finite volume PDE solver in Python".
     'python-igraph', # requested by Santhust <santhust31@gmail.com> -- "High performance graph data structures and algorithms" -- https://pypi.python.org/pypi/python-igraph/0.7
+    'mygene'   # requested by Luca Beltrame for a bioinformatics course
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -456,7 +473,8 @@ R_PACKAGES = [
     'Cairo',
     #'xlsx',
     'XML',
-    'data.table'
+    'data.table',
+    'brian'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
@@ -466,7 +484,6 @@ SAGE_OPTIONAL_PACKAGES = [
     'database_odlyzko_zeta',
     'database_pari',
     'biopython',
-    'brian',
     'cbc',
     'cluster_seed',
     'coxeter3',
@@ -497,8 +514,7 @@ SAGE_OPTIONAL_PACKAGES = [
     'pyzmq',
     'qhull',
     'topcom',
-    'zeromq',
-    'stein-watkins-ecdb'
+    'zeromq'
 ]
 
 ENTHOUGHT_PACKAGES = [
@@ -527,8 +543,9 @@ except:
 log.info("detected %s cpus", NCPU)
 
 
-def cmd(s, path):
-    s = 'cd "%s" && '%path + s
+def cmd(s, path=None):
+    if path is not None:
+        s = 'cd "%s" && '%path + s
     log.info("cmd: %s", s)
     t0 = time.time()
     if os.system(s):
@@ -596,7 +613,10 @@ class BuildSage(object):
         self.install_projlib()
         self.install_pip()
         self.install_pip_packages()
+        self.install_pymc()
         self.install_R_packages()
+        self.install_rstan()
+        self.install_pystan()
         self.install_optional_packages()
         self.install_snappy()
         #self.install_enthought_packages()
@@ -604,8 +624,8 @@ class BuildSage(object):
         self.install_neuron()
         self.install_basemap()
         self.install_4ti2()
-        self.install_root_notebook()
         self.install_pydelay()
+        self.install_stein_watkins()
         self.clean_up()
         self.extend_sys_path()
         self.fix_permissions()
@@ -723,7 +743,7 @@ class BuildSage(object):
         """
         target = self.path("local/lib/python/sitecustomize.py")
         ROOT = '/usr/lib/x86_64-linux-gnu/' + [x for x in os.listdir('/usr/lib/x86_64-linux-gnu/') if 'root' in x][-1]
-        paths = ['/usr/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7', ROOT]
+        paths = ['/usr/lib/python2.7/dist-packages/', '/usr/local/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7', ROOT]
         # sanity check
         for p in paths:
             if not os.path.exists(p):
@@ -757,17 +777,36 @@ class BuildSage(object):
             e = ' '.join(["%s=%s"%x for x in SAGE_PIP_PACKAGES_ENV[package].items()]) if package in SAGE_PIP_PACKAGES_ENV else ''
             self.cmd("%s pip install %s --no-deps %s"%(e, '--upgrade' if upgrade else '', package))
 
+    def install_pymc(self):
+        self.cmd("pip install git+https://github.com/pymc-devs/pymc")
+
     def install_R_packages(self):
         s = ','.join(['"%s"'%name for name in R_PACKAGES])
         c = 'install.packages(c(%s), repos="http://cran.cs.wwu.edu/")'%s
         self.cmd("echo '%s' | R --no-save"%c)
 
-    def install_optional_packages(self):
+    def install_rstan(self):
+        """
+        Install the R stan pain-to-install package into R.
+        See the following for why/how
+            https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started
+            https://github.com/stan-dev/stan/tree/master
+            https://groups.google.com/forum/#!topic/stan-users/Qbkuu51QZvU
+        """
+        self.cmd(r"""echo 'install.packages(c("inline", "BH", "RcppEigen", "Rcpp"), repos="http://cran.cs.wwu.edu/")' | R --no-save && cd /tmp && rm -rf rstan && git clone --recursive https://github.com/stan-dev/rstan.git && cd rstan/rstan && echo 'CXXFLAGS = -O2 $(LTO)' > R_Makevars && make install && rm -rf /tmp/rstan""")
+
+    def install_pystan(self):
+        self.cmd(r"""cd /tmp && rm -rf pystan && git clone --recursive https://github.com/stan-dev/pystan.git && cd pystan && python setup.py install && rm -rf /tmp/pystan""")
+
+    def install_optional_packages(self, skip=[]):
         from sage.all import install_package
         if 'MAKE' not in os.environ:
             # some packages, e.g., chomp, won't build without MAKE being set.
             os.environ['MAKE'] = "make -j%s"%NCPU
         for package in SAGE_OPTIONAL_PACKAGES:
+            if package in skip:
+                log.info("** Skipping %s **"%package)
+                continue
             log.info("** Installing/upgrading %s **"%package)
             #install_package(package)
             # We have to do this (instead of use install_package) because Sage's install_package
@@ -865,6 +904,10 @@ class BuildSage(object):
         Requested for UCLA by Jane Shevtsov: https://plus.google.com/115360165819500279592/posts/73vK9Pw4W6g
         """
         cmd("umask 022 &&  cd /tmp/ &&  rm -rf pydelay* &&  wget http://downloads.sourceforge.net/project/pydelay/pydelay-0.1.1.tar.gz &&  tar xf pydelay-0.1.1.tar.gz &&  cd pydelay-0.1.1 &&  python setup.py install &&  rm -rf /tmp/pydelay*")
+
+    def install_stein_watkins(self):
+        # The package itself is "sage -i database_stein_watkins"
+        cmd("umask 022 && cd /usr/local/sage/current/data && rm -f stein_watkins stein-watkins-ecdb && ln -sf /usr/local/sage/stein-watkins-ecdb stein-watkins-ecdb && ln -sf /usr/local/sage/stein-watkins-ecdb stein_watkins")
 
     def install_4ti2(self):
         """

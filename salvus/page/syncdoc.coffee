@@ -26,7 +26,7 @@ their 900 clients in parallel.
 # seconds to wait for synchronized doc editing session, before reporting an error.
 # Don't make this too short, since when we open a link to a file in a project that
 # hasn't been opened in a while, it can take a while.
-CONNECT_TIMEOUT_S = 70
+CONNECT_TIMEOUT_S = 20
 
 DEFAULT_TIMEOUT   = 35
 
@@ -40,7 +40,6 @@ misc     = require('misc')
 misc_page = require('misc_page')
 
 message  = require('message')
-
 
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
@@ -209,7 +208,14 @@ class AbstractSynchronizedDoc extends EventEmitter
         @project_id = @opts.project_id   # must also be set by derived classes that don't call this constructor!
         @filename   = @opts.filename
 
-        @connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
+        @connect    = misc.retry_until_success_wrapper
+            f         : @_connect
+            max_delay : 7000
+            max_tries : 25
+            #logname   : 'connect'
+            #verbose   : true
+        ##@connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
+
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
         @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
 
@@ -291,7 +297,7 @@ class AbstractSynchronizedDoc extends EventEmitter
         snapshot = @live()
         @dsync_client.push_edits (err) =>
             if err
-                if err.indexOf('retry') != -1
+                if typeof(err)=='string' and err.indexOf('retry') != -1
                     # This is normal -- it's because the diffsync algorithm only allows sync with
                     # one client (and upstream) at a time.
                     cb?(err)
@@ -383,7 +389,10 @@ class AbstractSynchronizedDoc extends EventEmitter
     draw_other_cursor: (pos, color, name) =>
         # overload this in derived class
 
-
+    file_path: () =>
+        if not @_file_path?
+            @_file_path = misc.path_split(@filename).head
+        return @_file_path
 
 class SynchronizedString extends AbstractSynchronizedDoc
     # "connect(cb)": Connect to the given server; will retry until it succeeds.
@@ -400,7 +409,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
         delete @session_uuid
         #console.log("_connect -- '#{@filename}'")
         @call
-            timeout : CONNECT_TIMEOUT_S    # a reasonable amount of time, since file could be *large*
+            timeout : CONNECT_TIMEOUT_S    # a reasonable amount of time, since file could be *large* and don't want to timeout when sending it to the client over a slow connection...
             message : message.codemirror_get_session
                 path         : @filename
                 project_id   : @project_id
@@ -450,6 +459,8 @@ class SynchronizedString extends AbstractSynchronizedDoc
 
     disconnect_from_session: (cb) =>
         @_remove_listeners()
+        delete @dsync_client
+        delete @dsync_server
         if @session_uuid? # no need to re-disconnect if not connected (and would cause serious error!)
             @call
                 timeout : DEFAULT_TIMEOUT
@@ -470,11 +481,16 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             sync_interval     : 750     # never send sync messages up stream more often than this
             revision_tracking : account.account_settings.settings.editor_settings.track_revisions   # if true, save every revision in @.filename.sage-history
         @project_id = @editor.project_id
+        @filename   = @editor.filename
 
-        @filename    = @editor.filename
+        # @connect    = @_connect
+        @connect    = misc.retry_until_success_wrapper
+            f         : @_connect
+            max_delay : 7000
+            max_tries : 25
+            #logname   : 'connect'
+            #verbose   : true
 
-        #@connect    = misc.retry_until_success_wrapper(f:@_connect, max_tries:3)#, logname:'connect')
-        @connect    = @_connect
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
         @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
 
@@ -618,6 +634,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                         message : message.codemirror_revision_tracking
                             session_uuid : @session_uuid
                             enable       : true
+                        timeout : 120
                         cb      : (err, resp) =>
                             if resp.event == 'error'
                                 err = resp.error
@@ -806,7 +823,15 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             elt2.show()
 
     render_chat_log: () =>
+        if not @chat_session?
+            # try again in a few seconds -- not done loading
+            setTimeout(@render_chat_log, 5000)
+            return
         messages = @chat_session.live()
+        if not messages?
+            # try again in a few seconds -- not done loading
+            setTimeout(@render_chat_log, 5000)
+            return
         if not @_last_size?
             @_last_size = messages.length
 
@@ -957,7 +982,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @codemirror1 = @editor.codemirror1
 
         if @opts.static_viewer
-            @readonly = true
+            @readonly   = true
+            @project_id = @editor.project_id
+            @filename   = @editor.filename
             return
 
         opts0 =
@@ -1556,20 +1583,67 @@ class SynchronizedWorksheet extends SynchronizedDocument
         for x in cm.getAllMarks()
             t = $(x.replacedWith).find(selector)
             if t.length > 0
-                cm.scrollIntoView(x.find().from)
+                cm.scrollIntoView(x.find().from, cm.getScrollInfo().clientHeight/2)
                 return
 
     process_html_output: (e) =>
-        e.find("table").addClass('table')   # makes bootstrap tables look MUCH nicer
+        # makes tables look MUCH nicer
+        e.find("table").addClass('table')
+
+        # handle a links
         a = e.find('a')
-        a.attr("target","_blank") # make all links open in a new tab
+
+        # make links open in a new tab
+        a.attr("target","_blank")
+
         that = @
         for x in a
             y = $(x)
-            if y.attr('href')?[0] == '#'  # target is internal anchor to id
-                y.click (t) ->
-                    that.jump_to_output_matching_jquery_selector($(t.target).attr('href'))
-                    return false
+            href = y.attr('href')
+            if href?
+                if href[0] == '#'
+                    # target is internal anchor to id
+                    # make internal links in the same document scroll the target into view.
+                    y.click (e) ->
+                        that.jump_to_output_matching_jquery_selector($(e.target).attr('href'))
+                        return false
+                else if href.indexOf(document.location.origin) == 0
+                    # target starts with cloud URL or is absolute, so we open the
+                    # link directly inside this browser tab
+                    y.click (e) ->
+                        n = (document.location.origin + '/projects/').length
+                        target = $(@).attr('href').slice(n)
+                        require('projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        return false
+                else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0
+                    # internal link
+                    y.click (e) ->
+                        target = $(@).attr('href')
+                        if target.indexOf('/projects/') == 0
+                            # fully absolute (but without https://...)
+                            target = decodeURI(target.slice('/projects/'.length))
+                        else if target[0] == '/' and target[37] == '/' and misc.is_valid_uuid_string(target.slice(1,37))
+                            # absolute path with /projects/ omitted -- /..project_id../files/....
+                            target = decodeURI(target.slice(1))  # just get rid of leading slash
+                        else if target[0] == '/'
+                            # absolute inside of project
+                            target = "#{that.project_id}/files#{decodeURI(target)}"
+                        else
+                            # realtive to current path
+                            target = "#{that.project_id}/files/#{that.file_path()}/#{decodeURI(target)}"
+                        require('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        return false
+
+        # make relative links to images use the raw server
+        a = e.find("img")
+        for x in a
+            y = $(x)
+            src = y.attr('src')
+            if src.indexOf('://') != -1
+                continue
+            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
+            y.attr('src', new_src)
+
 
     _post_save_success: () =>
         @remove_output_blob_ttls()
@@ -2056,18 +2130,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
             @set_cell_flag(marker, FLAGS.execute)
             # sync (up to a certain number of times) until either computation happens or is acknowledged.
-            # Just successfully calling sync could return and mean that a sync started before this computation
-            # started had completed.
+            # Just successfully calling sync could return and mean that a sync started
+            # before this computation started had completed.
             wait = 50
             f = () =>
                 fs = @get_cell_flagstring(marker)
-                if fs? and FLAGS.execute in fs
+                if not fs? or FLAGS.execute in fs
                     @sync () =>
-                        wait = wait*1.2
+                        wait = wait*1.4
                         if wait < 15000
                             setTimeout(f, wait)
             @sync () =>
-                setTimeout(f, 50)
+                setTimeout(f, wait)
 
     # purely client-side markdown rendering for a markdown, javascript, html, etc. block -- an optimization
     execute_cell_client_side: (opts) =>

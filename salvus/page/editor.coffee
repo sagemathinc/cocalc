@@ -59,7 +59,7 @@ codemirror_associations =
     js     : 'javascript'
     lua    : 'lua'
     m      : 'text/x-octave'
-    md     : 'gfm'
+    md     : 'gfm2'
     ml     : 'text/x-ocaml'
     mysql  : 'text/x-sql'
     patch  : 'text/x-diff'
@@ -81,7 +81,7 @@ codemirror_associations =
     spyx   : 'python'
     sql    : 'text/x-sql'
     txt    : 'text'
-    tex    : 'stex'
+    tex    : 'stex2'
     toml   : 'text/x-toml'
     bib    : 'stex'
     bbl    : 'stex'
@@ -100,7 +100,7 @@ for ext, mode of codemirror_associations
 file_associations['tex'] =
     editor : 'latex'
     icon   : 'fa-file-excel-o'
-    opts   : {mode:'stex', indent_unit:4, tab_size:4}
+    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
 
 file_associations['html'] =
     editor : 'codemirror'
@@ -188,7 +188,7 @@ sagews_decorator_modes = [
     ['javascript'  , 'javascript'],
     ['latex'       , 'stex']
     ['lisp'        , 'ecl'],
-    ['md'          , 'gfm'],
+    ['md'          , 'gfm2'],
     ['gp'          , 'text/pari'],
     ['go'          , 'text/x-go']
     ['perl'        , 'text/x-perl'],
@@ -204,6 +204,28 @@ sagews_decorator_modes = [
 ]
 
 exports.define_codemirror_sagews_mode = () ->
+
+    CodeMirror.defineMode "gfm2", (config) ->
+        options = []
+        for x in [['$$','$$'], ['$','$'], ['\\[','\\]'], ['\\(','\\)']]
+            options.push
+                open  : x[0]
+                close : x[1]
+                mode  : CodeMirror.getMode(config, 'stex')
+        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "gfm"), options...)
+
+    CodeMirror.defineMode "stex2", (config) ->
+        options = []
+        for x in ['sagesilent', 'sageblock']
+            options.push
+                open  : "\\begin{#{x}}"
+                close : "\\end{#{x}}"
+                mode  : CodeMirror.getMode(config, 'sagews')
+        options.push
+            open  : "\\sage{"
+            close : "}"
+            mode  : CodeMirror.getMode(config, 'sagews')
+        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex"), options...)
 
     CodeMirror.defineMode "sagews", (config) ->
         options = []
@@ -330,9 +352,7 @@ class exports.Editor
             project_page  : required
             initial_files : undefined # if given, attempt to open these files on creation
             counter       : undefined # if given, is a jQuery set of DOM objs to set to the number of open files
-
         @counter = opts.counter
-
         @project_page  = opts.project_page
         @project_path = opts.project_page.project.location?.path
         if not @project_path
@@ -551,6 +571,7 @@ class exports.Editor
                     salvus_client.public_get_text_file
                         project_id : @project_id
                         path       : filename
+                        timeout    : 60
                         cb         : (err, data) =>
                             if err
                                 c(err)
@@ -656,7 +677,6 @@ class exports.Editor
                 else
                     editor = @create_editor(create_editor_opts)
                     @element.find(".salvus-editor-content").append(editor.element.hide())
-                    @create_opened_file_tab(filename)
                     return editor
 
             hide_editor : () -> editor?.hide()
@@ -675,15 +695,6 @@ class exports.Editor
 
 
         link.data('tab', @tabs[filename])
-        ###
-        link.draggable
-            zIndex      : 1000
-            #containment : @element
-            stop        : () =>
-                ignore_clicks = true
-                setTimeout( (() -> ignore_clicks=false), 100)
-        ###
-
         @nav_tabs.append(link)
 
         @update_counter()
@@ -907,6 +918,9 @@ class exports.Editor
         delete @tabs[filename]
         @update_counter()
 
+    show_chat_window: (path) =>
+        @tabs[path]?.editor()?.show_chat_window()
+
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>
         tab = @tabs[filename]
@@ -933,13 +947,13 @@ class exports.Editor
     warn_user: (filename, cb) =>
         cb(true)
 
-    # Make the tab appear in the tabs at the top, and if foreground=true, also make that tab active.
+    # Make the tab appear in the tabs at the top, and
+    # if foreground=true, also make that tab active.
     display_tab: (opts) =>
         opts = defaults opts,
             path       : required
             foreground : true      # display in foreground as soon as possible
         filename = opts.path
-
         if not @tabs[filename]?
             return
 
@@ -951,26 +965,21 @@ class exports.Editor
         prev_active_tab = @active_tab
         for name, tab of @tabs
             if name == filename
-                @active_tab = tab
-                ed = tab.editor()
+                if not tab.open_file_pill?
+                    @create_opened_file_tab(filename)
 
                 if opts.foreground
+                    # make sure that there is a tab and show it if necessary, and also
+                    # set it to the active tab (if necessary).
+                    @active_tab = tab
+                    @make_open_file_pill_active(tab.open_file_pill)
+                    ed = tab.editor()
                     ed.show()
                     ed.focus()
 
-                top_link = @active_tab.open_file_pill
-                if top_link?
-                    if opts.foreground
-                        @make_open_file_pill_active(top_link)
-                else
-                    @create_opened_file_tab(filename)
-                    if opts.foreground
-                        @make_open_file_pill_active(@active_tab.open_file_pill)
-            else
+            else if opts.foreground
+                # ensure all other tabs are hidden.
                 tab.hide_editor()
-
-        if prev_active_tab? and prev_active_tab.filename != @active_tab.filename and @tabs[prev_active_tab.filename]?   # ensure is still open!
-            @nav_tabs.prepend(prev_active_tab.link)
 
         @project_page.init_sortable_file_list()
 
@@ -1057,6 +1066,9 @@ class FileEditor extends EventEmitter
 
     activity_indicator: () =>
         @editor?.activity_indicator(@filename)
+
+    show_chat_window: () =>
+        @syncdoc?.show_chat_window()
 
     is_active: () =>
         return @editor._active_tab_filename == @filename
@@ -1871,8 +1883,8 @@ class CodeMirrorEditor extends FileEditor
         # CRAZY HACK: add and remove an HTML element to the DOM.
         # I don't know why this works, but it gets around a *massive bug*, where after
         # aggressive resizing, the codemirror editor gets all corrupted. For some reason,
-        # doing this "always" causes things to get properly fixed.  I don't know why.
-        hack = $("<div>")
+        # doing this "usually" causes things to get properly fixed.  I don't know why.
+        hack = $("<div><br><br></div>")
         $("body").append(hack)
         setTimeout((()=>hack.remove()), 1000)
 
@@ -1883,12 +1895,19 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : height
                 width  : width
+
+        # This is another hack that specifically hopefully addresses an
+        # issue where when I open a tab often the scrollbar is completely
+        # hosed.  Zooming in and out manually always fixes it, so maybe
+        # what's below will also.  Testing it.
         f = () =>
             for {cm,height,width} in v
-                scroll = cm.getScrollInfo(); pos = cm.getCursor()
-                cm.refresh()  # NOTE: unfortunately, this can break the cursor location and scrollTo -- I've seen it happen.
+                cm.refresh()
+                setTimeout((()=>cm.refresh), 1)
                 ###
-scroll_after = cm.getScrollInfo(); pos_after = cm.getCursor()
+                scroll = cm.getScrollInfo(); pos = cm.getCursor()
+                # above refresh
+                scroll_after = cm.getScrollInfo(); pos_after = cm.getCursor()
                 if scroll.left != scroll_after.left or scroll.top != scroll_after.top or pos.line != pos_after.line or pos.ch != pos_after.ch
                     console.log("WARNING: codemirror refresh lost pos -- RESETTING position; before=#{misc.to_json([scroll,pos])}, after=#{misc.to_json([scroll_after,pos_after])}")
                     cm.setCursor(pos)
@@ -1944,7 +1963,7 @@ scroll_after = cm.getScrollInfo(); pos_after = cm.getCursor()
             chat_input_top = $(window).height()-chat_input.height() - 15
 
             chat_input.offset({top:chat_input_top})
-            chat_output.height(chat_input_top - top - 41)
+            chat_output.height(chat_input_top - top - 60)
 
 
     focus: () =>
@@ -2908,6 +2927,9 @@ class HistoryEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts.mode = ''
 
+        @_parse_logstring_cache = {}
+        @_parse_logstring_inverse_cache = {}
+
         # create history editor
         @element = templates.find(".salvus-editor-history").clone()
         @history_editor = codemirror_session_editor(@editor, @filename, opts)
@@ -2971,30 +2993,67 @@ class HistoryEditor extends FileEditor
 
     @revision_num = -1
 
+    parse_logstring: (s) =>
+        ##return JSON.parse(s)
+        # In goto_revision below it looks like parse_logstring can get frequently called,
+        # often on the same log entry repeatedly.  So we cache the parsing.
+        obj = @_parse_logstring_cache[s]
+        if obj?
+            return obj
+        try
+            obj = JSON.parse(s)
+            obj.patch = diffsync.decompress_patch_compat(obj.patch)
+        catch e
+            # It's better to do this than have the entire history become completely unusable.
+            # Also, we should always *assume* any file can get corrupted.
+            console.log("ERROR -- corrupt line in history -- '#{s}'")
+            obj = {time:0, patch:[]}
+        @_parse_logstring_cache[s] = obj
+        return obj
+
+    # same as parse_logstring above, but patch is replaced by its inverse
+    parse_logstring_inverse: (s) =>
+        ##obj = JSON.parse(s); diffsync.invert_patch_in_place(obj.patch)
+        ##return obj
+        # In goto_revision below it looks like parse_logstring can get frequently called,
+        # often on the same log entry repeatedly.  So we cache the parsing.
+        obj = @_parse_logstring_inverse_cache[s]
+        if obj?
+            return obj
+        obj = misc.deep_copy(@parse_logstring(s))
+        diffsync.invert_patch_in_place(obj.patch)
+        @_parse_logstring_inverse_cache[s] = obj
+        return obj
+
     goto_revision: (num) ->
+        #t = misc.mswalltime()
         @element.find(".salvus-editor-history-revision-number").text("Revision " + num)
         if num == 0
             @element.find(".salvus-editor-history-revision-time").text("")
         else
-            @element.find(".salvus-editor-history-revision-time").text(new Date(JSON.parse(@log[@nlines-num+1]).time).toLocaleString())
+            @element.find(".salvus-editor-history-revision-time").text(new Date(@parse_logstring(@log[@nlines-num+1]).time).toLocaleString())
         if @revision_num - num > 2
+            #console.log("goto_revision #{num} from #{@revision_num}"); t = misc.mswalltime()
             text = @history_editor.codemirror.getValue()
             text_old = text
+            #console.log("got value", misc.mswalltime(t)); t = misc.mswalltime()
             for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
-                text = diffsync.dmp.patch_apply(JSON.parse(patch)['patch'],text)[0]
-            @diffsync.patch_in_place(diffsync.dmp.patch_make(text_old, text))
+                text = diffsync.dmp.patch_apply(@parse_logstring(patch).patch, text)[0]
+            #console.log("patched text", misc.mswalltime(t)); t = misc.mswalltime()
+            @history_editor.codemirror.setValueNoJump(text)
+            #console.log("changed editor", misc.mswalltime(t)); t = misc.mswalltime()
         else if @revision_num > num
             for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
-                @diffsync.patch_in_place(JSON.parse(patch)['patch'])
+                @diffsync.patch_in_place(@parse_logstring(patch).patch)
         else if num - @revision_num > 2
             text = @history_editor.codemirror.getValue()
             text_old = text
             for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
-                text = diffsync.dmp.patch_apply(@invert_patch(JSON.parse(patch))['patch'],text)[0]
-            @diffsync.patch_in_place(diffsync.dmp.patch_make(text_old, text))
+                text = diffsync.dmp.patch_apply(@parse_logstring_inverse(patch).patch, text)[0]
+            @history_editor.codemirror.setValueNoJump(text)
         else
             for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
-                @diffsync.patch_in_place(@invert_patch(JSON.parse(patch))['patch'])
+                @diffsync.patch_in_place(@parse_logstring_inverse(patch).patch)
         @revision_num = num
         if @revision_num == 0
             @back_button.addClass("disabled")
@@ -3006,18 +3065,7 @@ class HistoryEditor extends FileEditor
             @forward_button.removeClass("disabled")
         if @ext == 'sagews'
             @worksheet.process_sage_updates()
-
-    invert_patch: (patch) =>
-        # Beware of potential bugs in the following code -- I have only tried it, not proved it correct.
-        # I conjecture that this correctly computes the "inverse" of a DMP patch, assuming the patch applies cleanly.  -- Jonathan Lee
-        for i in [0..patch.patch.length-1]
-            temp = patch.patch[i].length1
-            patch.patch[i].length1 = patch.patch[i].length2
-            patch.patch[i].length2 = temp
-            for j in [0..patch.patch[i].diffs.length-1]
-                patch.patch[i].diffs[j][0] = -patch.patch[i].diffs[j][0]
-        patch.patch = patch.patch.reverse()
-        return patch
+        #console.log("going to revision #{num} took #{misc.mswalltime(t)}ms")
 
     render_history: (first) =>
         @log = @file_history.live().split("\n")
@@ -3028,7 +3076,7 @@ class HistoryEditor extends FileEditor
                 @element.find(".salvus-editor-history-revision-time").text("")
                 @back_button.addClass("disabled")
             else
-                @element.find(".salvus-editor-history-revision-time").text(new Date(JSON.parse(@log[1]).time).toLocaleString())
+                @element.find(".salvus-editor-history-revision-time").text(new Date(@parse_logstring(@log[1]).time).toLocaleString())
             @history_editor.codemirror.setValue(JSON.parse(@log[0]))
             @revision_num = @nlines
             if @ext != "" and require('editor').file_associations[@ext].opts.mode?
@@ -3041,6 +3089,7 @@ class HistoryEditor extends FileEditor
                 value   : @revision_num
                 slide  : (event, ui) =>
                     @goto_revision(ui.value)
+
         else
             @slider.slider
                 max : @nlines
@@ -3066,7 +3115,7 @@ class LatexEditor extends FileEditor
         #     * latex_editor -- a CodeMirror editor
         #     * preview -- display the images (page forward/backward/resolution)
         #     * log -- log of latex command
-        opts.mode = 'stex'
+        opts.mode = 'stex2'
 
         @element = templates.find(".salvus-editor-latex").clone()
 
@@ -4725,6 +4774,9 @@ class FileEditorWrapper extends FileEditor
 
     terminate_session: () =>
 
+    disconnect_from_session: () =>
+        @wrapped.destroy?()
+
     remove: () =>
         @element.remove()
         @wrapped.destroy?()
@@ -4755,7 +4807,6 @@ class TaskList extends FileEditorWrapper
     init_wrapped: () ->
         @element = tasks.task_list(@editor.project_id, @filename, @)
         @wrapped = @element.data('task_list')
-
 
 ###
 # A Course one is managing (or taking?)

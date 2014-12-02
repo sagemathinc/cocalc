@@ -184,15 +184,18 @@ class UUIDStore
             where   : {name:@opts.name, uuid:{'in':opts.uuids}}
             objectify : true
             cb      : (err, results) =>
-                f = (r, cb) =>
-                    if r['ttl(value)'] != opts.ttl
-                        @_set_ttl
-                            uuid : r.uuid
-                            ttl  : opts.ttl
-                            cb   : cb
-                    else
-                        cb()
-                async.map(results, f, opts.cb)
+                if err
+                    opts.cb?(err)
+                else
+                    f = (r, cb) =>
+                        if r['ttl(value)'] != opts.ttl
+                            @_set_ttl
+                                uuid : r.uuid
+                                ttl  : opts.ttl
+                                cb   : cb
+                        else
+                            cb()
+                    async.map(results, f, opts.cb)
 
     # Set ttl only for one ttl; expensive if needs to change ttl, but cheap otherwise.
     set_ttl: (opts) =>
@@ -389,8 +392,8 @@ class exports.Cassandra extends EventEmitter
             keyspace        : undefined
             username        : undefined
             password        : undefined
-            query_timeout_s : 45    # any query that doesn't finish after this amount of time (due to cassandra/driver *bugs*) will be retried a few times (same as consistency causing retries)
-            query_max_retry : 10    # max number of retries
+            query_timeout_s : 30    # any query that doesn't finish after this amount of time (due to cassandra/driver *bugs*) will be retried a few times (same as consistency causing retries)
+            query_max_retry : 3    # max number of retries
             consistency     : undefined
             verbose         : false # quick hack for debugging...
             conn_timeout_ms : 15000  # Maximum time in milliseconds to wait for a connection from the pool.
@@ -410,10 +413,14 @@ class exports.Cassandra extends EventEmitter
         @connect()
 
     reconnect: (cb) =>
-        if not @conn?
+        winston.debug("reconnect to database server")
+        if not @conn? or not @conn.shutdown?
+            winston.debug("directly connecting")
             @connect(cb)
             return
-        @conn.shutdown? () =>
+        winston.debug("reconnect to database server -- first shutting down")
+        @conn.shutdown (err) =>
+            winston.debug("reconnect to database server -- shutdown returned #{err}")
             delete @conn
             @connect(cb)
 
@@ -663,7 +670,26 @@ class exports.Cassandra extends EventEmitter
         @select(opts)
 
     cql: (query, vals, consistency, cb) =>
-        #winston.debug("cql: '#{query}'")
+        if typeof vals == 'function'
+            cb = vals
+            vals = []
+            consistency = undefined
+        if typeof consistency == 'function'
+            cb = consistency
+            consistency = undefined
+        if not consistency?
+            consistency = @consistency
+
+        winston.debug("cql: '#{misc.trunc(query,100)}', consistency=#{consistency}")
+        @conn.execute query, vals, { consistency: consistency }, (err, results) =>
+            if err?
+                winston.error("cql ERROR: ('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) error = #{err}")
+            else
+                results = results.rows
+            cb?(err, results)
+
+    cql0: (query, vals, consistency, cb) =>
+        winston.debug("cql: '#{query}'")
         if typeof vals == 'function'
             cb = vals
             vals = []
@@ -716,7 +742,8 @@ class exports.Cassandra extends EventEmitter
         misc.retry_until_success
             f         : f
             max_tries : @query_max_retry
-            max_delay : 3000
+            max_delay : 15000
+            factor    : 1.6
             cb        : (err) =>
                 if err
                     err = "query failed even after #{@query_max_retry} attempts -- giving up -- #{err}"
@@ -947,10 +974,13 @@ class exports.Salvus extends exports.Cassandra
             where     : {account_id:{'in':opts.account_ids}}
             objectify : true
             cb        : (err, results) =>
-                v = {}
-                for r in results
-                    v[r.account_id] = {first_name:r.first_name, last_name:r.last_name}
-                opts.cb(err, v)
+                if err
+                    opts.cb?(err)
+                else
+                    v = {}
+                    for r in results
+                        v[r.account_id] = {first_name:r.first_name, last_name:r.last_name}
+                    opts.cb(err, v)
 
     #####################################
     # Managing compute servers
@@ -1076,6 +1106,7 @@ class exports.Salvus extends exports.Cassandra
                         last_name     : opts.last_name
                         email_address : opts.email_address
                         password_hash : opts.password_hash
+                        created       : now()
                     where : {account_id:account_id}
                     cb    : cb
             (cb) =>
@@ -1286,7 +1317,6 @@ class exports.Salvus extends exports.Cassandra
                              'first_name', 'last_name', 'email_address',
                              'default_system', 'evaluate_key',
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
-                             'connect_Github', 'connect_Google', 'connect_Dropbox',
                              'autosave', 'terminal', 'editor_settings', 'other_settings',
                              'groups']
 
@@ -1900,6 +1930,7 @@ class exports.Salvus extends exports.Cassandra
                         last_edited : now()
                         description : opts.description
                         public      : opts.public
+                        created     : now()
                     where : {project_id: opts.project_id}
                     cb    : (error, result) ->
                         if error
@@ -2330,12 +2361,17 @@ class exports.Salvus extends exports.Cassandra
                         stats.last_week_projects = val
                         cb(err)
             (cb) =>
+                cb(); return
+                ###
+                # TODO: this has got too big and is now too
+                # slow, causing timeouts.
                 @count
                     table : 'recently_modified_projects'
                     where : {ttl : 'month'}
                     cb    : (err, val) =>
                         stats.last_month_projects = val
                         cb(err)
+                ###
             (cb) =>
                 @select
                     table     : 'hub_servers'

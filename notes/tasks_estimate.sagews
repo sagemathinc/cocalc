@@ -1,20 +1,43 @@
-︠4061ad2d-2122-42cf-89db-fe6122a59a67s︠
-%sh
-./tasks_estimate.py smc.tasks today
-︡385c142d-4665-4548-b18f-5a691743f29d︡{"stdout":"file='smc.tasks'; tag='#today'\n{\"desc\":\"(1:00?) #admin #monitor #today\\nadd to monitor script to check that all port forwards are w\n{\"desc\":\"(0:30?) #ui #tasks #today\\nshow due dates in past in done tasks NOT in red.\\n\\n> When Done \n{\"desc\":\"(0:45?) #today #urgent\\nfirst sage worksheet evaluation never works... sometimes -- If can \n{\"desc\":\"(0:30?) #today #urgent #bug #analytics\\nProblem with google analytics event tracking code.\\\n{\"desc\":\"(1:30?) (0:17) #today #urgent #bug #ipython\\nupgrade ipython to fix bugs, including latex f\n{\"desc\":\"(0:20?) #today #ui\\nmove project search to left for consistency with other searches (file, \n{\"desc\":\"(0:30?) #today #bug\\nin the file browser, the \\\"Showing only files that contain \\\" is often\n{\"desc\":\"(0:45?) #today\\nfix the \\\"undefined undefined\\\" in invitation email.\\n\\nhttps://mail.google\n{\"desc\":\"(0:10?) #install #today \\nocaml stuff suggested by dima\\n\\nhttps://mail.google.com/mail/u/0\n{\"desc\":\"(3:00?) #sagews #feature #today\\nability to graphically edit html (?) text to annotate\\n\\nT\n{\"desc\":\"(0:15?) #today #bug\\nI put %s for the docstring params sig but should have put %r.\",\"positi\n----------------------------------------------------------------------\nTotal: (9:15)\n-   2.3 days at  4 hours/day\n-   1.2 days at  8 hours/day\n-   1.0 days at  9 hours/day\n-   0.8 days at 12 hours/day\n-   0.6 days at 16 hours/day\n"}︡
-︠f66a1783-7af0-40b9-8767-f7921d2f3547︠
-︠504cdc7f-bc58-4659-8484-b7a304f61ffc︠
-%sh
-./tasks_estimate.py smc.tasks activity
-︡41b76c69-ea14-46c8-9e41-c753a50da881︡{"stdout":"file='smc.tasks'; tag='#activity'\n{\"desc\":\"(0:15?) #activity\\ncreate the three tables in db\\n\\n    CREATE TABLE user_activity\\n       \n{\"desc\":\"(1:15?) #activity\\nadd a function to hub that inspects messages to the local_hub from users\n{\"desc\":\"(0:45?) #activity\\nadd message to get all activity_notifications for a given user,\\n\\noptio\n{\"desc\":\"(1:00?) #activity\\nadd client code to hub periodically poll for new activity for all connec\n{\"desc\":\"(0:45?) #activity\\nadd message to set a given activity_notifications as read for a given us\n{\"desc\":\"(0:45?) #activity\\nadd message to get certain amount of user_activity for a given file\",\"po\n{\"desc\":\"(1:00?) #activity\\nadd simple client code to display user_activity on a given file; query d\n{\"desc\":\"(0:45?) #activity\\nadd message to get certain amount of user_timeline for given user\",\"posi\n{\"desc\":\"(1:00?) #activity\\nadd simple client code to display user_timeline somewhere.\",\"position\":-\n----------------------------------------------------------------------\nTotal: (7:30)\n-   1.9 days at  4 hours/day\n-   0.9 days at  8 hours/day\n-   0.8 days at  9 hours/day\n-   0.6 days at 12 hours/day\n-   0.5 days at 16 hours/day\n"}︡
-︠2c48c1ce-25c1-41f8-8462-f2460d064da6︠
-%sh
-./tasks_estimate.py smc.tasks notification
-︡ace855ef-db22-4ded-bcab-5201dd8e06d9︡{"stdout":"file='smc.tasks'; tag='#notification'\n{\"desc\":\"(0:10?) #notification\\ndefine two database tables\\n\\n    CREATE TABLE user_notifications (\\\n{\"desc\":\"(0:25?) #notification\\nimplement a user_action message that a client sends the hub when it \n{\"desc\":\"(0:45?) #notification\\nwhen hub receives the user_action message it:\\n\\n  - [ ] query user_\n{\"desc\":\"(0:15?) #notification\\nwrite client code to send user_action message on chat\",\"position\":-1\n{\"desc\":\"(0:25?) #notification\\nmessage to get notifications for a given user after a certain point \n{\"desc\":\"(0:45?) #notification\\nminimal client ui to display recent notifications\",\"position\":-181.9\n{\"desc\":\"(0:45?) #notification\\ntimer loop in hub to periodically query database for new notificatio\n{\"desc\":\"(0:45?) #notification\\nclient code to handle message with new notifications\",\"position\":-18\n{\"desc\":\"(0:30?) #notification\\nwrite client code to send user_action message on file edit (but only\n{\"desc\":\"(0:45?) #notification\\nadd another message \\\"get_actions\\\" which client can use to request \n{\"desc\":\"(0:30?) #notification\\nminimal client code to render extra info about a file.\",\"position\":-\n----------------------------------------------------------------------\nTotal: (6:0)\n-   1.5 days at  4 hours/day\n-   0.8 days at  8 hours/day\n-   0.7 days at  9 hours/day\n-   0.5 days at 12 hours/day\n-   0.4 days at 16 hours/day\n"}︡
-︠3dfafda2-d0f2-4ca9-9531-e13b25779425︠
-%sh
-./tasks_estimate.py |tail
-︡2cf2dd16-2e62-4afe-8a13-507b5026e361︡{"stdout":"{\"desc\":\"(0:45?) #today #install\\nrequest to install some diff eq python library\\n\\nhttps://plus.goo\n{\"desc\":\"(0:15?) #today #buy\\nBuy sagestarcloud.com domain?  It sounds kind of too hippy.\",\"position\n{\"desc\":\"(0:20?) #today\\nreport cassandra-driver bug and fix upstream *properly*\\n\",\"position\":-181.\n----------------------------------------------------------------------\nTotal: (304:0)\n-  76.0 days at  4 hours/day\n-  38.0 days at  8 hours/day\n-  33.8 days at  9 hours/day\n-  25.3 days at 12 hours/day\n-  19.0 days at 16 hours/day\n"}︡
+︠2fb58d82-2770-41e6-90d1-73469686ab2casi︠
+%auto
+%hide
+print "click for code"
+def task_estimate(tag='today', file='smc.tasks'):
+    tm = 0
+    OPENING = '"desc":"('
+    for x in os.popen('%s | grep -v done\\":1'%('grep %s %s '%(tag, file) if tag else 'cat %s'%file)).readlines():
+        i = x.find(OPENING)
+        if i == -1:
+            continue
+        i += len(OPENING)
+        j = x.find('?)')
+        s = x[i:j]
+        print x[:100]
+        k = s.split(":")
+        h = int(k[0])
+        if len(k)>1:
+            try:
+                m = int(k[1])
+            except:
+                print x
+                raise
+        else:
+            m = 0
+        tm += 60*h + m
+
+    print "-"*70
+    print "Total: (%s:%s)"%(tm//60,tm%60)
+
+    for k in [4,8,9,12,16]:
+        print "- %5.1f days at %2s hours/day"%(tm/60./k, k)
+
+︡8513fbfe-0e2c-4669-992f-7553a7a57b45︡{"auto":true}︡{"stdout":"click for code\n"}︡
+︠853e9733-f142-410d-bcdc-395dc94e5e3as︠
+@interact
+def f(update=['Update'], tag='today'):
+   task_estimate(tag=tag)
+︡5a22cefa-2880-43d0-ab78-a4bc1516b97c︡{"interact":{"style":"None","flicker":false,"layout":[[["update",12,null]],[["tag",12,null]],[["",12,null]]],"id":"5b8ac3a0-d592-4a12-8f01-aed50fbb5be4","controls":[{"buttons":true,"control_type":"selector","ncols":null,"button_classes":null,"default":0,"lbls":["Update"],"label":"update","nrows":null,"width":null,"var":"update"},{"control_type":"input-box","default":"today","label":"tag","nrows":1,"width":null,"readonly":false,"submit_button":null,"var":"tag","type":"<type 'str'>"}]}}︡
+︠4061ad2d-2122-42cf-89db-fe6122a59a67︠
 
 
 

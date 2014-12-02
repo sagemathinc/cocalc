@@ -363,13 +363,20 @@ console_sessions = new ConsoleSessions()
 # Direct Sage socket session -- used internally in local hub, e.g., to assist CodeMirror editors...
 ###############################################
 
+_restarting_sage_server = false
 restart_sage_server = (cb) ->
+    if _restarting_sage_server
+        cb("already restarting sage server")
+        return
+    _restarting_sage_server = true
     misc_node.execute_code
         command     : "sage_server stop; sage_server start"
         timeout     : 30
         err_on_exit : true
         bash        : true
-        cb          : cb
+        cb          : (err) ->
+            _restarting_sage_server = false
+            cb(err)
 
 get_sage_socket = (cb) ->
     _get_sage_socket (err, socket) ->
@@ -768,8 +775,8 @@ class DiffSyncFile_client extends diffsync.DiffSync
         @connect(@server)
         @server.connect(@)
 
-# The CodeMirrorDiffSyncHub class represents a
-# downstream remote client for this local hub.  There may be dozens of thes.
+# The CodeMirrorDiffSyncHub class represents a downstream
+# remote client for this local hub.  There may be dozens of these.
 # The local hub has no upstream server, except the on-disk file itself.
 #
 # NOTE: These have *nothing* a priori to do with CodeMirror -- the name is
@@ -1298,8 +1305,6 @@ class CodeMirrorSession
         return {code:code.trim(), output_id:output_id}
 
 
-
-
     ##############################
 
     kill: () =>
@@ -1375,7 +1380,7 @@ class CodeMirrorSession
 
         @_client_sync_lock = true
         before = @content
-        ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
+        ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>  # TODO: why is this err ignored?
             @set_content(ds_client.live)
             @_client_sync_lock = false
             @process_new_content?()
@@ -1578,7 +1583,7 @@ class CodeMirrorSession
             # and rest all the patches, with our one new patch inserted at the front.
             # TODO: redo without doing a split for efficiency.
             i = @revision_tracking_doc.content.indexOf('\n')
-            entry = {patch:patch, time:new Date() - 0}
+            entry = {patch:diffsync.compress_patch(patch), time:new Date() - 0}
             @revision_tracking_doc.content = misc.to_json(@content) + '\n' + \
                         misc.to_json(entry) + \
                         (if i != -1 then @revision_tracking_doc.content.slice(i) else "")
@@ -2266,7 +2271,7 @@ program.usage('[start/stop/restart/status] [options]')
 if program._name.split('.')[0] == 'local_hub'
     if program.debug
         winston.remove(winston.transports.Console)
-        winston.add(winston.transports.Console, level: program.debug)
+        winston.add(winston.transports.Console, {level: program.debug, timestamp:true, colorize:true})
 
     winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)

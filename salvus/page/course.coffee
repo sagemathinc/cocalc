@@ -80,8 +80,12 @@ class Course
                 alert_message(type:"error", message:"error initializing course (try re-opening the course) -- #{err}")
         )
 
+    destroy: () =>
+        @db?.destroy()
+        @element.removeData()
+
     default_settings: (cb) =>
-        settings = @db.select_one(table:'settings')
+        settings = @db.select_one(where:{table:'settings'})
         need_update = false
         if not settings?
             settings = misc.copy(SETTINGS)
@@ -111,7 +115,7 @@ class Course
         @_show_deleted_students.change () =>
             @local_storage("show_deleted_students", @_show_deleted_students.is(":checked"))
             # now re-render all deleted students
-            for student in @db.select({table : 'students'})
+            for student in @db.select(where:{table : 'students'})
                 if student.deleted
                     @render_student(student)
             @update_student_count()
@@ -121,7 +125,7 @@ class Course
         @_show_deleted_assignments.change () =>
             @local_storage("show_deleted_assignments", @_show_deleted_assignments.is(":checked"))
             # now re-render all deleted assignments
-            for assignment in @db.select({table : 'assignments'})
+            for assignment in @db.select(where:{table : 'assignments'})
                 if assignment.deleted
                     @render_assignment
                         assignment : assignment
@@ -168,7 +172,7 @@ class Course
 
     init_edit_settings: () =>
         # make it so basic settings about the course is editable.
-        settings = @db.select_one(table:'settings')
+        settings = @db.select_one(where:{table:'settings'})
         for prop in misc.keys(SETTINGS)
             e = @element.find(".salvus-course-editor-#{prop}").data('prop',prop)
             e.make_editable
@@ -292,7 +296,7 @@ class Course
 
                     # remove from search result every non-deleted student who is already in the course
                     already_student = {}
-                    for z in @db.select({table : 'students'})
+                    for z in @db.select(where:{table : 'students'})
                         if z.deleted  # don't omit deleted students; can't put deleted:false in search though since deleted is undefined for non-deleted students.
                             continue
                         if z.account_id?
@@ -361,7 +365,7 @@ class Course
     check_if_students_have_signed_up_for_an_account: () =>
         # for each student that doesn't have an account id yet, since they haven't joined,
         # check to see if they have in fact joined and if so record their account id and name.
-        email_query = (x.email_address for x in @db.select({table : 'students'}) when not x.account_id?)
+        email_query = (x.email_address for x in @db.select(where:{table : 'students'}) when not x.account_id?)
         if email_query.length == 0
             # nothing to do
             return
@@ -384,7 +388,7 @@ class Course
 
 
     update_students: () =>
-        v = @db.select({table : 'students'})
+        v = @db.select(where:{table : 'students'})
         v.sort(compare_students)
         for student in v
             @render_student(student)
@@ -416,7 +420,7 @@ class Course
     update_student_view: (opts) =>
         opts = defaults opts,
             student_id : required
-        @render_student(@db.select_one({student_id : opts.student_id, table : 'students'}))
+        @render_student(@db.select_one(where:{student_id : opts.student_id, table : 'students'}))
 
     delete_student: (opts) =>
         opts = defaults opts,
@@ -476,7 +480,7 @@ class Course
                 return false
 
             e.find("a[href=#open-project]").click () =>
-                v = @db.select_one({student_id : opts.student_id, table : 'students'})
+                v = @db.select_one(where:{student_id : opts.student_id, table : 'students'})
                 project_id = v.project_id
                 if not project_id?
                     alert_message(type:"error", message:"no project defined for #{v.first_name} #{v.last_name}")
@@ -534,7 +538,7 @@ class Course
                     break
 
     update_student_count: () =>
-        v = @db.select({table : 'students'})
+        v = @db.select(where:{table : 'students'})
         if @_show_deleted_students.is(":checked")
             n = v.length
         else
@@ -555,7 +559,7 @@ class Course
             cb         : undefined
         # create project for the given student
         where = {student_id : opts.student_id, table : 'students'}
-        v = @db.select_one(where)
+        v = @db.select_one(where:where)
         if not v?
             opts.cb?("tried to create project for non-existent student with id #{opts.student_id}")
         else if v.project_id?
@@ -631,11 +635,11 @@ class Course
 
     # return project_id's of students who have not been deleted.
     ##student_project_ids: () =>
-    ##    return (x.project_id for x in @db.select({table : 'students'}) when x.project_id? and not x.deleted)
+    ##    return (x.project_id for x in @db.select(where:{table : 'students'}) when x.project_id? and not x.deleted)
 
     # return non-deleted students
     students: () =>
-        v = (student for student in @db.select({table : 'students'}) when not student.deleted)
+        v = (student for student in @db.select(where:{table : 'students'}) when not student.deleted)
         v.sort(compare_students)
         return v
 
@@ -744,7 +748,7 @@ class Course
                 course_collabs.sort()
 
                 # check if changed from last load
-                last = @db.select_one(table:'collaborators')?.collabs  # map with keys the collabs
+                last = @db.select_one(where:{table:'collaborators'})?.collabs  # map with keys the collabs
                 if not last?
                     last = {}
                 to_add = (account_id for account_id in course_collabs when not last[account_id]?)
@@ -790,8 +794,8 @@ class Course
                 return "#{email_address} (invited)"
 
     course_project_settings: (student_id) =>
-        z = @db.select_one(table:'settings')
-        s = @db.select_one(table:'students', student_id:student_id)
+        z = @db.select_one(where:{table:'settings'})
+        s = @db.select_one(where:{table:'students', student_id:student_id})
         if s.first_name? and s.last_name?
             name = "#{s.first_name} #{s.last_name}"
         else if s.email_address?
@@ -807,7 +811,7 @@ class Course
             m = "Create all #{n} projects for the students in this course at once?"
             bootbox.confirm m, (result) =>
                 if result
-                    for x in @db.select({table : 'students'})
+                    for x in @db.select(where:{table : 'students'})
                         if not x.project_id? and not x.deleted
                             e = @element.find("[data-student_id='#{x.student_id}']")
                             e.find("a[href=#create-project]").click()
@@ -862,7 +866,7 @@ class Course
                     select.html('').show()
                     select.attr(size:Math.min(10, resp.directories.length))
                     existing_assignments = {}
-                    for x in @db.select(table:'assignments')
+                    for x in @db.select(where:{table:'assignments'})
                         if not x.deleted
                             existing_assignments[x.path] = true
                     for path in resp.directories
@@ -995,6 +999,10 @@ class Course
                         @return_graded_to_students
                             assignment_id : assignment.assignment_id
                             cb       : (err) =>
+                                if err
+                                    alert_message(type:"error", message:"Error returning collected assignments (report to wstein@uw.edu) -- #{err}", timeout:15)
+                                else
+                                    alert_message(message:"Successfully returned collected assignments to students", timeout:3)
                                 return_button.icon_spin(false)
 
         # NOTE: for now we just put everything -- visible or not -- in the DOM.  This is less
@@ -1132,7 +1140,7 @@ class Course
             opts.students = @students()
 
         where = {table:'assignments', assignment_id:opts.assignment_id}
-        assignment = @db.select_one(where)
+        assignment = @db.select_one(where:where)
         if not assignment.last_collect?
             assignment.last_collect = {}
         collect_from = (student, cb) =>
@@ -1172,7 +1180,7 @@ class Course
             opts.students = @students()
 
         where = {table:'assignments', assignment_id:opts.assignment_id}
-        assignment = @db.select_one(where)
+        assignment = @db.select_one(where:where)
         if not assignment.last_assignment?
             assignment.last_assignment = {}
         assignment_with = (student, cb) =>
@@ -1210,12 +1218,14 @@ class Course
         if not opts.students?
             opts.students = @students()
 
-        assignment = @db.select_one(table:'assignments', assignment_id:opts.assignment_id)
+        assignment = @db.select_one(where:{table:'assignments', assignment_id:opts.assignment_id})
         if not assignment.last_return_graded?
             assignment.last_return_graded = {}
         assignment_with = (student, cb) =>
             #console.log("returning '#{assignment.path}' to #{student.email_address}")
-            if not student.project_id?
+            # Only try to return if the student's project has been created *and* the assignment
+            # for this student was collected (otherwise trying to return it results in an error).
+            if not student.project_id? or not assignment.last_collect[student.student_id]?
                 #console.log("can't return assignment to #{student.email_address} -- no project")
                 cb()
                 return
@@ -1279,7 +1289,7 @@ class Course
         @update_assignment_count()
 
     assignments: () =>
-        @db.select({table : 'assignments'})
+        @db.select(where:{table : 'assignments'})
 
     update_assignment_count: () =>
         v = @assignments()

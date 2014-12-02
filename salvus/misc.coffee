@@ -199,6 +199,22 @@ exports.from_json = (x) ->
         console.log("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
         throw err
 
+# convert to JSON even if there are circular references
+# http://stackoverflow.com/questions/4816099/chrome-sendrequest-error-typeerror-converting-circular-structure-to-json
+
+censor = (censor) ->
+    i = 0
+    return (key, value) ->
+        if i and typeof(censor) == 'object' and typeof(value) == 'object' and censor == value
+            return '[Circular]'
+        if i >= 29 # seems to be a harded maximum of 30 serialized objects?
+            return '[Unknown]';
+        ++i # so we know we aren't using the original object anymore
+        return value
+
+exports.to_json_circular = (x) ->
+    JSON.stringify(x, censor(x))
+
 # converts a Date object to an ISO string in UTC.
 # NOTE -- we remove the +0000 (or whatever) timezone offset, since *all* machines within
 # the SMC servers are assumed to be on UTC.
@@ -377,8 +393,8 @@ exports.retry_until_success = (opts) ->
     opts = exports.defaults opts,
         f           : exports.required   # f((err) => )
         start_delay : 100             # milliseconds
-        max_delay   : 30000           # milliseconds -- stop increasing time at this point
-        factor      : 1.5             # multiply delay by this each time
+        max_delay   : 20000           # milliseconds -- stop increasing time at this point
+        factor      : 1.4             # multiply delay by this each time
         max_tries   : undefined
         cb          : undefined       # called with cb() on *success*; cb(error) if max_tries is exceeded
 
@@ -425,6 +441,7 @@ class RetryUntilSuccess
             max_tries    : undefined
             min_interval : 100   # if defined, all calls to f will be separated by *at least* this amount of time (to avoid overloading services, etc.)
             logname      : undefined
+            verbose      : false
         if @opts.min_interval?
             if @opts.start_delay < @opts.min_interval
                 @opts.start_delay = @opts.min_interval
@@ -454,6 +471,8 @@ class RetryUntilSuccess
                 @attempts += 1
                 @_calling = false
                 if err
+                    if @opts.verbose
+                        console.log("#{@opts.logname}: error=#{err}")
                     if @opts.max_tries? and @attempts >= @opts.max_tries
                         while @_cb_stack.length > 0
                             @_cb_stack.pop()(err)
@@ -729,6 +748,40 @@ exports.path_is_in_public_paths = (path, paths) ->
 exports.encode_path = (path) ->
     path = encodeURI(path)  # doesn't escape # and ?, since they are special for urls (but not unix paths)
     return path.replace(/#/g,'%23').replace(/\?/g,'%3F')
+
+
+# add a method _call_with_lock to obj, which makes it so it's easy to make it so only
+# one method can be called at a time of an object -- all calls until completion
+# of the first one get an error.
+
+exports.call_lock = (opts) ->
+    opts = exports.defaults opts,
+        obj       : exports.required
+        timeout_s : 30  # lock expire timeout after this many seconds
+
+    obj = opts.obj
+
+    obj._call_lock = () ->
+        obj.__call_lock = true
+        obj.__call_lock_timeout = () ->
+            obj.__call_lock = false
+            delete obj.__call_lock_timeout
+        setTimeout(obj.__call_lock_timeout, opts.timeout_s * 1000)
+
+    obj._call_unlock = () ->
+        if obj.__call_lock_timeout?
+            clearTimeout(obj.__call_lock_timeout)
+            delete obj.__call_lock_timeout
+        obj.__call_lock = false
+
+    obj._call_with_lock = (f, cb) ->
+        if obj.__call_lock
+            cb?("error -- hit call_lock")
+            return
+        obj._call_lock()
+        f (args...) ->
+            obj._call_unlock()
+            cb?(args...)
 
 
 

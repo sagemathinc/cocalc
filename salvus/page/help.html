@@ -54,7 +54,7 @@
                 </li>
 
                 <li class="salvus-help-list"> <a href="http://wstein.org" target="_blank">William Stein</a> is
-                    the main architecture of SageMathCloud.
+                    the main architect of SageMathCloud.
                     In addition, <a href="http://harald.schil.ly/" target="_blank">Harald Schilly</a> does marketing and QA testing,
                     Keith Clawson does hardware, and Jon Lee, Andy Huchala, and
                     Nicholas Ruhland do web development.  SageMathCloud
@@ -76,8 +76,7 @@
                 <li class="salvus-help-list"> <a href="#help-latex">Using LaTeX</a></li>
                 <li class="salvus-help-list"> <a href="#help-r">Using R Worksheets</a></li>
                 <li class="salvus-help-list"> <a href="#help-ipython">Using IPython Notebooks</a></li>
-                <li class="salvus-help-list"> <a href="#help-proxy">Run a web service from a project</a></li>
-                <li class="salvus-help-list"> <a target="_blank" href="https://github.com/sagemath/cloud/wiki/FAQ">More...</a> [github] </li>
+                <li class="salvus-help-list"> <a target="_blank" href="https://github.com/sagemath/cloud/wiki/FAQ">More documentation...</a>  </li>
 
 
                     <!--
@@ -317,43 +316,6 @@
                 </div>
             </div>
 
-
-            <div id="help-proxy">
-                <br><br>
-                <div class="salvus-help-answer">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <h3><i class="fa fa-globe"> </i> Run a web service from a project</h3>
-
-                            <ol>
-                                <li class="salvus-help-list">Start the web service listening on the IP address associated to the tun0 interface on
-                                    some port above 1024. Your service can listen on all interfaces if you're not worried about security
-                                    (other users on the same project server could access your service by connecting to localhost).
-                                    To see the tun0 ip address, type <span class="tt">ifconfig tun0</span>.
-                                </li>
-                                <li class="salvus-help-list">Your web service will be proxied to:
-                                    <pre>https://cloud.sagemath.com/project_id/port/&lt;port number&gt;/</pre>
-                                    You have to configure your web service so that the base url is <span class="tt">/project_id/port/&lt;port number&gt;/</span>
-                                    or you may find that things don't work.  This may be either easy or impossibly hard.
-                                    Websockets should be proxied fine.  Note -- the project_id can be read from <tt>~/.sagemathcloud/info.json</tt>.
-                                </li>
-                            </ol>
-
-                            <p>
-                                Only project collaborators will be able to access your web service, so you do not have to worry
-                                about authentication or running web services that provide local shell access (e.g., a sage cell
-                                server).  All access to the web service is encrypted.  (If you are lazy and allow your service
-                                to listen on localhost, then you should require authentication.)
-                            </p>
-                            <p>
-                                This feature is not designed for making a web service that is accessible to the general public,
-                                since it is limited to project collaborators.   It's designed for use by a small group of trusted users.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- <br>We use SendGrid for email. --> <!-- temporary, to prove ownership -->
         </div>
     </div>
 </div>

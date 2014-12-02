@@ -28,7 +28,7 @@ cql       = require("node-cassandra-cql")
 
 # Set the log level
 winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, level: 'debug')
+winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 {defaults, required} = misc
 
@@ -716,7 +716,7 @@ class GlobalProject
             where   : {project_id: @project_id}
             cb      : (err, result) =>
                 dbg("got settings from database: #{misc.to_json(result[0])}")
-                if err or not result[0]?   # result[0] = undefined if no special settings
+                if err or not result? or not result[0]?   # result[0] = undefined if no special settings
                     cb?(err)
                 else
                     opts = result[0]
@@ -2480,7 +2480,7 @@ class GlobalClient
     	x.c.repair(dryrun:true, cb:(e,projects)->console.log("DONE",e);x.projects=projects)
         x.projects.length
 
-        status=[];x.c.repair(status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
+        status=[];x.c.repair(limit:1, status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
 
     ###
     repair: (opts) =>
@@ -3299,7 +3299,7 @@ if not program.address
 main = () ->
     if program.debug
         winston.remove(winston.transports.Console)
-        winston.add(winston.transports.Console, level: program.debug)
+        winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
     winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)

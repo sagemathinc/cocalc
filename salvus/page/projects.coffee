@@ -23,20 +23,20 @@ exports.get_project_list = (opts) ->
     opts = defaults opts,
         update : false     # if false used cached local version if available,
                            # though it may be out of date
-        cb     : required  # cb(err, project_list)
+        cb     : undefined  # cb(err, project_list)
     if not opts.update and project_list?
-        opts.cb(undefined, project_list)
+        opts.cb?(undefined, project_list)
         return
     salvus_client.get_projects
         hidden : false
         cb: (err, mesg) ->
             if err
-                opts.cb(err)
+                opts.cb?(err)
             else if mesg.event == 'error'
-                opts.cb(mesg.error)
+                opts.cb?(mesg.error)
             else
                 project_list = mesg.projects
-                opts.cb(undefined, project_list)
+                opts.cb?(undefined, project_list)
 
 project_hashtags = {}
 compute_search_data = () ->
@@ -246,11 +246,12 @@ create_project_item = (project) ->
     else if project.location == "deploying"
         item.find(".projects-location").append(template_project_deploying.clone())
 
-    item.click (event) ->
+    item.click (e) ->
         open_project
-            project : project
-            item    : item
-            cb      : (err) ->
+            project   : project
+            item      : item
+            switch_to : not(e.which == 2 or (e.ctrlKey or e.metaKey))
+            cb        : (err) ->
                 if err
                     alert_message(type:"error", message:err)
         return false
@@ -400,10 +401,11 @@ update_hashtag_bar = () ->
 
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,
-        project : required
-        item    : undefined
-        target  : undefined
-        cb      : undefined   # cb(err, project)
+        project   : required
+        item      : undefined
+        target    : undefined
+        switch_to : true
+        cb        : undefined   # cb(err, project)
 
     project = opts.project
     if typeof(project) == 'string'
@@ -428,25 +430,28 @@ exports.open_project = open_project = (opts) ->
                                     opts.cb?("Unknown project with id '#{project}'")
                                 else
                                     open_project
-                                        project : p
-                                        item    : opts.item
-                                        target  : opts.target
-                                        cb      : opts.cb
+                                        project   : p
+                                        item      : opts.item
+                                        target    : opts.target
+                                        switch_to : opts.switch_to
+                                        cb        : opts.cb
                     else
                         open_project
-                            project : p
-                            item    : opts.item
-                            target  : opts.target
-                            cb      : opts.cb
+                            project   : p
+                            item      : opts.item
+                            target    : opts.target
+                            switch_to : opts.switch_to
+                            cb        : opts.cb
             return
         else
             project = x
 
     proj = project_page(project)
     top_navbar.resize_open_project_tabs()
-    top_navbar.switch_to_page(project.project_id)
+    if opts.switch_to
+        top_navbar.switch_to_page(project.project_id)
     if opts.target?
-        proj.load_target(opts.target)
+        proj.load_target(opts.target, opts.switch_to)
 
     if not project.bup_location?
         alert_message
@@ -544,7 +549,7 @@ create_new_project = () ->
 #                                settings
 #                                search
 #
-exports.load_target = load_target = (target) ->
+exports.load_target = load_target = (target, switch_to) ->
     #console.log("projects -- load_target=#{target}")
     if not target or target.length == 0
         top_navbar.switch_to_page("projects")
@@ -554,9 +559,10 @@ exports.load_target = load_target = (target) ->
         t = segments.slice(1).join('/')
         project_id = segments[0]
         open_project
-            project : project_id
-            target  : t
-            cb      : (err) ->
+            project   : project_id
+            target    : t
+            switch_to : switch_to
+            cb        : (err) ->
                 if err
                     alert_message(type:"error", message:err)
 

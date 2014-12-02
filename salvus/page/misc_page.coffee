@@ -451,13 +451,12 @@ exports.define_codemirror_extensions = () ->
             content   : required
             type      : required   # 'docstring', 'source-code' -- TODO
             target    : required
-        editor = @
         element = templates.find(".salvus-codemirror-introspect")
         element.find(".salvus-codemirror-introspect-title").text(opts.target)
         element.modal()
         element.find(".salvus-codemirror-introspect-content-docstring").text('')
         element.find(".salvus-codemirror-introspect-content-source-code").text('')
-        element.data('editor',editor)
+        element.data('editor', @)
         if opts.type == 'source-code'
             CodeMirror.runMode(opts.content, 'python', element.find(".salvus-codemirror-introspect-content-source-code")[0])
         else
@@ -517,7 +516,7 @@ exports.define_codemirror_extensions = () ->
         tex_hint = (editor) ->
             cur   = editor.getCursor()
             token = editor.getTokenAt(cur)
-            console.log(token)
+            #console.log(token)
             t = token.string
             completions = (a for a in s when a.slice(0,t.length) == t)
             ans =
@@ -539,11 +538,15 @@ cm_start_end = (selection) ->
         end_line = start_line
     return {start_line:start_line, end_line:end_line}
 
+codemirror_introspect_modal = templates.find(".salvus-codemirror-introspect")
 
-templates.find(".salvus-codemirror-introspect").find("button").click () ->
-    templates.find(".salvus-codemirror-introspect").modal('hide')
-    element.data('editor').focus()
-    element.data('editor',0)
+codemirror_introspect_modal.find("button").click () ->
+    codemirror_introspect_modal.modal('hide')
+
+# see http://stackoverflow.com/questions/8363802/bind-a-function-to-twitter-bootstrap-modal-close
+codemirror_introspect_modal.on 'hidden.bs.modal', () ->
+    codemirror_introspect_modal.data('editor').focus?()
+    codemirror_introspect_modal.data('editor',0)
 
 exports.download_file = (url) ->
     iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
@@ -586,13 +589,6 @@ exports.copy_to_clipboard = (text) ->
     document.execCommand("Copy", false, null)
     document.body.removeChild(copyDiv)
 ###
-
-
-
-
-
-
-
 
 
 marked = require('marked')
@@ -643,7 +639,6 @@ exports.is_valid_date = (d) ->
     else
         return not isNaN(d.getTime())
 
-
 # Bootstrap 3 modal fix
 $("html").on "hide.bs.modal", "body > .modal", (e) ->
     $(@).remove()
@@ -660,9 +655,6 @@ $("body").on "show.bs.tooltip", (e) ->
 exports.is_responsive_mode = () ->
     return $(".salvus-responsive-mode-test").width() < 768
 
-
-
-
 exports.load_coffeescript_compiler = (cb) ->
     if CoffeeScript?
         cb()
@@ -671,7 +663,6 @@ exports.load_coffeescript_compiler = (cb) ->
         $.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
             console.log("loaded CoffeeScript -- #{status}")
             cb()
-
 
 
 # Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
@@ -689,7 +680,7 @@ last_title = ''
 exports.set_window_title = (title) ->
     if not title?
         title = last_title
-    u = require('activity').unseen_count()
+    u = require('activity').important_count()
     last_title = title
     if u
         title = "(#{u}) #{title}"

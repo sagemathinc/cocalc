@@ -21,8 +21,11 @@ alerts.coffee
 console.coffee
 
 account.coffee
+
+syncstring.coffee
 syncdoc.coffee
 syncdb.coffee
+
 tasks.coffee
 course.coffee
 
