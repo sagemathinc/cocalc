@@ -346,6 +346,10 @@ signed_in = (mesg) ->
     account_id = mesg.account_id
     account_settings.load_from_server (error) ->
         if error
+            if account_settings.settings?
+                # don't show an error if already loaded settings before successefully; error
+                # is probably just due to trying to reload settings too frequently.
+                return
             alert_message(type:"error", message:error)
         else
             account_settings.set_view()
