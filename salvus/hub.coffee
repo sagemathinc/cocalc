@@ -1394,7 +1394,7 @@ class Client extends EventEmitter
         # cb(err, project)
         #   *NOTE*:  on failure, if mesg.id is defined, then client will receive an error message; the function
         #            calling get_project does *NOT* have to send the error message back to the client!
-
+        dbg = (m) -> winston.debug("get_project(client=#{@id}, #{mesg.project_id}): #{m}")
 
         err = undefined
         if not mesg.project_id?
@@ -1418,6 +1418,7 @@ class Client extends EventEmitter
             cb(undefined, project)
             return
 
+        dbg()
         project = undefined
         async.series([
             (cb) =>
@@ -1462,6 +1463,7 @@ class Client extends EventEmitter
             if err
                 if mesg.id?
                     @error_to_client(id:mesg.id, error:err)
+                dbg("error -- #{err}")
                 cb(err)
             else
                 if not @_project_cache?
@@ -1469,6 +1471,7 @@ class Client extends EventEmitter
                 @_project_cache[key] = project
                 # cache for a while
                 setTimeout((()=>delete @_project_cache[key]), CACHE_PROJECT_AUTH_MS)
+                dbg("got project; caching and returning")
                 cb(undefined, project)
         )
 
