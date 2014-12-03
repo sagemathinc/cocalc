@@ -126,37 +126,49 @@ class SynchronizedString
         @clients = {}
         @head = ''
 
-    new_browser_client: (session_id, push_to_client, cb) =>
-        client = new SyncStringBrowser(@, session_id, push_to_client)
-        client.id = session_id
-        @clients[session_id] = client
-        cb(undefined, client)
+    new_browser_client: (opts) =>
+        opts = defaults opts,
+            session_id     : required
+            push_to_client : required
+            cb             : required
+        client = new SyncStringBrowser(@, opts.session_id, opts.push_to_client)
+        client.id = opts.session_id
+        @clients[opts.session_id] = client
+        opts.cb(undefined, client)
 
-    new_in_memory_client: (session_id, cb) =>
+    new_in_memory_client: (opts) =>
+        opts = defaults opts,
+            session_id    : required
+            cb            : required
         # Used so that the hub itself (the process where this code is running)
         # can modify this SynchronizedString, rather than just remote clients.
         client = new diffsync.DiffSync(doc:@head)
-        client.id = session_id
+        client.id = opts.session_id
         client.sync = (cb) =>
             client.shadow    = client.live
             client.last_sync = client.live
             client.emit('sync')
             @sync()
             cb?()
-        @clients[session_id] = client
-        cb(undefined, client)
+        @clients[opts.session_id] = client
+        opts.cb(undefined, client)
 
-    new_database_client: (session_id, cb) =>
+    new_database_client: (opts) =>
+        opts = defaults opts,
+            session_id    : required
+            squash_thresh : DB_PATCH_SQUASH_THRESH
+            cb            : required
         # Used for synchronizing/persisting the string using the database, so
         # it gets sync'd across all hubs (across data centers).
         syncstring_db.get_string
-            string_id : @string_id
-            cb        : (err, client) =>
+            string_id     : @string_id
+            squash_thresh : opts.squash_thresh
+            cb            : (err, client) =>
                 if err
-                    cb(err)
+                    opts.cb(err)
                 else
-                    @clients[session_id] = client
-                    cb(undefined, client)
+                    @clients[opts.session_id] = client
+                    opts.cb(undefined, client)
 
     sync: (cb) =>
         @_call_with_lock(@_sync, cb)
@@ -219,21 +231,25 @@ exports.get_syncstring = get_syncstring = (string_id, cb) ->
     S = new SynchronizedString(string_id)
     async.series([
         (cb) =>
-            S.new_database_client misc.uuid(), (err, client) ->
-                if err
-                    cb(err)
-                else
-                    S.db_client = client
-                    S.head = client.live
-                    client.on 'change', S.sync  # whenever database changes, sync everything
-                    cb()
+            S.new_database_client
+                session_id : misc.uuid()
+                cb : (err, client) ->
+                    if err
+                        cb(err)
+                    else
+                        S.db_client = client
+                        S.head = client.live
+                        client.on 'change', S.sync  # whenever database changes, sync everything
+                        cb()
         (cb) =>
-            S.new_in_memory_client misc.uuid(), (err, client) ->
-                if err
-                    cb(err)
-                else
-                    S.in_memory_client = client
-                    cb()
+            S.new_in_memory_client
+                session_id : misc.uuid()
+                cb         : (err, client) ->
+                    if err
+                        cb(err)
+                    else
+                        S.in_memory_client = client
+                        cb()
     ], (err) =>
         if err
             # TODO: undo any other harm
@@ -253,11 +269,14 @@ exports.syncstring = (opts) ->
         if err
             opts.cb(err)
         else
-            S.new_browser_client opts.session_id, opts.push_to_client, (err, client) ->
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, client)
+            S.new_browser_client
+                session_id     : opts.session_id
+                push_to_client : opts.push_to_client
+                cb             : (err, client) ->
+                    if err
+                        opts.cb(err)
+                    else
+                        opts.cb(undefined, client)
 
 # The hub has to call this on startup in order for syncstring to work.
 syncstring_db = undefined
@@ -275,6 +294,10 @@ exports.init_syncstring_db = (database, cb) ->
         syncstring_db = new StringsDB(database)
         cb?()
 
+# queries the syncstring_acls table for all syncstring id’s, one by one goes through and
+# loads them and combines all the patches into a single patch.  As it goes, it also
+# record the total length of the resulting syncstring.
+exports.compact_all_syncstrings = (cb) ->   # cb(err, lengths); where lengths[string_id] = length of that string
 
 exports.get_syncstring_db = () ->
     return syncstring_db
@@ -329,8 +352,9 @@ class StringsDB
 
     get_string: (opts) =>
         opts = defaults opts,
-            string_id : required
-            cb        : required
+            string_id     : required
+            squash_thresh : DB_PATCH_SQUASH_THRESH
+            cb            : required
         s = @strings[opts.string_id]
         if s?
             opts.cb(undefined, s)
@@ -347,7 +371,7 @@ class StringsDB
 
             @_get_string_queue[opts.string_id] = [opts.cb]
 
-            @_read_updates_from_db [opts.string_id], 0, (err) =>
+            @_read_updates_from_db [opts.string_id], 0, opts.squash_thresh, (err) =>
                 if err
                     f(err)
                 else
@@ -367,16 +391,18 @@ class StringsDB
             # not watching for anything
             retry(interval); return
 
-        @read_updates_from_db misc.keys(@strings), TIMESTAMP_OVERLAP, (err, new_updates) =>
-            if err
-                retry(interval)
-            else
-                if new_updates
-                    # something new -- poll again soon
-                    retry(0)
-                else
-                    # nothing new -- try again after further exponential decay
+        @read_updates_from_db
+            string_ids : misc.keys(@strings)
+            cb         : (err, new_updates) =>
+                if err
                     retry(interval)
+                else
+                    if new_updates
+                        # something new -- poll again soon
+                        retry(0)
+                    else
+                        # nothing new -- try again after further exponential decay
+                        retry(interval)
 
     sync: (cb) =>
         @_call_with_lock(@_write_updates_to_db, cb)
@@ -413,10 +439,15 @@ class StringsDB
                             cb()
         async.map(misc.keys(@strings), f, (err) => cb(err))
 
-    read_updates_from_db: (string_ids, age, cb) =>
-        @_call_with_lock(((cb)=>@_read_updates_from_db(string_ids, age, cb)), cb)
+    read_updates_from_db: (opts) =>
+        opts = defaults opts,
+            string_ids    : required   # list of strings
+            age           : TIMESTAMP_OVERLAP
+            squash_thresh : DB_PATCH_SQUASH_THRESH
+            cb            : required
+        @_call_with_lock(((cb)=>@_read_updates_from_db(opts.string_ids, opts.age,  opts.squash_thresh, cb)), opts.cb)
 
-    _read_updates_from_db: (string_ids, age, cb) =>
+    _read_updates_from_db: (string_ids, age, squash_thresh, cb) =>
         if not @db?
             cb("database not initialized"); return
         @dbg("_read_updates_from_db", misc.to_json(string_ids))
@@ -432,11 +463,11 @@ class StringsDB
                 if err
                     cb(err)
                 else
-                    @_process_updates updates, (err, new_updates) =>
+                    @_process_updates updates, squash_thresh, (err, new_updates) =>
                         # ignore err, since it would be in writing back
                         cb(undefined, new_updates)
 
-    _process_updates: (updates, cb) =>
+    _process_updates: (updates, squash_thresh, cb) =>
         #
         # updates is a list of {string_id:?,timestamp:?,patch:?,is_first:?} objects, where
         #
@@ -518,7 +549,7 @@ class StringsDB
                 string.applied_patches = {}
 
             # Apply unapplied patches in order.
-            if string.last_sync == '' and patches.length > DB_PATCH_SQUASH_THRESH
+            if string.last_sync == '' and patches.length > squash_thresh
                 squash = true
                 squash_time = new Date() - 1.2*TIMESTAMP_OVERLAP
             else

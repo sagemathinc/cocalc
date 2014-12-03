@@ -173,8 +173,8 @@ cloud20  {'hostname':'compute20dc0',  'vcpus':compute_cpu,   'ram':compute_ram, 
 cloud21  {'hostname':'compute21dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute21dc0', 'vnc':13100}
 
 # Cassandra nodes
-[cassandra] {'auto_bootstrap':True, 'timeout':45, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer', 'incremental_backups':True, 'memtable_flush_writers':2, 'memtable_allocation_type':'offheap_objects'}
-#, 'MAX_HEAP_SIZE':'8G', 'HEAP_NEWSIZE':'200M'}
+[cassandra] {'auto_bootstrap':True, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer', 'incremental_backups':True, 'memtable_flush_writers':2, 'memtable_allocation_type':'offheap_objects'}
+#, 'MAX_HEAP_SIZE':'8G', 'HEAP_NEWSIZE':'200M', 'timeout':45}
 
 # DC1: padelford
 cassandra1    {'seed':True,  'topology':'DC1:RAC0', 'num_tokens':256}
