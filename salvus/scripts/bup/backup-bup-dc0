@@ -23,3 +23,4 @@ for i in range(10,22):
     host = '10.1.%s.5'%i
     print host
     cmd2("rsync -axvH  --bwlimit 20000 --delete root@%s:/bup/bups/ %s/%s/"%(host, target, host))
+    cmd2("cd %s && mkdir -p ls-lt && time ls -lt --time-style=full-iso %s |grep -v ^total > ls-lt/%s"%(target, target_dir, target_dir))

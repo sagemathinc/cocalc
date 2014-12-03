@@ -1,4 +1,7 @@
+
 import os
+
+# every 7200 time ./backup-cassandra-dc1   
 
 def cmd(s):
     print s
@@ -39,4 +42,4 @@ def backup_cassandra(dc, hosts):
         paths = ' '.join(b)
 
         cmd2("time bup on %s index %s"%(host, paths))
-        cmd2("time bup on %s save --bwlimit=2000k -n %s %s"%(host, host, paths))
+        cmd2("time bup on %s save --bwlimit=500k -n %s %s"%(host, host, paths))
