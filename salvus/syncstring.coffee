@@ -396,20 +396,25 @@ class StringsDB
     # This queries the syncstring_acls table for all syncstring id’s, one by one
     # goes through and loads them and combines all the patches into a single patch.
     # As it goes, it also record the total length of the resulting syncstring.
-    # x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.s = require('syncstring'); x.s.init_syncstring_db(x.c.database); x.ss=x.s.get_syncstring_db(); x.lengths={}; x.ss.compact_all_syncstrings(start:0,stop:100,lengths:x.lengths,cb:(e)->console.log("DONE",e)))
-    compact_all_syncstrings: (opts)  =>
+    # x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.s = require('syncstring'); x.s.init_syncstring_db(x.c.database); x.ss=x.s.get_syncstring_db();  x.ss.compact(start:0,stop:100,cb:(e)->console.log("DONE",e)))
+    # NOTE: this only compacts strings with id in syncstring_acls; querying the
+    # string_id column of syncstrings is a lot slower, though could be implemented, of course.
+    compact: (opts)  =>
         opts = defaults opts,
-            start   : 0
-            stop    : 100
-            lengths : undefined
-            cb      : undefined
+            start      : 0
+            stop       : 100
+            string_ids : undefined
+            cb         : undefined
 
-        lengths = {}
         v = undefined
         async.series([
             (cb) =>
                 ## v = ['4bd8cb98-506c-45a5-8042-5c6bd8fddff0']; cb(); return
-                winston.info("compact_all_syncstrings: querying for all string ids...")
+                winston.info("compact: querying for all string ids...")
+                if opts.string_ids?
+                    v = opts.string_ids
+                    cb()
+                    return
                 @db.select
                     table   : 'syncstring_acls'
                     columns : ['string_id']
@@ -423,23 +428,16 @@ class StringsDB
                                 v = v.slice(opts.start, opts.stop)
                             else if opts.start
                                 v = v.slice(opts.start)
-                            winston.info("compact_all_syncstrings: there are #{v.length} syncstrings")
+                            winston.info("compact: there are #{v.length} syncstrings")
                             cb()
             (cb) =>
                 i = opts.start
                 f = (string_id, c) =>
-                    winston.info("compact_all_syncstrings: #{i}/#{v.length-1+opts.start} - loading #{string_id}...")
+                    winston.info("compact: #{i}/#{v.length-1+opts.start} - loading #{string_id}...")
                     i += 1
-                    @get_string
+                    @squash_old_patches
                         string_id     : string_id
-                        squash_thresh : 1  # causes it to be squashed to 1 for sure
-                        cb            : (err, s) ->
-                            if err
-                                c(err)
-                            else
-                                if opts.lengths?
-                                    opts.lengths[string_id] = s.live.length
-                                c()
+                        cb            : c
                 async.mapLimit(v, 1, f, (err) => cb(err))
             ], (err) =>
                 opts.cb?(err)
@@ -554,6 +552,7 @@ class StringsDB
             @dbg("_process_updates", "process #{updates.length} updates")
             #@dbg("_process_updates", "#{misc.to_json(updates)}")
         new_patches = {}
+        t0 = misc.mswalltime()
         for update in updates
             update.timestamp = update.timestamp - 0  # better to key map based on string of timestamp as number
             string = @strings[update.string_id]
@@ -629,6 +628,7 @@ class StringsDB
 
             # Apply unapplied patches in order.
             i = 0
+            t1 = misc.mswalltime()
             for p in patches
                 #@dbg("_process_updates","applying unapplied patch #{misc.to_json(p.patch)}")
                 try
@@ -654,10 +654,13 @@ class StringsDB
                 string.live = diffsync.dmp.patch_apply(patch, string.live)[0]
                 string.emit('change')
 
+            t1 = misc.mswalltime(t1)
             # If live != last_sync, write our changes back to database
             if string.live != string.last_sync
                 write_updates.push(string_id)
 
+        if updates.length > 0
+            @dbg("_process_updates", "took #{misc.mswalltime(t0)}ms to process #{updates.length} updates, with #{t1}ms spent on patching")
         if write_updates.length > 0
             #@dbg("_process_updates","writing our own updates back")
             # safe to call skipping lock, since we have the lock
@@ -754,6 +757,7 @@ class StringsDB
                             # together defines the state of the string at the newest patch time.
                             # This operation could be expensive if there were a large number
                             # of patches, but there shouldn't be since we squash regularly.
+                            t0  = misc.mswalltime()
                             value = ''
                             for p in patches
                                 try
@@ -762,7 +766,8 @@ class StringsDB
                                     # This should never happen -- it would only happen if a patch were
                                     # somehow corrupted, which should be impossible.  But it's better
                                     # to catch and move on then destroy the syncstring entirely.
-                                    winston.debug("syncstring error applying patch -- #{misc.to_json(p.patch)} -- err=#{e}")
+                                    dbg("error applying patch -- #{misc.to_json(p.patch)} -- err=#{e}")
+                            dbg("patch_apply took a total of #{misc.mswalltime(t0)}ms")
                             cb()
             (cb) =>
                 if patches.length == 0
