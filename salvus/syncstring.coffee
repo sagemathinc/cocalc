@@ -20,6 +20,18 @@
 #
 #################################################################
 
+###
+Theoretical remarks.
+
+The code here provides a solution to the general problem of an eventually
+consistent synchronized string.  There are many standard choices and
+tradeoffs and conventions in choosing such a solution.   For example,
+if two writes in different locations occur at the same time (equal timestamps),
+then it's basically random which diff is actually recorded.
+... (should say more)
+###
+
+
 # The StringsDB class below models storing a distributed collection of strings, indexed by a uuid,
 # in an eventually consistent database (Cassandra).
 # It queries periodically, with exponetial backoff, for updates about strings that
@@ -38,7 +50,9 @@ POLL_DECAY_RATIO       = 1.4
 # propogate after this long may be lost.  This way we still eventually see
 # patches that were written to the database, but that we missed
 # due to them not being propogates to all data centers.
+
 TIMESTAMP_OVERLAP      = 60000
+## TIMESTAMP_OVERLAP      = 15000
 
 # If there are more than DB_PATCH_SQUASH_THRESH patches for a given string,
 # we squash the old patch history into a single patch the first time
@@ -46,7 +60,7 @@ TIMESTAMP_OVERLAP      = 60000
 # having to apply hundreds of patches when opening a string, and saves
 # space.   (Of course, having the complete history could also be
 # interesting...)
-DB_PATCH_SQUASH_THRESH = 50
+DB_PATCH_SQUASH_THRESH = 20
 
 async    = require('async')
 {EventEmitter} = require('events')
@@ -294,10 +308,6 @@ exports.init_syncstring_db = (database, cb) ->
         syncstring_db = new StringsDB(database)
         cb?()
 
-# queries the syncstring_acls table for all syncstring id’s, one by one goes through and
-# loads them and combines all the patches into a single patch.  As it goes, it also
-# record the total length of the resulting syncstring.
-exports.compact_all_syncstrings = (cb) ->   # cb(err, lengths); where lengths[string_id] = length of that string
 
 exports.get_syncstring_db = () ->
     return syncstring_db
@@ -320,9 +330,10 @@ class StringsDBString extends EventEmitter
         @last_sync = ''
         @live = ''
         @timestamp = 0
+        @patch_counter = 0
 
     sync: (cb) =>
-        @strings_db.sync(cb)   # NOTE: actually sync's all strings to db that have changed (not just this one)
+        @strings_db.sync([@string_id], cb)
 
 class StringsDB
     constructor : (@db) ->
@@ -381,10 +392,64 @@ class StringsDB
                     s.live = s.last_sync # start initialized to what is in db
                     f(undefined, s)
 
+    # This is mostly a throw-away function for maintenance in the early low-usage days.
+    # This queries the syncstring_acls table for all syncstring id’s, one by one
+    # goes through and loads them and combines all the patches into a single patch.
+    # As it goes, it also record the total length of the resulting syncstring.
+    # x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.s = require('syncstring'); x.s.init_syncstring_db(x.c.database); x.ss=x.s.get_syncstring_db(); x.lengths={}; x.ss.compact_all_syncstrings(start:0,stop:100,lengths:x.lengths,cb:(e)->console.log("DONE",e)))
+    compact_all_syncstrings: (opts)  =>
+        opts = defaults opts,
+            start   : 0
+            stop    : 100
+            lengths : undefined
+            cb      : undefined
+
+        lengths = {}
+        v = undefined
+        async.series([
+            (cb) =>
+                ## v = ['4bd8cb98-506c-45a5-8042-5c6bd8fddff0']; cb(); return
+                winston.info("compact_all_syncstrings: querying for all string ids...")
+                @db.select
+                    table   : 'syncstring_acls'
+                    columns : ['string_id']
+                    cb      : (err, results) =>
+                        if err
+                            cb(err)
+                        else
+                            v = (x[0] for x in results)
+                            v.sort()
+                            if opts.stop?
+                                v = v.slice(opts.start, opts.stop)
+                            else if opts.start
+                                v = v.slice(opts.start)
+                            winston.info("compact_all_syncstrings: there are #{v.length} syncstrings")
+                            cb()
+            (cb) =>
+                i = opts.start
+                f = (string_id, c) =>
+                    winston.info("compact_all_syncstrings: #{i}/#{v.length-1+opts.start} - loading #{string_id}...")
+                    i += 1
+                    @get_string
+                        string_id     : string_id
+                        squash_thresh : 1  # causes it to be squashed to 1 for sure
+                        cb            : (err, s) ->
+                            if err
+                                c(err)
+                            else
+                                if opts.lengths?
+                                    opts.lengths[string_id] = s.live.length
+                                c()
+                async.mapLimit(v, 1, f, (err) => cb(err))
+            ], (err) =>
+                opts.cb?(err)
+        )
+
+
     poll_for_updates: (interval=INIT_POLL_INTERVAL) =>
         retry = (interval) =>
             next_interval = Math.max(INIT_POLL_INTERVAL, Math.min(MAX_POLL_INTERVAL, POLL_DECAY_RATIO*interval))
-            @dbg("poll_for_updates", "waiting #{next_interval}ms...")
+            #@dbg("poll_for_updates", "waiting #{next_interval/1000}s...")
             setTimeout((()=>@poll_for_updates(next_interval)), interval)
 
         if misc.len(@strings) == 0
@@ -404,10 +469,10 @@ class StringsDB
                         # nothing new -- try again after further exponential decay
                         retry(interval)
 
-    sync: (cb) =>
-        @_call_with_lock(@_write_updates_to_db, cb)
+    sync: (string_ids, cb) =>
+        @_call_with_lock(((c)=>@_write_updates_to_db(string_ids,c)), cb)
 
-    _write_updates_to_db: (cb) =>
+    _write_updates_to_db: (string_ids, cb) =>
         if not @db?
             cb("database not initialized"); return
         dbg = (m) => @dbg("_write_updates_to_db", m)
@@ -436,8 +501,14 @@ class StringsDB
                             string.last_sync = string.live
                             string.applied_patches[timestamp] = {patch:patch, timestamp:timestamp}
                             string.timestamp = timestamp
-                            cb()
-        async.map(misc.keys(@strings), f, (err) => cb(err))
+                            string.patch_counter += 1
+                            if string.patch_counter >= DB_PATCH_SQUASH_THRESH
+                                @squash_old_patches
+                                    string_id : string_id
+                                    cb        : cb
+                            else
+                                cb()
+        async.map(string_ids, f, (err) => cb(err))
 
     read_updates_from_db: (opts) =>
         opts = defaults opts,
@@ -450,7 +521,10 @@ class StringsDB
     _read_updates_from_db: (string_ids, age, squash_thresh, cb) =>
         if not @db?
             cb("database not initialized"); return
-        @dbg("_read_updates_from_db", misc.to_json(string_ids))
+        if string_ids.length == 1
+            @dbg("_read_updates_from_db", "querying updates for #{string_ids[0]}")
+        else
+            @dbg("_read_updates_from_db", "querying updates for #{string_ids.length} strings")
         where = {string_id:{'in':string_ids}}
         if age
             where.timestamp = {'>=' : cass.now() - age}
@@ -476,13 +550,9 @@ class StringsDB
         #   patch     = string representation of a patch (since we don't want to de-JSON if not needed)
         #   is_first  = boolean; if true, start with this patch; used only to avoid race conditions when trimming history.
 
-        # WARNING!
-        # We first implement a very inefficient stupid version of this business, and
-        # will later implement things to make faster.  If this database sync thing
-        # turns out to be sensible.
-        #  SIMPLIFIED: ignore is_first and never trim.
-        @dbg("_process_updates", "process #{updates.length} updates")
-        #@dbg("_process_updates", "#{misc.to_json(updates)}")
+        if updates.length > 0
+            @dbg("_process_updates", "process #{updates.length} updates")
+            #@dbg("_process_updates", "#{misc.to_json(updates)}")
         new_patches = {}
         for update in updates
             update.timestamp = update.timestamp - 0  # better to key map based on string of timestamp as number
@@ -498,7 +568,7 @@ class StringsDB
                     new_patches[update.string_id].push(update)
 
         if misc.len(new_patches) == 0
-            @dbg("_process_updates", "no new patches, so nothing further to do")
+            #@dbg("_process_updates", "no new patches, so nothing further to do")
             cb(undefined, false)
             return
 
@@ -507,7 +577,7 @@ class StringsDB
         @dbg("_process_updates", "#{misc.len(new_patches)} new patches")
 
         # There are new patches
-        write_updates = false
+        write_updates = []
         for string_id, patches of new_patches
             string = @strings[string_id]
             last_sync_before = string.last_sync
@@ -548,8 +618,8 @@ class StringsDB
                 string.timestamp = 0
                 string.applied_patches = {}
 
-            # Apply unapplied patches in order.
-            if string.last_sync == '' and patches.length > squash_thresh
+            # Determine whether or not to squash the patches into a single patch.
+            if patches.length > squash_thresh
                 squash = true
                 squash_time = new Date() - 1.2*TIMESTAMP_OVERLAP
             else
@@ -557,6 +627,7 @@ class StringsDB
 
             #@dbg("_process_updates", "squash=#{squash}; squash_time=#{squash_time}")
 
+            # Apply unapplied patches in order.
             i = 0
             for p in patches
                 #@dbg("_process_updates","applying unapplied patch #{misc.to_json(p.patch)}")
@@ -567,9 +638,9 @@ class StringsDB
                 string.applied_patches[p.timestamp] = p
                 if squash and p.timestamp <= squash_time and (i == patches.length-1 or patches[i+1].timestamp > squash_time)
                     @_squash_patches
-                        to_delete : patches.slice(0, i)
+                        to_delete : (x.timestamp for x in patches.slice(0, i))
                         string_id : string_id
-                        last_sync : string.last_sync
+                        value     : string.last_sync
                         timestamp : p.timestamp
                 i += 1
 
@@ -583,14 +654,14 @@ class StringsDB
                 string.live = diffsync.dmp.patch_apply(patch, string.live)[0]
                 string.emit('change')
 
-            # If live != last_sync, write changes back to database
+            # If live != last_sync, write our changes back to database
             if string.live != string.last_sync
-                write_updates = true
+                write_updates.push(string_id)
 
-        if write_updates
+        if write_updates.length > 0
             #@dbg("_process_updates","writing our own updates back")
             # safe to call skipping lock, since we have the lock
-            @_write_updates_to_db (err) =>
+            @_write_updates_to_db write_updates, (err) =>
                 cb(err, true)
         else
             #@dbg("_process_updates","no further updates from us (stable)")
@@ -599,16 +670,16 @@ class StringsDB
 
     _squash_patches: (opts) =>
         opts = defaults opts,
-            to_delete : required
             string_id : required
-            last_sync    : required
+            value     : required
             timestamp : required
+            to_delete : required
             cb        : undefined
-        @dbg("_squash_patches", misc.to_json(opts))
+        @dbg("_squash_patches", "string_id=#{opts.string_id}")
         async.series([
             (cb) =>
                 # write big new patch
-                patch = diffsync.dmp.patch_make('', opts.last_sync)
+                patch = diffsync.dmp.patch_make('', opts.value)
                 @db.update
                     table : 'syncstrings'
                     set   :
@@ -620,16 +691,96 @@ class StringsDB
                     cb    : cb
             (cb) =>
                 # delete now-redundant old patches (in parallel)
-                f = (patch, cb) =>
+                f = (timestamp, cb) =>
                     @db.delete
                         table : 'syncstrings'
                         where :
                             string_id : opts.string_id
-                            timestamp : patch.timestamp
+                            timestamp : timestamp
                         cb    : cb
-                async.map opts.to_delete, f, (err) => cb(err)
-        ], (err) => opts.cb?(err))
+                async.map(opts.to_delete, f, (err) => cb(err))
+        ], (err) =>
+            if not err
+                string = @strings[opts.string_id]
+                if string?
+                    string.patch_counter = 1
+            opts.cb?(err)
+        )
 
+    # Squash all patches in the database older than squash_time
+    # into a single patch.  If succcessful, also resets the
+    # patch_counter for the synchronized string if @strings[string_id]
+    # is defined.
+    squash_old_patches: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            cb        : undefined
+        dbg = (m) => @dbg("squash_old_patches(string_id=#{opts.string_id})", m)
+        dbg()
+
+        patches     = undefined
+        to_delete   = undefined
+        timestamp   = undefined
+        value       = undefined
+        async.series([
+            (cb) =>
+                # Get all the patches in the database for this string that
+                # are at least 1.2*TIMESTAMP_OVERLAP old, so by *hypothesis*
+                # they have all already been seen by all active clients.
+                @db.select
+                    table     : 'syncstrings'
+                    where     :
+                        string_id : opts.string_id
+                        timestamp : {'<=' : new Date() - 1.2*TIMESTAMP_OVERLAP}
+                    columns   : ['timestamp', 'patch', 'is_first']
+                    objectify : true
+                    cb        : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            # Sort the patches we just read from oldest to newest.
+                            patches = r
+                            patches.sort(timestamp_cmp)
+                            # If we successfully squash them, then these are the timestamps
+                            # of patches that we will delete:
+                            to_delete = (x.timestamp for x in patches.slice(0,patches.length-1))
+                            # If one patch is marked as is_first, delete everything before it.
+                            for i in [0...patches.length]
+                                j = patches.length - i - 1  # go from right to left!
+                                if patches[j].is_first
+                                    patches = patches.slice(j)
+                                    break
+                            # Compute value of concatenation of all patches we're using, which
+                            # together defines the state of the string at the newest patch time.
+                            # This operation could be expensive if there were a large number
+                            # of patches, but there shouldn't be since we squash regularly.
+                            value = ''
+                            for p in patches
+                                try
+                                    value = diffsync.dmp.patch_apply(@string_to_patch(p.patch), value)[0]
+                                catch e
+                                    # This should never happen -- it would only happen if a patch were
+                                    # somehow corrupted, which should be impossible.  But it's better
+                                    # to catch and move on then destroy the syncstring entirely.
+                                    winston.debug("syncstring error applying patch -- #{misc.to_json(p.patch)} -- err=#{e}")
+                            cb()
+            (cb) =>
+                if patches.length == 0
+                    cb(); return
+                # Now do the actual squash operation and delete old patches from the database.
+                @_squash_patches
+                    string_id : opts.string_id
+                    value     : value
+                    timestamp : patches[patches.length-1].timestamp
+                    to_delete : to_delete
+                    cb        : cb
+        ], (err) =>
+            opts.cb?(err)
+            string = @strings[opts.string_id]
+            if string?
+                @dbg("reset patch_counter")
+                string.patch_counter = 0
+        )
 
 
 #---------------------------------------------------------------------
