@@ -46,7 +46,7 @@ TIMESTAMP_OVERLAP      = 60000
 # having to apply hundreds of patches when opening a string, and saves
 # space.   (Of course, having the complete history could also be
 # interesting...)
-DB_PATCH_SQUASH_THRESH = 50
+DB_PATCH_SQUASH_THRESH = 20
 
 async    = require('async')
 {EventEmitter} = require('events')
@@ -294,10 +294,6 @@ exports.init_syncstring_db = (database, cb) ->
         syncstring_db = new StringsDB(database)
         cb?()
 
-# queries the syncstring_acls table for all syncstring id’s, one by one goes through and
-# loads them and combines all the patches into a single patch.  As it goes, it also
-# record the total length of the resulting syncstring.
-exports.compact_all_syncstrings = (cb) ->   # cb(err, lengths); where lengths[string_id] = length of that string
 
 exports.get_syncstring_db = () ->
     return syncstring_db
@@ -381,10 +377,64 @@ class StringsDB
                     s.live = s.last_sync # start initialized to what is in db
                     f(undefined, s)
 
+    # This is mostly a throw-away function for maintenance in the early low-usage days.
+    # This queries the syncstring_acls table for all syncstring id’s, one by one
+    # goes through and loads them and combines all the patches into a single patch.
+    # As it goes, it also record the total length of the resulting syncstring.
+    # x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.s = require('syncstring'); x.s.init_syncstring_db(x.c.database); x.ss=x.s.get_syncstring_db(); x.lengths={}; x.ss.compact_all_syncstrings(start:0,stop:100,lengths:x.lengths,cb:(e)->console.log("DONE",e)))
+    compact_all_syncstrings: (opts)  =>
+        opts = defaults opts,
+            start   : 0
+            stop    : 100
+            lengths : undefined
+            cb      : undefined
+
+        lengths = {}
+        v = undefined
+        async.series([
+            (cb) =>
+                ## v = ['4bd8cb98-506c-45a5-8042-5c6bd8fddff0']; cb(); return
+                winston.info("compact_all_syncstrings: querying for all string ids...")
+                @db.select
+                    table   : 'syncstring_acls'
+                    columns : ['string_id']
+                    cb      : (err, results) =>
+                        if err
+                            cb(err)
+                        else
+                            v = (x[0] for x in results)
+                            v.sort()
+                            if opts.stop?
+                                v = v.slice(opts.start, opts.stop)
+                            else if opts.start
+                                v = v.slice(opts.start)
+                            winston.info("compact_all_syncstrings: there are #{v.length} syncstrings")
+                            cb()
+            (cb) =>
+                i = opts.start
+                f = (string_id, c) =>
+                    winston.info("compact_all_syncstrings: #{i}/#{v.length-1+opts.start} - loading #{string_id}...")
+                    i += 1
+                    @get_string
+                        string_id     : string_id
+                        squash_thresh : 1  # causes it to be squashed to 1 for sure
+                        cb            : (err, s) ->
+                            if err
+                                c(err)
+                            else
+                                if opts.lengths?
+                                    opts.lengths[string_id] = s.live.length
+                                c()
+                async.mapLimit(v, 1, f, (err) => cb(err))
+            ], (err) =>
+                opts.cb?(err)
+        )
+
+
     poll_for_updates: (interval=INIT_POLL_INTERVAL) =>
         retry = (interval) =>
             next_interval = Math.max(INIT_POLL_INTERVAL, Math.min(MAX_POLL_INTERVAL, POLL_DECAY_RATIO*interval))
-            @dbg("poll_for_updates", "waiting #{next_interval}ms...")
+            @dbg("poll_for_updates", "waiting #{next_interval/1000}s...")
             setTimeout((()=>@poll_for_updates(next_interval)), interval)
 
         if misc.len(@strings) == 0
@@ -450,7 +500,10 @@ class StringsDB
     _read_updates_from_db: (string_ids, age, squash_thresh, cb) =>
         if not @db?
             cb("database not initialized"); return
-        @dbg("_read_updates_from_db", misc.to_json(string_ids))
+        if string_ids.length == 1
+            @dbg("_read_updates_from_db", "querying updates for #{string_ids[0]}")
+        else
+            @dbg("_read_updates_from_db", "querying updates for #{string_ids.length} strings")
         where = {string_id:{'in':string_ids}}
         if age
             where.timestamp = {'>=' : cass.now() - age}
@@ -548,8 +601,8 @@ class StringsDB
                 string.timestamp = 0
                 string.applied_patches = {}
 
-            # Apply unapplied patches in order.
-            if string.last_sync == '' and patches.length > squash_thresh
+            # Determine whether or not to squash the patches into a single patch.
+            if patches.length > squash_thresh
                 squash = true
                 squash_time = new Date() - 1.2*TIMESTAMP_OVERLAP
             else
@@ -557,6 +610,7 @@ class StringsDB
 
             #@dbg("_process_updates", "squash=#{squash}; squash_time=#{squash_time}")
 
+            # Apply unapplied patches in order.
             i = 0
             for p in patches
                 #@dbg("_process_updates","applying unapplied patch #{misc.to_json(p.patch)}")
@@ -601,10 +655,10 @@ class StringsDB
         opts = defaults opts,
             to_delete : required
             string_id : required
-            last_sync    : required
+            last_sync : required
             timestamp : required
             cb        : undefined
-        @dbg("_squash_patches", misc.to_json(opts))
+        @dbg("_squash_patches", "string_id=#{opts.string_id}")
         async.series([
             (cb) =>
                 # write big new patch
