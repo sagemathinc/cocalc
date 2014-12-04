@@ -371,7 +371,6 @@ NODE_MODULES = [
     'mkdirp',
     'walk',
     'temp',
-    'googlediff',
     'formidable@latest',
     'moment',
     'underscore',
