@@ -5540,7 +5540,7 @@ exports.start_server = start_server = () ->
         f           : connect_to_database
         start_delay : 1000
         max_delay   : 10000
-        cb          : () =>
+        cb          : () ->
             winston.debug("connected to database.")
             init_salvus_version()
             if not SYNCSTRING_DISABLED

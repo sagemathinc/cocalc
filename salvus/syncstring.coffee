@@ -32,6 +32,11 @@ then it's basically random which diff is actually recorded.
 ###
 
 
+SECRET_TOKEN_LENGTH = 16   # TODO: for testing; make longer when deploy!
+REGISTER_INTERVAL_S = 60   # every 60 seconds
+
+SALVUS_HOME = process.cwd()
+
 # The StringsDB class below models storing a distributed collection of strings, indexed by a uuid,
 # in an eventually consistent database (Cassandra).
 # It queries periodically, with exponetial backoff, for updates about strings that
@@ -66,14 +71,20 @@ TIMESTAMP_OVERLAP      = 60000
 # interesting...)
 DB_PATCH_SQUASH_THRESH = 20
 
-async    = require('async')
 {EventEmitter} = require('events')
-winston = require('winston')
 
-diffsync = require('diffsync')
-misc     = require('misc')
-message  = require('message')
-cass     = require("cassandra")
+fs        = require("fs")
+net       = require('net')
+async     = require('async')
+program   = require('commander')
+daemon    = require('start-stop-daemon')
+winston   = require('winston')
+diffsync  = require('diffsync')
+misc      = require('misc')
+misc_node = require('misc_node')
+message   = require('message')
+cass      = require("cassandra")
+cql       = require("node-cassandra-cql")
 
 
 {defaults, required} = misc
@@ -330,7 +341,7 @@ exports.syncstring = (opts) ->
                         else
                             opts.cb(undefined, client)
 
-# The hub has to call this on startup in order for syncstring to work.
+# Call this on startup in order for syncstring to work.
 syncstring_db = undefined
 exports.init_syncstring_db = (database, cb) ->
     if not database?  # for debugging/testing on command line
@@ -864,5 +875,125 @@ exports.syncdb = (opts) ->
                 d = _syncdb_cache[opts.string_id] = new diffsync.SynchronizedDB(doc)
                 d.string_id = opts.string_id
                 opts.cb(undefined, d)
+
+
+
+######################################################################
+# TCP server code below
+######################################################################
+database = undefined
+connect_to_database = (cb) ->
+    winston.debug("connecting to database....")
+    user = 'hub'  # TODO: change to 'syncstring' later for better isolation
+    fs.readFile "#{SALVUS_HOME}/data/secrets/cassandra/#{user}", (err, password) ->
+        if err
+            cb(err)
+        else
+            new cass.Salvus
+                hosts       : program.database_nodes.split(',')
+                keyspace    : program.keyspace
+                username    : user
+                password    : password.toString().trim()
+                consistency : cql.types.consistencies.localQuorum
+                cb          : (err, _db) ->
+                    if err
+                        winston.debug("Error connecting to database")
+                        cb(err)
+                    else
+                        winston.debug("Successfully connected to database.")
+                        database = _db
+                        cb()
+
+secret_token = undefined
+server = net.createServer (socket) ->
+    winston.debug("received connection")
+    misc_node.unlock_socket socket, secret_token, (err) ->
+        if err
+            winston.debug(err)
+        else
+            socket.id = uuid.v4()
+            misc_node.enable_mesg(socket)
+            handler = (type, mesg) ->
+                if type == "json"   # other types are handled elsewhere in event code.
+                    winston.debug "received control mesg #{json(mesg)}"
+                    handle_mesg(socket, mesg, handler)
+            socket.on 'mesg', handler
+
+start_tcp_server = (cb) ->
+    winston.info("starting tcp server...")
+    server.listen program.port, 'localhost', () ->
+        winston.info("listening on port #{server.address().port}")
+
+
+register_with_db = (cb) ->
+    database.update
+        table : 'syncstring_servers'
+        where : {host : program.host, port : program.port, dummy: true}
+        set   :
+            secret_token : secret_token
+        ttl   : 2*REGISTER_INTERVAL_S
+        cb    : (err) ->
+            if err
+                winston.debug("Error registering with database - #{err}")
+            else
+                winston.debug("Successfully registered with database.")
+            cb?(err)
+
+start_server = () ->
+    winston.info("Using keyspace #{program.keyspace}")
+    async.series([
+        (cb) ->
+            misc.retry_until_success
+                f           : connect_to_database
+                start_delay : 1000
+                max_delay   : 10000
+                cb          : cb
+        (cb) ->
+            require('crypto').randomBytes  SECRET_TOKEN_LENGTH, (ex, buf) ->
+                secret_token = buf.toString('base64')
+                cb()
+        (cb) ->
+            register_with_db(); setInterval(register_with_db, REGISTER_INTERVAL_S*1000)
+        (cb) ->
+            exports.init_syncstring_db(database, cb)
+        (cb) ->
+            start_tcp_server(cb)
+    ], (err) ->
+        if err
+            winston.debug("Failed to start syncstring server: #{err}")
+        else
+            winston.debug("Started syncstring server")
+    )
+
+#############################################
+# Process command line arguments
+#############################################
+program.usage('[start/stop/restart/status] [options]')
+    .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
+    .option('--port <n>', 'port to listen on (default: 6000)', parseInt, 6000)
+    .option('--debug [string]', 'logging debug level (default: "debug"); "" for no debugging output)', String, 'debug')
+    .option('--pidfile [string]', 'store pid in this file (default: "data/pids/syncstring.pid")', String, "data/pids/syncstring.pid")
+    .option('--logfile [string]', 'write log to this file (default: "data/logs/syncstring.log")', String, "data/logs/syncstring.log")
+    .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
+    .option('--keyspace [string]', 'Cassandra keyspace to use (default: "salvus")', String, 'salvus')
+    .parse(process.argv)
+
+    # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
+console.log(program._name)
+if program._name == 'syncstring'
+    # run as a server/daemon (otherwise, imported as a library)
+    if program.debug
+        winston.remove(winston.transports.Console)
+        winston.add(winston.transports.Console, {level: program.debug, timestamp:true, colorize:true})
+
+    process.addListener "uncaughtException", (err) ->
+        winston.debug("BUG ****************************************************************************")
+        winston.debug("Uncaught exception: " + err)
+        winston.debug(err.stack)
+        winston.debug("BUG ****************************************************************************")
+
+    console.log("Starting syncstring server...")
+    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+
 
 

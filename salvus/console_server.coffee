@@ -14,7 +14,6 @@
 #
 #################################################################
 
-child_process  = require 'child_process'
 async          = require 'async'
 fs             = require 'fs'
 net            = require 'net'
@@ -23,6 +22,7 @@ message        = require 'message'
 misc_node      = require 'misc_node'
 winston        = require 'winston'
 local_hub      = require 'local_hub'
+
 {to_json, from_json, defaults, required}   = require 'misc'
 
 assert         = require('assert')
