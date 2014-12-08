@@ -999,6 +999,10 @@ class Course
                         @return_graded_to_students
                             assignment_id : assignment.assignment_id
                             cb       : (err) =>
+                                if err
+                                    alert_message(type:"error", message:"Error returning collected assignments (report to wstein@uw.edu) -- #{err}", timeout:15)
+                                else
+                                    alert_message(message:"Successfully returned collected assignments to students", timeout:3)
                                 return_button.icon_spin(false)
 
         # NOTE: for now we just put everything -- visible or not -- in the DOM.  This is less
@@ -1219,7 +1223,9 @@ class Course
             assignment.last_return_graded = {}
         assignment_with = (student, cb) =>
             #console.log("returning '#{assignment.path}' to #{student.email_address}")
-            if not student.project_id?
+            # Only try to return if the student's project has been created *and* the assignment
+            # for this student was collected (otherwise trying to return it results in an error).
+            if not student.project_id? or not assignment.last_collect[student.student_id]?
                 #console.log("can't return assignment to #{student.email_address} -- no project")
                 cb()
                 return
@@ -1233,9 +1239,14 @@ class Course
                 delete_missing    : assignment.delete_missing
                 timeout           : assignment.timeout
                 cb                : (err) =>
+                    #console.log("return_graded_to_students", student)
+                    if err
+                        alert_message
+                            type    : "error"
+                            message : "Error returning assignment to #{@student_name(student)} -- #{err}"
                     #console.log("finished returning assignment to #{student.email_address} -- err=#{err}")
                     assignment.last_return_graded[student.student_id] = {time:misc.mswalltime(), error:err}
-                    cb(err)
+                    cb()  # explicitly don't pass error back, since we still want to return rest of assignments
         async.mapLimit(opts.students, MAP_LIMIT, assignment_with, (err) => opts.cb(err))
 
 

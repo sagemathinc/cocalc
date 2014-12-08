@@ -71,6 +71,7 @@ CREATE TABLE log (
 
 CREATE TABLE accounts (
     account_id           uuid PRIMARY KEY,
+    created              timestamp,
 
     first_name           varchar,
     last_name            varchar,
@@ -237,6 +238,8 @@ CREATE TABLE successful_sign_ins (
 
 CREATE TABLE projects (
      project_id       uuid  PRIMARY KEY,
+     created          timestamp,
+
      account_id       uuid,          // id of original creator of this project
      title            varchar,
      description      varchar,

@@ -118,7 +118,7 @@ MaxStartups 128
 # Additional packages (mainly for users, not building).
 
 
-   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html quantlib-ruby r-cran-rquantlib  libf2c2-dev libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps mesa-utils libpangox-1.0-dev octave-signal octave-audio octave-benchmark octave-bim octave-biosig octave-communications octave-communications-common octave-data-smoothing octave-dataframe octave-dbg octave-doc octave-econometrics octave-epstk octave-financial octave-fpl octave-ga octave-gdf octave-geometry  octave-gmt octave-gsl octave-htmldoc octave-image octave-info octave-io octave-lhapdf octave-linear-algebra octave-mapping octave-miscellaneous octave-missing-functions octave-mpi octave-msh octave-nan octave-nlopt octave-nnet octave-nurbs octave-ocs octave-octcdf octave-octgpr octave-odepkg octave-openmpi-ext octave-optim octave-optiminterp  octave-parallel octave-pfstools octave-pkg-dev octave-plot octave-psychtoolbox-3 octave-quaternion octave-secs1d octave-secs2d octave-sockets octave-splines octave-statistics octave-strings octave-struct octave-sundials octave-tsa octave-vlfeat octave-vrml octave-zenity gnugo libapr1-dev  libcap2-bin npm coffeescript lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34 gmsh libmed1 libhdf5-openmpi-7 csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev libfaac-dev libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev
+   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html quantlib-ruby r-cran-rquantlib  libf2c2-dev libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps mesa-utils libpangox-1.0-dev octave-signal octave-audio octave-benchmark octave-bim octave-biosig octave-communications octave-communications-common octave-data-smoothing octave-dataframe octave-dbg octave-doc octave-econometrics octave-epstk octave-financial octave-fpl octave-ga octave-gdf octave-geometry  octave-gmt octave-gsl octave-htmldoc octave-image octave-info octave-io octave-lhapdf octave-linear-algebra octave-mapping octave-miscellaneous octave-missing-functions octave-mpi octave-msh octave-nan octave-nlopt octave-nnet octave-nurbs octave-ocs octave-octcdf octave-octgpr octave-odepkg octave-openmpi-ext octave-optim octave-optiminterp  octave-parallel octave-pfstools octave-pkg-dev octave-plot octave-psychtoolbox-3 octave-quaternion octave-secs1d octave-secs2d octave-sockets octave-splines octave-statistics octave-strings octave-struct octave-sundials octave-tsa octave-vlfeat octave-vrml octave-zenity gnugo libapr1-dev  libcap2-bin npm coffeescript lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34 gmsh libmed1 libhdf5-openmpi-7 csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev libfaac-dev libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev yi
 
 # NOTE: as of April 27 the quantlib python indings that get installed above don't work in Ubuntu 14.04 (e.g., 'import QuantLib' fails)
 
@@ -319,6 +319,7 @@ SETUPTOOLS_VERSION = '3.4.4'     # options here (bottom!) -- https://pypi.python
 NGINX_VERSION      = '1.7.0'     # options here -- http://nginx.org/download/
 HAPROXY_VERSION    = '1.5-dev24' # options here -- http://haproxy.1wt.eu/download/1.5/src/devel/
 STUNNEL_VERSION    = '5.01'      # options here -- https://www.stunnel.org/downloads.html
+GDAL_VERSION       = '1.11.1'    # options here -- http://download.osgeo.org/gdal/?C=M;O=D
 
 import logging, os, shutil, subprocess, sys, time, urllib2
 
@@ -348,6 +349,8 @@ NODE_MODULES = [
     'winston',
     'primus',  # websocket abstraction
     'ws',      # fast low-level websocket depedency for primus
+    'sockjs',  # not used but is optionally available in hub/primeus/client
+    'engine.io',  # this is the one we use -- seems by far the best overall.  CAREFUL WITH DNS!
     'cassandra-driver',
     'coffee-script',
     'node-uuid',
@@ -369,7 +372,6 @@ NODE_MODULES = [
     'mkdirp',
     'walk',
     'temp',
-    'googlediff',
     'formidable@latest',
     'moment',
     'underscore',
@@ -378,7 +380,7 @@ NODE_MODULES = [
     'rimraf',
     'net-ping',
     'marked',
-    'http-proxy'     # https://github.com/nodejitsu/node-http-proxy
+    'http-proxy'    # https://github.com/nodejitsu/node-http-proxy
     ]
 
 PYTHON_PACKAGES = [
@@ -623,6 +625,7 @@ class BuildSage(object):
         self.install_basemap()
         self.install_4ti2()
         self.install_pydelay()
+        self.install_gdal()
         self.install_stein_watkins()
         self.clean_up()
         self.extend_sys_path()
@@ -902,6 +905,14 @@ class BuildSage(object):
         Requested for UCLA by Jane Shevtsov: https://plus.google.com/115360165819500279592/posts/73vK9Pw4W6g
         """
         cmd("umask 022 &&  cd /tmp/ &&  rm -rf pydelay* &&  wget http://downloads.sourceforge.net/project/pydelay/pydelay-0.1.1.tar.gz &&  tar xf pydelay-0.1.1.tar.gz &&  cd pydelay-0.1.1 &&  python setup.py install &&  rm -rf /tmp/pydelay*")
+
+    def install_gdal(self):
+        """
+        Install GDAL -- for geospatial imaging.
+        """
+        # The make; make -j8 below instead of just make is because the first make mysteriously gives an error on
+        # exit, but running it again seems to work fine. 
+        cmd("umask 022 &&  unset MAKE && cd /tmp && export V=%s && rm -rf gdal-$V* && wget http://download.osgeo.org/gdal/CURRENT/gdal-$V.tar.xz && tar xf gdal-$V.tar.xz && cd gdal-$V && export CXXFLAGS=-I/usr/include/mpi/ && ./configure --with-python --prefix=$SAGE_ROOT/local && unset SHELL && make -j8; make && cd swig/python && python setup.py install && cd ../.. && make install && cd /tmp && rm -rf gdal-$V*"%GDAL_VERSION)
 
     def install_stein_watkins(self):
         # The package itself is "sage -i database_stein_watkins"
