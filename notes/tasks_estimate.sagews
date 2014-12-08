@@ -31,8 +31,8 @@ def task_estimate(tag='today', file='smc.tasks'):
     for k in [4,8,9,12,16]:
         print "- %5.1f days at %2s hours/day"%(tm/60./k, k)
 
-︡8513fbfe-0e2c-4669-992f-7553a7a57b45︡{"auto":true}︡{"stdout":"click for code\n"}︡
-︠853e9733-f142-410d-bcdc-395dc94e5e3as︠
+︡bb745fd8-d2e9-44f5-a7e7-4a83092317a8︡{"auto":true}︡{"stdout":"click for code\n"}︡
+︠853e9733-f142-410d-bcdc-395dc94e5e3a︠
 @interact
 def f(update=['Update'], tag='today'):
    task_estimate(tag=tag)
