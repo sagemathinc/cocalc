@@ -319,6 +319,7 @@ SETUPTOOLS_VERSION = '3.4.4'     # options here (bottom!) -- https://pypi.python
 NGINX_VERSION      = '1.7.0'     # options here -- http://nginx.org/download/
 HAPROXY_VERSION    = '1.5-dev24' # options here -- http://haproxy.1wt.eu/download/1.5/src/devel/
 STUNNEL_VERSION    = '5.01'      # options here -- https://www.stunnel.org/downloads.html
+GDAL_VERSION       = '1.11.1'    # options here -- http://download.osgeo.org/gdal/?C=M;O=D
 
 import logging, os, shutil, subprocess, sys, time, urllib2
 
@@ -371,7 +372,6 @@ NODE_MODULES = [
     'mkdirp',
     'walk',
     'temp',
-    'googlediff',
     'formidable@latest',
     'moment',
     'underscore',
@@ -444,7 +444,8 @@ SAGE_PIP_PACKAGES = [
     'pyparse',    # needed by fipy
     'fipy',       # requested by Evan Chenelly <echenelly@gmail.com> -- "A finite volume PDE solver in Python".
     'python-igraph', # requested by Santhust <santhust31@gmail.com> -- "High performance graph data structures and algorithms" -- https://pypi.python.org/pypi/python-igraph/0.7
-    'mygene'   # requested by Luca Beltrame for a bioinformatics course
+    'mygene',   # requested by Luca Beltrame for a bioinformatics course
+    'singledispatch'  # needed by rpy2 ipython extension now
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -625,6 +626,7 @@ class BuildSage(object):
         self.install_basemap()
         self.install_4ti2()
         self.install_pydelay()
+        self.install_gdal()
         self.install_stein_watkins()
         self.clean_up()
         self.extend_sys_path()
@@ -904,6 +906,14 @@ class BuildSage(object):
         Requested for UCLA by Jane Shevtsov: https://plus.google.com/115360165819500279592/posts/73vK9Pw4W6g
         """
         cmd("umask 022 &&  cd /tmp/ &&  rm -rf pydelay* &&  wget http://downloads.sourceforge.net/project/pydelay/pydelay-0.1.1.tar.gz &&  tar xf pydelay-0.1.1.tar.gz &&  cd pydelay-0.1.1 &&  python setup.py install &&  rm -rf /tmp/pydelay*")
+
+    def install_gdal(self):
+        """
+        Install GDAL -- for geospatial imaging.
+        """
+        # The make; make -j8 below instead of just make is because the first make mysteriously gives an error on
+        # exit, but running it again seems to work fine.
+        cmd("umask 022 &&  unset MAKE && cd /tmp && export V=%s && rm -rf gdal-$V* && wget http://download.osgeo.org/gdal/CURRENT/gdal-$V.tar.xz && tar xf gdal-$V.tar.xz && cd gdal-$V && export CXXFLAGS=-I/usr/include/mpi/ && ./configure --with-python --prefix=$SAGE_ROOT/local && unset SHELL && make -j8; make && cd swig/python && python setup.py install && cd ../.. && make install && cd /tmp && rm -rf gdal-$V*"%GDAL_VERSION)
 
     def install_stein_watkins(self):
         # The package itself is "sage -i database_stein_watkins"

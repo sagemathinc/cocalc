@@ -44,6 +44,10 @@ INIT_POLL_INTERVAL     = 3000
 MAX_POLL_INTERVAL      = 20000   # TODO: for testing -- for deploy make longer!
 POLL_DECAY_RATIO       = 1.4
 
+# Maximum allowed syncstring size -- we keep this manageable since we have to be
+# able to load the entire string within a few seconds from the database.
+MAX_STRING_LENGTH      = 5000000
+
 # We grab patches that are up to TIMESTAMP_OVERLAP old from db each time polling.
 # We are assuming a write to the database propogates to
 # all DC's after this much time.  Any change that failed to
@@ -134,11 +138,24 @@ class SyncStringBrowser extends diffsync.DiffSync
         @push_edits_to_browser(undefined, cb)
 
 # A string that is synchronized amongst all connected clients.
+# IMPORTANT: anything in the string after @max_size
+# will be automatically truncated -- i.e., if any operation results
+# in the string getting longer than that, it is truncated at the end.  It is
+# the responsibility of the client code to properly deal with this, e.g.,
+# by putting a sentinel character at the end of the string and checking for
+# it to see if the string was truncated as a result of a sync.
+
+# x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.s = require('syncstring'); x.s.init_syncstring_db(x.c.database); x.ss=x.s.get_syncstring_db(); x.s.get_syncstring(string_id:'4bd8cb98-506c-45a5-8042-5c6bd8fddff0',max_length:50,cb:(e,t)->x.t=t))
 class SynchronizedString
-    constructor: (@string_id) ->
+    constructor: (@string_id, @max_length) ->
         misc.call_lock(obj:@)
         @clients = {}
         @head = ''
+        if not @max_length?
+            @max_length = MAX_STRING_LENGTH
+        else
+            # no matter what, we never allow syncstrings to exceed the MAX_STRING_SIZE
+            @max_length = Math.min(@max_length, MAX_STRING_LENGTH)
 
     new_browser_client: (opts) =>
         opts = defaults opts,
@@ -159,6 +176,8 @@ class SynchronizedString
         client = new diffsync.DiffSync(doc:@head)
         client.id = opts.session_id
         client.sync = (cb) =>
+            if client.live.length > @max_length
+                client.live = client.live.slice(0,@max_length)
             client.shadow    = client.live
             client.last_sync = client.live
             client.emit('sync')
@@ -181,13 +200,15 @@ class SynchronizedString
                 if err
                     opts.cb(err)
                 else
+                    if client.live.length > @max_length
+                        client.live = client.live.slice(0,@max_length)
                     @clients[opts.session_id] = client
                     opts.cb(undefined, client)
 
     sync: (cb) =>
         @_call_with_lock(@_sync, cb)
 
-    _sync: (cb) =>
+    _sync: (cb, retry) =>
         last = @head
         #winston.debug("sync: last='#{last}'")
         all = {}
@@ -202,10 +223,15 @@ class SynchronizedString
 
         v = []
         for _, client of @clients
+            t0 = misc.mswalltime()
+            #winston.debug("local_client_sync: start...")
             v.push(client)
             patch = diffsync.dmp.patch_make(last, client.live)
+            #winston.debug("local_client_sync: computing patch in #{misc.mswalltime(t0)}ms"); t0 = misc.mswalltime()
             @head = diffsync.dmp.patch_apply(patch, @head)[0]
+            #winston.debug("local_client_sync: applied patch in #{misc.mswalltime(t0)}ms"); t0 = misc.mswalltime()
             #winston.debug("sync: new head='#{@head}' from patch=#{misc.to_json(patch)}")
+
         for _, client of @clients
             client.live = @head
 
@@ -228,21 +254,29 @@ class SynchronizedString
             else
                 cb()
         async.map v, f, () =>
-            if misc.len(successful_live) > 1 # if not stable (with ones with no err), do again.
+            if not retry and misc.len(successful_live) > 0
+                # if not stable (with ones with no err), do again; but not more than once.
                 #winston.debug("syncing again")
-                @_sync(cb)
+                @_sync(cb, true)
             else
                 #winston.debug("not syncing again since successful_live='#{misc.to_json(successful_live)}'")
                 cb?()
 
 sync_strings = {}
 
-exports.get_syncstring = get_syncstring = (string_id, cb) ->
-    S = sync_strings[string_id]
+exports.get_syncstring = get_syncstring = (opts) ->
+    opts = defaults opts,
+        string_id  : required
+        max_length : MAX_STRING_LENGTH   # max length of string; anything more gets silently truncated!
+        cb         : required
+    if opts.max_length > MAX_STRING_LENGTH
+        opts.cb("max_length of string may be at most #{MAX_STRING_LENGTH}")
+        return
+    S = sync_strings[opts.string_id]
     if S?
-        cb(undefined, S); return
+        opts.cb(undefined, S); return
 
-    S = new SynchronizedString(string_id)
+    S = new SynchronizedString(opts.string_id, opts.max_length)
     async.series([
         (cb) =>
             S.new_database_client
@@ -267,10 +301,10 @@ exports.get_syncstring = get_syncstring = (string_id, cb) ->
     ], (err) =>
         if err
             # TODO: undo any other harm
-            cb(err)
+            opts.cb(err)
         else
-            sync_strings[string_id] = S
-            cb(undefined, S)
+            sync_strings[opts.string_id] = S
+            opts.cb(undefined, S)
     )
 
 exports.syncstring = (opts) ->
@@ -278,19 +312,23 @@ exports.syncstring = (opts) ->
         string_id      : required
         session_id     : required
         push_to_client : required    # function that allows for sending a JSON message to remote client
+        max_length     : undefined
         cb             : required
-    get_syncstring opts.string_id, (err, S) =>
-        if err
-            opts.cb(err)
-        else
-            S.new_browser_client
-                session_id     : opts.session_id
-                push_to_client : opts.push_to_client
-                cb             : (err, client) ->
-                    if err
-                        opts.cb(err)
-                    else
-                        opts.cb(undefined, client)
+    get_syncstring
+        string_id  : opts.string_id
+        max_length : opts.max_length
+        cb         : (err, S) =>
+            if err
+                opts.cb(err)
+            else
+                S.new_browser_client
+                    session_id     : opts.session_id
+                    push_to_client : opts.push_to_client
+                    cb             : (err, client) ->
+                        if err
+                            opts.cb(err)
+                        else
+                            opts.cb(undefined, client)
 
 # The hub has to call this on startup in order for syncstring to work.
 syncstring_db = undefined
@@ -484,14 +522,20 @@ class StringsDB
                 #dbg("nothing to do for #{string_id}")
                 cb() # nothing to do
             else
+                t0 = misc.mswalltime()
+                #dbg("starting patch make from length #{string.last_sync.length} to #{string.live.length}...")
                 patch = diffsync.dmp.patch_make(string.last_sync, string.live)
+                #dbg("made patch for #{string_id} in #{misc.mswalltime(t0)}ms"); t0 = misc.mswalltime()
                 #dbg("patch for #{string_id} = #{misc.to_json(patch)}")
                 timestamp = cass.now() - 0
+                patch_as_string = @patch_to_string(patch)
+                #dbg("converted patch to string in #{misc.mswalltime(t0)}ms"); t0 = misc.mswalltime()
                 @db.update
                     table : 'syncstrings'
-                    set   : {patch:@patch_to_string(patch)}
+                    set   : {patch:patch_as_string}
                     where : {string_id:string_id, timestamp:timestamp}
                     cb    : (err) =>
+                        #dbg("wrote patch to database in #{misc.mswalltime(t0)}ms"); t0 = misc.mswalltime()
                         if err
                             cb(err)
                         else
@@ -794,24 +838,31 @@ class StringsDB
 # There is a corresponding implementation run by clients.
 #---------------------------------------------------------------------
 
+###
+x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.s = require('syncstring'); x.s.init_syncstring_db(x.c.database); x.ss=x.s.syncdb(string_id:'4bd8cb98-506c-45a5-8042-5c6bd8fddff1', cb:(e,t)->x.t=t))
+###
 _syncdb_cache = {}
 exports.syncdb = (opts) ->
     opts = defaults opts,
         string_id      : required
+        max_length     : MAX_STRING_LENGTH
         cb             : required
     d = _syncdb_cache[opts.string_id]
     if d?
         opts.cb(undefined, d)
         return
-    get_syncstring opts.string_id, (err, S) =>
-        if err
-            opts.cb(err)
-        else
-            doc = new diffsync.SynchronizedDB_DiffSyncWrapper(S.in_memory_client)
-            S.db_client.on 'changed', () =>
-                doc.emit("sync")
-            d = _syncdb_cache[opts.string_id] = new diffsync.SynchronizedDB(doc)
-            d.string_id = opts.string_id
-            opts.cb(undefined, d)
+    get_syncstring
+        string_id  : opts.string_id
+        max_length : opts.max_length
+        cb         : (err, S) =>
+            if err
+                opts.cb(err)
+            else
+                doc = new diffsync.SynchronizedDB_DiffSyncWrapper(S.in_memory_client)
+                S.db_client.on 'changed', () =>
+                    doc.emit("sync")
+                d = _syncdb_cache[opts.string_id] = new diffsync.SynchronizedDB(doc)
+                d.string_id = opts.string_id
+                opts.cb(undefined, d)
 
 

@@ -31,12 +31,22 @@ SIMULATE_LOSS = false
 async = require('async')
 {EventEmitter} = require('events')
 
-diff_match_patch = require('googlediff')  # TODO: this greatly increases the size of browserify output (unless we compress it) -- watch out.
+{diff_match_patch} = require('dmp')
 
 # maximum time in seconds that diff_main will BLOCK optimizing the diff -- see https://code.google.com/p/google-diff-match-patch/wiki/API
 
 dmp = new diff_match_patch()
-dmp.Diff_Timeout = 0.25
+
+# We set a short maximum time to try to make a patch; if exceeds this, patch may
+# be very non-optimal, but still valid.  This is important to maintain user
+# interactivity in a single-threaded context (which Javascript provides).
+# NOTE: I had to significantly modify the code at
+#    https://code.google.com/p/google-diff-match-patch/wiki/API
+# to make Diff_Timeout actually work!  Hence the file node_modules/dmp.coffee, in
+# the git repo.
+dmp.Diff_Timeout = 0.2
+
+
 #dmp.Match_Threshold = 0.3   # make matching more conservative
 #dmp.Patch_DeleteThreshold = 0.3  # make deleting more conservative
 
