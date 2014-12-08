@@ -49,7 +49,7 @@ def wrap(s, c=90):
     return '\n'.join(['\n'.join(textwrap.wrap(x, c)) for x in s.splitlines()])
 
 def tex_escape(s):
-    return s.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" ).replace('%','\\%').replace('#','\\#')
+    return s.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" ).replace('%','\\%').replace('#','\\#').replace("&","\\&")
 
 
 # Parallel computing can be useful for IO bound tasks.
