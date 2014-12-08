@@ -444,7 +444,8 @@ SAGE_PIP_PACKAGES = [
     'pyparse',    # needed by fipy
     'fipy',       # requested by Evan Chenelly <echenelly@gmail.com> -- "A finite volume PDE solver in Python".
     'python-igraph', # requested by Santhust <santhust31@gmail.com> -- "High performance graph data structures and algorithms" -- https://pypi.python.org/pypi/python-igraph/0.7
-    'mygene'   # requested by Luca Beltrame for a bioinformatics course
+    'mygene',   # requested by Luca Beltrame for a bioinformatics course
+    'singledispatch'  # needed by rpy2 ipython extension now
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -911,7 +912,7 @@ class BuildSage(object):
         Install GDAL -- for geospatial imaging.
         """
         # The make; make -j8 below instead of just make is because the first make mysteriously gives an error on
-        # exit, but running it again seems to work fine. 
+        # exit, but running it again seems to work fine.
         cmd("umask 022 &&  unset MAKE && cd /tmp && export V=%s && rm -rf gdal-$V* && wget http://download.osgeo.org/gdal/CURRENT/gdal-$V.tar.xz && tar xf gdal-$V.tar.xz && cd gdal-$V && export CXXFLAGS=-I/usr/include/mpi/ && ./configure --with-python --prefix=$SAGE_ROOT/local && unset SHELL && make -j8; make && cd swig/python && python setup.py install && cd ../.. && make install && cd /tmp && rm -rf gdal-$V*"%GDAL_VERSION)
 
     def install_stein_watkins(self):
