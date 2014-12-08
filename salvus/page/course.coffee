@@ -1239,9 +1239,14 @@ class Course
                 delete_missing    : assignment.delete_missing
                 timeout           : assignment.timeout
                 cb                : (err) =>
+                    #console.log("return_graded_to_students", student)
+                    if err
+                        alert_message
+                            type    : "error"
+                            message : "Error returning assignment to #{@student_name(student)} -- #{err}"
                     #console.log("finished returning assignment to #{student.email_address} -- err=#{err}")
                     assignment.last_return_graded[student.student_id] = {time:misc.mswalltime(), error:err}
-                    cb(err)
+                    cb()  # explicitly don't pass error back, since we still want to return rest of assignments
         async.mapLimit(opts.students, MAP_LIMIT, assignment_with, (err) => opts.cb(err))
 
 
