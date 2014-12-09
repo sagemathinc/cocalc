@@ -86,6 +86,8 @@ misc_node = require('misc_node')
 message   = require('message')
 cass      = require("cassandra")
 cql       = require("node-cassandra-cql")
+uuid      = require('node-uuid')
+
 
 
 {defaults, required} = misc
@@ -885,7 +887,7 @@ exports.syncstring_client = (opts) ->
     opts = defaults opts,
         cb         : required              # cb(err, SyncstringClient instance)
         token_file : DEFAULT_TOKEN_FILE
-        port_file  : DEFAULT_PORT
+        port       : DEFAULT_PORT
     new SyncstringClient(opts)
 
 class SyncstringClient
@@ -894,6 +896,7 @@ class SyncstringClient
             token_file : DEFAULT_TOKEN_FILE
             port       : DEFAULT_PORT
             cb         : required
+        @token_file = opts.token_file
         @port = opts.port
         misc.call_lock(obj:@)
 
@@ -918,7 +921,8 @@ class SyncstringClient
         winston.debug("SyncstringClient.#{f}: #{m}")
 
     read_token: (cb) =>
-        fs.readFile opts.token_file, (err, buf) =>
+        @dbg("read_token")
+        fs.readFile @token_file, (err, buf) =>
             if err
                 @dbg("read_token", "error = #{err}")
                 cb(err)
@@ -938,11 +942,13 @@ class SyncstringClient
     _connect: (cb) =>
         @dbg("_connect")
         @socket = undefined
+        winston.debug("x")
         socket = misc_node.connect_to_locked_socket
             port    : @port
             token   : @secret_token
             timeout : 5
             cb      : (err) =>
+                winston.debug('y')
                 if err
                     @dbg("_connect", "error -- #{err}")
                     cb(err)
@@ -969,6 +975,23 @@ class SyncstringClient
     handle_mesg: (mesg) =>
         @dbg("handle_mesg", misc.trunc(misc.to_json(mesg),300))
 
+    call: (opts) =>
+        opts = defaults opts,
+            mesg    : required
+            timeout : 10
+            cb      : required
+        opts.mesg.id = uuid.v4()
+        socket.write_mesg('json', opts.mesg)
+        socket.recv_mesg
+            type    : 'json'
+            id      : opts.mesg.id
+            timeout : opts.timeout
+            cb      : (resp) =>
+                if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(undefined, resp)
+
 
 
 ######################################################################
@@ -981,40 +1004,41 @@ class SyncstringServer
             port       : DEFAULT_PORT
             cb         : undefined
 
+        @port = opts.port
         async.series([
-            (cb) ->
+            (cb) =>
                 @dbg("constructor","connecting to database")
                 misc.retry_until_success
                     f           : @connect_to_database
                     start_delay : 1000
                     max_delay   : 15000
                     cb          : cb
-            (cb) ->
+            (cb) =>
                 @dbg("constructor","reading token file")
-                fs.exists opts.token_file (exists) =>
+                fs.exists opts.token_file, (exists) =>
                     if not exists
                         cb(); return
-                    fs.readFile opts.token_file, (err, buf) ->
+                    fs.readFile opts.token_file, (err, buf) =>
                         if err
                             cb() # will generate in next step
                         else
                             @secret_token = buf.toString('base64')
                             cb()
-            (cb) ->
+            (cb) =>
                 if @secret_token?
                     cb()
                 else
                     @dbg("constructor","generating token")
-                    require('crypto').randomBytes SECRET_TOKEN_LENGTH, (ex, buf) ->
+                    require('crypto').randomBytes SECRET_TOKEN_LENGTH, (ex, buf) =>
                         @secret_token = buf.toString('base64')
                         fs.writeFile(opts.token_file, buf, cb)
-            (cb) ->
+            (cb) =>
                 @dbg("constructor","initializing syncstring database")
                 exports.init_syncstring_db(@database, cb)
-            (cb) ->
+            (cb) =>
                 @dbg("constructor","starting tcp server")
-                start_tcp_server(cb)
-        ], (err) ->
+                @start_tcp_server(cb)
+        ], (err) =>
             if err
                 @dbg("constructor","Failed to start syncstring server: #{err}")
                 opts.cb?(err)
@@ -1046,16 +1070,16 @@ class SyncstringServer
                     socket.on 'mesg', handler
 
         try
-            server.listen opts.port, 'localhost', () =>
-                @dbg("tcp_server", "listening on port #{opts.port}")
+            server.listen @port, 'localhost', () =>
+                @dbg("tcp_server", "listening on port #{@port}")
             cb()
         catch err
             cb(err)
-
-    connect_to_database: (cb) ->
+            
+    connect_to_database: (cb) =>
         @dbg("connect_to_database", "connecting to database....")
         user = 'hub'  # TODO: change to 'syncstring' later for better isolation
-        fs.readFile "#{SALVUS_HOME}/data/secrets/cassandra/#{user}", (err, password) ->
+        fs.readFile "#{SALVUS_HOME}/data/secrets/cassandra/#{user}", (err, password) =>
             if err
                 cb(err)
             else
@@ -1065,7 +1089,7 @@ class SyncstringServer
                     username    : user
                     password    : password.toString().trim()
                     consistency : cql.types.consistencies.localQuorum
-                    cb          : (err, _db) ->
+                    cb          : (err, _db) =>
                         if err
                             @dbg("connect_to_database", "Error connecting to database")
                             cb(err)
@@ -1073,6 +1097,7 @@ class SyncstringServer
                             @dbg("connect_to_database", "Successfully connected to database")
                             @database = _db
                             cb()
+
 
 
 start_server = () ->
@@ -1094,21 +1119,22 @@ program.usage('[start/stop/restart/status] [options]')
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
-console.log(program._name)
 if program._name == 'syncstring'
-    # run as a server/daemon (otherwise, imported as a library)
-    if program.debug
-        winston.remove(winston.transports.Console)
-        winston.add(winston.transports.Console, {level: program.debug, timestamp:true, colorize:true})
+    if program.args.length > 0
+        # run as a server/daemon (otherwise, imported as a library)
+        if program.debug
+            winston.remove(winston.transports.Console)
+            winston.add(winston.transports.Console, {level: program.debug, timestamp:true, colorize:true})
 
-    process.addListener "uncaughtException", (err) ->
-        winston.debug("BUG ****************************************************************************")
-        winston.debug("Uncaught exception: " + err)
-        winston.debug(err.stack)
-        winston.debug("BUG ****************************************************************************")
+        process.addListener "uncaughtException", (err) ->
+            winston.debug("BUG ****************************************************************************")
+            winston.debug("Uncaught exception: " + err)
+            winston.debug(err.stack)
+            winston.debug("BUG ****************************************************************************")
 
-    console.log("Starting syncstring server...")
-    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
-
+        console.log("Starting syncstring server...")
+        daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+    else
+        console.log("syncstring #{program._usage}")
 
 

@@ -4,6 +4,11 @@ P=`pwd`
 
 export SALVUS_ROOT="$P"
 
+
+export SALVUS_TOKENS="$SALVUS_ROOT"/data/tokens
+
+mkdir -p "$SALVUS_TOKENS"
+
 if [ -d /mnt/backup ]; then
    export SALVUS_BACKUP=/mnt/backup/
 else
