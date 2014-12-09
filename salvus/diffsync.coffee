@@ -717,7 +717,7 @@ class exports.SynchronizedDB extends EventEmitter
                 if not @_data[h]?
                     try
                         data = @from_json(x)
-                    catch
+                    catch e
                         # invalid/corrupted json -- still, we try out best
                         # WE will revert this, unless it is on the initial load.
                         data = {'corrupt':x}

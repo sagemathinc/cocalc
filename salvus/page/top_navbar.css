@@ -40,6 +40,12 @@
     border-left: 1px solid #f2f2f2;
 }
 
+.navbar .button-label > img {
+    height: 22px;
+    padding-right: 4px;
+    vertical-align: bottom;
+}
+
 .salvus-connection-status {
     width       : 6.5em;
     font-size   : 10pt;
@@ -123,6 +129,15 @@
 
 .top_navbar-button-template {
     white-space: nowrap;
+}
+
+.button-label,
+.project-pages-button-label {
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 @media (max-width: 767px) {
