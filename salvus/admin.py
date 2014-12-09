@@ -633,46 +633,6 @@ class Hub(Process):
         return "Hub server %s on port %s"%(self.id(), self._port)
 
 
-####################
-# Snap -- snapshot/backup servers
-# TODO: this is deprecated
-####################
-class Snap(Process):
-    def __init__(self, id=0, host='', monitor_database=None, keyspace='salvus',
-                 snap_dir=None, logfile=None, pidfile=None, resend_all_commits=False,
-                 snap_interval=None):
-        if pidfile is None:
-            pidfile = os.path.join(PIDS, 'snap-%s.pid'%id)
-        if logfile is None:
-            logfile = os.path.join(LOGS, 'snap-%s.log'%id)
-
-        if snap_dir is None:
-            snap_dir = os.path.join(DATA, 'snap-%s'%id)
-
-        start_cmd = [os.path.join(PWD, 'snap'),
-                                      'start',
-                                      '--host', host,
-                                      '--database_nodes', monitor_database,
-                                      #'--resend_all_commits', resend_all_commits,
-                                      '--keyspace', keyspace,
-                                      '--snap_dir', snap_dir,
-                                      '--pidfile', pidfile,
-                                      '--logfile', logfile]
-        if snap_interval is not None:
-            start_cmd += ["--snap_interval", str(snap_interval)]
-
-        Process.__init__(self, id, name='snap', port=0,
-                         pidfile = pidfile,
-                         logfile = logfile,
-                         start_cmd = start_cmd,
-                         stop_cmd   = [os.path.join(PWD, 'snap'), 'stop'],
-                         reload_cmd = [os.path.join(PWD, 'snap'), 'restart'])
-
-    def __repr__(self):
-        return "Snap server (id=%s)"%(self.id(),)
-
-
-
 
 ####################
 # Compute Server
@@ -1828,12 +1788,6 @@ class Services(object):
         # HUB options
         if 'hub' in self._options:
             for host, o in self._options['hub']:
-                # very important: set to listen only on our VPN.
-                o['host'] = host
-
-        # SNAP options
-        if 'snap' in self._options:
-            for host, o in self._options['snap']:
                 # very important: set to listen only on our VPN.
                 o['host'] = host
 
