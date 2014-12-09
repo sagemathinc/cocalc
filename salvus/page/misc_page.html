@@ -1,11 +1,27 @@
-<div id="salvus-misc-templates" class="hide">
+<!-- Introspection template -->
+<div id="salvus-misc-templates">
+
+    <div class="modal salvus-codemirror-introspect" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" style="width:90%">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" aria-hidden="true">
+                        <span style="font-size:20pt;">×</span>
+                    </button>
+                    <h4><div class="salvus-codemirror-introspect-title"></div></h4>
+                </div>
+
+                <div class="salvus-codemirror-introspect-content-source-code cm-s-default">
+                </div>
+                <div class="salvus-codemirror-introspect-content-docstring cm-s-default">
+                </div>
 
 
-    <!-- Introspection template -->
-    <div class="salvus-codemirror-introspect well">
-        <i class="salvus-codemirror-introspect-close pull-right fa fa-times"></i>
-        <div class="salvus-codemirror-introspect-title"></div>
-        <div class="salvus-codemirror-introspect-content"></div>
+                <div class="modal-footer">
+                    <button class="btn btn-close btn-default">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>

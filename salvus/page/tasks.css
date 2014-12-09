@@ -17,7 +17,6 @@
     border: 2px solid transparent;
     border-radius: 1ex;
     width: 99%;
-    margin-top: 3px;
     margin-left: 0px;
     margin-right: 0px;
 }
@@ -32,9 +31,12 @@
 }
 
 .salvus-task-desc {
-    border : 1px solid transparent;
-    padding-left: 1ex;
-    padding-right: 1ex;
+    border     : 1px solid #ddd;
+    padding    : 1ex;
+    padding-bottom: 0px;
+    margin     : 1ex;
+    margin-top: 0px;
+    background : white;
 }
 
 .salvus-task-desc:hover {
@@ -61,6 +63,7 @@
 
 .salvus-task-sort-icon {
    font-size:15pt;
+   margin-right: 4em;
 }
 
 .salvus-task-icon-done-box {

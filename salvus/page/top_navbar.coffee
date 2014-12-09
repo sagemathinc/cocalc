@@ -6,8 +6,8 @@
 
 
 $(document).on 'keydown', (ev) =>
-    #console.log(ev)
     if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79    # ctrl (or meta) o.
+        #console.log("document keydown ", ev)
         return false
 
 misc = require("misc")
@@ -122,6 +122,22 @@ class TopNavbar  extends EventEmitter
         n.onshow?()
         ga('send', 'pageview', window.location.pathname)
 
+    activity_indicator: (id) =>
+        if not id?
+            id = @current_page_id
+        e = @pages[id]?.button
+        if not e?
+            return
+        if not @_activity_indicator_timers?
+            @_activity_indicator_timers = {}
+        timer = @_activity_indicator_timers[id]
+        if timer?
+            clearTimeout(timer)
+        e.find("i:last").addClass("salvus-top_navbar-tab-active")
+        f = () ->
+            e.find("i:last").removeClass("salvus-top_navbar-tab-active")
+        @_activity_indicator_timers[id] = setTimeout(f, 1000)
+
     fullscreen: (entering) =>
         @pages[@current_page_id]?.onfullscreen?(entering)
 
@@ -129,6 +145,7 @@ class TopNavbar  extends EventEmitter
         @pages[id]?.button.addClass("active")
 
     switch_to_next_available_page: (id) ->
+        #console.log('switch_to_next_available_page',id)
         # Switch to the next page after the page
         # with given id, unless there is no such page,
         # in which case, switch to the previous page.
@@ -145,8 +162,12 @@ class TopNavbar  extends EventEmitter
 
     switch_to_prev_available_page: (id) ->
         # There is always a previous page, because of the project page.
+        #console.log("switch_to_prev_available_page")
         p = @pages[id]
         prev_button = p.button.prev()
+        if prev_button.length == 0
+            @switch_to_page('projects')
+            return
         prev = prev_button.find("a")
         id = prev.data('id')
         if id?
@@ -240,7 +261,7 @@ $("#salvus-help").top_navbar
     label   : "Help"
     icon    : 'fa-question-circle'
     close   : false
-    onshow: () -> document.title = "SageMathCloud - Help"
+    onshow: () -> misc_page.set_window_title("Help")
 
 
 
@@ -268,15 +289,15 @@ $("#projects").top_navbar
     label   : "Projects"
     icon : 'fa-tasks'
     close   : false
-    onshow: () -> document.title = "SageMathCloud - Projects"
+    onshow: () -> misc_page.set_window_title("Projects")
 
 $("#account").top_navbar
     id     : "account"
-    label  : "Sign in"
+    label  : "Account"
     pull_right : true
     close   : false
     icon : 'fa-signin'
-    onshow: () -> document.title = "SageMathCloud - Account"
+    onshow: () -> misc_page.set_window_title("Account")
 
 #$("#worksheet2").top_navbar
 #    id      : "worksheet2"

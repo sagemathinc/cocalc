@@ -241,6 +241,63 @@ message
 
 
 
+##################################################
+# Synchronized strings, which are not affiliated
+# with any project.
+##################################################
+
+# client --> hub
+message
+    event      : 'syncstring_get_session'
+    string_id  : required     # new connection to session with this string_id
+    id         : undefined
+
+# hub --> client
+message
+    event      : 'syncstring_session'
+    id         : undefined
+    session_id : required
+    string     : required
+    readonly   : false       # if true, string is read only -- though it can get changed by server
+
+# Client initiated sync.
+# A list of edits that should be applied, along with the
+# last version of edits received before.
+# client <--> hub
+message
+    event            : 'syncstring_diffsync'
+    id               : undefined
+    session_id       : undefined
+    edit_stack       : required
+    last_version_ack : required
+
+# Hub-initiated sync
+# hub <--> client
+message
+    event            : 'syncstring_diffsync2'
+    id               : undefined
+    session_id       : undefined
+    edit_stack       : required
+    last_version_ack : required
+
+# Tell other that there is data ready to be synced:
+# client <--> hub
+message
+    event       : 'syncstring_diffsync_ready'
+    session_id  : undefined
+
+# Hub uses this message to tell client that client should try to
+# sync later, since hub is busy now with some other locking
+# sync operation.
+# hub --> client
+message
+    event      : 'syncstring_diffsync_retry_later'
+    id         : undefined
+
+message
+    event      : 'syncstring_disconnect'
+    id         : undefined
+    session_id : undefined  # gets filled in
 
 
 ############################################
@@ -568,6 +625,7 @@ exports.account_settings_defaults =
     other_settings     :
         confirm_close             : false
         mask_files                : true
+        default_file_sort         : 'time'
     editor_settings    :
         strip_trailing_whitespace : false
         show_trailing_whitespace  : true
@@ -577,9 +635,12 @@ exports.account_settings_defaults =
         electric_chars            : true
         match_brackets            : true
         auto_close_brackets       : true
+        code_folding              : true
+        match_xml_tags            : true
+        auto_close_xml_tags       : true
         spaces_instead_of_tabs    : true
         multiple_cursors          : true
-        track_revisions           : false
+        track_revisions           : true
         first_line_number         : 1
         indent_unit               : 4
         tab_size                  : 4
@@ -689,7 +750,43 @@ message
     value       : undefined  # value to set cookie to
 
 
+######################################################################################
+# Activity loging and notification
+######################################################################################
+#
+# client --> hub to indicate that there was some activity by this user on the given path
+#
+message
+    event       : 'path_activity'
+    id          : undefined
+    project_id  : required
+    path        : required
 
+# Add a comment, e.g., "read" or "seen", to this users activity notification
+# stream for the given path.
+message
+    event       : 'add_comment_to_activity_notification_stream'
+    id          : undefined
+    project_id  : required
+    path        : required
+    comment     : required
+
+message
+    event         : 'activity_notifications'
+    notifications : required
+    update        : false   # if specified then only giving update since the given time
+
+
+# client --> hub
+message
+    event      : "get_notifications_syncdb"
+    id         : undefined
+
+# hub --> client
+message
+    event      : "notifications_syncdb"
+    id         : undefined
+    string_id  : required
 
 ###################################################################################
 #
@@ -1204,6 +1301,12 @@ message
     error     : undefined    # if not saving, a message explaining why.
 
 
+# remove the ttls from blobs in the blobstore.
+# client --> hub
+message
+    event     : 'remove_blob_ttls'
+    id        : undefined
+    uuids     : required     # list of sha1 hashes of blobs stored in the blobstore
 
 message
     event      : 'storage'

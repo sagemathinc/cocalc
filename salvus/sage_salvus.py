@@ -1452,14 +1452,18 @@ def file(path):
 
 def timeit(*args, **kwds):
     """
-    Time execution of a command or block of commands.  This command has been
-    enhanced for Salvus so you may use it as a block decorator as well, e.g.,
+    Time execution of a command or block of commands.
+
+    This command has been enhanced for Salvus so you may use it as
+    a block decorator as well, e.g.,
 
         %timeit 2+3
 
     and
 
         %timeit(number=10, preparse=False)  2^3
+
+        %timeit(number=10, seconds=True)  2^3
 
     and
 
@@ -1470,10 +1474,10 @@ def timeit(*args, **kwds):
     Here is the original docstring for timeit:
 
     """
-    def go(code, **kwds):
+    def go(code):
         print sage.misc.sage_timeit.sage_timeit(code, globals_dict=salvus.namespace, **kwds)
     if len(args) == 0:
-        return lambda code : go(code, **kwds)
+        return lambda code : go(code)
     else:
         go(*args)
 
@@ -2235,13 +2239,16 @@ def show(obj, svg=True, **kwds):
     Show a 2d or 3d graphics object, animation, or matplotlib figure, or show an
     expression typeset nicely using LaTeX.
 
-       - display: (default: True); if true use display math for expression (big and centered).
+       - display: (default: True); if True, use display math for expression (big and centered).
 
        - svg: (default: True); if True, render graphics using svg (otherwise use png)
 
-       - renderer: (default: 'webgl'); for 3d graphics, try to use 'webgl' (faster); otherwise use 'canvas2d' (slower)
+       - renderer: (default: 'webgl'); for 3d graphics
+           - 'webgl' (fastest) using hardware accelerated 3d;
+           - 'canvas' (slower) using a 2d canvas, but may work better with transparency;
+           - 'tachyon' -- a ray traced static image.
 
-       - spin: (default: False); spins 3d plot, with number determining speed (requires webgl and mouse over plot)
+       - spin: (default: False); spins 3d plot, with number determining speed (requires mouse over plot)
 
        - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
@@ -2639,15 +2646,25 @@ def var(*args, **kwds):
         %var a,b,theta          # separate with commas
         %var x y z t            # separate with spaces
 
+    Use latex_name to customizing how the variables is typeset:
+
+        var1 = var('var1', latex_name=r'\sigma^2_1')
+        show(e^(var1**2))
+
     Multicolored variables made using the %var line decorator:
 
-        %var(latex_name=r"{\color{green}{\theta}}") theta
-        %var(latex_name=r"{\color{red}{S_{u,i}}}") sui
+        %var(latex_name=r"\color{green}{\theta}") theta
+        %var(latex_name=r"\color{red}{S_{u,i}}") sui
         show(expand((sui + x^3 + theta)^2))
+
+
 
     Here is the docstring for var in Sage:
 
     """
+    if 'latex_name' in kwds:
+        # wrap with braces -- sage should probably do this, but whatever.
+        kwds['latex_name'] = '{%s}'%kwds['latex_name']
     if len(args) > 0:
         return var0(*args, **kwds)
     else:
@@ -2846,6 +2863,62 @@ class Marked(object):
 
 md = Marked()
 
+#####
+# Generic Pandoc cell decorator
+
+def pandoc(fmt, doc=None, hide=True):
+    """
+    INPUT:
+
+    - fmt -- one of 'docbook', 'haddock', 'html', 'json', 'latex', 'markdown', 'markdown_github',
+                 'markdown_mmd', 'markdown_phpextra', 'markdown_strict', 'mediawiki',
+                 'native', 'opml', 'rst', 'textile'
+
+    - doc -- a string in the given format
+
+    OUTPUT:
+
+    - Called directly, you get the HTML rendered version of doc as a string.
+
+    - If you use this as a cell decorator, it displays the HTML output, e.g.,
+
+        %pandoc('mediawiki')
+        * ''Unordered lists'' are easy to do:
+        ** Start every line with a star.
+        *** More stars indicate a deeper level.
+
+    """
+    if doc is None:
+        return lambda x : html(pandoc(fmt, x), hide=hide) if x is not None else ''
+    import subprocess
+    p = subprocess.Popen(['pandoc', '-f', fmt,  '--mathjax'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+    if not isinstance(doc, unicode):
+        doc = unicode(doc, 'utf8')
+    p.stdin.write(doc.encode('UTF-8'))
+    p.stdin.close()
+    err = p.stderr.read()
+    if err:
+        raise RuntimeError(err)
+    return p.stdout.read()
+
+
+def wiki(doc=None, hide=True):
+    """
+    Mediawiki markup cell decorator.   E.g.,
+
+    EXAMPLE::
+
+        %wiki(hide=False)
+        * ''Unordered lists'' and math like $x^3 - y^2$ are both easy
+        ** Start every line with a star.
+        *** More stars indicate a deeper level.    """
+    if doc is None:
+        return lambda doc: wiki(doc=doc, hide=hide) if doc else ''
+    html(pandoc('mediawiki', doc=doc), hide=hide)
+
+
+######
+
 def load_html_resource(filename):
     fl = filename.lower()
     if fl.startswith('http://') or fl.startswith('https://'):
@@ -2962,9 +3035,17 @@ runfile = load
 
 ## Make it so pylab (matplotlib) figures display, at least using pylab.show
 import pylab
-def _show_pylab():
+def _show_pylab(svg=True):
+    """
+    Show a Pylab plot in a Sage Worksheet.
+
+    INPUTS:
+
+       - svg -- boolean (default: True); if True use an svg; otherwise, use a png.
+    """
     try:
-        filename = uuid()+'.png'
+        ext = '.svg' if svg else '.png'
+        filename = uuid() + ext
         pylab.savefig(filename)
         salvus.file(filename)
     finally:
@@ -2977,9 +3058,17 @@ pylab.show = _show_pylab
 matplotlib.figure.Figure.show = show
 
 import matplotlib.pyplot
-def _show_pyplot():
+def _show_pyplot(svg=True):
+    """
+    Show a Pylab plot in a Sage Worksheet.
+
+    INPUTS:
+
+       - svg -- boolean (default: True); if True use an svg; otherwise, use a png.
+    """
     try:
-        filename = uuid()+'.png'
+        ext = '.svg' if svg else '.png'
+        filename = uuid() + ext
         matplotlib.pyplot.savefig(filename)
         salvus.file(filename)
     finally:
@@ -3239,3 +3328,12 @@ def go(s):
             os.unlink(name)
         except:
             pass
+
+
+
+# Julia pexepect interface support
+import julia
+import sage.interfaces
+sage.interfaces.julia = julia # the module
+julia = julia.julia # specific instance
+sage.interfaces.all.julia = julia

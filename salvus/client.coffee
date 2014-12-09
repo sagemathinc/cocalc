@@ -294,7 +294,7 @@ class exports.Connection extends EventEmitter
             message : message.ping()
             timeout : 20  # 20 second timeout
             cb      : (err, pong) =>
-                if not err? and pong?.event == 'pong'
+                if not err and pong?.event == 'pong'
                     latency = new Date() - @_last_ping
                     @emit "ping", latency
                 # try again later
@@ -323,7 +323,7 @@ class exports.Connection extends EventEmitter
                 timeout : opts.timeout
                 cb      : (err, pong) =>
                     heading = "#{i}/#{opts.packets}: "
-                    if not err? and pong?.event == 'pong'
+                    if not err and pong?.event == 'pong'
                         ping_time = new Date() - t
                         bar = ('*' for j in [0...Math.floor(ping_time/10)]).join('')
                         mesg = "#{heading}time=#{ping_time}ms"
@@ -348,6 +348,7 @@ class exports.Connection extends EventEmitter
 
     # Send a JSON message to the hub server.
     send: (mesg) ->
+        #console.log("send at #{misc.mswalltime()}", mesg)
         @write_data(JSON_CHANNEL, misc.to_json(mesg))
 
     # Send raw data via certain channel to the hub server.
@@ -362,7 +363,7 @@ class exports.Connection extends EventEmitter
 
     handle_json_data: (data) =>
         mesg = misc.from_json(data)
-        #console.log("handle_json_data: #{data}")
+        # console.log("handle_json_data: #{data}")
         switch mesg.event
             when "execute_javascript"
                 if mesg.session_uuid?
@@ -404,6 +405,10 @@ class exports.Connection extends EventEmitter
                 @emit(mesg.event, mesg)
             when "codemirror_bcast"
                 @emit(mesg.event, mesg)
+            when "activity_notifications"
+                @emit(mesg.event, mesg)
+            when "syncstring_diffsync2"
+                @emit("syncstring_diffsync2-#{mesg.session_id}", mesg)
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
@@ -641,10 +646,17 @@ class exports.Connection extends EventEmitter
     server_version: (opts) =>
         opts = defaults opts,
             cb : required
+        ($.get "/static/salvus_version.js", (data) =>
+            opts.cb(undefined, parseInt(data.split('=')[1]))).fail (err) =>
+                opts.cb("failed to get version -- #{err}")
+        # the following is an older socket version; the above is better since it
+        # even works if we're switching protocols (e.g., between websocket and engine.io)
+        ###
         @call
             message : message.get_version()
             cb      : (err, mesg) =>
                 opts.cb(err, mesg.version)
+        ###
 
     #################################################
     # Stats
@@ -769,11 +781,22 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             account_id : required
             cb         : required
+        # this lock is basically a temporary ugly hack
+        if @_get_account_settings_lock
+            console.log("WARNING: hit account settings lock")
+            opts.cb("already getting account settings")
+            return
+        @_get_account_settings_lock = true
+        f = () =>
+            delete @_get_account_settings_lock
+        setTimeout(f, 3000)
 
         @call
             message : message.get_account_settings(account_id: opts.account_id)
             timeout : DEFAULT_TIMEOUT
-            cb      : opts.cb
+            cb      : (err, settings) =>
+                delete @_get_account_settings_lock
+                opts.cb(err, settings)
 
     # restricted settings are only saved if the password is set; otherwise they are ignored.
     save_account_settings: (opts) ->
@@ -1083,7 +1106,7 @@ class exports.Connection extends EventEmitter
             else
                 opts.path = '.sagemathcloud/root' + opts.path  # use root symlink, which is created by start_smc
 
-        url = encodeURI("#{base}/#{opts.project_id}/raw/#{opts.path}")
+        url = misc.encode_path("#{base}/#{opts.project_id}/raw/#{opts.path}")
 
         opts.cb(false, {url:url})
         # This is the old hub/database version -- too slow, and loads the database/server, way way too much.
@@ -1259,11 +1282,33 @@ class exports.Connection extends EventEmitter
                 else
                     cb?(undefined, resp)
 
+    #################################################
+    # Blobs
+    #################################################
+    remove_blob_ttls: (opts) =>
+        opts = defaults opts,
+            uuids : required   # list of sha1 hashes of blobs stored in the blobstore
+            cb    : undefined
+        if opts.uuids.length == 0
+            opts.cb?()
+        else
+            @call
+                message :
+                    message.remove_blob_ttls
+                        uuids : opts.uuids
+                cb : (err, resp) =>
+                    if err
+                        opts.cb?(err)
+                    else if resp.event == 'error'
+                        opts.cb?(resp.error)
+                    else
+                        opts.cb?()
+
 
     #################################################
     # *PUBLIC* Projects
     #################################################
-    public_project_info: (opts) ->
+    public_project_info: (opts) =>
         opts = defaults opts,
             project_id : required
             cb         : required
@@ -1478,6 +1523,62 @@ class exports.Connection extends EventEmitter
                     project_id  : opts.project_id
                     directories : v
                 opts.cb?(undefined, ans)
+
+    #################################################
+    # Activity
+    #################################################
+    report_path_activity: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : undefined   # cb(err)
+        @call
+            message : message.path_activity
+                project_id  : opts.project_id
+                path        : opts.path
+            cb      : (err, mesg) =>
+                if err
+                    opts.cb?(err)
+                else if mesg.event == 'error'
+                    opts.cb?(mesg.error)
+                else
+                    opts.cb?()
+
+    get_notifications_syncdb: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @call
+            message : message.get_notifications_syncdb()
+            cb      : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else if mesg.event == 'error'
+                    opts.cb(mesg.error)
+                else
+                    opts.cb(undefined, mesg.string_id)
+
+    #################################################
+    # Synchronized Strings (database backed)
+    # x={};require('syncstring').syncstring({string_id:'foo',cb:function(e,s){console.log(e,s);x.s=s}})
+    # x.s.live='hub'+x.s.live
+    # x.s.sync(function(e,f){console.log("done",e,f)})
+    ##################################################
+    syncstring_get_session: (opts) =>
+        opts = defaults opts,
+            string_id  : required
+            cb         : undefined   # cb(err, {session_id:?, string:?, readonly:?})
+        @call
+            message :
+                message.syncstring_get_session
+                    string_id : opts.string_id
+            cb      : (err, resp) =>
+                if err
+                    opts.cb?(err)
+                else if resp.event == 'error'
+                    opts.cb?(resp.error)
+                else
+                    opts.cb?(undefined, resp)
+
 
     #################################################
     # Git Commands
@@ -1950,6 +2051,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id  : required
             path        : required
+            timeout     : 90          # some things can take a long time to print!
             options     : undefined   # optional options that get passed to the specific backend for this file type
             cb          : undefined   # cp(err, relative path in project to printed file)
         @call_local_hub
@@ -1957,6 +2059,7 @@ class exports.Connection extends EventEmitter
             message    : message.print_to_pdf
                 path    : opts.path
                 options : opts.options
+            timeout    : opts.timeout
             cb         : (err, resp) =>
                 if err
                     opts.cb?(err)

@@ -18,36 +18,23 @@
   font-family: monospace;
 }
 
-.salvus-codemirror-introspect {
-    z-index : 100;
-    width:60%;
-    padding:0px;
-    box-shadow: 3px 6px 6px 6px #aaa;
-}
 
 .salvus-codemirror-introspect-title {
-    font-size        : 18pt;
-    padding          : 1ex;
-    border-bottom    : 1px solid grey;
 }
 
-.salvus-codemirror-introspect-content {
-    font-size        : 10pt;
-    font-family      : "Courier New";
-    background-color : #fffff8;
-    white-space      : pre;
+.salvus-codemirror-introspect-content-source-code {
+    white-space: pre;
+    font-family: monospace;
     padding          : 1ex;
-    max-height       : 600px;
     overflow         : auto;
 }
 
-.salvus-codemirror-introspect-close {
-    font-size : 20pt;
-}
-
-.salvus-codemirror-introspect-close:hover {
-    color            : white;
-    background-color :  orange;
+.salvus-codemirror-introspect-content-docstring {
+    white-space: pre;
+    font-family: monospace;
+    overflow         : auto;
+    margin-left: 2em;
+    margin-right: 2em;
 }
 
 /* See https://github.com/twitter/bootstrap/issues/2764 */

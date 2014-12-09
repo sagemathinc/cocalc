@@ -10,6 +10,7 @@ misc_page.css
 console.css
 
 account.css
+activity.css
 projects.css
 project.css
 editor.css
@@ -32,6 +33,10 @@ top_navbar.css
 
 .lighten {
     color: #666;
+}
+
+.lighten-2 {
+    color: #999;
 }
 
 .small {
@@ -179,6 +184,14 @@ input[type="text"], select {
     margin-bottom: 10px;
 }
 
+input[type="email"], select {
+    margin-bottom: 10px;
+}
+
+input[type="password"], select {
+    margin-bottom: 10px;
+}
+
 .btn {
     white-space: normal;
 }
@@ -220,4 +233,8 @@ input[type="text"], select {
 }
 
 
-
+.cm-spell-error {
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAACCAYAAAB/qH1jAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QUXCToH00Y1UgAAACFJREFUCNdjPMDBUc/AwNDAAAFMTAwMDA0OP34wQgX/AQBYgwYEx4f9lQAAAABJRU5ErkJggg==);
+    background-position: bottom left;
+    background-repeat: repeat-x;
+}

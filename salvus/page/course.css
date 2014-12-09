@@ -2,13 +2,18 @@
     background : white;
 }
 
+.salvus-course-student:hover {
+    background-color:#efe;
+}
+
 .salvus-course-editor {
     overflow-y    : auto;
     overflow-x    : hidden;
     margin-bottom : 2em;
-    margin-top    : 1em;
+    padding-top   : 4px;
     background    : white;
     width         : 100%;
+    border-top    : 1px solid #aaa;
 }
 
 .salvus-course-editor-title {
@@ -42,14 +47,14 @@
 
 .salvus-course-field {
     color:#555;
-    overflow-y: auto;
     padding-bottom: 1ex;
 }
 
 .salvus-course-student-deleted {
     text-decoration: line-through;
-    color:#888;
+    opacity: .6;
 }
+
 
 .salvus-course-student-first_name {
 }
@@ -59,6 +64,16 @@
 .salvus-course-student-email_address {
     font-family: monospace;
 }
+
+.salvus-course-assignment:hover {
+    background-color:#efe;
+}
+
+.salvus-course-assignment-deleted {
+    text-decoration: line-through;
+    opacity: .6;   /* since changing color is ugly */
+}
+
 
 .salvus-course-assignment-path {
     cursor: pointer;
@@ -75,3 +90,10 @@
     padding-bottom: 4px;
 }
 
+.salvus-course-assign-to-student {
+    cursor: default;
+}
+
+.salvus-course-collected-assignment-students {
+    cursor: default;
+}

@@ -30,9 +30,9 @@ hashtag_button_template = templates.find(".salvus-tasks-hashtag-button")
 
 currently_focused_editor = undefined
 
-exports.task_list = (project_id, filename) ->
+exports.task_list = (project_id, filename, editor) ->
     element = templates.find(".salvus-tasks-editor").clone()
-    new TaskList(project_id, filename, element)
+    new TaskList(project_id, filename, element, editor)
     return element
 
 HEADINGS    = ['custom', 'description', 'due', 'last-edited']
@@ -55,7 +55,7 @@ CodeMirror.defineMode "tasks", (config) ->
 ###
 
 class TaskList
-    constructor : (@project_id, @filename, @element) ->
+    constructor : (@project_id, @filename, @element, @editor) ->
         @element.data('task_list', @)
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @elt_task_list = @element.find(".salvus-tasks-listing")
@@ -74,6 +74,11 @@ class TaskList
         @init_syncdb()
         #@element.find(".salvus-tasks-hashtags").resizable
         #     handles  : "s"
+
+    destroy: () =>
+        delete @tasks
+        @element.removeData()
+        @db?.destroy()
 
     init_syncdb: (cb) =>
         synchronized_db
@@ -108,8 +113,11 @@ class TaskList
                     @set_clean()  # we have made no changes yet.
 
                     # UI indicators that sync started/stopped -- so user has a visual hint that their work is not saved.
-                    @db.on 'presync', () => @save_button.icon_spin(false); @save_button.icon_spin(start:true, delay:1000)
-                    @db.on 'sync', () => @save_button.icon_spin(false)
+                    @db.on 'presync', () =>
+                        @save_button.icon_spin(false); @save_button.icon_spin(start:true, delay:1000)
+                    @db.on 'sync', () =>
+                        @editor?.activity_indicator()
+                        @save_button.icon_spin(false)
 
                     # Handle any changes, merging in with current state.
                     @db.on 'change', @handle_changes
@@ -246,7 +254,7 @@ class TaskList
             # something changed, so allow the save button. (TODO: this is of course not really right)
             @set_dirty()
         for task_id, _ of c
-            t = @db.select_one(task_id:task_id)
+            t = @db.select_one(where:{task_id:task_id})
             if not t?
                 # deleted
                 delete @tasks[task_id]
@@ -265,9 +273,6 @@ class TaskList
                     task.changed = true
 
         @render_task_list()
-
-    destroy: () =>
-        @element.removeData()
 
     local_storage: (key, value) =>
         {local_storage}   = require('editor')
@@ -913,7 +918,7 @@ class TaskList
 
         editor_settings = require('account').account_settings.settings.editor_settings
         extraKeys =
-            "Enter"       : "newlineAndIndentContinueMarkdownList"
+            #"Enter"       : "newlineAndIndentContinueMarkdownList"  # plugin is buggy, inserting NaN
             "Shift-Enter" : stop_editing
             "Shift-Tab"   : (editor) -> editor.unindent_selection()
             "Ctrl-S"      : (editor) => @save()
@@ -924,7 +929,7 @@ class TaskList
             extraKeys["Esc"] = stop_editing
 
         opts =
-            mode                : 'gfm'
+            mode                : 'gfm2'
             lineNumbers         : false
             theme               : editor_settings.theme
             lineWrapping        : editor_settings.line_wrapping
@@ -939,8 +944,16 @@ class TaskList
         if editor_settings.bindings != "standard"
             opts.keyMap = editor_settings.bindings
 
+        if editor_settings.code_folding
+             extraKeys["Ctrl-Q"] = (cm) -> cm.foldCode(cm.getCursor())
+             opts.foldGutter     = true
+             opts.gutters        = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+
+
         cm = CodeMirror.fromTextArea(elt.find("textarea")[0], opts)
         cm.save = @save
+        if editor_settings.bindings == 'vim'
+            cm.setOption("vimMode", true)
 
         e.data('cm',cm)
         if not task.desc?
@@ -1080,7 +1093,7 @@ class TaskList
             d.setUTCMilliseconds(task.due_date)
             e.attr('title',d.toISOString()).timeago()
             e.attr('title',d.toISOString())
-            if d < new Date()
+            if not task.done and d < new Date()
                 e.addClass("salvus-task-overdue")
         else
             task.element.find(".salvus-task-due-clear").hide()
@@ -1283,7 +1296,9 @@ class TaskList
         bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h4>Permanently erase the deleted items?</h4><br> <span class='lighten'>Old versions of this list may be available as snapshots.</span>  ", (result) =>
             currently_focused_editor = prev
             if result == true
-                a = @db.delete({deleted : true}, false)
+                a = @db.delete
+                    where : {deleted : true}
+                    one   : false
                 for task_id, task of @tasks
                     if task.deleted
                         delete @tasks[task_id]

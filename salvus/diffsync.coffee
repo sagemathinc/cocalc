@@ -13,7 +13,8 @@
 # SYMMETRY: The implementation below is completely symmetric.  However,
 # you *cannot* randomly initiate the synchronization from either the
 # "client" or "server" -- if one of the two initiates a sync, then
-# that one has to stay the initiater until the sync succeeds. E.g., if you run
+# that one has to stay the initiater until the sync succeeds. E.g.,
+# if you run
 #             client.push_edits( (err) =>
 #                if not err
 #                    server.push_edits()
@@ -28,21 +29,32 @@ SIMULATE_LOSS = false
 #SIMULATE_LOSS = true
 
 async = require('async')
+{EventEmitter} = require('events')
 
-diff_match_patch = require('googlediff')  # TODO: this greatly increases the size of browserify output (unless we compress it) -- watch out.
+{diff_match_patch} = require('dmp')
 
 # maximum time in seconds that diff_main will BLOCK optimizing the diff -- see https://code.google.com/p/google-diff-match-patch/wiki/API
 
 dmp = new diff_match_patch()
+
+# We set a short maximum time to try to make a patch; if exceeds this, patch may
+# be very non-optimal, but still valid.  This is important to maintain user
+# interactivity in a single-threaded context (which Javascript provides).
+# NOTE: I had to significantly modify the code at
+#    https://code.google.com/p/google-diff-match-patch/wiki/API
+# to make Diff_Timeout actually work!  Hence the file node_modules/dmp.coffee, in
+# the git repo.
 dmp.Diff_Timeout = 0.2
-dmp.Match_Threshold = 0.3   # make matching more conservative
-dmp.Patch_DeleteThreshold = 0.3  # make deleting more conservative
+
+
+#dmp.Match_Threshold = 0.3   # make matching more conservative
+#dmp.Patch_DeleteThreshold = 0.3  # make deleting more conservative
 
 
 exports.dmp = dmp
 
 misc = require('misc')
-{defaults, required} = misc
+{defaults, required, hash_string, len} = misc
 
 # debug = (s) ->
 #     w = 'winston'
@@ -51,7 +63,7 @@ misc = require('misc')
 #     catch e
 #         # nothing
 
-class DiffSync
+class DiffSync extends EventEmitter  #not used here, but may be in derived classes
     constructor: (opts) ->
         @init(opts)
 
@@ -128,17 +140,16 @@ class DiffSync
                 @remote.push_edits(cb)
 
     # Create a list of new edits, then send all edits not yet
-    # processed to the other end of the connection.
-    push_edits: (cb) =>
+    # processed to @remote, if defined.  If @remote, not defined then
+    #     cb(undefined, edit_stack, last_version_received)
+    # caller, please don't modify edit_stack!
+    push_edits: (cb) =>    #
         @snapshot (err, snapshot) =>
             if err
-                cb(err); return
+                cb?(err); return
 
             if not snapshot?
-                cb("snapshot computed in push_edits is undefined"); return
-
-            if not @remote?
-                cb("@remote in push_edits is undefined"); return
+                cb?("snapshot computed in push_edits is undefined"); return
 
             edits = {edits:@_compute_edits(@shadow, snapshot)}
 
@@ -150,16 +161,19 @@ class DiffSync
                 @shadow_version += 1
 
             if SIMULATE_LOSS and Math.random() < .5  # Simulate packet loss
-                console.log("Simulating loss!"); cb(true); return
+                console.log("Simulating loss!"); cb?(true); return
 
             # Push any remaining edits from the stack, *AND* report the last version we have received so far.
             #console.log("DiffSync.push_edits: push any remaining edits from the stack, *AND* report the last version (=#{@last_version_received}) we have received so far.")
-            @remote.recv_edits(@edit_stack, @last_version_received, cb)
+            if @remote?
+                @remote.recv_edits(@edit_stack, @last_version_received, cb)
+            else
+                cb?()
 
     # Receive and process the edits from the other end of the sync connection.
     recv_edits: (edit_stack, last_version_ack, cb) =>
         if SIMULATE_LOSS and Math.random() < .5           # Simulate packet loss
-            console.log("Simulating loss!"); cb(true); return
+            console.log("Simulating loss!"); cb?(true); return
 
         #console.log("DiffSync.recv_edits: receive and process the edits from the other end of the sync connection", last_version_ack, edit_stack)
 
@@ -167,7 +181,7 @@ class DiffSync
         @edit_stack = (edits for edits in @edit_stack when edits.shadow_version > last_version_ack)
 
         if edit_stack.length == 0
-            cb()
+            cb?()
             return
 
         if edit_stack[0].shadow_version != @shadow_version and edit_stack[0].shadow_version == @backup_shadow_version
@@ -216,7 +230,6 @@ class DiffSync
 
     # This is for debugging.
     status: () => {'id':@id, 'live':@live, 'shadow':@shadow, 'shadow_version':@shadow_version, 'edit_stack':@edit_stack}
-
 
 class CustomDiffSync extends DiffSync
     constructor: (opts) ->
@@ -609,8 +622,303 @@ exports.uuids_of_linked_files = (doc) ->
         i = j
 
 
+#---------------------------------------------------------------------------------------------------------
+# Support for using a synchronized doc as a synchronized document database
+# storing one record per line in JSON.
+#---------------------------------------------------------------------------------------------------------
 
 
+###
+(c) William Stein, 2014
 
+Synchronized document-oriented database, based on differential synchronization.
+
+
+NOTE: The API is sort of like <http://hood.ie/#docs>, though I found that *after* I wrote this.
+The main difference is my syncdb doesn't use a database, instead using a file, and also it
+doesn't use localStorage.  HN discussion: <https://news.ycombinator.com/item?id=7767765>
+
+###
+
+
+###
+For now _doc -- in the constructor of SynchronizedDB
+has a different API than DiffSync objects above.
+The wrapper object below allows you to use a DiffSync
+object with this API.
+
+    _doc._presync -- if set, is called before syncing
+    _doc.on 'sync' -- event emitted on successful sync
+    _doc.live() -- returns current live string
+    _doc.live('new value') -- set current live string
+    _doc.sync(cb) -- cause sync of _doc
+    _doc.save(cb) -- cause save of _doc to persistent storage
+    _doc.readonly -- true if and only if doc is readonly
+
+###
+class exports.SynchronizedDB_DiffSyncWrapper extends EventEmitter
+    constructor: (@doc) ->
+        @doc.on 'sync', () => @emit('sync')
+
+    sync: (cb) =>
+        @_presync?()
+        @doc.sync(cb)
+
+    live: (value) =>
+        if not value?
+            return @doc.live
+        else
+            @doc.live = value
+
+    save: (cb) => @doc.save(cb)
+
+
+class exports.SynchronizedDB extends EventEmitter
+    constructor: (@_doc, @to_json, @from_json) ->
+        if not @to_json?
+            @to_json = misc.to_json
+        if not @from_json?
+            @from_json = misc.from_json
+        @readonly = @_doc.readonly
+        @_data = {}
+        @_set_data_from_doc()
+        @_doc._presync = () =>
+            @_live_before_sync = @_doc.live()
+        @_doc.on('sync', @_on_sync)
+
+    _on_sync: () =>
+        @emit('sync')
+        #console.log("syncdb -- syncing")
+        if not @_set_data_from_doc() and @_live_before_sync?
+            #console.log("DEBUG: invalid/corrupt sync request; revert it")
+            @_doc.live(@_live_before_sync)
+            @_set_data_from_doc()
+            @emit('presync')
+            @_doc.sync()
+
+    destroy: () =>
+        @_doc?.removeListener('sync', @_on_sync)
+        @_doc?.disconnect_from_session()
+        delete @_doc
+        delete @_data
+
+    # set the data object to equal what is defined in the syncdoc
+    #
+    _set_data_from_doc: () =>
+        # change/add anything that has changed or been added
+        i = 0
+        hashes = {}
+        changes = []
+        is_valid = true
+        for x in @_doc.live().split('\n')
+            if x.length > 0
+                h = hash_string(x)
+                hashes[h] = true
+                if not @_data[h]?
+                    try
+                        data = @from_json(x)
+                    catch
+                        # invalid/corrupted json -- still, we try out best
+                        # WE will revert this, unless it is on the initial load.
+                        data = {'corrupt':x}
+                        is_valid = false
+                    @_data[h] = {data:data, line:i}
+                    changes.push({insert:misc.deep_copy(data)})
+            i += 1
+        # delete anything that was deleted
+        for h,v of @_data
+            if not hashes[h]?
+                changes.push({remove:v.data})
+                delete @_data[h]
+        if changes.length > 0
+            @emit("change", changes)
+        return is_valid
+
+    _set_doc_from_data: (hash) =>
+        if hash?
+            # only one line changed
+            d = @_data[hash]
+            v = @_doc.live().split('\n')
+            v[d.line] = @to_json(d.data)
+        else
+            # major change to doc (e.g., deleting or adding records)
+            m = []
+            for hash, x of @_data
+                m[x.line] = {hash:hash, x:x}
+            m = (x for x in m when x?)
+            line = 0
+            v = []
+            for z in m
+                if not z?
+                    continue
+                z.x.line = line
+                v.push(@to_json(z.x.data))
+                line += 1
+        @_doc.live(v.join('\n'))
+        @emit('presync')
+        @_doc.sync()
+
+    save: (cb) =>
+        @sync (err) =>
+            if err
+                setTimeout((()=>@save(cb)), 3000)
+            else
+                @_doc.save(cb)
+
+    sync: (cb) =>
+        @_doc.sync(cb)
+
+    # change (or create) exactly *one* database entry that matches the given where criterion.
+    update: (opts) =>
+        opts = defaults opts,
+            set   : required
+            where : required
+        set = opts.set
+        where = opts.where
+        i = 0
+        for hash, val of @_data
+            match = true
+            x = val.data
+            for k, v of where
+                if x[k] != v
+                    match = false
+                    break
+            if match
+                for k, v of set
+                    x[k] = v
+                @_set_doc_from_data(hash)
+                return
+            i += 1
+        new_obj = {}
+        for k, v of set
+            new_obj[k] = v
+        for k, v of where
+            new_obj[k] = v
+        hash = hash_string(@to_json(new_obj))
+        @_data[hash] = {data:new_obj, line:len(@_data)}
+        @_set_doc_from_data(hash)
+
+    # return list of all database objects that match given condition.
+    select: (opts={}) =>
+        {where} = defaults opts,
+            where : {}
+        result = []
+        for hash, val of @_data
+            x = val.data
+            match = true
+            for k, v of where
+                if x[k] != v
+                    match = false
+                    break
+            if match
+                result.push(x)
+        return misc.deep_copy(result)
+
+    # return first database objects that match given condition or undefined if there are no matches
+    select_one: (opts={}) =>
+        {where} = defaults opts,
+            where : {}
+        for hash, val of @_data
+            x = val.data
+            match = true
+            for k, v of where
+                if x[k] != v
+                    match = false
+                    break
+            if match
+                return misc.deep_copy(x)
+
+    # delete everything that matches the given criterion; returns number of deleted items
+    delete: (opts) =>
+        {where, one} = defaults opts,
+            where : required  # give {} to delete everything ?!
+            one   : false
+        result = []
+        i = 0
+        for hash, val of @_data
+            x = val.data
+            match = true
+            for k, v of where
+                if x[k] != v
+                    match = false
+                    break
+            if match
+                i += 1
+                delete @_data[hash]
+                if one
+                    break
+        @_set_doc_from_data()
+        return i
+
+    # delete first thing in db that matches the given criterion
+    delete_one: (opts) =>
+        opts.one = true
+        @delete(opts)
+
+    # anything that couldn't be parsed from JSON as a map gets converted to {key:thing}.
+    ensure_objects: (key) =>
+        changes = {}
+        for h,v of @_data
+            if typeof(v.data) != 'object'
+                x = v.data
+                v.data = {}
+                v.data[key] = x
+                h2 = hash_string(@to_json(v.data))
+                delete @_data[h]
+                changes[h2] = v
+        if misc.len(changes) > 0
+            for h, v of changes
+                @_data[h] = v
+            @_set_doc_from_data()
+
+    # ensure that every db entry has a distinct uuid value for the given key
+    ensure_uuid_primary_key: (key) =>
+        uuids   = {}
+        changes = {}
+        for h,v of @_data
+            if not v.data[key]? or uuids[v.data[key]]  # not defined or seen before
+                v.data[key] = misc.uuid()
+                h2 = hash_string(@to_json(v.data))
+                delete @_data[h]
+                changes[h2] = v
+            uuids[v.data[key]] = true
+        if misc.len(changes) > 0
+            for h, v of changes
+                @_data[h] = v
+            @_set_doc_from_data()
+
+
+# Here's what a patch looks like
+#
+# [{"diffs":[[1,"{\"x\":5,\"y\":3}"]],"start1":0,"start2":0,"length1":0,"length2":13},...]
+#
+exports.compress_patch = (patch) ->
+    ([p.diffs, p.start1, p.start2, p.length1, p.length2] for p in patch)
+
+exports.decompress_patch = decompress_patch = (patch) ->
+    ({diffs:p[0], start1:p[1], start2:p[2], length1:p[3], length2:p[4]} for p in patch)
+
+# this work on non-compressed patches as well.
+exports.decompress_patch_compat = (patch) ->
+    if patch[0]?.diffs?
+        patch
+    else
+        decompress_patch(patch)
+
+
+exports.invert_patch_in_place = (patch) ->
+    # Beware of potential bugs in the following code -- I have only tried
+    # it, not proved it correct.
+    # I conjecture that this correctly computes the "inverse" of
+    # a DMP patch, assuming the patch applies cleanly.  -- Jonathan Lee
+    if patch.length == 0
+        return patch
+    for i in [0..patch.length-1]
+        temp = patch[i].length1
+        patch[i].length1 = patch[i].length2
+        patch[i].length2 = temp
+        for j in [0..patch[i].diffs.length-1]
+            patch[i].diffs[j][0] = -patch[i].diffs[j][0]
+    patch = patch.reverse()
 
 

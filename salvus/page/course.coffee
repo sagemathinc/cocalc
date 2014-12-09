@@ -80,8 +80,12 @@ class Course
                 alert_message(type:"error", message:"error initializing course (try re-opening the course) -- #{err}")
         )
 
+    destroy: () =>
+        @db?.destroy()
+        @element.removeData()
+
     default_settings: (cb) =>
-        settings = @db.select_one(table:'settings')
+        settings = @db.select_one(where:{table:'settings'})
         need_update = false
         if not settings?
             settings = misc.copy(SETTINGS)
@@ -111,10 +115,22 @@ class Course
         @_show_deleted_students.change () =>
             @local_storage("show_deleted_students", @_show_deleted_students.is(":checked"))
             # now re-render all deleted students
-            for student in @db.select({table : 'students'})
+            for student in @db.select(where:{table : 'students'})
                 if student.deleted
                     @render_student(student)
             @update_student_count()
+
+        @_show_deleted_assignments = @element.find(".salvus-course-show-deleted-assignments")
+        @_show_deleted_assignments.prop("checked", @local_storage("show_deleted_assignments"))
+        @_show_deleted_assignments.change () =>
+            @local_storage("show_deleted_assignments", @_show_deleted_assignments.is(":checked"))
+            # now re-render all deleted assignments
+            for assignment in @db.select(where:{table : 'assignments'})
+                if assignment.deleted
+                    @render_assignment
+                        assignment : assignment
+                        append     : true
+            @update_assignment_count()
 
     init_syncdb: (cb) =>
         @element.find(".salvus-course-loading").show()
@@ -156,7 +172,7 @@ class Course
 
     init_edit_settings: () =>
         # make it so basic settings about the course is editable.
-        settings = @db.select_one(table:'settings')
+        settings = @db.select_one(where:{table:'settings'})
         for prop in misc.keys(SETTINGS)
             e = @element.find(".salvus-course-editor-#{prop}").data('prop',prop)
             e.make_editable
@@ -175,6 +191,7 @@ class Course
                                 @update_student_project_settings(prop:e.data('prop'))
 
     handle_changes: (changes) =>
+        @editor.activity_indicator(@filename)
         #console.log("handle_changes (#{misc.mswalltime()}): #{misc.to_json(changes)}")
         for x in changes
             if x.insert?.table == "settings"
@@ -186,8 +203,6 @@ class Course
                 @render_assignment(assignment:x.insert)
         @update_student_count()
         @update_assignment_count()
-
-
 
     ###
     # Students
@@ -279,9 +294,11 @@ class Course
                         if not result_emails[r]
                             result.push({email_address:r})
 
-                    # remove from search result every student who is already in the course
+                    # remove from search result every non-deleted student who is already in the course
                     already_student = {}
-                    for z in @db.select({table : 'students'})
+                    for z in @db.select(where:{table : 'students'})
+                        if z.deleted  # don't omit deleted students; can't put deleted:false in search though since deleted is undefined for non-deleted students.
+                            continue
                         if z.account_id?
                             already_student[z.account_id] = true
                         if z.email_address?
@@ -348,7 +365,7 @@ class Course
     check_if_students_have_signed_up_for_an_account: () =>
         # for each student that doesn't have an account id yet, since they haven't joined,
         # check to see if they have in fact joined and if so record their account id and name.
-        email_query = (x.email_address for x in @db.select({table : 'students'}) when not x.account_id?)
+        email_query = (x.email_address for x in @db.select(where:{table : 'students'}) when not x.account_id?)
         if email_query.length == 0
             # nothing to do
             return
@@ -371,7 +388,7 @@ class Course
 
 
     update_students: () =>
-        v = @db.select({table : 'students'})
+        v = @db.select(where:{table : 'students'})
         v.sort(compare_students)
         for student in v
             @render_student(student)
@@ -403,7 +420,7 @@ class Course
     update_student_view: (opts) =>
         opts = defaults opts,
             student_id : required
-        @render_student(@db.select_one({student_id : opts.student_id, table : 'students'}))
+        @render_student(@db.select_one(where:{student_id : opts.student_id, table : 'students'}))
 
     delete_student: (opts) =>
         opts = defaults opts,
@@ -434,12 +451,18 @@ class Course
             table         : undefined   # ignored
 
         e = @element.find("[data-student_id='#{opts.student_id}']")
+        name = @student_name(opts)
 
         if e.length == 0
             e = templates.find(".salvus-course-student").clone()
             e.attr("data-student_id", opts.student_id).attr("data-account_id", opts.account_id)
             e.find("a[href=#delete]").click () =>
-                @delete_student(student_id: opts.student_id)
+                mesg = "<h3><i class='fa fa-trash'></i> Delete Student</h3><hr>Delete #{name}?"
+                if not @_show_deleted_students.is(":checked")
+                    mesg += "<br><br><span class='lighten'>(Select 'Show deleted students' in settings to see deleted students.)</span>"
+                bootbox.confirm mesg, (result) =>
+                    if result
+                        @delete_student(student_id: opts.student_id)
                 return false
 
             e.find("a[href=#undelete]").click () =>
@@ -457,7 +480,7 @@ class Course
                 return false
 
             e.find("a[href=#open-project]").click () =>
-                v = @db.select_one({student_id : opts.student_id, table : 'students'})
+                v = @db.select_one(where:{student_id : opts.student_id, table : 'students'})
                 project_id = v.project_id
                 if not project_id?
                     alert_message(type:"error", message:"no project defined for #{v.first_name} #{v.last_name}")
@@ -483,7 +506,6 @@ class Course
         create_project_btn = e.find("a[href=#create-project]")
         open_project_btn   = e.find("a[href=#open-project]")
 
-        name = @student_name(opts)
         e.find(".salvus-course-student-name").text(name)
         search_text = name.toLowerCase()
 
@@ -498,10 +520,12 @@ class Course
                 create_project_btn.hide()
 
         if opts.deleted
+            e.addClass('salvus-course-student-deleted')
             e.find(".salvus-course-student-props").addClass('salvus-course-student-deleted')
             e.find("a[href=#undelete]").show()
             e.find("a[href=#delete]").hide()
         else
+            e.removeClass('salvus-course-student-deleted')
             e.find(".salvus-course-student-props").removeClass('salvus-course-student-deleted')
             e.find("a[href=#undelete]").hide()
             e.find("a[href=#delete]").show()
@@ -514,7 +538,7 @@ class Course
                     break
 
     update_student_count: () =>
-        v = @db.select({table : 'students'})
+        v = @db.select(where:{table : 'students'})
         if @_show_deleted_students.is(":checked")
             n = v.length
         else
@@ -535,7 +559,7 @@ class Course
             cb         : undefined
         # create project for the given student
         where = {student_id : opts.student_id, table : 'students'}
-        v = @db.select_one(where)
+        v = @db.select_one(where:where)
         if not v?
             opts.cb?("tried to create project for non-existent student with id #{opts.student_id}")
         else if v.project_id?
@@ -611,11 +635,11 @@ class Course
 
     # return project_id's of students who have not been deleted.
     ##student_project_ids: () =>
-    ##    return (x.project_id for x in @db.select({table : 'students'}) when x.project_id? and not x.deleted)
+    ##    return (x.project_id for x in @db.select(where:{table : 'students'}) when x.project_id? and not x.deleted)
 
     # return non-deleted students
     students: () =>
-        v = (student for student in @db.select({table : 'students'}) when not student.deleted)
+        v = (student for student in @db.select(where:{table : 'students'}) when not student.deleted)
         v.sort(compare_students)
         return v
 
@@ -724,7 +748,7 @@ class Course
                 course_collabs.sort()
 
                 # check if changed from last load
-                last = @db.select_one(table:'collaborators')?.collabs  # map with keys the collabs
+                last = @db.select_one(where:{table:'collaborators'})?.collabs  # map with keys the collabs
                 if not last?
                     last = {}
                 to_add = (account_id for account_id in course_collabs when not last[account_id]?)
@@ -753,7 +777,7 @@ class Course
                             where : {table:'collaborators'}
                         @db.save(cb)
 
-    student_name: (student) =>
+    student_name: (student, no_invite) =>
         first_name = last_name = email_address = ''
         if student.first_name? then first_name = student.first_name
         if student.last_name? then last_name = student.last_name
@@ -764,11 +788,14 @@ class Course
                 s += " (#{email_address})"
             return s
         else
-            return "#{email_address} (invited)"
+            if no_invite
+                return email_address
+            else
+                return "#{email_address} (invited)"
 
     course_project_settings: (student_id) =>
-        z = @db.select_one(table:'settings')
-        s = @db.select_one(table:'students', student_id:student_id)
+        z = @db.select_one(where:{table:'settings'})
+        s = @db.select_one(where:{table:'students', student_id:student_id})
         if s.first_name? and s.last_name?
             name = "#{s.first_name} #{s.last_name}"
         else if s.email_address?
@@ -781,14 +808,13 @@ class Course
     init_create_all_projects_button: () =>
         e = @element.find("a[href=#create-all-projects]").click () =>
             n = e.find('span').text()
-            m = "Are you sure you want to create all #{n} projects for the students in this course."
+            m = "Create all #{n} projects for the students in this course at once?"
             bootbox.confirm m, (result) =>
-                if not result
-                    return
-                for x in @db.select({table : 'students'})
-                    if not x.project_id? and not x.deleted
-                        e = @element.find("[data-student_id='#{x.student_id}']")
-                        e.find("a[href=#create-project]").click()
+                if result
+                    for x in @db.select(where:{table : 'students'})
+                        if not x.project_id? and not x.deleted
+                            e = @element.find("[data-student_id='#{x.student_id}']")
+                            e.find("a[href=#create-project]").click()
 
     ###
     # Assignment
@@ -840,8 +866,9 @@ class Course
                     select.html('').show()
                     select.attr(size:Math.min(10, resp.directories.length))
                     existing_assignments = {}
-                    for x in @db.select(table:'assignments')
-                        existing_assignments[x.path] = true
+                    for x in @db.select(where:{table:'assignments'})
+                        if not x.deleted
+                            existing_assignments[x.path] = true
                     for path in resp.directories
                         if not existing_assignments[path]
                             select.append($("<option>").attr(value:path, label:path).text(path))
@@ -891,6 +918,23 @@ class Course
     init_assignments: () =>
         @assignments_elt = @element.find(".salvus-course-assignments")
 
+    delete_assignment: (opts) =>
+        opts = defaults opts,
+            assignment_id : required
+
+        @db.update
+            set   : {deleted : true}
+            where : {assignment_id : opts.assignment_id, table : 'assignments'}
+        @db.save()
+
+    undelete_assignment: (opts) =>
+        opts = defaults opts,
+            assignment_id : required
+        @db.update
+            set   : {deleted : false}
+            where : {assignment_id : opts.assignment_id, table : 'assignments'}
+        @db.save()
+
     render_assignment: (opts) =>
         opts = defaults opts,
             assignment  : required
@@ -909,53 +953,62 @@ class Course
             e.find(".salvus-course-assignment-path").click () =>
                 @open_directory(assignment.path)
                 return false
-            #e.find(".salvus-course-collect-path").click () =>
-            #    @open_directory(assignment.collect_path)
-            #    return false
+
+            # delete assignment
+            e.find("a[href=#delete]").click () =>
+                mesg = "<h3><i class='fa fa-trash'></i> Delete Assignment</h3><hr>Delete #{assignment.path}?"
+                if not @_show_deleted_assignments.is(":checked")
+                    mesg += "<br><br><span class='lighten'>(Select 'Show deleted assignments' in settings to see deleted assignments.)</span>"
+                bootbox.confirm mesg, (result) =>
+                    if result
+                        @delete_assignment(assignment_id: opts.assignment.assignment_id)
+                return false
+
+            # undelete assignment
+            e.find("a[href=#undelete]").click () =>
+                @undelete_assignment(assignment_id: opts.assignment.assignment_id)
+                return false
+
+            # button: assign files to all students
             assignment_button = e.find("a[href=#assignment-files]").click () =>
-                assignment_button.icon_spin(start:true)
-                @assign_files_to_students
-                    assignment_id : assignment.assignment_id
-                    cb       : (err) =>
-                        assignment_button.icon_spin(false)
-                        if err
-                            alert_message(type:'error', message:"error sharing files with students - #{err}")
+                bootbox.confirm "Copy assignment '#{assignment.path}' to all students (newer files will not be overwritten)?", (result) =>
+                    if result
+                        assignment_button.icon_spin(start:true)
+                        @assign_files_to_students
+                            assignment_id : assignment.assignment_id
+                            cb       : (err) =>
+                                assignment_button.icon_spin(false)
+                                if err
+                                    alert_message(type:'error', message:"error sharing files with students - #{err}")
+
+            # button: collect files from all students
             collect_button = e.find("a[href=#collect-files]").click () =>
-                collect_button.icon_spin(start:true)
-                @collect_assignment_from_students
-                    assignment_id : assignment.assignment_id
-                    cb       : (err) =>
-                        collect_button.icon_spin(false)
+                bootbox.confirm "Collect assignment '#{assignment.path}' from all students?", (result) =>
+                    if result
+                        collect_button.icon_spin(start:true)
+                        @collect_assignment_from_students
+                            assignment_id : assignment.assignment_id
+                            cb       : (err) =>
+                                collect_button.icon_spin(false)
+
+            # button: return graded assignments to students
             return_button = e.find("a[href=#return-graded]").click () =>
-                return_button.icon_spin(start:true)
-                @return_graded_to_students
-                    assignment_id : assignment.assignment_id
-                    cb       : (err) =>
-                        return_button.icon_spin(false)
-
-
-        e.find(".salvus-course-assignment-path").text(assignment.path)
-        e.find(".salvus-course-collect-path").text(assignment.collect_path)
-
-        if assignment.last_collect?
-            # TODO: doing this every time is inefficient!
-            student_dropdown = e.find(".salvus-course-collected-assignment-students").empty()
-            for student in @students()
-                a = assignment.last_collect[student.student_id]
-                if a?.time?
-                    f = () =>
-                        which = {student:student, assignment:assignment}  # use a closure to save params
-                        t = template_student_collected.clone()
-                        t.find("a").text("#{@student_name(student)} #{new Date(a.time)}")
-                        t.click () =>
-                            @open_collected_assignment(which)
-                            return false
-                        student_dropdown.append(t)
-                    f()
+                bootbox.confirm "Return graded assignment '#{assignment.path}' to all students?", (result) =>
+                    if result
+                        return_button.icon_spin(start:true)
+                        @return_graded_to_students
+                            assignment_id : assignment.assignment_id
+                            cb       : (err) =>
+                                if err
+                                    alert_message(type:"error", message:"Error returning collected assignments (report to wstein@uw.edu) -- #{err}", timeout:15)
+                                else
+                                    alert_message(message:"Successfully returned collected assignments to students", timeout:3)
+                                return_button.icon_spin(false)
 
         # NOTE: for now we just put everything -- visible or not -- in the DOM.  This is less
         # scalable -- but the number of assignments is likely <= 30...
         contain = @element.find(".salvus-course-page-assignment").find(".salvus-course-search-contain")
+        hide = false
         if @assignments_search_box?
             v = @assignments_search_box.val().trim()
             if v
@@ -974,6 +1027,109 @@ class Course
                 contain.hide()
                 e.show()
 
+        if not hide
+            if assignment.deleted
+                if @_show_deleted_assignments.is(":checked")
+                    e.show()
+                else
+                    e.hide()
+            else
+                e.show()
+
+        if assignment.deleted
+            e.addClass("salvus-course-assignment-deleted")
+            e.find(".salvus-course-assignment-props").addClass('salvus-course-assignment-deleted')
+            e.find("a[href=#undelete]").show()
+            e.find("a[href=#delete]").hide()
+        else
+            e.removeClass("salvus-course-assignment-deleted")
+            e.find(".salvus-course-assignment-props").removeClass('salvus-course-assignment-deleted')
+            e.find("a[href=#undelete]").hide()
+            e.find("a[href=#delete]").show()
+
+
+        e.find(".salvus-course-assignment-path").text(assignment.path)
+        e.find(".salvus-course-collect-path").text(assignment.collect_path)
+
+        # TODO: doing this every time is inefficient.
+        assign_dropdown = e.find(".salvus-course-assign-to-student").empty()
+        for student in @students()
+            if student.deleted
+                continue
+            student_name = @student_name(student, true)
+            a = assignment.last_assignment?[student.student_id]
+            if a?.time?
+                if a.error?
+                    elt = $("<span>#{student_name} -- ERROR assigning at <span></span> (#{a.error})</span>")
+                else
+                    elt = $("<span>#{student_name} -- assigned <span></span></span>")
+                elt.find("span").attr('title', (new Date(a.time)).toISOString()).timeago()
+            else
+                if student.project_id?
+                    elt = $("<span>#{student_name} -- NOT assigned yet</span>")
+                else
+                    elt = $("<span>#{student_name} -- CREATE student project first</span>")
+            (() =>
+                # use a closure to save params
+                which = {student:student, assignment:assignment, name:student_name}
+                t = template_student_collected.clone()
+                t.find("a").empty().append(elt)
+                t.click () =>
+                    if not which.student.project_id?
+                        bootbox.alert("You must create #{student_name}'s project first.")
+                        return
+                    @assign_files_to_students
+                        assignment_id : which.assignment.assignment_id
+                        students      : [which.student]
+                        cb            : (err) =>
+                            if err
+                                alert_message(type:"error", message:"Error copying files to #{which.name} -- #{err}")
+                            else
+                                alert_message(message:"Successfully copied assignment to #{which.name}")
+                    return false
+                assign_dropdown.append(t))()
+
+        # TODO: doing this every time is inefficient!
+        collected_dropdown = e.find(".salvus-course-collected-assignment-students").empty()
+        for student in @students()
+            student_name = @student_name(student, true)
+            a = assignment.last_collect?[student.student_id]
+            if a?.time?
+                if a.error?
+                    elt = $("<span>#{student_name} -- ERROR collecting at <span></span> (#{a.error})</span>")
+                else
+                    elt = $("<span>#{student_name} -- collected <span></span></span>")
+                elt.find("span").attr('title', (new Date(a.time)).toISOString()).timeago()
+                collected = true
+            else
+                if student.project_id?
+                    collected = false
+                    elt = $("<span>#{student_name} -- NOT collected yet</span>")
+                else
+                    collected = false
+                    elt = $("<span>#{student_name} -- CREATE student project first</span>")
+            # use a closure to save params
+            (() =>
+                which = {student:student, assignment:assignment, collected:collected}
+                t = template_student_collected.clone()
+                t.find("a").empty().append(elt)
+                t.click () =>
+                    if which.collected
+                        @open_collected_assignment(student:which.student, assignment:which.assignment)
+                    else
+                        @collect_assignment_from_students
+                            assignment_id : which.assignment.assignment_id
+                            students : [which.student]
+                            cb       : (err) =>
+                                if err
+                                    alert_message(type:"error", message:"Error collecting files from #{which.name} -- #{err}")
+                                else
+                                    alert_message(message:"Successfully collected assignment from #{which.name}")
+                    return false
+                collected_dropdown.append(t)
+            )()
+
+
     collect_assignment_from_students: (opts) =>
         opts = defaults opts,
             assignment_id : required
@@ -984,7 +1140,7 @@ class Course
             opts.students = @students()
 
         where = {table:'assignments', assignment_id:opts.assignment_id}
-        assignment = @db.select_one(where)
+        assignment = @db.select_one(where:where)
         if not assignment.last_collect?
             assignment.last_collect = {}
         collect_from = (student, cb) =>
@@ -1023,13 +1179,14 @@ class Course
         if not opts.students?
             opts.students = @students()
 
-        assignment = @db.select_one(table:'assignments', assignment_id:opts.assignment_id)
+        where = {table:'assignments', assignment_id:opts.assignment_id}
+        assignment = @db.select_one(where:where)
         if not assignment.last_assignment?
             assignment.last_assignment = {}
         assignment_with = (student, cb) =>
             #console.log("assigning '#{assignment.path}' to #{student.email_address}")
             if not student.project_id?
-                #console.log("can't assign to #{student.email_address} -- no project")
+                # console.log("can't assign to #{student.email_address} -- no project")
                 cb()
                 return
             salvus_client.copy_path_between_projects
@@ -1043,7 +1200,13 @@ class Course
                 cb                : (err) =>
                     #console.log("finished sending assignment to #{student.email_address} -- err=#{err}")
                     assignment.last_assignment[student.student_id] = {time:misc.mswalltime(), error:err}
-                    cb(err)
+                    if err
+                        cb(err)
+                    else
+                        @db.update
+                            set   : {last_assignment:assignment.last_assignment}
+                            where : where
+                        @db.save(cb)
         async.mapLimit(opts.students, MAP_LIMIT, assignment_with, (err) => opts.cb(err))
 
     return_graded_to_students: (opts) =>
@@ -1055,12 +1218,14 @@ class Course
         if not opts.students?
             opts.students = @students()
 
-        assignment = @db.select_one(table:'assignments', assignment_id:opts.assignment_id)
+        assignment = @db.select_one(where:{table:'assignments', assignment_id:opts.assignment_id})
         if not assignment.last_return_graded?
             assignment.last_return_graded = {}
         assignment_with = (student, cb) =>
             #console.log("returning '#{assignment.path}' to #{student.email_address}")
-            if not student.project_id?
+            # Only try to return if the student's project has been created *and* the assignment
+            # for this student was collected (otherwise trying to return it results in an error).
+            if not student.project_id? or not assignment.last_collect[student.student_id]?
                 #console.log("can't return assignment to #{student.email_address} -- no project")
                 cb()
                 return
@@ -1074,9 +1239,14 @@ class Course
                 delete_missing    : assignment.delete_missing
                 timeout           : assignment.timeout
                 cb                : (err) =>
+                    #console.log("return_graded_to_students", student)
+                    if err
+                        alert_message
+                            type    : "error"
+                            message : "Error returning assignment to #{@student_name(student)} -- #{err}"
                     #console.log("finished returning assignment to #{student.email_address} -- err=#{err}")
                     assignment.last_return_graded[student.student_id] = {time:misc.mswalltime(), error:err}
-                    cb(err)
+                    cb()  # explicitly don't pass error back, since we still want to return rest of assignments
         async.mapLimit(opts.students, MAP_LIMIT, assignment_with, (err) => opts.cb(err))
 
 
@@ -1124,10 +1294,15 @@ class Course
         @update_assignment_count()
 
     assignments: () =>
-        @db.select({table : 'assignments'})
+        @db.select(where:{table : 'assignments'})
 
     update_assignment_count: () =>
-        n = @assignments().length
+        v = @assignments()
+        if @_show_deleted_assignments.is(":checked")
+            n = v.length
+        else
+            n = (x for x in v when not x.deleted).length
+
         @element.find(".salvus-course-assignment-count").text("(#{n})")
         if n == 0
             @element.find(".salvus-course-assignments-none").show()

@@ -37,11 +37,50 @@ MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
 # TODO: this needs to use salvus.project_info() or an environment variable or something!
 site = 'https://cloud.sagemath.com'
 
-import argparse, base64, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile
+import argparse, base64, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile, urllib
 from uuid import uuid4
+
+def escape_path(s):
+    # see http://stackoverflow.com/questions/946170/equivalent-javascript-functions-for-pythons-urllib-quote-and-urllib-unquote
+    s = urllib.quote(unicode(s).encode('utf-8'), safe='~@#$&()*!+=:;,.?/\'')
+    return s.replace('#','%23').replace("?",'%3F')
 
 def wrap(s, c=90):
     return '\n'.join(['\n'.join(textwrap.wrap(x, c)) for x in s.splitlines()])
+
+def tex_escape(s):
+    return s.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" ).replace('%','\\%').replace('#','\\#').replace("&","\\&")
+
+
+# Parallel computing can be useful for IO bound tasks.
+def thread_map(callable, inputs):
+    """
+    Computing [callable(args) for args in inputs]
+    in parallel using len(inputs) separate *threads*.
+
+    If an exception is raised by any thread, a RuntimeError exception
+    is instead raised.
+    """
+    print "Doing the following in parallel:\n%s"%('\n'.join(inputs))
+    from threading import Thread
+    class F(Thread):
+        def __init__(self, x):
+            self._x = x
+            Thread.__init__(self)
+            self.start()
+        def run(self):
+            try:
+                self.result = callable(self._x)
+                self.fail = False
+            except Exception, msg:
+                self.result = msg
+                self.fail = True
+    results = [F(x) for x in inputs]
+    for f in results: f.join()
+    e = [f.result for f in results if f.fail]
+    if e: raise RuntimeError(e)
+    return [f.result for f in results]
+
 
 # create a subclass and override the handler methods
 
@@ -81,63 +120,13 @@ class Parser(HTMLParser.HTMLParser):
             self.result += '}'  # fallback
 
     def handle_data(self, data):
-        # Textnode data has to be escaped in order to appear the same in LaTeX.
-        # But only outside of $s and $$s, which indicate mathmode. So we iterate
-        # over the text, count opening and closing $s ($$s) and perform
-        # substitutions outside of those. The procedure assumes well-formed text
-        # and will likely not act consistent (i.e. escape exactly those
-        # characters which require escaping) with how LaTeX acts if the text is
-        # mal-formed. A.k.a. the hustler-loop:
-        source = data
-        dollar_at = 0
+        # safe because all math stuff has already been escaped.
+        self.result += tex_escape(data)
 
-        while( dollar_at!=-1 ):
-            dollar_at = 0
-            while( True ):
-                dollar_at = source.find( "$",dollar_at+1 )
-                if( dollar_at<1 or source[ dollar_at-1 ]!="\\" ):
-                    break
-
-            # We seperate the optional $[$] which delimited the chunk from the actual chunk
-            # to replace all $s in the chunk (such as they occur when they were escaped)
-
-            dollars_so_far = self.dollars_found
-            if( dollar_at==-1 ):
-                chunk = source
-                tail = ""
-            else:
-                # Two $$ are treated exactly like one $, skip over the second
-                chunk = source[ :dollar_at ]
-                if( dollar_at<len( source )-1 and source[ dollar_at+1 ]=="$" ):
-                    dollar_at += 1
-                    tail = "$$"
-                else:
-                    tail = "$"
-
-                self.dollars_found += 1
-
-            if( dollars_so_far%2 ):
-                self.result += chunk+tail
-            else:
-                self.result += chunk.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" )+tail
-
-            source = source[ dollar_at+1: ]
-
-def html2tex(doc):
-    parser = Parser()
-    parser.result = ''
-    # The number of (unescaped) dollars or double-dollars found so far. An even
-    # number is assumed to indicate that we're outside of math and thus need to
-    # escape.
-    parser.dollars_found = 0
-    parser.feed(doc)
-    return parser.result
-
-def md2html(s):
-    from markdown2Mathjax import sanitizeInput, reconstructMath
-    from markdown2 import markdown
-
-    delims = [('\\(','\\)'), ('$$','$$'), ('\\[','\\]'),
+def sanitize_math_input(s):
+    from markdown2Mathjax import sanitizeInput
+    # it's critical that $$ be first!
+    delims = [('$$','$$'), ('\\(','\\)'), ('\\[','\\]'),
               ('\\begin{equation}', '\\end{equation}'), ('\\begin{equation*}', '\\end{equation*}'),
               ('\\begin{align}', '\\end{align}'), ('\\begin{align*}', '\\end{align*}'),
               ('\\begin{eqnarray}', '\\end{eqnarray}'), ('\\begin{eqnarray*}', '\\end{eqnarray*}'),
@@ -149,14 +138,34 @@ def md2html(s):
     for d in delims:
         tmp.append((sanitizeInput(tmp[-1][0][0], equation_delims=d), d))
 
-    extras = ['code-friendly', 'footnotes', 'smarty-pants', 'wiki-tables', 'fenced-code-blocks']
-    markedDownText = markdown(tmp[-1][0][0], extras=extras)
+    return tmp
 
+def reconstruct_math(s, tmp):
+    from markdown2Mathjax import reconstructMath
     while len(tmp) > 1:
-        markedDownText = reconstructMath(markedDownText, tmp[-1][0][1], equation_delims=tmp[-1][1])
+        s = reconstructMath(s, tmp[-1][0][1], equation_delims=tmp[-1][1])
         del tmp[-1]
+    return s
 
-    return markedDownText
+def html2tex(doc):
+    tmp = sanitize_math_input(doc)
+    parser = Parser()
+    parser.result = ''
+    # The number of (unescaped) dollars or double-dollars found so far. An even
+    # number is assumed to indicate that we're outside of math and thus need to
+    # escape.
+    parser.dollars_found = 0
+    parser.feed(tmp[-1][0][0])
+    return reconstruct_math(parser.result, tmp)
+
+
+def md2html(s):
+    from markdown2 import markdown
+    extras = ['code-friendly', 'footnotes', 'smarty-pants', 'wiki-tables', 'fenced-code-blocks']
+
+    tmp = sanitize_math_input(s)
+    markedDownText = markdown(tmp[-1][0][0], extras=extras)
+    return reconstruct_math(markedDownText, tmp)
 
 def md2tex(doc):
     return html2tex(md2html(doc))
@@ -181,19 +190,26 @@ class Cell(object):
             self.output_uuid = w[0] if len(w) > 0 else ''
             self.output = []
             for x in w[1:]:
-                try:
-                    self.output.append(json.loads(x))
-                except ValueError:
+                if x:
                     try:
-                        print "**WARNING:** Unable to de-json '%s'"%x
-                    except:
-                        print "Unable to de-json some output"
+                        self.output.append(json.loads(x))
+                    except ValueError:
+                        try:
+                            print "**WARNING:** Unable to de-json '%s'"%x
+                        except:
+                            print "Unable to de-json some output"
         else:
             self.output = self.output_uuid = ''
 
 
     def latex(self):
-        return self.latex_input() + self.latex_output()
+        """
+        Returns the latex represenation of this cell along with a list of commands
+        that should be executed in the shell in order to obtain remote data files,
+        etc., to render this cell.
+        """
+        self._commands = []
+        return self.latex_input() + self.latex_output(), self._commands
 
     def latex_input(self):
         if 'i' in self.input_codes:   # hide input
@@ -210,10 +226,11 @@ class Cell(object):
         for x in self.output:
             if 'stdout' in x:
                 s += "\\begin{verbatim}" + wrap(x['stdout']) + "\\end{verbatim}"
-                #s += "\\begin{lstlisting}" + x['stdout'] + "\\end{lstlisting}"
             if 'stderr' in x:
                 s += "{\\color{dredcolor}\\begin{verbatim}" + wrap(x['stderr']) + "\\end{verbatim}}"
-                #s += "\\begin{lstlisting}" + x['stderr'] + "\\end{lstlisting}"
+            if 'code' in x:
+                # TODO: for now ignoring that not all code is Python...
+                s += "\\begin{lstlisting}" + x['code']['source'] + "\\end{lstlisting}"
             if 'html' in x:
                 s += html2tex(x['html'])
             if 'md' in x:
@@ -233,7 +250,7 @@ class Cell(object):
                     filename = os.path.split(target)[-1]
                 else:
                     filename = os.path.split(val['filename'])[-1]
-                    target = "%s/blobs/%s?uuid=%s"%(site, filename, val['uuid'])
+                    target = "%s/blobs/%s?uuid=%s"%(site, escape_path(filename), val['uuid'])
 
                 base, ext = os.path.splitext(filename)
                 ext = ext.lower()[1:]
@@ -249,19 +266,18 @@ class Cell(object):
                                 print msg
                         img = filename
                     else:
-                        cmd = 'rm "%s"; wget "%s" --output-document="%s"'%(filename, target, filename)
-                        print cmd
-                        if os.system(cmd) == 0:
-                            if ext == 'svg':
-                                # hack for svg files; in perfect world someday might do something with vector graphics, see http://tex.stackexchange.com/questions/2099/how-to-include-svg-diagrams-in-latex
-                                cmd = 'rm "%s"; convert -antialias -density 150 "%s" "%s"'%(base+'.png',filename,base+'.png')
-                                os.system(cmd)
-                                filename = base+'.png'
-                            img = filename
-                    if img:
-                        s += '\\includegraphics[width=\\textwidth]{%s}\n'%img
-                    else:
-                        s += "(problem loading \\verb|'%s'|)"%filename
+                        # Get the file from remote server
+                        c = 'rm -f "%s"; wget "%s" --output-document="%s"'%(filename, target, filename)
+                        # If we succeeded, convert it to a png, which is what we can easily embed
+                        # in a latex document (svg's don't work...)
+                        self._commands.append(c)
+                        if ext == 'svg':
+                            # hack for svg files; in perfect world someday might do something with vector graphics, see http://tex.stackexchange.com/questions/2099/how-to-include-svg-diagrams-in-latex
+                            c += ' && rm -f "%s"; convert -antialias -density 150 "%s" "%s"'%(base+'.png',filename,base+'.png')
+                            self._commands.append(c)
+                            filename = base+'.png'
+                        img = filename
+                    s += '\\includegraphics[width=\\textwidth]{%s}\n'%img
                 elif ext == 'sage3d' and 'sage3d' in extra_data and 'uuid' in val:
                     # render a static image, if available
                     v = extra_data['sage3d']
@@ -322,12 +338,13 @@ class Worksheet(object):
     def latex_preamble(self, title='',author='', date='', contents=True):
         title = title.replace('_','\_')
         author = author.replace('_','\_')
+        # The utf8x instead of utf8 below is because of http://tex.stackexchange.com/questions/83440/inputenc-error-unicode-char-u8-not-set-up-for-use-with-latex, which I needed due to approx symbols, etc. causing trouble.
         #\usepackage{attachfile}
         s=r"""
 \documentclass{article}
 \usepackage{fullpage}
 \usepackage{amsmath}
-\usepackage[utf8]{inputenc}
+\usepackage[utf8x]{inputenc}
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{etoolbox}
@@ -366,10 +383,10 @@ sensitive=true}
 \definecolor{dgraycolor}{rgb}{0.30,0.3,0.30}
 \definecolor{graycolor}{rgb}{0.35,0.35,0.35}
 """
-        s += "\\title{%s}\n"%title
-        s += "\\author{%s}\n"%author
+        s += "\\title{%s}\n"%tex_escape(title)
+        s += "\\author{%s}\n"%tex_escape(author)
         if date:
-            s += "\\date{%s}\n"%date
+            s += "\\date{%s}\n"%tex_escape(date)
         s += "\\begin{document}\n"
         s += "\\maketitle\n"
         #if self._filename:
@@ -382,7 +399,16 @@ sensitive=true}
     def latex(self, title='', author='', date='', contents=True):
         if not title:
             title = self._default_title
-        return self.latex_preamble(title=title, author=author, date=date, contents=contents) + '\n'.join(c.latex() for c in self._cells) + r"\end{document}"
+        commands = []
+        tex = []
+        for c in self._cells:
+            t, cmd = c.latex()
+            tex.append(t)
+            if cmd:
+                commands.extend(cmd)
+        if commands:
+            thread_map(os.system, commands)
+        return self.latex_preamble(title=title, author=author, date=date, contents=contents) + '\n'.join(tex) + r"\end{document}"
 
 
 def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=True, remove_tmpdir=True):

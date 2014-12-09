@@ -43,6 +43,10 @@ Editor for files in a project
     cursor: pointer;
 }
 
+.salvus-editor-filename-pill-icon-active {
+    color:orange;
+}
+
 @media (max-width: 767px) {
     .salvus-editor-filename-pill {
         width: 50%;
@@ -235,7 +239,7 @@ Editor for files in a project
     position: fixed;
     background-color: white;
     right: 0px;
-    width: 35ex;
+    width: 42ex;
     padding: 0;
 }
 
@@ -259,7 +263,7 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror-chat-output {
-    padding:1ex;
+    padding:2ex;
     margin:0ex;
     width:100%;
     position: absolute;
@@ -270,9 +274,9 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror-chat-input {
-    padding:2%;
-    margin:0px;
-    height:5em !important;
+    padding:23x;
+    margin:0ex;
+    height:8em !important;
     width:100%;
     position : absolute;
     resize: none;
@@ -390,6 +394,12 @@ Editor for files in a project
     color:red;
 }
 
+.sagews-output-code {
+    white-space: pre;
+    border: 2px solid lightblue;
+    padding: 1ex;
+}
+
 .sagews-output-tex {
     background: white;  /* so that tex is visible */
 }
@@ -437,6 +447,8 @@ Editor for files in a project
 
 .salvus-ipython-notebook {
     background: white;
+    position: fixed;
+    width: 100%;
 }
 
 .salvus-ipython-notebook-buttons {

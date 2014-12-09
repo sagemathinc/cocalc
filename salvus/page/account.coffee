@@ -30,9 +30,10 @@ set_account_tab_label = (signed_in, email_address) ->
 account_id = undefined
 
 top_navbar.on "switch_to_page-account", () ->
-    window.history.pushState("", "", window.salvus_base_url + '/settings')
-    if not account_id?
-        $("#sign_in-email").focus()
+    if account_id?
+        window.history.pushState("", "", window.salvus_base_url + '/settings')
+    else
+        window.history.pushState("", "", window.salvus_base_url)
 
 ################################################
 # Page Switching Control
@@ -44,7 +45,7 @@ focus =
     'account-settings'        : ''
 
 current_account_page = null
-show_page = (p) ->
+show_page = exports.show_page  = (p) ->
     current_account_page = p
     for page, elt of focus
         if page == p
@@ -53,10 +54,13 @@ show_page = (p) ->
         else
             $("##{page}").hide()
 
+if localStorage.remember_me
+    show_page("account-sign_in")
+else
+    show_page("account-create_account")
 
-show_page("account-sign_in")
-
-top_navbar.on("show_page_account", (() -> $("##{focus[current_account_page]}").focus()))
+top_navbar.on "show_page_account", () ->
+    $("##{focus[current_account_page]}").focus()
 
 $("a[href='#account-create_account']").click (event) ->
     $.get "/registration", (val, status) ->
@@ -71,7 +75,7 @@ $("a[href='#account-create_account']").click (event) ->
 
 $("a[href='#account-sign_in']").click (event) ->
     destroy_create_account_tooltips()
-    show_page("account-sign_in");
+    show_page("account-sign_in")
     return false
 
 ################################################
@@ -250,7 +254,8 @@ $("#create_account-button").click (event) ->
             when "signed_in"
                 ga('send', 'event', 'account', 'create_account')    # custom google analytic event -- user created an account
                 alert_message(type:"success", message: "Account created!  You are now signed in as #{mesg.first_name} #{mesg.last_name}.")
-                signed_in(mesg)
+                ## THIS is taken care of by an event handler elsewhere
+                # signed_in(mesg)
             else
                 # should never ever happen
                 alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
@@ -266,7 +271,7 @@ password_strength_meter = (input) ->
     if require("feature").IS_MOBILE
         return
     # TODO: move this html into account.html
-    display = $('<div class="progress progress-striped"><div class="progress-bar"></div>&nbsp;<font size=-1></font></div>')
+    display = $('<div class="progress progress-striped" style="margin-bottom: 3px;"><div class="progress-bar"></div>&nbsp;<font size=-1></font></div>')
     input.after(display)
     score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
     input.bind 'change keypress paste focus textInput input', () ->
@@ -318,8 +323,10 @@ sign_in = () ->
             switch mesg.event
                 when 'sign_in_failed'
                     alert_message(type:"error", message: mesg.reason)
+
                 when 'signed_in'
-                    signed_in(mesg)
+                    # Signed_in gets handled by the signed_in event listener below -- do not do it here also.
+                    pass=0
                 when 'error'
                     alert_message(type:"error", message: mesg.reason)
                 else
@@ -339,6 +346,10 @@ signed_in = (mesg) ->
     account_id = mesg.account_id
     account_settings.load_from_server (error) ->
         if error
+            if account_settings.settings?
+                # don't show an error if already loaded settings before successefully; error
+                # is probably just due to trying to reload settings too frequently.
+                return
             alert_message(type:"error", message:error)
         else
             account_settings.set_view()
@@ -409,6 +420,9 @@ EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
                               'smart_indent',
                               'match_brackets',
                               'auto_close_brackets',
+                              'match_xml_tags',
+                              'auto_close_xml_tags',
+                              'code_folding'
                               'electric_chars',
                               'spaces_instead_of_tabs',
                               'track_revisions']
@@ -416,26 +430,72 @@ EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
 OTHER_SETTINGS_CHECKBOXES = ['confirm_close',
                              'mask_files']
 
+# These are not the *defaults* in the sense of account settings for a new users.
+# These are the defaults before a user has logged in, e.g., for anonymous users
+# viewing public files.
+DEFAULT_ACCOUNT_SETTINGS =
+    account_id      : undefined
+    first_name      : "Anonymous"
+    last_name       : "Users"
+    default_system  : "sage"
+    evaluate_key    : "Shift-Enter"
+    enable_tooltips : true
+    autosave        : 45
+    terminal        :
+        font_size    : 6
+        color_scheme : "default"
+        font         :"monospace"
+    editor_settings :
+        strip_trailing_whitespace : true
+        show_trailing_whitespace  : true
+        line_wrapping             : true
+        line_numbers              : true
+        smart_indent              : true
+        electric_chars            : true
+        match_brackets            : true
+        auto_close_brackets       : true
+        auto_close_xml_tags       : true
+        code_folding              : true
+        match_xml_tags            : true
+        spaces_instead_of_tabs    : true
+        multiple_cursors          : true
+        track_revisions           : false
+        first_line_number         : 1
+        indent_unit               : 4
+        tab_size                  : 4
+        bindings                  : "default"
+        theme                     : "default"
+        undo_depth                : 300
+    other_settings  :
+        confirm_close     : false  # non-logged in user shouldn't have to confirm leave.
+        mask_files        : true
+        default_file_sort : 'filename'
+    email_address   : 'anonymous@example.com'
+    groups          : []
+
 class AccountSettings
+    constructor: () ->
+        # defaults before loaded from backend or for non-logged-in-users
+        @settings = DEFAULT_ACCOUNT_SETTINGS
+
     account_id: () =>
         return account_id
+
+    is_signed_in: () =>
+        return account_id?
 
     load_from_server: (cb) =>
         salvus_client.get_account_settings
             account_id : account_id
             cb         : (error, settings_mesg) =>
+                #console.log("load got back ", error, settings_mesg)
                 if error or settings_mesg.event == 'error'
                     $("#account-settings-error").show()
-                    if not @settings?
-                        # we only set the settings to error if they aren't already set, since we
-                        # don't want to just throw away the last known settings.
-                        @settings = 'error'
-
                     # try to get settings again in a bit to fix that the settings aren't known
                     f = () =>
+                        #console.log("calling again")
                         @load_from_server()
                     setTimeout(f, 10000)
-
                     cb?(error)
                     return
 
@@ -510,6 +570,9 @@ class AccountSettings
                     for x in OTHER_SETTINGS_CHECKBOXES
                         val[x] = element.find(".account-settings-other_settings-#{x}").is(":checked")
 
+                    # Default file sort order
+                    val.default_file_sort = element.find(".account-settings-other_settings-default_file_sort").val()
+
                 else
                     val = element.val()
 
@@ -532,6 +595,8 @@ class AccountSettings
 
         if @settings.groups? and 'admin' in @settings.groups
             $("#account-settings-admin-settings").show()
+
+        top_navbar.activity_indicator('account')
 
         for prop, value of @settings
             def = message.account_settings_defaults[prop]
@@ -582,6 +647,7 @@ class AccountSettings
                 when 'other_settings'
                     for x in OTHER_SETTINGS_CHECKBOXES
                         element.find(".account-settings-other_settings-#{x}").prop("checked", value[x])
+                        element.find(".account-settings-other_settings-default_file_sort").val(value.default_file_sort)
                 else
                     set(element, value)
 
@@ -918,3 +984,4 @@ salvus_client.on "remember_me_failed", () ->
 
 salvus_client.on "signed_in", () ->
     $(".salvus-remember_me-message").hide()
+    require('projects').update_project_list()

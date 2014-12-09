@@ -8,7 +8,7 @@ window.LatexParser = (function() {
         var wrappedLines = this.text.split("\n");
         this.lines = [wrappedLines[0]];
         for (var i = 1; i < wrappedLines.length; i++) {
-            // If the previous line is as long as the wrap limit then 
+            // If the previous line is as long as the wrap limit then
             // append this line to it.
             // Some lines end with ... when LaTeX knows it's hit the limit
             // These shouldn't be wrapped.
@@ -211,11 +211,13 @@ window.LatexParser = (function() {
             // Our heuristic for detecting file names are rather crude
             // A file may not contain a space, or ) in it
             // To be a file path it must have at least one /
-            if (!this.currentLine.match(/^\/?([^ \)]+\/)+/)) {
+            // WILLIAM -- files can have a space in them and latex is fine with that.  So instead we
+            // we replace the above rule by: "A filename may not contain () or ) in it..."
+            if (!this.currentLine.match(/^\/?([^\(\)]+\/)+/)) {
                 return false;
             }
 
-            var endOfFilePath = this.currentLine.search(/ |\)/);
+            var endOfFilePath = this.currentLine.search(/\(|\)/);
             var path;
             if (endOfFilePath == -1) {
                 path = this.currentLine;

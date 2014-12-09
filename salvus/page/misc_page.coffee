@@ -278,31 +278,21 @@ exports.define_codemirror_extensions = () ->
     CodeMirror.defineExtension 'unindent_selection', () ->
         editor     = @
 
-        start = editor.getCursor('head')
-        end   = editor.getCursor('anchor')
-        if end.line <= start.line or (end.line ==start.line and end.ch <= start.ch)
-            # swap start and end.
-            t = start
-            start = end
-            end = t
-
-        start_line = start.line
-        end_line   = if end.ch > 0 then end.line else end.line - 1
-        if end_line < start_line
-            end_line = start_line
-        all_need_unindent = true
-        for n in [start_line .. end_line]
-            s = editor.getLine(n)
-            if not s?
-                return
-            if s.length ==0 or s[0] == '\t' or s[0] == ' '
-                continue
-            else
-                all_need_unindent = false
-                break
-        if all_need_unindent
+        for selection in editor.listSelections()
+            {start_line, end_line} = cm_start_end(selection)
+            all_need_unindent = true
             for n in [start_line .. end_line]
-                editor.indentLine(n, "subtract")
+                s = editor.getLine(n)
+                if not s?
+                    return
+                if s.length ==0 or s[0] == '\t' or s[0] == ' '
+                    continue
+                else
+                    all_need_unindent = false
+                    break
+            if all_need_unindent
+                for n in [start_line .. end_line]
+                    editor.indentLine(n, "subtract")
 
     CodeMirror.defineExtension 'tab_as_space', () ->
         cursor = @getCursor()
@@ -459,30 +449,108 @@ exports.define_codemirror_extensions = () ->
         opts = defaults opts,
             from      : required
             content   : required
-            type      : required   # 'docstring', 'source-code' -- TODO: curr ignored
+            type      : required   # 'docstring', 'source-code' -- TODO
             target    : required
-        editor = @
-        element = templates.find(".salvus-codemirror-introspect").clone()
+        element = templates.find(".salvus-codemirror-introspect")
         element.find(".salvus-codemirror-introspect-title").text(opts.target)
-        element.find(".salvus-codemirror-introspect-content").text(opts.content)
-        element.find(".salvus-codemirror-introspect-close").click () -> element.remove()
-        pos = editor.cursorCoords(opts.from)
-        element.css
-            left : pos.left + 'px'
-            top  : pos.bottom + 'px'
-        $("body").prepend element
-        if not IS_MOBILE
-            element.draggable(handle: element.find(".salvus-codemirror-introspect-title")).resizable
-                alsoResize : element.find(".salvus-codemirror-introspect-content")
-                maxHeight: 650
-                handles : 'all'
-        element.focus()
-        return element
+        element.modal()
+        element.find(".salvus-codemirror-introspect-content-docstring").text('')
+        element.find(".salvus-codemirror-introspect-content-source-code").text('')
+        element.data('editor', @)
+        if opts.type == 'source-code'
+            CodeMirror.runMode(opts.content, 'python', element.find(".salvus-codemirror-introspect-content-source-code")[0])
+        else
+            CodeMirror.runMode(opts.content, 'text/x-rst', element.find(".salvus-codemirror-introspect-content-docstring")[0])
 
+    # Codemirror extension that takes as input an arrow of words (or undefined)
+    # and visibly keeps those marked as misspelled.  If given empty input, cancels this.
+    # If given another input, that replaces the current one.
+    CodeMirror.defineExtension 'spellcheck_highlight', (words) ->
+        cm = @
+        if cm._spellcheck_highlight_overlay?
+            cm.removeOverlay(cm._spellcheck_highlight_overlay)
+            delete cm._spellcheck_highlight_overlay
+        if words? and words.length > 0
+            v = {}
+            # make faster-to-check dictionary
+            for w in words
+                v[w] = true
+            words = v
+            # define overlay mode
+            token = (stream, state) ->
+                # stream.match(/^\w+/) means "begins with 1 or more word characters", and eats them all.
+                if stream.match(/^\w+/) and words[stream.current()]
+                    return 'spell-error'
+                # eat whitespace
+                while stream.next()?
+                    # stream.match(/^\w+/, false) means "begins with 1 or more word characters", but don't eat them up
+                    if stream.match(/^\w+/, false)
+                        return
+            cm._spellcheck_highlight_overlay = {token: token}
+            cm.addOverlay(cm._spellcheck_highlight_overlay)
+
+    CodeMirror.defineExtension 'foldCodeSelectionAware', (mode) ->
+        editor = @
+        # The variable mode determines whether we are mode or unfolding *everything*
+        # selected.  If mode='fold', mode everything; if mode='unfold', unfolding everything;
+        # and if mode=undefined, not yet decided.  If undecided, it's decided on the first
+        # thing that we would toggle, e.g., if the first fold point is unfolded, we make sure
+        # everything is folded in all ranges, but if the first fold point is not folded, we then
+        # make everything unfolded.
+        for selection in editor.listSelections()
+            {start_line, end_line} = cm_start_end(selection)
+            for n in [start_line .. end_line]
+                pos = CodeMirror.Pos(n)
+                if mode?
+                    editor.foldCode(pos, null, mode)
+                else
+                    # try to toggle and see if anything happens
+                    is_folded = editor.isFolded(pos)
+                    editor.foldCode(pos)
+                    if editor.isFolded(pos) != is_folded
+                        # this is a foldable line, and what did we do?  keep doing it.
+                        mode = if editor.isFolded(pos) then "fold" else "unfold"
+
+    $.get '/static/codemirror-extra/data/latex-completions.txt', (data) ->
+        s = data.split('\n')
+        tex_hint = (editor) ->
+            cur   = editor.getCursor()
+            token = editor.getTokenAt(cur)
+            #console.log(token)
+            t = token.string
+            completions = (a for a in s when a.slice(0,t.length) == t)
+            ans =
+                list : completions,
+                from : CodeMirror.Pos(cur.line, token.start)
+                to   : CodeMirror.Pos(cur.line, token.end)
+        CodeMirror.registerHelper("hint", "stex", tex_hint)
+
+
+cm_start_end = (selection) ->
+    {head, anchor} = selection
+    start = head
+    end   = anchor
+    if end.line <= start.line or (end.line ==start.line and end.ch <= start.ch)
+        [start, end] = [end, start]
+    start_line = start.line
+    end_line   = if end.ch > 0 then end.line else end.line - 1
+    if end_line < start_line
+        end_line = start_line
+    return {start_line:start_line, end_line:end_line}
+
+codemirror_introspect_modal = templates.find(".salvus-codemirror-introspect")
+
+codemirror_introspect_modal.find("button").click () ->
+    codemirror_introspect_modal.modal('hide')
+
+# see http://stackoverflow.com/questions/8363802/bind-a-function-to-twitter-bootstrap-modal-close
+codemirror_introspect_modal.on 'hidden.bs.modal', () ->
+    codemirror_introspect_modal.data('editor').focus?()
+    codemirror_introspect_modal.data('editor',0)
 
 exports.download_file = (url) ->
     iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
-    setTimeout((() -> iframe.remove()), 30000)
+    setTimeout((() -> iframe.remove()), 60000)
 
 # Get the DOM node that the currently selected text starts at, as a jquery wrapped object;
 # if the selection is a caret (hence empty) returns empty object
@@ -521,13 +589,6 @@ exports.copy_to_clipboard = (text) ->
     document.execCommand("Copy", false, null)
     document.body.removeChild(copyDiv)
 ###
-
-
-
-
-
-
-
 
 
 marked = require('marked')
@@ -578,7 +639,6 @@ exports.is_valid_date = (d) ->
     else
         return not isNaN(d.getTime())
 
-
 # Bootstrap 3 modal fix
 $("html").on "hide.bs.modal", "body > .modal", (e) ->
     $(@).remove()
@@ -595,9 +655,6 @@ $("body").on "show.bs.tooltip", (e) ->
 exports.is_responsive_mode = () ->
     return $(".salvus-responsive-mode-test").width() < 768
 
-
-
-
 exports.load_coffeescript_compiler = (cb) ->
     if CoffeeScript?
         cb()
@@ -608,9 +665,27 @@ exports.load_coffeescript_compiler = (cb) ->
             cb()
 
 
-
 # Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
 
 exports.html_to_text = (html) -> $($.parseHTML(html)).text()
+
+exports.language = () ->
+    (if navigator.languages then navigator.languages[0] else (navigator.language or navigator.userLanguage))
+
+
+# Calling set_window_title will set the title, but also put a notification
+# count to the left of the title; if called with no arguments just updates
+# the count, maintaining the previous title.
+last_title = ''
+exports.set_window_title = (title) ->
+    if not title?
+        title = last_title
+    u = require('activity').important_count()
+    last_title = title
+    if u
+        title = "(#{u}) #{title}"
+    document.title = title
+
+
 
 

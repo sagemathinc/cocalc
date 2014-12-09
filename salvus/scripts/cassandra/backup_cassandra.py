@@ -22,7 +22,7 @@ def backup_cassandra(dc, hosts):
     for host in hosts:
         print host
 
-        cmd("time bup on root@%s init"%host)
+        cmd("time bup on %s init"%host)
 
         # Find all snapshot and backup directories, except the MASSIVE hints directory, which we do not care about.
         a = cmd("ssh %s 'find /mnt/cassandra/lib/data/ -type d |grep /snapshots | grep -v hints '"%host).splitlines()
@@ -38,5 +38,5 @@ def backup_cassandra(dc, hosts):
             b.append(p)
         paths = ' '.join(b)
 
-        cmd2("time bup on root@%s index %s"%(host, paths))
-        cmd2("time bup on root@%s save -n %s %s"%(host, host, paths))
+        cmd2("time bup on %s index %s"%(host, paths))
+        cmd2("time bup on %s save --bwlimit=2000k -n %s %s"%(host, host, paths))

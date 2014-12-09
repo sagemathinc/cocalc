@@ -369,8 +369,10 @@ class Project(object):
             return s
         except Exception, msg:
             log("Error getting status -- %s"%msg)
-            s['running'] = False
-            return s
+            # important to actually let error propogate so that bup_server gets an error and knows things are
+            # messed up, namely there is a user created, but the status command isn't working at all.  In this
+            # case bup_server will know to try to kill this.
+            raise
 
     def create_home(self):
         self._log('create_home')

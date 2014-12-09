@@ -28,7 +28,7 @@ cql       = require("node-cassandra-cql")
 
 # Set the log level
 winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, level: 'debug')
+winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 {defaults, required} = misc
 
@@ -716,7 +716,7 @@ class GlobalProject
             where   : {project_id: @project_id}
             cb      : (err, result) =>
                 dbg("got settings from database: #{misc.to_json(result[0])}")
-                if err or not result[0]?   # result[0] = undefined if no special settings
+                if err or not result? or not result[0]?   # result[0] = undefined if no special settings
                     cb?(err)
                 else
                     opts = result[0]
@@ -761,6 +761,8 @@ class GlobalProject
                 if running_on.length == 0
                     dbg("find a place to run project")
                     v = (server_id for server_id, s of state when s not in ['error'])
+
+
                     if v.length == 0
                         v = misc.keys(state)
                     if target? and target in v
@@ -1309,7 +1311,7 @@ class GlobalProject
                                 cb(err)
                             project.status(opts)
                     ], (err) =>
-                        if not err?
+                        if not err
                             resp.ssh = ssh
                             orig_cb(undefined, resp)
                         else
@@ -1678,7 +1680,15 @@ class GlobalProject
 
                 async.map servers, f, (err) => cb(err)
 
-        ], (err) => opts.cb?(err, @state)
+        ], (err) =>
+            opts.cb?(err, @state)
+
+            if not err and @state?
+                # Launch stops (no blocking) on all servers that do report an error,
+                # since it's critical those get cleaned up as soon
+                # as possible.  By cleaned up, I mean the user gets deleted,
+                # all processes get killed etc.
+                @_stop_all((server_id for server_id, s of @state when s == 'error'))
         )
 
     # mount a remote project (or directory in one) so that it is accessible in this project
@@ -2459,8 +2469,20 @@ class GlobalClient
                 opts.cb(err, status)
             )
 
-    # For every project, check that the bup_last_save times are all the same, so that everything is fully replicated.
-    # If not, replicate from the current location (or newest) out to others.
+    ###
+    For every project, check that the bup_last_save times are all the same,
+    so that everything is fully replicated.
+    If not, replicate from the current location (or newest) out to others.
+
+    CODE in console to use this:
+
+        x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
+    	x.c.repair(dryrun:true, cb:(e,projects)->console.log("DONE",e);x.projects=projects)
+        x.projects.length
+
+        status=[];x.c.repair(limit:1, status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
+
+    ###
     repair: (opts) =>
         opts = defaults opts,
             limit       : 5           # number to do in parallel
@@ -3277,7 +3299,7 @@ if not program.address
 main = () ->
     if program.debug
         winston.remove(winston.transports.Console)
-        winston.add(winston.transports.Console, level: program.debug)
+        winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
     winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)

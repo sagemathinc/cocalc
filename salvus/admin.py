@@ -340,7 +340,7 @@ class Process(object):
         except KeyError:
             try:
                 self._pids[file] = self._parse_pidfile(readfile(file).strip())
-            except IOError: # no file
+            except: # no file
                 self._pids[file] = None
         return self._pids[file]
 
@@ -633,46 +633,6 @@ class Hub(Process):
         return "Hub server %s on port %s"%(self.id(), self._port)
 
 
-####################
-# Snap -- snapshot/backup servers
-# TODO: this is deprecated
-####################
-class Snap(Process):
-    def __init__(self, id=0, host='', monitor_database=None, keyspace='salvus',
-                 snap_dir=None, logfile=None, pidfile=None, resend_all_commits=False,
-                 snap_interval=None):
-        if pidfile is None:
-            pidfile = os.path.join(PIDS, 'snap-%s.pid'%id)
-        if logfile is None:
-            logfile = os.path.join(LOGS, 'snap-%s.log'%id)
-
-        if snap_dir is None:
-            snap_dir = os.path.join(DATA, 'snap-%s'%id)
-
-        start_cmd = [os.path.join(PWD, 'snap'),
-                                      'start',
-                                      '--host', host,
-                                      '--database_nodes', monitor_database,
-                                      #'--resend_all_commits', resend_all_commits,
-                                      '--keyspace', keyspace,
-                                      '--snap_dir', snap_dir,
-                                      '--pidfile', pidfile,
-                                      '--logfile', logfile]
-        if snap_interval is not None:
-            start_cmd += ["--snap_interval", str(snap_interval)]
-
-        Process.__init__(self, id, name='snap', port=0,
-                         pidfile = pidfile,
-                         logfile = logfile,
-                         start_cmd = start_cmd,
-                         stop_cmd   = [os.path.join(PWD, 'snap'), 'stop'],
-                         reload_cmd = [os.path.join(PWD, 'snap'), 'restart'])
-
-    def __repr__(self):
-        return "Snap server (id=%s)"%(self.id(),)
-
-
-
 
 ####################
 # Compute Server
@@ -752,7 +712,9 @@ class Cassandra(Process):
                         # put it at the end -- some VALID options, e.g. auto_bootstrap, aren't even in the file
                         r += "\n\n%s: %s\n"%(k,v)
                         continue
-                    if r[i-2] == "#":
+                    if r[i-1] == "#":
+                        i = i - 1
+                    elif r[i-2] == "#":
                         i = i - 2
 
                     j = r[i:].find('\n')
@@ -1261,7 +1223,7 @@ class Hosts(object):
         if self[hostname] == ['127.0.0.1']:
             print "Not enabling firewall on 127.0.0.1"
             return
-        cmd = ' && '.join(['ufw disable'] +
+        cmd = ' && '.join(['/home/salvus/salvus/salvus/scripts/ufw_clear'] + ['ufw disable'] +
                           ['ufw default allow incoming'] + ['ufw default allow outgoing'] + ['ufw --force reset']
                           + ['ufw ' + c for c in commands] +
                              (['ufw --force enable'] if commands else []))
@@ -1351,7 +1313,7 @@ class Monitor(object):
         self._services = services  # used for self-healing
 
     def attempt_to_heal_cassandra_server(self, host):
-        self._services.start('cassandra', host=host)
+        self._services.start('cassandra', host=host, wait=False)
 
     def attempt_to_heal_bup_server(self, host):
         self._hosts(host,'cd salvus/salvus; . salvus-env; bup_server restart')
@@ -1366,17 +1328,17 @@ class Monitor(object):
         for i in range(len(hosts)):
             h = random.choice(hosts)
             print "cassandra host = ", h
-            v = self._hosts(h, "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False, timeout=45)
+            v = self._hosts(h, "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False, timeout=80)
             r = v[v.keys()[0]]
             status = {}
-            for z in [x for x in r['stdout'].splitlines() if '%' in x]:
+            for z in [x for x in r['stdout'].splitlines() if 'RAC' in x]:
                 w = z.split()
                 status[w[1]] = 'up' if w[0] == "UN" else 'down'
             if len(status) > 0:
                 # keep trying until we at least get some output.
                 break
         ans = []
-        for k, v in self._hosts('cassandra', 'df -h /mnt/cassandra', wait=True, parallel=True, verbose=False, timeout=45).iteritems():
+        for k, v in self._hosts('cassandra', 'df -h /mnt/cassandra', wait=True, parallel=True, verbose=False, timeout=80).iteritems():
             if v.get('exit_status',1) or 'stdout' not in v:
                 ans.append({'service':'cassandra', 'host':k[0], 'status':'down'})
             else:
@@ -1393,7 +1355,7 @@ class Monitor(object):
     def compute(self):
         ans = []
         c = 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l && cd salvus/salvus; . salvus-env; ./bup_server status 2>/dev/null'
-        for k, v in self._hosts('compute-2', c, wait=True, parallel=True).iteritems():
+        for k, v in self._hosts('compute-2', c, wait=True, parallel=True, timeout=80).iteritems():
             d = {'host':k[0], 'service':'compute'}
             stdout = v.get('stdout','')
             m = stdout.splitlines()
@@ -1419,12 +1381,35 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
+    def compute_ssh(self):
+        this = int(socket.gethostname()[5:]) # 'cloud[m]'
+        v = []
+        for n in range(1,8) + range(10,22):  # hard coded to our HARDWARE
+            if n == this:
+                if this == 3: # monitor runs on 10 and 3
+                    other = '10'
+                else:
+                    other = '3'
+                cmd = 'ssh cloud%s "source ~/.ssh/agent; ssh cloud%s -o StrictHostKeyChecking=no -p 2222 hostname"'%(
+                     other, n)
+            else:
+                cmd = 'ssh cloud%s -o StrictHostKeyChecking=no -p 2222 hostname'%n
+            v.append(((cmd, 'compute%s'%n),{}))
+
+        def f(cmd, host):
+            return {'host'    : host,
+                    'service' : 'compute-ssh',
+                    'status'  : 'up' if os.popen(cmd).read().startswith(host) else 'down'}
+
+        # We do the ssh's in parallel, to save an enormous amount of time.
+        return misc.thread_map(f, v)
+
     def load(self):
         """
         Return normalized load on *everything*, sorted by highest current load first.
         """
         ans = []
-        for k, v in self._hosts('all', 'nproc && uptime', parallel=True, wait=True).iteritems():
+        for k, v in self._hosts('all', 'nproc && uptime', parallel=True, wait=True, timeout=80).iteritems():
             d = {'host':k[0]}
             m = v.get('stdout','').splitlines()
             if v.get('exit_status',1) != 0 or len(m) < 2:
@@ -1466,7 +1451,7 @@ class Monitor(object):
         h = ' '.join([host for host in self._hosts[hosts] if host not in exclude])
         if not h:
             return []
-        for k, v in self._hosts(h, cmd, parallel=True, wait=True, timeout=60).iteritems():
+        for k, v in self._hosts(h, cmd, parallel=True, wait=True, timeout=80).iteritems():
             d = {'host':k[0], 'service':'dns'}
             exit_code = v.get('stdout','').strip()
             if exit_code == '':
@@ -1488,7 +1473,7 @@ class Monitor(object):
         cmd = "ps ax |grep zfs | grep -v flush | wc -l; cat zpool.list"
         ans = []
         # zpool list can take a while when host is loaded, but still work fine.
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=60, username='storage').iteritems():
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=80, username='storage').iteritems():
             x = v['stdout'].split()
             try:
                 nproc = int(x[0]) - 2
@@ -1523,7 +1508,7 @@ class Monitor(object):
         """
         cmd = "ps ax |grep zfs | grep -v flush | wc -l"
         ans = []
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=20, username='storage').iteritems():
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=80, username='storage').iteritems():
             x = v['stdout'].split()
             try:
                 nproc = int(x[0]) - 2
@@ -1536,7 +1521,7 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
-    def stats(self, timeout=60):
+    def stats(self, timeout=90):
         """
         Get all ip addresses that SITENAME resolves to, then verify that https://ip_address/stats returns
         valid data, for each ip.  This tests that all stunnel and haproxy servers are running.
@@ -1562,13 +1547,14 @@ class Monitor(object):
 
     def all(self):
         return {
-            'timestamp' : time.time(),
-            'dns'       : self.dns(),
+            'timestamp'   : time.time(),
+            'dns'         : self.dns(),
             #'zfs'       : self.zfs(),
-            'load'      : self.load(),
-            'cassandra' : self.cassandra(),
-            'stats'     : self.stats(),
-            'compute'   : self.compute()
+            'load'        : self.load(),
+            'cassandra'   : self.cassandra(),
+            'stats'       : self.stats(),
+            'compute'     : self.compute(),
+            'compute-ssh' : self.compute_ssh()
         }
 
     def down(self, all):
@@ -1609,8 +1595,13 @@ class Monitor(object):
 
         print "COMPUTE"
         vcompute = all['compute']
-        print "%s projects running"%(sum([x['nprojects'] for x in vcompute]))
+        print "%s projects running"%(sum([x.get('nprojects',0) for x in vcompute]))
         for x in all['compute'][:n]:
+            print x
+
+        print "COMPUTE-SSH"
+        vcompute = all['compute-ssh']
+        for x in all['compute-ssh'][:n]:
             print x
 
     def update_db(self, all=None):
@@ -1658,7 +1649,7 @@ class Monitor(object):
         if len(down) > 0:
                 m += "The following are down: %s"%down
         for x in all['load']:
-            if x['load15'] > 100:
+            if x['load15'] > 400:
                 m += "A machine is going *crazy* with load!: %s"%x
         #for x in all['zfs']:
         #    if x['nproc'] > 10000:
@@ -1668,7 +1659,6 @@ class Monitor(object):
                 email(m, subject="SMC issue")
             except Exception, msg:
                 print "Failed to send email! -- %s\n%s"%(msg, m)
-
 
     def go(self, interval=5, residue=0):
         """
@@ -1798,12 +1788,6 @@ class Services(object):
         # HUB options
         if 'hub' in self._options:
             for host, o in self._options['hub']:
-                # very important: set to listen only on our VPN.
-                o['host'] = host
-
-        # SNAP options
-        if 'snap' in self._options:
-            for host, o in self._options['snap']:
                 # very important: set to listen only on our VPN.
                 o['host'] = host
 

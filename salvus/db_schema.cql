@@ -16,6 +16,8 @@ CREATE KEYSPACE salvus WITH replication = {
 GRANT SELECT ON table storage_servers TO monitor;
 GRANT MODIFY ON table storage_servers TO monitor;
 
+ALTER KEYSPACE system_auth WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3', 'DC3':'3'};
+
 */
 
 /* NOTE: as explained at https://cloud.sagemath.com/projects/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/files/salvus/salvus/db_schema.cql
@@ -69,6 +71,7 @@ CREATE TABLE log (
 
 CREATE TABLE accounts (
     account_id           uuid PRIMARY KEY,
+    created              timestamp,
 
     first_name           varchar,
     last_name            varchar,
@@ -109,6 +112,9 @@ CREATE TABLE accounts (
     hidden_projects      set<uuid>,   /* projects that this user doesn't normally see by default (e.g., all students in their course) */
 
     groups               set<varchar>,  /* groups that this account is a member of; e.g., 'admin', which grants extreme power */
+
+    notifications_syncdb uuid,
+    /* syncdbs              map<varchar:uuid>, */ /* synchronized databases that user has access to */
 );
 
 CREATE TABLE email_address_to_account_id (
@@ -232,6 +238,8 @@ CREATE TABLE successful_sign_ins (
 
 CREATE TABLE projects (
      project_id       uuid  PRIMARY KEY,
+     created          timestamp,
+
      account_id       uuid,          // id of original creator of this project
      title            varchar,
      description      varchar,
@@ -341,6 +349,69 @@ CREATE TABLE admin_log (
     PRIMARY KEY(service, time)
 );
 
+
+////////////////////
+// Record of and notifications about activity on specific paths
+///////////////////
+
+CREATE TABLE activity_by_path (
+   project_id  uuid,
+   path        varchar,
+   timestamp   timestamp,
+   account_id  uuid,
+   fullname    varchar,
+   PRIMARY KEY (project_id, path, timestamp)
+);
+
+CREATE TABLE activity_by_project (
+   project_id  uuid,
+   timestamp   timestamp,
+   path        varchar,
+   account_id  uuid,
+   fullname    varchar,
+   PRIMARY KEY (project_id, path, timestamp)
+);
+
+CREATE TABLE activity_by_user (
+   account_id  uuid,
+   timestamp   timestamp,
+   project_id  uuid,
+   path        varchar,
+   fullname    varchar,
+   project_title varchar,
+   PRIMARY KEY (account_id, timestamp)
+);
+
+CREATE TABLE activity_notifications (
+   account_id  uuid,
+   timestamp   timestamp,
+   project_id  uuid,
+   path        varchar,
+   user_id     uuid,
+   comment     varchar,
+   fullname    varchar,
+   project_title varchar,
+   PRIMARY KEY (account_id, timestamp, project_id, path, user_id)
+);
+
+
+////////////////////
+// Database-backed synchronized strings
+////////////////////
+
+CREATE TABLE syncstrings (
+    string_id  uuid,
+    timestamp  timestamp,
+    patch      varchar,
+    is_first   boolean,
+    PRIMARY KEY (string_id, timestamp)
+);
+
+
+CREATE TABLE syncstring_acls (
+    string_id  uuid  PRIMARY KEY,
+    acl        map<uuid,varchar>     /* account_id:'write', account2_id:'read' */
+);
 
 
 ////////////////////
@@ -464,7 +535,7 @@ CREATE TABLE storage_servers (
   CREATE KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3'};
   ALTER KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3'};
 
-  ALTER KEYSPACE system_auth WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3'};
+  ALTER KEYSPACE system_auth WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3', 'DC3':'3'};
 
 CREATE USER salvus WITH PASSWORD '...'  SUPERUSER;
 DROP USER cassandra;

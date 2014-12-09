@@ -3,8 +3,6 @@
 # Project page -- browse the files in a project, etc.
 #
 ###############################################################################
-ENABLE_PUBLIC = true
-
 
 {IS_MOBILE}     = require("feature")
 {top_navbar}    = require('top_navbar')
@@ -13,6 +11,7 @@ message         = require('message')
 {alert_message} = require('alerts')
 async           = require('async')
 misc            = require('misc')
+misc_page       = require('misc_page')
 diffsync        = require('diffsync')
 account         = require('account')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
@@ -20,7 +19,7 @@ account         = require('account')
 
 {Tasks} = require('tasks')
 
-{scroll_top, human_readable_size, download_file} = require('misc_page')
+{scroll_top, human_readable_size, download_file} = misc_page
 
 templates = $("#salvus-project-templates")
 template_project_file          = templates.find(".project-file-link")
@@ -47,6 +46,9 @@ MAX_FILE_LISTING_SIZE = 300
 # timeout in seconds when downloading files etc., from web in +New dialog.
 FROM_WEB_TIMEOUT_S = 45
 
+# for the new file dialog
+BAD_FILENAME_CHARACTERS = '\\/'
+BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%'
 
 # How long to cache public paths in this project
 PUBLIC_PATHS_CACHE_TIMEOUT_MS = 1000*60
@@ -81,75 +83,109 @@ class ProjectPage
 
         @init_sort_files_icon()
 
-        # Initialize the search form.
-        @init_search_form()
-
-        # Initialize new worksheet/xterm/etc. console buttons
 
         # current_path is a possibly empty list of directories, where
         # each one is contained in the one before it.
         @current_path = []
         @init_tabs()
-
         @update_topbar()
-        @init_admin()
-
         @create_editor()
-
         @init_file_search()
-
-        @init_new_file_tab()
         @init_refresh_files()
         @init_hidden_files_icon()
-        @init_trash_link()
-        @init_snapshot_link()
-        @init_local_status_link()
-
-        @init_project_activity()  # must be after @create_editor()
-
-        @init_project_download()
-
-        @init_project_restart()
-
-        @init_ssh()
-        @init_worksheet_server_restart()
-
         @init_listing_show_all()
-
-        @init_delete_project()
-        @init_undelete_project()
-
-        @init_hide_project()
-        @init_unhide_project()
-
-        @init_make_public()
-        @init_make_private()
-
-        @update_collaborators = @init_add_collaborators()
-        @init_add_noncloud_collaborator()
-
-        #@update_linked_projects = @init_linked_projects()
-
-        @init_move_project()
-
+        @init_sortable_editor_tabs()
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
-        if window.salvus_base_url != "" # TODO -- should use a better way to decide dev mode.
+
+        if not @public_access
+            # Initialize the search form.
+            @init_search_form()
+            @init_admin()
+            @init_new_file_tab()
+            @init_trash_link()
+            @init_snapshot_link()
+            @init_local_status_link()
+            @init_project_activity()  # must be after @create_editor()
+            @init_project_restart()
+            @init_ssh()
+            @init_worksheet_server_restart()
+            @init_delete_project()
+            @init_undelete_project()
+
+            @init_hide_project()
+            @init_unhide_project()
+
+            @init_make_public()
+            @init_make_private()
+
+            @update_collaborators = @init_add_collaborators()
+            @init_add_noncloud_collaborator()
+
+            #@update_linked_projects = @init_linked_projects()
+
+            @init_move_project()
+            @set_location()
+            @init_title_desc_edit()
+            @init_mini_command_line()
+            @init_current_path_info_button()
+            @init_settings_url()
+            @init_ssh_url_click()
+
+        # Show a warning if using SMC in devel mode. (no longer supported)
+        if window.salvus_base_url != ""
+            # TODO -- should use a better way to decide dev mode.
             @container.find(".salvus-project-id-warning").show()
 
-        @set_location()
+    activity_indicator: () =>
+        top_navbar.activity_indicator(@project.project_id)
 
-        if @project.size? and @project.size
-            @container.find(".project-size").text(human_readable_size(@project.size))
-        else
-            @container.find(".project-size-label").hide()
+    mini_command_line_keydown: (evt) =>
+        #console.log("mini_command_line_keydown")
+        if evt.which == 13 # enter
+            try
+                @command_line_exec()
+            catch e
+                console.log("mini command line bug -- ", e)
+            return false
+        else if evt.which == 27 # escape
+            @hide_command_line_output()
+            return false
 
+    init_mini_command_line: () =>
+        # Activate the mini command line
+        @_cmdline = @container.find(".project-command-line-input")
+        @_cmdline.tooltip(delay:{ show: 500, hide: 100 })
+        @_cmdline.keydown(@mini_command_line_keydown)
+
+        @container.find(".project-command-line-output").find("a[href=#clear]").click () =>
+            @hide_command_line_output()
+            return false
+
+        @container.find(".project-command-line-submit").click () =>
+            @command_line_exec()
+
+        # TODO: this will be for command line tab completion
+        #@_cmdline.keydown (evt) =>
+        #    if evt.which == 9
+        #        @command_line_tab_complete()
+        #        return false
+
+    hide_command_line_output: () =>
+        @container.find(".project-command-line-output").hide()
+        @container.find(".project-command-line-spinner").hide()
+        @container.find(".project-command-line-submit").show()
+
+    init_title_desc_edit: () =>
         # Make it so editing the title and description of the project
         # sends a message to the hub.
         that = @
         @container.find(".project-project_title").blur () ->
-            new_title = $(@).html()
+            new_title = $(@).html().trim()
             if new_title != that.project.title
+                if new_title == ""
+                    new_title = "No title"
+                    $(@).html(new_title)
                 salvus_client.update_project_data
                     project_id : that.project.project_id
                     data       : {title:new_title}
@@ -166,8 +202,11 @@ class ProjectPage
                             that.update_topbar()
 
         @container.find(".project-project_description").blur () ->
-            new_desc = $(@).html()
+            new_desc = $(@).html().trim()
             if new_desc != that.project.description
+                if new_desc == ""
+                    new_desc = "No description"
+                    $(@).html(new_desc)
                 salvus_client.update_project_data
                     project_id : that.project.project_id
                     data       : {description:new_desc}
@@ -181,30 +220,6 @@ class ProjectPage
                         else
                             that.project.description = new_desc
 
-        # Activate the command line
-        cmdline = @container.find(".project-command-line-input").tooltip(delay:{ show: 500, hide: 100 })
-        cmdline.keydown (evt) =>
-            if evt.which == 13 # enter
-                try
-                    that.command_line_exec()
-                catch e
-                    console.log(e)
-                return false
-            if evt.which == 27 # escape
-                @container?.find(".project-command-line-output").hide()
-                return false
-
-        # TODO: this will be for command line tab completion
-        #cmdline.keydown (evt) =>
-        #    if evt.which == 9
-        #        @command_line_tab_complete()
-        #        return false
-
-        @init_file_sessions()
-
-        @init_current_path_info_button()
-
-
     init_current_path_info_button: () =>
         e = @container.find("a[href=#file-action-current-path]")
         e.click () =>
@@ -212,6 +227,19 @@ class ProjectPage
                 fullname : @current_pathname()
                 isdir    : true
                 url      : document.URL
+
+    init_settings_url: () =>
+        @container.find(".salvus-settings-url").click () ->
+            $(this).select()
+
+    # call when project is closed completely
+    destroy: () =>
+        @editor?.destroy()
+        @save_browser_local_data()
+        delete project_pages[@project.project_id]
+        @project_log?.disconnect_from_session()
+        clearInterval(@_update_last_snapshot_time)
+        @_cmdline?.unbind('keydown', @mini_command_line_keydown)
 
     init_new_tab_in_navbar: () =>
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
@@ -221,16 +249,16 @@ class ProjectPage
             icon  : 'fa-edit'
 
             onclose : () =>
-                @editor?.close_all_open_files()
-                @save_browser_local_data()
-                delete project_pages[@project.project_id]
-                @project_log?.disconnect_from_session()
-                clearInterval(@_update_last_snapshot_time)
+                @destroy()
+
+            onblur: () =>
+                @editor?.remove_handlers()
 
             onshow: () =>
                 if @project?
-                    document.title = "Project - #{@project.title}"
+                    misc_page.set_window_title($("<div>").html(@project.title).text())
                     @push_state()
+                @editor?.activate_handlers()
                 @editor?.refresh()
 
             onfullscreen: (entering) =>
@@ -271,7 +299,7 @@ class ProjectPage
             #window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.ownername + '/' + @project.name + '/' + url)
         # For now, we are just going to default to project-id based URL's, since they are stable and will always be supported.
         # I can extend to the above later in another release, without any harm.
-        window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.project_id + '/' + url)
+        window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.project_id + '/' + misc.encode_path(url))
         ga('send', 'pageview', window.location.pathname)
 
 
@@ -290,13 +318,17 @@ class ProjectPage
                 if target[target.length-1] == '/'
                     # open a directory
                     @chdir(segments.slice(1, segments.length-1), false)
+                    # NOTE: foreground option meaningless
                     @display_tab("project-file-listing")
                 else
-                    # open a file
-                    @chdir(segments.slice(1, segments.length-1), true)
-                    @display_tab("project-editor")
-                    @open_file(path:segments.slice(1).join('/'), foreground:foreground)
-            when 'new'
+                    # open a file -- foreground option is relevant here.
+                    if foreground
+                        @chdir(segments.slice(1, segments.length-1), true)
+                        @display_tab("project-editor")
+                    @open_file
+                        path       : segments.slice(1).join('/')
+                        foreground : foreground
+            when 'new'  # ignore foreground for these and below, since would be nonsense
                 @chdir(segments.slice(1), true)
                 @display_tab("project-new-file")
             when 'log'
@@ -387,11 +419,15 @@ class ProjectPage
         #    tab = @editor.create_tab(filename : obj.path, session_uuid:session_uuid)
         cb?()
 
+    ###
     init_file_sessions: (sessions, cb) =>
         for filename, data of local_storage(@project.project_id)
             if data.auto_open
                 tab = @editor.create_tab(filename : filename)
         cb?()
+    ###
+
+    init_sortable_editor_tabs: () =>
         @container.find(".nav.projects").sortable
             axis                 : 'x'
             delay                : 50
@@ -409,9 +445,11 @@ class ProjectPage
         @_file_search_box = @container.find(".salvus-project-search-for-file-input")
         @_file_search_box.keyup (event) =>
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79
+                #console.log("keyup: init_file_search")
                 @display_tab("project-new-file")
                 return false
             @update_file_search(event)
+            return false
         @container.find(".salvus-project-search-for-file-input-clear").click () =>
             @_file_search_box.val('').focus()
             @update_file_search()
@@ -485,7 +523,7 @@ class ProjectPage
                 try
                     that.search(t.val())
                 catch e
-                    console.log(e)
+                    console.log("search bug ", e)
                 return false
 
         for x in ['recursive', 'case-sensitive', 'hidden', 'show-command']
@@ -611,13 +649,18 @@ class ProjectPage
 
 
     command_line_exec: () =>
+        if not @container?
+            return
         elt = @container.find(".project-command-line")
+        elt.find(".project-command-line-output").hide()
         input = elt.find("input")
-        command0 = input.val()
+        command0 = input.val().trim()
+        if not command0
+            return
         command = command0 + "\necho $HOME `pwd`"
         input.val("")
-        @container?.find(".project-command-line-output").show()
-        t = setTimeout((() => @container.find(".project-command-line-spinner").show().spin()), 300)
+        @container.find(".project-command-line-submit").hide()
+        @container.find(".project-command-line-spinner").show()
         salvus_client.exec
             project_id : @project.project_id
             command    : command
@@ -626,14 +669,18 @@ class ProjectPage
             bash       : true
             path       : @current_pathname()
             cb         : (err, output) =>
-                clearTimeout(t)
-                @container.find(".project-command-line-spinner").spin(false).hide()
+                if not @container?
+                    return
+                @container.find(".project-command-line-spinner").hide()
+                @container.find(".project-command-line-submit").show()
                 if err
                     alert_message(type:'error', message:"#{command0} -- #{err}")
                 else
                     # All this code below is to find the current path
                     # after the command is executed, and also strip
                     # the output of "pwd" from the output:
+                    if not output?.stdout?
+                        return
                     j = i = output.stdout.length-2
                     while i>=0 and output.stdout[i] != '\n'
                         i -= 1
@@ -669,14 +716,19 @@ class ProjectPage
                     stdout = $.trim(output.stdout)
                     stderr = $.trim(output.stderr)
                     # We display the output of the command (or hide it)
+                    something = false
                     if stdout
+                        something = true
                         elt.find(".project-command-line-stdout").text(stdout).show()
                     else
                         elt.find(".project-command-line-stdout").hide()
                     if stderr
+                        something = true
                         elt.find(".project-command-line-stderr").text(stderr).show()
                     else
                         elt.find(".project-command-line-stderr").hide()
+                    if something
+                        elt.find(".project-command-line-output").show()
                 @update_file_list_tab(true)
 
     # command_line_tab_complete: () =>
@@ -752,13 +804,13 @@ class ProjectPage
                     that.editor.hide()
                     that.editor.show_recent()
                     return false
-            else if name == "project-new-file"
+            else if name == "project-new-file" and not @public_access
                 tab.onshow = () ->
                     that.show_top_path()
                     that.editor?.hide_editor_content()
                     that.push_state('new/' + that.current_path.join('/'))
                     that.show_new_file_tab()
-            else if name == "project-activity"
+            else if name == "project-activity" and not @public_access
                 tab.onshow = () =>
                     that.show_top_path()
                     that.editor?.hide_editor_content()
@@ -767,7 +819,7 @@ class ProjectPage
                     if not IS_MOBILE
                         @container.find(".salvus-project-activity-search").focus()
 
-            else if name == "project-settings"
+            else if name == "project-settings" and not @public_access
                 tab.onshow = () ->
                     that.show_top_path()
                     that.editor?.hide_editor_content()
@@ -775,8 +827,9 @@ class ProjectPage
                     that.update_topbar()
                     #that.update_linked_projects()
                     that.update_collaborators()
+                    that.container.find(".salvus-settings-url").val(document.URL)
 
-            else if name == "project-search"
+            else if name == "project-search" and not @public_access
                 tab.onshow = () ->
                     that.show_top_path()
                     that.editor?.hide_editor_content()
@@ -836,6 +889,8 @@ class ProjectPage
             @editor?.hide()
             @editor?.resize_open_file_tabs()
 
+    show_editor_chat_window: (path) =>
+        @editor?.show_chat_window(path)
 
     save_browser_local_data: (cb) =>
         @editor.save(undefined, cb)
@@ -890,6 +945,9 @@ class ProjectPage
             cb      : opts.cb
             timeout : opts.timeout
 
+    init_ssh_url_click: () =>
+        @container.find(".salvus-project-ssh").click(() -> $(this).select())
+
     update_topbar: () ->
         if not @project?
             return
@@ -902,7 +960,7 @@ class ProjectPage
             alert_message(type:"error", message:"Project #{@project.project_id} is corrupt. Please report.")
         label = $("<div>").html(@project.title).text()  # plain text for this...
         top_navbar.set_button_label(@project.project_id, label)
-        document.title = "Sagemath: #{label}"
+        misc_page.set_window_title(label)
 
         if not @_computing_status
             @_computing_usage = true
@@ -943,7 +1001,7 @@ class ProjectPage
                         else
                             @container.find(".salvus-network-blocked").show()
                         if status.ssh
-                            @container.find(".project-settings-ssh").removeClass('lighten')
+                            @container.find(".project-settings-ssh").show()
                             username = @project.project_id.replace(/-/g, '')
                             v = status.ssh.split(':')
                             if v.length > 1
@@ -952,7 +1010,7 @@ class ProjectPage
                                 port = " "
                             address = v[0]
 
-                            @container.find(".salvus-project-ssh").text("ssh#{port}#{username}@#{address}")
+                            @container.find(".salvus-project-ssh").val("ssh#{port}#{username}@#{address}")
                         else
                             @container.find(".project-settings-ssh").addClass('lighten')
 
@@ -963,7 +1021,12 @@ class ProjectPage
 
 
     init_admin: () ->
+        if not @container?
+            return
         usage = @container.find(".project-disk_usage")
+        if not account?.account_settings?.settings?.groups?
+            setTimeout(@init_admin, 15000)
+            return
 
         if 'admin' in account.account_settings.settings.groups
             @container.find(".project-quota-edit").show()
@@ -1005,7 +1068,10 @@ class ProjectPage
 
                 else
                     for a in quotalist
-                        usage.find(".salvus-" + a).attr("contenteditable", true).css('-webkit-appearance': 'textfield', '-moz-appearance': 'textfield')
+                        usage.find(".salvus-" + a).attr("contenteditable", true).css
+                            '-webkit-appearance' : 'textfield'
+                            '-moz-appearance'    : 'textfield'
+                            'border'             : '1px solid black'
                     @container.find(".project-quota-edit").html('<i class="fa fa-thumbs-up"> </i> Done')
                     usage.find(".project-settings-network-access-checkbox").show()
                     usage.find(".project-settings-unlimited-timeout").show()
@@ -1061,6 +1127,7 @@ class ProjectPage
 
         create_link = (elt, path) =>
             elt.click () =>
+                @hide_command_line_output()
                 @current_path = path
                 @update_file_list_tab()
 
@@ -1097,7 +1164,7 @@ class ProjectPage
         if IS_MOBILE
             dz.append($('<span class="message" style="font-weight:bold;font-size:14pt">Tap to select files to upload</span>'))
         dz_container.append(dz)
-        dest_dir = encodeURIComponent(@new_file_tab.find(".project-new-file-path").text())
+        dest_dir = misc.encode_path(@new_file_tab.find(".project-new-file-path").text())
         dz.dropzone
             url: window.salvus_base_url + "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
             maxFilesize: 128 # in megabytes
@@ -1113,6 +1180,10 @@ class ProjectPage
             name = $.trim(@new_file_tab_input.val())
             if name.length == 0
                 return ''
+            for bad_char in BAD_FILENAME_CHARACTERS
+                if name.indexOf(bad_char) != -1
+                    bootbox.alert("Filenames must not contain the character '#{bad_char}'.")
+                    return ''
             s = $.trim(@new_file_tab.find(".project-new-file-path").text() + name)
             if ext?
                 if misc.filename_extension(s) != ext
@@ -1155,6 +1226,10 @@ class ProjectPage
 
         create_file = (ext) =>
             p = path(ext)
+
+            if not p
+                return false
+
             ext = misc.filename_extension(p)
 
             if ext == 'term'
@@ -1164,6 +1239,12 @@ class ProjectPage
             if ext in BANNED_FILE_TYPES
                 alert_message(type:"error", message:"Creation of #{ext} files not supported.", timeout:3)
                 return false
+
+            if ext == 'tex'
+                for bad_char in BAD_LATEX_FILENAME_CHARACTERS
+                    if p.indexOf(bad_char) != -1
+                        bootbox.alert("Filenames must not contain the character '#{bad_char}'.")
+                        return false
 
             if p.length == 0
                 @new_file_tab_input.focus()
@@ -1216,11 +1297,12 @@ class ProjectPage
         download_button = @new_file_tab.find("a[href=#new-download]").click(click_new_file_button)
 
         @new_file_tab.find("a[href=#new-folder]").click(create_folder)
-        @new_file_tab_input.keyup (event) =>
+        @new_file_tab_input.keydown (event) =>
             if event.keyCode == 13
                 click_new_file_button()
                 return false
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
+                #console.log("keyup: new_file_tab")
                 @display_tab("project-activity")
                 return false
 
@@ -1345,7 +1427,7 @@ class ProjectPage
             else
                 dialog.find("a[href=#delete-file]").hide()
 
-            if ENABLE_PUBLIC and not @public_access and not (obj.fullname == '.snapshots' or misc.startswith(obj.fullname,'.snapshots/'))
+            if not @public_access and not (obj.fullname == '.snapshots' or misc.startswith(obj.fullname,'.snapshots/'))
                 @is_path_published
                     path : obj.fullname
                     cb   : (err, pub) =>
@@ -1462,24 +1544,45 @@ class ProjectPage
             @_file_list_tab_spinner_timer = setTimeout( (() -> spinner.show().spin()), 1000 )
 
         if @public_access
-            f = salvus_client.public_project_directory_listing
+            g = salvus_client.public_project_directory_listing
         else
-            f = salvus_client.project_directory_listing
+            g = salvus_client.project_directory_listing
 
         @_requested_path = path
 
-        f
-            project_id : @project.project_id
-            path       : path
-            time       : @_sort_by_time
-            hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
-            timeout    : 60
-            cb         : (err, listing) =>
+        listing = undefined
+        f = (cb) =>
+            if path != @_requested_path
+                # requested another path after this one, so ignore
+                # this now useless listing
+                cb()
+                return
+            g
+                project_id : @project.project_id
+                path       : path
+                time       : @_sort_by_time
+                hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
+                timeout    : 10
+                cb         : (err, _listing) =>
+                    if err
+                        cb(err)
+                    else
+                        listing = _listing
+                        cb()
+
+        misc.retry_until_success
+            f           : f
+            start_delay : 3000
+            max_delay   : 10000
+            factor      : 1.5
+            max_tries   : 10
+            cb          : (err) =>
                 if path != @_requested_path
                     # requested another path after this one, so ignore
                     # this now useless listing
                     cb?()
                     return
+
                 delete @_requested_path
 
                 clearTimeout(@_file_list_tab_spinner_timer)
@@ -1565,6 +1668,7 @@ class ProjectPage
                 @file_action_dialog(obj)
             else
                 if obj.isdir
+                    @hide_command_line_output()
                     @set_current_path(obj.fullname)
                     @update_file_list_tab()
                 else
@@ -1981,9 +2085,37 @@ class ProjectPage
                         cb(err)
         ], (err) => cb?(err))
 
-    copy_to_another_project_dialog: (path, isdir) =>
-        dialog = $(".salvus-project-copy-to-another-project-dialog").clone()
+    copy_to_another_not_ready_dialog: (signed_in_already) =>
+        dialog = $(".salvus-project-copy-file-signin-dialog").clone()
+        dialog.find(".btn-close").click () ->
+            dialog.modal('hide')
+            return false
+        if signed_in_already
+            dialog.find('.salvus-signed-in-already').show()
+            dialog.find("a[href=#create-project]").click () ->
+                dialog.modal('hide')
+                require('projects').create_new_project_dialog()
+                return false
+        else
+            dialog.find('.salvus-not-signed-in-already').show()
+            dialog.find("a[href=#create-account]").click () ->
+                dialog.modal('hide')
+                top_navbar.switch_to_page('account')
+                account.show_page("account-create_account")
+                return false
+            dialog.find("a[href=#sign-in]").click () ->
+                dialog.modal('hide')
+                top_navbar.switch_to_page('account')
+                account.show_page("account-sign_in")
+                return false
         dialog.modal()
+
+    copy_to_another_project_dialog: (path, isdir) =>
+        if not require('account').account_settings.is_signed_in()
+            @copy_to_another_not_ready_dialog()
+            return
+
+        dialog = $(".salvus-project-copy-to-another-project-dialog").clone()
 
         src_path          = undefined
         target_project_id = undefined
@@ -2001,8 +2133,13 @@ class ProjectPage
                         if err
                             cb(err)
                         else
-                            project_list = x
-                            cb()
+                            project_list = (a for a in x when not a.deleted)
+                            if project_list.length == 0
+                                @copy_to_another_not_ready_dialog(true)
+                                cb('no projects')
+                            else
+                                dialog.modal()
+                                cb()
             (cb) =>
                 # determine whether or not the source path is available via public access
                 if @public_access
@@ -2271,6 +2408,7 @@ class ProjectPage
 
     init_refresh_files: () =>
         @container.find("a[href=#refresh-listing]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
+            @hide_command_line_output()
             @update_file_list_tab()
             return false
 
@@ -2283,9 +2421,16 @@ class ProjectPage
 
     init_sort_files_icon: () =>
         elt = @container.find(".project-sort-files")
+
         @_sort_by_time = local_storage(@project.project_id, '', 'sort_by_time')
-        if not @_sort_by_time
-            @_sort_by_time = true
+
+        if not @_sort_by_time?
+            settings = account?.account_settings?.settings
+            if settings?
+                @_sort_by_time = settings.other_settings.default_file_sort == 'time'
+            else
+                @_sort_by_time = false
+
         if @_sort_by_time
             elt.find("a").toggle()
         elt.find("a").tooltip(delay:{ show: 500, hide: 100 }).click () =>
@@ -2355,6 +2500,7 @@ class ProjectPage
             (cb) =>
                 log_output = page.find(".project-activity-log")
                 @project_log.on 'sync', () =>
+                    @activity_indicator()
                     @render_project_activity_log()
 
                 @project_activity({event:'open_project'})
@@ -2540,19 +2686,6 @@ class ProjectPage
 
                 @_project_activity_log.append(x)
 
-
-    init_project_download: () =>
-        # Download entire project -- not implemented!
-        ###
-        link = @container.find("a[href=#download-project]")
-        link.click () =>
-            link.find(".spinner").show()
-            @download_file
-                path   : ""
-                cb     : (err) =>
-                    link.find(".spinner").hide()
-            return false
-        ###
 
     init_delete_project: () =>
         if @project.deleted
@@ -3145,7 +3278,7 @@ class ProjectPage
         link.click () =>
             async.series([
                 (cb) =>
-                    m = "Are you sure you want to restart the project server?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed."
+                    m = "<h2><i class='fa fa-refresh'> </i> Restart Project Server</h2><hr><br>Are you sure you want to restart the project server?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed."
                     bootbox.confirm m, (result) =>
                         if result
                             cb()
@@ -3234,14 +3367,16 @@ class ProjectPage
             cb          : (err, output) =>
                 if not err
                     try
-                        time = misc.parse_bup_timestamp(output.stdout.split('\n')[0])
-                        @_last_snapshot_time = time
-                        # critical to use replaceWith!
-                        c = @container.find(".project-snapshot-last-timeago span")
-                        d = $("<span>").attr('title', time.toISOString()).timeago()
-                        c.replaceWith(d)
+                        time = output.stdout.split('\n')[0].trim()
+                        if time  # could be empty, e.g., if no snapshots
+                            time = misc.parse_bup_timestamp(time)
+                            @_last_snapshot_time = time
+                            # critical to use replaceWith!
+                            c = @container.find(".project-snapshot-last-timeago span")
+                            d = $("<span>").attr('title', time.toISOString()).timeago()
+                            c.replaceWith(d)
                     catch e
-                        console.log("error parsing last snapshot time: ", e)
+                        console.log("error parsing last snapshot time (stdout='#{output.stdout}'): ", e)
                         return
 
     update_local_status_link: () =>
@@ -3275,6 +3410,7 @@ class ProjectPage
     # browse to the snapshot viewer.
     visit_snapshot: () =>
         @current_path = ['.snapshots', 'master']
+        @display_tab("project-file-listing")
         @update_file_list_tab()
 
     init_trash_link: () =>
@@ -3414,7 +3550,7 @@ class ProjectPage
                     alert_message(type:"error", message:"File download prevented -- (#{result.error})")
                     opts.cb?(result.error)
                 else
-                    url = result.url + "&download"
+                    url = misc.encode_path(result.url) + "&download"
                     if opts.prefix?
                         i = url.lastIndexOf('/')
                         url = url.slice(0,i+1) + opts.prefix + url.slice(i+1)
@@ -3425,12 +3561,22 @@ class ProjectPage
     download_file: (opts) =>
         opts = defaults opts,
             path    : required
+            auto    : true
             timeout : 45
-            cb      : undefined   # cb(err) when file download from browser starts.
+            cb      : undefined   # cb(err) when file download from browser starts -- instant since we use raw path
 
-        url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{opts.path}"
-        download_file(url)
-        bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3><b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")
+        if misc.filename_extension(opts.path) == 'pdf'
+            # unfortunately, download_file doesn't work for pdf these days...
+            opts.auto = false
+
+        url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{misc.encode_path(opts.path)}"
+        if opts.auto
+            download_file(url)
+            bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3><hr> If <b>#{opts.path}</b> isn't downloading <a target='_blank' href='#{url}'>open it in another tab</a>.")
+        else
+            window.open(url)
+            #bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3> <hr><a target='_blank' href='#{url}'> Open #{opts.path} in another tab</a>.")
+
         opts.cb?()
 
     open_file_in_another_browser_tab: (path) =>
@@ -3438,8 +3584,7 @@ class ProjectPage
             project_id : @project.project_id
             path       : path
             cb         : (err, result) =>
-                window.open(result.url)
-
+                window.open(misc.encode_path(result.url))
 
     open_file: (opts) =>
         opts = defaults opts,
@@ -3462,7 +3607,11 @@ class ProjectPage
                 # ga('send', 'event', 'file', 'open', 'success', opts.path, {'nonInteraction': 1})
                 if opts.foreground
                     @display_tab("project-editor")
-                @editor.display_tab(path:opened_path, foreground:opts.foreground)
+
+                # make tab for this file actually visible in the editor
+                @editor.display_tab
+                    path       : opened_path
+                    foreground : opts.foreground
 
 
 project_pages = {}

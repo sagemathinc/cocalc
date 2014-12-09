@@ -42,7 +42,7 @@ CACHE_PROJECT_PUBLIC_MS = 1000*60*15    # 15 minutes
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
-BLOB_TTL = 60*60*24*30   # 1 month
+BLOB_TTL = 60*60     # 1 hour
 
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
@@ -90,7 +90,9 @@ init_salvus_version = () ->
     # to actually restart the server.
     setInterval(update_salvus_version, 90*1000)
 
-snap = require("snap")
+
+syncstring = require('syncstring')
+SYNCSTRING_DISABLED = true
 
 misc_node = require('misc_node')
 
@@ -107,13 +109,11 @@ uuid    = require('node-uuid')
 Cookies = require('cookies')            # https://github.com/jed/cookies
 
 
-diffsync = require('diffsync')
-
 winston = require('winston')            # logging -- https://github.com/flatiron/winston
 
 # Set the log level
 winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, level: 'debug')
+winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 # defaults
 # TEMPORARY until we flesh out the account types
@@ -191,10 +191,9 @@ init_http_server = () ->
                 #winston.debug("serving a blob: #{misc.to_json(query)}")
                 if not query.uuid?
                     res.writeHead(500, {'Content-Type':'text/plain'})
-                    res.end("internal error: #{error}")
+                    res.end("internal error")
                     return
                 get_blob uuid:query.uuid, cb:(error, data) ->
-                    #winston.debug("query got back: #{error}, #{misc.to_json(data)}")
                     if error
                         res.writeHead(500, {'Content-Type':'text/plain'})
                         res.end("internal error: #{error}")
@@ -334,7 +333,7 @@ init_http_proxy_server = () =>
         dbg = (m) -> winston.debug("_remember_me_check_for_access_to_project: #{m}")
         account_id       = undefined
         email_address    = undefined
-        has_access = false
+        has_access       = false
         hash             = undefined
         async.series([
             (cb) ->
@@ -437,20 +436,34 @@ init_http_proxy_server = () =>
                 opts.cb(err, has_access)
 
     _target_cache = {}
-    target = (remember_me, url, cb) ->
+
+    invalidate_target_cache = (remember_me, url) ->
+        {key} = target_parse_req(remember_me, url)
+        winston.debug("invalidate_target_cache: #{url}")
+        delete _target_cache[key]
+
+    target_parse_req = (remember_me, url) ->
         v          = url.split('/')
         project_id = v[1]
         type       = v[2]  # 'port' or 'raw'
-        key = remember_me + project_id + type
+        key        = remember_me + project_id + type
         if type == 'port'
             key += v[3]
+            port = parseInt(v[3])
+        return {key:key, type:type, project_id:project_id, port_number:port}
+
+    target = (remember_me, url, cb) ->
+        {key, type, project_id, port_number} = target_parse_req(remember_me, url)
+
         t = _target_cache[key]
         if t?
             cb(false, t)
             return
 
+        dbg = (m) -> winston.debug("target(#{key}): #{m}")
+        dbg("url=#{url}")
+
         tm = misc.walltime()
-        winston.debug("target: setting up proxy: #{v}")
         host       = undefined
         port       = undefined
         async.series([
@@ -459,7 +472,7 @@ init_http_proxy_server = () =>
                     # remember_me = undefined means "allow"; this is used for the websocket upgrade.
                     cb(); return
 
-                # It's still unclear if we will ever grant read access to the raw server.
+                # It's still unclear if we will ever grant read access to the raw server...
                 #if type == 'raw'
                 #    access_type = 'read'
                 #else
@@ -471,6 +484,7 @@ init_http_proxy_server = () =>
                     remember_me : remember_me
                     type        : access_type
                     cb          : (err, has_access) ->
+                        dbg("finished remember_me_check_for_access_to_project (mark: #{misc.walltime(tm)}) -- #{err}")
                         if err
                             cb(err)
                         else if not has_access
@@ -484,6 +498,7 @@ init_http_proxy_server = () =>
                     bup_server.project
                         project_id : project_id
                         cb         : (err, project) ->
+                            dbg("first bup_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
                             if err
                                 cb(err)
                             else
@@ -492,17 +507,19 @@ init_http_proxy_server = () =>
             (cb) ->
                 # determine the port
                 if type == 'port'
-                    port = parseInt(v[3])
+                    port = port_number
                     cb()
                 else if type == 'raw'
                     bup_server.project
                         project_id : project_id
                         cb         : (err, project) ->
+                            dbg("second bup_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
                             if err
                                 cb(err)
                             else
                                 project.status
                                     cb : (err, status) ->
+                                        dbg("project.status finished (mark: #{misc.walltime(tm)})")
                                         if err
                                             cb(err)
                                         else if not status['raw.port']?
@@ -513,30 +530,36 @@ init_http_proxy_server = () =>
                 else
                     cb("unknown url type -- #{type}")
             ], (err) ->
-                winston.debug("target: setup proxy; time=#{misc.walltime(tm)} seconds -- err=#{err}; host=#{host}; port=#{port}; type=#{type}")
+                dbg("all finished (mark: #{misc.walltime(tm)}): host=#{host}; port=#{port}; type=#{type} -- #{err}")
                 if err
                     cb(err)
                 else
                     t = {host:host, port:port}
                     _target_cache[key] = t
+                    cb(false, t)
+                    # THIS IS NOW DISABLED.
+                    #            Instead if the proxy errors out below, then it directly invalidates this cache
+                    #            by calling invalidate_target_cache
                     # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
-                    # but also if the user is suddenly granted permission to the project, or the project server
+                    # but also if a new user is granted permission to the project they didn't have, or the project server
                     # is restarted, this should be reflected.  Since there are dozens (at least) of hubs,
                     # and any could cause a project restart at any time, we just timeout this info after
-                    # a few seconds.  This helps enormously when there is a burst of requests.
-                    setTimeout((()->delete _target_cache[key]), 1000*30)
-                    cb(false, t)
+                    # a few minutes.  This helps enormously when there is a burst of requests.
+                    #setTimeout((()->delete _target_cache[key]), 1000*60*3)
             )
 
     #proxy = httpProxy.createProxyServer(ws:true)
-
+    proxy_cache = {}
     http_proxy_server = http.createServer (req, res) ->
+        tm = misc.walltime()
         req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
         if req_url == "/alive"
             res.end('')
             return
 
         #buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
+
+        dbg = (m) -> winston.debug("http_proxy_server(#{req_url}): #{m}")
 
         cookies = new Cookies(req, res)
         remember_me = cookies.get(program.base_url + 'remember_me')
@@ -547,15 +570,32 @@ init_http_proxy_server = () =>
             return
 
         target remember_me, req_url, (err, location) ->
+            #dbg("got target: #{misc.walltime(tm)}")
             if err
                 winston.debug("proxy denied -- #{err}")
                 res.writeHead(500, {'Content-Type':'text/html'})
                 res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
             else
                 t = "http://#{location.host}:#{location.port}"
-                proxy = httpProxy.createProxyServer(ws:false, target:t, timeout:0)
-                proxy.on "error", (e) ->
-                    winston.debug("non-websocket http proxy -- create proxy #{t}; error -- #{e}")
+                if proxy_cache[t]?
+                    # we already have the proxy server for this remote location in the cache, so use it.
+                    proxy = proxy_cache[t]
+                    #dbg("used cached proxy object: #{misc.walltime(tm)}")
+                else
+                    # make a new proxy server connecting to this remote location
+                    proxy = httpProxy.createProxyServer(ws:false, target:t, timeout:0)
+                    # and cache it.
+                    proxy_cache[t] = proxy
+                    dbg("created new proxy: #{misc.walltime(tm)}")
+                    # setup error handler, so that if something goes wrong with this proxy (it will,
+                    # e.g., on project restart), we properly invalidate it.
+                    proxy.on "error", (e) ->
+                        dbg("http proxy error -- #{e}")
+                        delete proxy_cache[t]
+                        invalidate_target_cache(remember_me, req_url)
+                    #proxy.on 'proxyRes', (res) ->
+                    #    dbg("(mark: #{misc.walltime(tm)}) got response from the target")
+
                 proxy.web(req, res)
 
     http_proxy_server.listen(program.proxy_port, program.host)
@@ -563,25 +603,24 @@ init_http_proxy_server = () =>
     _ws_proxy_servers = {}
     http_proxy_server.on 'upgrade', (req, socket, head) ->
         req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
+        dbg = (m) -> winston.debug("http_proxy_server websocket(#{req_url}): #{m}")
         target undefined, req_url, (err, location) ->
             if err
-                winston.debug("websocket upgrade error --  this shouldn't happen since upgrade would only happen after normal thing *worked*. #{err}")
+                dbg("websocket upgrade error -- #{err}")
             else
-                winston.debug("websocket upgrade -- ws://#{location.host}:#{location.port}")
+                dbg("websocket upgrade success -- ws://#{location.host}:#{location.port}")
                 t = "ws://#{location.host}:#{location.port}"
                 proxy = _ws_proxy_servers[t]
                 if not proxy?
-                    winston.debug("websocket upgrade #{t}: not using cache")
+                    dbg("websocket upgrade #{t} -- not using cache")
                     proxy = httpProxy.createProxyServer(ws:true, target:t, timeout:0)
                     proxy.on "error", (e) ->
-                        winston.debug("websocket upgrade -- create proxy #{t}; error -- #{e}")
+                        dbg("websocket proxy error, so clearing cache -- #{e}")
+                        delete _ws_proxy_servers[t]
                     _ws_proxy_servers[t] = proxy
                 else
-                    winston.debug("websocket upgrade: using cache")
+                    dbg("websocket upgrade -- using cache")
                 proxy.ws(req, socket, head)
-
-
-
 
 
 #############################################################
@@ -596,7 +635,6 @@ class Client extends EventEmitter
 
         # A unique id -- can come in handy
         @id = @conn.id
-
 
         # The variable account_id is either undefined or set to the
         # account id of the user that this session has successfully
@@ -614,9 +652,15 @@ class Client extends EventEmitter
 
         @conn.on "end", () =>
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  CLOSED")
+            @closed = true
             @emit 'close'
             @compute_session_uuids = []
+            c = clients[@conn.id]
             delete clients[@conn.id]
+            for id,f of c.call_callbacks
+                f("connection closed")
+            delete c.call_callbacks
+
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
@@ -637,41 +681,41 @@ class Client extends EventEmitter
                 @_validate_remember_me(value)
 
     _validate_remember_me: (value) =>
-                #winston.debug("_validate_remember_me: #{value}")
-                if not value?
-                    @remember_me_failed("no remember_me cookie")
+        #winston.debug("_validate_remember_me: #{value}")
+        if not value?
+            @remember_me_failed("no remember_me cookie")
+            return
+        x    = value.split('$')
+        if x.length != 4
+            @remember_me_failed("invalid remember_me cookie")
+            return
+        hash = generate_hash(x[0], x[1], x[2], x[3])
+        @remember_me_db.get
+            key         : hash
+            #consistency : cql.types.consistencies.one
+            cb          : (error, signed_in_mesg) =>
+                if error
+                    @remember_me_failed("error accessing database")
                     return
-                x    = value.split('$')
-                if x.length != 4
-                    @remember_me_failed("invalid remember_me cookie")
+                if not signed_in_mesg?
+                    @remember_me_failed("remember_me deleted or expired")
                     return
-                hash = generate_hash(x[0], x[1], x[2], x[3])
-                @remember_me_db.get
-                    key         : hash
-                    #consistency : cql.types.consistencies.one
-                    cb          : (error, signed_in_mesg) =>
-                        if error
-                            @remember_me_failed("error accessing database")
-                            return
-                        if not signed_in_mesg?
-                            @remember_me_failed("remember_me deleted or expired")
-                            return
-                        database.is_banned_user
-                            email_address : signed_in_mesg.email_address
-                            cb            : (err, is_banned) =>
-                                if err
-                                    @remember_me_failed("error checking whether or not user is banned")
-                                else if is_banned
-                                    # delete this auth key, since banned users are a waste of space.
-                                    # TODO: probably want to log this attempt...
-                                    @remember_me_failed("user is banned")
-                                    @remember_me_db.delete(key : hash)
-                                else
-                                    # good -- sign them in
-                                    signed_in_mesg.hub = program.host + ':' + program.port
-                                    @hash_session_id = hash
-                                    @signed_in(signed_in_mesg)
-                                    @push_to_client(signed_in_mesg)
+                database.is_banned_user
+                    email_address : signed_in_mesg.email_address
+                    cb            : (err, is_banned) =>
+                        if err
+                            @remember_me_failed("error checking whether or not user is banned")
+                        else if is_banned
+                            # delete this auth key, since banned users are a waste of space.
+                            # TODO: probably want to log this attempt...
+                            @remember_me_failed("user is banned")
+                            @remember_me_db.delete(key : hash)
+                        else
+                            # good -- sign them in
+                            signed_in_mesg.hub = program.host + ':' + program.port
+                            @hash_session_id = hash
+                            @signed_in(signed_in_mesg)
+                            @push_to_client(signed_in_mesg)
 
     #######################################################
     # Capping resource limits; client can request anything.
@@ -687,12 +731,40 @@ class Client extends EventEmitter
     #######################################################
     # Pushing messages to this particular connected client
     #######################################################
-    push_to_client: (mesg) =>
+    push_to_client: (mesg, cb) =>
+        if @closed
+            cb?("disconnected")
+            return
+
         if mesg.event != 'pong'
             winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
+
+        # If cb *is* given and mesg.id is *not* defined, then
+        # we also setup a listener for a response from the client.
+        listen = cb? and not mesg.id?
+        if listen
+            # This message is not a response to a client request.
+            # Instead, we are initiating a request to the user and we
+            # want a result back (hence cb? being defined).
+            mesg.id = misc.uuid()
+            if not @call_callbacks?
+                @call_callbacks = {}
+            @call_callbacks[mesg.id] = cb
+            f = () =>
+                g = @call_callbacks?[mesg.id]
+                if g?
+                    delete @call_callbacks[mesg.id]
+                    g("timed out")
+            setTimeout(f, 15000) # timeout after some seconds
+
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
+        if not listen
+            cb?()
+            return
 
     push_data_to_client: (channel, data) ->
+        if @closed
+            return
         #winston.debug("push_data_to_client(#{channel},'#{data}')")
         @conn.write(channel + data)
 
@@ -722,6 +794,17 @@ class Client extends EventEmitter
             email_address : signed_in_mesg.email_address
             account_id    : signed_in_mesg.account_id
 
+        ###
+        get_notifications_syncdb @account_id, (err, db) =>
+            db.update
+                where :
+                    table     :'log'
+                    timestamp : new Date()
+                set   :
+                    action     : 'signed_in'
+                    ip_address : @ip_address
+        ###
+
     # Return the full name if user has signed in; otherwise returns undefined.
     fullname: () =>
         if @account_settings?
@@ -737,6 +820,9 @@ class Client extends EventEmitter
         opts = defaults opts,
             name : required
             cb   : required   # cb(value)
+        if not @conn?.id?
+            # no connection or connection died
+            return
         #winston.debug("!!!!  get cookie '#{opts.name}'")
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
         @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:program.base_url+"/cookies"))
@@ -746,6 +832,10 @@ class Client extends EventEmitter
             name  : required
             value : required
             ttl   : undefined    # time in seconds until cookie expires
+        if not @conn?.id?
+            # no connection or connection died
+            return
+
         options = {}
         if opts.ttl?  # Todo: ignored
             options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
@@ -776,7 +866,7 @@ class Client extends EventEmitter
         # There is no point in signing the cookie since its
         # contents are random.
         #
-        # Regarding ttl, we use 1 month.  The database will forget
+        # Regarding ttl, we use 1 year.  The database will forget
         # the cookie automatically at the same time that the
         # browser invalidates it.
         #############################################################
@@ -947,8 +1037,17 @@ class Client extends EventEmitter
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
         #winston.debug("got message: #{data}")
-        if mesg.event != 'codemirror_bcast' and mesg.event != 'ping'
-            winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 300)}")
+        if mesg.message?.event not in ['codemirror_bcast'] and mesg.event != 'ping'
+            winston.debug("hub <-- client (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 120)}")
+
+        # check for message that is coming back in response to a request from the hub
+        if @call_callbacks? and mesg.id?
+            f = @call_callbacks[mesg.id]
+            if f?
+                delete @call_callbacks[mesg.id]
+                f(undefined, mesg)
+                return
+
         handler = @["mesg_#{mesg.event}"]
         if handler?
             handler(mesg)
@@ -1171,6 +1270,17 @@ class Client extends EventEmitter
         else if @account_id != mesg.account_id
             @push_to_client(message.error(id:mesg.id, error:"not signed in as user with id #{mesg.account_id}."))
         else
+            if @get_account_settings_lock?
+                # there is a bug in the client that is causing a burst of these messages
+                winston.debug("ignoring too many account_settings request")
+                #@push_to_client(message.error(id:mesg.id, error:"too many requests"))
+                return
+
+            @get_account_settings_lock = true
+            f = () =>
+                delete @get_account_settings_lock
+            setTimeout(f, 2000)
+
             database.get_account
                 account_id : @account_id
                 cb : (err, data) =>
@@ -1284,7 +1394,7 @@ class Client extends EventEmitter
         # cb(err, project)
         #   *NOTE*:  on failure, if mesg.id is defined, then client will receive an error message; the function
         #            calling get_project does *NOT* have to send the error message back to the client!
-
+        dbg = (m) -> winston.debug("get_project(client=#{@id}, #{mesg.project_id}): #{m}")
 
         err = undefined
         if not mesg.project_id?
@@ -1292,7 +1402,7 @@ class Client extends EventEmitter
         else if not @account_id?
             err = "user must be signed in before accessing projects"
 
-        if err?
+        if err
             if mesg.id?
                 @error_to_client(id:mesg.id, error:err)
             cb(err)
@@ -1301,11 +1411,14 @@ class Client extends EventEmitter
         key = mesg.project_id + permission
         project = @_project_cache?[key]
         if project?
-            # Use the cached project so we don't have to re-verify authentication for the user again below, which
-            # is very expensive.  This cache does expire, in case user is kicked out of the project.
+            # Use the cached project so we don't have to re-verify authentication
+            # for the user again below, which
+            # is very expensive.  This cache does expire, in case user
+            # is kicked out of the project.
             cb(undefined, project)
             return
 
+        dbg()
         project = undefined
         async.series([
             (cb) =>
@@ -1347,16 +1460,19 @@ class Client extends EventEmitter
                         database.touch_project(project_id:mesg.project_id)
                         cb()
         ], (err) =>
-                if err
-                    if mesg.id?
-                        @error_to_client(id:mesg.id, error:err)
-                    cb(err)
-                else
-                    if not @_project_cache?
-                        @_project_cache = {}
-                    @_project_cache[key] = project
-                    setTimeout((()=>delete @_project_cache[key]), CACHE_PROJECT_AUTH_MS)  # cache for a while
-                    cb(undefined, project)
+            if err
+                if mesg.id?
+                    @error_to_client(id:mesg.id, error:err)
+                dbg("error -- #{err}")
+                cb(err)
+            else
+                if not @_project_cache?
+                    @_project_cache = {}
+                @_project_cache[key] = project
+                # cache for a while
+                setTimeout((()=>delete @_project_cache[key]), CACHE_PROJECT_AUTH_MS)
+                dbg("got project; caching and returning")
+                cb(undefined, project)
         )
 
     # Mark a project as "deleted" in the database.  This is non-destructive by design --
@@ -1922,6 +2038,17 @@ class Client extends EventEmitter
                     account_id : @account_id
                     filename   : mesg.message.path
 
+            # Scan for activity
+            if @account_id?
+                fullname = @fullname()
+                if fullname?
+                    scan_local_hub_message_for_activity
+                        account_id    : @account_id
+                        project_id    : mesg.project_id
+                        project_title : project.cached_info?.title
+                        message       : mesg.message
+                        fullname      : fullname
+
             # Make the actual call
             project.call
                 mesg           : mesg.message
@@ -1935,6 +2062,14 @@ class Client extends EventEmitter
                         if not mesg.multi_response
                             resp.id = mesg.id
                         @push_to_client(resp)
+
+                        if resp.event == 'codemirror_session' and typeof(resp.path) == 'string'
+                            # track this so it can be used by
+                            # scan_local_hub_message_for_activity
+                            key = "#{mesg.project_id}-#{resp.session_uuid}"
+                            if resp.path.slice(0,2) == './'
+                                path = resp.path.slice(2)
+                            codemirror_sessions[key] = {path:path, readonly:resp.readonly}
 
     ## -- user search
     mesg_user_search: (mesg) =>
@@ -2047,11 +2182,10 @@ class Client extends EventEmitter
                         else
                             cb()
                             # send an email to the user -- async, not blocking user.
-                            # TODO: this can take a while -- we need to take some actionif it fails, e.g., change a setting in the projects table!
-                            s = @signed_in_mesg
+                            # TODO: this can take a while -- we need to take some action
+                            # if it fails, e.g., change a setting in the projects table!
                             send_email
                                 to      : email_address
-                                from    : if s? then "#{s.first_name} #{s.last_name} <#{s.email_address}>" else undefined
                                 subject : "SageMathCloud Invitation"
                                 body    : email.replace("https://cloud.sagemath.com", "Sign up at https://cloud.sagemath.com using the email address #{email_address}.")
                                 cb      : (err) =>
@@ -2080,6 +2214,21 @@ class Client extends EventEmitter
                     else
                         @push_to_client(message.success(id:mesg.id))
 
+
+    ######################################################
+    # Blobs
+    ######################################################
+    mesg_remove_blob_ttls: (mesg) =>
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"not yet signed in"))
+        else
+            remove_blob_ttls
+                uuids : mesg.uuids
+                cb    : (err) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
 
     ################################################
     # Project snapshots -- interface to the snap servers
@@ -2392,116 +2541,507 @@ class Client extends EventEmitter
 
 
     ################################################
-    # Task list messages..
+    # Activity
     ################################################
-    # The code below all work(ed) when written, but I had not
-    # implemented limitations and authentication.  Also, I don't
-    # plan now to use this code.  So I'm disabling handling any
-    # of these messages, as a security precaution.
-    ###
-    mesg_create_task_list: (mesg) =>
-        # TODO: add verification that owners is valid
-        # TODO: error if user (or project) already has too many task lists (?)
-        database.create_task_list
-            owners      : mesg.owners    # list of project or account id's that are allowed to edit this task list.
-            cb          : (err, task_list_id) =>
+    mesg_path_activity: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in")
+            return
+        if not mesg.project_id
+            @error_to_client(id:mesg.id, error:"project_id must be specified")
+        if not mesg.path
+            @error_to_client(id:mesg.id, error:"path must be specified")
+        user_has_write_access_to_project
+            project_id     : mesg.project_id
+            account_id     : mesg.account_id
+            cb             : (err, result) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
+                else if not result
+                    @error_to_client(id:mesg.id, error:"user must have write access to project")
                 else
-                    mesg = message.task_list_created
-                        id           : mesg.id
-                        task_list_id : task_list_id
-                    @push_to_client(mesg)
+                    path_activity
+                        account_id : @account_id
+                        project_id : mesg.project_id
+                        path       : mesg.path
+                        cb         : (err) =>
+                            if err
+                                @error_to_client(id:mesg.id, error:"error recording path activity -- #{err}")
+                            else
+                                @push_to_client(message.success(id:mesg.id))
 
-    mesg_edit_task_list: (mesg) =>
-        # TODO: add verification that this client can edit the given task list
-        database.edit_task_list
-            task_list_id : mesg.task_list_id
-            data         : mesg.data
-            deleted      : mesg.deleted
-            cb           : (err) =>
+    mesg_add_comment_to_activity_notification_stream: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in")
+            return
+        if not mesg.project_id?
+            @error_to_client(id:mesg.id, error:"project_id must be set")
+        if not mesg.path?
+            @error_to_client(id:mesg.id, error:"path must be set")
+        if not mesg.comment?
+            @error_to_client(id:mesg.id, error:"comment must be set")
+        add_comment_to_activity_notification_stream
+            account_id : @account_id
+            project_id : mesg.project_id
+            path       : mesg.path
+            comment    : mesg.comment
+            cb         : (err) =>
                 if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.success(id:mesg.id))
-
-    mesg_get_task_list: (mesg) =>
-        # TODO: add verification that this client can view the given task list
-        database.get_task_list
-            task_list_id : mesg.task_list_id
-            columns      : mesg.columns
-            include_deleted : mesg.include_deleted
-            cb           : (err, task_list) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    mesg = message.task_list_resp
-                        id        : mesg.id
-                        task_list : task_list
-                    @push_to_client(mesg)
-
-    mesg_get_task_list_last_edited: (mesg) =>
-        # TODO: add verification that this client can view the given task list
-        database.get_task_list_last_edited
-            task_list_id : mesg.task_list_id
-            cb           : (err, last_edited) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    mesg = message.task_list_resp
-                        id        : mesg.id
-                        task_list : {last_edited : last_edited}
-                    @push_to_client(mesg)
-
-    mesg_set_project_task_list: (mesg) =>
-        # TODO: add verification ...
-        database.set_project_task_list
-            task_list_id : mesg.task_list_id
-            project_id   : mesg.project_id
-            cb           : (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
+                    @error_to_client(id:mesg.id, error:"error marking #{path} as read -- #{err}")
                 else
                     @push_to_client(message.success(id:mesg.id))
 
-    mesg_create_task: (mesg) =>
-        # TODO: add verification that this client can edit the given task list
-        # TODO: error if title is too long
-        database.create_task
-            task_list_id : mesg.task_list_id
-            title        : mesg.title
-            position     : mesg.position
-            cb          : (err, task_id) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
+
+    ################################################
+    # Synchronized Strings (associated to user not project)
+    ################################################
+    # Get a new syncstring session for the string with given id.
+    # Returns message with a session_id and also the value of the string.
+    get_syncstring: (mesg, cb) =>
+        if SYNCSTRING_DISABLED
+            @error_to_client(id:mesg.id, error:"syncstrings currently disabled")
+            cb("syncstrings currently disabled")
+            return
+        if not @_syncstrings?
+            @_syncstrings = {}
+
+        # Get the the session client
+        if mesg.session_id?
+            # Authentication already happened in order for client
+            # to be placed in @_syncstrings.
+            session_id = mesg.session_id
+            client = @_syncstrings?[mesg.session_id]
+            if not client?
+                @push_to_client(message.syncstring_disconnect(id:mesg.id, session_id:mesg.session_id))
+            else
+                cb(undefined, client)
+            return
+
+        client = undefined
+        async.series([
+            (cb) =>
+                # check that mesg.string_id is valid
+                if not misc.is_valid_uuid_string(mesg.string_id)
+                    cb("invalid string_id uuid")
                 else
-                    mesg = message.task_created
-                        id      : mesg.id
-                        task_id : task_id
-                    @push_to_client(mesg)
+                    cb()
+            (cb) =>
+                # check permissions
+                user_has_access_to_syncstring
+                    account_id : @account_id
+                    type       : 'write'
+                    string_id  : mesg.string_id
+                    cb         : (err, has_access) =>
+                        if err
+                            cb(err)
+                        else if not has_access
+                            cb("access to syncstring denied")
+                        else
+                            cb()
+            (cb) =>
+                # get and cache actual syncstring session
+                session_id = misc.uuid()       # create a new session
+                syncstring.syncstring
+                    string_id      : mesg.string_id
+                    session_id     : session_id
+                    push_to_client : @push_to_client
+                    cb             : (err, _client) =>
+                        if err
+                            cb(err)
+                        else
+                            client = @_syncstrings[session_id] = _client
+                            cb()
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            cb(err, client)
+        )
 
+    mesg_syncstring_get_session: (mesg) =>
+        @get_syncstring mesg, (err, client) =>
+            if err
+                return
+            resp = message.syncstring_session
+                id         : mesg.id
+                session_id : client.session_id
+                string     : client.live
+            @push_to_client(resp)
 
-    mesg_edit_task: (mesg) =>
-        #winston.debug("edit_task: mesg=#{misc.to_json(mesg)}")
-        # TODO: add verification that this client can edit the given task
-        database.edit_task
-            task_list_id : mesg.task_list_id
-            task_id      : mesg.task_id
-            title        : mesg.title
-            position     : mesg.position
-            data         : mesg.data
-            done         : mesg.done
-            deleted      : mesg.deleted
-            sub_task_list_id : mesg.sub_task_list_id
-            cb           : (err) =>
+    mesg_syncstring_diffsync: (mesg) =>
+        @get_syncstring mesg, (err, client) =>
+            if err
+                return
+            # Apply their edits to our object that represents the remote user.
+            # TODO: do we need to lock and give error if called again before previous call done?
+            client.recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
                 if err
-                    @error_to_client(id:mesg.id, error:err)
+                    @error_to_client(err)
                 else
-                    @push_to_client(message.success(id:mesg.id))
-    ###
+                    # Send back our own edits to the remote user, in case client.remote has changed
+                    # since last sync.
+                    client.push_edits_to_browser mesg.id, (err) =>
+                        #winston.debug("done pushing edits to browser (#{err})")
+
+    ################################################
+    # Synchronized databases (associated to user not project)
+    ################################################
 
 
+    mesg_get_notifications_syncdb: (mesg) =>
+        get_notifications_syncdb @account_id, (err, db) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.notifications_syncdb(id:mesg.id, string_id:db.string_id))
 
+
+    # Get a list of names and string_ids of the syncdbs that this user has access to.
+    #mesg_get_all_syncdbs: (mesg) =>
+
+    # Get access to a particular syncb given by its name or string_id
+    #mesg_get_syncdb: (mesg) =>
+
+    # Create a new syncdb
+    #mesg_create_syncdb: (mesg) =>
+
+    # Delete a syncdb
+    #mesg_delete_syncdb: (mesg) =>
+
+
+##############################
+# User activity tracking
+##############################
+
+# one notifications syncdb per *account* (not connection); keys are account id's
+notifications_syncdb_cache = {}
+get_notifications_syncdb = (account_id, cb) ->
+    if SYNCSTRING_DISABLED
+        cb("syncstring disabled")
+        return
+    if not account_id?
+        cb("user must be signed in")
+        return
+
+    if notifications_syncdb_cache[account_id]?
+        cb(undefined, notifications_syncdb_cache[account_id])
+        return
+
+    string_id = undefined
+    db        = undefined
+    async.series([
+        (cb) =>
+            # get the notifications syncdb string_id
+            database.select_one
+                table   : 'accounts'
+                where   : {account_id : account_id}
+                columns : ['notifications_syncdb']
+                cb      : (err, result) =>
+                    if err
+                        cb(err)
+                    else
+                        string_id = result[0]
+                        cb()
+        (cb) =>
+            if string_id?
+                cb(); return
+            # no notifications syncdb yet, so create it and save back to db
+            string_id = misc.uuid()
+            database.update
+                table : 'accounts'
+                where : {account_id : account_id}
+                set   : {notifications_syncdb:string_id}
+                cb    : cb
+        (cb) =>
+            # grant user write access to this syncdb
+            set_syncstring_access
+                account_id : account_id
+                string_id  : string_id
+                type       : 'write'
+                cb         : cb
+        (cb) =>
+            # now initialize our local copy
+            syncstring.syncdb
+                string_id : string_id
+                cb        : (err, _db) ->
+                    if err
+                        cb(err)
+                    else
+                        db = _db
+                        notifications_syncdb_cache[account_id] = db
+                        cb()
+    ], (err) =>
+        if err
+            cb(err)
+        else
+            cb(undefined, db))
+
+# update notifications about non-comment activity on a file with at most this frequency.
+
+MIN_ACTIVITY_INTERVAL_S = 60*5  # 5 minutes
+#MIN_ACTIVITY_INTERVAL_S = 10   # short for testing
+
+# prioritize notify when somebody edits a file that you edited within this many days
+RECENT_NOTIFICATION_D = 14
+
+MAX_ACTIVITY_NAME_LENGTH = 50
+MAX_ACTIVITY_TITLE_LENGTH = 60
+
+normalize_path = (path) ->
+    # Rules:
+    # kdkd/tmp/.test.sagews.sage-chat --> kdkd/tmp/test.sagews, comment "chat"
+    # foo/bar/.2014-11-01-175408.ipynb.syncdoc --> foo/bar/2014-11-01-175408.ipynb
+    ext = misc.filename_extension(path)
+    action = 'edit'
+    if ext == "sage-chat"
+        action = 'comment'
+        path = path.slice(0, path.length-'.sage-chat'.length)
+        {head, tail} = misc.path_split(path)
+        tail = tail.slice(1) # get rid of .
+        if head
+            path = head + '/' + tail
+        else
+            path = tail
+    else if ext == 'syncdoc'   # for IPython, and possibly other things later
+        path = path.slice(0, path.length-'.syncdoc'.length)
+        {head, tail} = misc.path_split(path)
+        tail = tail.slice(1) # get rid of .
+        if head
+            path = head + '/' + tail
+        else
+            path = tail
+    else if ext == "sage-history"
+        path = undefined
+    #else if ext == '.sagemathcloud.log'  # ignore for now
+    #    path = undefined
+    return {path:path, action:action}
+
+_activity_get_project_users_cache = {}
+activity_get_project_users = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required
+    users = _activity_get_project_users_cache[opts.project_id]
+    if users?
+        opts.cb(undefined, users); return
+
+    database.select_one
+        table       : 'projects'
+        columns     : misc.PROJECT_GROUPS
+        objectify   : false
+        consistency : 1
+        where       : {project_id : opts.project_id}
+        cb          : (err, x) ->
+            if err
+                opts.cb(err); return
+            users = _.flatten([g for g in x when g?])
+            _activity_get_project_users_cache[opts.project_id] = users
+            # timeout after a few minutes
+            setTimeout( (()->delete _activity_get_project_users_cache[opts.project_id]), 60*1000*5 )
+            opts.cb(undefined, users)
+
+path_activity_cache = {}
+path_activity = (opts) ->
+    opts = defaults opts,
+        account_id    : required
+        project_id    : required
+        path          : required
+        fullname      : required
+        project_title : undefined
+        cb            : undefined
+
+    ## completely disable notifications and login by uncommenting this:
+    ##opts.cb?(); return
+
+    dbg = (m) -> winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{opts.path}): #{m}")
+
+    {path, action} = normalize_path(opts.path)
+    if not path?
+        opts.cb?()
+        return
+
+    key = "#{opts.account_id}-#{opts.project_id}-#{path}"
+    #dbg("checking local cache")
+    if action != 'comment' and path_activity_cache[key]?
+        opts.cb?()
+        return
+
+    dbg("recording new activity")
+    path_activity_cache[key] = true
+    setTimeout( (()=>delete path_activity_cache[key]), MIN_ACTIVITY_INTERVAL_S*1000)
+
+    now_time        = cass.now()
+    min_time        = cass.seconds_ago(MIN_ACTIVITY_INTERVAL_S)
+    recent_time     = cass.days_ago(RECENT_NOTIFICATION_D)
+
+    recent_activity = undefined
+    is_new_activity = true
+
+    opts.fullname      = misc.trunc(opts.fullname, MAX_ACTIVITY_NAME_LENGTH)
+    opts.project_title = misc.trunc(opts.project_title, MAX_ACTIVITY_TITLE_LENGTH)
+
+    # who gets notified
+    targets = undefined
+    async.series([
+        (cb) ->
+            #dbg("get recent activity")
+            if action == 'comment'
+                is_new_activity = true # comments always count as new activity
+                cb(); return
+
+            database.select
+                table   : 'activity_by_path'
+                where   : {project_id:opts.project_id, path:path, timestamp:{'>=':recent_time}}
+                columns : ['timestamp', 'account_id']
+                cb      : (err, result) ->
+                    if err
+                        cb(err)
+                    else
+                        result.sort (a,b) ->
+                            if a[0] < b[0]
+                                return -1
+                            else if a[0] > b[0]
+                                return 1
+                            else
+                                return 0
+                        recent_activity = result
+                        for x in result
+                            if x[0] < min_time
+                                break
+                            else if x[1] == opts.account_id
+                                is_new_activity = false
+                                break
+                        cb()
+        (cb) ->
+            #dbg("record new activity and notification")
+            where = {project_id:opts.project_id, path:path, timestamp:now_time}
+            async.parallel([
+                (cb) ->
+                    #dbg('set activity_by_path')
+                    database.update
+                        table : 'activity_by_path'
+                        where : where
+                        set   : {account_id:opts.account_id, fullname:opts.fullname}
+                        cb    : cb
+                (cb) ->
+                    #dbg('set activity_by_project')
+                    database.update
+                        table : 'activity_by_project'
+                        where : where
+                        set   : {account_id:opts.account_id, fullname:opts.fullname}
+                        cb    : cb
+                (cb) ->
+                    #dbg('set activity_by_user')
+                    database.update
+                        table : 'activity_by_user'
+                        where : {account_id:opts.account_id, timestamp:now_time}
+                        set   : {project_id:opts.project_id, path:path, fullname:opts.fullname, project_title:opts.project_title}
+                        cb    : cb
+                (cb) ->
+                    if SYNCSTRING_DISABLED
+                        # DISABLE temporarily; probably causing trouble.
+                        cb(); return
+                    #dbg('add to notifications')
+                    async.series([
+                        (cb) ->
+                            #dbg('determine project users')
+                            # everybody except opts.account_id will get a notification about this activity,
+                            # though to minimize db access we cache list of users for a few minutes, so
+                            # newly added users might not get notifications immediately (which is fine).
+                            activity_get_project_users
+                                project_id : opts.project_id
+                                cb         : (err, users) =>
+                                    #dbg("got back #{err}, #{misc.to_json(users)}")
+                                    if err
+                                        cb(err)
+                                    else
+                                        targets = (a for a in users when a != opts.account_id)
+                                        #dbg("set targets=#{misc.to_json(targets)}")
+                                        cb()
+                        (cb) ->
+                            if not targets? or targets.length == 0
+                                #dbg("no targets?! -- #{misc.to_json(targets)}")
+                                # nobody to report to -- e.g., common case of no project collaborators
+                                cb(); return
+
+                            #dbg('set activity_notifications')
+                            # make keys of last everybody but opts.account_id that has
+                            # recently touched the file, and values how recently they touched it.
+                            last = {}
+                            if recent_activity?
+                                for y in recent_activity
+                                    if y[1] != opts.account_id
+                                        t = last[y[1]]
+                                        if not t? or t < y[0]
+                                            last[y[1]] = y[0]
+
+                            where =
+                                table         : 'activity'
+                                project_id    : opts.project_id
+                                path          : path
+
+                            f = (account_id, cb) =>
+                                get_notifications_syncdb account_id, (err, db) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        x = db.select_one(where:where)
+                                        actions ={}
+                                        if x?
+                                            if not x.read
+                                                actions = x.actions
+                                        actions[action] = true
+                                        set =
+                                            timestamp     : now_time - 0
+                                            user_id       : opts.account_id
+                                            fullname      : opts.fullname
+                                            actions       : actions
+                                            seen          : false
+                                            read          : false
+                                            project_title : opts.project_title
+                                        if last[account_id]?
+                                            set.last_edit = last[account_id]
+                                        db.update
+                                            where : where
+                                            set : set
+                                        cb()
+
+                            async.map(targets, f, (err)=>cb(err))
+                    ], cb)
+            ], (err) -> cb(err))
+    ], (err) -> opts.cb?(err))
+
+
+codemirror_sessions = {} # this is updated in mesg_local_hub
+
+scan_local_hub_message_for_activity = (opts) ->
+    opts = defaults opts,
+        account_id    : required
+        project_id    : required
+        fullname      : required
+        message       : required
+        project_title : undefined
+        cb            : undefined
+    #dbg = (m) -> winston.debug("scan_local_hub_message_for_activity(#{opts.account_id},#{opts.project_id}): #{m}")
+    #dbg(misc.to_json(codemirror_sessions))
+    if opts.message.event == 'codemirror_diffsync' and opts.message.edit_stack?
+        if opts.message.edit_stack.length > 0 and opts.message.session_uuid?
+            key = "#{opts.project_id}-#{opts.message.session_uuid}"
+            path = codemirror_sessions[key]?.path
+            if path?
+                path_activity
+                    account_id    : opts.account_id
+                    project_id    : opts.project_id
+                    path          : path
+                    fullname      : opts.fullname
+                    project_title : opts.project_title
+                    cb            : opts.cb
+                return
+    opts.cb?()
+
+
+##############################
+# Server Statistics
+##############################
 _server_stats_cache = undefined
 server_stats = (cb) ->
     if _server_stats_cache?
@@ -2548,15 +3088,15 @@ snap_command = (opts) ->
 primus_server = undefined
 init_primus_server = () ->
     Primus = require('primus')
+    # change also requires changing head.html
     opts =
-        transformer : 'websockets'
+        transformer : 'engine.io'    # 'websockets', 'engine.io','sockjs'
         pathname    : '/hub'
     primus_server = new Primus(http_server, opts)
     winston.debug("primus_server: listening on #{opts.pathname}")
     primus_server.on "connection", (conn) ->
         winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id}")
         clients[conn.id] = new Client(conn)
-
 
 #######################################################
 # Pushing a message to clients; querying for clients
@@ -3182,24 +3722,23 @@ new_project = (project_id, cb, delay) ->   # cb(err, project)
             if not delay?
                 delay = 500
             else
-                delay = Math.min(30000, 1.2*delay)
+                delay = Math.min(15000, 1.2*delay)
             # Try again; We must believe that the code
             # doing the instantiation will terminate and correctly set P.
-            setTimeout((() -> new_project(project_id, cb)), delay)
+            setTimeout((() -> new_project(project_id, cb, delay)), delay)
         else
-            cb(false, P)
+            cb(undefined, P)
     else
         _project_cache[project_id] = "instantiating"
         start_time = misc.walltime()
-        new Project(project_id, (err, P) ->
+        new Project project_id, (err, P) ->
             winston.debug("new Project(#{project_id}): time= #{misc.walltime() - start_time}")
             if err
                 delete _project_cache[project_id]
+                cb(err)
             else
                 _project_cache[project_id] = P
-            cb(err, P)
-        )
-
+                cb(undefined, P)
 
 
 class Project
@@ -3213,10 +3752,14 @@ class Project
             project_id : @project_id
             cb         : (err, hub) =>
                 if err
-                    cb(err, @)
+                    cb(err)
                 else
                     @local_hub = hub
                     cb(undefined, @)
+
+        # we always look this up and cache it; it can be useful, e.g., in
+        # the activity table.
+        @get_info()
 
     dbg: (m) =>
         winston.debug("project(#{@project_id}): #{m}")
@@ -3247,9 +3790,10 @@ class Project
             columns    : cass.PROJECT_COLUMNS
             cb         : (err, result) =>
                 if err
-                    cb(err)
+                    cb?(err)
                 else
-                    cb(err, result)
+                    @cached_info = result
+                    cb?(undefined, result)
 
     call: (opts) =>
         opts = defaults opts,
@@ -3415,15 +3959,72 @@ user_has_read_access_to_project = (opts) ->
                 else
                     if not done and in_group
                         #dbg("yes, since in group")
-                        main_cb(undefined, true)
                         done = true
+                        main_cb(undefined, true)
                     cb()
             user_is_in_project_group(opts)
     ], (err) ->
         #dbg("nope, since neither in group nor public")
         if not done
+            done = true
             main_cb(err, false)
     )
+
+
+########################################
+# Permissions related to syncstrings
+########################################
+
+# 60 minutes -- forget "yes" approval for access after this much time:
+ACCESS_TO_SYNCSTRING_CACHE_MS = 60*60*1000
+_access_to_syncstring_cache = {}
+user_has_access_to_syncstring = (opts) ->
+    opts = defaults opts,
+        account_id : undefined   # if not given, means completely public
+        string_id  : required
+        type       : 'write'
+        cb         : required
+    if not opts.account_id?
+        opts.cb(undefined, false)  # no such strings for now
+        return
+
+    #winston.debug("user_has_access_to_syncstring (account_id=#{opts.account_id}, string_id=#{opts.string_id}, type=#{opts.type})")
+    t = _access_to_syncstring_cache[opts.string_id]?[opts.account_id]
+    if t? and (t == opts.type or (opts.type=='read' and t=='write'))
+        # cached access granted
+        opts.cb(undefined, true)
+        return
+
+    database.select
+        table   : 'syncstring_acls'
+        where   : {string_id : opts.string_id}
+        columns : ['acl']
+        cb      : (err, r) =>
+            if err
+                opts.cb(err)
+            else
+                #winston.debug("syncstring_acl db query output = #{misc.to_json(r)}")
+                if r.length == 0
+                    opts.cb(undefined, false)
+                else
+                    v = _access_to_syncstring_cache[opts.string_id] = {}
+                    for account_id, type of r[0][0]
+                        v[account_id] = type
+                    destruct = () =>
+                        delete _access_to_syncstring_cache[opts.string_id]
+                    setTimeout(destruct, ACCESS_TO_SYNCSTRING_CACHE_MS)
+                    t = v[opts.account_id]
+                    #winston.debug("v = #{misc.to_json(v)}; t=#{t}; opts.type=#{opts.type}")
+                    opts.cb(undefined, t == opts.type or (opts.type=='read' and t=='write'))
+
+set_syncstring_access = (opts) ->
+    opts = defaults opts,
+        account_id : undefined   # if not given, means completely public
+        string_id  : required
+        type       : 'write'     #   'write', 'read', ''
+        cb         : undefined
+    query = "UPDATE syncstring_acls SET acl[?]=? WHERE string_id=?"
+    database.cql(query, [opts.account_id, opts.type, opts.string_id], opts.cb)
 
 
 
@@ -3547,13 +4148,79 @@ password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_tim
 #############################################################################
 # User sign in
 #
-# Anti-DOS cracking throttling policy:
+# Anti-DOS cracking throttling policy is basically like this, except we reset the counters
+# each minute and hour, so a crafty attacker could get twice as many tries by finding the
+# reset interval and hitting us right before and after.  This is an acceptable tradeoff
+# for making the data structure trivial.
 #
-#   * POLICY 1: A given email address is allowed at most 5 failed login attempts per minute.
-#   * POLICY 2: A given email address is allowed at most 100 failed login attempts per hour.
-#   * POLICY 3: A given ip address is allowed at most 100 failed login attempts per minute.
-#   * POLICY 4: A given ip address is allowed at most 250 failed login attempts per hour.
+#   * POLICY 1: A given email address is allowed at most 3 failed login attempts per minute.
+#   * POLICY 2: A given email address is allowed at most 30 failed login attempts per hour.
+#   * POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
+#   * POLICY 4: A given ip address is allowed at most 50 failed login attempts per hour.
 #############################################################################
+sign_in_fails = {email_m:{}, email_h:{}, ip_m:{}, ip_h:{}}
+
+clear_sign_in_fails_m = () ->
+    sign_in_fails.email_m = {}
+    sign_in_fails.ip_m = {}
+
+clear_sign_in_fails_h = () ->
+    sign_in_fails.email_h = {}
+    sign_in_fails.ip_h = {}
+
+_sign_in_fails_intervals = undefined
+
+record_sign_in_fail = (opts) ->
+    {email, ip} = defaults opts,
+        email : required
+        ip    : required
+    if not _sign_in_fails_intervals?
+        # only start clearing if there has been a failure...
+        _sign_in_fails_intervals = [setInterval(clear_sign_in_fails_m, 60000), setInterval(clear_sign_in_fails_h, 60*60000)]
+
+    winston.debug("WARNING: record_sign_in_fail(#{email}, #{ip})")
+    s = sign_in_fails
+    if not s.email_m[email]?
+        s.email_m[email] = 0
+    if not s.ip_m[ip]?
+        s.ip_m[ip] = 0
+    if not s.email_h[email]?
+        s.email_h[email] = 0
+    if not s.ip_h[ip]?
+        s.ip_h[ip] = 0
+    s.email_m[email] += 1
+    s.email_h[email] += 1
+    s.ip_m[ip] += 1
+    s.ip_h[ip] += 1
+    ### old database approach
+        database.update
+            table       : 'failed_sign_ins_by_ip_address'
+            set         : {email_address:opts.email_address}
+            where       : {time:cass.now(), ip_address:opts.ip_address}
+            consistency : cql.types.consistencies.one
+        database.update
+            table       : 'failed_sign_ins_by_email_address'
+            set         : {ip_address:opts.ip_address}
+            where       : {time:cass.now(), email_address:opts.email_address}
+            consistency : cql.types.consistencies.one
+
+    ###
+
+sign_in_check = (opts) ->
+    {email, ip} = defaults opts,
+        email : required
+        ip    : required
+    s = sign_in_fails
+    if s.email_m[email] > 3
+        return "A given email address is allowed at most 3 failed login attempts per minute."
+    if s.email_h[email] > 30
+        return "A given email address is allowed at most 30 failed login attempts per hour."
+    if s.ip_m[ip] > 10
+        return "A given ip address is allowed at most 10 failed login attempts per minute."
+    if s.ip_h[ip] > 50
+        return "A given ip address is allowed at most 50 failed login attempts per hour."
+    return false
+
 sign_in = (client, mesg) =>
     #winston.debug("sign_in")
     sign_in_error = (error) ->
@@ -3569,68 +4236,19 @@ sign_in = (client, mesg) =>
 
     mesg.email_address = misc.lower_email_address(mesg.email_address)
 
+    m = sign_in_check
+        email : mesg.email_address
+        ip    : client.ip_address
+    if m
+        winston.debug("WARNING: sign_in fail(email=#{mesg.email}, ip=#{client.ip_address}): #{m}")
+        sign_in_error(m)
+        return
+
     signed_in_mesg = null
     async.series([
-        # POLICY 1: A given email address is allowed at most 5 failed login attempts per minute.
-        (cb) ->
-            database.count
-                table       : "failed_sign_ins_by_email_address"
-                where       : {email_address:mesg.email_address, time: {'>=':cass.minutes_ago(1)}}
-                consistency : cql.types.consistencies.one
-                cb          : (error, count) ->
-                    if error
-                        sign_in_error(error)
-                        cb(true); return
-                    if count > 5
-                        sign_in_error("A given email address is allowed at most 5 failed login attempts per minute. Please wait.")
-                        cb(true); return
-                    cb()
-        # POLICY 2: A given email address is allowed at most 100 failed login attempts per hour.
-        (cb) ->
-            database.count
-                table       : "failed_sign_ins_by_email_address"
-                where       : {email_address:mesg.email_address, time: {'>=':cass.hours_ago(1)}}
-                consistency : cql.types.consistencies.one
-                cb          : (error, count) ->
-                    if error
-                        sign_in_error(error)
-                        cb(true); return
-                    if count > 100
-                        sign_in_error("A given email address is allowed at most 100 failed login attempts per hour. Please wait.")
-                        cb(true); return
-                    cb()
-
-        # POLICY 3: A given ip address is allowed at most 100 failed login attempts per minute.
-        (cb) ->
-            database.count
-                table       : "failed_sign_ins_by_ip_address"
-                where       : {ip_address:client.ip_address, time: {'>=':cass.minutes_ago(1)}}
-                consistency : cql.types.consistencies.one
-                cb          : (error, count) ->
-                    if error
-                        sign_in_error(error)
-                        cb(true); return
-                    if count > 100
-                        sign_in_error("A given ip address is allowed at most 100 failed login attempts per minute. Please wait.")
-                        cb(true); return
-                    cb()
-
-        # POLICY 4: A given ip address is allowed at most 250 failed login attempts per hour.
-        (cb) ->
-            database.count
-                table       : "failed_sign_ins_by_ip_address"
-                where       : {ip_address:client.ip_address, time: {'>=':cass.hours_ago(1)}}
-                consistency : cql.types.consistencies.one
-                cb          : (error, count) ->
-                    if error
-                        sign_in_error(error)
-                        cb(true); return
-                    if count > 250
-                        sign_in_error("A given ip address is allowed at most 250 failed login attempts per hour. Please wait.")
-                        cb(true); return
-                    cb()
-
-        # POLICY: Don't allow banned users to sign in.
+        # POLICY: Don't allow banned users to sign in.  Slow to check and kind of pointless
+        # since it is so easy for a user to just make a different account.  Of course,
+        # forcing them to lose access to all their work is useful.
         (cb) ->
             database.is_banned_user
                 email_address : mesg.email_address
@@ -3645,8 +4263,8 @@ sign_in = (client, mesg) =>
                         else
                             cb()
 
-        # get account and check credentials
         (cb) ->
+            # get account and check credentials
             # NOTE: Despite people complaining, we do give away info about whether the e-mail address is for a valid user or not.
             # There is no security in not doing this, since the same information can be determined via the invite collaborators feature.
             database.get_account
@@ -3670,14 +4288,12 @@ sign_in = (client, mesg) =>
                         sign_in_error("Incorrect password.")
                         cb(true); return
                     else
-
                         signed_in_mesg = message.signed_in
                             id            : mesg.id
                             account_id    : account.account_id
                             email_address : mesg.email_address
                             remember_me   : false
                             hub           : program.host + ':' + program.port
-
                         client.signed_in(signed_in_mesg)
                         client.push_to_client(signed_in_mesg)
                         cb()
@@ -3701,16 +4317,9 @@ record_sign_in = (opts) ->
         account_id    : undefined
         remember_me   : false
     if not opts.successful
-        database.update
-            table       : 'failed_sign_ins_by_ip_address'
-            set         : {email_address:opts.email_address}
-            where       : {time:cass.now(), ip_address:opts.ip_address}
-            consistency : cql.types.consistencies.one
-        database.update
-            table       : 'failed_sign_ins_by_email_address'
-            set         : {ip_address:opts.ip_address}
-            where       : {time:cass.now(), email_address:opts.email_address}
-            consistency : cql.types.consistencies.one
+        record_sign_in_fail
+            email : opts.email_address
+            ip    : opts.ip_address
     else
         database.update
             table       : 'successful_sign_ins'
@@ -3962,8 +4571,6 @@ run_all_account_creation_actions = (cb) ->
             # We could do it in parallel and be way faster, but not necessary.
             async.mapSeries(users, f, (err) -> cb(err))
     ], cb)
-
-
 
 
 change_password = (mesg, client_ip_address, push_to_client) ->
@@ -4417,7 +5024,7 @@ exports.send_email = send_email = (opts={}) ->
     opts = defaults opts,
         subject : required
         body    : required
-        from    : 'SageMathCloud <wstein@uw.edu>'          # obviously change this at some point.  But it is the best "reply to right now"
+        from    : 'SageMathCloud <wstein@uw.edu>'  # obviously change this at some point.  But it is the best "reply to right now"
         to      : required
         cc      : ''
         cb      : undefined
@@ -4491,6 +5098,19 @@ MAX_BLOB_SIZE_HUMAN = "12MB"
 
 blobs = {}
 
+# increase ttl of a blob in the blobstore database with given misc_node.uuidsha1 hash.
+remove_blob_ttls = (opts) ->
+    opts = defaults opts,
+        uuids : required   # uuid=sha1-based from value; actually *required*, but instead of a traceback, get opts.cb(err)
+        cb    : required    # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
+
+    winston.debug("remove_blob_ttls(uuid=#{misc.trunc(misc.to_json(opts.uuids),300)})")
+    database.uuid_blob_store(name:"blobs").set_ttls
+        uuids : opts.uuids
+        ttl   : 0
+        cb    : opts.cb
+
+
 # save a blob in the blobstore database with given misc_node.uuidsha1 hash.
 save_blob = (opts) ->
     opts = defaults opts,
@@ -4525,7 +5145,7 @@ save_blob = (opts) ->
     else if opts.check and opts.uuid != misc_node.uuidsha1(opts.value)
         err = "save_blob: uuid=#{opts.uuid} must be derived from the Sha1 hash of value, but it is not (possible malicious attack)"
 
-    if err?
+    if err
         dbg(err)
         opts.cb(err)
         return
@@ -4907,8 +5527,6 @@ init_bup_server = (cb) ->
 
 
 
-
-
 #############################################
 # Start everything running
 #############################################
@@ -4925,22 +5543,24 @@ exports.start_server = start_server = () ->
         cb          : () =>
             winston.debug("connected to database.")
             init_salvus_version()
-            init_http_server()
+            if not SYNCSTRING_DISABLED
+                syncstring.init_syncstring_db(database)
 
-            # proxy server relies on bup server having been created
+            # proxy server and http server, etc. relies on bup server having been created
             init_bup_server () =>
+                init_http_server()
                 init_http_proxy_server()
 
-            # start updating stats cache every so often -- note: this is cached in the database, so it isn't
-            # too big a problem if we call it too frequently...
-            update_server_stats(); setInterval(update_server_stats, 120*1000)
-            register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
+                # start updating stats cache every so often -- note: this is cached in the database, so it isn't
+                # too big a problem if we call it too frequently...
+                update_server_stats(); setInterval(update_server_stats, 120*1000)
+                register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 
-            init_primus_server()
-            init_stateless_exec()
-            http_server.listen(program.port, program.host)
+                init_primus_server()
+                init_stateless_exec()
+                http_server.listen(program.port, program.host)
 
-            winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+                winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
 ###
 # Command line admin stuff -- should maybe be moved to another program?

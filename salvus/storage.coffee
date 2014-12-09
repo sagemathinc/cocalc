@@ -1,3 +1,6 @@
+#
+# DEPRECATED!!
+#
 #################################################################
 #
 # storage -- a node.js program/library for interacting with
@@ -5,6 +8,11 @@
 # project storage system.
 #
 #################################################################
+
+#
+# DEPRECATED!!
+#
+
 
 winston   = require 'winston'
 HashRing  = require 'hashring'
