@@ -413,14 +413,6 @@ CREATE TABLE syncstring_acls (
     acl        map<uuid,varchar>     /* account_id:'write', account2_id:'read' */
 );
 
-CREATE TABLE syncstring_servers (
-    dummy        boolean,
-    host         varchar,    /* hostname (ip address) */
-    port         int,
-    secret_token varchar,
-    PRIMARY KEY(dummy, host, port)
-);
-
 ////////////////////
 // Server stats
 ///////////////////
