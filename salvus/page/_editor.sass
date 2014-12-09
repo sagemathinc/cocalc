@@ -1,0 +1,463 @@
+/*
+ *
+ *Editor for files in a project
+
+.salvus-editor-content
+  position: absolute
+  left: 0
+  margin: 0
+  width: 100%
+  padding: 0
+  background: white
+
+.salvus-editor-close-button-x
+  font-size: 14px
+  margin-top: 9px
+  margin-right: 15px
+  width: 2%
+  &:hover
+    color: #f00
+
+.salvus-editor-tab-filename
+  overflow: hidden
+  display: block
+  white-space: nowrap
+  /* font-size: 10pt;
+
+.salvus-editor-find
+  display: inline-block
+  height: 25px
+  padding: 4px 6px
+  margin-top: 3px
+
+.salvus-editor-filename-pill
+  width: 32%
+  cursor: pointer
+
+.salvus-editor-filename-pill-icon-active
+  color: orange
+
+@media (max-width: 767px)
+  .salvus-editor-filename-pill
+    width: 50%
+
+@media (max-width: 480px)
+  .salvus-editor-filename-pill
+    width: 100%
+
+.salvus-editor-codemirror
+  position: fixed
+  width: 100%
+  padding: 0px
+
+.salvus-editor-codemirror-button-row
+  margin-top: 1px
+  background: #efefef
+
+.salvus-editor-codemirror-filename, .salvus-editor-pdf-title
+  margin-left: 3em
+  margin-right: 5em
+  font-size: 10pt
+  font-weight: bold
+  color: #555
+
+.salvus-editor-codemirror-cursor
+  position: absolute
+  width: 15em
+  z-index: 5
+
+.salvus-editor-codemirror-cursor-inside
+  position: absolute
+  top: -1.3em
+  left: .5ex
+  height: 1.15em
+  width: .1ex
+  border-left: 2px solid black
+  border: 1px solid #aaa
+  opacity: .7
+
+.salvus-editor-codemirror-cursor-label
+  position: absolute
+  top: -2.9em
+  left: 1.5ex
+  font-size: 8pt
+  font-family: serif
+  background-color: rgba(255, 255, 255, 0.7)
+
+.salvus-editor-recent-files
+  margin-bottom: 0em
+
+.salvus-editor-codemirror-input-box
+  /*border: 2px solid #9a9;
+   *border-radius: 5px;
+
+.salvus-editor-codemirror-sync
+  font-size: 8pt
+  color: #bbb
+
+.salvus-editor-latex-png-preview
+  padding-top: 2px
+
+.salvus-editor-latex-errors
+  overflow-y: scroll
+
+.salvus-latex-errors-counter
+  color: #a00
+
+.salvus-latex-warnings-counter
+  color: #FDB600
+
+.salvus-editor-latex-mesg-template
+  overflow-x: auto
+  background: white
+  margin-right: 2em
+
+.salvus-editor-latex-mesg-template-error
+  border: 2px solid #a00
+
+.salvus-editor-latex-mesg-template-warning, .salvus-editor-latex-mesg-template-typesetting
+  border: 2px solid #FDB600
+
+.salvus-latex-mesg-message
+  font-size: 13pt
+  margin-left: 1em
+
+.salvus-latex-mesg-content
+  font-size: 9pt
+  margin: 5px
+
+.salvus-editor-pdf-preview!
+
+.salvus-editor-pdf-preview-page
+  background-color: #eee
+  overflow-x: auto
+  overflow-y: scroll
+  border-left: 2px solid #ddd
+
+.salvus-editor-pdf-preview-image
+  margin: 1em
+  background-color: #fff
+  border: 1px solid #aaa
+  box-shadow: 2px 2px 2px #888
+  max-width: 160%
+  /* hard coded in the line @zoom_width = 160 in editor.coffee
+  width: 160%
+
+.salvus-editor-pdf-preview-spinner
+  position: absolute
+  left: 2em
+  top: 10em
+
+.salvus-editor-pdf-preview-text
+  border-top: 1px solid black
+  text-align: left
+  margin-left: 1em
+  margin-right: 1em
+  padding-top: 1em
+  color: #8a8a8a
+
+.salvus-editor-pdf-preview-highlight
+  margin-bottom: -3em
+  padding-bottom: 3em
+  opacity: .3
+  background-color: yellow
+
+.salvus-editor-pdf-preview-buttons
+  position: absolute
+  margin-right: 1em
+  right: 0
+  font-size: 11pt
+
+.salvus-editor-pdf-preview-embed
+  position: fixed
+
+.salvus-editor-search-openfiles-input
+  width: 80%
+
+.salvus-editor-openfile-excluded-from-search
+  opacity: .6
+
+.salvus-editor-openfile-included-in-search
+  border-radius: 6px
+  border: 1px solid #aaa
+  box-shadow: 2px 2px 2px 2px #bbb
+
+.salvus-editor-codemirror-chat-column
+  position: fixed
+  background-color: white
+  right: 0px
+  width: 42ex
+  padding: 0
+
+.salvus-editor-codemirror-chat
+  margin: 0px
+  padding: 0px
+  width: 35ex
+  border: 2px solid #9a9
+  border-radius: 5px
+
+.salvus-editor-chat-title
+  color: #666
+  font-size: 18pt
+  font-weight: bold
+  position: fixed
+  z-index: 10
+  right: 0
+  cursor: pointer
+
+.salvus-editor-codemirror-chat-output
+  padding: 2ex
+  margin: 0ex
+  width: 100%
+  position: absolute
+  overflow-y: auto
+  overflow-x: hidden
+  overflow-wrap: break-word
+  background-color: #fff
+
+.salvus-editor-codemirror-chat-input
+  padding: 23x
+  margin: 0ex
+  height: 8em !important
+  width: 100%
+  position: absolute
+  resize: none
+
+.salvus-chat-entry!
+
+.salvus-chat-header
+  padding-top: 3px
+  border-top: solid 1px #ddd
+
+.salvus-chat-header-name
+  font-weight: bold
+
+.salvus-chat-header-date
+  font-size: 9pt
+  color: #999
+
+.salvus-editor-chat-new-chats
+  color: orange
+  padding-right: 1ex
+
+.salvus-editor-chat-no-new-chats
+  padding-right: 1ex
+
+/*********** Synchronized Worksheets ****************
+
+.sagews-input
+  white-space: nowrap
+  margin-left: -4px
+  width: 100%
+
+.sagews-input-live:hover
+  cursor: pointer
+  background-color: #428bca
+
+.sagews-input-hr
+  margin: 0px
+  margin-right: -10px
+  margin-bottom: .5ex
+  /* makes line look centered
+  display: inline-block
+  height: 3px
+  background: #ccc
+
+.sagews-input-newcell
+  width: 40%
+
+.sagews-input-eval-state
+  width: 20%
+
+.sagews-input-run-state
+  width: 40%
+
+.sagews-input-evaluated
+  background: #428bca
+
+.sagews-input-unevaluated!
+
+.sagews-input-execute
+  background: #080
+
+.sagews-input-running
+  background: #0a0
+
+/* Margin of sagews-output must be 0 for codemirror 3.14+, or cursor gets all jacked up.
+/* background-color: #f9f9f9;
+
+/* this messes up codemirror themes
+
+.sagews-output
+  padding: 1ex
+  padding-right: 0px
+  margin: 0px
+  overflow-y: auto
+  white-space: normal
+  border-left: 3px solid orange
+  margin-left: -4px
+
+.sagews-output-html
+  font-family: helvetica
+  /*padding-left: 2em;
+   *padding-right:2em;
+
+.sagews-output-md
+  font-family: helvetica
+
+.sagews-output-stdout
+  white-space: pre
+
+.sagews-output-stderr
+  white-space: pre
+  color: red
+
+.sagews-output-code
+  white-space: pre
+  border: 2px solid lightblue
+  padding: 1ex
+
+.sagews-output-tex
+  background: white
+  /* so that tex is visible
+
+.sagews-output-image
+  cursor: pointer
+  background: white
+  /* so that, e.g., latex with transparent background is visible
+
+.sagews-output-link
+  cursor: pointer
+
+.sagews-output-hide
+  height: 0px
+  background: #eee
+  padding: 4px
+
+.sagews-output-interact!
+
+.salvus-editor-image
+  position: fixed
+  width: 99%
+  padding: 0px
+  overflow-y: auto
+
+.salvus-editor-image-container
+  overflow: auto
+  background-color: #fff
+  border: 1px solid #aaa
+  box-shadow: 5px 5px 5px 5px #888
+
+.salvus-editor-image-title
+  margin-left: 3em
+  margin-right: 5em
+  font-size: 10pt
+  font-weight: bold
+  color: #555
+
+.salvus-ipython-notebook
+  background: white
+  position: fixed
+  width: 100%
+
+.salvus-ipython-notebook-buttons
+  position: absolute
+  top: 7px
+  right: 7px
+
+.salvus-ipython-notebook-status-messages
+  font-size: 10pt
+
+.salvus-ipython-notebook-danger
+  color: white
+  font-weight: bold
+  font-size: 7pt
+  background: red
+
+.salvus-editor-history-history_editor .salvus-editor-codemirror-input-box
+  width: 100%
+
+/*the slider background
+
+.salvus-editor-history-slider
+  height: 11px
+  position: relative
+  margin-top: 5px
+  margin-bottom: 5px
+  margin-left: 10px
+  margin-right: 10px
+  > .ui-slider-handle
+    width: 12px
+    height: 24px
+    position: absolute
+    top: -8px
+    margin-left: -6px
+    z-index: 200
+    outline: none
+
+/*Style for the slider button
+
+/* Undo various bootstrap madness (which makes scaling markdown very painful)
+
+li
+  line-height: normal
+
+code
+  font-size: inherit
+
+.cm-trailingspace
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAACCAYAAAB/qH1jAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QUXCToH00Y1UgAAACFJREFUCNdjPMDBUc/AwNDAAAFMTAwMDA0OP34wQgX/AQBYgwYEx4f9lQAAAABJRU5ErkJggg==)
+  background-position: bottom left
+  background-repeat: repeat-x
+
+/* Deals with the currently open file tabs and moving them around
+
+.file-pages
+  float: none
+  overflow: hidden
+  > li > a
+    position: static
+    /* Bootstrap 3 has this as relative ??
+    padding: 13px 15px 7px
+    border-radius: 5px 5px 0px 0px
+    /* Flatten bottom corners like tabs
+
+.file-tab-placeholder
+  /* Currently blank
+
+.file-pages li
+  &.ui-sortable-helper > a
+    background-color: #eee
+  &.active.ui-sortable-helper > a
+    background-color: #08c
+
+.nav-pills > li + li
+  margin-left: 0 !important
+
+.btn-group
+  .btn +
+    .btn, .btn-group
+      margin-left: 0 !important
+  .btn-group +
+    .btn, .btn-group
+      margin-left: 0 !important
+
+.salvus-editor-codemirror-not-synced
+  background: red
+  color: white
+  padding: 5px
+  border-radius: 3px
+
+.salvus-editor-resize-bar-layout-1
+  height: 6px
+  cursor: ns-resize
+  background: #efefef
+  &:hover
+    background: #ddd
+
+.salvus-editor-resize-bar-layout-2, .salvus-editor-latex-resize-bar
+  cursor: ew-resize
+  background: #efefef
+  width: 6px
+  &:hover
+    background: #ddd
