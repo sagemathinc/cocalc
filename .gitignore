@@ -23,6 +23,10 @@ salvus/static/salvus.js
 salvus/static/salvus.min.js
 salvus/static/index.html
 salvus/static/index.css
+salvus/static/sass/
+salvus/static/index.map.css
+salvus/static/index.sass
+
 salvus/page/temp
 
 salvus/static/mercury/js/mercury.min.js
