@@ -1,8 +1,7 @@
 ## SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 
 
-This software is licensed under the GPL.
-
+This software is licensed under the GPL (version 3 or later).
 
    Copyright (C) 2014, William Stein
 
