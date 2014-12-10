@@ -21,11 +21,6 @@
 ###############################################################################
 
 
-"""
-Copyright (c) William Stein, 2012.  Not open source or free. Will be
-assigned to University of Washington.
-"""
-
 import os, subprocess, time, uuid
 import daemon
 import cassandra, misc
@@ -37,7 +32,7 @@ import cassandra, misc
 service_columns = ['service_id', 'name', 'address', 'port', 'running', 'username', 'pid', 'monitor_pid']
 
 @misc.call_until_succeed(0.01, 60, 3600)
-def record_that_service_started(name, address, port, username, pid, monitor_pid):    
+def record_that_service_started(name, address, port, username, pid, monitor_pid):
     service_id = uuid.uuid1()
     cassandra.cursor().execute("""
 UPDATE services SET name = :name, address = :address, port = :port,
@@ -54,13 +49,13 @@ def record_that_service_stopped(service_id):
 
 def running_services():
     """
-    Return list of the currently running services. 
+    Return list of the currently running services.
     """
     cur = cassandra.cursor()
     cur.execute("SELECT * FROM services WHERE running = 'true'")
     r = cur.fetchall()
     return [dict([(c,t[i]) for i,c in enumerate(service_columns)]) for t in r]
-    
+
 
 #########################################################
 # status updates table
@@ -93,7 +88,7 @@ def update_status(service_id, pid):
         last_status = d
         now = cassandra.time_to_timestamp(time.time())
         cputime = cputime_to_float(d['cputime'])
-        cassandra.cursor().execute("""UPDATE status SET 
+        cassandra.cursor().execute("""UPDATE status SET
                                       pmem = :pmem, pcpu = :pcpu, cputime = :cputime, vsize = :vsize, rss = :rss
                                       WHERE service_id = :service_id AND time = :time""",
                     {'service_id':service_id, 'time':now, 'pmem':d['pmem'], 'pcpu':d['pcpu'],
@@ -142,7 +137,7 @@ def send_log_to_database(service_id, logfile, filename):
         print {'logfile':logfile, 'message':r, 'service_id':service_id, 'time':now}
         cur.execute("UPDATE log SET logfile = :logfile, message = :message WHERE service_id = :service_id AND time = :time",
                     {'logfile':os.path.split(logfile)[-1], 'message':r, 'service_id':service_id, 'time':now})
-        
+
     # potential race condition situation below
     if mtime(logfile) != lastmod:
         # file appended to during db send, so delete the part of file we sent (but not the rest)
@@ -180,7 +175,7 @@ def main(name, logfile, pidfile, target_pidfile, target_address, target_port, in
     tpid = f()
     service_id = record_that_service_started(name=name, address=target_address, port=target_port,
                                              username=os.environ['USER'], pid=tpid, monitor_pid=os.getpid())
-    
+
     global lastmod
     filename = os.path.split(logfile)[-1]
     try:
@@ -188,7 +183,7 @@ def main(name, logfile, pidfile, target_pidfile, target_address, target_port, in
         lastmod = None
         while True:
             update_status(service_id, tpid)
-            
+
             modtime = mtime(logfile)
             if lastmod != modtime:
                 lastmod = modtime
@@ -215,7 +210,7 @@ if __name__ == "__main__":
                         help="when this file changes it is sent to the database server")
     parser.add_argument("--pidfile", dest="pidfile", type=str, required=True,
                         help="PID file of this daemon process")
-    parser.add_argument("--interval", dest="interval", type=int, default=60,  
+    parser.add_argument("--interval", dest="interval", type=int, default=60,
                         help="check every t seconds to see if logfile has changed and update status info")
     parser.add_argument("--database_nodes", dest="database_nodes", type=str, required=True,
                         help="list of ip addresses of all database nodes in the cluster")
@@ -227,9 +222,9 @@ if __name__ == "__main__":
                         help="address that the process being watched listens on")
     parser.add_argument("--target_port", dest="target_port", type=int, required=True,
                         help="port that the process being watched listen on")
-    
+
     args = parser.parse_args()
-        
+
     logfile = os.path.abspath(args.logfile)
     pidfile = os.path.abspath(args.pidfile)
     target_pidfile = os.path.abspath(args.target_pidfile)
@@ -242,6 +237,6 @@ if __name__ == "__main__":
     else:
         with daemon.DaemonContext():
             f()
-    
-    
-    
+
+
+

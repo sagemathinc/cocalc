@@ -38,8 +38,6 @@ IMPORTANT MAINTENANCE NOTES:
     * The actual is defined in db_schema.cql
 
 
-(c) William Stein, University of Washington, 2012
-
 """
 
 
