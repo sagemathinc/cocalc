@@ -10,7 +10,9 @@ misc      = require('misc')
 misc_node = require('misc_node')
 message   = require('message')
 uuid      = require('node-uuid')
+
 {defaults, required} = misc
+{EventEmitter} = require('events')
 
 if not process.env.SALVUS_TOKENS?
     throw "Update and source salvus-env"
@@ -35,7 +37,7 @@ exports.client = (opts) ->
     winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
     new Client(opts)
 
-class Client
+class Client extends EventEmitter
     constructor : (opts) ->
         opts = defaults opts,
             token_file : DEFAULT_TOKEN_FILE
@@ -104,7 +106,10 @@ class Client
 
                     socket.on 'mesg', (type, mesg) =>
                         if type == 'json'
-                            @handle_mesg(mesg)
+                            @dbg("mesg", misc.trunc(misc.to_json(mesg),200))
+                            @emit("mesg_#{mesg.event}", mesg)
+                        else
+                            @dbg("mesg", "mesg of unknown type #{type} ignored")
 
                     reconnect = () =>
                         socket.removeAllListeners()
@@ -114,13 +119,18 @@ class Client
                     socket.on('close', reconnect)
                     socket.on('error', reconnect)
 
+                    @on 'mesg_ping', (mesg) =>
+                        @send_mesg
+                            mesg   : message.pong(id:mesg.id)
+                            call   : false
+
                     cb()
 
     send_mesg: (opts) =>
         opts = defaults opts,
             mesg    : required
             timeout : DEFAULT_TIMEOUT
-            call    : true              # if true, tags mesg with id and waits for a response with the same id
+            call    : true     # if true, tags mesg with id and waits for a response with the same id
             cb      : undefined
         if opts.call and not opts.mesg.id?
             opts.mesg.id = uuid.v4()
@@ -138,16 +148,6 @@ class Client
         else
             opts.cb?()
 
-    # define _handle_mesg in in derived class
-    handle_mesg: (mesg) =>
-        @dbg("handle_mesg", misc.trunc(misc.to_json(mesg),300))
-        if mesg.event == 'ping'
-            @send_mesg
-                mesg   : message.pong()
-                call   : false
-        else
-            @_handle_mesg?(mesg)
-
     ping: (cb) =>
         t0 = misc.mswalltime()
         @send_mesg
@@ -161,19 +161,28 @@ class Client
                     @dbg("ping", "pong: #{misc.mswalltime(t0)}ms")
                     cb()
 
+    test0: (cb) =>
+        @send_mesg
+            mesg : {event:'test0'}
+            call : true
+            cb   : (err, resp) =>
+                @dbg('test0', misc.to_json(resp))
+
+
 ######################################################################
 # Network SERVER
 ######################################################################
-class Server
+class Server extends EventEmitter
     constructor : (opts) ->
         opts = defaults opts,
             token_file : DEFAULT_TOKEN_FILE
             port       : DEFAULT_PORT
             name       : 'Abstract'
             cb         : undefined
-
+        @dbg("constructor")
         @port = opts.port
         @name = opts.name
+        @init_event_handlers()
         async.series([
             (cb) =>
                 @dbg("constructor","reading token file")
@@ -207,6 +216,43 @@ class Server
 
         )
 
+    init_event_handlers: () =>
+        @on 'mesg_ping', (socket, mesg) =>
+            @send_mesg
+                socket : socket
+                mesg   : message.pong(id:mesg.id)
+                call   : false
+
+        @on 'mesg_test0', (socket, mesg) =>
+            @dbg("test0", "mesg_test0")
+            @send_mesg
+                socket : socket
+                mesg   : message.pong(id:mesg.id)
+                call   : false
+            f = () =>
+                @dbg("test0", "f")
+                @send_mesg
+                    socket : socket
+                    mesg   : {event:'test0'}
+                    call   : false
+            setTimeout(f, 1000)
+
+            g = () =>
+                @dbg("test0", "g")
+                t0 = misc.mswalltime()
+                @send_mesg
+                    socket : socket
+                    mesg   : message.ping()
+                    call   : true
+                    cb     : (err, resp) =>
+                        if err
+                            @dbg("test0", "error -- #{err}")
+                        else
+                            @dbg("test0", "pong: #{misc.mswalltime(t0)}ms")
+
+            setTimeout(g, 1000)
+
+
     dbg: (f, m) =>
         winston.debug("#{@name}Server.#{f}: #{m}")
 
@@ -222,10 +268,14 @@ class Server
                     socket.id = uuid.v4()
                     misc_node.enable_mesg(socket)
                     @dbg("tcp_server", "unlocked socket -- id=#{socket.id}")
-                    handler = (type, mesg) =>
-                        if type == "json"
-                            @handle_mesg(socket, mesg)
-                    socket.on 'mesg', handler
+
+                    socket.on 'mesg', (type, mesg) =>
+                        if type == 'json'
+                            @dbg("socket (id=#{socket.id})", misc.trunc(misc.to_json(mesg),200))
+                            @emit("mesg_#{mesg.event}", socket, mesg)
+                        else
+                            @dbg("mesg", "mesg of unknown type #{type} ignored")
+
                     disconnect = () =>
                         @dbg("socket (id=#{socket.id})", "disconnect")
                         socket.removeAllListeners()
@@ -263,21 +313,13 @@ class Server
         else
             opts.cb?(undefined)
 
-    # define _handle_mesg in in derived class
-    handle_mesg: (socket, mesg) =>
-        @dbg("handle_mesg(id=#{socket.id})", misc.trunc(misc.to_json(mesg),300))
-        if mesg.event == 'ping'
-            @send_mesg
-                socket : socket
-                mesg   : message.pong(id:mesg.id)
-                call   : false
-        else
-            @_handle_mesg?(mesg)
 
 start_server = () ->
+    winston.debug("start_server")
     new Server
         token_file : program.token
         port       : program.port
+
 
 #############################################
 # Process command line arguments -- copy something based
