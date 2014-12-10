@@ -1,3 +1,25 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 ####################################################
 #
 # Client device features and capabilities.
@@ -10,11 +32,11 @@
 #    $(".salvus_client_browser_warning").show()
 
 isMobile = exports.isMobile =
-    Android    : () -> if navigator.userAgent.match(/Android/i) then true else false
-    BlackBerry : () -> if navigator.userAgent.match(/BlackBerry/i) then true else false
-    iOS        : () -> if navigator.userAgent.match(/iPhone|iPad|iPod/i) then true else false
-    Windows    : () -> if navigator.userAgent.match(/IEMobile/i) then true else false
-    any        : () -> if (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows()) then true else false
+    Android    : () -> !! navigator.userAgent.match(/Android/i)
+    BlackBerry : () -> !! navigator.userAgent.match(/BlackBerry/i)
+    iOS        : () -> !! navigator.userAgent.match(/iPhone|iPad|iPod/i)
+    Windows    : () -> !! navigator.userAgent.match(/IEMobile/i)
+    any        : () -> (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows())
 
 if not $.browser?
     $.browser = {}
