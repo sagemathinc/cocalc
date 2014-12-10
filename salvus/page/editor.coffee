@@ -3257,7 +3257,7 @@ class LatexEditor extends FileEditor
             k = doc.length
         try
             conf = misc.from_json(doc.slice(j+1,k))
-        catch
+        catch e
             conf = {}
 
         return conf

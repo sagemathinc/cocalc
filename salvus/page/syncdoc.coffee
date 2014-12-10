@@ -872,7 +872,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 continue
             try
                 mesg = JSON.parse(m)
-            catch
+            catch e
                 continue # skip
             date = new Date(mesg.date)
             entry = templates.find(".salvus-chat-entry").clone()
@@ -1825,8 +1825,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                      eval(code)
                      @refresh_soon()
                      cb()
-            ])
-           )()
+             ])
+            )()
 
         if mesg.done? and mesg.done
             output.removeClass('sagews-output-running')
@@ -1856,7 +1856,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                  obj = JSON.parse(mesg.obj)
                                  eval(code)
                                  cb()
-                        ])
+                         ])
                     )()
 
 

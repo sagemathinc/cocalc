@@ -2638,7 +2638,7 @@ class ProjectPage
                 continue
             try
                 entry = JSON.parse(e)
-            catch
+            catch e
                 entry = {event:'other'}
 
             elt = undefined

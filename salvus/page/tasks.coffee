@@ -536,7 +536,7 @@ class TaskList
         if @sort_order.heading != 'custom'
             try
                 @elt_task_list.sortable( "destroy" )
-            catch
+            catch e
                 # if sortable never called get exception.
             @elt_task_list.find(".salvus-task-reorder-handle").hide()
             return
