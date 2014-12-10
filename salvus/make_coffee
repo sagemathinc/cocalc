@@ -28,13 +28,13 @@ cmd("./scripts/make_coffee " + ' '.join(sys.argv[1:]))
 #       rm -f static/salvus-*.min.js static/index-*.min.js && \
 cmd("""\
       browserify --exports=require,connect node_modules/client_browser.js -o static/salvus.js && \
-      uglifyjs2 static/salvus.js -o static/salvus-%s.min.js && \
+      uglifyjs2 static/salvus.js -o static/salvus-{version}.min.js --source-map static/salvus-{version}.map.js && \
       cd page &&
       ../scripts/make_coffee $@ temp &&
       cd .. &&
-      gen_page && \
-      uglifyjs2 static/index.js -o static/index-%s.min.js
-"""%(version, version))
+      gen_page $@ && \
+      uglifyjs2 static/index.js -o static/index-{version}.min.js --source-map static/index-{version}.map.js
+""".format(version = version))
 
 cmd("ls -lh static/salvus.js")
 

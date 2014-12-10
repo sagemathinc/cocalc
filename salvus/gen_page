@@ -7,6 +7,16 @@ os.chdir(path)
 
 version = open("node_modules/salvus_version.js").read().split('=')[1].strip()
 
+#### "--all" disables caching ####
+
+import sys
+
+if '--all' in sys.argv:
+    all = True
+    sys.argv.remove("--all")
+else:
+    all = False
+
 ##################################
 # generate static/index.html
 
@@ -59,7 +69,15 @@ out.close()
 IN_SASS = "page/index.sass"
 OUT_CSS = "static/index.css"
 
-cmd = "sass -I page/ --style=compressed %s %s" % (IN_SASS,  OUT_CSS)
+# sass cmd:
+#  -I: the include path for the "_*.sass" include files
+#  --no-cache: disables collecting partial results in ".sass-cache/".
+#              speeds up processing but might produces stale results when switching branches.
+#  --style=compressed: compact CSS without comments, but we want to enable source maps
+# TODO: [DISABLED] --sourcemaps: need to upgrade to sass >= 3.3
+
+no_cache = "--no-cache" if all else ""
+cmd = "sass -I page/ %s --style=compressed %s %s" % (no_cache, IN_SASS, OUT_CSS)
 os.system(cmd)
 out_sass = open(OUT_CSS, "r").read()
 with open(OUT_CSS, "w") as out:
