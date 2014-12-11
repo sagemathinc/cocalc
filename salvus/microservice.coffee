@@ -158,6 +158,7 @@ class exports.Client extends EventEmitter
             cb      : undefined
         if opts.call and not opts.mesg.id?
             opts.mesg.id = uuid.v4()
+        @dbg("send_mesg", opts.mesg)
         @socket.write_mesg('json', opts.mesg)
         if opts.call
             @socket.recv_mesg
@@ -329,6 +330,7 @@ class exports.Server extends EventEmitter
             timeout : DEFAULT_TIMEOUT
             call    : false             # if true, tags mesg with id and waits for a response with the same id
             cb      : undefined
+        @dbg("send_mesg(id=#{opts.socket.id}, call=#{opts.call})", opts.mesg)
         if opts.call and not opts.mesg.id?
             opts.mesg.id = uuid.v4()
         opts.socket.write_mesg('json', opts.mesg)

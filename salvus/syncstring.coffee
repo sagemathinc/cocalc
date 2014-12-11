@@ -871,7 +871,7 @@ class StringsDB
 #---------------------------------------------------------------------
 
 ###
-x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.s = require('syncstring'); x.s.init_syncstring_db(x.c.database); x.ss=x.s.syncdb(string_id:'4bd8cb98-506c-45a5-8042-5c6bd8fddff1', cb:(e,t)->x.t=t))
+x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.s = require('syncstring'); x.s.init_syncstring_db(x.c.database); x.ss=x.s.syncdb(string_id:'c26db83a-7fa2-44a4-832b-579c18fac65f', cb:(e,t)->x.t=t))
 ###
 _syncdb_cache = {}
 exports.syncdb = (opts) ->
@@ -906,6 +906,10 @@ microservice = require('microservice')
 DEFAULT_PORT = 6001
 
 ###
+x={};require('syncstring').client(debug:true, cb:(e,s)->console.log('done',e);x.s=s;x.s.syncdb(string_id:'c26db83a-7fa2-44a4-832b-579c18fac65f',cb:(e,t)->console.log(e);x.t=t));0
+###
+
+###
 # Client
 ###
 exports.client = (opts) ->
@@ -919,14 +923,43 @@ class SyncstringClient extends microservice.Client
     constructor: (opts) ->
         opts.name = "syncstring"
         super(opts)
+        @on("mesg_syncdb_change", @_syncdb_change)
 
     syncdb: (opts) =>
         opts = defaults opts,
             string_id  : required
             max_length : MAX_STRING_LENGTH
+            listen     : true       # if true, register a listener for change events
             cb         : required
+        if not @_syncdb_cache?
+            @_syncdb_cache = {}
+        S = @_syncdb_cache[opts.string_id]
+        if S?
+            opts.cb(undefined, S)
+            return
         S = new ClientSyncDB(opts.string_id, opts.max_length, @)
-        opts.cb(undefined, S)
+        @_syncdb_cache[opts.string_id] = S
+        if not opts.listen
+            opts.cb(undefined, S)
+        else
+            @call
+                mesg :
+                    event      : 'syncdb_listen'
+                    string_id  : opts.string_id
+                    max_length : opts.max_length
+                cb   : (err) =>
+                    if err
+                        opts.cb(err)
+                    else
+                        opts.cb(undefined, S)
+
+    _syncdb_destroy: (opts) =>
+        opts = defaults opts,
+            string_id  : required
+        @send_mesg
+            mesg :
+                event      : 'syncdb_remove_listener'
+                string_id  : opts.string_id
 
     _syncdb_call: (opts) =>
         opts = defaults opts,
@@ -948,15 +981,25 @@ class SyncstringClient extends microservice.Client
                     else
                         opts.cb?(undefined, resp.result)
 
+    _syncdb_change: (mesg) =>
+        if not @_syncdb_cache?
+            return
+        S = @_syncdb_cache[mesg.string_id]
+        S?.emit('change', mesg.changes)
 
+
+# Object will emit change events *if* listen:true when creating it.
 class ClientSyncDB extends EventEmitter
     constructor : (@string_id, @max_length, @client) ->
+
+    destroy : () =>
+        @client._syncdb_destroy(string_id:@string_id)
 
     _syncdb_call: (opts) =>
         opts = defaults opts,
             action : required
             args   : required
-            cb     : required
+            cb     : undefined
         opts.string_id  = @string_id
         opts.max_length = @max_length
         @client._syncdb_call(opts)
@@ -967,6 +1010,34 @@ class ClientSyncDB extends EventEmitter
             cb    : required
         @_syncdb_call
             action    : 'select'
+            args      : {where : opts.where}
+            cb        : opts.cb
+
+    select_one: (opts) =>
+        opts = defaults opts,
+            where : {}
+            cb    : required
+        @_syncdb_call
+            action    : 'select_one'
+            args      : {where : opts.where}
+            cb        : opts.cb
+
+    delete: (opts) =>
+        opts = defaults opts,
+            where : required
+            one   : false
+            cb    : undefined
+        @_syncdb_call
+            action    : 'delete'
+            args      : {where : opts.where, one : opts.one}
+            cb        : opts.cb
+
+    delete_one: (opts) =>
+        opts = defaults opts,
+            where : required
+            cb    : undefined
+        @_syncdb_call
+            action    : 'delete_one'
             args      : {where : opts.where}
             cb        : opts.cb
 
@@ -1014,6 +1085,8 @@ class SyncstringServer extends microservice.Server
         )
 
         @on('mesg_syncdb_call', @syncdb_call)
+        @on('mesg_syncdb_listen', @syncdb_listen)
+        @on('mesg_syncdb_remove_listener', @syncdb_remove_listener)
 
     connect_to_database: (cb) =>
         @dbg("connect_to_database", "connecting to database....")
@@ -1051,6 +1124,50 @@ class SyncstringServer extends microservice.Server
                 @send_mesg
                     socket : socket
                     mesg   : resp
+
+    syncdb_listen: (socket, mesg) =>
+        @dbg("syncdb_listen", mesg)
+        exports.syncdb
+            string_id  : mesg.string_id
+            cb         : (err, s) =>
+                if err
+                    resp =  message.error(error:err)
+                else
+                    if not s._syncdb_listeners?
+                        s._syncdb_listeners = {}
+                    if s._syncdb_listeners[socket.id]?
+                        s.removeListener('change', s._syncdb_listeners[socket.id])
+                    f = s._syncdb_listeners[socket.id] = (changes) =>
+                        @dbg("syncdb_listen(string=#{mesg.string_id},id=#{socket.id})", "got changes #{misc.to_json(changes)}")
+                        @send_mesg
+                            socket : socket
+                            mesg   :
+                                event     : 'syncdb_change'
+                                string_id : mesg.string_id
+                                changes   : changes
+                    s.on('change', f)
+                    resp = message.success()
+                resp.id = mesg.id
+                @send_mesg
+                    socket : socket
+                    mesg   : resp
+
+    syncdb_remove_listener: (socket, mesg) =>
+        @dbg("syncdb_remove_listener", mesg)
+        exports.syncdb
+            string_id  : mesg.string_id
+            cb         : (err, s) =>
+                if err
+                    resp =  message.error(error:err)
+                else
+                    if s._syncdb_listeners? and s._syncdb_listeners[mesg.string_id]?
+                        s.removeListener('change', s._syncdb_listeners[mesg.string_id])
+                    resp = message.success()
+                resp.id = mesg.id
+                @send_mesg
+                    socket : socket
+                    mesg   : resp
+
 
 
 if not module.parent?
