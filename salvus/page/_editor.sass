@@ -1,6 +1,7 @@
 /*
  *
  *Editor for files in a project
+ */
 
 .salvus-editor-content
   position: absolute
@@ -22,7 +23,7 @@
   overflow: hidden
   display: block
   white-space: nowrap
-  /* font-size: 10pt;
+  /* font-size: 10pt;  */
 
 .salvus-editor-find
   display: inline-block
@@ -54,7 +55,8 @@
   margin-top: 1px
   background: #efefef
 
-.salvus-editor-codemirror-filename, .salvus-editor-pdf-title
+.salvus-editor-codemirror-filename,
+.salvus-editor-pdf-title
   margin-left: 3em
   margin-right: 5em
   font-size: 10pt
@@ -90,6 +92,7 @@
 .salvus-editor-codemirror-input-box
   /*border: 2px solid #9a9;
    *border-radius: 5px;
+   */
 
 .salvus-editor-codemirror-sync
   font-size: 8pt
@@ -140,7 +143,7 @@
   border: 1px solid #aaa
   box-shadow: 2px 2px 2px #888
   max-width: 160%
-  /* hard coded in the line @zoom_width = 160 in editor.coffee
+  /* hard coded in the line @zoom_width = 160 in editor.coffee  */
   width: 160%
 
 .salvus-editor-pdf-preview-spinner
@@ -243,7 +246,7 @@
 .salvus-editor-chat-no-new-chats
   padding-right: 1ex
 
-/*********** Synchronized Worksheets ****************
+/*********** Synchronized Worksheets **************** */
 
 .sagews-input
   white-space: nowrap
@@ -283,10 +286,11 @@
 .sagews-input-running
   background: #0a0
 
-/* Margin of sagews-output must be 0 for codemirror 3.14+, or cursor gets all jacked up.
-/* background-color: #f9f9f9;
+// Margin of sagews-output must be 0 for codemirror 3.14+, or cursor gets all jacked up.
+// background-color: #f9f9f9;
+//
+// this messes up codemirror themes
 
-/* this messes up codemirror themes
 
 .sagews-output
   padding: 1ex
@@ -301,6 +305,7 @@
   font-family: helvetica
   /*padding-left: 2em;
    *padding-right:2em;
+   */
 
 .sagews-output-md
   font-family: helvetica
@@ -319,12 +324,12 @@
 
 .sagews-output-tex
   background: white
-  /* so that tex is visible
+  /* so that tex is visible */
 
 .sagews-output-image
   cursor: pointer
   background: white
-  /* so that, e.g., latex with transparent background is visible
+  /* so that, e.g., latex with transparent background is visible */
 
 .sagews-output-link
   cursor: pointer
@@ -377,7 +382,7 @@
 .salvus-editor-history-history_editor .salvus-editor-codemirror-input-box
   width: 100%
 
-/*the slider background
+/*the slider background */
 
 .salvus-editor-history-slider
   height: 11px
@@ -395,9 +400,9 @@
     z-index: 200
     outline: none
 
-/*Style for the slider button
+/*Style for the slider button */
 
-/* Undo various bootstrap madness (which makes scaling markdown very painful)
+/* Undo various bootstrap madness (which makes scaling markdown very painful) */
 
 li
   line-height: normal
@@ -410,20 +415,20 @@ code
   background-position: bottom left
   background-repeat: repeat-x
 
-/* Deals with the currently open file tabs and moving them around
+/* Deals with the currently open file tabs and moving them around */
 
 .file-pages
   float: none
   overflow: hidden
   > li > a
     position: static
-    /* Bootstrap 3 has this as relative ??
+    /* Bootstrap 3 has this as relative ??  */
     padding: 13px 15px 7px
     border-radius: 5px 5px 0px 0px
-    /* Flatten bottom corners like tabs
+    /* Flatten bottom corners like tabs  */
 
 .file-tab-placeholder
-  /* Currently blank
+  /* Currently blank */
 
 .file-pages li
   &.ui-sortable-helper > a
