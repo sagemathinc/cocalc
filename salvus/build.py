@@ -467,7 +467,8 @@ SAGE_PIP_PACKAGES = [
     'fipy',       # requested by Evan Chenelly <echenelly@gmail.com> -- "A finite volume PDE solver in Python".
     'python-igraph', # requested by Santhust <santhust31@gmail.com> -- "High performance graph data structures and algorithms" -- https://pypi.python.org/pypi/python-igraph/0.7
     'mygene',   # requested by Luca Beltrame for a bioinformatics course
-    'singledispatch'  # needed by rpy2 ipython extension now
+    'singledispatch',  # needed by rpy2 ipython extension now
+    'glpk'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
