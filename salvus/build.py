@@ -402,6 +402,7 @@ NODE_MODULES = [
     'rimraf',
     'net-ping',
     'marked',
+    'node-sass',    # transspiller for *.sass to *.css (rootfile is page/index.sass)
     'http-proxy'    # https://github.com/nodejitsu/node-http-proxy
     ]
 

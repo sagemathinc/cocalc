@@ -129,6 +129,11 @@ file_associations['html'] =
     icon   : 'fa-file-code-o'
     opts   : {mode:'htmlmixed', indent_unit:4, tab_size:4}
 
+file_associations['sass'] =
+    editor : 'codemirror'
+    icon   : 'fa-file-code-o'
+    opts   : {mode:'text/x-sass', indent_unit:2, tab_size:2}
+
 file_associations['wiki'] =
     editor : 'codemirror'
     icon   : 'fa-file-code-o'
