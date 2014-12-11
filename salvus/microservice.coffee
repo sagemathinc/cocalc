@@ -1,3 +1,9 @@
+
+DEFAULT_PORT        = 6000
+SECRET_TOKEN_LENGTH = 128
+DEFAULT_TIMEOUT     = 10
+
+
 {EventEmitter} = require('events')
 
 fs        = require("fs")
@@ -17,12 +23,8 @@ uuid      = require('node-uuid')
 if not process.env.SALVUS_TOKENS?
     throw "Update and source salvus-env"
 
-token_file = (name) -> "#{process.env.SALVUS_TOKENS}/#{name}.token"
-SECRET_TOKEN_LENGTH = 128
-DEFAULT_TOKEN_FILE  = token_file('microservice')
-DEFAULT_PORT        = 6000
+token_filename = (name) -> "#{process.env.SALVUS_TOKENS}/#{name}.token"
 
-DEFAULT_TIMEOUT     = 10
 
 ######################################################################
 # CLIENT
@@ -30,21 +32,23 @@ DEFAULT_TIMEOUT     = 10
 exports.client = (opts) ->
     opts = defaults opts,
         cb         : required              # cb(err,  instance)
-        token_file : DEFAULT_TOKEN_FILE
         port       : DEFAULT_PORT
-    # since client is used only for testing
-    winston.remove(winston.transports.Console)
-    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
-    new Client(opts)
+        debug      : true
+    new exports.Client(opts)
 
-class Client extends EventEmitter
+class exports.Client extends EventEmitter
     constructor : (opts) ->
         opts = defaults opts,
-            token_file : DEFAULT_TOKEN_FILE
             port       : DEFAULT_PORT
-            name       : 'Abstract'
+            name       : 'microservice'
+            debug      : false
             cb         : required
-        @token_file = opts.token_file
+
+        if opts.debug
+            winston.remove(winston.transports.Console)
+            winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+
+        @token_file = token_filename(opts.name)
         @port = opts.port
         @name = opts.name
         misc.call_lock(obj:@)
@@ -168,28 +172,28 @@ class Client extends EventEmitter
             cb   : (err, resp) =>
                 @dbg('test0', misc.to_json(resp))
 
-
 ######################################################################
 # Network SERVER
 ######################################################################
-class Server extends EventEmitter
+class exports.Server extends EventEmitter
     constructor : (opts) ->
         opts = defaults opts,
-            token_file : DEFAULT_TOKEN_FILE
             port       : DEFAULT_PORT
-            name       : 'Abstract'
+            name       : 'microservice'
             cb         : undefined
         @dbg("constructor")
         @port = opts.port
         @name = opts.name
         @init_event_handlers()
+
+        token_file = token_filename(opts.name)
         async.series([
             (cb) =>
                 @dbg("constructor","reading token file")
-                fs.exists opts.token_file, (exists) =>
+                fs.exists token_file, (exists) =>
                     if not exists
                         cb(); return
-                    fs.readFile opts.token_file, (err, buf) =>
+                    fs.readFile token_file, (err, buf) =>
                         if err
                             cb() # will generate in next step
                         else
@@ -202,7 +206,7 @@ class Server extends EventEmitter
                     @dbg("constructor","generating token")
                     require('crypto').randomBytes SECRET_TOKEN_LENGTH, (ex, buf) =>
                         @secret_token = buf.toString('base64')
-                        fs.writeFile(opts.token_file, buf, cb)
+                        fs.writeFile(token_file, buf, cb)
             (cb) =>
                 @dbg("constructor","starting tcp server")
                 @start_tcp_server(cb)
@@ -313,44 +317,46 @@ class Server extends EventEmitter
         else
             opts.cb?(undefined)
 
+# Process command line arguments
+exports.cli = (opts) ->
+    opts = defaults opts,
+        server_class : exports.Server
+        default_port : DEFAULT_PORT
 
-start_server = () ->
-    winston.debug("start_server")
-    new Server
-        token_file : program.token
-        port       : program.port
+    program.usage('[start/stop/restart/status] [options]')
+        .option('--port <n>', "port to listen on (default: #{opts.default_port})", parseInt)
+        .option('--debug [string]', 'logging debug level (default: "debug"); "" for no debugging output)', String, 'debug')
+        .option('--pidfile [string]', 'store pid in this file', String)
+        .option('--logfile [string]', 'write log to this file (default: "data/logs/program._name.log")', String)
+        .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
+        .option('--keyspace [string]', 'Cassandra keyspace to use (default: "salvus")', String, 'salvus')
+        .parse(process.argv)
+
+    if program._name != 'undefined'
+        if not program.port?
+            program.port = opts.default_port
+        if not program.pidfile?
+            program.pidfile = "data/pids/#{program._name}.pid"
+        if not program.logfile?
+            program.logfile = "data/logs/#{program._name}.log"
+        # run as a server/daemon (otherwise, imported as a library)
+        if program.debug
+            winston.remove(winston.transports.Console)
+            winston.add(winston.transports.Console, {level: program.debug, timestamp:true, colorize:true})
+
+        process.addListener "uncaughtException", (err) ->
+            winston.debug("BUG ****************************************************************************")
+            winston.debug("Uncaught exception: " + err)
+            winston.debug(err.stack)
+            winston.debug("BUG ****************************************************************************")
+
+        console.log("#{program._name} #{program.args[0]} server on port #{program.port}...")
+        daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile},
+               () ->
+                    winston.debug("start_server")
+                    new opts.server_class(port : program.port)
+              )
 
 
-#############################################
-# Process command line arguments -- copy something based
-# on this into module that actually uses this.
-#############################################
-program.usage('[start/stop/restart/status] [options]')
-    .option('--port <n>', 'port to listen on (default: #{DEFAULT_PORT})', parseInt, DEFAULT_PORT)
-    .option('--debug [string]', 'logging debug level (default: "debug"); "" for no debugging output)', String, 'debug')
-    .option('--pidfile [string]', 'store pid in this file (default: "data/pids/program._name.pid")', String, undefined)
-    .option("--token [string]', 'store secret token in this file (default: '#{DEFAULT_TOKEN_FILE}')", String, DEFAULT_TOKEN_FILE)
-    .option('--logfile [string]', 'write log to this file (default: "data/logs/program._name.log")', String, undefined)
-    .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
-    .option('--keyspace [string]', 'Cassandra keyspace to use (default: "salvus")', String, 'salvus')
-    .parse(process.argv)
-
-if program._name != 'undefined'
-    if not program.pidfile?
-        program.pidfile = "data/pids/#{program._name}.pid"
-    if not program.logfile?
-        program.logfile = "data/logs/#{program._name}.log"
-    # run as a server/daemon (otherwise, imported as a library)
-    if program.debug
-        winston.remove(winston.transports.Console)
-        winston.add(winston.transports.Console, {level: program.debug, timestamp:true, colorize:true})
-
-    process.addListener "uncaughtException", (err) ->
-        winston.debug("BUG ****************************************************************************")
-        winston.debug("Uncaught exception: " + err)
-        winston.debug(err.stack)
-        winston.debug("BUG ****************************************************************************")
-
-    console.log("Starting #{program._name} server...")
-    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
-
+if not module.parent?
+    exports.cli()
