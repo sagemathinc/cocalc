@@ -905,6 +905,9 @@ exports.syncdb = (opts) ->
 microservice = require('microservice')
 DEFAULT_PORT = 6001
 
+###
+# Client
+###
 exports.client = (opts) ->
     opts = defaults opts,
         port  : DEFAULT_PORT
@@ -916,6 +919,72 @@ class SyncstringClient extends microservice.Client
     constructor: (opts) ->
         opts.name = "syncstring"
         super(opts)
+
+    syncdb: (opts) =>
+        opts = defaults opts,
+            string_id  : required
+            max_length : MAX_STRING_LENGTH
+            cb         : required
+        S = new ClientSyncDB(opts.string_id, opts.max_length, @)
+        opts.cb(undefined, S)
+
+    _syncdb_call: (opts) =>
+        opts = defaults opts,
+            action     : required   # 'select', 'update', 'delete'
+            args       : required
+            string_id  : required
+            max_length : MAX_STRING_LENGTH
+            cb         : undefined
+        @call
+            mesg :
+                event      : 'syncdb_call'
+                action     : opts.action
+                args       : opts.args
+                string_id  : opts.string_id
+                max_length : opts.max_length
+            cb   : (err, resp) =>
+                    if err
+                        opts.cb?(err)
+                    else
+                        opts.cb?(undefined, resp.result)
+
+
+class ClientSyncDB extends EventEmitter
+    constructor : (@string_id, @max_length, @client) ->
+
+    _syncdb_call: (opts) =>
+        opts = defaults opts,
+            action : required
+            args   : required
+            cb     : required
+        opts.string_id  = @string_id
+        opts.max_length = @max_length
+        @client._syncdb_call(opts)
+
+    select: (opts) =>
+        opts = defaults opts,
+            where : {}
+            cb    : required
+        @_syncdb_call
+            action    : 'select'
+            args      : {where : opts.where}
+            cb        : opts.cb
+
+    update: (opts) =>
+        opts = defaults opts,
+            set   : required
+            where : required
+            cb    : undefined
+        @_syncdb_call
+            action    : 'update'
+            args      :
+                where : opts.where
+                set   : opts.set
+            cb        : opts.cb
+
+###
+# Server
+###
 
 class SyncstringServer extends microservice.Server
     constructor : (opts) ->
@@ -942,8 +1011,9 @@ class SyncstringServer extends microservice.Server
             else
                 @dbg("constructor","Started syncstring server")
                 opts.cb?(undefined, @)
-
         )
+
+        @on('mesg_syncdb_call', @syncdb_call)
 
     connect_to_database: (cb) =>
         @dbg("connect_to_database", "connecting to database....")
@@ -966,6 +1036,22 @@ class SyncstringServer extends microservice.Server
                             @dbg("connect_to_database", "Successfully connected to database")
                             @database = _db
                             cb()
+
+    syncdb_call: (socket, mesg) =>
+        @dbg("syncdb_call", mesg)
+        exports.syncdb
+            string_id  : mesg.string_id
+            max_length : mesg.max_length
+            cb         : (err, s) =>
+                if err
+                    resp = message.error(error:err)
+                else
+                    resp = {result: s[mesg.action](mesg.args)}
+                resp.id = mesg.id
+                @send_mesg
+                    socket : socket
+                    mesg   : resp
+
 
 if not module.parent?
     microservice.cli

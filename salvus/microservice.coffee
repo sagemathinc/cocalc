@@ -1,3 +1,23 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
 
 DEFAULT_PORT        = 6000
 SECRET_TOKEN_LENGTH = 128
@@ -71,7 +91,7 @@ class exports.Client extends EventEmitter
         )
 
     dbg: (f, m) =>
-        winston.debug("#{@name}Client.#{f}: #{m}")
+        winston.debug("#{@name}Client.#{f}: #{misc.trunc(misc.to_json(m),200)}")
 
     read_token: (cb) =>
         @dbg("read_token")
@@ -134,7 +154,7 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             mesg    : required
             timeout : DEFAULT_TIMEOUT
-            call    : true     # if true, tags mesg with id and waits for a response with the same id
+            call    : false    # if true, tags mesg with id and waits for a response with the same id
             cb      : undefined
         if opts.call and not opts.mesg.id?
             opts.mesg.id = uuid.v4()
@@ -152,11 +172,14 @@ class exports.Client extends EventEmitter
         else
             opts.cb?()
 
+    call: (opts) =>
+        opts.call = true
+        @send_mesg(opts)
+
     ping: (cb) =>
         t0 = misc.mswalltime()
-        @send_mesg
+        @call
             mesg : message.ping()
-            call : true
             cb   : (err, resp) =>
                 if err
                     @dbg("ping", "error -- #{err}")
@@ -166,11 +189,20 @@ class exports.Client extends EventEmitter
                     cb()
 
     test0: (cb) =>
-        @send_mesg
+        @call
             mesg : {event:'test0'}
-            call : true
             cb   : (err, resp) =>
                 @dbg('test0', misc.to_json(resp))
+
+    test1: (n, cb) =>
+        b = new Buffer(n)
+        b.fill('a')
+        big = b.toString()
+        t = misc.mswalltime()
+        @call
+            mesg : {event:'ping', big:big}
+            cb   : (err, resp) =>
+                @dbg('test1', "totat time: #{misc.mswalltime(t)}ms")
 
 ######################################################################
 # Network SERVER
@@ -225,29 +257,25 @@ class exports.Server extends EventEmitter
             @send_mesg
                 socket : socket
                 mesg   : message.pong(id:mesg.id)
-                call   : false
 
         @on 'mesg_test0', (socket, mesg) =>
             @dbg("test0", "mesg_test0")
             @send_mesg
                 socket : socket
                 mesg   : message.pong(id:mesg.id)
-                call   : false
             f = () =>
                 @dbg("test0", "f")
                 @send_mesg
                     socket : socket
                     mesg   : {event:'test0'}
-                    call   : false
             setTimeout(f, 1000)
 
             g = () =>
                 @dbg("test0", "g")
                 t0 = misc.mswalltime()
-                @send_mesg
+                @call
                     socket : socket
                     mesg   : message.ping()
-                    call   : true
                     cb     : (err, resp) =>
                         if err
                             @dbg("test0", "error -- #{err}")
@@ -258,7 +286,7 @@ class exports.Server extends EventEmitter
 
 
     dbg: (f, m) =>
-        winston.debug("#{@name}Server.#{f}: #{m}")
+        winston.debug("#{@name}Server.#{f}: #{misc.trunc(misc.to_json(m),200)}")
 
 
     start_tcp_server: (cb) =>
@@ -299,7 +327,7 @@ class exports.Server extends EventEmitter
             socket  : required
             mesg    : required
             timeout : DEFAULT_TIMEOUT
-            call    : true              # if true, tags mesg with id and waits for a response with the same id
+            call    : false             # if true, tags mesg with id and waits for a response with the same id
             cb      : undefined
         if opts.call and not opts.mesg.id?
             opts.mesg.id = uuid.v4()
@@ -316,6 +344,11 @@ class exports.Server extends EventEmitter
                         opts.cb?(undefined, resp)
         else
             opts.cb?(undefined)
+
+    call: (opts) =>
+        opts.call = true
+        @send_mesg(opts)
+
 
 # Process command line arguments
 exports.cli = (opts) ->
