@@ -1922,6 +1922,7 @@ print_sagews = (opts) ->
         date       : required
         contents   : required
         extra_data : undefined   # extra data that is useful for displaying certain things in the worksheet.
+        timeout    : 90
         cb         : required
 
     extra_data_file = undefined
@@ -1942,6 +1943,7 @@ print_sagews = (opts) ->
                 args        : args
                 err_on_exit : false
                 bash        : false
+                timeout     : opts.timeout
                 cb          : cb
 
         ], (err) =>
@@ -1969,6 +1971,7 @@ print_to_pdf = (socket, mesg) ->
                         date       : mesg.options.date
                         contents   : mesg.options.contents
                         extra_data : mesg.options.extra_data
+                        timeout    : mesg.options.timeout
                         cb         : cb
                 else
                     cb("unable to print file of type '#{ext}'")
