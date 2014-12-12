@@ -874,6 +874,7 @@ class StringsDB
 x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.s = require('syncstring'); x.s.init_syncstring_db(x.c.database); x.ss=x.s.syncdb(string_id:'c26db83a-7fa2-44a4-832b-579c18fac65f', cb:(e,t)->x.t=t))
 ###
 _syncdb_cache = {}
+_syncdb_callbacks = {}
 exports.syncdb = (opts) ->
     opts = defaults opts,
         string_id      : required
@@ -883,21 +884,27 @@ exports.syncdb = (opts) ->
     if d?
         opts.cb(undefined, d)
         return
+    x = _syncdb_callbacks[opts.string_id]
+    if x?
+        x.push(opts.cb)
+        return
+    _syncdb_callbacks[opts.string_id] = [opts.cb]
     get_syncstring
         string_id  : opts.string_id
         max_length : opts.max_length
         cb         : (err, S) =>
-            if err
-                opts.cb(err)
-            else
+            if not err
                 doc = new diffsync.SynchronizedDB_DiffSyncWrapper(S.in_memory_client)
                 S.db_client.on 'changed', () =>
                     doc.emit("sync")
                 d = _syncdb_cache[opts.string_id] = new diffsync.SynchronizedDB(doc)
                 d.string_id = opts.string_id
-                opts.cb(undefined, d)
-
-
+            for cb in _syncdb_callbacks[opts.string_id]
+                if err
+                    cb(err)
+                else
+                    cb(undefined, d)
+            delete _syncdb_callbacks[opts.string_id]
 
 ######################################################################
 # Microservice API
@@ -1147,16 +1154,17 @@ class SyncstringServer extends microservice.Server
                     if listeners[socket.id]?
                         s.removeListener('change', listeners[socket.id])
                     f = (changes) =>
-                        @dbg("syncdb_listen(string_id=#{mesg.string_id})", "telling socket.id=#{socket.id}) that got changes #{misc.to_json(changes)}")
+                        #@dbg("syncdb_listen(string_id=#{mesg.string_id})", "telling socket.id=#{socket.id}) that got changes #{misc.to_json(changes)}")
                         @send_mesg
                             socket : socket
                             mesg   :
                                 event     : 'syncdb_change'
                                 string_id : mesg.string_id
                                 changes   : changes
-                    s.on('change', f)
+                    s.addListener('change', f)
+                    @dbg("syncdb_listen", "now we have this many listeners: #{s.listeners('change').length}")
                     listeners[socket.id] = f
-                    @dbg("syncdb_listen(string_id=#{mesg.string_id})", "now listening to these sockets: #{misc.to_json(misc.keys(listeners))}")
+                    #@dbg("syncdb_listen(string_id=#{mesg.string_id})", "now listening to these sockets: #{misc.to_json(misc.keys(listeners))}")
                     resp = message.success()
                 resp.id = mesg.id
                 @send_mesg
