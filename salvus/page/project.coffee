@@ -2270,7 +2270,7 @@ class ProjectPage
                     path       : '.'
                     cb         : (err, output) =>
                         if err
-                            alert_message(type:"error", message:"Error moving #{new_src} to #{new_dest} -- #{output.stderr}")
+                            alert_message(type:"error", message:"Error moving #{new_src} to #{new_dest} -- #{err}")
                         else
                             alert_message(type:"success", message:"Successfully moved #{new_src} to #{new_dest}")
                             if path == @current_pathname()
