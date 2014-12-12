@@ -1616,6 +1616,7 @@ class CodeMirrorEditor extends FileEditor
             elt.data('font-size', size)
 
     change_font_size: (cm, delta) =>
+        #console.log("change_font_size #{cm.name}, #{delta}")
         scroll_before = cm.getScrollInfo()
 
         elt = $(cm.getWrapperElement())
@@ -1922,6 +1923,9 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : height
                 width  : width
+            # additional hack that might help avoid corruption... (I hate doing this)
+            @change_font_size(cm,+1)
+            @change_font_size(cm,-1)
 
         # This is another hack that specifically hopefully addresses an
         # issue where when I open a tab often the scrollbar is completely
