@@ -924,6 +924,7 @@ class SyncstringClient extends microservice.Client
         opts.name = "syncstring"
         super(opts)
         @on("mesg_syncdb_change", @_syncdb_change)
+        @on('connect',@_syncdb_register_listeners)
 
     syncdb: (opts) =>
         opts = defaults opts,
@@ -937,21 +938,13 @@ class SyncstringClient extends microservice.Client
         if S?
             opts.cb(undefined, S)
             return
-        S = new ClientSyncDB(opts.string_id, opts.max_length, @)
+        S = new ClientSyncDB(opts.string_id, opts.max_length, opts.listen, @)
         @_syncdb_cache[opts.string_id] = S
-        if not opts.listen
-            opts.cb(undefined, S)
-        else
-            @call
-                mesg :
-                    event      : 'syncdb_listen'
-                    string_id  : opts.string_id
-                    max_length : opts.max_length
-                cb   : (err) =>
-                    if err
-                        opts.cb(err)
-                    else
-                        opts.cb(undefined, S)
+        opts.cb(undefined, S)
+
+    _syncdb_register_listeners: () =>
+        for string_id, S of @_syncdb_cache
+            S._register_listener()
 
     _syncdb_destroy: (opts) =>
         opts = defaults opts,
@@ -990,7 +983,8 @@ class SyncstringClient extends microservice.Client
 
 # Object will emit change events *if* listen:true when creating it.
 class ClientSyncDB extends EventEmitter
-    constructor : (@string_id, @max_length, @client) ->
+    constructor : (@string_id, @max_length, @listen, @client) ->
+        @_register_listener()
 
     destroy : () =>
         @client._syncdb_destroy(string_id:@string_id)
@@ -1003,6 +997,16 @@ class ClientSyncDB extends EventEmitter
         opts.string_id  = @string_id
         opts.max_length = @max_length
         @client._syncdb_call(opts)
+
+    _register_listener: (cb) =>
+        if not @listen
+            cb(); return
+        @client.call
+            mesg :
+                event      : 'syncdb_listen'
+                string_id  : @string_id
+                max_length : @max_length
+            cb   : cb
 
     select: (opts) =>
         opts = defaults opts,
@@ -1061,11 +1065,6 @@ class SyncstringServer extends microservice.Server
     constructor : (opts) ->
         async.series([
             (cb) =>
-                super
-                    port : opts.port
-                    name : 'syncstring'
-                    cb   : cb
-            (cb) =>
                 @dbg("constructor","connecting to database")
                 misc.retry_until_success
                     f           : @connect_to_database
@@ -1075,6 +1074,13 @@ class SyncstringServer extends microservice.Server
             (cb) =>
                 @dbg("constructor","initializing syncstring database")
                 exports.init_syncstring_db(@database, cb)
+            (cb) =>
+                # do this onl;y after we have the database and syncstring server going.
+                @dbg('constructor', "initialize the actual server")
+                super
+                    port : opts.port
+                    name : 'syncstring'
+                    cb   : cb
         ], (err) =>
             if err
                 @dbg("constructor","Failed to initialize server: #{err}")
@@ -1126,19 +1132,22 @@ class SyncstringServer extends microservice.Server
                     mesg   : resp
 
     syncdb_listen: (socket, mesg) =>
-        @dbg("syncdb_listen", mesg)
+        @dbg("syncdb_listen(string_id=#{mesg.string_id})", "start socket.id=#{socket.id} listening")
+        if not @_syncdb_listeners?
+            @_syncdb_listeners = {}
+        listeners = @_syncdb_listeners[mesg.string_id]
+        if not listeners?
+            listeners = @_syncdb_listeners[mesg.string_id] = {}
         exports.syncdb
             string_id  : mesg.string_id
             cb         : (err, s) =>
                 if err
                     resp =  message.error(error:err)
                 else
-                    if not s._syncdb_listeners?
-                        s._syncdb_listeners = {}
-                    if s._syncdb_listeners[socket.id]?
-                        s.removeListener('change', s._syncdb_listeners[socket.id])
-                    f = s._syncdb_listeners[socket.id] = (changes) =>
-                        @dbg("syncdb_listen(string=#{mesg.string_id},id=#{socket.id})", "got changes #{misc.to_json(changes)}")
+                    if listeners[socket.id]?
+                        s.removeListener('change', listeners[socket.id])
+                    f = (changes) =>
+                        @dbg("syncdb_listen(string_id=#{mesg.string_id})", "telling socket.id=#{socket.id}) that got changes #{misc.to_json(changes)}")
                         @send_mesg
                             socket : socket
                             mesg   :
@@ -1146,6 +1155,8 @@ class SyncstringServer extends microservice.Server
                                 string_id : mesg.string_id
                                 changes   : changes
                     s.on('change', f)
+                    listeners[socket.id] = f
+                    @dbg("syncdb_listen(string_id=#{mesg.string_id})", "now listening to these sockets: #{misc.to_json(misc.keys(listeners))}")
                     resp = message.success()
                 resp.id = mesg.id
                 @send_mesg
@@ -1153,15 +1164,19 @@ class SyncstringServer extends microservice.Server
                     mesg   : resp
 
     syncdb_remove_listener: (socket, mesg) =>
-        @dbg("syncdb_remove_listener", mesg)
+        @dbg("syncdb_remove_listener(string_id=#{mesg.string_id})", "stop listening -- client.id=#{socket.id}")
         exports.syncdb
             string_id  : mesg.string_id
             cb         : (err, s) =>
                 if err
                     resp =  message.error(error:err)
                 else
-                    if s._syncdb_listeners? and s._syncdb_listeners[mesg.string_id]?
-                        s.removeListener('change', s._syncdb_listeners[mesg.string_id])
+                    if @_syncdb_listeners?
+                        listeners = @_syncdb_listeners[mesg.string_id]
+                        if listeners?
+                            f = listeners[socket.id]
+                            if f?
+                                s.removeListener('change', f)
                     resp = message.success()
                 resp.id = mesg.id
                 @send_mesg
@@ -1170,7 +1185,7 @@ class SyncstringServer extends microservice.Server
 
 
 
-if not module.parent?
+if not module.parent?  # run from command line
     microservice.cli
         server_class : SyncstringServer
         default_port : DEFAULT_PORT

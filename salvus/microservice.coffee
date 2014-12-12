@@ -136,6 +136,7 @@ class exports.Client extends EventEmitter
                             @dbg("mesg", "mesg of unknown type #{type} ignored")
 
                     reconnect = () =>
+                        @emit('disconnect')  # tell listeners that right now not connected
                         socket.removeAllListeners()
                         @connect()
 
@@ -147,6 +148,8 @@ class exports.Client extends EventEmitter
                         @send_mesg
                             mesg   : message.pong(id:mesg.id)
                             call   : false
+
+                    @emit('connect')  # tell listeners that we are connected
 
                     cb()
 
