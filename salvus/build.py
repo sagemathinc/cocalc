@@ -499,7 +499,8 @@ R_PACKAGES = [
     #'xlsx',
     'XML',
     'data.table',
-    'brian'
+    'brian',
+    'rugarch'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
