@@ -500,7 +500,8 @@ R_PACKAGES = [
     'XML',
     'data.table',
     'brian',
-    'rugarch'
+    'rugarch',
+    'quantmod'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
