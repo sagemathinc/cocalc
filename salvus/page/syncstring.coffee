@@ -112,8 +112,8 @@ class SyncString extends diffsync.DiffSync
             f         : f
             max_tries : 30
             factor    : 1.5
-            name      : "SyncString"
-            log       : (m) -> console.log(m)
+            #name      : "SyncString"
+            #log       : (m) -> console.log(m)
             cb        : cb
 
     _sync: (cb) =>
