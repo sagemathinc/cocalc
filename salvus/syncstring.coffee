@@ -65,7 +65,7 @@ SALVUS_HOME = process.cwd()
 
 # Polling parameters:
 INIT_POLL_INTERVAL     = 3000
-MAX_POLL_INTERVAL      = 20000   # TODO: for testing -- for deploy make longer!
+MAX_POLL_INTERVAL      = 5000 # 20000   # TODO: for testing make short -- for deploy make longer!
 POLL_DECAY_RATIO       = 1.4
 
 # Maximum allowed syncstring size -- we keep this manageable since we have to be
@@ -80,7 +80,7 @@ MAX_STRING_LENGTH      = 5000000
 # due to them not being propogates to all data centers.
 
 TIMESTAMP_OVERLAP      = 60000
-## TIMESTAMP_OVERLAP      = 15000
+TIMESTAMP_OVERLAP      = 8000
 
 # If there are more than DB_PATCH_SQUASH_THRESH patches for a given string,
 # we squash the old patch history into a single patch the first time
@@ -238,7 +238,14 @@ class SynchronizedString
                     opts.cb(undefined, client)
 
     sync: (cb) =>
-        @_call_with_lock(@_sync, cb)
+        f = (cb) =>
+            @_call_with_lock(@_sync, cb)
+        misc.retry_until_success
+            f         : f
+            max_tries : 20
+            name      : "SynchronizedString.sync"
+            log       : winston.debug
+            cb        : cb
 
     _sync: (cb, retry) =>
         last = @head
@@ -538,7 +545,16 @@ class StringsDB
                         retry(interval)
 
     sync: (string_ids, cb) =>
-        @_call_with_lock(((c)=>@_write_updates_to_db(string_ids,c)), cb)
+        g = (cb) =>
+            @_write_updates_to_db(string_ids,cb)
+        f = (cb) =>
+            @_call_with_lock(g, cb)
+        misc.retry_until_success
+            f         : f
+            max_tries : 20
+            name      : "StringsDB.sync"
+            log       : winston.debug
+            cb        : cb
 
     _write_updates_to_db: (string_ids, cb) =>
         if not @db?
@@ -929,9 +945,9 @@ exports.client = (opts) ->
 class SyncstringClient extends microservice.Client
     constructor: (opts) ->
         opts.name = "syncstring"
-        super(opts)
         @on("mesg_syncdb_change", @_syncdb_change)
         @on('connect',@_syncdb_register_listeners)
+        super(opts)
 
     syncdb: (opts) =>
         opts = defaults opts,

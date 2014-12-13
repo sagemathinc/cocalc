@@ -418,12 +418,16 @@ exports.retry_until_success = (opts) ->
         max_delay   : 20000           # milliseconds -- stop increasing time at this point
         factor      : 1.4             # multiply delay by this each time
         max_tries   : undefined
+        log         : undefined
+        name        : ''
         cb          : undefined       # called with cb() on *success*; cb(error) if max_tries is exceeded
 
     delta = opts.start_delay
     tries = 0
     g = () ->
         tries += 1
+        if opts.log
+            opts.log("retry_until_success(#{opts.name}) -- try #{tries}")
         opts.f (err)->
             if err
                 if opts.max_tries? and opts.max_tries <= tries

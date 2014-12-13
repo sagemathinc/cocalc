@@ -21,7 +21,7 @@
 
 
 # activity.coffee
-DISABLE_NOTIFICATIONS = true
+DISABLE_NOTIFICATIONS = false
 
 if DISABLE_NOTIFICATIONS
     $(".salvus-notification-indicator").hide()

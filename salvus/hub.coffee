@@ -114,7 +114,7 @@ init_salvus_version = () ->
 
 
 syncstring = require('syncstring')
-SYNCSTRING_DISABLED = true
+SYNCSTRING_DISABLED = false
 
 misc_node = require('misc_node')
 
@@ -2620,7 +2620,7 @@ class Client extends EventEmitter
     # Get a new syncstring session for the string with given id.
     # Returns message with a session_id and also the value of the string.
     get_syncstring: (mesg, cb) =>
-        if SYNCSTRING_DISABLED
+        if true or SYNCSTRING_DISABLED
             @error_to_client(id:mesg.id, error:"syncstrings currently disabled")
             cb("syncstrings currently disabled")
             return
@@ -2736,6 +2736,7 @@ class Client extends EventEmitter
 
 # one notifications syncdb per *account* (not connection); keys are account id's
 notifications_syncdb_cache = {}
+notifications_syncdb_callbacks = {}
 get_notifications_syncdb = (account_id, cb) ->
     if SYNCSTRING_DISABLED
         cb("syncstring disabled")
@@ -2748,7 +2749,14 @@ get_notifications_syncdb = (account_id, cb) ->
         cb(undefined, notifications_syncdb_cache[account_id])
         return
 
+    x = notifications_syncdb_callbacks[account_id]
+    if x?
+        x.push(cb)
+        return
+    notifications_syncdb_callbacks[account_id] = [cb]
+
     string_id = undefined
+    is_new    = false
     db        = undefined
     async.series([
         (cb) =>
@@ -2759,12 +2767,14 @@ get_notifications_syncdb = (account_id, cb) ->
                 columns : ['notifications_syncdb']
                 cb      : (err, result) =>
                     if err
+                        is_new = true
                         cb(err)
                     else
                         string_id = result[0]
+                        is_new = false
                         cb()
         (cb) =>
-            if string_id?
+            if not is_new
                 cb(); return
             # no notifications syncdb yet, so create it and save back to db
             string_id = misc.uuid()
@@ -2774,6 +2784,8 @@ get_notifications_syncdb = (account_id, cb) ->
                 set   : {notifications_syncdb:string_id}
                 cb    : cb
         (cb) =>
+            if not is_new
+                cb(); return
             # grant user write access to this syncdb
             set_syncstring_access
                 account_id : account_id
@@ -2781,8 +2793,8 @@ get_notifications_syncdb = (account_id, cb) ->
                 type       : 'write'
                 cb         : cb
         (cb) =>
-            # now initialize our local copy
-            syncstring.syncdb
+            # now get the syncdb
+            syncstring_client.syncdb
                 string_id : string_id
                 cb        : (err, _db) ->
                     if err
@@ -2792,10 +2804,13 @@ get_notifications_syncdb = (account_id, cb) ->
                         notifications_syncdb_cache[account_id] = db
                         cb()
     ], (err) =>
-        if err
-            cb(err)
-        else
-            cb(undefined, db))
+        for cb in notifications_syncdb_callbacks[account_id]
+            if err
+                cb(err)
+            else
+                cb(undefined, db)
+        delete notifications_syncdb_callbacks[account_id]
+    )
 
 # update notifications about non-comment activity on a file with at most this frequency.
 
@@ -3002,11 +3017,26 @@ path_activity = (opts) ->
                                 path          : path
 
                             f = (account_id, cb) =>
-                                get_notifications_syncdb account_id, (err, db) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        x = db.select_one(where:where)
+                                db = undefined
+                                x  = undefined
+                                async.series([
+                                    (cb) =>
+                                        get_notifications_syncdb account_id, (err, _db) =>
+                                            if err
+                                                cb(err)
+                                            else
+                                                db = _db
+                                                cb()
+                                    (cb) =>
+                                        db.select_one
+                                            where : where
+                                            cb    : (err, _x) =>
+                                                if err
+                                                    cb(err)
+                                                else
+                                                    x = _x
+                                                    cb()
+                                    (cb) =>
                                         actions ={}
                                         if x?
                                             if not x.read
@@ -3022,12 +3052,18 @@ path_activity = (opts) ->
                                             project_title : opts.project_title
                                         if last[account_id]?
                                             set.last_edit = last[account_id]
+
                                         db.update
                                             where : where
-                                            set : set
-                                        cb()
+                                            set   : set
+                                            cb    : cb
+                                ], (err) =>
+                                    dbg("record_activity(path=#{path}) to account_id=#{account_id} -- err=#{err}")
+                                    cb(err)
+                                )
 
                             async.map(targets, f, (err)=>cb(err))
+
                     ], cb)
             ], (err) -> cb(err))
     ], (err) -> opts.cb?(err))
@@ -5552,37 +5588,53 @@ init_bup_server = (cb) ->
 #############################################
 # Start everything running
 #############################################
+syncstring_client = undefined
+
 exports.start_server = start_server = () ->
     # the order of init below is important
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
 
-    # Once we connect to the database, start serving.
-    misc.retry_until_success
-        f           : connect_to_database
-        start_delay : 1000
-        max_delay   : 10000
-        cb          : () ->
-            winston.debug("connected to database.")
-            init_salvus_version()
-            if not SYNCSTRING_DISABLED
-                syncstring.init_syncstring_db(database)
-
+    async.series([
+        (cb) ->
+            winston.debug("Connecting to the database.")
+            misc.retry_until_success
+                f           : connect_to_database
+                start_delay : 1000
+                max_delay   : 10000
+                cb          : () ->
+                    winston.debug("connected to database.")
+                    init_salvus_version()
+                    cb()
+        (cb) ->
+            if SYNCSTRING_DISABLED
+                cb(); return
+            syncstring.client
+                debug : true
+                cb    : (err, client) =>
+                    if err
+                        cb(err)
+                    else
+                        syncstring_client = client
+                        cb()
+        (cb) ->
+            init_bup_server(cb)
+        (cb) ->
             # proxy server and http server, etc. relies on bup server having been created
-            init_bup_server () =>
-                init_http_server()
-                init_http_proxy_server()
+            init_http_server()
+            init_http_proxy_server()
 
-                # start updating stats cache every so often -- note: this is cached in the database, so it isn't
-                # too big a problem if we call it too frequently...
-                update_server_stats(); setInterval(update_server_stats, 120*1000)
-                register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
+            # start updating stats cache every so often -- note: this is cached in the database, so it isn't
+            # too big a problem if we call it too frequently...
+            update_server_stats(); setInterval(update_server_stats, 120*1000)
+            register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
+            init_primus_server()
+            init_stateless_exec()
+            http_server.listen(program.port, program.host)
 
-                init_primus_server()
-                init_stateless_exec()
-                http_server.listen(program.port, program.host)
-
-                winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+            winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+            cb()
+    ])
 
 ###
 # Command line admin stuff -- should maybe be moved to another program?
