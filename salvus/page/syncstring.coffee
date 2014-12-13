@@ -133,11 +133,11 @@ class SyncString extends diffsync.DiffSync
         @_call_with_lock(((cb) => @_handle_diffsync_mesg(mesg, cb)), cb)
 
     _handle_diffsync_mesg: (mesg, cb) =>
-        #dbg = (m) => console.log("handle_diffsync_mesg: #{m}")
-        #dbg(misc.to_json(mesg))
+        #dbg = (f, m) => console.log("handle_diffsync_mesg: #{f} -- #{misc.to_json(m)}")
+        #dbg('',mesg)
         @recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
             if err
-                #dbg("recv_edits: #{err}")
+                #dbg("recv_edits error", err)
                 # would have to reset at this point (?)
                 cb?(err)
                 return
@@ -145,19 +145,27 @@ class SyncString extends diffsync.DiffSync
             #dbg("send back our own edits to hub")
             @last_sync = @shadow
             @emit('sync')
+            cb?()
+            return
+            ###     # this causes infinite loops, and isn't really needed.
             @push_edits (err) =>
                 # call to push_edits just computed @edit_stack and @last_version_received
                 if err
                     #dbg("error in push_edits -- #{err}")
                     cb?(err)
                 else
-                    #dbg("now sending our own edits out")
-                    resp = message.syncstring_diffsync
-                        id               : mesg.id
-                        edit_stack       : @edit_stack
-                        last_version_ack : @last_version_received
-                    salvus_client.send(resp)
+                    if @edit_stack.length > 0
+                        # only send if we have changes -- otherwise we get in an infinite loop.
+                        #dbg("now sending our own edits out")
+                        resp = message.syncstring_diffsync
+                            id               : mesg.id
+                            session_id       : mesg.session_id
+                            edit_stack       : @edit_stack
+                            last_version_ack : @last_version_received
+                        #dbg("sending response", resp)
+                        salvus_client.send(resp)
                     cb?()
+            ###
 
 
 exports.syncstring = syncstring = (opts) ->

@@ -65,7 +65,7 @@ SALVUS_HOME = process.cwd()
 
 # Polling parameters:
 INIT_POLL_INTERVAL     = 3000
-MAX_POLL_INTERVAL      = 5000 # 20000   # TODO: for testing make short -- for deploy make longer!
+MAX_POLL_INTERVAL      = 15000   # TODO: for testing make short -- for deploy make longer!
 POLL_DECAY_RATIO       = 1.4
 
 # Maximum allowed syncstring size -- we keep this manageable since we have to be
@@ -144,8 +144,10 @@ class SyncStringBrowser extends diffsync.DiffSync
         # if id is given, then we are responding to a sync request from the client.
         # if id not given, we are initiating the sync request.
         #dbg = (m) => winston.debug("push_edits_to_browser: #{m}")
+        #dbg()
         @push_edits (err) =>
             # this just computed @edit_stack and @last_version_received
+            #dbg("@push_edits returned with err=#{err}")
             if err
                 @push_to_client(message.error(error:err, id:id))
                 cb?(err)
@@ -435,7 +437,7 @@ class StringsDB
     string_to_patch: (patch) => diffsync.decompress_patch_compat(JSON.parse(patch))
 
     dbg: (f, m) =>
-        winston.debug("StringsDB.#{f}: #{m}")
+        winston.debug("StringsDB.#{f}: #{misc.to_json(m)}")
         #console.log("StringsDB.#{f}: #{m}")
 
     get_string: (opts) =>
@@ -944,34 +946,70 @@ exports.client = (opts) ->
 
 class SyncstringClient extends microservice.Client
     constructor: (opts) ->
+        @_syncdb_cache = {}
         opts.name = "syncstring"
         @on("mesg_syncdb_change", @_syncdb_change)
+        @on("mesg_push_to_remote", @_push_to_remote)
         @on('connect',@_syncdb_register_listeners)
         super(opts)
 
+    # Synchronized database client: provides both syncdb api and also a general diffsync api
+    # for clients that can do diffs/patches (so can block for a fraction of a second).
     syncdb: (opts) =>
         opts = defaults opts,
-            string_id  : required
-            max_length : MAX_STRING_LENGTH
-            listen     : true       # if true, register a listener for change events
-            cb         : required
-        if not @_syncdb_cache?
-            @_syncdb_cache = {}
-        S = @_syncdb_cache[opts.string_id]
-        if S?
-            opts.cb(undefined, S)
-            return
-        S = new ClientSyncDB(opts.string_id, opts.max_length, opts.listen, @)
-        @_syncdb_cache[opts.string_id] = S
-        opts.cb(undefined, S)
+            string_id      : required
+            push_to_remote : undefined   # function that when called sends message to a remote diffsync client.
+            session_id     : undefined   # specify this if specify push_to_remote
+            listen         : false       # if true, register a listener for change events
+            max_length     : MAX_STRING_LENGTH
+            cb             : required
+        @dbg("syncdb(string_id=#{opts.string_id}, session_id=#{opts.session_id})")
+        live = undefined
+        S = undefined
+        async.series([
+            (cb) =>
+                if opts.push_to_remote?
+                    if not opts.session_id?
+                        opts.session_id = misc.uuid()
+                    @call
+                        mesg :
+                            event : 'get_session'
+                            session_id : opts.session_id
+                            string_id  : opts.string_id
+                            max_length : opts.max_length
+                        cb : (err, resp) =>
+                            if err
+                                cb(err)
+                            else
+                                session_id = resp.session_id
+                                live       = resp.live
+                                cb()
+                else
+                    cb()
+            (cb) =>
+                key = opts.string_id
+                if opts.session_id?
+                    key += opts.session_id
+                S = @_syncdb_cache[key]
+                if not S?
+                    S = @_syncdb_cache[key] = new ClientSyncDB(opts.string_id, opts.max_length,
+                             opts.listen, opts.session_id, opts.push_to_remote, live, @)
+                cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, S)
+        )
 
     _syncdb_register_listeners: () =>
-        for string_id, S of @_syncdb_cache
+        for _, S of @_syncdb_cache
             S._register_listener()
 
     _syncdb_destroy: (opts) =>
         opts = defaults opts,
             string_id  : required
+        @dbg("_syncdb_destroy(string_id=#{opts.string_id})")
         @send_mesg
             mesg :
                 event      : 'syncdb_remove_listener'
@@ -979,11 +1017,12 @@ class SyncstringClient extends microservice.Client
 
     _syncdb_call: (opts) =>
         opts = defaults opts,
-            action     : required   # 'select', 'update', 'delete'
+            action     : required   # 'select', 'update', 'delete', 'diffsync'
             args       : required
             string_id  : required
             max_length : MAX_STRING_LENGTH
             cb         : undefined
+        #@dbg("_syncdb_call(string_id=#{opts.string_id}, action=#{opts.action})", opts.args)
         @call
             mesg :
                 event      : 'syncdb_call'
@@ -998,15 +1037,23 @@ class SyncstringClient extends microservice.Client
                         opts.cb?(undefined, resp.result)
 
     _syncdb_change: (mesg) =>
-        if not @_syncdb_cache?
-            return
         S = @_syncdb_cache[mesg.string_id]
         S?.emit('change', mesg.changes)
+
+    _push_to_remote: (mesg) =>
+        @dbg("_push_to_remote", mesg)
+        S = @_syncdb_cache[mesg.string_id + mesg.session_id]
+        if S?
+            @dbg("_push_to_remote","now pushing")
+            S?.push_to_remote(mesg.mesg)
+        else
+            @dbg("_push_to_remote","no such remote")
 
 
 # Object will emit change events *if* listen:true when creating it.
 class ClientSyncDB extends EventEmitter
-    constructor : (@string_id, @max_length, @listen, @client) ->
+    constructor : (@string_id, @max_length, @listen, @session_id,
+                   @push_to_remote, @init_ver, @client) ->
         @_register_listener()
 
     destroy : () =>
@@ -1023,7 +1070,7 @@ class ClientSyncDB extends EventEmitter
 
     _register_listener: (cb) =>
         if not @listen
-            cb(); return
+            cb?(); return
         @client.call
             mesg :
                 event      : 'syncdb_listen'
@@ -1080,6 +1127,19 @@ class ClientSyncDB extends EventEmitter
                 set   : opts.set
             cb        : opts.cb
 
+    recv_edits: (id, edit_stack, last_version_ack, cb) =>
+        @client.call
+            mesg :
+                event            : 'recv_edits'
+                remote_id        : id
+                string_id        : @string_id
+                session_id       : @session_id
+                max_length       : @max_length
+                edit_stack       : edit_stack
+                last_version_ack : last_version_ack
+            cb   : cb
+
+
 ###
 # Server
 ###
@@ -1098,7 +1158,7 @@ class SyncstringServer extends microservice.Server
                 @dbg("constructor","initializing syncstring database")
                 exports.init_syncstring_db(@database, cb)
             (cb) =>
-                # do this onl;y after we have the database and syncstring server going.
+                # do this only after we have the database and syncstring server going.
                 @dbg('constructor', "initialize the actual server")
                 super
                     port : opts.port
@@ -1112,6 +1172,12 @@ class SyncstringServer extends microservice.Server
                 @dbg("constructor","Started syncstring server")
                 opts.cb?(undefined, @)
         )
+
+        @on('close', @syncdb_remove_listener)
+
+        @_sessions = {}
+        @on('mesg_get_session', @get_session)
+        @on('mesg_recv_edits',  @recv_edits)
 
         @on('mesg_syncdb_call', @syncdb_call)
         @on('mesg_syncdb_listen', @syncdb_listen)
@@ -1138,6 +1204,75 @@ class SyncstringServer extends microservice.Server
                             @dbg("connect_to_database", "Successfully connected to database")
                             @database = _db
                             cb()
+
+    get_session: (socket, mesg) =>
+        @dbg("get_session(socket=#{socket.id})", mesg)
+        @_get_session socket, mesg, (err, S) =>
+            if err
+                resp = message.error(error:err)
+            else
+                @_sessions[mesg.session_id] = S
+                @send_mesg
+                    socket : socket
+                    mesg   :
+                        id         : mesg.id
+                        event      : 'session'
+                        live       : S.live
+
+    _get_session: (socket, mesg, cb) =>
+        @dbg("_get_session(socket=#{socket.id})", mesg)
+        exports.syncstring
+            string_id      : mesg.string_id
+            session_id     : mesg.session_id
+            max_length     : mesg.max_length
+            push_to_client : (m,cb) =>
+                @_push_to_client(socket, mesg.string_id, mesg.session_id, m)
+                cb()
+            cb             : cb
+
+    recv_edits: (socket, mesg) =>
+        @dbg("recv_edits(session=#{mesg.session_id})", mesg)
+        S = undefined
+        async.series([
+            (cb) =>
+                @dbg("recv_edits(session=#{mesg.session_id})", "get session")
+                S = @_sessions[mesg.session_id]
+                if S?
+                    cb()
+                else
+                    @_get_session socket, mesg, (err, _S) =>
+                        if err
+                            cb(err)
+                        else
+                            S = _S
+                            cb()
+            (cb) =>
+                @dbg("recv_edits(session=#{mesg.session_id})", "calling real recv_edits")
+                S.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
+            (cb) =>
+                @dbg("recv_edits(session=#{mesg.session_id})", "calling real push_edits_to_browser")
+                S.push_edits_to_browser(mesg.remote_id, cb)
+        ], (err) =>
+            @dbg("recv_edits(session=#{mesg.session_id})", "done with everything -- err=#{err}")
+            if err
+                @send_mesg
+                    socket : socket
+                    mesg   : message.error(error:err, id:mesg.id)
+            else
+                @send_mesg
+                    socket : socket
+                    mesg   : message.success(id:mesg.id)
+        )
+
+    _push_to_client: (socket, string_id, session_id, mesg) =>
+        @dbg("_push_to_client(session=#{session_id})", mesg)
+        @send_mesg
+            socket     : socket
+            mesg       :
+                event      : 'push_to_remote'
+                string_id  : string_id
+                session_id : session_id
+                mesg       : mesg
 
     syncdb_call: (socket, mesg) =>
         @dbg("syncdb_call", mesg)
@@ -1187,34 +1322,42 @@ class SyncstringServer extends microservice.Server
                     socket : socket
                     mesg   : resp
 
+    # call to remove a given listener for this socket (and responds);
+    # if mesg is not defined, removes all listeners for this socket
+    # (with no response, since socket is assumed closed).
     syncdb_remove_listener: (socket, mesg) =>
-        @dbg("syncdb_remove_listener(string_id=#{mesg.string_id})", "stop listening -- client.id=#{socket.id}")
-        exports.syncdb
-            string_id  : mesg.string_id
-            cb         : (err, s) =>
-                if err
-                    resp =  message.error(error:err)
-                else
-                    if @_syncdb_listeners?
-                        listeners = @_syncdb_listeners[mesg.string_id]
-                        if listeners?
-                            f = listeners[socket.id]
-                            if f?
-                                s.removeListener('change', f)
-                    resp = message.success()
-                resp.id = mesg.id
-                @send_mesg
-                    socket : socket
-                    mesg   : resp
-
-
+        f = (string_id) =>
+            @dbg("syncdb_remove_listener(string_id=#{string_id})", "stop listening -- client.id=#{socket.id}")
+            exports.syncdb
+                string_id  : string_id
+                cb         : (err, s) =>
+                    if err
+                        resp =  message.error(error:err)
+                    else
+                        if @_syncdb_listeners?
+                            listeners = @_syncdb_listeners[string_id]
+                            if listeners?
+                                f = listeners[socket.id]
+                                if f?
+                                    s.removeListener('change', f)
+                        resp = message.success()
+                    if mesg?
+                        resp.id = mesg.id
+                        @send_mesg
+                            socket : socket
+                            mesg   : resp
+        if mesg?
+            f(mesg.string_id)
+        else
+            if @_syncdb_listeners?
+                for string_id, listeners of @_syncdb_listeners
+                    if listeners[socket.id]?
+                        f(string_id)
 
 if not module.parent?  # run from command line
     microservice.cli
         server_class : SyncstringServer
         default_port : DEFAULT_PORT
-
-
 
 
 

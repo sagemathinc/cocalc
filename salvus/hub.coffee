@@ -2620,7 +2620,7 @@ class Client extends EventEmitter
     # Get a new syncstring session for the string with given id.
     # Returns message with a session_id and also the value of the string.
     get_syncstring: (mesg, cb) =>
-        if true or SYNCSTRING_DISABLED
+        if SYNCSTRING_DISABLED
             @error_to_client(id:mesg.id, error:"syncstrings currently disabled")
             cb("syncstrings currently disabled")
             return
@@ -2663,10 +2663,11 @@ class Client extends EventEmitter
             (cb) =>
                 # get and cache actual syncstring session
                 session_id = misc.uuid()       # create a new session
-                syncstring.syncstring
+                syncstring_client.syncdb
                     string_id      : mesg.string_id
                     session_id     : session_id
-                    push_to_client : @push_to_client
+                    push_to_remote : @push_to_client
+                    listen         : false
                     cb             : (err, _client) =>
                         if err
                             cb(err)
@@ -2686,23 +2687,21 @@ class Client extends EventEmitter
             resp = message.syncstring_session
                 id         : mesg.id
                 session_id : client.session_id
-                string     : client.live
+                string     : client.init_ver
             @push_to_client(resp)
 
     mesg_syncstring_diffsync: (mesg) =>
+        d = (a,m) => winston.debug("mesg_syncstring_diffsync -- #{a} -- #{misc.to_json(m)}")
+        d('',mesg)
         @get_syncstring mesg, (err, client) =>
             if err
+                d('error getting syncstring')
                 return
             # Apply their edits to our object that represents the remote user.
             # TODO: do we need to lock and give error if called again before previous call done?
-            client.recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
-                if err
-                    @error_to_client(err)
-                else
-                    # Send back our own edits to the remote user, in case client.remote has changed
-                    # since last sync.
-                    client.push_edits_to_browser mesg.id, (err) =>
-                        #winston.debug("done pushing edits to browser (#{err})")
+            client.recv_edits mesg.id, mesg.edit_stack, mesg.last_version_ack, (err) =>
+                d('return from recv_edits', err)
+
 
     ################################################
     # Synchronized databases (associated to user not project)
@@ -2796,6 +2795,7 @@ get_notifications_syncdb = (account_id, cb) ->
             # now get the syncdb
             syncstring_client.syncdb
                 string_id : string_id
+                listen    : false  # not needed
                 cb        : (err, _db) ->
                     if err
                         cb(err)

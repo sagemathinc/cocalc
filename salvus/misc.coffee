@@ -426,10 +426,12 @@ exports.retry_until_success = (opts) ->
     tries = 0
     g = () ->
         tries += 1
-        if opts.log
-            opts.log("retry_until_success(#{opts.name}) -- try #{tries}")
+        if opts.log?
+            opts.log("retry_until_success(#{opts.name}) -- try #{tries}/#{opts.max_tries}")
         opts.f (err)->
             if err
+                if opts.log?
+                    opts.log("retry_until_success(#{opts.name}) -- err=#{err}")
                 if opts.max_tries? and opts.max_tries <= tries
                     opts.cb?("maximum tries exceeded - last error #{err}")
                 else

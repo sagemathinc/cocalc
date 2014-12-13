@@ -130,10 +130,10 @@ class exports.Client extends EventEmitter
 
                     socket.on 'mesg', (type, mesg) =>
                         if type == 'json'
-                            @dbg("mesg", misc.trunc(misc.to_json(mesg),200))
+                            @dbg("receive mesg", misc.trunc(misc.to_json(mesg),300))
                             @emit("mesg_#{mesg.event}", mesg)
                         else
-                            @dbg("mesg", "mesg of unknown type #{type} ignored")
+                            @dbg("receive mesg", "mesg of unknown type #{type} ignored")
 
                     reconnect = () =>
                         @emit('disconnect')  # tell listeners that right now not connected
@@ -314,6 +314,7 @@ class exports.Server extends EventEmitter
 
                     disconnect = () =>
                         @dbg("socket (id=#{socket.id})", "disconnect")
+                        @emit('close', socket)
                         socket.removeAllListeners()
                     socket.on('end',   disconnect)
                     socket.on('close', disconnect)
@@ -360,6 +361,7 @@ exports.cli = (opts) ->
     opts = defaults opts,
         server_class : exports.Server
         default_port : DEFAULT_PORT
+    console.log("exports.cli -- #{misc.to_json(opts)}")
 
     program.usage('[start/stop/restart/status] [options]')
         .option('--port <n>', "port to listen on (default: #{opts.default_port})", parseInt)
