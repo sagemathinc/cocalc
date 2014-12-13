@@ -431,6 +431,8 @@ class exports.Connection extends EventEmitter
                 @emit(mesg.event, mesg)
             when "syncstring_diffsync2"
                 @emit("syncstring_diffsync2-#{mesg.session_id}", mesg)
+            when "syncstring_diffsync2_reset"
+                @emit("syncstring_diffsync2_reset-#{mesg.session_id}")
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?

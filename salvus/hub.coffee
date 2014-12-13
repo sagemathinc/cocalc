@@ -2701,6 +2701,8 @@ class Client extends EventEmitter
             # TODO: do we need to lock and give error if called again before previous call done?
             client.recv_edits mesg.id, mesg.edit_stack, mesg.last_version_ack, (err) =>
                 d('return from recv_edits', err)
+                if err
+                    @error_to_client(id:mesg.id, error:err)
 
 
     ################################################

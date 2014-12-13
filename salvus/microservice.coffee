@@ -91,7 +91,7 @@ class exports.Client extends EventEmitter
         )
 
     dbg: (f, m) =>
-        winston.debug("#{@name}Client.#{f}: #{misc.trunc(misc.to_json(m),200)}")
+        winston.debug("#{@name}Client.#{f}: #{misc.trunc(misc.to_json(m),300)}")
 
     read_token: (cb) =>
         @dbg("read_token")

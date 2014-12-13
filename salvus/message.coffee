@@ -302,6 +302,12 @@ message
     edit_stack       : required
     last_version_ack : required
 
+# Tell browser to reset diffsync connection
+# hub --> client
+message
+    event       : 'syncstring_diffsync2_reset'
+    session_id  : undefined
+
 # Tell other that there is data ready to be synced:
 # client <--> hub
 message

@@ -124,6 +124,9 @@ class SyncStringBrowser extends diffsync.DiffSync
         @init(doc:@syncstring.head)
         @last_sync = @shadow
 
+    _checksum: (doc) =>
+        return misc.hash_string(doc)
+
     _write_mesg: (event, obj, cb) =>
         if not obj?
             obj = {}
@@ -304,7 +307,7 @@ class SynchronizedString
                 cb?()
 
 sync_strings = {}
-
+sync_string_cbs = {}
 exports.get_syncstring = get_syncstring = (opts) ->
     opts = defaults opts,
         string_id  : required
@@ -316,6 +319,12 @@ exports.get_syncstring = get_syncstring = (opts) ->
     S = sync_strings[opts.string_id]
     if S?
         opts.cb(undefined, S); return
+
+    if sync_string_cbs[opts.string_id]?
+        sync_string_cbs[opts.string_id].push(opts.cb)
+        return
+    else
+        cbs = sync_string_cbs[opts.string_id] = [opts.cb]
 
     S = new SynchronizedString(opts.string_id, opts.max_length)
     async.series([
@@ -340,12 +349,14 @@ exports.get_syncstring = get_syncstring = (opts) ->
                         S.in_memory_client = client
                         cb()
     ], (err) =>
-        if err
-            # TODO: undo any other harm
-            opts.cb(err)
-        else
+        if not err
             sync_strings[opts.string_id] = S
-            opts.cb(undefined, S)
+        delete sync_string_cbs[opts.string_id]
+        for cb in cbs
+            if err
+                cb(err)
+            else
+                cb(undefined, S)
     )
 
 exports.syncstring = (opts) ->
@@ -946,17 +957,24 @@ exports.client = (opts) ->
 
 class SyncstringClient extends microservice.Client
     constructor: (opts) ->
+        @dbg("constructor", "creating a SyncstringClient")
         @_syncdb_cache = {}
         @_syncdb_cache_cbs = {}
         opts.name = "syncstring"
         @on("mesg_syncdb_change", @_syncdb_change)
         @on("mesg_push_to_remote", @_push_to_remote)
-        @on('connect',@_syncdb_register_listeners)
+        @on('connect',@_syncdb_connect)
         super(opts)
 
     # Synchronized database client: provides both syncdb api and also a
     # general diffsync api for clients that can do diffs/patches
     # (so can block for a fraction of a second or relay such patches).
+    key: (obj) =>
+        key = obj.string_id
+        if obj.session_id?
+            key += " " + obj.session_id
+        return key
+
     syncdb: (opts) =>
         opts = defaults opts,
             string_id      : required
@@ -966,18 +984,16 @@ class SyncstringClient extends microservice.Client
             max_length     : MAX_STRING_LENGTH
             cb             : required
         @dbg("syncdb(string_id=#{opts.string_id}, session_id=#{opts.session_id})")
-        key = opts.string_id
+        key = @key(opts)
         if opts.push_to_remote? and not opts.session_id?
             opts.cb("if push_to_remote is specified then the session_id must also be specified")
             return
-        if opts.session_id?
-            key += opts.session_id
         S = @_syncdb_cache[key]
         if S?
             opts.cb(undefined, S)
         else
             if @_syncdb_cache_cbs[key]?
-                @_syncdb_cache_cbs.push(opts.cb)
+                @_syncdb_cache_cbs[key].push(opts.cb)
                 return
             @_syncdb_cache_cbs[key] = [opts.cb]
             new ClientSyncDB
@@ -992,6 +1008,7 @@ class SyncstringClient extends microservice.Client
                     delete @_syncdb_cache_cbs[key]
                     if not err
                         @_syncdb_cache[key] = S
+                    @dbg("syncdb connection created with key=#{key}", misc.keys(@_syncdb_cache))
                     for cb in v
                         if err
                             cb(err)
@@ -999,9 +1016,15 @@ class SyncstringClient extends microservice.Client
                             @dbg("syncdb(string_id=#{opts.string_id}, session_id=#{opts.session_id})", "S.session_id=#{S.session_id}")
                             cb(undefined, S)
 
-    _syncdb_register_listeners: () =>
-        for _, S of @_syncdb_cache
-            S._register_listener()
+    _syncdb_connect: () =>
+        @dbg("_syncdb_connect",  misc.keys(@_syncdb_cache))
+        for key, S of @_syncdb_cache
+            if S.session_id?
+                @dbg("_syncdb_connect", "sending *disconnect* message for session_id=#{S.session_id}")
+                S.push_to_remote(message.syncstring_diffsync2_reset(session_id:S.session_id))
+                delete @_syncdb_cache[key]
+            else
+                S._register_listener()
 
     _syncdb_destroy: (opts) =>
         opts = defaults opts,
@@ -1034,12 +1057,12 @@ class SyncstringClient extends microservice.Client
                         opts.cb?(undefined, resp.result)
 
     _syncdb_change: (mesg) =>
-        S = @_syncdb_cache[mesg.string_id]
+        S = @_syncdb_cache[@key(mesg)]
         S?.emit('change', mesg.changes)
 
     _push_to_remote: (mesg) =>
         @dbg("_push_to_remote", mesg)
-        S = @_syncdb_cache[mesg.string_id + mesg.session_id]
+        S = @_syncdb_cache[@key(mesg)]
         if S?
             @dbg("_push_to_remote","now pushing")
             S?.push_to_remote(mesg.mesg)
@@ -1063,6 +1086,9 @@ class ClientSyncDB extends EventEmitter
         @listen         = opts.listen
         @session_id     = opts.session_id
         @push_to_remote = opts.push_to_remote
+        if @push_to_remote? and not @session_id?
+            opts.cb("if push_to_remote is specified then the session_id must also be specified")
+            return
         @client         = opts.client
         async.series([
             (cb) =>
@@ -1091,8 +1117,6 @@ class ClientSyncDB extends EventEmitter
     _init_session: (cb) =>
         if not @push_to_remote?
             cb?(); return
-        if not @session_id?
-            @session_id = misc.uuid()
         @client.call
             mesg :
                 event : 'get_session'
@@ -1101,10 +1125,10 @@ class ClientSyncDB extends EventEmitter
                 max_length : @max_length
             cb : (err, resp) =>
                 if err
-                    cb(err)
+                    cb?(err)
                 else
                     @init_ver   = resp.live
-                    cb()
+                    cb?()
 
     _register_listener: (cb) =>
         if not @listen
