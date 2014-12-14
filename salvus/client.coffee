@@ -2073,9 +2073,10 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id  : required
             path        : required
-            timeout     : 90          # some things can take a long time to print!
+            timeout     : 90          # client timeout -- some things can take a long time to print!
             options     : undefined   # optional options that get passed to the specific backend for this file type
             cb          : undefined   # cp(err, relative path in project to printed file)
+        opts.options.timeout = opts.timeout  # timeout on backend
         @call_local_hub
             project_id : opts.project_id
             message    : message.print_to_pdf
@@ -2083,10 +2084,14 @@ class exports.Connection extends EventEmitter
                 options : opts.options
             timeout    : opts.timeout
             cb         : (err, resp) =>
+                console.log("print_to_pdf returned resp = ", resp)
                 if err
                     opts.cb?(err)
                 else if resp.event == 'error'
-                    opts.cb?(resp.error)
+                    if resp.error?
+                        opts.cb?(resp.error)
+                    else
+                        opts.cb?('error')
                 else
                     opts.cb?(undefined, resp.path)
 
