@@ -696,7 +696,7 @@ class exports.SynchronizedDB_DiffSyncWrapper extends EventEmitter
 
 
 class exports.SynchronizedDB extends EventEmitter
-    constructor: (@_doc, @to_json, @from_json) ->
+    constructor: (@_doc, @to_json, @from_json, @max_len) ->
         if not @to_json?
             @to_json = misc.to_json
         if not @from_json?
@@ -811,14 +811,21 @@ class exports.SynchronizedDB extends EventEmitter
                     match = false
                     break
             if match
-                # modify an existing database entry
+                # modify exactly one existing database entry
                 changed = false
+                before = misc.deep_copy(x)
                 for k, v of set
                     if not changed and misc.to_json(x[k]) != misc.to_json(v)
-                        changes = [{remove:misc.deep_copy(x)}]
+                        changes = [{remove:before}]
                         changed = true
                     x[k] = v
                 if changed
+                    if @max_len?
+                        cur_len = @_doc.live().length
+                        new_len = misc.to_json(x).length - misc.to_json(before).length + cur_len
+                        if new_len > @max_len
+                            @_data[hash].data = before
+                            throw {error:"max_len", new_len:new_len, cur_len:cur_len, max_len:@max_len}
                     # actually changed something
                     changes.push({insert:misc.deep_copy(x)})
                     @emit("change", changes)
@@ -832,7 +839,13 @@ class exports.SynchronizedDB extends EventEmitter
             new_obj[k] = v
         for k, v of where
             new_obj[k] = v
-        hash = hash_string(@to_json(new_obj))
+        j = @to_json(new_obj)
+        if @max_len?
+            cur_len = @_doc.live().length
+            new_len = j.length + 1 + @_doc.live().length
+            if new_len > @max_len
+                throw {error:"max_len", new_len:new_len, cur_len:cur_len, max_len:@max_len}
+        hash = hash_string(j)
         @_data[hash] = {data:new_obj, line:len(@_data)}
         @_set_doc_from_data(hash)
         @emit("change", [{insert:misc.deep_copy(new_obj)}])

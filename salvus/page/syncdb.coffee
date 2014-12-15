@@ -45,14 +45,15 @@ exports.synchronized_db = (opts) ->
     opts = defaults opts,
         project_id : required
         filename   : required
+        max_len    : undefined
         cb         : required
 
     syncdoc.synchronized_string
         project_id : opts.project_id
-        filename   : opts.filename    # should end with .smcdb
+        filename   : opts.filename
         cb         : (err, doc) =>
             if err
                 opts.cb(err)
             else
-                opts.cb(undefined, new diffsync.SynchronizedDB(doc, to_json))
+                opts.cb(undefined, new diffsync.SynchronizedDB(doc, to_json, undefined, opts.max_len))
 
