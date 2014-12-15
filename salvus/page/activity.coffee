@@ -252,7 +252,7 @@ update_important_count = (recalculate) ->
 
 
 update_notifications = (changes) ->
-    console.log("update_notifications: #{misc.to_json(changes)}")
+    #console.log("update_notifications: #{misc.to_json(changes)}")
     for c in changes
         if c.insert?
             render_notification(c.insert)
@@ -261,7 +261,7 @@ update_notifications = (changes) ->
             x = c.remove
             v = notifications_syncdb.select
                 where : {table:'activity', project_id:x.project_id, path:x.path}
-            console.log("v=",v)
+            #console.log("v=",v)
             if v.length == 0
                 delete_notification(x)
     update_important_count(true)

@@ -2060,16 +2060,12 @@ class Client extends EventEmitter
                     account_id : @account_id
                     filename   : mesg.message.path
 
-            # Scan for activity
+            # Scan message for activity
             if @account_id?
-                fullname = @fullname()
-                if fullname?
-                    scan_local_hub_message_for_activity
-                        account_id    : @account_id
-                        project_id    : mesg.project_id
-                        project_title : project.cached_info?.title
-                        message       : mesg.message
-                        fullname      : fullname
+                scan_local_hub_message_for_activity
+                    account_id    : @account_id
+                    project_id    : mesg.project_id
+                    message       : mesg.message
 
             # Make the actual call
             project.call
@@ -2829,6 +2825,7 @@ normalize_path = (path) ->
     # Rules:
     # kdkd/tmp/.test.sagews.sage-chat --> kdkd/tmp/test.sagews, comment "chat"
     # foo/bar/.2014-11-01-175408.ipynb.syncdoc --> foo/bar/2014-11-01-175408.ipynb
+    path = path.slice(0,10000)  # prevent potential attacks involving a huge path breaking things (?)
     ext = misc.filename_extension(path)
     action = 'edit'
     if ext == "sage-chat"
@@ -2927,8 +2924,6 @@ path_activity = (opts) ->
         account_id    : required
         project_id    : required
         path          : required
-        fullname      : required
-        project_title : undefined
         cb            : undefined
 
     ## completely disable notifications and login by uncommenting this:
@@ -2957,9 +2952,6 @@ path_activity = (opts) ->
 
     recent_activity = undefined
     is_new_activity = true
-
-    opts.fullname      = misc.trunc(opts.fullname, MAX_ACTIVITY_NAME_LENGTH)
-    opts.project_title = misc.trunc(opts.project_title, MAX_ACTIVITY_TITLE_LENGTH)
 
     # who gets notified
     targets = undefined
@@ -3002,21 +2994,21 @@ path_activity = (opts) ->
                     database.update
                         table : 'activity_by_path'
                         where : where
-                        set   : {account_id:opts.account_id, fullname:opts.fullname}
+                        set   : {account_id:opts.account_id}
                         cb    : cb
                 (cb) ->
                     #dbg('set activity_by_project')
                     database.update
                         table : 'activity_by_project'
                         where : where
-                        set   : {account_id:opts.account_id, fullname:opts.fullname}
+                        set   : {account_id:opts.account_id}
                         cb    : cb
                 (cb) ->
                     #dbg('set activity_by_user')
                     database.update
                         table : 'activity_by_user'
                         where : {account_id:opts.account_id, timestamp:now_time}
-                        set   : {project_id:opts.project_id, path:path, fullname:opts.fullname, project_title:opts.project_title}
+                        set   : {project_id:opts.project_id, path:path}
                         cb    : cb
                 (cb) ->
                     if SYNCSTRING_DISABLED
@@ -3090,11 +3082,9 @@ path_activity = (opts) ->
                                         set =
                                             timestamp     : now_time - 0
                                             user_id       : opts.account_id
-                                            fullname      : opts.fullname
                                             actions       : actions
                                             seen          : false
                                             read          : false
-                                            project_title : opts.project_title
                                         if last[account_id]?
                                             set.last_edit = last[account_id]
 
@@ -3139,9 +3129,7 @@ scan_local_hub_message_for_activity = (opts) ->
     opts = defaults opts,
         account_id    : required
         project_id    : required
-        fullname      : required
         message       : required
-        project_title : undefined
         cb            : undefined
     #dbg = (m) -> winston.debug("scan_local_hub_message_for_activity(#{opts.account_id},#{opts.project_id}): #{m}")
     #dbg(misc.to_json(codemirror_sessions))
@@ -3154,8 +3142,6 @@ scan_local_hub_message_for_activity = (opts) ->
                     account_id    : opts.account_id
                     project_id    : opts.project_id
                     path          : path
-                    fullname      : opts.fullname
-                    project_title : opts.project_title
                     cb            : opts.cb
                 return
     opts.cb?()
