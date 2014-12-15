@@ -19,6 +19,10 @@
 #
 ###############################################################################
 
+# We enforce a 1MB size limit, both front and back end, on the notifications syncdb.
+# This below enforces it purely client side.  This is also enforced on the server side.
+# When this limit is hit, the oldest notifications are automatically deleted.
+SYNCDB_MAX_LEN = 1000000
 
 # activity.coffee
 DISABLE_NOTIFICATIONS = false
@@ -53,6 +57,7 @@ exports.get_notifications_syncdb = get_notifications_syncdb = (cb) ->
             else
                 require('syncstring').syncdb
                     string_id : string_id
+                    max_len   : SYNCDB_MAX_LEN
                     cb        : (err, db) =>
                         if err
                             cb(err)
@@ -209,6 +214,29 @@ render_notifications = () ->
         $(".salvus-notification-list-none").show()
     update_important_count(false)
 
+delete_oldest_notification = () ->
+    v = notifications_syncdb.select(where:{table:'activity'})
+    v.sort(timestamp_cmp)
+    if v.length > 0
+        x = v[v.length-1]
+        notifications_syncdb.delete(where:{table:'activity',project_id:x.project_id,path:x.path})
+        return v.length - 1
+    else
+        return -1
+
+update_db = (opts) ->
+    for i in [0...10]  # try up to 10 times (delete if hit length constraint)
+        try
+            notifications_syncdb.update(opts)
+            return
+        catch err
+            if err.error = 'max_len'
+                if delete_oldest_notification() == -1  # nothing to delete (?)
+                    return
+            else
+                return
+
+
 is_important = (x) -> not x.seen and x.actions?['comment']
 
 update_important_count = (recalculate) ->
@@ -275,11 +303,12 @@ open_notification = (target) ->
     project_id = target.data('project_id')
     path = target.data('path')
     comment = target.data('comment')
-    notifications_syncdb?.update
+    update_db
         set   : {read:true}
         where :
             project_id : project_id
             path       : path
+
     if path == '.sagemathcloud.log'
         history.load_target("projects/#{project_id}")
     else
@@ -335,7 +364,7 @@ mark_visible_notifications = (mark) ->
         if not x[mark]
             elt = notification_elements["#{x.project_id}/#{x.path}"]
             if elt.is(":visible")
-                notifications_syncdb.update
+                update_db
                     set   : set
                     where :
                         project_id : x.project_id

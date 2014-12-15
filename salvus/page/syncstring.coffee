@@ -208,6 +208,7 @@ _syncdb_cache = {}
 exports.syncdb = (opts) ->
     opts = defaults opts,
         string_id      : required
+        max_len        : undefined
         cb             : required
     d = _syncdb_cache[opts.string_id]
     if d?
@@ -221,7 +222,7 @@ exports.syncdb = (opts) ->
             else
                 doc = new diffsync.SynchronizedDB_DiffSyncWrapper(client)
                 client.on 'sync', () -> doc.emit("sync")
-                d = _syncdb_cache[opts.string_id] = new diffsync.SynchronizedDB(doc)
+                d = _syncdb_cache[opts.string_id] = new diffsync.SynchronizedDB(doc, undefined, undefined, opts.max_len)
                 opts.cb(undefined, d)
 
 
