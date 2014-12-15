@@ -156,7 +156,7 @@ class SyncString extends diffsync.DiffSync
         #dbg('',mesg)
         @recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
             if err
-                dbg("recv_edits error", err)
+                #dbg("recv_edits error", err)
                 # would have to reset at this point (?)
                 if err.indexOf('reset') != -1
                     @_reconnect(cb)

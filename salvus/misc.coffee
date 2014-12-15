@@ -812,4 +812,16 @@ exports.call_lock = (opts) ->
             cb?(args...)
 
 
+exports.timestamp_cmp = (a,b) -> # TODO: same code is in page/activity.coffee
+    a = a.timestamp
+    b = b.timestamp
+    if not a?
+        return 1
+    if not b?
+        return -1
+    if a > b
+        return -1
+    else if a < b
+        return +1
+    return 0
 

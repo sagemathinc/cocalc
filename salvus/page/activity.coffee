@@ -19,10 +19,10 @@
 #
 ###############################################################################
 
-# We enforce a 1MB size limit, both front and back end, on the notifications syncdb.
+# We enforce a tight 2MB size limit, both front and back end, on the notifications syncdb.
 # This below enforces it purely client side.  This is also enforced on the server side.
 # When this limit is hit, the oldest notifications are automatically deleted.
-SYNCDB_MAX_LEN = 1000000
+SYNCDB_MAX_LEN = 2000000
 
 # activity.coffee
 DISABLE_NOTIFICATIONS = false
@@ -160,18 +160,15 @@ render_notification = (x, init) ->
         elt.show()
         $(".salvus-notification-list-none").hide()
 
-timestamp_cmp = (a,b) ->
-    a = a.timestamp
-    b = b.timestamp
-    if not a?
-        return 1
-    if not b?
-        return -1
-    if a > b
-        return -1
-    else if a < b
-        return +1
-    return 0
+
+delete_notification = (x) ->
+    console.log("deleting #{misc.to_json(x)}")
+    name = "#{x.project_id}/#{x.path}"
+    elt = notification_elements[name]
+    if elt?
+        console.log("actually removing ", elt)
+        elt.remove()
+        delete notification_elements[name]
 
 sort_notifications = () ->
     #console.log('sort_notifications')
@@ -196,16 +193,14 @@ render_notifications = () ->
     notification_list_body.empty()
     important_count = 0
     v = notifications_syncdb.select(where:{table:'activity'})
-    v.sort(timestamp_cmp)
+    v.sort(misc.timestamp_cmp)
     too_old = new Date() - 1000*60*60*24*DELETE_OLD_DAYS
-    i = 0
+    #i = 0
     for x in v
-        i += 1
-        # only bother deleting old notifications after we have a lot of them.
-        if i>40 and x.timestamp? and x.timestamp <= too_old
+        #i += 1
+        if x.timestamp? and x.timestamp <= too_old
             notifications_syncdb.delete(where:{table:'activity',project_id:x.project_id,path:x.path})
             continue
-
         render_notification(x, true)
         if is_important(x)
             important_count += 1
@@ -216,7 +211,7 @@ render_notifications = () ->
 
 delete_oldest_notification = () ->
     v = notifications_syncdb.select(where:{table:'activity'})
-    v.sort(timestamp_cmp)
+    v.sort(misc.timestamp_cmp)
     if v.length > 0
         x = v[v.length-1]
         notifications_syncdb.delete(where:{table:'activity',project_id:x.project_id,path:x.path})
@@ -257,10 +252,18 @@ update_important_count = (recalculate) ->
 
 
 update_notifications = (changes) ->
-    #console.log("update_notifications: #{misc.to_json(changes)}")
+    console.log("update_notifications: #{misc.to_json(changes)}")
     for c in changes
         if c.insert?
             render_notification(c.insert)
+        if c.remove?
+            # check if really gone -- may have merely changed:
+            x = c.remove
+            v = notifications_syncdb.select
+                where : {table:'activity', project_id:x.project_id, path:x.path}
+            console.log("v=",v)
+            if v.length == 0
+                delete_notification(x)
     update_important_count(true)
     sort_notifications()
     resize_notification_list()
@@ -363,7 +366,7 @@ mark_visible_notifications = (mark) ->
     for x in notifications_syncdb.select(where:{table:'activity'})
         if not x[mark]
             elt = notification_elements["#{x.project_id}/#{x.path}"]
-            if elt.is(":visible")
+            if elt? and elt.is(":visible")
                 update_db
                     set   : set
                     where :

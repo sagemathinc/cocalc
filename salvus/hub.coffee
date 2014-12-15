@@ -2797,7 +2797,7 @@ get_notifications_syncdb = (account_id, cb) ->
             # now get the syncdb
             syncstring_client.syncdb
                 string_id : string_id
-                listen    : false  # not needed
+                listen    : false  # listening not needed for hub's application
                 cb        : (err, _db) ->
                     if err
                         cb(err)
@@ -2877,6 +2877,49 @@ activity_get_project_users = (opts) ->
             # timeout after a few minutes
             setTimeout( (()->delete _activity_get_project_users_cache[opts.project_id]), 60*1000*5 )
             opts.cb(undefined, users)
+
+NOTIFICATIONS_DELETE_OLD_DAYS = 30
+delete_old_notifications = (opts) ->
+    opts = defaults opts,
+        db         : required
+        min_delete : 0      # always delete at least this many notifications, mainly to clear up space
+        cb         : undefined
+    v = undefined
+    dbg = (m, obj) -> winston.debug("delete_old_notifications: #{m}, #{misc.to_json(obj)}")
+    dbg("min_delete ", opts.min_delete)
+    async.series([
+        (cb) ->
+            opts.db.select
+                where : {table:'activity'}
+                cb    : (err, _v) ->
+                    if err
+                        cb(err)
+                    else
+                        v = _v
+                        dbg("select all, got", v.length)
+                        cb()
+        (cb) ->
+            v.sort(misc.timestamp_cmp)
+            too_old = new Date() - 1000*60*60*24*NOTIFICATIONS_DELETE_OLD_DAYS
+            to_delete = (x for x in v when not x.timestamp?)  # get rid of any of these
+            v = (x for x in v when x.timestamp?)
+            i = v.length-1
+            while i >= 0 and v[i].timestamp <= too_old
+                to_delete.push(v[i])
+                i -= 1
+            while i >= 0 and to_delete.length < opts.min_delete
+                to_delete.push(v[i])
+                i -= 1
+            f = (x, cb) ->
+                opts.db.delete
+                    where : {table:'activity', project_id:x.project_id, path:x.path}
+                    cb    : cb
+            async.mapSeries(to_delete, f, (err) -> cb(err))
+    ], (err) ->
+        if err
+            dbg("ERROR -- ", err)
+        opts.cb?(err)
+    )
 
 path_activity_cache = {}
 path_activity = (opts) ->
@@ -3055,12 +3098,31 @@ path_activity = (opts) ->
                                         if last[account_id]?
                                             set.last_edit = last[account_id]
 
-                                        db.update
-                                            where : where
-                                            set   : set
-                                            cb    : cb
+                                        # Try to call update and set the notification as above.
+                                        # If this causes a max_len error, try to clean up old
+                                        # notifications, deleting at least a few, then try again
+                                        # to make the indicated update as above.
+                                        f = (cb) =>
+                                            db.update
+                                                where : where
+                                                set   : set
+                                                cb    : cb
+                                        f (err) =>
+                                            if not err
+                                                cb(); return
+                                            if err.error == "max_len"
+                                                delete_old_notifications
+                                                    db         : db
+                                                    min_delete : 3 # delete at least three
+                                                    cb         : (err) =>
+                                                        if not err
+                                                            f(cb)
+                                                        else
+                                                            cb(err)
+                                            else
+                                                cb(err)
                                 ], (err) =>
-                                    dbg("record_activity(path=#{path}) to account_id=#{account_id} -- err=#{err}")
+                                    dbg("record_activity(path=#{path}) to account_id=#{account_id} -- err=#{misc.to_json(err)}")
                                     cb(err)
                                 )
 

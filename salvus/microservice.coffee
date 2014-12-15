@@ -290,7 +290,7 @@ class exports.Server extends EventEmitter
 
 
     dbg: (f, m) =>
-        winston.debug("#{@name}Server.#{f}: #{misc.trunc(misc.to_json(m),200)}")
+        winston.debug("#{@name}Server.#{f}: #{misc.trunc(misc.to_json(m),300)}")
 
 
     start_tcp_server: (cb) =>

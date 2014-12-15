@@ -65,12 +65,14 @@ SALVUS_HOME = process.cwd()
 
 # Polling parameters:
 INIT_POLL_INTERVAL     = 3000
-MAX_POLL_INTERVAL      = 15000   # TODO: for testing make short -- for deploy make longer!
+MAX_POLL_INTERVAL      = 15000   # TODO: for testing make short; for deploy make longer?!
 POLL_DECAY_RATIO       = 1.4
 
 # Maximum allowed syncstring size -- we keep this manageable since we have to be
 # able to load the entire string within a few seconds from the database.
-MAX_STRING_LENGTH      = 5000000
+# IMPORTANT: page/activity.coffee has a similar length which *MUST* be at most
+# the one below, or bad things will happen.
+MAX_STRING_LENGTH      = 2000000
 
 # We grab patches that are up to TIMESTAMP_OVERLAP old from db each time polling.
 # We are assuming a write to the database propogates to
@@ -182,17 +184,17 @@ class SyncStringBrowser extends diffsync.DiffSync
 # by putting a sentinel character at the end of the string and checking for
 # it to see if the string was truncated as a result of a sync.
 
-# x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.s = require('syncstring'); x.s.init_syncstring_db(x.c.database); x.ss=x.s.get_syncstring_db(); x.s.get_syncstring(string_id:'4bd8cb98-506c-45a5-8042-5c6bd8fddff0',max_length:50,cb:(e,t)->x.t=t))
+# x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.s = require('syncstring'); x.s.init_syncstring_db(x.c.database); x.ss=x.s.get_syncstring_db(); x.s.get_syncstring(string_id:'4bd8cb98-506c-45a5-8042-5c6bd8fddff0',max_len:50,cb:(e,t)->x.t=t))
 class SynchronizedString
-    constructor: (@string_id, @max_length) ->
+    constructor: (@string_id, @max_len) ->
         misc.call_lock(obj:@)
         @clients = {}
         @head = ''
-        if not @max_length?
-            @max_length = MAX_STRING_LENGTH
+        if not @max_len?
+            @max_len = MAX_STRING_LENGTH
         else
             # no matter what, we never allow syncstrings to exceed the MAX_STRING_SIZE
-            @max_length = Math.min(@max_length, MAX_STRING_LENGTH)
+            @max_len = Math.min(@max_len, MAX_STRING_LENGTH)
 
     new_browser_client: (opts) =>
         opts = defaults opts,
@@ -213,8 +215,8 @@ class SynchronizedString
         client = new diffsync.DiffSync(doc:@head)
         client.id = opts.session_id
         client.sync = (cb) =>
-            if client.live.length > @max_length
-                client.live = client.live.slice(0,@max_length)
+            if client.live.length > @max_len
+                client.live = client.live.slice(0, 1.5*@max_len)  # 50% grace
             client.shadow    = client.live
             client.last_sync = client.live
             client.emit('sync')
@@ -237,8 +239,8 @@ class SynchronizedString
                 if err
                     opts.cb(err)
                 else
-                    if client.live.length > @max_length
-                        client.live = client.live.slice(0,@max_length)
+                    if client.live.length > @max_len
+                        client.live = client.live.slice(0, 1.5*@max_len)  # 50% grace
                     @clients[opts.session_id] = client
                     opts.cb(undefined, client)
 
@@ -311,10 +313,10 @@ sync_string_cbs = {}
 exports.get_syncstring = get_syncstring = (opts) ->
     opts = defaults opts,
         string_id  : required
-        max_length : MAX_STRING_LENGTH   # max length of string; anything more gets silently truncated!
+        max_len    : MAX_STRING_LENGTH   # max length of string; anything more gets silently truncated!
         cb         : required
-    if opts.max_length > MAX_STRING_LENGTH
-        opts.cb("max_length of string may be at most #{MAX_STRING_LENGTH}")
+    if opts.max_len > MAX_STRING_LENGTH
+        opts.cb("max_len of string may be at most #{MAX_STRING_LENGTH}")
         return
     S = sync_strings[opts.string_id]
     if S?
@@ -326,7 +328,7 @@ exports.get_syncstring = get_syncstring = (opts) ->
     else
         cbs = sync_string_cbs[opts.string_id] = [opts.cb]
 
-    S = new SynchronizedString(opts.string_id, opts.max_length)
+    S = new SynchronizedString(opts.string_id, opts.max_len)
     async.series([
         (cb) =>
             S.new_database_client
@@ -364,11 +366,11 @@ exports.syncstring = (opts) ->
         string_id      : required
         session_id     : required
         push_to_client : required    # function that allows for sending a JSON message to remote client
-        max_length     : undefined
+        max_len        : undefined
         cb             : required
     get_syncstring
         string_id  : opts.string_id
-        max_length : opts.max_length
+        max_len    : opts.max_len
         cb         : (err, S) =>
             if err
                 opts.cb(err)
@@ -906,27 +908,31 @@ _syncdb_cache = {}
 _syncdb_callbacks = {}
 exports.syncdb = (opts) ->
     opts = defaults opts,
-        string_id      : required
-        max_length     : MAX_STRING_LENGTH
-        cb             : required
+        string_id : required
+        max_len   : MAX_STRING_LENGTH
+        cb        : required
+    winston.debug("syncdb -- getting string -- string_id=#{opts.string_id} and max_len=#{opts.max_len}")
     d = _syncdb_cache[opts.string_id]
     if d?
+        winston.debug("syncdb -- getting string -- using cache")
         opts.cb(undefined, d)
         return
     x = _syncdb_callbacks[opts.string_id]
     if x?
+        winston.debug("syncdb -- getting string -- already creating")
         x.push(opts.cb)
         return
     _syncdb_callbacks[opts.string_id] = [opts.cb]
+    winston.debug("syncdb -- getting string -- doing it")
     get_syncstring
-        string_id  : opts.string_id
-        max_length : opts.max_length
-        cb         : (err, S) =>
+        string_id : opts.string_id
+        max_len   : opts.max_len
+        cb        : (err, S) =>
             if not err
                 doc = new diffsync.SynchronizedDB_DiffSyncWrapper(S.in_memory_client)
                 S.db_client.on 'changed', () =>
                     doc.emit("sync")
-                d = _syncdb_cache[opts.string_id] = new diffsync.SynchronizedDB(doc)
+                d = _syncdb_cache[opts.string_id] = new diffsync.SynchronizedDB(doc, undefined, undefined, opts.max_len)
                 d.string_id = opts.string_id
             for cb in _syncdb_callbacks[opts.string_id]
                 if err
@@ -981,7 +987,7 @@ class SyncstringClient extends microservice.Client
             push_to_remote : undefined   # function that when called sends message to a remote diffsync client.
             session_id     : undefined   # specify this if specify push_to_remote
             listen         : false       # if true, register a listener for change events
-            max_length     : MAX_STRING_LENGTH
+            max_len        : MAX_STRING_LENGTH
             cb             : required
         @dbg("syncdb(string_id=#{opts.string_id}, session_id=#{opts.session_id})")
         key = @key(opts)
@@ -998,7 +1004,7 @@ class SyncstringClient extends microservice.Client
             @_syncdb_cache_cbs[key] = [opts.cb]
             new ClientSyncDB
                 string_id      : opts.string_id
-                max_length     : opts.max_length
+                max_len        : opts.max_len
                 listen         : opts.listen
                 session_id     : opts.session_id
                 push_to_remote : opts.push_to_remote
@@ -1037,11 +1043,11 @@ class SyncstringClient extends microservice.Client
 
     _syncdb_call: (opts) =>
         opts = defaults opts,
-            action     : required   # 'select', 'update', 'delete', 'diffsync'
-            args       : required
-            string_id  : required
-            max_length : MAX_STRING_LENGTH
-            cb         : undefined
+            action    : required   # 'select', 'update', 'delete', 'diffsync'
+            args      : required
+            string_id : required
+            max_len   : MAX_STRING_LENGTH
+            cb        : undefined
         #@dbg("_syncdb_call(string_id=#{opts.string_id}, action=#{opts.action})", opts.args)
         @call
             mesg :
@@ -1049,7 +1055,7 @@ class SyncstringClient extends microservice.Client
                 action     : opts.action
                 args       : opts.args
                 string_id  : opts.string_id
-                max_length : opts.max_length
+                max_len    : opts.max_len
             cb   : (err, resp) =>
                     if err
                         opts.cb?(err)
@@ -1075,14 +1081,14 @@ class ClientSyncDB extends EventEmitter
     constructor : (opts) ->
         opts = defaults opts,
             string_id      : required
-            max_length     : required
+            max_len        : required
             listen         : undefined
             session_id     : undefined
             push_to_remote : undefined
             client         : required
             cb             : required
         @string_id      = opts.string_id
-        @max_length     = opts.max_length
+        @max_len        = opts.max_len
         @listen         = opts.listen
         @session_id     = opts.session_id
         @push_to_remote = opts.push_to_remote
@@ -1111,7 +1117,7 @@ class ClientSyncDB extends EventEmitter
             args   : required
             cb     : undefined
         opts.string_id  = @string_id
-        opts.max_length = @max_length
+        opts.max_len    = @max_len
         @client._syncdb_call(opts)
 
     _init_session: (cb) =>
@@ -1119,10 +1125,10 @@ class ClientSyncDB extends EventEmitter
             cb?(); return
         @client.call
             mesg :
-                event : 'get_session'
+                event      : 'get_session'
                 session_id : @session_id
                 string_id  : @string_id
-                max_length : @max_length
+                max_len    : @max_len
             cb : (err, resp) =>
                 if err
                     cb?(err)
@@ -1135,9 +1141,9 @@ class ClientSyncDB extends EventEmitter
             cb?(); return
         @client.call
             mesg :
-                event      : 'syncdb_listen'
-                string_id  : @string_id
-                max_length : @max_length
+                event     : 'syncdb_listen'
+                string_id : @string_id
+                max_len   : @max_len
             cb   : cb
 
     select: (opts) =>
@@ -1196,7 +1202,7 @@ class ClientSyncDB extends EventEmitter
                 remote_id        : id
                 string_id        : @string_id
                 session_id       : @session_id
-                max_length       : @max_length
+                max_len          : @max_len
                 edit_stack       : edit_stack
                 last_version_ack : last_version_ack
             cb   : cb
@@ -1286,7 +1292,7 @@ class SyncstringServer extends microservice.Server
         exports.syncstring
             string_id      : mesg.string_id
             session_id     : mesg.session_id
-            max_length     : mesg.max_length
+            max_len        : mesg.max_len
             push_to_client : (m,cb) =>
                 @_push_to_client(socket, mesg.string_id, mesg.session_id, m)
                 cb()
@@ -1339,13 +1345,18 @@ class SyncstringServer extends microservice.Server
     syncdb_call: (socket, mesg) =>
         @dbg("syncdb_call", mesg)
         exports.syncdb
-            string_id  : mesg.string_id
-            max_length : mesg.max_length
-            cb         : (err, s) =>
+            string_id : mesg.string_id
+            max_len   : mesg.max_len
+            cb        : (err, s) =>
                 if err
                     resp = message.error(error:err)
                 else
-                    resp = {result: s[mesg.action](mesg.args)}
+                    try
+                        result = s[mesg.action](mesg.args)
+                        resp = {result: result}
+                    catch err
+                        @dbg("syncdb_call", "error! -- #{misc.to_json(err)}")
+                        resp = message.error(error:err)
                 resp.id = mesg.id
                 @send_mesg
                     socket : socket
