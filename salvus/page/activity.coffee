@@ -232,6 +232,8 @@ render_notifications = () ->
     #console.log("render_notifications")
     notification_list_body.empty()
     important_count = 0
+    if not notifications_syncdb?
+        return
     v = notifications_syncdb.select(where:{table:'activity'})
     v.sort(misc.timestamp_cmp)
     ensure_titles_and_user_names v, () =>
@@ -251,6 +253,8 @@ render_notifications = () ->
         update_important_count(false)
 
 delete_oldest_notification = () ->
+    if not notifications_syncdb?
+        return
     v = notifications_syncdb.select(where:{table:'activity'})
     v.sort(misc.timestamp_cmp)
     if v.length > 0
@@ -276,7 +280,7 @@ update_db = (opts) ->
 is_important = (x) -> not x.seen and x.actions?['comment']
 
 update_important_count = (recalculate) ->
-    if recalculate
+    if recalculate and notifications_syncdb?
         important_count = (x for x in notifications_syncdb.select(where:{table:'activity'}) when is_important(x)).length
 
     if important_count == 0
@@ -294,6 +298,8 @@ update_important_count = (recalculate) ->
 
 update_notifications = (changes) ->
     #console.log("update_notifications: #{misc.to_json(changes)}")
+    if not notifications_syncdb?
+        return
     for c in changes
         if c.insert?
             render_notification(c.insert)
@@ -404,6 +410,8 @@ mark_read_button = notification_list.find("a[href=#mark-all-read]").click () ->
 
 mark_visible_notifications = (mark) ->
     set = {}; set[mark] = true
+    if not notifications_syncdb?
+        return
     for x in notifications_syncdb.select(where:{table:'activity'})
         if not x[mark]
             elt = notification_elements["#{x.project_id}/#{x.path}"]
