@@ -67,14 +67,17 @@ exports.get_notifications_syncdb = get_notifications_syncdb = (cb) ->
                             cb(undefined, db)
 
 _init_notifications_done = false
+_init_notifications_retry_interval = 2000
 init_notifications = () ->
     if _init_notifications_done or DISABLE_NOTIFICATIONS
         return
     #console.log('initializing notifications')
     get_notifications_syncdb (err, db) ->
         if err
+            console.log("init_notification: err=#{err}")
             $(".salvus-notification-indicator").hide()
-            setTimeout(init_notifications, 30000) # try again later
+            _init_notifications_retry_interval = Math.min(30000,_init_notifications_retry_interval*1.5)
+            setTimeout(init_notifications, _init_notifications_retry_interval) # try again later
             return
         $(".salvus-notification-indicator").show()
         if _init_notifications_done
