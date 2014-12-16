@@ -323,10 +323,11 @@ exports.get_syncstring = get_syncstring = (opts) ->
         opts.cb(undefined, S); return
 
     if sync_string_cbs[opts.string_id]?
+        winston.debug("get_syncstring -- getting string_id=#{opts.string_id} -- already doing it")
         sync_string_cbs[opts.string_id].push(opts.cb)
         return
     else
-        cbs = sync_string_cbs[opts.string_id] = [opts.cb]
+        sync_string_cbs[opts.string_id] = [opts.cb]
 
     S = new SynchronizedString(opts.string_id, opts.max_len)
     async.series([
@@ -353,6 +354,7 @@ exports.get_syncstring = get_syncstring = (opts) ->
     ], (err) =>
         if not err
             sync_strings[opts.string_id] = S
+        cbs = sync_string_cbs[opts.string_id]
         delete sync_string_cbs[opts.string_id]
         for cb in cbs
             if err
@@ -471,6 +473,7 @@ class StringsDB
             f = (args...) =>
                 for cb in @_get_string_queue[opts.string_id]
                     cb(args...)
+                delete @_get_string_queue[opts.string_id]
 
             @_get_string_queue[opts.string_id] = [opts.cb]
 
@@ -914,32 +917,33 @@ exports.syncdb = (opts) ->
     winston.debug("syncdb -- getting string -- string_id=#{opts.string_id} and max_len=#{opts.max_len}")
     d = _syncdb_cache[opts.string_id]
     if d?
-        winston.debug("syncdb -- getting string -- using cache")
+        winston.debug("syncdb -- getting string_id=#{opts.string_id} -- using cache")
         opts.cb(undefined, d)
         return
     x = _syncdb_callbacks[opts.string_id]
     if x?
-        winston.debug("syncdb -- getting string -- already creating")
+        winston.debug("syncdb -- getting string_id=#{opts.string_id} -- already creating")
         x.push(opts.cb)
         return
     _syncdb_callbacks[opts.string_id] = [opts.cb]
-    winston.debug("syncdb -- getting string -- doing it")
+    winston.debug("syncdb -- getting string_id=#{opts.string_id} -- doing it")
     get_syncstring
         string_id : opts.string_id
         max_len   : opts.max_len
         cb        : (err, S) =>
+            callbacks = _syncdb_callbacks[opts.string_id]
+            delete _syncdb_callbacks[opts.string_id]
             if not err
                 doc = new diffsync.SynchronizedDB_DiffSyncWrapper(S.in_memory_client)
                 S.db_client.on 'changed', () =>
                     doc.emit("sync")
                 d = _syncdb_cache[opts.string_id] = new diffsync.SynchronizedDB(doc, undefined, undefined, opts.max_len)
                 d.string_id = opts.string_id
-            for cb in _syncdb_callbacks[opts.string_id]
+            for cb in callbacks
                 if err
                     cb(err)
                 else
                     cb(undefined, d)
-            delete _syncdb_callbacks[opts.string_id]
 
 ######################################################################
 # Microservice API
@@ -948,7 +952,7 @@ microservice = require('microservice')
 DEFAULT_PORT = 6001    # also hard coded in admin.py
 
 ###
-x={};require('syncstring').client(debug:true, cb:(e,s)->console.log('done',e);x.s=s;x.s.syncdb(string_id:'c26db83a-7fa2-44a4-832b-579c18fac65f',cb:(e,t)->console.log(e);x.t=t));0
+id='c26db83a-7fa2-44a4-832b-579c18fac65f';x={};require('syncstring').client(debug:true, cb:(e,s)->console.log('done',e);x.s=s;x.s.syncdb(string_id:id,cb:(e,t)->console.log(e);x.t=t));0
 ###
 
 ###
