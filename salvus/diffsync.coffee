@@ -757,8 +757,8 @@ class exports.SynchronizedDB extends EventEmitter
         return is_valid
 
     _set_doc_from_data: (hash) =>
-        if hash?
-            # only one line changed
+        if hash? and @_data[hash]?  # second condition due to potential of @_data changing before _set_doc_from_data called
+            # one line changed
             d = @_data[hash]
             v = @_doc.live().split('\n')
             v[d.line] = @to_json(d.data)
@@ -767,7 +767,7 @@ class exports.SynchronizedDB extends EventEmitter
                 @_data[new_hash] = d
                 delete @_data[hash]
         else
-            # major change to doc (e.g., deleting or adding records)
+            # possible major change to doc (e.g., deleting or adding records)
             m = []
             for hash, x of @_data
                 m[x.line] = {hash:hash, x:x}

@@ -190,6 +190,14 @@ render_notification = (x, init) ->
             e.timeago('dispose')
             f = $("<span>")
             e.replaceWith(f)
+            if not x.timestamp
+                x.timestamp = new Date() - 0
+                update_db
+                    set :
+                        timestamp : x.timestamp
+                    where :
+                        project_id : x.project_id
+                        path       : x.path
             if x.timestamp
                 elt.data('timestamp', x.timestamp)
                 date = new Date(x.timestamp)
@@ -237,7 +245,7 @@ render_notifications = () ->
     important_count = 0
     if not notifications_syncdb?
         return
-    v = notifications_syncdb.select(where:{table:'activity'})
+    v = all_notifications()
     v.sort(misc.timestamp_cmp)
     ensure_titles_and_user_names v, () =>
         too_old = new Date() - 1000*60*60*24*DELETE_OLD_DAYS
@@ -258,7 +266,7 @@ render_notifications = () ->
 delete_oldest_notification = () ->
     if not notifications_syncdb?
         return
-    v = notifications_syncdb.select(where:{table:'activity'})
+    v = all_notifications()
     v.sort(misc.timestamp_cmp)
     if v.length > 0
         x = v[v.length-1]
@@ -284,7 +292,7 @@ is_important = (x) -> not x.seen and x.actions?['comment']
 
 update_important_count = (recalculate) ->
     if recalculate and notifications_syncdb?
-        important_count = (x for x in notifications_syncdb.select(where:{table:'activity'}) when is_important(x)).length
+        important_count = (x for x in all_notifications() when is_important(x)).length
 
     if important_count == 0
         notification_count.text('')
@@ -415,7 +423,7 @@ mark_visible_notifications = (mark) ->
     set = {}; set[mark] = true
     if not notifications_syncdb?
         return
-    for x in notifications_syncdb.select(where:{table:'activity'})
+    for x in all_notifications()
         if not x[mark]
             elt = notification_elements["#{x.project_id}/#{x.path}"]
             if elt? and elt.is(":visible")
@@ -435,10 +443,54 @@ mark_visible_notifications_read = () ->
     mark_visible_notifications('read')
 
 
+# Go through the activity table of the notifications_syncdb database, if it is loaded,
+# and ensure that there is at most one entry with each project_id/path.  If there are
+# multiple entries with the same project_id/path, delete all but the one with the
+# newest timestamp. After fixes, returns list of all notifications.
+# Also, if any timestamp is in the future, set it to now.
+all_notifications = () =>
+    if not notifications_syncdb?
+        return [] # nothing loaded yet
 
+    # load all, checking for duplicates as we go (could happen, due to merge conflicts)
+    seen_so_far = {}
+    all = []
+    now = new Date() - 0
+    for x in notifications_syncdb.select(where:{table:'activity'})
+        key = "#{x.project_id}#{x.path}"
+        v = seen_so_far[key]
+        if not v?
+            seen_so_far[key] = [x.timestamp]
+        else
+            v.push(x.timestamp)
+        all.push(x)
+    for key, timestamps of seen_so_far
+        if timestamps.length > 1
+            console.log("DUPLICATE! ", key, timestamps)
+            all = undefined
+            timestamps.sort()
+            for timestamp in timestamps.slice(0, timestamps.length-1)
+                notifications_syncdb.delete
+                    where :
+                        project_id : key.slice(0,36)
+                        path       : key.slice(36)
+                        timestamp  : timestamp
+            timestamps = timestamps.slice(timestamps.length-1)
+        # now only one timestamp
+        if timestamps[0] > now or not timestamps[0]  # null or in the future? -- corruption/weirdness (or browser is bad...?)
+            #console.log("TIMESTAMP in future -- fixing ", key, timestamps)
+            all = undefined
+            update_db
+                set :
+                    timestamp  : now
+                where :
+                    project_id : key.slice(0,36)
+                    path       : key.slice(36)
 
-
-
+    if not all?
+        # had a marge conflict so reload
+        all = notifications_syncdb.select(where:{table:'activity'})
+    return all
 
 
 
