@@ -469,7 +469,7 @@ all_notifications = () =>
             console.log("notifications -- DUPLICATE! ", key, timestamps)
             all = undefined
             timestamps.sort()
-            newest = timestamps[timestamp.length-1]
+            newest = timestamps[timestamps.length-1]
             for timestamp in timestamps.slice(0, timestamps.length-1)
                 if timestamp != newest
                     notifications_syncdb.delete
