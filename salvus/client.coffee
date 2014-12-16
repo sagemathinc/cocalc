@@ -1,3 +1,25 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 {EventEmitter} = require('events')
 
 # don't delete the following -- even if not used below, since this needs to be available to page/
@@ -2051,9 +2073,10 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id  : required
             path        : required
-            timeout     : 90          # some things can take a long time to print!
+            timeout     : 90          # client timeout -- some things can take a long time to print!
             options     : undefined   # optional options that get passed to the specific backend for this file type
             cb          : undefined   # cp(err, relative path in project to printed file)
+        opts.options.timeout = opts.timeout  # timeout on backend
         @call_local_hub
             project_id : opts.project_id
             message    : message.print_to_pdf
@@ -2061,10 +2084,14 @@ class exports.Connection extends EventEmitter
                 options : opts.options
             timeout    : opts.timeout
             cb         : (err, resp) =>
+                console.log("print_to_pdf returned resp = ", resp)
                 if err
                     opts.cb?(err)
                 else if resp.event == 'error'
-                    opts.cb?(resp.error)
+                    if resp.error?
+                        opts.cb?(resp.error)
+                    else
+                        opts.cb?('error')
                 else
                     opts.cb?(undefined, resp.path)
 

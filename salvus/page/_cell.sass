@@ -1,0 +1,141 @@
+.salvus-cell
+  border: solid 1px #fff
+  &:hover
+    border: dashed 1px #aaa
+
+.salvus-cell-insert-above, .salvus-cell-insert-below
+  height: 4px
+  margin-left: 10ex
+  &:hover
+    background-color: #99f
+
+.salvus-cell-input
+  min-height: 1.5em
+  /*border-left      : 2px solid #e0e0e0;
+   *border-top      : 2px solid white;
+   *border-bottom      : 2px solid white;
+   */
+  margin-left: 1em
+  margin-right: 1em
+  border: 2px solid #fff
+
+.salvus-cell-input-selected
+  min-height: 1.5em
+  border: 2px solid #99f
+  border-radius: 5px
+  /*box-shadow: 3px 3px 1px #bbf; */
+
+.salvus-cell-output
+  /* background-color : #fff; #fafafa; */
+  /*overflow-y       : auto; */
+  /* overflow-x       : auto; */
+  margin-left: 79px
+  padding: 0ex
+  margin-right: 1em
+
+.salvus-cell-output-stdout
+  font-family: "Courier New"
+  color: #11a
+  white-space: pre
+
+.salvus-cell-output-stderr
+  font-family: "Courier New"
+  color: #a00
+  white-space: pre
+
+// .salvus-cell-output-html!, .salvus-cell-output-tex!
+
+.salvus-cell-output-interact
+  padding: 1em
+  margin: 1em
+  /* background-color: #fff; */
+  border: 1px solid #e0e0e0
+  box-shadow: 3px 3px 3px 3px #ccc
+
+.salvus-cell-checkbox
+  position: absolute
+  margin-left: 0em
+  margin-top: -1ex
+  /*    border: 1px solid #white; */
+  &:hover
+    /*    border: 1px dashed #888; */
+
+.salvus-cell-stopwatch
+  margin-left: 0em
+  margin-top: 0px
+  height: 0px
+  font-size: 9pt
+  color: #666
+  background-color: #ddd
+  opacity: 0.4
+
+.salvus-cell-stopwatch-running
+  background-color: #cfc
+
+.salvus-cell-stopwatch-waiting
+  background-color: #ff8
+
+.salvus-cell-introspect
+  padding: 0px
+  background-color: #eee
+  z-index: 999
+  position: absolute
+  opacity: 0.92
+  width: 100ex
+  border: 2px solid grey
+  box-shadow: 8px 8px 4px #888
+
+.salvus-cell-introspect-title
+  font-size: 18pt
+  padding: 1ex
+  border-bottom: 1px solid grey
+
+.salvus-cell-introspect-content
+  font-size: 10pt
+  font-family: "Courier New"
+  background-color: #fffff8
+  white-space: pre
+  padding: 1ex
+  max-height: 600px
+  overflow: auto
+
+.salvus-cell-introspect-close
+  font-size: 20pt
+  padding-right: 1ex
+  padding-top: .8ex
+  &:hover
+    color: white
+    background-color: orange
+
+.salvus-cell-interact-control-grid
+  border: 1px solid grey
+  display: inline-block
+  margin: 1ex
+  padding: 1ex
+  box-shadow: 3px 3px 1px #ccc
+
+.salvus-cell-interact-control-selector-buttonbox
+  background-color: #f0f0f0
+  padding: 5px
+  border: 1px solid #ccc
+  border-radius: 3px
+
+.salvus-cell-interact-output-container
+  background-color: #fff
+  padding: 1ex
+  border: 1px solid #ccc
+  border-radius: 3px
+  margin: 1ex
+
+.salvus-cell-interact-control-slider
+  margin-top: 4px
+
+.salvus-cell-interact-input-box-font
+  font-family: "Courier New"
+  font-size: 13pt
+
+.salvus-cell-action-button
+  position: relative
+  top: 56px
+  left: 17px
+  z-index: 5

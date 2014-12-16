@@ -1,3 +1,25 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 #################################################################
 #
 # local_hub -- a node.js program that runs as a regular user, and
@@ -1900,6 +1922,7 @@ print_sagews = (opts) ->
         date       : required
         contents   : required
         extra_data : undefined   # extra data that is useful for displaying certain things in the worksheet.
+        timeout    : 90
         cb         : required
 
     extra_data_file = undefined
@@ -1920,6 +1943,7 @@ print_sagews = (opts) ->
                 args        : args
                 err_on_exit : false
                 bash        : false
+                timeout     : opts.timeout
                 cb          : cb
 
         ], (err) =>
@@ -1947,6 +1971,7 @@ print_to_pdf = (socket, mesg) ->
                         date       : mesg.options.date
                         contents   : mesg.options.contents
                         extra_data : mesg.options.extra_data
+                        timeout    : mesg.options.timeout
                         cb         : cb
                 else
                     cb("unable to print file of type '#{ext}'")

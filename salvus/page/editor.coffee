@@ -1,3 +1,25 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 ##################################################
 # Editor for files in a project
 
@@ -106,6 +128,11 @@ file_associations['html'] =
     editor : 'codemirror'
     icon   : 'fa-file-code-o'
     opts   : {mode:'htmlmixed', indent_unit:4, tab_size:4}
+
+file_associations['sass'] =
+    editor : 'codemirror'
+    icon   : 'fa-file-code-o'
+    opts   : {mode:'text/x-sass', indent_unit:2, tab_size:2}
 
 file_associations['wiki'] =
     editor : 'codemirror'
@@ -1589,6 +1616,7 @@ class CodeMirrorEditor extends FileEditor
             elt.data('font-size', size)
 
     change_font_size: (cm, delta) =>
+        #console.log("change_font_size #{cm.name}, #{delta}")
         scroll_before = cm.getScrollInfo()
 
         elt = $(cm.getWrapperElement())
@@ -1895,6 +1923,9 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : height
                 width  : width
+            # additional hack that might help avoid corruption... (I hate doing this)
+            @change_font_size(cm,+1)
+            @change_font_size(cm,-1)
 
         # This is another hack that specifically hopefully addresses an
         # issue where when I open a tab often the scrollbar is completely
@@ -3257,7 +3288,7 @@ class LatexEditor extends FileEditor
             k = doc.length
         try
             conf = misc.from_json(doc.slice(j+1,k))
-        catch
+        catch e
             conf = {}
 
         return conf

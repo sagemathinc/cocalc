@@ -1,4 +1,26 @@
 #!/usr/bin/env python
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 """
 Building the main components of cloud.sagemath.com from source, ensuring that all
 important (usually security-related) options are compiled in.
@@ -380,6 +402,7 @@ NODE_MODULES = [
     'rimraf',
     'net-ping',
     'marked',
+    'node-sass',    # transspiller for *.sass to *.css (rootfile is page/index.sass)
     'http-proxy'    # https://github.com/nodejitsu/node-http-proxy
     ]
 
@@ -445,7 +468,9 @@ SAGE_PIP_PACKAGES = [
     'fipy',       # requested by Evan Chenelly <echenelly@gmail.com> -- "A finite volume PDE solver in Python".
     'python-igraph', # requested by Santhust <santhust31@gmail.com> -- "High performance graph data structures and algorithms" -- https://pypi.python.org/pypi/python-igraph/0.7
     'mygene',   # requested by Luca Beltrame for a bioinformatics course
-    'singledispatch'  # needed by rpy2 ipython extension now
+    'singledispatch',  # needed by rpy2 ipython extension now
+    'glpk',
+    'qutip'    # QuTiP is open-source software for simulating the dynamics of open quantum systems.
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -475,7 +500,10 @@ R_PACKAGES = [
     #'xlsx',
     'XML',
     'data.table',
-    'brian'
+    'brian',
+    'rugarch',
+    'quantmod',
+    'swirl'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
