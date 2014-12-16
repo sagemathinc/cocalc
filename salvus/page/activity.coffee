@@ -460,29 +460,25 @@ all_notifications = () =>
         key = "#{x.project_id}#{x.user_id}#{x.path}"
         v = seen_so_far[key]
         if not v?
-            seen_so_far[key] = [x.timestamp]
+            seen_so_far[key] = [x]
         else
-            v.push(x.timestamp)
+            v.push(x)
         all.push(x)
-    for key, timestamps of seen_so_far
-        if timestamps.length > 1
-            console.log("notifications -- DUPLICATE! ", key, timestamps)
+    for key, vals of seen_so_far
+        if vals.length > 1
+            console.log("notifications -- DUPLICATE! ", key, vals)
             all = undefined
+            timestamps = (x.timestamp for x in vals)
             timestamps.sort()
             newest = timestamps[timestamps.length-1]
-            for timestamp in timestamps.slice(0, timestamps.length-1)
-                if timestamp != newest
-                    notifications_syncdb.delete
-                        where :
-                            project_id : key.slice(0,36)
-                            user_id    : key.slice(36,72)
-                            path       : key.slice(72)
-                            timestamp  : timestamp
+            for x in vals
+                if x.timestamp != newest
+                    notifications_syncdb.delete(where : x)
                 else
-                    console.log("TODO: notifications -- multiple copies of identical row -- #{key}")
+                    console.log("TODO: notifications DUPLICATE deletion -- #{key}")
             timestamps = timestamps.slice(timestamps.length-1)
         # now only one timestamp
-        if timestamps[0] > now or not timestamps[0]  # null or in the future? -- corruption/weirdness (or browser is bad...?)
+        if vals[0].timestamp > now or not vals[0].timestamp  # null or in the future? -- corruption/weirdness (or browser is bad...?)
             console.log("notifications -- TIMESTAMP in future -- fixing ", key, timestamps)
             all = undefined
             update_db

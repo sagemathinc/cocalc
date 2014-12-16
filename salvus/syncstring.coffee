@@ -64,9 +64,9 @@ SALVUS_HOME = process.cwd()
 # Times below are in milliseconds.
 
 # Polling parameters:
-INIT_POLL_INTERVAL     = 3000
-MAX_POLL_INTERVAL      = 15000   # TODO: for testing make short; for deploy make longer?!
-POLL_DECAY_RATIO       = 1.4
+INIT_POLL_INTERVAL     = 12000
+MAX_POLL_INTERVAL      = 40000   # TODO: for testing make short; for deploy make longer?!
+POLL_DECAY_RATIO       = 2
 
 # Maximum allowed syncstring size -- we keep this manageable since we have to be
 # able to load the entire string within a few seconds from the database.
