@@ -202,11 +202,11 @@ render_notification = (x, init) ->
 
 
 delete_notification = (x) ->
-    console.log("deleting #{misc.to_json(x)}")
+    #console.log("deleting #{misc.to_json(x)}")
     name = "#{x.project_id}/#{x.path}"
     elt = notification_elements[name]
     if elt?
-        console.log("actually removing ", elt)
+        #console.log("actually removing ", elt)
         elt.remove()
         delete notification_elements[name]
 
