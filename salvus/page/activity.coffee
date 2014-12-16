@@ -25,7 +25,7 @@
 SYNCDB_MAX_LEN = 2000000
 
 # activity.coffee
-DISABLE_NOTIFICATIONS = false
+DISABLE_NOTIFICATIONS = true
 
 if DISABLE_NOTIFICATIONS
     $(".salvus-notification-indicator").hide()
