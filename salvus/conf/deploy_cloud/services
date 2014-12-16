@@ -46,8 +46,10 @@ localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra-ssd:100,cassandra-ss
 localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
 
 # web servers/hubs
+# NOTE: must use swap (due to memory leaks in hub)
+#    zfs create pool/swap -V 8G -b 4K && sleep 3 && mkswap -f /dev/zvol/pool/swap && swapon  /dev/zvol/pool/swap
 localhost    {'hostname':'web1dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
-localhost    {'hostname':'web2dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+localhost    {'hostname':'web2dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
 
 #localhost    {'hostname':'devel1dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
 #localhost    {'hostname':'devel2dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
@@ -73,8 +75,8 @@ localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra-ssd:100,cassandra-ss
 localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
 
 # web servers/hubs
-localhost    {'hostname':'web1dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
-localhost    {'hostname':'web2dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
+localhost    {'hostname':'web1dc3', 'instance_type':'g1-small', 'zone':'europe-west1-c'}
+localhost    {'hostname':'web2dc3', 'instance_type':'g1-small', 'zone':'europe-west1-c'}
 
 
 #####################
