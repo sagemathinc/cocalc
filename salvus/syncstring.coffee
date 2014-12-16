@@ -80,9 +80,9 @@ MAX_STRING_LENGTH      = 2000000
 # propogate after this long may be lost.  This way we still eventually see
 # patches that were written to the database, but that we missed
 # due to them not being propogates to all data centers.
+# Also, the poll interval is relevant.
 
-TIMESTAMP_OVERLAP      = 60000
-TIMESTAMP_OVERLAP      = 8000
+TIMESTAMP_OVERLAP      = 60000    # 1 minute.
 
 # If there are more than DB_PATCH_SQUASH_THRESH patches for a given string,
 # we squash the old patch history into a single patch the first time
@@ -902,7 +902,7 @@ class StringsDB
 #---------------------------------------------------------------------
 
 ###
-x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.s = require('syncstring'); x.s.init_syncstring_db(x.c.database); x.ss=x.s.syncdb(string_id:'c26db83a-7fa2-44a4-832b-579c18fac65f', cb:(e,t)->x.t=t))
+id='c26db83a-7fa2-44a4-832b-579c18fac65f';x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.s = require('syncstring'); x.s.init_syncstring_db(x.c.database); x.ss=x.s.syncdb(string_id:id, cb:(e,t)->x.t=t))
 ###
 _syncdb_cache = {}
 _syncdb_callbacks = {}
