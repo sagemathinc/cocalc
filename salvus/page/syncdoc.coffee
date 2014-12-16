@@ -661,7 +661,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                             if resp.event == 'error'
                                 err = resp.error
                             if err
-                                alert_message(type:"error", message:"error enabling revision saving -- #{err} -- #{@editor.filename}")
+                                #alert_message(type:"error", message:)
+                                # usually this is harmless -- it could happen on reconnect or network is flakie.  
+                                console.log("ERROR: ", "error enabling revision saving -- #{err} -- #{@editor.filename}")
 
     ui_loading: () =>
         @element.find(".salvus-editor-codemirror-loading").show()
