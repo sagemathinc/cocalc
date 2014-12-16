@@ -470,7 +470,7 @@ SAGE_PIP_PACKAGES = [
     'mygene',   # requested by Luca Beltrame for a bioinformatics course
     'singledispatch',  # needed by rpy2 ipython extension now
     'glpk',
-    'qutip'    # QuTiP is open-source software for simulating the dynamics of open quantum systems. 
+    'qutip'    # QuTiP is open-source software for simulating the dynamics of open quantum systems.
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -502,7 +502,8 @@ R_PACKAGES = [
     'data.table',
     'brian',
     'rugarch',
-    'quantmod'
+    'quantmod',
+    'swirl'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
