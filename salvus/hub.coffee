@@ -2704,8 +2704,6 @@ class Client extends EventEmitter
     ################################################
     # Synchronized databases (associated to user not project)
     ################################################
-
-
     mesg_get_notifications_syncdb: (mesg) =>
         get_notifications_syncdb @account_id, (err, db) =>
             if err
@@ -2725,6 +2723,37 @@ class Client extends EventEmitter
 
     # Delete a syncdb
     #mesg_delete_syncdb: (mesg) =>
+
+
+    ############################################
+    # Bulk information about several projects or accounts
+    # (may be used by activity notifications, chat, etc.)
+    #############################################
+    mesg_get_project_titles: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in")
+            return
+        database.get_project_titles
+            project_ids : mesg.project_ids
+            use_cache   : true
+            cb          : (err, titles) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.project_titles(titles:titles, id:mesg.id))
+
+    mesg_get_user_names: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in")
+            return
+        database.get_user_names
+            account_ids : mesg.account_ids
+            use_cache   : true
+            cb          : (err, user_names) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.user_names(user_names:user_names, id:mesg.id))
 
 
 ##############################

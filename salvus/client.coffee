@@ -947,7 +947,6 @@ class exports.Connection extends EventEmitter
         @call
             message : message.get_projects(hidden:opts.hidden)
             cb      : opts.cb
-
     #################################################
     # Individual Projects
     #################################################
@@ -1719,7 +1718,7 @@ class exports.Connection extends EventEmitter
         )
 
     #################################################
-    # Search
+    # Search / user info
     #################################################
 
     user_search: (opts) =>
@@ -1783,6 +1782,75 @@ class exports.Connection extends EventEmitter
                     opts.cb(result.error)
                 else
                     opts.cb(undefined, result)
+
+    ############################################
+    # Bulk information about several projects or accounts
+    # (may be used by activity notifications, chat, etc.)
+    #############################################
+
+    get_project_titles: (opts) ->
+        opts = defaults opts,
+            project_ids : required
+            use_cache   : true
+            cb          : required     # cb(err, map from project_id to string (project title))
+        titles = {}
+        for project_id in opts.project_ids
+            titles[project_id] = false
+        if opts.use_cache
+            if not @_project_title_cache?
+                @_project_title_cache = {}
+            for project_id, done of titles
+                if not done and @_project_title_cache[project_id]?
+                    titles[project_id] = @_project_title_cache[project_id]
+        project_ids = (project_id for project_id,done of titles when not done)
+        if project_ids.length == 0
+            opts.cb(undefined, titles)
+        else
+            @call
+                message : message.get_project_titles(project_ids : project_ids)
+                cb      : (err, resp) =>
+                    if err
+                        opts.cb(err)
+                    else if resp.event == 'error'
+                        opts.cb(resp.error)
+                    else
+                        for project_id, title of resp.titles
+                            titles[project_id] = title
+                            @_project_title_cache[project_id] = title   # TODO: we could expire this cache...
+                        opts.cb(undefined, titles)
+
+
+    get_user_names: (opts) ->
+        opts = defaults opts,
+            account_ids : required
+            use_cache   : true
+            cb          : required     # cb(err, map from account_id to {first:?, last:?})
+        user_names = {}
+        for account_id in opts.account_ids
+            user_names[account_id] = false
+        if opts.use_cache
+            if not @_user_names_cache?
+                @_user_names_cache = {}
+            for account_id, done of user_names
+                if not done and @_user_names_cache[account_id]?
+                    user_names[account_id] = @_user_names_cache[account_id]
+        account_ids = (account_id for account_id,done of user_names when not done)
+        if account_ids.length == 0
+            opts.cb(undefined, user_names)
+        else
+            @call
+                message : message.get_user_names(account_ids : account_ids)
+                cb      : (err, resp) =>
+                    if err
+                        opts.cb(err)
+                    else if resp.event == 'error'
+                        opts.cb(resp.error)
+                    else
+                        for account_id, user_name of resp.user_names
+                            user_names[account_id] = user_name
+                            @_user_names_cache[account_id] = user_name   # TODO: we could expire this cache...
+                        opts.cb(undefined, user_names)
+
 
     #################################################
     # Linked projects

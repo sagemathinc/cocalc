@@ -327,6 +327,29 @@ message
     id         : undefined
     session_id : undefined  # gets filled in
 
+############################################
+# Information about several projects or accounts
+#############################################
+
+message
+    event       : 'get_project_titles'
+    id          : undefined
+    project_ids : required
+
+message
+    event       : 'project_titles'
+    id          : undefined
+    titles      : required
+
+message
+    event       : 'get_user_names'
+    id          : undefined
+    account_ids : required
+
+message
+    event       : 'user_names'
+    id          : undefined
+    user_names  : required
 
 ############################################
 # CodeMirror editor sessions

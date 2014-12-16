@@ -1002,6 +1002,39 @@ class exports.Salvus extends exports.Cassandra
                         v[r.account_id] = {first_name:r.first_name, last_name:r.last_name}
                     opts.cb(err, v)
 
+    get_user_names: (opts) =>
+        opts = defaults opts,
+            account_ids  : required
+            use_cache    : true
+            cache_time_s : 60*60        # one hour
+            cb           : required     # cb(err, map from account_id to object (user name))
+        user_names = {}
+        for account_id in opts.account_ids
+            user_names[account_id] = false
+        if opts.use_cache
+            if not @_account_user_name_cache?
+                @_account_user_name_cache = {}
+            for account_id, done of user_names
+                if not done and @_account_user_name_cache[account_id]?
+                    user_names[account_id] = @_account_user_name_cache[account_id]
+
+        @account_ids_to_usernames
+            account_ids : (account_id for account_id,done of user_names when not done)
+            cb          : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    # use a closure so that the cache clear timeout below works
+                    # with the correct account_id!
+                    f = (account_id, user_name) =>
+                        user_names[account_id] = user_name
+                        @_account_user_name_cache[account_id] = user_name
+                        setTimeout((()=>delete @_account_user_name_cache[account_id]),
+                                   1000*opts.cache_time_s)
+                    for account_id, user_name of results
+                        f(account_id, user_name)
+                    opts.cb(undefined, user_names)
+
     #####################################
     # Managing compute servers
     #####################################
@@ -2245,10 +2278,11 @@ class exports.Salvus extends exports.Cassandra
                 opts.cb(err, projects)
         )
 
-    get_projects_with_ids: (opts) ->
+    get_projects_with_ids: (opts) =>
         opts = defaults opts,
-            ids : required   # an array of id's
-            cb  : required
+            ids     : required   # an array of id's
+            columns : PROJECT_COLUMNS
+            cb      : required
 
         if opts.ids.length == 0  # easy special case -- don't bother to query db!
             opts.cb(false, [])
@@ -2256,10 +2290,10 @@ class exports.Salvus extends exports.Cassandra
 
         @select
             table     : 'projects'
-            columns   : PROJECT_COLUMNS
+            columns   : opts.columns
             objectify : true
             where     : { project_id:{'in':opts.ids} }
-            cb        : (error, results) ->
+            cb        : (error, results) =>
                 if error
                     opts.cb(error)
                 else
@@ -2268,6 +2302,40 @@ class exports.Salvus extends exports.Cassandra
                         if not r.name and r.title?
                             r.name = misc.make_valid_name(r.title)
                     opts.cb(false, results)
+
+    get_project_titles: (opts) =>
+        opts = defaults opts,
+            project_ids  : required
+            use_cache    : true
+            cache_time_s : 60*60        # one hour
+            cb           : required     # cb(err, map from project_id to string (project title))
+        titles = {}
+        for project_id in opts.project_ids
+            titles[project_id] = false
+        if opts.use_cache
+            if not @_project_title_cache?
+                @_project_title_cache = {}
+            for project_id, done of titles
+                if not done and @_project_title_cache[project_id]?
+                    titles[project_id] = @_project_title_cache[project_id]
+
+        @get_projects_with_ids
+            ids     : (project_id for project_id,done of titles when not done)
+            columns : ['project_id', 'title']
+            cb      : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    # use a closure so that the cache clear timeout below works
+                    # with the correct project_id!
+                    f = (project_id, title) =>
+                        titles[project_id] = title
+                        @_project_title_cache[project_id] = title
+                        setTimeout((()=>delete @_project_title_cache[project_id]),
+                                   1000*opts.cache_time_s)
+                    for x in results
+                        f(x.project_id, x.title)
+                    opts.cb(undefined, titles)
 
     # cb(err, array of account_id's of accounts in non-invited-only groups)
     get_account_ids_using_project: (opts) ->
