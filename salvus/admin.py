@@ -82,6 +82,8 @@ NGINX_PORT   = 8080
 HUB_PORT       = 5000
 HUB_PROXY_PORT = 5001
 
+SYNCSTRING_PORT = 6001
+
 # These are used by the firewall.
 CASSANDRA_CLIENT_PORT = 9160
 CASSANDRA_NATIVE_PORT = 9042
@@ -657,25 +659,28 @@ class Hub(Process):
 
 
 ####################
-# Compute Server
+# Syncstring
 ####################
-
-class Compute(Process):
-    def __init__(self, id=0, host=''):
-        self._port = 22
+class Syncstring(Process):
+    def __init__(self,
+                 monitor_database = None,
+                 keyspace         = 'salvus',
+                 debug            = False,
+                 id               = '0'):   # id is ignored
         Process.__init__(self, id,
-                         name        = 'compute',
-                         port        = port,
-                         pidfile     = os.path.join(PIDS, 'compute_server.pid'),
-                         logfile     = os.path.join(LOGS, 'compute_server.log'),
-                         start_cmd   = ['compute_server', 'start'],
-                         stop_cmd    = ['compute_server', 'stop'],
-                         reload_cmd  = ['compute_server', 'restart'],
-                         service     = ('compute', port)
-        )
+                         name        ='syncstring',
+                         port       =  SYNCSTRING_PORT,
+                         pidfile    = os.path.join(PIDS, 'syncstring.pid'),
+                         logfile    = os.path.join(PIDS, 'syncstring.log'),
+                         monitor_database = monitor_database,
+                         start_cmd  = [os.path.join(PWD, 'syncstring'), 'start',
+                                      '--keyspace', keyspace,
+                                      '--database_nodes', monitor_database],
+                         stop_cmd   = [os.path.join(PWD, 'syncstring'), 'stop'])
 
-    def port(self):
-        return self._port
+    def __repr__(self):
+        return "Syncstring server"
+
 
 ########################################
 # Cassandra database server
