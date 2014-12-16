@@ -444,7 +444,7 @@ mark_visible_notifications_read = () ->
 
 
 # Go through the activity table of the notifications_syncdb database, if it is loaded,
-# and ensure that there is at most one entry with each project_id/path.  If there are
+# and ensure that there is at most one entry with each user_id/project_id/path.  If there are
 # multiple entries with the same project_id/path, delete all but the one with the
 # newest timestamp. After fixes, returns list of all notifications.
 # Also, if any timestamp is in the future, set it to now.
@@ -457,7 +457,7 @@ all_notifications = () =>
     all = []
     now = new Date() - 0
     for x in notifications_syncdb.select(where:{table:'activity'})
-        key = "#{x.project_id}#{x.path}"
+        key = "#{x.project_id}#{x.user_id}#{x.path}"
         v = seen_so_far[key]
         if not v?
             seen_so_far[key] = [x.timestamp]
@@ -466,26 +466,32 @@ all_notifications = () =>
         all.push(x)
     for key, timestamps of seen_so_far
         if timestamps.length > 1
-            console.log("DUPLICATE! ", key, timestamps)
+            console.log("notifications -- DUPLICATE! ", key, timestamps)
             all = undefined
             timestamps.sort()
+            newest = timestamps[timestamp.length-1]
             for timestamp in timestamps.slice(0, timestamps.length-1)
-                notifications_syncdb.delete
-                    where :
-                        project_id : key.slice(0,36)
-                        path       : key.slice(36)
-                        timestamp  : timestamp
+                if timestamp != newest
+                    notifications_syncdb.delete
+                        where :
+                            project_id : key.slice(0,36)
+                            user_id    : key.slice(36,72)
+                            path       : key.slice(72)
+                            timestamp  : timestamp
+                else
+                    console.log("TODO: notifications -- multiple copies of identical row -- #{key}")
             timestamps = timestamps.slice(timestamps.length-1)
         # now only one timestamp
         if timestamps[0] > now or not timestamps[0]  # null or in the future? -- corruption/weirdness (or browser is bad...?)
-            #console.log("TIMESTAMP in future -- fixing ", key, timestamps)
+            console.log("notifications -- TIMESTAMP in future -- fixing ", key, timestamps)
             all = undefined
             update_db
                 set :
                     timestamp  : now
                 where :
                     project_id : key.slice(0,36)
-                    path       : key.slice(36)
+                    user_id    : key.slice(36,72)
+                    path       : key.slice(72)
 
     if not all?
         # had a marge conflict so reload
