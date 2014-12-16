@@ -270,6 +270,8 @@ class exports.Connection extends EventEmitter
         @_data_handlers    = {}
         @execute_callbacks = {}
         @call_callbacks    = {}
+        @_project_title_cache = {}
+        @_user_names_cache = {}
 
         @register_data_handler(JSON_CHANNEL, @handle_json_data)
 
@@ -940,13 +942,23 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb?(undefined, resp.project_id)
 
-    get_projects: (opts) ->
+    get_projects: (opts) =>
         opts = defaults opts,
             hidden : false
             cb : required
         @call
             message : message.get_projects(hidden:opts.hidden)
-            cb      : opts.cb
+            cb      : (err, mesg) =>
+                if not err and mesg.event == 'all_projects'
+                    for project in mesg.projects
+                        @_project_title_cache[project.project_id] = project.title
+                        collabs = project.collaborator
+                        if collabs?
+                            for collab in collabs
+                                if not @_user_names_cache[collab.account_id]?
+                                    @_user_names_cache[collab.account_id] = collab
+                opts.cb(err, mesg)
+
     #################################################
     # Individual Projects
     #################################################
@@ -963,6 +975,7 @@ class exports.Connection extends EventEmitter
                 else if resp.event == 'error'
                     opts.cb(resp.error)
                 else
+                    @_project_title_cache[opts.project_id] = resp.info.title
                     opts.cb(undefined, resp.info)
 
     # Return info about all sessions that have been started in this
@@ -1786,6 +1799,14 @@ class exports.Connection extends EventEmitter
     ############################################
     # Bulk information about several projects or accounts
     # (may be used by activity notifications, chat, etc.)
+    # NOTE:
+    #    When get_projects is called (which happens regularly), any info about
+    #    project titles or "account_id --> name" mappings gets updated. So
+    #    usually get_project_titles and get_user_names doesn't even have
+    #    to make a call to the server.   A case where it would is when rendering
+    #    the notifications and the project list hasn't been returned.  Also,
+    #    at some point, project list will probably just return the most recent
+    #    projects or partial info about them.
     #############################################
 
     get_project_titles: (opts) ->
@@ -1797,8 +1818,6 @@ class exports.Connection extends EventEmitter
         for project_id in opts.project_ids
             titles[project_id] = false
         if opts.use_cache
-            if not @_project_title_cache?
-                @_project_title_cache = {}
             for project_id, done of titles
                 if not done and @_project_title_cache[project_id]?
                     titles[project_id] = @_project_title_cache[project_id]
@@ -1824,13 +1843,11 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             account_ids : required
             use_cache   : true
-            cb          : required     # cb(err, map from account_id to {first:?, last:?})
+            cb          : required     # cb(err, map from account_id to {first_name:?, last_name:?})
         user_names = {}
         for account_id in opts.account_ids
             user_names[account_id] = false
         if opts.use_cache
-            if not @_user_names_cache?
-                @_user_names_cache = {}
             for account_id, done of user_names
                 if not done and @_user_names_cache[account_id]?
                     user_names[account_id] = @_user_names_cache[account_id]

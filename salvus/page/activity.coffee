@@ -34,6 +34,7 @@ misc = require('misc')
 editor = require('editor')
 history = require('history')
 account = require('account')
+async   = require('async')
 {salvus_client} = require('salvus_client')
 
 template               = $(".salvus-notification-template")
@@ -101,6 +102,42 @@ matches_current_search = (x) ->
             return false
     return true
 
+ensure_titles_and_user_names = (v, cb) ->
+    async.parallel([
+        (cb) ->
+            project_ids = (x.project_id for x in v when not x.project_title?)
+            if project_ids.length == 0
+                cb()
+            else
+                salvus_client.get_project_titles
+                    project_ids : project_ids
+                    cb          : (err, titles) ->
+                        if err
+                            cb(err)
+                        else
+                            for x in v
+                                if not x.project_title?
+                                    x.project_title = titles[x.project_id]
+                            cb()
+        (cb) ->
+            user_ids = (x.user_id for x in v when not x.fullname?)
+            if user_ids.length == 0
+                cb()
+            else
+                salvus_client.get_user_names
+                    account_ids : user_ids
+                    cb          : (err, user_names) ->
+                        if err
+                            cb(err)
+                        else
+                            for x in v
+                                if not x.fullname?
+                                    name = user_names[x.user_id]
+                                    x.fullname = "#{name.first_name} #{name.last_name}"
+                            cb()
+
+    ], cb)
+
 notification_elements = {}
 render_notification = (x, init) ->
     #console.log("rendering #{misc.to_json(x)}")
@@ -116,49 +153,52 @@ render_notification = (x, init) ->
         elt.click () ->
             open_notification($(@))
 
-    if x.path == ".sagemathcloud.log"
-        if x.project_title?
-            d = "<b>#{x.fullname}</b> used the <b>#{x.project_title}</b> project"
-    else
-        actions = []
-        if x.actions?['comment']
-            actions.push('<i class="salvus-notification-commented">commented on</i>')
-            elt.find(".salvus-notification-action-icon").addClass("salvus-notification-action-icon-comment")
+    ensure_titles_and_user_names [x], (err) ->
+        if err
+            return
+        if x.path == ".sagemathcloud.log"
+            if x.project_title?
+                d = "<b>#{x.fullname}</b> used the <b>#{x.project_title}</b> project"
         else
-            elt.find(".salvus-notification-action-icon").removeClass("salvus-notification-action-icon-comment")
-        if x.actions?['edit']
-            actions.push('edited')
-        if actions.length == 0
-            actions = ['used']
-        action = actions.join(' and ')
-        d = "<b>#{x.fullname}</b> #{action} <b>#{x.path}</b>"
-        if x.project_title?
-            d += " in <b>#{x.project_title}</b>"
-    desc = elt.find(".salvus-notification-desc")
-    desc.html(d)
+            actions = []
+            if x.actions?['comment']
+                actions.push('<i class="salvus-notification-commented">commented on</i>')
+                elt.find(".salvus-notification-action-icon").addClass("salvus-notification-action-icon-comment")
+            else
+                elt.find(".salvus-notification-action-icon").removeClass("salvus-notification-action-icon-comment")
+            if x.actions?['edit']
+                actions.push('edited')
+            if actions.length == 0
+                actions = ['used']
+            action = actions.join(' and ')
+            d = "<b>#{x.fullname}</b> #{action} <b>#{x.path}</b>"
+            if x.project_title?
+                d += " in <b>#{x.project_title}</b>"
+        desc = elt.find(".salvus-notification-desc")
+        desc.html(d)
 
-    if x.read
-        elt.addClass('salvus-notification-read')
-    else
-        elt.removeClass('salvus-notification-read')
+        if x.read
+            elt.addClass('salvus-notification-read')
+        else
+            elt.removeClass('salvus-notification-read')
 
-    try
-        e = elt.find(".salvus-notification-time").find("span")
-        e.timeago('dispose')
-        f = $("<span>")
-        e.replaceWith(f)
-        if x.timestamp
-            elt.data('timestamp', x.timestamp)
-            date = new Date(x.timestamp)
-            f.attr('title', date.toISOString()).timeago()
-    catch err
-        console.log("WARNING: activity notification invalid time ", x.timestamp, err)
+        try
+            e = elt.find(".salvus-notification-time").find("span")
+            e.timeago('dispose')
+            f = $("<span>")
+            e.replaceWith(f)
+            if x.timestamp
+                elt.data('timestamp', x.timestamp)
+                date = new Date(x.timestamp)
+                f.attr('title', date.toISOString()).timeago()
+        catch err
+            console.log("WARNING: activity notification invalid time ", x.timestamp, err)
 
-    if not matches_current_search(desc.text())
-        elt.hide()
-    else
-        elt.show()
-        $(".salvus-notification-list-none").hide()
+        if not matches_current_search(desc.text())
+            elt.hide()
+        else
+            elt.show()
+            $(".salvus-notification-list-none").hide()
 
 
 delete_notification = (x) ->
@@ -194,20 +234,21 @@ render_notifications = () ->
     important_count = 0
     v = notifications_syncdb.select(where:{table:'activity'})
     v.sort(misc.timestamp_cmp)
-    too_old = new Date() - 1000*60*60*24*DELETE_OLD_DAYS
-    #i = 0
-    for x in v
-        #i += 1
-        if x.timestamp? and x.timestamp <= too_old
-            notifications_syncdb.delete(where:{table:'activity',project_id:x.project_id,path:x.path})
-            continue
-        render_notification(x, true)
-        if is_important(x)
-            important_count += 1
-    $(".salvus-notification-list-loading").hide()
-    if v.length == 0
-        $(".salvus-notification-list-none").show()
-    update_important_count(false)
+    ensure_titles_and_user_names v, () =>
+        too_old = new Date() - 1000*60*60*24*DELETE_OLD_DAYS
+        #i = 0
+        for x in v
+            #i += 1
+            if x.timestamp? and x.timestamp <= too_old
+                notifications_syncdb.delete(where:{table:'activity',project_id:x.project_id,path:x.path})
+                continue
+            render_notification(x, true)
+            if is_important(x)
+                important_count += 1
+        $(".salvus-notification-list-loading").hide()
+        if v.length == 0
+            $(".salvus-notification-list-none").show()
+        update_important_count(false)
 
 delete_oldest_notification = () ->
     v = notifications_syncdb.select(where:{table:'activity'})
