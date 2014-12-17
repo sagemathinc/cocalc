@@ -360,6 +360,7 @@ CREATE TABLE activity_by_project2 (
    timestamp   timestamp,
    path        varchar,
    account_id  uuid,
+   action      varchar,  /* edit, comment, create, delete */
    seen_by     set<uuid>,
    read_by     set<uuid>,
    PRIMARY KEY (project_id, timestamp, path)
@@ -370,6 +371,7 @@ CREATE TABLE recent_activity_by_project2 (
    timestamp   timestamp,
    path        varchar,
    account_id  uuid,
+   action      varchar,
    seen_by     set<uuid>,
    read_by     set<uuid>,
    PRIMARY KEY (project_id, timestamp, path)

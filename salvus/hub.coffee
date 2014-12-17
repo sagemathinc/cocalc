@@ -2876,6 +2876,9 @@ RECENT_NOTIFICATION_D = 14
 MAX_ACTIVITY_NAME_LENGTH = 50
 MAX_ACTIVITY_TITLE_LENGTH = 60
 
+RECENT_ACTIVITY_TTL_S = 30
+RECENT_ACTIVITY_POLL_INTERVAL_S = 5
+
 normalize_path = (path) ->
     # Rules:
     # kdkd/tmp/.test.sagews.sage-chat --> kdkd/tmp/test.sagews, comment "chat"
@@ -3052,11 +3055,19 @@ path_activity = (opts) ->
                         set   : {account_id:opts.account_id}
                         cb    : cb
                 (cb) ->
-                    #dbg('set activity_by_project')
+                    #dbg('set activity_by_project2')
                     database.update
-                        table : 'activity_by_project'
+                        table : 'activity_by_project2'
                         where : where
-                        set   : {account_id:opts.account_id}
+                        set   : {account_id:opts.account_id, action:action}
+                        cb    : cb
+                (cb) ->
+                    #dbg('set recent_activity_by_project2')
+                    database.update
+                        table : 'recent_activity_by_project2'
+                        where : where
+                        set   : {account_id:opts.account_id, action:action}
+                        ttl   : RECENT_ACTIVITY_TTL_S
                         cb    : cb
                 (cb) ->
                     #dbg('set activity_by_user')
