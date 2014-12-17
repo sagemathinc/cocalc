@@ -467,15 +467,11 @@ all_notifications = () =>
     for key, vals of seen_so_far
         if vals.length > 1
             console.log("notifications -- DUPLICATE! ", key, vals)
+            vals.sort(misc.timestamp_cmp)  # newest to oldest
             all = undefined
-            timestamps = (x.timestamp for x in vals)
-            timestamps.sort()
-            newest = timestamps[timestamps.length-1]
-            for x in vals
-                if x.timestamp != newest
-                    notifications_syncdb.delete(where : x)
-                else
-                    console.log("TODO: notifications DUPLICATE deletion -- #{key}")
+            for x in vals.slice(1)
+                notifications_syncdb.delete(where : x)
+
             timestamps = timestamps.slice(timestamps.length-1)
         # now only one timestamp
         if vals[0].timestamp > now or not vals[0].timestamp  # null or in the future? -- corruption/weirdness (or browser is bad...?)
