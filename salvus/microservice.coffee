@@ -54,6 +54,7 @@ exports.client = (opts) ->
     opts = defaults opts,
         cb         : required              # cb(err,  instance)
         port       : DEFAULT_PORT
+        host       : DEFAULT_HOST
         debug      : true
     new exports.Client(opts)
 
@@ -61,6 +62,7 @@ class exports.Client extends EventEmitter
     constructor : (opts) ->
         opts = defaults opts,
             port       : DEFAULT_PORT
+            host       : DEFAULT_HOST
             name       : 'microservice'
             debug      : false
             cb         : required
@@ -71,6 +73,7 @@ class exports.Client extends EventEmitter
 
         @token_file = token_filename(opts.name)
         @port = opts.port
+        @host = opts.host
         @name = opts.name
         misc.call_lock(obj:@)
 
@@ -118,6 +121,7 @@ class exports.Client extends EventEmitter
         @socket = undefined
         socket = misc_node.connect_to_locked_socket
             port    : @port
+            host    : @host
             token   : @secret_token
             timeout : 5
             cb      : (err) =>

@@ -953,7 +953,7 @@ DEFAULT_PORT = 6001    # also hard coded in admin.py
 DEFAULT_HOST = '127.0.0.1'
 
 ###
-id='c26db83a-7fa2-44a4-832b-579c18fac65f';x={};require('syncstring').client(debug:true, cb:(e,s)->console.log('done',e);x.s=s;x.s.syncdb(string_id:id,cb:(e,t)->console.log(e);x.t=t));0
+id='c26db83a-7fa2-44a4-832b-579c18fac65f';x={};require('syncstring').client(host:'127.0.0.1', debug:true, cb:(e,s)->console.log('done',e);x.s=s;x.s.syncdb(string_id:id,cb:(e,t)->console.log(e);x.t=t));0
 ###
 
 ###
@@ -962,6 +962,7 @@ id='c26db83a-7fa2-44a4-832b-579c18fac65f';x={};require('syncstring').client(debu
 exports.client = (opts) ->
     opts = defaults opts,
         port  : DEFAULT_PORT
+        host  : DEFAULT_HOST
         debug : true
         cb    : required              # cb(err,  instance)
     new SyncstringClient(opts)
