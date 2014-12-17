@@ -354,21 +354,33 @@ CREATE TABLE admin_log (
 // Record of and notifications about activity on specific paths
 ///////////////////
 
+/* the 2 is because I messed up a previous schema */
+CREATE TABLE activity_by_project2 (
+   project_id  uuid,
+   timestamp   timestamp,
+   path        varchar,
+   account_id  uuid,
+   seen_by     set<uuid>,
+   read_by     set<uuid>,
+   PRIMARY KEY (project_id, timestamp, path)
+);
+
+CREATE TABLE recent_activity_by_project2 (
+   project_id  uuid,
+   timestamp   timestamp,
+   path        varchar,
+   account_id  uuid,
+   seen_by     set<uuid>,
+   read_by     set<uuid>,
+   PRIMARY KEY (project_id, timestamp, path)
+);
+
+
 CREATE TABLE activity_by_path (
    project_id  uuid,
    path        varchar,
    timestamp   timestamp,
    account_id  uuid,
-   fullname    varchar,
-   PRIMARY KEY (project_id, path, timestamp)
-);
-
-CREATE TABLE activity_by_project (
-   project_id  uuid,
-   timestamp   timestamp,
-   path        varchar,
-   account_id  uuid,
-   fullname    varchar,
    PRIMARY KEY (project_id, path, timestamp)
 );
 
@@ -377,23 +389,9 @@ CREATE TABLE activity_by_user (
    timestamp   timestamp,
    project_id  uuid,
    path        varchar,
-   fullname    varchar,
    project_title varchar,
    PRIMARY KEY (account_id, timestamp)
 );
-
-CREATE TABLE activity_notifications (
-   account_id  uuid,
-   timestamp   timestamp,
-   project_id  uuid,
-   path        varchar,
-   user_id     uuid,
-   comment     varchar,
-   fullname    varchar,
-   project_title varchar,
-   PRIMARY KEY (account_id, timestamp, project_id, path, user_id)
-);
-
 
 ////////////////////
 // Database-backed synchronized strings
