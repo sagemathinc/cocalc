@@ -18,7 +18,7 @@ localhost {'keyspace':'salvus', 'id':'1', 'port':'5002', 'proxy_port':'5003'}
 #localhost {'keyspace':'salvus', 'id':'4', 'port':'5008', 'proxy_port':'5009'}
 
 [syncstring]
-localhost
+syncstring
 
 # The only thing that runs as root is stunnel and haproxy, since
 # they have to open ports 443 and port 80.

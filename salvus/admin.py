@@ -663,6 +663,7 @@ class Hub(Process):
 ####################
 class Syncstring(Process):
     def __init__(self,
+                 host             = '',
                  monitor_database = None,
                  keyspace         = 'salvus',
                  debug            = False,
@@ -675,6 +676,7 @@ class Syncstring(Process):
                          monitor_database = monitor_database,
                          start_cmd  = [os.path.join(PWD, 'syncstring'), 'start',
                                       '--keyspace', keyspace,
+                                      '--host', host,
                                       '--database_nodes', monitor_database],
                          stop_cmd   = [os.path.join(PWD, 'syncstring'), 'stop'])
 
@@ -1816,6 +1818,12 @@ class Services(object):
         if 'hub' in self._options:
             for host, o in self._options['hub']:
                 # very important: set to listen only on our VPN.
+                o['host'] = host
+
+        # Syncstring options
+        if 'syncstring' in self._options:
+            for host, o in self._options['syncstring']:
+                # set to listen only on our VPN -- slight extra security
                 o['host'] = host
 
         # COMPUTE options

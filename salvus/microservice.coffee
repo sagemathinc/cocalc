@@ -20,6 +20,7 @@
 ###############################################################################
 
 DEFAULT_PORT        = 6000
+DEFAULT_HOST        = '127.0.0.1'
 SECRET_TOKEN_LENGTH = 128
 DEFAULT_TIMEOUT     = 10
 
@@ -215,10 +216,12 @@ class exports.Server extends EventEmitter
     constructor : (opts) ->
         opts = defaults opts,
             port       : DEFAULT_PORT
+            host       : DEFAULT_HOST
             name       : 'microservice'
             cb         : undefined
         @dbg("constructor")
         @port = opts.port
+        @host = opts.host
         @name = opts.name
         @init_event_handlers()
 
@@ -321,8 +324,8 @@ class exports.Server extends EventEmitter
                     socket.on('error', disconnect)
 
         try
-            server.listen @port, 'localhost', () =>
-                @dbg("tcp_server", "listening on port #{@port}")
+            server.listen @port, @host, () =>
+                @dbg("tcp_server", "listening on #{@host}:#{@port}")
             cb()
         catch err
             cb(err)
@@ -361,10 +364,12 @@ exports.cli = (opts) ->
     opts = defaults opts,
         server_class : exports.Server
         default_port : DEFAULT_PORT
-    console.log("exports.cli -- #{misc.to_json(opts)}")
+        default_host : DEFAULT_HOST
+    #console.log("exports.cli -- #{misc.to_json(opts)}")
 
     program.usage('[start/stop/restart/status] [options]')
         .option('--port <n>', "port to listen on (default: #{opts.default_port})", parseInt)
+        .option('--host [string]', 'host of interface to bind to (default: "#{opts.default_host}")', String, "127.0.0.1")
         .option('--debug [string]', 'logging debug level (default: "debug"); "" for no debugging output)', String, 'debug')
         .option('--pidfile [string]', 'store pid in this file', String)
         .option('--logfile [string]', 'write log to this file (default: "data/logs/program._name.log")', String)
@@ -375,6 +380,8 @@ exports.cli = (opts) ->
     if program._name != 'undefined'
         if not program.port?
             program.port = opts.default_port
+        if not program.host?
+            program.host = opts.default_host
         if not program.pidfile?
             program.pidfile = "data/pids/#{program._name}.pid"
         if not program.logfile?
@@ -394,7 +401,7 @@ exports.cli = (opts) ->
         daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile},
                () ->
                     winston.debug("start_server")
-                    new opts.server_class(port : program.port)
+                    new opts.server_class(port : program.port, host : program.host)
               )
 
 

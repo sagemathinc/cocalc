@@ -1,2 +1,2 @@
 # sites
-127.0.0.1 localhost cassandra hub admin compute backup cellserver dc0
+127.0.0.1 localhost cassandra hub admin compute backup cellserver  syncstring dc0

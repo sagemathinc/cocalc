@@ -950,6 +950,7 @@ exports.syncdb = (opts) ->
 ######################################################################
 microservice = require('microservice')
 DEFAULT_PORT = 6001    # also hard coded in admin.py
+DEFAULT_HOST = '127.0.0.1'
 
 ###
 id='c26db83a-7fa2-44a4-832b-579c18fac65f';x={};require('syncstring').client(debug:true, cb:(e,s)->console.log('done',e);x.s=s;x.s.syncdb(string_id:id,cb:(e,t)->console.log(e);x.t=t));0
@@ -1234,6 +1235,7 @@ class SyncstringServer extends microservice.Server
                 @dbg('constructor', "initialize the actual server")
                 super
                     port : opts.port
+                    host : opts.host
                     name : 'syncstring'
                     cb   : cb
         ], (err) =>
@@ -1435,6 +1437,7 @@ if not module.parent?  # run from command line
     microservice.cli
         server_class : SyncstringServer
         default_port : DEFAULT_PORT
+        default_host : DEFAULT_HOST
 
 
 
