@@ -114,7 +114,7 @@ init_salvus_version = () ->
 
 
 syncstring = require('syncstring')
-SYNCSTRING_DISABLED = true
+SYNCSTRING_DISABLED = false
 
 misc_node = require('misc_node')
 
@@ -5689,6 +5689,7 @@ exports.start_server = start_server = () ->
             if SYNCSTRING_DISABLED
                 cb(); return
             syncstring.client
+                host  : '10.1.1.3'   # temporary as a load/scalability test.
                 debug : true
                 cb    : (err, client) =>
                     if err

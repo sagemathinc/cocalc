@@ -112,6 +112,9 @@ class exports.Client extends EventEmitter
         @dbg("connect")
         f = (cb) =>
             misc.retry_until_success
+                start_delay : 1000
+                max_delay   : 30000           # milliseconds -- stop increasing time at this point
+                factor      : 1.4             # multiply delay by this each time
                 f  : @_connect
                 cb : cb
         @_call_with_lock(f, cb)
