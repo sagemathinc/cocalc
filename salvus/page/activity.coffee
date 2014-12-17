@@ -471,8 +471,6 @@ all_notifications = () =>
             all = undefined
             for x in vals.slice(1)
                 notifications_syncdb.delete(where : x)
-
-            timestamps = timestamps.slice(timestamps.length-1)
         # now only one timestamp
         if vals[0].timestamp > now or not vals[0].timestamp  # null or in the future? -- corruption/weirdness (or browser is bad...?)
             console.log("notifications -- TIMESTAMP in future -- fixing ", key, timestamps)
