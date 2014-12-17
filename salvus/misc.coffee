@@ -812,7 +812,7 @@ exports.call_lock = (opts) ->
             cb?(args...)
 
 
-exports.timestamp_cmp = (a,b) -> # TODO: same code is in page/activity.coffee
+exports.timestamp_cmp = (a,b) ->
     a = a.timestamp
     b = b.timestamp
     if not a?
@@ -824,4 +824,81 @@ exports.timestamp_cmp = (a,b) -> # TODO: same code is in page/activity.coffee
     else if a < b
         return +1
     return 0
+
+
+timestamp_cmp0 = (a,b) ->
+    a = a.timestamp
+    b = b.timestamp
+    if not a?
+        return -1
+    if not b?
+        return 1
+    if a < b
+        return -1
+    else if a > b
+        return +1
+    return 0
+
+
+
+#####################
+# temporary location for activity_log code, shared by front and backend.
+#####################
+
+class ActivityLog
+    constructor: (opts) ->
+        opts = exports.defaults opts,
+            events     : undefined
+            account_id : exports.required   # user
+            activity   : {}
+        @activity = opts.activity
+        @account_id = opts.account_id
+        if opts.events?
+            @process(opts.events)
+
+    obj: () =>
+        return {activity:@activity, account_id:@account_id}
+
+    path: (e) => "#{e.project_id}/#{e.path}"
+
+    process: (events) =>
+        by_path = {}
+        for e in events
+            key = @path(e)
+            events_with_path = by_path[key]
+            if not events_with_path?
+                events_with_path = by_path[key] = [e]
+            else
+                events_with_path.push(e)
+        for path, events_with_path of by_path
+            events_with_path.sort(timestamp_cmp0)   # oldest to newest
+            for event in events_with_path
+                @process_event(event, path)
+
+    process_event: (event, path) =>
+        # process the given event, assuming all older events have been processed already
+        if not path?
+            path = @path(event)
+        a = @activity[path]
+        if not a?
+            @activity[path] = a = {}
+        a.timestamp = event.timestamp
+        if event.seen_by? and event.seen_by.index_of(@account_id)
+            a.seen = true
+        else
+            a.seen = false
+        if event.read_by? and event.read_by.index_of(@account_id)
+            a.read = true
+        else
+            a.read = false
+        if event.action?
+            who = a[event.action]
+            if not who?
+                who = a[event.action] = {}
+            times = who[event.account_id]
+            if not times?
+                times = who[event.account_id] = []
+            times.push(event.timestamp)
+
+exports.activity_log = (opts) -> new ActivityLog(opts)
 

@@ -429,8 +429,10 @@ class exports.Connection extends EventEmitter
                 @emit(mesg.event, mesg)
             when "codemirror_bcast"
                 @emit(mesg.event, mesg)
-            when "activity_notifications"
+            when "activity_notifications"  # deprecated
                 @emit(mesg.event, mesg)
+            when "recent_activity"
+                @emit(mesg.event, mesg.updates)
             when "syncstring_diffsync2"
                 @emit("syncstring_diffsync2-#{mesg.session_id}", mesg)
             when "syncstring_diffsync2_reset"
@@ -1563,6 +1565,20 @@ class exports.Connection extends EventEmitter
     #################################################
     # Activity
     #################################################
+    get_all_activity: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @call
+            message : message.get_all_activity()
+            cb      : (err, mesg) =>
+                if err
+                    opts.cb?(err)
+                else if mesg.event == 'error'
+                    opts.cb?(mesg.error)
+                else
+                    opts.cb?(undefined, misc.activity_log(mesg.activity_log))
+
+    # below may be removed!
     report_path_activity: (opts) =>
         opts = defaults opts,
             project_id : required

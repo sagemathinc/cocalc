@@ -807,6 +807,23 @@ message
 #
 # client --> hub to indicate that there was some activity by this user on the given path
 #
+
+message
+    event       : 'get_all_activity'   # get activity, by default for all projects that this user collaborates on; will be limited in time/number
+    id          : undefined
+
+message
+    event        : 'all_activity'
+    id           : undefined
+    activity_log : required            # input to misc.activity_log function.
+
+message
+    event       : 'recent_activity'
+    id          : undefined
+    updates     : required             # list of specific records that just got added to recent_activity_by_project2
+
+# older stuff below
+
 message
     event       : 'path_activity'
     id          : undefined

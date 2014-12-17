@@ -2177,14 +2177,19 @@ class exports.Salvus extends exports.Cassandra
                 else
                     opts.cb(undefined, opts.account_id in _.flatten(result))
 
-    # all id's of projects having anything to do with the given account
+    # all id's of projects having anything to do with the given account (ignores
+    # hidden projects unless opts.hidden is true).
     get_project_ids_with_user: (opts) =>
         opts = defaults opts,
             account_id : required
+            hidden     : false
             cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
+        columns = PROJECT_GROUPS
+        if opts.hidden
+            columns = columns.concat(['hidden_projects'])
         @select_one
             table     : 'accounts'
-            columns   : PROJECT_GROUPS
+            columns   : columns
             where     : {account_id : opts.account_id}
             objectify : false
             cb        : (err, result) ->

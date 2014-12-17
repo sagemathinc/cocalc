@@ -2561,6 +2561,52 @@ class Client extends EventEmitter
     ################################################
     # Activity
     ################################################
+    mesg_get_all_activity: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in")
+            return
+        #dbg = (a,m) => winston.debug("mesg_get_all_activity -- #{a} -- #{misc.to_json(m)}")
+        activity    = undefined
+        project_ids = undefined
+        events      = undefined
+        async.series([
+            (cb) =>
+                #dbg("get all projects that user collaborates on")
+                database.get_project_ids_with_user
+                    hidden     : true
+                    account_id : @account_id
+                    cb         : (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            project_ids = x
+                            #dbg("got", x)
+                            cb()
+            (cb) =>
+                #dbg("get activity logs for those projects")
+                database.select
+                    table     : 'activity_by_project2'
+                    columns   : ['project_id', 'timestamp', 'path', 'account_id', 'action', 'seen_by', 'read_by']
+                    objectify : true
+                    where     :
+                        project_id : {'in':project_ids}
+                        timestamp  : {'>=':cass.days_ago(7)}
+                    cb    : (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            events = x
+                            cb()
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                # success: send result to client
+                obj = misc.activity_log(account_id:@account_id, events:events).obj()
+                @push_to_client(message.all_activity(id:mesg.id, activity_log:obj))
+        )
+
+
     mesg_path_activity: (mesg) =>
         if not @account_id?
             @error_to_client(id:mesg.id, error:"user must be signed in")
