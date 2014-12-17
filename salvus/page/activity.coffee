@@ -151,7 +151,7 @@ render_notification = (x, init) ->
     if not elt?
         notification_elements[name] = elt = template_notification.clone()
         notification_list_body.append(elt)
-        elt.data(project_id:x.project_id, path:x.path, name:name, comment:x.actions?['comment'])
+        elt.data(project_id:x.project_id, path:x.path, id:x.id, name:name, comment:x.actions?['comment'])
         elt.find(".salvus-notification-path-icon").addClass(editor.file_icon_class(misc.filename_extension(x.path)))
         elt.click () ->
             open_notification($(@))
@@ -192,12 +192,6 @@ render_notification = (x, init) ->
             e.replaceWith(f)
             if not x.timestamp
                 x.timestamp = new Date() - 0
-                update_db
-                    set :
-                        timestamp : x.timestamp
-                    where :
-                        project_id : x.project_id
-                        path       : x.path
             if x.timestamp
                 elt.data('timestamp', x.timestamp)
                 date = new Date(x.timestamp)
@@ -275,19 +269,6 @@ delete_oldest_notification = () ->
     else
         return -1
 
-update_db = (opts) ->
-    for i in [0...10]  # try up to 10 times (delete if hit length constraint)
-        try
-            notifications_syncdb.update(opts)
-            return
-        catch err
-            if err.error = 'max_len'
-                if delete_oldest_notification() == -1  # nothing to delete (?)
-                    return
-            else
-                return
-
-
 is_important = (x) -> not x.seen and x.actions?['comment']
 
 update_important_count = (recalculate) ->
@@ -364,12 +345,9 @@ open_notification = (target) ->
     project_id = target.data('project_id')
     path = target.data('path')
     comment = target.data('comment')
-    update_db
-        set   : {read:true}
-        where :
-            project_id : project_id
-            path       : path
-
+    salvus_client.mark_notifications
+        id_list : [target.data('id')]
+        mark    : 'read'
     if path == '.sagemathcloud.log'
         history.load_target("projects/#{project_id}")
     else
@@ -420,20 +398,11 @@ mark_read_button = notification_list.find("a[href=#mark-all-read]").click () ->
 
 
 mark_visible_notifications = (mark) ->
-    set = {}; set[mark] = true
-    if not notifications_syncdb?
-        return
-    for x in all_notifications()
-        if not x[mark]
-            elt = notification_elements["#{x.project_id}/#{x.path}"]
-            if elt? and elt.is(":visible")
-                update_db
-                    set   : set
-                    where :
-                        project_id : x.project_id
-                        path       : x.path
-                x[mark] = true
-                render_notification(x, false)
+    id_list = (x.id for x in all_notifications() when \
+        not x[mark] and notification_elements["#{x.project_id}/#{x.path}"]?.is(":visible"))
+    salvus_client.mark_notifications
+        id_list : id_list
+        mark    : mark
 
 mark_visible_notifications_seen = () ->
     mark_visible_notifications('seen')
@@ -451,42 +420,8 @@ mark_visible_notifications_read = () ->
 all_notifications = () =>
     if not notifications_syncdb?
         return [] # nothing loaded yet
+    return notifications_syncdb.select(where:{table:'activity'})
 
-    # load all, checking for duplicates as we go (could happen, due to merge conflicts)
-    seen_so_far = {}
-    all = []
-    now = new Date() - 0
-    for x in notifications_syncdb.select(where:{table:'activity'})
-        key = "#{x.project_id}#{x.user_id}#{x.path}"
-        v = seen_so_far[key]
-        if not v?
-            seen_so_far[key] = [x]
-        else
-            v.push(x)
-        all.push(x)
-    for key, vals of seen_so_far
-        if vals.length > 1
-            console.log("notifications -- DUPLICATE! ", key, vals)
-            vals.sort(misc.timestamp_cmp)  # newest to oldest
-            all = undefined
-            for x in vals.slice(1)
-                notifications_syncdb.delete(where : x)
-        # now only one timestamp
-        if vals[0].timestamp > now or not vals[0].timestamp  # null or in the future? -- corruption/weirdness (or browser is bad...?)
-            console.log("notifications -- TIMESTAMP in future -- fixing ", key, timestamps)
-            all = undefined
-            update_db
-                set :
-                    timestamp  : now
-                where :
-                    project_id : key.slice(0,36)
-                    user_id    : key.slice(36,72)
-                    path       : key.slice(72)
-
-    if not all?
-        # had a marge conflict so reload
-        all = notifications_syncdb.select(where:{table:'activity'})
-    return all
 
 
 

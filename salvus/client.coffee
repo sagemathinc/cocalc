@@ -1593,6 +1593,23 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, mesg.string_id)
 
+    mark_notifications: (opts) =>
+        opts = defaults opts,
+            id_list : required
+            mark    : required    # 'read', 'seen'
+            cb      : undefined
+        @call
+            message : message.mark_notifications(id_list:opts.id_list, mark:opts.mark)
+            cb      : (err, mesg) =>
+                if err
+                    opts.cb?(err)
+                else if mesg.event == 'error'
+                    opts.cb?(mesg.error)
+                else
+                    opts.cb?()
+
+
+
     #################################################
     # Synchronized Strings (database backed)
     # x={};require('syncstring').syncstring({string_id:'foo',cb:function(e,s){console.log(e,s);x.s=s}})

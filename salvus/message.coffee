@@ -827,6 +827,11 @@ message
     notifications : required
     update        : false   # if specified then only giving update since the given time
 
+message
+    event         : 'mark_notifications'
+    mark          : required   # 'read', 'seen'
+    id            : undefined
+    id_list       : required
 
 # client --> hub
 message

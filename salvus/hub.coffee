@@ -2711,6 +2711,32 @@ class Client extends EventEmitter
             else
                 @push_to_client(message.notifications_syncdb(id:mesg.id, string_id:db.string_id))
 
+    mesg_mark_notifications: (mesg) =>
+        db = undefined
+        async.series([
+            (cb) =>
+                get_notifications_syncdb @account_id, (err, _db) =>
+                    if err
+                        cb(err)
+                    else
+                        db = _db
+                        cb()
+            (cb) =>
+                set = {}
+                set[mesg.mark] = true
+                f = (id, c) =>
+                    db.update
+                        set   : set
+                        where : {table:'activity', id:id}
+                        #create: false  ## TODO -- don't want to create if not already there!
+                        cb    : c
+                async.map(mesg.id_list, f, (err) => cb(err))
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.success(id:mesg.id))
+        )
 
     # Get a list of names and string_ids of the syncdbs that this user has access to.
     #mesg_get_all_syncdbs: (mesg) =>
@@ -3078,9 +3104,8 @@ path_activity = (opts) ->
                                             last[y[1]] = y[0]
 
                             where =
-                                table         : 'activity'
-                                project_id    : opts.project_id
-                                path          : path
+                                table : 'activity'
+                                id    : misc_node.uuidsha1(path + opts.project_id + opts.account_id)
 
                             f = (account_id, cb) =>
                                 db = undefined
@@ -3110,10 +3135,12 @@ path_activity = (opts) ->
                                         actions[action] = true
                                         set =
                                             timestamp     : now_time - 0
-                                            user_id       : opts.account_id
                                             actions       : actions
                                             seen          : false
                                             read          : false
+                                            path          : path
+                                            project_id    : opts.project_id
+                                            user_id       : opts.account_id
                                         if last[account_id]?
                                             set.last_edit = last[account_id]
 
@@ -5689,7 +5716,7 @@ exports.start_server = start_server = () ->
             if SYNCSTRING_DISABLED
                 cb(); return
             syncstring.client
-                host  : '10.1.1.3'   # temporary as a load/scalability test.
+                #host  : '10.1.1.3'   # temporary as a load/scalability test.
                 debug : true
                 cb    : (err, client) =>
                     if err
