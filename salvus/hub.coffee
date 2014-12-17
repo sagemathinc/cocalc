@@ -5716,7 +5716,7 @@ exports.start_server = start_server = () ->
             if SYNCSTRING_DISABLED
                 cb(); return
             syncstring.client
-                #host  : '10.1.1.3'   # temporary as a load/scalability test.
+                host  : '10.1.1.3'   # temporary as a load/scalability test.
                 debug : true
                 cb    : (err, client) =>
                     if err
