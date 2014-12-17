@@ -407,10 +407,17 @@ CREATE TABLE syncstrings (
     PRIMARY KEY (string_id, timestamp)
 );
 
-
 CREATE TABLE syncstring_acls (
     string_id  uuid  PRIMARY KEY,
     acl        map<uuid,varchar>     /* account_id:'write', account2_id:'read' */
+);
+
+CREATE TABLE syncstring_servers (
+    dummy      boolean,    /* so fast to query for a list of all -- only have to hit 2 machines, not all */
+    host       varchar,    /* hostname (ip address) */
+    port       int,
+    secret_token varchar,
+    PRIMARY KEY (dummy, host, port)
 );
 
 ////////////////////

@@ -1217,9 +1217,13 @@ class ClientSyncDB extends EventEmitter
 ###
 # Server
 ###
+# How frequently to register with the database that this syncstring server is up and running.
+REGISTER_INTERVAL_S = 30   # every 30 seconds
 
 class SyncstringServer extends microservice.Server
     constructor : (opts) ->
+        @host = opts.host
+        @port = opts.port
         async.series([
             (cb) =>
                 @dbg("constructor","connecting to database")
@@ -1235,10 +1239,14 @@ class SyncstringServer extends microservice.Server
                 # do this only after we have the database and syncstring server going.
                 @dbg('constructor', "initialize the actual server")
                 super
-                    port : opts.port
-                    host : opts.host
+                    port : @port
+                    host : @host
                     name : 'syncstring'
                     cb   : cb
+            (cb) =>
+                @dbg("constructor","start registering syncstring server with database")
+                setInterval(@register, REGISTER_INTERVAL_S*1000)
+                @register(cb)
         ], (err) =>
             if err
                 @dbg("constructor","Failed to initialize server: #{err}")
@@ -1257,6 +1265,23 @@ class SyncstringServer extends microservice.Server
         @on('mesg_syncdb_call', @syncdb_call)
         @on('mesg_syncdb_listen', @syncdb_listen)
         @on('mesg_syncdb_remove_listener', @syncdb_remove_listener)
+
+    register: (cb) ->
+        @database.update
+            table : 'syncstring_servers'
+            where :
+                host  : @host
+                port  : @port
+                dummy : true
+            set   :
+                secret_token : @secret_token
+            ttl   : 1.5*REGISTER_INTERVAL_S
+            cb    : (err) ->
+                if err
+                    winston.debug("Error registering with database - #{err}")
+                else
+                    winston.debug("Successfully registered with database.")
+                cb?(err)
 
     connect_to_database: (cb) =>
         @dbg("connect_to_database", "connecting to database....")

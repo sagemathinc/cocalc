@@ -114,7 +114,7 @@ init_salvus_version = () ->
 
 
 syncstring = require('syncstring')
-SYNCSTRING_DISABLED = false
+SYNCSTRING_DISABLED = true
 
 misc_node = require('misc_node')
 
