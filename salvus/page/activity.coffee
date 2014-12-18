@@ -19,25 +19,15 @@
 #
 ###############################################################################
 
-# We enforce a tight 2MB size limit, both front and back end, on the notifications syncdb.
-# This below enforces it purely client side.  This is also enforced on the server side.
-# When this limit is hit, the oldest notifications are automatically deleted.
-SYNCDB_MAX_LEN = 2000000
-
-
+# User names, project titles, and filenames get truncated this amount before display.
 TRUNC = 32
 
-# activity.coffee
-DISABLE_NOTIFICATIONS = true
-
-if DISABLE_NOTIFICATIONS
-    $(".salvus-notification-indicator").hide()
-
-misc = require('misc')
-editor = require('editor')
+misc    = require('misc')
+editor  = require('editor')
 history = require('history')
 account = require('account')
 async   = require('async')
+
 {salvus_client} = require('salvus_client')
 
 template               = $(".salvus-notification-template")
@@ -47,50 +37,6 @@ notification_list      = $(".salvus-notification-list")
 notification_list_body = $(".salvus-notification-list-body")
 notification_list_none = $(".salvus-notification-list-none")
 notification_search    = $(".salvus-notification-list-search")
-
-
-notifications_syncdb = undefined
-exports.get_notifications_syncdb = get_notifications_syncdb = (cb) ->
-    if notifications_syncdb?
-        cb(undefined, notifications_syncdb)
-        return
-    salvus_client.get_notifications_syncdb
-        cb : (err, string_id) =>
-            if err
-                cb(err)
-            else
-                require('syncstring').syncdb
-                    string_id : string_id
-                    max_len   : SYNCDB_MAX_LEN
-                    cb        : (err, db) =>
-                        if err
-                            cb(err)
-                        else
-                            notifications_syncdb = db
-                            cb(undefined, db)
-
-_init_notifications_done = false
-_init_notifications_retry_interval = 2000
-init_notifications = () ->
-    if _init_notifications_done or DISABLE_NOTIFICATIONS
-        return
-    #console.log('initializing notifications')
-    get_notifications_syncdb (err, db) ->
-        if err
-            console.log("init_notification: err=#{err}")
-            $(".salvus-notification-indicator").hide()
-            _init_notifications_retry_interval = Math.min(30000,_init_notifications_retry_interval*1.5)
-            setTimeout(init_notifications, _init_notifications_retry_interval) # try again later
-            return
-        $(".salvus-notification-indicator").show()
-        if _init_notifications_done
-            # init_notifications must have been called repeatedly at once, and one finished
-            return
-        _init_notifications_done = true
-        render_notifications()
-        db.on 'change', update_notifications
-
-salvus_client.on("signed_in", init_notifications)
 
 important_count = 0
 exports.important_count = () -> important_count
@@ -107,42 +53,6 @@ matches_current_search = (x) ->
         if x.indexOf(s) == -1
             return false
     return true
-
-ensure_titles_and_user_names = (v, cb) ->
-    async.parallel([
-        (cb) ->
-            project_ids = (x.project_id for x in v when not x.project_title?)
-            if project_ids.length == 0
-                cb()
-            else
-                salvus_client.get_project_titles
-                    project_ids : project_ids
-                    cb          : (err, titles) ->
-                        if err
-                            cb(err)
-                        else
-                            for x in v
-                                if not x.project_title?
-                                    x.project_title = titles[x.project_id]
-                            cb()
-        (cb) ->
-            user_ids = (x.user_id for x in v when not x.fullname?)
-            if user_ids.length == 0
-                cb()
-            else
-                salvus_client.get_user_names
-                    account_ids : user_ids
-                    cb          : (err, user_names) ->
-                        if err
-                            cb(err)
-                        else
-                            for x in v
-                                if not x.fullname?
-                                    name = user_names[x.user_id]
-                                    x.fullname = "#{name.first_name} #{name.last_name}"
-                            cb()
-
-    ], cb)
 
 namelist_to_display = (names) ->
     # foo
@@ -185,7 +95,7 @@ render_notification = (x) ->
     if not elt?
         notification_elements[name] = elt = template_notification.clone()
         notification_list_body.append(elt)
-        elt.data(project_id:x.project_id, path:x.path, id:x.id, name:name, comment:x.action == 'comment')
+        elt.data(project_id:x.project_id, path:x.path, name:name, comment:x.action == 'comment')
         elt.find(".salvus-notification-path-icon").addClass(editor.file_icon_class(misc.filename_extension(x.path)))
         elt.click () ->
             open_notification($(@))
@@ -240,16 +150,6 @@ render_notification = (x) ->
             elt.show()
             $(".salvus-notification-list-none").hide()
 
-
-delete_notification = (x) ->
-    #console.log("deleting #{misc.to_json(x)}")
-    name = "#{x.project_id}/#{x.path}"
-    elt = notification_elements[name]
-    if elt?
-        #console.log("actually removing ", elt)
-        elt.remove()
-        delete notification_elements[name]
-
 sort_notifications = () ->
     #console.log('sort_notifications')
     v = notification_list_body.children()
@@ -267,45 +167,6 @@ sort_notifications = () ->
         return 0
     v.detach().appendTo(notification_list_body)
 
-DELETE_OLD_DAYS = 30
-render_notifications = () ->
-    #console.log("render_notifications")
-    notification_list_body.empty()
-    important_count = 0
-    if not notifications_syncdb?
-        return
-    v = all_notifications()
-    v.sort(misc.timestamp_cmp)
-    ensure_titles_and_user_names v, () =>
-        too_old = new Date() - 1000*60*60*24*DELETE_OLD_DAYS
-        #i = 0
-        for x in v
-            #i += 1
-            if x.timestamp? and x.timestamp <= too_old
-                notifications_syncdb.delete(where:{table:'activity',project_id:x.project_id,path:x.path})
-                continue
-            render_notification(x)
-            if is_important(x)
-                important_count += 1
-        $(".salvus-notification-list-loading").hide()
-        if v.length == 0
-            $(".salvus-notification-list-none").show()
-        update_important_count(false)
-
-delete_oldest_notification = () ->
-    if not notifications_syncdb?
-        return
-    v = all_notifications()
-    v.sort(misc.timestamp_cmp)
-    if v.length > 0
-        x = v[v.length-1]
-        notifications_syncdb.delete(where:{table:'activity',project_id:x.project_id,path:x.path})
-        return v.length - 1
-    else
-        return -1
-
-is_important = (x) -> not x.seen and x.actions?['comment']
-
 update_important_count = (recalculate) ->
     if recalculate and activity_log?
         important_count = 0
@@ -316,32 +177,7 @@ update_important_count = (recalculate) ->
         notification_count.text('')
     else
         notification_count.text(important_count)
-
-    #if unread_visible_notifications.length == 0
-    #    mark_read_button.addClass('disabled')
-    #else
-    #    mark_read_button.removeClass('disabled')
-
     require('misc_page').set_window_title()
-
-update_notifications = (changes) ->
-    #console.log("update_notifications: #{misc.to_json(changes)}")
-    if not notifications_syncdb?
-        return
-    for c in changes
-        if c.insert?
-            render_notification(c.insert)
-        if c.remove?
-            # check if really gone -- may have merely changed:
-            x = c.remove
-            v = notifications_syncdb.select
-                where : {table:'activity', project_id:x.project_id, path:x.path}
-            #console.log("v=",v)
-            if v.length == 0
-                delete_notification(x)
-    update_important_count(true)
-    sort_notifications()
-    resize_notification_list()
 
 update_which_notifications_are_shown = () ->
     update_search_list()
@@ -363,7 +199,6 @@ update_which_notifications_are_shown = () ->
     else
         $(".salvus-notification-list-none").hide()
 
-
 notification_search.keyup (e) ->
     if e?.keyCode == 27
         notification_search.val('')
@@ -379,11 +214,11 @@ notification_list_is_hidden = true
 
 open_notification = (target) ->
     project_id = target.data('project_id')
-    path = target.data('path')
-    comment = target.data('comment')
-    salvus_client.mark_notifications
-        id_list : [target.data('id')]
-        mark    : 'read'
+    path       = target.data('path')
+    comment    = target.data('comment')
+    salvus_client.mark_activity
+        events : [{path:target.data('name'), timestamp:target.data('timestamp')}]
+        mark   : 'read'
     if path == '.sagemathcloud.log'
         history.load_target("projects/#{project_id}")
     else
@@ -391,7 +226,6 @@ open_notification = (target) ->
         if comment
             p = require('project').project_page(project_id:project_id)
             p.show_editor_chat_window(path)
-
 
 unbind_handlers = () ->
     $(document).unbind('click', notification_list_click)
@@ -432,21 +266,6 @@ $(".salvus-notification-indicator").click () ->
 mark_read_button = notification_list.find("a[href=#mark-all-read]").click () ->
     mark_visible_notifications_read()
 
-mark_visible_notifications = (mark) ->
-    id_list = (x.id for x in all_notifications() when \
-        not x[mark] and notification_elements["#{x.project_id}/#{x.path}"]?.is(":visible"))
-    salvus_client.mark_notifications
-        id_list : id_list
-        mark    : mark
-
-mark_visible_notifications_seen = () ->
-    mark_visible_notifications('seen')
-    update_important_count(true)
-
-mark_visible_notifications_read = () ->
-    mark_visible_notifications('read')
-
-
 # Go through the activity table of the notifications_syncdb database, if it is loaded,
 # and ensure that there is at most one entry with each user_id/project_id/path.  If there are
 # multiple entries with the same project_id/path, delete all but the one with the
@@ -457,12 +276,7 @@ all_notifications = () =>
         return [] # nothing loaded yet
     return notifications_syncdb.select(where:{table:'activity'})
 
-
-##########################
-# activity attempt 2
-##########################
-
-activity_log = undefined
+activity_log    = undefined
 user_account_id = undefined
 
 exports.get_activity_log = () -> activity_log

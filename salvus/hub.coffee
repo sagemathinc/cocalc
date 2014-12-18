@@ -113,9 +113,6 @@ init_salvus_version = () ->
     setInterval(update_salvus_version, 90*1000)
 
 
-syncstring = require('syncstring')
-SYNCSTRING_DISABLED = true
-
 misc_node = require('misc_node')
 
 to_json = misc.to_json
@@ -833,16 +830,6 @@ class Client extends EventEmitter
             email_address : signed_in_mesg.email_address
             account_id    : signed_in_mesg.account_id
 
-        ###
-        get_notifications_syncdb @account_id, (err, db) =>
-            db.update
-                where :
-                    table     :'log'
-                    timestamp : new Date()
-                set   :
-                    action     : 'signed_in'
-                    ip_address : @ip_address
-        ###
 
     # Return the full name if user has signed in; otherwise returns undefined.
     fullname: () =>
@@ -2804,148 +2791,6 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.success(id:mesg.id))
 
-
-    ################################################
-    # Synchronized Strings (associated to user not project)
-    ################################################
-    # Get a new syncstring session for the string with given id.
-    # Returns message with a session_id and also the value of the string.
-    get_syncstring: (mesg, cb) =>
-        if SYNCSTRING_DISABLED
-            @error_to_client(id:mesg.id, error:"syncstrings currently disabled")
-            cb("syncstrings currently disabled")
-            return
-        if not @_syncstrings?
-            @_syncstrings = {}
-
-        # Get the the session client
-        if mesg.session_id?
-            # Authentication already happened in order for client
-            # to be placed in @_syncstrings.
-            session_id = mesg.session_id
-            client = @_syncstrings?[mesg.session_id]
-            if not client?
-                @push_to_client(message.syncstring_disconnect(id:mesg.id, session_id:mesg.session_id))
-            else
-                cb(undefined, client)
-            return
-
-        client = undefined
-        async.series([
-            (cb) =>
-                # check that mesg.string_id is valid
-                if not misc.is_valid_uuid_string(mesg.string_id)
-                    cb("invalid string_id uuid")
-                else
-                    cb()
-            (cb) =>
-                # check permissions
-                user_has_access_to_syncstring
-                    account_id : @account_id
-                    type       : 'write'
-                    string_id  : mesg.string_id
-                    cb         : (err, has_access) =>
-                        if err
-                            cb(err)
-                        else if not has_access
-                            cb("access to syncstring denied")
-                        else
-                            cb()
-            (cb) =>
-                # get and cache actual syncstring session
-                session_id = misc.uuid()       # create a new session
-                syncstring_client.syncdb
-                    string_id      : mesg.string_id
-                    session_id     : session_id
-                    push_to_remote : @push_to_client
-                    listen         : false
-                    cb             : (err, _client) =>
-                        if err
-                            cb(err)
-                        else
-                            client = @_syncstrings[session_id] = _client
-                            cb()
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            cb(err, client)
-        )
-
-    mesg_syncstring_get_session: (mesg) =>
-        @get_syncstring mesg, (err, client) =>
-            if err
-                return
-            resp = message.syncstring_session
-                id         : mesg.id
-                session_id : client.session_id
-                string     : client.init_ver
-            @push_to_client(resp)
-
-    mesg_syncstring_diffsync: (mesg) =>
-        d = (a,m) => winston.debug("mesg_syncstring_diffsync -- #{a} -- #{misc.to_json(m)}")
-        d('',mesg)
-        @get_syncstring mesg, (err, client) =>
-            if err
-                d('error getting syncstring')
-                return
-            # Apply their edits to our object that represents the remote user.
-            # TODO: do we need to lock and give error if called again before previous call done?
-            client.recv_edits mesg.id, mesg.edit_stack, mesg.last_version_ack, (err) =>
-                d('return from recv_edits', err)
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-
-
-    ################################################
-    # Synchronized databases (associated to user not project)
-    ################################################
-    mesg_get_notifications_syncdb: (mesg) =>
-        get_notifications_syncdb @account_id, (err, db) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.notifications_syncdb(id:mesg.id, string_id:db.string_id))
-
-    mesg_mark_notifications: (mesg) =>
-        db = undefined
-        async.series([
-            (cb) =>
-                get_notifications_syncdb @account_id, (err, _db) =>
-                    if err
-                        cb(err)
-                    else
-                        db = _db
-                        cb()
-            (cb) =>
-                set = {}
-                set[mesg.mark] = true
-                f = (id, c) =>
-                    db.update
-                        set   : set
-                        where : {table:'activity', id:id}
-                        #create: false  ## TODO -- don't want to create if not already there!
-                        cb    : c
-                async.map(mesg.id_list, f, (err) => cb(err))
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.success(id:mesg.id))
-        )
-
-    # Get a list of names and string_ids of the syncdbs that this user has access to.
-    #mesg_get_all_syncdbs: (mesg) =>
-
-    # Get access to a particular syncb given by its name or string_id
-    #mesg_get_syncdb: (mesg) =>
-
-    # Create a new syncdb
-    #mesg_create_syncdb: (mesg) =>
-
-    # Delete a syncdb
-    #mesg_delete_syncdb: (mesg) =>
-
-
     ############################################
     # Bulk information about several projects or accounts
     # (may be used by activity notifications, chat, etc.)
@@ -2989,85 +2834,6 @@ RECENT_ACTIVITY_TTL_S = 30 + RECENT_ACTIVITY_POLL_INTERVAL_MAX_S
 ACTIVITY_LOG_DEFAULT_LENGTH_HOURS = 24*3  # 3 days
 ACTIVITY_LOG_DEFAULT_MAX_LENGTH = 2000    # at most this many events
 
-
-# one notifications syncdb per *account* (not connection); keys are account id's
-notifications_syncdb_cache = {}
-notifications_syncdb_callbacks = {}
-get_notifications_syncdb = (account_id, cb) ->
-    if SYNCSTRING_DISABLED
-        cb("syncstring disabled")
-        return
-    if not account_id?
-        cb("user must be signed in")
-        return
-
-    if notifications_syncdb_cache[account_id]?
-        cb(undefined, notifications_syncdb_cache[account_id])
-        return
-
-    x = notifications_syncdb_callbacks[account_id]
-    if x?
-        x.push(cb)
-        return
-    notifications_syncdb_callbacks[account_id] = [cb]
-
-    string_id = undefined
-    is_new    = false
-    db        = undefined
-    async.series([
-        (cb) =>
-            # get the notifications syncdb string_id
-            database.select_one
-                table   : 'accounts'
-                where   : {account_id : account_id}
-                columns : ['notifications_syncdb']
-                cb      : (err, result) =>
-                    if err
-                        is_new = true
-                        cb(err)
-                    else
-                        string_id = result[0]
-                        is_new = false
-                        cb()
-        (cb) =>
-            if not is_new
-                cb(); return
-            # no notifications syncdb yet, so create it and save back to db
-            string_id = misc.uuid()
-            database.update
-                table : 'accounts'
-                where : {account_id : account_id}
-                set   : {notifications_syncdb:string_id}
-                cb    : cb
-        (cb) =>
-            if not is_new
-                cb(); return
-            # grant user write access to this syncdb
-            set_syncstring_access
-                account_id : account_id
-                string_id  : string_id
-                type       : 'write'
-                cb         : cb
-        (cb) =>
-            # now get the syncdb
-            syncstring_client.syncdb
-                string_id : string_id
-                listen    : false  # listening not needed for hub's application
-                cb        : (err, _db) ->
-                    if err
-                        cb(err)
-                    else
-                        db = _db
-                        notifications_syncdb_cache[account_id] = db
-                        cb()
-    ], (err) =>
-        for cb in notifications_syncdb_callbacks[account_id]
-            if err
-                cb(err)
-            else
-                cb(undefined, db)
-        delete notifications_syncdb_callbacks[account_id]
-    )
 
 # update notifications about non-comment activity on a file with at most this frequency.
 
@@ -3277,116 +3043,6 @@ path_activity = (opts) ->
                         where : {account_id:opts.account_id, timestamp:now_time}
                         set   : {project_id:opts.project_id, path:path}
                         cb    : cb
-                (cb) ->
-                    if SYNCSTRING_DISABLED
-                        # DISABLE temporarily; probably causing trouble.
-                        cb(); return
-                    #dbg('add to notifications')
-                    async.series([
-                        (cb) ->
-                            #dbg('determine project users')
-                            # everybody except opts.account_id will get a notification about this activity,
-                            # though to minimize db access we cache list of users for a few minutes, so
-                            # newly added users might not get notifications immediately (which is fine).
-                            activity_get_project_users
-                                project_id : opts.project_id
-                                cb         : (err, users) =>
-                                    #dbg("got back #{err}, #{misc.to_json(users)}")
-                                    if err
-                                        cb(err)
-                                    else
-                                        targets = (a for a in users when a != opts.account_id)
-                                        #dbg("set targets=#{misc.to_json(targets)}")
-                                        cb()
-                        (cb) ->
-                            if not targets? or targets.length == 0
-                                #dbg("no targets?! -- #{misc.to_json(targets)}")
-                                # nobody to report to -- e.g., common case of no project collaborators
-                                cb(); return
-
-                            #dbg('set activity_notifications')
-                            # make keys of last everybody but opts.account_id that has
-                            # recently touched the file, and values how recently they touched it.
-                            last = {}
-                            if recent_activity?
-                                for y in recent_activity
-                                    if y[1] != opts.account_id
-                                        t = last[y[1]]
-                                        if not t? or t < y[0]
-                                            last[y[1]] = y[0]
-
-                            where =
-                                table : 'activity'
-                                id    : misc_node.uuidsha1(path + opts.project_id + opts.account_id)
-
-                            f = (account_id, cb) =>
-                                db = undefined
-                                x  = undefined
-                                async.series([
-                                    (cb) =>
-                                        get_notifications_syncdb account_id, (err, _db) =>
-                                            if err
-                                                cb(err)
-                                            else
-                                                db = _db
-                                                cb()
-                                    (cb) =>
-                                        db.select_one
-                                            where : where
-                                            cb    : (err, _x) =>
-                                                if err
-                                                    cb(err)
-                                                else
-                                                    x = _x
-                                                    cb()
-                                    (cb) =>
-                                        actions ={}
-                                        if x?
-                                            if not x.read
-                                                actions = x.actions
-                                        actions[action] = true
-                                        set =
-                                            timestamp     : now_time - 0
-                                            actions       : actions
-                                            seen          : false
-                                            read          : false
-                                            path          : path
-                                            project_id    : opts.project_id
-                                            user_id       : opts.account_id
-                                        if last[account_id]?
-                                            set.last_edit = last[account_id]
-
-                                        # Try to call update and set the notification as above.
-                                        # If this causes a max_len error, try to clean up old
-                                        # notifications, deleting at least a few, then try again
-                                        # to make the indicated update as above.
-                                        f = (cb) =>
-                                            db.update
-                                                where : where
-                                                set   : set
-                                                cb    : cb
-                                        f (err) =>
-                                            if not err
-                                                cb(); return
-                                            if err.error == "max_len"
-                                                delete_old_notifications
-                                                    db         : db
-                                                    min_delete : 3 # delete at least three
-                                                    cb         : (err) =>
-                                                        if not err
-                                                            f(cb)
-                                                        else
-                                                            cb(err)
-                                            else
-                                                cb(err)
-                                ], (err) =>
-                                    dbg("record_activity(path=#{path}) to account_id=#{account_id} -- err=#{misc.to_json(err)}")
-                                    cb(err)
-                                )
-
-                            async.map(targets, f, (err)=>cb(err))
-
-                    ], cb)
             ], (err) -> cb(err))
     ], (err) -> opts.cb?(err))
 
@@ -4346,64 +4002,6 @@ user_has_read_access_to_project = (opts) ->
             main_cb(err, false)
     )
 
-
-########################################
-# Permissions related to syncstrings
-########################################
-
-# 60 minutes -- forget "yes" approval for access after this much time:
-ACCESS_TO_SYNCSTRING_CACHE_MS = 60*60*1000
-_access_to_syncstring_cache = {}
-user_has_access_to_syncstring = (opts) ->
-    opts = defaults opts,
-        account_id : undefined   # if not given, means completely public
-        string_id  : required
-        type       : 'write'
-        cb         : required
-    if not opts.account_id?
-        opts.cb(undefined, false)  # no such strings for now
-        return
-
-    #winston.debug("user_has_access_to_syncstring (account_id=#{opts.account_id}, string_id=#{opts.string_id}, type=#{opts.type})")
-    t = _access_to_syncstring_cache[opts.string_id]?[opts.account_id]
-    if t? and (t == opts.type or (opts.type=='read' and t=='write'))
-        # cached access granted
-        opts.cb(undefined, true)
-        return
-
-    database.select
-        table   : 'syncstring_acls'
-        where   : {string_id : opts.string_id}
-        columns : ['acl']
-        cb      : (err, r) =>
-            if err
-                opts.cb(err)
-            else
-                #winston.debug("syncstring_acl db query output = #{misc.to_json(r)}")
-                if r.length == 0
-                    opts.cb(undefined, false)
-                else
-                    v = _access_to_syncstring_cache[opts.string_id] = {}
-                    for account_id, type of r[0][0]
-                        v[account_id] = type
-                    destruct = () =>
-                        delete _access_to_syncstring_cache[opts.string_id]
-                    setTimeout(destruct, ACCESS_TO_SYNCSTRING_CACHE_MS)
-                    t = v[opts.account_id]
-                    #winston.debug("v = #{misc.to_json(v)}; t=#{t}; opts.type=#{opts.type}")
-                    opts.cb(undefined, t == opts.type or (opts.type=='read' and t=='write'))
-
-set_syncstring_access = (opts) ->
-    opts = defaults opts,
-        account_id : undefined   # if not given, means completely public
-        string_id  : required
-        type       : 'write'     #   'write', 'read', ''
-        cb         : undefined
-    query = "UPDATE syncstring_acls SET acl[?]=? WHERE string_id=?"
-    database.cql(query, [opts.account_id, opts.type, opts.string_id], opts.cb)
-
-
-
 ########################################
 # Passwords
 ########################################
@@ -4512,7 +4110,6 @@ is_password_correct = (opts) ->
                     opts.cb?(false, password_hash_library.verify(opts.password, account.password_hash))
     else
         opts.cb?("One of password_hash, account_id, or email_address must be specified.")
-
 
 
 ########################################
@@ -5906,7 +5503,6 @@ init_bup_server = (cb) ->
 #############################################
 # Start everything running
 #############################################
-syncstring_client = undefined
 
 exports.start_server = start_server = () ->
     # the order of init below is important
@@ -5924,18 +5520,6 @@ exports.start_server = start_server = () ->
                     winston.debug("connected to database.")
                     init_salvus_version()
                     cb()
-        (cb) ->
-            if SYNCSTRING_DISABLED
-                cb(); return
-            syncstring.client
-                host  : '10.1.1.3'   # temporary as a load/scalability test.
-                debug : true
-                cb    : (err, client) =>
-                    if err
-                        cb(err)
-                    else
-                        syncstring_client = client
-                        cb()
         (cb) ->
             init_bup_server(cb)
         (cb) ->

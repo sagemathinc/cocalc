@@ -661,27 +661,27 @@ class Hub(Process):
 ####################
 # Syncstring
 ####################
-class Syncstring(Process):
-    def __init__(self,
-                 host             = '',
-                 monitor_database = None,
-                 keyspace         = 'salvus',
-                 debug            = False,
-                 id               = '0'):   # id is ignored
-        Process.__init__(self, id,
-                         name        ='syncstring',
-                         port       =  SYNCSTRING_PORT,
-                         pidfile    = os.path.join(PIDS, 'syncstring.pid'),
-                         logfile    = os.path.join(PIDS, 'syncstring.log'),
-                         monitor_database = monitor_database,
-                         start_cmd  = [os.path.join(PWD, 'syncstring'), 'start',
-                                      '--keyspace', keyspace,
-                                      '--host', host,
-                                      '--database_nodes', monitor_database],
-                         stop_cmd   = [os.path.join(PWD, 'syncstring'), 'stop'])
-
-    def __repr__(self):
-        return "Syncstring server"
+#class Syncstring(Process):
+#    def __init__(self,
+#                 host             = '',
+#                 monitor_database = None,
+#                 keyspace         = 'salvus',
+#                 debug            = False,
+#                 id               = '0'):   # id is ignored
+#        Process.__init__(self, id,
+#                         name        ='syncstring',
+#                         port       =  SYNCSTRING_PORT,
+#                         pidfile    = os.path.join(PIDS, 'syncstring.pid'),
+#                         logfile    = os.path.join(PIDS, 'syncstring.log'),
+#                         monitor_database = monitor_database,
+#                         start_cmd  = [os.path.join(PWD, 'syncstring'), 'start',
+#                                      '--keyspace', keyspace,
+#                                      '--host', host,
+#                                      '--database_nodes', monitor_database],
+#                         stop_cmd   = [os.path.join(PWD, 'syncstring'), 'stop'])
+#
+#    def __repr__(self):
+#        return "Syncstring server"
 
 
 ########################################
@@ -1821,10 +1821,10 @@ class Services(object):
                 o['host'] = host
 
         # Syncstring options
-        if 'syncstring' in self._options:
-            for host, o in self._options['syncstring']:
-                # set to listen only on our VPN -- slight extra security
-                o['host'] = host
+        #if 'syncstring' in self._options:
+        #    for host, o in self._options['syncstring']:
+        #        # set to listen only on our VPN -- slight extra security
+        #        o['host'] = host
 
         # COMPUTE options
         if 'compute' in self._options:
