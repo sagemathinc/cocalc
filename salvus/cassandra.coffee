@@ -2863,6 +2863,67 @@ class exports.Salvus extends exports.Cassandra
         ], (err) => opts.cb?(err))
 
 
+
+
+    ###########################
+    # Temporary one-off code for misc tasks (comment out after use)
+    ###########################
+
+    ###  migrate_activity_table -- migrate a MASSIVE table.
+    # This is python (not javascript which doesn't have big numbers)
+    # code to compute the partition ranges...
+    # This partitioner uses a maximum possible range of hash values from -2^63 to 2^63 -1
+    i = -2^63
+    b = 2^61
+    v = []
+    while i < 2^63-1:
+        j = min(i+b,2^63-1)
+        v.append([str(i),str(j)])
+        #print [i, j]
+        print "select project_id, timestamp, path, account_id from activity_by_project where token(project_id)>=%s and token(project_id)<=%s limit 500000;"%(i,j)
+        print "select count(*) from activity_by_project where token(project_id)>=%s and token(project_id)<=%s limit 500000;"%(i,j)
+        i += b
+    print v
+    # It gives these ranges (for v):
+
+    [['-9223372036854775808', '-6917529027641081856'], ['-6917529027641081856', '-4611686018427387904'], ['-4611686018427387904', '-2305843009213693952'], ['-2305843009213693952', '0'], ['0', '2305843009213693952'], ['2305843009213693952', '4611686018427387904'], ['4611686018427387904', '6917529027641081856'], ['6917529027641081856', '9223372036854775807']]
+
+    Use like this (with db the database):
+
+        coffee> v = [['-9223372036854775808', '-6917529027641081856'], ['-6917529027641081856', '-4611686018427387904'], ['-4611686018427387904', '-2305843009213693952'], ['-2305843009213693952', '0'], ['0', '2305843009213693952'], ['2305843009213693952', '4611686018427387904'], ['4611686018427387904', '6917529027641081856'], ['6917529027641081856', '9223372036854775807']]
+        coffee> db.migrate_activity_table(token_ranges:v, cb:(e)->console.log("END",e))
+    ###
+
+    migrate_activity_table: (opts) =>
+        opts = defaults opts,
+            token_ranges : required
+            cb           : required
+        f = (range, cb) =>
+            query = "select project_id, timestamp, path, account_id from activity_by_project where token(project_id)>=#{range[0]} and token(project_id)<=#{range[1]} limit 500000"
+            console.log(query)
+            @cql query, [], undefined, (err, results) =>
+                if err
+                    console.log("ERROR: #{err}")
+                    cb(err)
+                else
+                    console.log("got #{results.length} results")
+                    results = ((from_cassandra(r.get(col), false) for col in ['project_id','timestamp','path','account_id']) for r in results)
+                    g = (result, cb) =>
+                        #  project_id    | timestamp  | path        | account_id      | action
+                        @update
+                            table : 'activity_by_project2'
+                            set   :
+                                action     : 'edit'
+                                account_id : result[3]
+                            where :
+                                project_id : result[0]
+                                timestamp  : result[1]
+                                path       : result[2]
+                            cb    : cb
+                    async.mapLimit(results, 10, g, (err) => cb(err))
+        async.mapSeries(opts.token_ranges, f, opts.cb)
+
+
 ############################################################################
 # Chunked storage for each project (or user, or whatever is indexed by a uuid).
 # Store arbitrarily large blob data associated to each project here.
