@@ -2604,6 +2604,10 @@ class Client extends EventEmitter
                             #dbg("got", x)
                             cb()
             (cb) =>
+                if not @_activity_project_ids? or @_activity_project_ids.length == 0
+                    events = []
+                    cb()
+                    return
                 #dbg("get activity logs for those projects")
                 database.select
                     table     : 'activity_by_project2'
@@ -2670,6 +2674,10 @@ class Client extends EventEmitter
                                 setTimeout((()=>delete @_activity_project_ids), 5*60*1000)  # cache for 5 minutes
                                 cb()
             (cb) =>
+                if not @_activity_project_ids? or @_activity_project_ids.length == 0
+                    events = []
+                    cb()
+                    return
                 database.select
                     table       : 'recent_activity_by_project2'
                     columns     : ['project_id', 'timestamp', 'path', 'account_id', 'action', 'seen_by', 'read_by']
