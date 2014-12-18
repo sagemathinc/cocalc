@@ -24,6 +24,9 @@
 # When this limit is hit, the oldest notifications are automatically deleted.
 SYNCDB_MAX_LEN = 2000000
 
+
+TRUNC = 32
+
 # activity.coffee
 DISABLE_NOTIFICATIONS = true
 
@@ -141,16 +144,41 @@ ensure_titles_and_user_names = (v, cb) ->
 
     ], cb)
 
+namelist_to_display = (names) ->
+    # foo
+    # foo and bar
+    # foo, bar and fubar
+    # foo, bar, fubar and 1 other
+    # foo, bar, fubar and 3 others
+    z = ("<b>#{x}</b>" for x in names)
+    if z.length <= 2
+        return z.join(' and ')
+    else if z.length == 3
+        return "#{z[0]}, #{z[1]} and #{z[2]}"
+    else if z.length == 4
+        return "#{z[0]}, #{z[1]}, #{z[2]} and 1 other person"
+    else
+        return "#{z[0]}, #{z[1]}, #{z[2]} and #{z.length-3} other people"
+
+path_to_display = (path) ->
+    i = path.lastIndexOf('.')
+    if i != -1
+        ext = misc.trunc_left(path.slice(i), TRUNC)
+        path = misc.trunc_left(path.slice(0,i), TRUNC)
+        return "<b>#{path}</b><span class='lighten'>#{ext}</span>"
+    else
+        return "<b>#{misc.trunc_left(path, TRUNC)}</b>"
+
 notification_elements = {}
 render_notification = (x, init) ->
-    name = "#{x.project_id}/#{x.path}-#{x.account_id}-#{x.action}"
+    name = "#{x.project_id}/#{x.path}"
     if not init
         elt = notification_elements[name]
     hash = misc.hash_string(misc.to_json(x))
     if elt? and elt.data('last_hash') == hash
         # no change
         return
-    console.log("rendering #{misc.to_json(x)}")
+    #console.log("rendering #{misc.to_json(x)}")
 
     if not elt?
         notification_elements[name] = elt = template_notification.clone()
@@ -165,22 +193,21 @@ render_notification = (x, init) ->
     titles_and_fullnames [x], (err) ->
         if err
             return
+        users = namelist_to_display(x.fullnames)
         if x.path == ".sagemathcloud.log"
             if x.project_title?
-                d = "<b>#{x.fullname}</b> used the <b>#{x.project_title}</b> project"
+                d = "#{users} used the <b>#{x.project_title}</b> project"
         else
             actions = []
-            if x.action == 'comment'
+            if x.actions['comment']
                 actions.push('<i class="salvus-notification-commented">commented on</i>')
                 elt.find(".salvus-notification-action-icon").addClass("salvus-notification-action-icon-comment")
-            else
+            if x.actions['edit']
+                actions.push("edited")
                 elt.find(".salvus-notification-action-icon").removeClass("salvus-notification-action-icon-comment")
-            if x.action == 'edit'
-                actions.push('edited')
-            if actions.length == 0
-                actions = ['used']
+
             action = actions.join(' and ')
-            d = "<b>#{x.fullname}</b> #{action} <b>#{x.path}</b>"
+            d = "#{users} #{action} #{path_to_display(x.path)}"
             if x.project_title?
                 d += " in <b>#{x.project_title}</b>"
         desc = elt.find(".salvus-notification-desc")
@@ -389,7 +416,7 @@ $(".salvus-notification-indicator").click () ->
     if notification_list_is_hidden
         notification_list.show()
         notification_search.focus()
-        mark_visible_activities_seen()
+        mark_visible_notifications_seen()
         $(document).click(notification_list_click)
         $(window).resize(resize_notification_list)
         resize_notification_list()
@@ -400,7 +427,7 @@ $(".salvus-notification-indicator").click () ->
     return false
 
 mark_read_button = notification_list.find("a[href=#mark-all-read]").click () ->
-    mark_visible_activities_read()
+    mark_visible_notifications_read()
 
 mark_visible_notifications = (mark) ->
     id_list = (x.id for x in all_notifications() when \
@@ -467,34 +494,34 @@ process_recent_activity = (events) ->
     activity_log.process(events)
     render_activity_log()
 
-mark_all_activities = (mark) ->
+mark_all_notifications = (mark) ->
     x = []
-    for path, events of activity_log.activity
+    for path, events of activity_log.notifications
         if not events[mark]
             x.push({path:path, timestamp:events.timestamp})
     salvus_client.mark_activity
         events : x
         mark   : mark
         cb     : (err) =>
-            console.log("mark_all_activities: err=",err)
+            console.log("mark_all_notifications: err=",err)
 
-mark_visible_activities = (mark) ->
+mark_visible_notifications = (mark) ->
     x = []
-    for path, events of activity_log.activity
+    for path, events of activity_log.notifications
         if (not events[mark] or events.timestamp > events[mark]) and notification_elements[name]?.is(":visible")
             x.push({path:path, timestamp:events.timestamp})
     salvus_client.mark_activity
         events : x
         mark   : mark
         cb     : (err) =>
-            console.log("mark_visible_activities(#{mark}): err=",err)
+            console.log("mark_visible_notifications(#{mark}): err=",err)
 
-mark_visible_activities_seen = () ->
-    mark_visible_activities('seen')
+mark_visible_notifications_seen = () ->
+    mark_visible_notifications('seen')
     update_important_count(true)
 
-mark_visible_activities_read = () ->
-    mark_visible_activities('read')
+mark_visible_notifications_read = () ->
+    mark_visible_notifications('read')
 
 project_titles = (v, cb) ->
     project_ids = (x.project_id for x in v when not x.project_title?)
@@ -507,13 +534,23 @@ project_titles = (v, cb) ->
                 if err
                     cb?(err)
                 else
+                    for project_id, title of titles
+                        if title.length > TRUNC
+                            titles[project_id] = misc.trunc(title, TRUNC)
+                    console.log(titles)
                     for x in v
                         if not x.project_title?
                             x.project_title = titles[x.project_id]
                     cb?()
 
 account_fullnames = (v, cb) ->
-    account_ids = (x.account_id for x in v when not x.fullname? and x.account_id!=user_account_id)
+    account_ids = {}
+    for x in v
+        if not x.fullnames?
+            for account_id in x.account_ids
+                if account_id != user_account_id
+                    account_ids[account_id] = true
+    account_ids = misc.keys(account_ids)
     if account_ids.length == 0
         cb()
     else
@@ -524,11 +561,12 @@ account_fullnames = (v, cb) ->
                     cb(err)
                 else
                     names[user_account_id] = {first_name:"You", last_name:""}
-                    console.log("names =", names)
                     for x in v
-                        if not x.fullname?
-                            name = names[x.account_id]
-                            x.fullname = "#{name.first_name} #{name.last_name}"
+                        if not x.fullnames? or x.fullnames.length != x.account_ids.length
+                            x.fullnames = []
+                            for account_id in x.account_ids
+                                name = names[account_id]
+                                x.fullnames.push(misc.trunc("#{name.first_name} #{name.last_name}".trim(), TRUNC))
                     cb()
 
 titles_and_fullnames = (v, cb) ->
@@ -539,44 +577,47 @@ titles_and_fullnames = (v, cb) ->
             account_fullnames(v, cb)
     ], cb)
 
+parse_notification_for_display = (path, notification) ->
+    t = notification.timestamp
+    x = {project_id:path.slice(0,36), path:path.slice(37), timestamp:t, actions:{}, account_ids:[]}
+    accounts = []
+    if notification.comment?
+        x.actions['comment'] = true
+        newest = 0
+        for account_id, timestamp of notification.comment
+            newest = Math.max(newest, timestamp)
+            accounts.push({account_id:account_id, timestamp:timestamp})
+        if notification.seen < newest
+            x.important = true   # unseen comment
+    if notification.edit?
+        x.actions['edit'] = true
+        for account_id, timestamp of notification.edit
+            accounts.push({account_id:account_id, timestamp:timestamp})
+    accounts.sort(misc.timestamp_cmp)
+    y = {}
+    x.account_ids = []
+    for k in accounts
+        if not y[k.account_id]?
+            y[k.account_id] = true
+            x.account_ids.push(k.account_id)
+
+    if notification.read? and notification.read >= t
+        x.read = true
+    if notification.seen? and notification.seen >= t
+        x.seen = true
+
+    console.log("#{misc.to_json(notification)} --> #{misc.to_json(x)} ")
+
+    return x
 
 all_activities = (cb) ->
     if not activity_log?
         cb(undefined, [])
         return
     v = []
-    for path, log of activity_log.activity
-        e = {project_id:path.slice(0,36), path:path.slice(37)}
-        if log.comment?
-            for account_id, times of log.comment
-                evt = misc.deep_copy(e)
-                evt.action = 'comment'
-                evt.timestamp = times[times.length-1]
-                evt.account_id = account_id
-                if evt.account_id != activity_log.account_id
-                    if log.read? and log.read >= evt.timestamp
-                        evt.read = true
-                    if log.seen? and log.seen >= evt.timestamp
-                        evt.seen = true
-                    if not evt.seen
-                        evt.important = true
-                else
-                    evt.read = evt.seen = true
-                v.push(evt)
-        if log.edit?
-            for account_id, times of log.edit
-                evt = misc.deep_copy(e)
-                evt.action = 'edit'
-                evt.timestamp = times[times.length-1]
-                evt.account_id = account_id
-                if evt.account_id != activity_log.account_id
-                    if log.read? and log.read >= evt.timestamp
-                        evt.read = true
-                    if log.seen? and log.seen >= evt.timestamp
-                        evt.seen = true
-                else
-                    evt.read = evt.seen = true
-                v.push(evt)
+    for path, notification of activity_log.notifications
+        x = parse_notification_for_display(path, notification)
+        v.push(x)
 
     titles_and_fullnames v, (err) =>
         if err

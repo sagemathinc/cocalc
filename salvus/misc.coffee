@@ -355,6 +355,7 @@ exports.meta_file = (path, ext) ->
         path += '/'
     return path + "." + p.tail + ".sage-" + ext
 
+# "foobar" --> "foo..."
 exports.trunc = (s, max_length) ->
     if not s?
         return s
@@ -362,6 +363,17 @@ exports.trunc = (s, max_length) ->
         max_length = 1024
     if s.length > max_length
         return s.slice(0,max_length-3) + "..."
+    else
+        return s
+
+# "foobar" --> "...bar"
+exports.trunc_left = (s, max_length) ->
+    if not s?
+        return s
+    if not max_length?
+        max_length = 1024
+    if s.length > max_length
+        return "..." + s.slice(s.length-max_length+3)
     else
         return s
 
@@ -848,16 +860,16 @@ timestamp_cmp0 = (a,b) ->
 class ActivityLog
     constructor: (opts) ->
         opts = exports.defaults opts,
-            events     : undefined
-            account_id : exports.required   # user
-            activity   : {}
-        @activity = opts.activity
+            events        : undefined
+            account_id    : exports.required   # user
+            notifications : {}
+        @notifications = opts.notifications
         @account_id = opts.account_id
         if opts.events?
             @process(opts.events)
 
     obj: () =>
-        return {activity:@activity, account_id:@account_id}
+        return {notifications:@notifications, account_id:@account_id}
 
     path: (e) => "#{e.project_id}/#{e.path}"
 
@@ -878,12 +890,13 @@ class ActivityLog
                 @_process_event(event, path)
 
     _process_event: (event, path) =>
-        # process the given event, assuming all older events have been processed already
+        # process the given event, assuming all older events have been
+        # processed already; this updates the notifications object.
         if not path?
             path = @path(event)
-        a = @activity[path]
+        a = @notifications[path]
         if not a?
-            @activity[path] = a = {}
+            @notifications[path] = a = {}
         a.timestamp = event.timestamp
         #console.log("process_event", event, path)
         #console.log(event.seen_by?.indexOf(@account_id))
@@ -897,10 +910,14 @@ class ActivityLog
             who = a[event.action]
             if not who?
                 who = a[event.action] = {}
-            times = who[event.account_id]
-            if not times?
-                times = who[event.account_id] = []
-            times.push(event.timestamp)
+            who[event.account_id] = event.timestamp
+            # The code below (instead of the line above) would include *all* times.
+            # I'm not sure whether or not I want to use that information, since it
+            # could get really big.
+            #times = who[event.account_id]
+            #if not times?
+            #    times = who[event.account_id] = []
+            #times.push(event.timestamp)
 
 
 exports.activity_log = (opts) -> new ActivityLog(opts)
