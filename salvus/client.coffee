@@ -1578,7 +1578,23 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb?(undefined, misc.activity_log(mesg.activity_log))
 
-    # below may be removed!
+    mark_activity: (opts) =>
+        opts = defaults opts,
+            events  : required     # [{path:'project_id/filesystem_path', timestamp:number}, ...]
+            mark    : required     # 'read', 'seen'
+            cb      : undefined
+        @call
+            message : message.mark_activity(events:opts.events, mark:opts.mark)
+            cb      : (err, mesg) =>
+                if err
+                    opts.cb?(err)
+                else if mesg.event == 'error'
+                    opts.cb?(mesg.error)
+                else
+                    opts.cb?()
+
+
+    # deprecated -- below may be removed!
     report_path_activity: (opts) =>
         opts = defaults opts,
             project_id : required

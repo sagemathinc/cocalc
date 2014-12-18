@@ -818,9 +818,13 @@ message
     activity_log : required            # input to misc.activity_log function.
 
 message
-    event       : 'recent_activity'
-    id          : undefined
-    updates     : required             # list of specific records that just got added to recent_activity_by_project2
+    event        : 'recent_activity'
+    updates      : required             # list of specific records that just got added to recent_activity_by_project2
+
+message
+    event        : 'mark_activity'
+    mark         : required   # 'read', 'seen'
+    events       : required   # list of {path:'project_id/filesystem_path', timestamp:number}
 
 # older stuff below
 

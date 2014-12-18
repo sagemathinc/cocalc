@@ -3,7 +3,7 @@
 #  import admin; reload(admin); s = admin.Services('conf/deploy_local/', username='wstein'); h=s._hosts
 
 #[cassandra] {'cluster_name':'salvus1', 'commitlog_total_space_in_mb':'128', 'thrift_framed_transport_size_in_mb':'39'}
-[cassandra] {'cluster_name':'salvus1', 'MAX_HEAP_SIZE':'4G',  'HEAP_NEWSIZE':'800M'}
+[cassandra] {'cluster_name':'salvus1', 'thrift_framed_transport_size_in_mb':'99',  'memtable_flush_writers':2, 'memtable_allocation_type':'offheap_objects'}
 #{'read_request_timeout_in_ms':'60000', 'request_timeout_in_ms':'60000', 'range_request_timeout_in_ms':'60000'}
 localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
 

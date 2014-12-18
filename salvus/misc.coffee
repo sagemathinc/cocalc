@@ -864,6 +864,8 @@ class ActivityLog
     process: (events) =>
         by_path = {}
         for e in events
+            ##if e.account_id == @account_id  # ignore our own events
+            ##    continue
             key = @path(e)
             events_with_path = by_path[key]
             if not events_with_path?
@@ -873,9 +875,9 @@ class ActivityLog
         for path, events_with_path of by_path
             events_with_path.sort(timestamp_cmp0)   # oldest to newest
             for event in events_with_path
-                @process_event(event, path)
+                @_process_event(event, path)
 
-    process_event: (event, path) =>
+    _process_event: (event, path) =>
         # process the given event, assuming all older events have been processed already
         if not path?
             path = @path(event)
@@ -883,11 +885,14 @@ class ActivityLog
         if not a?
             @activity[path] = a = {}
         a.timestamp = event.timestamp
-        if event.seen_by? and event.seen_by.index_of(@account_id)
+        #console.log("process_event", event, path)
+        #console.log(event.seen_by?.indexOf(@account_id))
+        #console.log(event.read_by?.indexOf(@account_id))
+        if event.seen_by? and event.seen_by.indexOf(@account_id) != -1
             a.seen = true
         else
             a.seen = false
-        if event.read_by? and event.read_by.index_of(@account_id)
+        if event.read_by? and event.read_by.indexOf(@account_id) != -1
             a.read = true
         else
             a.read = false

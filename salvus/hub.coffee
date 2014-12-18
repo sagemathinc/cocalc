@@ -672,7 +672,21 @@ class Client extends EventEmitter
 
         @conn.on "data", @handle_data_from_client
 
+        ###
+        # update activity at most once every few seconds, when user is active.
+        @conn.on "data", (data) =>
+            if not @_recent_activity_pushed?
+                winston.debug("recent_activity checked caused by #{data.toString()}")
+                @push_recent_activity()
+                @_recent_activity_pushed = true
+                setTimeout( (()=> delete @_recent_activity_pushed), 5000 )
+        ###
+
+        # check every few seconds
+        @_recent_activity_interval = setInterval(@push_recent_activity, RECENT_ACTIVITY_POLL_INTERVAL_S*1000)
+
         @conn.on "end", () =>
+            clearInterval(@_recent_activity_interval)
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  CLOSED")
             @closed = true
             @emit 'close'
@@ -2567,7 +2581,6 @@ class Client extends EventEmitter
             return
         #dbg = (a,m) => winston.debug("mesg_get_all_activity -- #{a} -- #{misc.to_json(m)}")
         activity    = undefined
-        project_ids = undefined
         events      = undefined
         async.series([
             (cb) =>
@@ -2579,7 +2592,11 @@ class Client extends EventEmitter
                         if err
                             cb(err)
                         else
-                            project_ids = x
+                            @_activity_project_ids = x
+                            @_activity_project_ids_map = {}
+                            for project_id in x
+                                @_activity_project_ids_map[project_id] = true
+                            setTimeout((()=>delete @_activity_project_ids), 5*60*1000)  # cache for 5 minutes
                             #dbg("got", x)
                             cb()
             (cb) =>
@@ -2589,7 +2606,7 @@ class Client extends EventEmitter
                     columns   : ['project_id', 'timestamp', 'path', 'account_id', 'action', 'seen_by', 'read_by']
                     objectify : true
                     where     :
-                        project_id : {'in':project_ids}
+                        project_id : {'in':@_activity_project_ids}
                         timestamp  : {'>=':cass.days_ago(7)}
                     cb    : (err, x) =>
                         if err
@@ -2605,6 +2622,107 @@ class Client extends EventEmitter
                 obj = misc.activity_log(account_id:@account_id, events:events).obj()
                 @push_to_client(message.all_activity(id:mesg.id, activity_log:obj))
         )
+
+    # when called, this will query for new activity
+    # and send message to user if there is any
+    push_recent_activity: (cb) =>
+        if not @account_id?
+            return
+        events = undefined
+        async.series([
+            (cb) =>
+                if @_activity_project_ids?
+                    cb()
+                else
+                    database.get_project_ids_with_user
+                        hidden     : true
+                        account_id : @account_id
+                        cb         : (err, x) =>
+                            if err
+                                cb(err)
+                            else
+                                @_activity_project_ids = x
+                                @_activity_project_ids_map = {}
+                                for project_id in x
+                                    @_activity_project_ids_map[project_id] = true
+                                setTimeout((()=>delete @_activity_project_ids), 5*60*1000)  # cache for 5 minutes
+                                cb()
+            (cb) =>
+                database.select
+                    table       : 'recent_activity_by_project2'
+                    columns     : ['project_id', 'timestamp', 'path', 'account_id', 'action', 'seen_by', 'read_by']
+                    objectify   : true
+                    consistency : 1  # less server load
+                    where       :
+                        project_id : {'in':@_activity_project_ids}
+                    cb    : (err, x) =>
+                        if err
+                            cb?(err)
+                        else
+                            events = x
+                            cb()
+        ], (err) =>
+            if err
+                cb?(err)
+            else
+                if events.length == 0
+                    cb?()
+                    return
+                if not @_recent_activity_sent?
+                    @_recent_activity_sent = {}
+                updates = []
+                for event in events
+                    ##if event.account_id == @account_id  # don't report our own events
+                    ##   continue
+                    j = misc.to_json(event)
+                    h = misc.hash_string(j)
+                    if @_recent_activity_sent[h]
+                        continue
+                    @_recent_activity_sent[h] = true
+                    updates.push(event)
+                if updates.length > 0
+                    @push_to_client(message.recent_activity(updates:updates))
+                cb?()
+        )
+
+    mesg_mark_activity: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in")
+            return
+        mark = mesg.mark
+        if mark != 'seen' and mark != 'read'
+            @error_to_client(id:mesg.id, error:"mark must be seen or read")
+        f = (event, cb) =>
+            # event = {path:'project_id/filesystem_path', timestamp:number}
+            try
+                project_id = event.path.slice(0,36)
+                if not @_activity_project_ids_map[project_id]?   # security
+                    cb()
+                    return
+                path = event.path.slice(37)
+                timestamp = event.timestamp
+            catch e
+                cb(e)
+            where = " WHERE project_id=? AND path=? AND timestamp=?"
+            param = [project_id, path, timestamp]
+            async.parallel([
+                (cb) =>
+                    query = "UPDATE activity_by_project2 SET #{mark}_by=#{mark}_by+{#{@account_id}}"
+                    database.cql(query+where, param, cb)
+                (cb) =>
+                    query = "UPDATE recent_activity_by_project2 USING TTL #{RECENT_ACTIVITY_TTL_S} SET #{mark}_by=#{mark}_by+{#{@account_id}}"
+                    database.cql(query+where, param, cb)
+            ], (err) =>
+                if not err
+                   @push_recent_activity()
+            )
+
+        async.map mesg.events, f, (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.success(id:mesg.id))
+
 
 
     mesg_path_activity: (mesg) =>
@@ -2832,6 +2950,9 @@ class Client extends EventEmitter
 # User activity tracking
 ##############################
 
+RECENT_ACTIVITY_POLL_INTERVAL_S = 10
+RECENT_ACTIVITY_TTL_S = 10 + RECENT_ACTIVITY_POLL_INTERVAL_S*2
+
 # one notifications syncdb per *account* (not connection); keys are account id's
 notifications_syncdb_cache = {}
 notifications_syncdb_callbacks = {}
@@ -2921,9 +3042,6 @@ RECENT_NOTIFICATION_D = 14
 
 MAX_ACTIVITY_NAME_LENGTH = 50
 MAX_ACTIVITY_TITLE_LENGTH = 60
-
-RECENT_ACTIVITY_TTL_S = 30
-RECENT_ACTIVITY_POLL_INTERVAL_S = 5
 
 normalize_path = (path) ->
     # Rules:

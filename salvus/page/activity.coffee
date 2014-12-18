@@ -423,10 +423,50 @@ all_notifications = () =>
     return notifications_syncdb.select(where:{table:'activity'})
 
 
+##########################
+# activity attempt 2
+##########################
 
+activity_log = undefined
 
+exports.get_activity_log = () -> activity_log
 
+_init_activity_done = false
+_init_activity_retry_interval = 2000
+init_activity = () ->
+    if _init_activity_done
+        return
+    console.log('initializing activity: doing query...')
+    salvus_client.get_all_activity
+        cb : (err, _activity_log) =>
+            if err
+                console.log("initializing activity: error=#{err}; will try later")
+                setTimeout(init_activity, 15000)
+                return
+            console.log("initializing activity: success!")
+            if _init_activity_done
+                # init_activity could have been called repeatedly at once, and one finished
+                return
+            $(".salvus-notification-indicator").show()
+            _init_activity_done = true
+            activity_log = _activity_log
+            salvus_client.on('recent_activity', process_recent_activity)
+            #render_activity()
 
+salvus_client.on("signed_in", init_activity)
 
+process_recent_activity = (events) ->
+    console.log("new activity -- #{misc.to_json(events)}")
+    activity_log.process(events)
 
+exports.mark_all_activities = mark_all_activities = (mark) ->
+    x = []
+    for path, events of activity_log.activity
+        if not events[mark]
+            x.push({path:path, timestamp:events.timestamp})
+    salvus_client.mark_activity
+        events : x
+        mark   : mark
+        cb     : (err) =>
+            console.log("mark_all_activities: err=",err)
 
