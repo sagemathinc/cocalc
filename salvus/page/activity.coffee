@@ -220,7 +220,7 @@ open_notification = (target) ->
         events : [{path:target.data('name'), timestamp:target.data('timestamp')}]
         mark   : 'read'
     if path == '.sagemathcloud.log'
-        history.load_target("projects/#{project_id}")
+        history.load_target("projects/#{project_id}/log")
     else
         history.load_target("projects/#{project_id}/files/#{path}")
         if comment
