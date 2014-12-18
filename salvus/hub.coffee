@@ -2634,16 +2634,23 @@ class Client extends EventEmitter
     # when called, this will query for new activity
     # and send message to user if there is any
     push_recent_activity: (cb) =>
+        if @_push_recent_activity_is_being_called
+            winston.debug("push_recent_activity(id=#{@id}): hit lock")
+            return
+        @_push_recent_activity_is_being_called = true
         if @_next_recent_activity_interval_s
             @_next_recent_activity_interval_s = Math.min(RECENT_ACTIVITY_POLL_DECAY_RATIO*@_next_recent_activity_interval_s, RECENT_ACTIVITY_POLL_INTERVAL_MAX_S)
-            winston.debug("push_recent_activity: will call @push_recent_activity in #{@_next_recent_activity_interval_s}s")
+            winston.debug("push_recent_activity(id=#{@id}): will call @push_recent_activity in #{@_next_recent_activity_interval_s}s")
             setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
         else
-            winston.debug("push_recent_activity: canceled @push_recent_activity")
+            winston.debug("push_recent_activity(id=#{@id}): canceled @push_recent_activity")
+            delete @_push_recent_activity_is_being_called
             return
         if not @account_id?
+            delete @_push_recent_activity_is_being_called
             return
         events = undefined
+
         async.series([
             (cb) =>
                 if @_activity_project_ids?
@@ -2677,6 +2684,7 @@ class Client extends EventEmitter
                             events = x
                             cb()
         ], (err) =>
+            delete @_push_recent_activity_is_being_called
             if err
                 cb?(err)
             else
@@ -2965,7 +2973,7 @@ class Client extends EventEmitter
 # User activity tracking
 ##############################
 
-RECENT_ACTIVITY_POLL_INTERVAL_MIN_S = 5
+RECENT_ACTIVITY_POLL_INTERVAL_MIN_S = 8
 RECENT_ACTIVITY_POLL_INTERVAL_MAX_S = 60
 RECENT_ACTIVITY_POLL_DECAY_RATIO    = 1.3
 RECENT_ACTIVITY_TTL_S = 30 + RECENT_ACTIVITY_POLL_INTERVAL_MAX_S
