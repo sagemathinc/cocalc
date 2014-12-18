@@ -170,15 +170,17 @@ path_to_display = (path) ->
         return "<b>#{misc.trunc_left(path, TRUNC)}</b>"
 
 notification_elements = {}
-render_notification = (x, init) ->
+render_notification = (x) ->
+    #console.log("rendering #{misc.to_json(x)}")
+    if not x.account_ids? or x.account_ids.length == 0
+        # not enough info to render this notification (e.g., happens if notification log truncated)
+        return
     name = "#{x.project_id}/#{x.path}"
-    if not init
-        elt = notification_elements[name]
+    elt = notification_elements[name]
     hash = misc.hash_string(misc.to_json(x))
     if elt? and elt.data('last_hash') == hash
         # no change
         return
-    #console.log("rendering #{misc.to_json(x)}")
 
     if not elt?
         notification_elements[name] = elt = template_notification.clone()
@@ -282,7 +284,7 @@ render_notifications = () ->
             if x.timestamp? and x.timestamp <= too_old
                 notifications_syncdb.delete(where:{table:'activity',project_id:x.project_id,path:x.path})
                 continue
-            render_notification(x, true)
+            render_notification(x)
             if is_important(x)
                 important_count += 1
         $(".salvus-notification-list-loading").hide()
@@ -305,9 +307,11 @@ delete_oldest_notification = () ->
 is_important = (x) -> not x.seen and x.actions?['comment']
 
 update_important_count = (recalculate) ->
-    if recalculate and notifications_syncdb?
-        important_count = (x for x in all_notifications() when is_important(x)).length
-
+    if recalculate and activity_log?
+        important_count = 0
+        for path, x of activity_log.notifications
+            if x.important
+                important_count += 1
     if important_count == 0
         notification_count.text('')
     else
@@ -319,7 +323,6 @@ update_important_count = (recalculate) ->
     #    mark_read_button.removeClass('disabled')
 
     require('misc_page').set_window_title()
-
 
 update_notifications = (changes) ->
     #console.log("update_notifications: #{misc.to_json(changes)}")
@@ -469,14 +472,15 @@ _init_activity_retry_interval = 2000
 init_activity = () ->
     if _init_activity_done
         return
-    console.log('initializing activity: doing query...')
+    #console.log('initializing activity: doing query...')
+    t0 = misc.mswalltime()
     salvus_client.get_all_activity
         cb : (err, _activity_log) =>
             if err
                 console.log("initializing activity: error=#{err}; will try later")
                 setTimeout(init_activity, 15000)
                 return
-            console.log("initializing activity: success!")
+            #console.log("initializing activity: success! (query time=#{misc.mswalltime(t0)}ms)")
             if _init_activity_done
                 # init_activity could have been called repeatedly at once, and one finished
                 return
@@ -484,15 +488,28 @@ init_activity = () ->
             _init_activity_done = true
             activity_log = _activity_log
             user_account_id = activity_log.account_id
-            salvus_client.on('recent_activity', process_recent_activity)
             render_activity_log()
 
-salvus_client.on("signed_in", init_activity)
+salvus_client.on "signed_in", () =>
+    _init_activity_done = false
+    init_activity()
 
 process_recent_activity = (events) ->
-    console.log("new activity -- #{misc.to_json(events)}")
+    #console.log("new activity -- #{misc.to_json(events)}")
+    if not activity_log?
+        return
     activity_log.process(events)
-    render_activity_log()
+    to_update = {}
+    for e in events
+        to_update["#{e.project_id}/#{e.path}"] = true
+    for path,_ of to_update
+        x = parse_notification_for_display(path, activity_log.notifications[path])
+        render_notification(x)
+    update_important_count(true)
+    sort_notifications()
+
+salvus_client.on('recent_activity', process_recent_activity)
+
 
 mark_all_notifications = (mark) ->
     x = []
@@ -503,18 +520,21 @@ mark_all_notifications = (mark) ->
         events : x
         mark   : mark
         cb     : (err) =>
-            console.log("mark_all_notifications: err=",err)
+            if err
+                console.log("mark_all_notifications(mark=#{mark}): err=",err)
 
 mark_visible_notifications = (mark) ->
     x = []
-    for path, events of activity_log.notifications
-        if (not events[mark] or events.timestamp > events[mark]) and notification_elements[name]?.is(":visible")
-            x.push({path:path, timestamp:events.timestamp})
+    for path, notification of activity_log.notifications
+        if not notification[mark] or notification.timestamp > notification[mark]
+            if notification_elements[path]?.is(":visible")
+                x.push({path:path, timestamp:notification.timestamp})
     salvus_client.mark_activity
         events : x
         mark   : mark
         cb     : (err) =>
-            console.log("mark_visible_notifications(#{mark}): err=",err)
+            if err
+                console.log("mark_visible_notifications(#{mark}, events=#{misc.to_json(x)}): err=",err)
 
 mark_visible_notifications_seen = () ->
     mark_visible_notifications('seen')
@@ -537,7 +557,6 @@ project_titles = (v, cb) ->
                     for project_id, title of titles
                         if title.length > TRUNC
                             titles[project_id] = misc.trunc(title, TRUNC)
-                    console.log(titles)
                     for x in v
                         if not x.project_title?
                             x.project_title = titles[x.project_id]
@@ -551,23 +570,20 @@ account_fullnames = (v, cb) ->
                 if account_id != user_account_id
                     account_ids[account_id] = true
     account_ids = misc.keys(account_ids)
-    if account_ids.length == 0
-        cb()
-    else
-        salvus_client.get_user_names
-            account_ids : account_ids
-            cb          : (err, names) ->
-                if err
-                    cb(err)
-                else
-                    names[user_account_id] = {first_name:"You", last_name:""}
-                    for x in v
-                        if not x.fullnames? or x.fullnames.length != x.account_ids.length
-                            x.fullnames = []
-                            for account_id in x.account_ids
-                                name = names[account_id]
-                                x.fullnames.push(misc.trunc("#{name.first_name} #{name.last_name}".trim(), TRUNC))
-                    cb()
+    salvus_client.get_user_names
+        account_ids : account_ids
+        cb          : (err, names) ->
+            if err
+                cb(err)
+            else
+                names[user_account_id] = {first_name:"You", last_name:""}
+                for x in v
+                    if not x.fullnames? or x.fullnames.length != x.account_ids.length
+                        x.fullnames = []
+                        for account_id in x.account_ids
+                            name = names[account_id]
+                            x.fullnames.push(misc.trunc("#{name.first_name} #{name.last_name}".trim(), TRUNC))
+                cb()
 
 titles_and_fullnames = (v, cb) ->
     async.parallel([
@@ -584,10 +600,14 @@ parse_notification_for_display = (path, notification) ->
     if notification.comment?
         x.actions['comment'] = true
         newest = 0
+        seen = notification.seen
         for account_id, timestamp of notification.comment
+            if account_id == user_account_id
+                seen = Math.max(seen, timestamp)   # if we made comment count that as us seeing it
             newest = Math.max(newest, timestamp)
             accounts.push({account_id:account_id, timestamp:timestamp})
-        if notification.seen < newest
+        if seen < newest
+            # the user has not seen the comment.
             x.important = true   # unseen comment
     if notification.edit?
         x.actions['edit'] = true
@@ -606,7 +626,8 @@ parse_notification_for_display = (path, notification) ->
     if notification.seen? and notification.seen >= t
         x.seen = true
 
-    console.log("#{misc.to_json(notification)} --> #{misc.to_json(x)} ")
+    #console.log("#{misc.to_json(notification)} --> #{misc.to_json(x)} ")
+    notification.important = x.important  # used for updating important count
 
     return x
 
@@ -626,8 +647,7 @@ all_activities = (cb) ->
             cb(undefined, v)
 
 render_activity_log = (cb) ->
-    console.log("render_activity_log")
-    #notification_list_body.empty()
+    #console.log("render_activity_log")
     important_count = 0
     if not activity_log?
         return
@@ -636,9 +656,10 @@ render_activity_log = (cb) ->
             cb?(err)
         else
             v.sort(misc.timestamp_cmp)
-            console.log("all_activities=",v)
+            #console.log("all_activities=",v)
+            #notification_list_body.empty()
             for x in v
-                render_notification(x, true)
+                render_notification(x)
                 if x.important
                     important_count += 1
             $(".salvus-notification-list-loading").hide()

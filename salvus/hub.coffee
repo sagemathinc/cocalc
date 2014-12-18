@@ -670,7 +670,9 @@ class Client extends EventEmitter
         @cookies = {}
         @remember_me_db = database.key_value_store(name: 'remember_me')
 
-        @conn.on "data", @handle_data_from_client
+        @conn.on "data", (data) =>
+            @_next_recent_activity_interval_s = RECENT_ACTIVITY_POLL_INTERVAL_MIN_S
+            @handle_data_from_client(data)
 
         ###
         # update activity at most once every few seconds, when user is active.
@@ -683,10 +685,11 @@ class Client extends EventEmitter
         ###
 
         # check every few seconds
-        @_recent_activity_interval = setInterval(@push_recent_activity, RECENT_ACTIVITY_POLL_INTERVAL_S*1000)
+        @_next_recent_activity_interval_s = RECENT_ACTIVITY_POLL_INTERVAL_MIN_S
+        setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
 
         @conn.on "end", () =>
-            clearInterval(@_recent_activity_interval)
+            @_next_recent_activity_interval_s = 0
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  CLOSED")
             @closed = true
             @emit 'close'
@@ -2582,6 +2585,7 @@ class Client extends EventEmitter
         #dbg = (a,m) => winston.debug("mesg_get_all_activity -- #{a} -- #{misc.to_json(m)}")
         activity    = undefined
         events      = undefined
+        t0 = misc.mswalltime()
         async.series([
             (cb) =>
                 #dbg("get all projects that user collaborates on")
@@ -2607,8 +2611,9 @@ class Client extends EventEmitter
                     objectify : true
                     where     :
                         project_id : {'in':@_activity_project_ids}
-                        timestamp  : {'>=':cass.days_ago(7)}
-                    cb    : (err, x) =>
+                        timestamp  : {'>=':cass.hours_ago(ACTIVITY_LOG_DEFAULT_LENGTH_HOURS)}
+                    limit     : ACTIVITY_LOG_DEFAULT_MAX_LENGTH
+                    cb        : (err, x) =>
                         if err
                             cb(err)
                         else
@@ -2619,13 +2624,23 @@ class Client extends EventEmitter
                 @error_to_client(id:mesg.id, error:err)
             else
                 # success: send result to client
+                winston.debug("activity_log(account_id=#{@account_id}): nonblocking query time to get #{events.length} took #{misc.mswalltime(t0)}ms")
+                t0 = misc.mswalltime()
                 obj = misc.activity_log(account_id:@account_id, events:events).obj()
+                winston.debug("activity_log(account_id=#{@account_id}): *blocking* parse of #{events.length} events took #{misc.mswalltime(t0)}ms to parse")
                 @push_to_client(message.all_activity(id:mesg.id, activity_log:obj))
         )
 
     # when called, this will query for new activity
     # and send message to user if there is any
     push_recent_activity: (cb) =>
+        if @_next_recent_activity_interval_s
+            @_next_recent_activity_interval_s = Math.min(RECENT_ACTIVITY_POLL_DECAY_RATIO*@_next_recent_activity_interval_s, RECENT_ACTIVITY_POLL_INTERVAL_MAX_S)
+            winston.debug("push_recent_activity: will call @push_recent_activity in #{@_next_recent_activity_interval_s}s")
+            setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
+        else
+            winston.debug("push_recent_activity: canceled @push_recent_activity")
+            return
         if not @account_id?
             return
         events = undefined
@@ -2950,8 +2965,14 @@ class Client extends EventEmitter
 # User activity tracking
 ##############################
 
-RECENT_ACTIVITY_POLL_INTERVAL_S = 10
-RECENT_ACTIVITY_TTL_S = 10 + RECENT_ACTIVITY_POLL_INTERVAL_S*2
+RECENT_ACTIVITY_POLL_INTERVAL_MIN_S = 5
+RECENT_ACTIVITY_POLL_INTERVAL_MAX_S = 60
+RECENT_ACTIVITY_POLL_DECAY_RATIO    = 1.3
+RECENT_ACTIVITY_TTL_S = 30 + RECENT_ACTIVITY_POLL_INTERVAL_MAX_S
+
+ACTIVITY_LOG_DEFAULT_LENGTH_HOURS = 24*3  # 3 days
+ACTIVITY_LOG_DEFAULT_MAX_LENGTH = 2000    # at most this many events
+
 
 # one notifications syncdb per *account* (not connection); keys are account id's
 notifications_syncdb_cache = {}

@@ -874,6 +874,7 @@ class ActivityLog
     path: (e) => "#{e.project_id}/#{e.path}"
 
     process: (events) =>
+        #t0 = exports.mswalltime()
         by_path = {}
         for e in events
             ##if e.account_id == @account_id  # ignore our own events
@@ -888,6 +889,7 @@ class ActivityLog
             events_with_path.sort(timestamp_cmp0)   # oldest to newest
             for event in events_with_path
                 @_process_event(event, path)
+        #winston.debug("ActivityLog: processed #{events.length} in #{exports.mswalltime(t0)}ms")
 
     _process_event: (event, path) =>
         # process the given event, assuming all older events have been
