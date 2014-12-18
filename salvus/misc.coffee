@@ -889,13 +889,10 @@ class ActivityLog
         #console.log(event.seen_by?.indexOf(@account_id))
         #console.log(event.read_by?.indexOf(@account_id))
         if event.seen_by? and event.seen_by.indexOf(@account_id) != -1
-            a.seen = true
-        else
-            a.seen = false
+            a.seen = event.timestamp
         if event.read_by? and event.read_by.indexOf(@account_id) != -1
-            a.read = true
-        else
-            a.read = false
+            a.read = event.timestamp
+
         if event.action?
             who = a[event.action]
             if not who?
@@ -904,6 +901,7 @@ class ActivityLog
             if not times?
                 times = who[event.account_id] = []
             times.push(event.timestamp)
+
 
 exports.activity_log = (opts) -> new ActivityLog(opts)
 

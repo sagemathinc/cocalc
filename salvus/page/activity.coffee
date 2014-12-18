@@ -143,20 +143,26 @@ ensure_titles_and_user_names = (v, cb) ->
 
 notification_elements = {}
 render_notification = (x, init) ->
-    #console.log("rendering #{misc.to_json(x)}")
-    name = "#{x.project_id}/#{x.path}"
+    name = "#{x.project_id}/#{x.path}-#{x.account_id}-#{x.action}"
     if not init
         elt = notification_elements[name]
+    hash = misc.hash_string(misc.to_json(x))
+    if elt? and elt.data('last_hash') == hash
+        # no change
+        return
+    console.log("rendering #{misc.to_json(x)}")
 
     if not elt?
         notification_elements[name] = elt = template_notification.clone()
         notification_list_body.append(elt)
-        elt.data(project_id:x.project_id, path:x.path, id:x.id, name:name, comment:x.actions?['comment'])
+        elt.data(project_id:x.project_id, path:x.path, id:x.id, name:name, comment:x.action == 'comment')
         elt.find(".salvus-notification-path-icon").addClass(editor.file_icon_class(misc.filename_extension(x.path)))
         elt.click () ->
             open_notification($(@))
 
-    ensure_titles_and_user_names [x], (err) ->
+    elt.data(last_hash:hash)
+
+    titles_and_fullnames [x], (err) ->
         if err
             return
         if x.path == ".sagemathcloud.log"
@@ -164,12 +170,12 @@ render_notification = (x, init) ->
                 d = "<b>#{x.fullname}</b> used the <b>#{x.project_title}</b> project"
         else
             actions = []
-            if x.actions?['comment']
+            if x.action == 'comment'
                 actions.push('<i class="salvus-notification-commented">commented on</i>')
                 elt.find(".salvus-notification-action-icon").addClass("salvus-notification-action-icon-comment")
             else
                 elt.find(".salvus-notification-action-icon").removeClass("salvus-notification-action-icon-comment")
-            if x.actions?['edit']
+            if x.action == 'edit'
                 actions.push('edited')
             if actions.length == 0
                 actions = ['used']
@@ -383,7 +389,7 @@ $(".salvus-notification-indicator").click () ->
     if notification_list_is_hidden
         notification_list.show()
         notification_search.focus()
-        mark_visible_notifications_seen()
+        mark_visible_activities_seen()
         $(document).click(notification_list_click)
         $(window).resize(resize_notification_list)
         resize_notification_list()
@@ -394,8 +400,7 @@ $(".salvus-notification-indicator").click () ->
     return false
 
 mark_read_button = notification_list.find("a[href=#mark-all-read]").click () ->
-    mark_visible_notifications_read()
-
+    mark_visible_activities_read()
 
 mark_visible_notifications = (mark) ->
     id_list = (x.id for x in all_notifications() when \
@@ -428,6 +433,7 @@ all_notifications = () =>
 ##########################
 
 activity_log = undefined
+user_account_id = undefined
 
 exports.get_activity_log = () -> activity_log
 
@@ -450,16 +456,18 @@ init_activity = () ->
             $(".salvus-notification-indicator").show()
             _init_activity_done = true
             activity_log = _activity_log
+            user_account_id = activity_log.account_id
             salvus_client.on('recent_activity', process_recent_activity)
-            #render_activity()
+            render_activity_log()
 
 salvus_client.on("signed_in", init_activity)
 
 process_recent_activity = (events) ->
     console.log("new activity -- #{misc.to_json(events)}")
     activity_log.process(events)
+    render_activity_log()
 
-exports.mark_all_activities = mark_all_activities = (mark) ->
+mark_all_activities = (mark) ->
     x = []
     for path, events of activity_log.activity
         if not events[mark]
@@ -469,4 +477,133 @@ exports.mark_all_activities = mark_all_activities = (mark) ->
         mark   : mark
         cb     : (err) =>
             console.log("mark_all_activities: err=",err)
+
+mark_visible_activities = (mark) ->
+    x = []
+    for path, events of activity_log.activity
+        if (not events[mark] or events.timestamp > events[mark]) and notification_elements[name]?.is(":visible")
+            x.push({path:path, timestamp:events.timestamp})
+    salvus_client.mark_activity
+        events : x
+        mark   : mark
+        cb     : (err) =>
+            console.log("mark_visible_activities(#{mark}): err=",err)
+
+mark_visible_activities_seen = () ->
+    mark_visible_activities('seen')
+    update_important_count(true)
+
+mark_visible_activities_read = () ->
+    mark_visible_activities('read')
+
+project_titles = (v, cb) ->
+    project_ids = (x.project_id for x in v when not x.project_title?)
+    if project_ids.length == 0
+        cb?()
+    else
+        salvus_client.get_project_titles
+            project_ids : project_ids
+            cb          : (err, titles) ->
+                if err
+                    cb?(err)
+                else
+                    for x in v
+                        if not x.project_title?
+                            x.project_title = titles[x.project_id]
+                    cb?()
+
+account_fullnames = (v, cb) ->
+    account_ids = (x.account_id for x in v when not x.fullname? and x.account_id!=user_account_id)
+    if account_ids.length == 0
+        cb()
+    else
+        salvus_client.get_user_names
+            account_ids : account_ids
+            cb          : (err, names) ->
+                if err
+                    cb(err)
+                else
+                    names[user_account_id] = {first_name:"You", last_name:""}
+                    console.log("names =", names)
+                    for x in v
+                        if not x.fullname?
+                            name = names[x.account_id]
+                            x.fullname = "#{name.first_name} #{name.last_name}"
+                    cb()
+
+titles_and_fullnames = (v, cb) ->
+    async.parallel([
+        (cb) ->
+            project_titles(v, cb)
+        (cb) ->
+            account_fullnames(v, cb)
+    ], cb)
+
+
+all_activities = (cb) ->
+    if not activity_log?
+        cb(undefined, [])
+        return
+    v = []
+    for path, log of activity_log.activity
+        e = {project_id:path.slice(0,36), path:path.slice(37)}
+        if log.comment?
+            for account_id, times of log.comment
+                evt = misc.deep_copy(e)
+                evt.action = 'comment'
+                evt.timestamp = times[times.length-1]
+                evt.account_id = account_id
+                if evt.account_id != activity_log.account_id
+                    if log.read? and log.read >= evt.timestamp
+                        evt.read = true
+                    if log.seen? and log.seen >= evt.timestamp
+                        evt.seen = true
+                    if not evt.seen
+                        evt.important = true
+                else
+                    evt.read = evt.seen = true
+                v.push(evt)
+        if log.edit?
+            for account_id, times of log.edit
+                evt = misc.deep_copy(e)
+                evt.action = 'edit'
+                evt.timestamp = times[times.length-1]
+                evt.account_id = account_id
+                if evt.account_id != activity_log.account_id
+                    if log.read? and log.read >= evt.timestamp
+                        evt.read = true
+                    if log.seen? and log.seen >= evt.timestamp
+                        evt.seen = true
+                else
+                    evt.read = evt.seen = true
+                v.push(evt)
+
+    titles_and_fullnames v, (err) =>
+        if err
+            cb(err)
+        else
+            cb(undefined, v)
+
+render_activity_log = (cb) ->
+    console.log("render_activity_log")
+    #notification_list_body.empty()
+    important_count = 0
+    if not activity_log?
+        return
+    all_activities (err, v) ->
+        if err
+            cb?(err)
+        else
+            v.sort(misc.timestamp_cmp)
+            console.log("all_activities=",v)
+            for x in v
+                render_notification(x, true)
+                if x.important
+                    important_count += 1
+            $(".salvus-notification-list-loading").hide()
+            if v.length == 0
+                $(".salvus-notification-list-none").show()
+            update_important_count(false)
+            cb?()
+
 
