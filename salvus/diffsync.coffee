@@ -709,6 +709,8 @@ class exports.SynchronizedDB extends EventEmitter
         @_doc.on('sync', @_on_sync)
 
     _on_sync: () =>
+        if not @_doc?
+            return
         @emit('sync')
         #console.log("syncdb -- syncing")
         if not @_set_data_from_doc() and @_live_before_sync?
@@ -726,6 +728,8 @@ class exports.SynchronizedDB extends EventEmitter
 
     # set the data object to equal what is defined in the syncdoc
     _set_data_from_doc: () =>
+        if not @_doc?
+            return
         # change/add anything that has changed or been added
         i = 0
         hashes = {}
@@ -757,6 +761,8 @@ class exports.SynchronizedDB extends EventEmitter
         return is_valid
 
     _set_doc_from_data: (hash) =>
+        if not @_doc?
+            return
         if hash? and @_data[hash]?  # second condition due to potential of @_data changing before _set_doc_from_data called
             # one line changed
             d = @_data[hash]
@@ -785,14 +791,23 @@ class exports.SynchronizedDB extends EventEmitter
         @_doc.sync()
 
     save: (cb) =>
+        if not @_doc?
+            cb?("@_doc not defined")
+            return
         @sync (err) =>
             if err
                 setTimeout((()=>@save(cb)), 3000)
             else
+                if not @_doc?
+                    cb?("@_doc not defined")
+                    return
                 @_doc.save(cb)
 
     sync: (cb) =>
-        @_doc.sync(cb)
+        if not @_doc?
+            cb?("@_doc not defined")
+        else
+            @_doc.sync(cb)
 
     # change (or create) exactly *one* database entry that matches
     # the given where criterion.
@@ -800,6 +815,8 @@ class exports.SynchronizedDB extends EventEmitter
         opts = defaults opts,
             set   : required
             where : required
+        if not @_doc?
+            return
         set   = opts.set
         where = opts.where
         i = 0
@@ -854,6 +871,8 @@ class exports.SynchronizedDB extends EventEmitter
     select: (opts={}) =>
         {where} = defaults opts,
             where : {}
+        if not @_data?
+            return []
         result = []
         for hash, val of @_data
             x = val.data
@@ -870,6 +889,8 @@ class exports.SynchronizedDB extends EventEmitter
     select_one: (opts={}) =>
         {where} = defaults opts,
             where : {}
+        if not @_data?
+            return
         for hash, val of @_data
             x = val.data
             match = true
@@ -885,6 +906,8 @@ class exports.SynchronizedDB extends EventEmitter
         {where, one} = defaults opts,
             where : required  # give {} to delete everything ?!
             one   : false
+        if not @_data?
+            return 0
         result = []
         i = 0
         changes = []
@@ -913,6 +936,8 @@ class exports.SynchronizedDB extends EventEmitter
 
     # anything that couldn't be parsed from JSON as a map gets converted to {key:thing}.
     ensure_objects: (key) =>
+        if not @_data?
+            return
         changes = {}
         for h,v of @_data
             if typeof(v.data) != 'object'
@@ -929,6 +954,8 @@ class exports.SynchronizedDB extends EventEmitter
 
     # ensure that every db entry has a distinct uuid value for the given key
     ensure_uuid_primary_key: (key) =>
+        if not @_data?
+            return
         uuids   = {}
         changes = {}
         for h,v of @_data
