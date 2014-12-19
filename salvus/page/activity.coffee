@@ -338,6 +338,8 @@ mark_all_notifications = (mark) ->
                 console.log("mark_all_notifications(mark=#{mark}): err=",err)
 
 mark_visible_notifications = (mark) ->
+    if not activity_log?
+        return
     x = []
     for path, notification of activity_log.notifications
         if not notification[mark] or notification.timestamp > notification[mark]
