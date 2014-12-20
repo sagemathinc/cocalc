@@ -27,27 +27,25 @@ compute_cpu   = 12   # DO *NOT* change compute_cpu willy-nilly; if you change it
 ## us-central1-a
 #####################
 # compute/storage nodes:
-localhost    {'hostname':'compute1dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute2dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute3dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute4dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute5dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute6dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute7dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute1dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute2dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute3dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute4dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute5dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute6dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute7dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
 
 # backup
 localhost    {'hostname':'backup1dc2', 'disk':'backup1:4000', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
 
 # cassandra cluster
-localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
-localhost    {'hostname':'cassandra2dc2', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
-localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
-localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra1dc2', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra2dc2', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
 
 # web servers/hubs
-# NOTE: must use swap (due to memory leaks in hub)
-#    zfs create pool/swap -V 8G -b 4K && sleep 3 && mkswap -f /dev/zvol/pool/swap && swapon  /dev/zvol/pool/swap
 localhost    {'hostname':'web1dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
 localhost    {'hostname':'web2dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
 
@@ -69,10 +67,10 @@ localhost     {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'n1-h
 #localhost    {'hostname':'compute4dc3', 'disk':'bup:500', 'instance_type':'g1-small', 'zone':'europe-west1-b'}
 
 # cassandra cluster
-localhost    {'hostname':'cassandra1dc3', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
-localhost    {'hostname':'cassandra2dc3', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
-localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
-localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra1dc3', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra2dc3', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
+localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
 
 # web servers/hubs
 localhost    {'hostname':'web1dc3', 'instance_type':'g1-small', 'zone':'europe-west1-c'}
@@ -176,7 +174,6 @@ cloud21  {'hostname':'compute21dc0',  'vcpus':compute_cpu,   'ram':compute_ram, 
 
 # Cassandra nodes
 [cassandra] {'auto_bootstrap':True, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer', 'incremental_backups':True, 'memtable_flush_writers':2, 'memtable_allocation_type':'offheap_objects'}
-#, 'MAX_HEAP_SIZE':'8G', 'HEAP_NEWSIZE':'200M', 'timeout':45}
 
 # DC1: padelford
 cassandra1    {'seed':True,  'topology':'DC1:RAC0', 'num_tokens':256}
@@ -230,5 +227,3 @@ hub {'id':'0', 'port':'5000', 'proxy_port':'5001'}
 hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
 hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
 hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
-
-
