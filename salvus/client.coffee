@@ -433,10 +433,6 @@ class exports.Connection extends EventEmitter
                 @emit(mesg.event, mesg)
             when "recent_activity"
                 @emit(mesg.event, mesg.updates)
-            when "syncstring_diffsync2"
-                @emit("syncstring_diffsync2-#{mesg.session_id}", mesg)
-            when "syncstring_diffsync2_reset"
-                @emit("syncstring_diffsync2_reset-#{mesg.session_id}")
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
@@ -1592,77 +1588,6 @@ class exports.Connection extends EventEmitter
                     opts.cb?(mesg.error)
                 else
                     opts.cb?()
-
-
-    # deprecated -- below may be removed!
-    report_path_activity: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            cb         : undefined   # cb(err)
-        @call
-            message : message.path_activity
-                project_id  : opts.project_id
-                path        : opts.path
-            cb      : (err, mesg) =>
-                if err
-                    opts.cb?(err)
-                else if mesg.event == 'error'
-                    opts.cb?(mesg.error)
-                else
-                    opts.cb?()
-
-    get_notifications_syncdb: (opts) =>
-        opts = defaults opts,
-            cb : required
-        @call
-            message : message.get_notifications_syncdb()
-            cb      : (err, mesg) =>
-                if err
-                    opts.cb(err)
-                else if mesg.event == 'error'
-                    opts.cb(mesg.error)
-                else
-                    opts.cb(undefined, mesg.string_id)
-
-    mark_notifications: (opts) =>
-        opts = defaults opts,
-            id_list : required
-            mark    : required    # 'read', 'seen'
-            cb      : undefined
-        @call
-            message : message.mark_notifications(id_list:opts.id_list, mark:opts.mark)
-            cb      : (err, mesg) =>
-                if err
-                    opts.cb?(err)
-                else if mesg.event == 'error'
-                    opts.cb?(mesg.error)
-                else
-                    opts.cb?()
-
-
-
-    #################################################
-    # Synchronized Strings (database backed)
-    # x={};require('syncstring').syncstring({string_id:'foo',cb:function(e,s){console.log(e,s);x.s=s}})
-    # x.s.live='hub'+x.s.live
-    # x.s.sync(function(e,f){console.log("done",e,f)})
-    ##################################################
-    syncstring_get_session: (opts) =>
-        opts = defaults opts,
-            string_id  : required
-            cb         : undefined   # cb(err, {session_id:?, string:?, readonly:?})
-        @call
-            message :
-                message.syncstring_get_session
-                    string_id : opts.string_id
-            cb      : (err, resp) =>
-                if err
-                    opts.cb?(err)
-                else if resp.event == 'error'
-                    opts.cb?(resp.error)
-                else
-                    opts.cb?(undefined, resp)
 
 
     #################################################

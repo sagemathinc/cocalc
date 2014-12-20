@@ -1228,13 +1228,13 @@ class TaskList
             last_edited : new Date() - 0
 
         task_id = uuid()
-        @db.update
-            set   : task
-            where : {task_id : task_id}
         task.task_id = task_id
         @tasks[task_id] = task
 
-        @render_task_list()
+        @db.update
+            set   : task
+            where : {task_id : task_id}
+
         @set_current_task(task)
         @edit_desc(task, true)
         @set_dirty()

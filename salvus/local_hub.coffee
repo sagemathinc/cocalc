@@ -610,20 +610,9 @@ sage_sessions = new SageSessions()
 class DiffSyncFile_server extends diffsync.DiffSync
     constructor:(@cm_session, cb)  ->
         @path = @cm_session.path
-        @_backup_file = misc.meta_file(@path, 'backup')
-        # check for need to save a backup every this many milliseconds
-        @_autosave = setInterval(@write_backup, 10000)
-
-        # We prefer the backup file only if it both (1) exists, and
-        # (2) is *newer* than the master file.  This is because some
-        # other editing program could have edited the master, not
-        # knowing about the backup, in which case it makes more sense
-        # to just go with the master.
 
         no_master    = undefined
         stats_path   = undefined
-        no_backup    = undefined
-        stats_backup = undefined
         stats        = undefined
         file         = undefined
 
@@ -634,13 +623,8 @@ class DiffSyncFile_server extends diffsync.DiffSync
                     stats_path = _stats_path
                     cb()
             (cb) =>
-                fs.stat @_backup_file, (_no_backup, _stats_backup) =>
-                    no_backup = _no_backup
-                    stats_backup = _stats_backup
-                    cb()
-            (cb) =>
-                if no_backup and no_master
-                    # neither exist -- create
+                if no_master
+                    # create
                     file = @path
                     misc_node.ensure_containing_directory_exists @path, (err) =>
                         if err
@@ -651,24 +635,10 @@ class DiffSyncFile_server extends diffsync.DiffSync
                                     cb(err)
                                 else
                                     fs.close fd, cb
-                else if no_backup # no backup file -- always use master
+                else
+                    # master exists
                     file = @path
                     stats = stats_path
-                    cb()
-                else if no_master # no master file but there is a backup file -- use backup
-                    file = @_backup_file
-                    stats = stats_backup
-                    cb()
-                else
-                    # both master and backup exist
-                    if stats_path.mtime.getTime() >= stats_backup.mtime.getTime()
-                        # master is newer
-                        file = @path
-                        stats = stats_path
-                    else
-                        # backup is newer
-                        file = @_backup_file
-                        stats = stats_backup
                     cb()
             (cb) =>
                 e = check_file_size(stats?.size)
@@ -775,17 +745,6 @@ class DiffSyncFile_server extends diffsync.DiffSync
                 cb?(err); return
             fs.writeFile @path, @live, (err) =>
                 @_start_watching_file()
-                if not err
-                    fs.exists @_backup_file, (exists) =>
-                        fs.unlink(@_backup_file)
-                cb?(err)
-
-    write_backup: (cb) =>
-        if @cm_session.content != @_last_backup
-            x = @cm_session.content
-            fs.writeFile @_backup_file, x, (err) =>
-                if not err
-                    @_last_backup = x
                 cb?(err)
 
 
