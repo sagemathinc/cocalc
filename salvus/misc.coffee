@@ -429,26 +429,37 @@ exports.retry_until_success = (opts) ->
         start_delay : 100             # milliseconds
         max_delay   : 20000           # milliseconds -- stop increasing time at this point
         factor      : 1.4             # multiply delay by this each time
-        max_tries   : undefined
+        max_tries   : undefined       # maximum number of times to call f
+        max_time    : undefined       # milliseconds -- don't call f again if the call would start after this much time from first call
         log         : undefined
         name        : ''
         cb          : undefined       # called with cb() on *success*; cb(error) if max_tries is exceeded
 
     delta = opts.start_delay
     tries = 0
+    if opts.max_time?
+        start_time = new Date()
     g = () ->
         tries += 1
         if opts.log?
-            opts.log("retry_until_success(#{opts.name}) -- try #{tries}/#{opts.max_tries}")
+            if opts.max_tries?
+                opts.log("retry_until_success(#{opts.name}) -- try #{tries}/#{opts.max_tries}")
+            if opts.max_time?
+                opts.log("retry_until_success(#{opts.name}) -- try #{tries} (started #{new Date() - start_time}ms ago; will stop before #{opts.max_time}ms max time)")
+            if not opts.max_tries? and not opts.max_time?
+                opts.log("retry_until_success(#{opts.name}) -- try #{tries}")
         opts.f (err)->
             if err
                 if opts.log?
                     opts.log("retry_until_success(#{opts.name}) -- err=#{err}")
                 if opts.max_tries? and opts.max_tries <= tries
-                    opts.cb?("maximum tries exceeded - last error #{err}")
-                else
-                    delta = Math.min(opts.max_delay, opts.factor * delta)
-                    setTimeout(g, delta)
+                    opts.cb?("maximum tries (=#{opts.max_tries}) exceeded - last error #{err}")
+                    return
+                delta = Math.min(opts.max_delay, opts.factor * delta)
+                if opts.max_time? and (new Date() - start_time) + delta > opts.max_time
+                    opts.cb?("maximum time (=#{opts.max_time}ms) exceeded - last error #{err}")
+                    return
+                setTimeout(g, delta)
             else
                 opts.cb?()
     g()
