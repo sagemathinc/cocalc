@@ -90,29 +90,45 @@ class Session extends EventEmitter
             setTimeout(@reconnect, 500)
             return  # do *NOT* do cb?() yet!
 
-        @conn.call
-            message : message.connect_to_session
-                session_uuid : @session_uuid
-                type         : @type()
-                project_id   : @project_id
-                params       : @params
-            cb      : (error, reply) =>
-                if error
-                    cb?(error); return
-                switch reply.event
-                    when 'error'
-                        cb?(reply.error)
-                    when 'session_connected'
-                        @conn.change_data_channel
-                            prev_channel : @data_channel
-                            new_channel  : reply.data_channel
-                            session      : @
-                        @data_channel = reply.data_channel
-                        @init_history = reply.history
-                        @emit("reconnect")
-                        cb?()
-                    else
-                        cb?("bug in hub")
+        if @_reconnect_lock
+            cb?("reconnect: hit lock")
+            return
+
+        @emit "reconnecting"
+        @_reconnect_lock = true
+        #console.log("reconnect: #{@type()} session with id #{@session_uuid}...")
+
+        f = (cb) =>
+            @conn.call
+                message : message.connect_to_session
+                    session_uuid : @session_uuid
+                    type         : @type()
+                    project_id   : @project_id
+                    params       : @params
+                timeout : 7
+                cb      : (err, reply) =>
+                    delete @_reconnect_lock
+                    if err
+                        cb(err); return
+                    switch reply.event
+                        when 'error'
+                            cb(reply.error)
+                        when 'session_connected'
+                            #console.log("reconnect: #{@type()} session with id #{@session_uuid} -- SUCCESS")
+                            @conn.change_data_channel
+                                prev_channel : @data_channel
+                                new_channel  : reply.data_channel
+                                session      : @
+                            @data_channel = reply.data_channel
+                            @init_history = reply.history
+                            @emit("reconnect")
+                            cb()
+                        else
+                            cb("bug in hub")
+        misc.retry_until_success
+            max_time : 20000
+            f        : f
+            cb       : (err) => cb?(err)
 
     terminate_session: (cb) =>
         @conn.call

@@ -208,6 +208,9 @@ restart_console_server = (cb) ->   # cb(err)
     _restarting_console_server = true
     dbg("restarting the daemon")
 
+    dbg("killing all existing console sockets")
+    console_sessions.terminate_all_sessions()
+
     port_file = abspath("#{DATA}/console_server.port")
     port = undefined
     async.series([
@@ -263,14 +266,22 @@ class ConsoleSessions
     terminate_session: (session_uuid, cb) =>
         session = @_sessions[session_uuid]
         if not session?
-            cb()
+            cb?()
         else
             winston.debug("terminate console session '#{session_uuid}'")
             if session.status == 'running'
                 session.socket.end()
-                cb()
+                session.status = 'done'
+                cb?()
             else
-                cb()
+                cb?()
+
+    terminate_all_sessions: () =>
+        for session_uuid, session of @_sessions[session_uuid]
+            try
+                session.socket.end()
+            catch e
+                session.status = 'done'
 
     # Connect to (if 'running'), restart (if 'dead'), or create (if
     # non-existing) the console session with mesg.session_uuid.
@@ -331,9 +342,12 @@ class ConsoleSessions
                 misc.retry_until_success
                     f        : f
                     max_time : 5000
-                    cb        : cb
+                    cb       : cb
         ], (err) =>
-            cb(undefined, socket)
+            if err
+                cb(err)
+            else
+                cb(undefined, socket)
         )
 
     _new_session: (client_socket, mesg, port, history) =>
@@ -359,18 +373,18 @@ class ConsoleSessions
                 misc_node.disable_mesg(client_socket)
 
                 session =
-                    socket  : console_socket
-                    desc    : desc,
-                    status  : 'running',
-                    clients : [client_socket],
-                    history : history
+                    socket       : console_socket
+                    desc         : desc,
+                    status       : 'running',
+                    clients      : [client_socket],
+                    history      : history
                     session_uuid : mesg.session_uuid
                     project_id   : mesg.project_id
 
                 # Connect the sockets together.
 
-                # receive data from the user (typing at their keyboard)
                 client_socket.on 'data', (data) ->
+                    #winston.debug("receive #{data.length} of data from the user: data='#{data.toString()}'")
                     activity()
                     if not console_socket.writable
                         winston.debug("WARNING: console_socket not writable")
@@ -380,9 +394,8 @@ class ConsoleSessions
                 session.amount_of_data = 0
                 session.last_data = misc.mswalltime()
 
-                # receive data from the pty, which we push out to the user (via global hub)
                 console_socket.on 'data', (data) ->
-
+                    #winston.debug("receive #{data.length} of data from the pty: data='#{data.toString()}'")
                     # every 2 ms we reset the burst data watcher.
                     tm = misc.mswalltime()
                     if tm - session.last_data >= 2

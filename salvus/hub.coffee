@@ -959,7 +959,10 @@ class Client extends EventEmitter
     ######################################################################
 
     handle_data_from_client: (data) =>
-        #winston.debug("handle_data_from_client(#{data.slice(0,100)})")
+
+        ##only uncommment this when doing low level debugging!
+        ##winston.debug("handle_data_from_client('#{misc.trunc(data.toString(),200)}')")
+
         # TODO: THIS IS A SIMPLE anti-DOS measure; it might be too
         # extreme... we shall see.  It prevents a number of attacks,
         # e.g., users storing a multi-gigabyte worksheet title,
@@ -3605,9 +3608,17 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # Create a binary channel that the client can use to write to the socket.
                 # (This uses our system for multiplexing JSON and multiple binary streams
                 #  over one single connection.)
-                channel = opts.client.register_data_handler (data) ->
+                recently_sent_reconnect = false
+                channel = opts.client.register_data_handler (data) =>
                     if not ignore
                         console_socket.write(data)
+                    else
+                        # send a reconnect message, but at most once every 5 seconds.
+                        if not recently_sent_reconnect
+                            recently_sent_reconnect = true
+                            setTimeout( (()=>recently_sent_reconnect=false), 5000 )
+                            winston.debug("console -- trying to write to closed console_socket with session_uuid=#{opts.session_uuid}")
+                            opts.client.push_to_client(message.session_reconnect(session_uuid:opts.session_uuid))
 
                 mesg = message.session_connected
                     session_uuid : opts.session_uuid
