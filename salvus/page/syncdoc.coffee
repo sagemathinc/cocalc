@@ -132,48 +132,7 @@ class DiffSyncDoc
             @opts.string = diffsync.dmp.patch_apply(p, @string())[0]
         else
             cm = @opts.cm
-            cm.setOption('readOnly', true)
-            try
-                s = @string()
-                x = diffsync.dmp.patch_apply(p, s)
-                new_value = x[0]
-
-                next_pos = (val, pos) ->
-                    # This functions answers the question:
-                    # If you were to insert the string val at the CodeMirror position pos
-                    # in a codemirror document, at what position (in codemirror) would
-                    # the inserted string end at?
-                    number_of_newlines = (val.match(/\n/g)||[]).length
-                    if number_of_newlines == 0
-                        return {line:pos.line, ch:pos.ch+val.length}
-                    else
-                        return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
-
-                pos = {line:0, ch:0}  # start at the beginning
-                diff = diffsync.dmp.diff_main(s, new_value)
-                for chunk in diff
-                    #console.log(chunk)
-                    op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
-                    val = chunk[1]  # the actual text to leave same, delete, or add
-                    pos1 = next_pos(val, pos)
-                    switch op
-                        when 0 # stay the same
-                            # Move our pos pointer to the next position
-                            pos = pos1
-                            #console.log("skipping to ", pos1)
-                        when -1 # delete
-                            # Delete until where val ends; don't change pos pointer.
-                            cm.replaceRange("", pos, pos1)
-                            #console.log("deleting from ", pos, " to ", pos1)
-                        when +1 # insert
-                            # Insert the new text right here.
-                            cm.replaceRange(val, pos)
-                            #console.log("inserted new text at ", pos)
-                            # Move our pointer to just beyond the text we just inserted.
-                            pos = pos1
-            catch e
-                console.log("BUG in patch_in_place")
-            cm.setOption('readOnly', @opts.readonly)
+            cm.patchApply(p)
 
 # DiffSyncDoc is useful outside, e.g., for task list.
 exports.DiffSyncDoc = DiffSyncDoc
@@ -614,12 +573,13 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
                 @codemirror.setOption('readOnly', @readonly)
                 @codemirror1.setOption('readOnly', @readonly)
+
                 if @_last_sync?
-                    # We have sync'd before.
+                    #console.log("We have sync'd before.")
                     synced_before = true
                     patch = @dsync_client._compute_edits(@_last_sync, @live())
                 else
-                    # This initialiation is the first sync.
+                    #console.log("This initialization is the first sync.")
                     @_last_sync   = DiffSyncDoc(string:resp.content)
                     synced_before = false
                     @editor._set(resp.content)
@@ -636,6 +596,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @dsync_server = new DiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
+
                 @_add_listeners()
                 @editor.has_unsaved_changes(false) # TODO: start with no unsaved changes -- not tech. correct!!
 
