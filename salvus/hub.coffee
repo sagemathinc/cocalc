@@ -3098,7 +3098,7 @@ update_server_stats = () ->
 
 
 number_of_clients = () ->
-    v = (C for C of clients when not C._destroy_timer?)
+    v = (C for C of clients when not C._destroy_timer? and not C.closed)
     return v.length
 
 database_is_working = false
@@ -3151,6 +3151,8 @@ init_primus_server = () ->
                 winston.debug("primus_server: '#{id}' matches existing Client -- re-using")
                 cookies = new Cookies(conn.request)
                 if C._remember_me_value == cookies.get(program.base_url + 'remember_me')
+                    old_id = C.conn.id
+                    delete clients[old_id]
                     C.conn = conn
                     conn.id = id
                     conn.write(conn.id)
