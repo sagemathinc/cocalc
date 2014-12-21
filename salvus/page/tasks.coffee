@@ -932,6 +932,7 @@ class TaskList
 
         finished = false
         stop_editing = () =>
+            currently_focused_editor = undefined
             finished = true
             e.removeClass('salvus-task-editing-desc')
             e.find(".salvus-task-desc").removeClass('salvus-task-desc-editing')
