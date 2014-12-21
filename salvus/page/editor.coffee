@@ -1999,9 +1999,7 @@ class CodeMirrorEditor extends FileEditor
             return
         @show()
         if not IS_MOBILE
-            @codemirror.focus()
-            if @_split_view
-                @codemirror1.focus()
+            @codemirror_with_last_focus?.focus()
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
     #console.log("codemirror_session_editor '#{filename}'")
