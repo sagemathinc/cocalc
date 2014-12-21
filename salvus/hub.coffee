@@ -3098,7 +3098,7 @@ update_server_stats = () ->
 
 
 number_of_clients = () ->
-    v = (C for C of clients when not C._destroy_timer? and not C.closed)
+    v = (C for id,C of clients when not C._destroy_timer? and not C.closed)
     return v.length
 
 database_is_working = false
