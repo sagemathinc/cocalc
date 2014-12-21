@@ -1912,9 +1912,9 @@ class CodeMirrorEditor extends FileEditor
         # I don't know why this works, but it gets around a *massive bug*, where after
         # aggressive resizing, the codemirror editor gets all corrupted. For some reason,
         # doing this "usually" causes things to get properly fixed.  I don't know why.
-        hack = $("<div><br><br></div>")
+        hack = $("<div><br><br><br><br></div>")
         $("body").append(hack)
-        setTimeout((()=>hack.remove()), 1000)
+        setTimeout((()=>hack.remove()), 10000)
 
         for {cm,height,width} in v
             scroller = $(cm.getScrollerElement())
@@ -1923,9 +1923,6 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : height
                 width  : width
-            # additional hack that might help avoid corruption... (I hate doing this)
-            @change_font_size(cm,+1)
-            @change_font_size(cm,-1)
 
         # This is another hack that specifically hopefully addresses an
         # issue where when I open a tab often the scrollbar is completely
