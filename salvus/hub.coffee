@@ -667,44 +667,49 @@ class Client extends EventEmitter
         @cookies = {}
         @remember_me_db = database.key_value_store(name: 'remember_me')
 
-        @conn.on "data", (data) =>
-            @_next_recent_activity_interval_s = RECENT_ACTIVITY_POLL_INTERVAL_MIN_S
-            @handle_data_from_client(data)
-
-        ###
-        # update activity at most once every few seconds, when user is active.
-        @conn.on "data", (data) =>
-            if not @_recent_activity_pushed?
-                winston.debug("recent_activity checked caused by #{data.toString()}")
-                @push_recent_activity()
-                @_recent_activity_pushed = true
-                setTimeout( (()=> delete @_recent_activity_pushed), 5000 )
-        ###
-
         # check every few seconds
         @_next_recent_activity_interval_s = RECENT_ACTIVITY_POLL_INTERVAL_MIN_S
         setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
 
+        @install_conn_handlers()
+
+        cookies = new Cookies(@conn.request)
+        @_remember_me_value = cookies.get(program.base_url + 'remember_me')
+        @_validate_remember_me(@_remember_me_value)
+
+
+    install_conn_handlers: () =>
+        #winston.debug("install_conn_handlers")
+        if @_destroy_timer?
+            clearTimeout(@_destroy_timer)
+            delete @_destroy_timer
+
+        @conn.on "data", (data) =>
+            @_next_recent_activity_interval_s = RECENT_ACTIVITY_POLL_INTERVAL_MIN_S
+            @handle_data_from_client(data)
+
         @conn.on "end", () =>
-            @_next_recent_activity_interval_s = 0
-            winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  CLOSED")
-            @closed = true
-            @emit 'close'
-            @compute_session_uuids = []
-            c = clients[@conn.id]
-            delete clients[@conn.id]
-            for id,f of c.call_callbacks
-                f("connection closed")
-            delete c.call_callbacks
+            # Actually destroy Client in 10 minutes, unless user reconnects
+            # to this session.  Often the user may have a temporary network drop,
+            # and we keep everything waiting for them for up to 10 minutes,
+            # in case this happens.
+            winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
+            @_destroy_timer = setTimeout(@destroy, 1000*60*10)
 
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
-        cookies = new Cookies(@conn.request)
-        value = cookies.get(program.base_url + 'remember_me')
-        @_validate_remember_me(value)
-
-        #@check_for_remember_me()
+    destroy: () =>
+        winston.debug("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
+        @_next_recent_activity_interval_s = 0
+        @closed = true
+        @emit 'close'
+        @compute_session_uuids = []
+        c = clients[@conn.id]
+        delete clients[@conn.id]
+        for id,f of c.call_callbacks
+            f("connection closed")
+        delete c.call_callbacks
 
     remember_me_failed: (reason) =>
         @push_to_client(message.remember_me_failed(reason:reason))
@@ -927,9 +932,10 @@ class Client extends EventEmitter
                             winston.debug("WARNING: issue writing remember me cookie: #{err}")
 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
+        @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
         @set_cookie
             name  : program.base_url + 'remember_me'
-            value : [x[0], x[1], x[2], session_id].join('$')
+            value : @_remember_me_value
             ttl   : ttl
 
     invalidate_remember_me: (opts) ->
@@ -3091,12 +3097,16 @@ update_server_stats = () ->
                 _server_stats_cache = stats
 
 
+number_of_clients = () ->
+    v = (C for C in clients when not C._destroy_timer?)
+    return v.length
+
 database_is_working = false
 register_hub = (cb) ->
     database.update
         table : 'hub_servers'
         where : {host : program.host, port : program.port, dummy: true}
-        set   : {clients: misc.len(clients)}
+        set   : {clients: number_of_clients()}
         ttl   : 2*REGISTER_INTERVAL_S
         cb    : (err) ->
             if err
@@ -3131,7 +3141,29 @@ init_primus_server = () ->
     winston.debug("primus_server: listening on #{opts.pathname}")
     primus_server.on "connection", (conn) ->
         winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id}")
-        clients[conn.id] = new Client(conn)
+        f = (data) ->
+            id = data.toString()
+            winston.debug("primus_server: got id='#{id}'")
+            conn.removeListener('data',f)
+            C = clients[id]
+            #winston.debug("primus client ids=#{misc.to_json(misc.keys(clients))}")
+            if C?
+                winston.debug("primus_server: '#{id}' matches existing Client -- re-using")
+                cookies = new Cookies(conn.request)
+                if C._remember_me_value == cookies.get(program.base_url + 'remember_me')
+                    C.conn = conn
+                    conn.id = id
+                    conn.write(conn.id)
+                    C.install_conn_handlers()
+                else
+                    winston.debug("primus_server: '#{id}' matches but cookies do not match, so not re-using")
+                    C = undefined
+            if not C?
+                winston.debug("primus_server: '#{id}' unknown, so making a new Client with id #{conn.id}")
+                conn.write(conn.id)
+                clients[conn.id] = new Client(conn)
+
+        conn.on("data",f)
 
 #######################################################
 # Pushing a message to clients; querying for clients

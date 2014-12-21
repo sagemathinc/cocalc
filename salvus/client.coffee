@@ -81,8 +81,11 @@ class Session extends EventEmitter
         @init_history = opts.init_history
         @emit("open")
 
-        if @reconnect?
-            @conn.on "connected", (() => setTimeout(@reconnect, 500))
+        ## This is no longer necessary; or rather, it's better to only
+        ## reset terminals, etc., when they are used, since it wastes
+        ## less resources.
+        #if @reconnect?
+        #    @conn.on "connected", (() => setTimeout(@reconnect, 500))
 
     reconnect: (cb) =>
         # Called when the connection gets dropped, then reconnects
@@ -97,7 +100,6 @@ class Session extends EventEmitter
         @emit "reconnecting"
         @_reconnect_lock = true
         #console.log("reconnect: #{@type()} session with id #{@session_uuid}...")
-
         f = (cb) =>
             @conn.call
                 message : message.connect_to_session

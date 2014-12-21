@@ -589,6 +589,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             alert_message(type:"error", message:m)
             cb(m)
 
+        #console.log("_connect -- '#{@filename}'")
         @_remove_listeners()
         @other_cursors = {}
         delete @session_uuid
@@ -662,7 +663,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                                 err = resp.error
                             if err
                                 #alert_message(type:"error", message:)
-                                # usually this is harmless -- it could happen on reconnect or network is flakie.  
+                                # usually this is harmless -- it could happen on reconnect or network is flakie.
                                 console.log("ERROR: ", "error enabling revision saving -- #{err} -- #{@editor.filename}")
 
     ui_loading: () =>
