@@ -84,8 +84,10 @@ class Session extends EventEmitter
         ## This is no longer necessary; or rather, it's better to only
         ## reset terminals, etc., when they are used, since it wastes
         ## less resources.
-        #if @reconnect?
-        #    @conn.on "connected", (() => setTimeout(@reconnect, 500))
+        # I'm going to leave this in for now -- it's only used for console sessions,
+        # and they aren't properly reconnecting in all cases.
+        if @reconnect?
+            @conn.on "connected", (() => setTimeout(@reconnect, 500))
 
     reconnect: (cb) =>
         # Called when the connection gets dropped, then reconnects
