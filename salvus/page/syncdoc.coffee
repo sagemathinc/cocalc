@@ -892,7 +892,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 header.hide()
             last_chat_name = mesg.name
             last_chat_time = new Date(mesg.date).getTime()
-            entry.find(".salvus-chat-entry-content").text(mesg.mesg.content).mathjax()
+
+            entry.find(".salvus-chat-entry-content").html(misc_page.markdown_to_html(mesg.mesg.content).s).mathjax()
 
         output.scrollTop(output[0].scrollHeight)
 
