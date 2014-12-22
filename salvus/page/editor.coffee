@@ -4633,7 +4633,7 @@ class IPythonNotebook extends FileEditor
             path        : @path
             project_id  : @editor.project_id
             command     : 'ipython'
-            args        : ['nbconvert', @filename, "--to=#{opts.format}"]
+            args        : ['nbconvert', @file, "--to=#{opts.format}"]
             bash        : false
             err_on_exit : true
             timeout     : 30
