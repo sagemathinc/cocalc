@@ -1621,7 +1621,6 @@ class ProjectPage
                         listing  : listing
                         no_focus : no_focus
                         cb       : cb
-                    @update_snapshot_link()
 
     invalidate_render_file_listing_cache: () =>
         delete @_update_file_list_tab_last_path
@@ -3340,7 +3339,6 @@ class ProjectPage
             ])
             return false
 
-
     # Completely move the project, possibly moving it if it is on a broken host.
     ###
     init_project_move: () =>
@@ -3379,27 +3377,6 @@ class ProjectPage
         @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
             @visit_snapshot()
             return false
-        @update_snapshot_link()
-
-    update_snapshot_link: () =>
-        salvus_client.exec
-            project_id  : @project.project_id
-            command     : "ls ~/.snapshots/master/|tail -2"
-            err_on_exit : true
-            cb          : (err, output) =>
-                if not err
-                    try
-                        time = output.stdout.split('\n')[0].trim()
-                        if time  # could be empty, e.g., if no snapshots
-                            time = misc.parse_bup_timestamp(time)
-                            @_last_snapshot_time = time
-                            # critical to use replaceWith!
-                            c = @container.find(".project-snapshot-last-timeago span")
-                            d = $("<span>").attr('title', time.toISOString()).timeago()
-                            c.replaceWith(d)
-                    catch e
-                        console.log("error parsing last snapshot time (stdout='#{output.stdout}'): ", e)
-                        return
 
     update_local_status_link: () =>
         if @_update_local_status_link_lock
