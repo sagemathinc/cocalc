@@ -745,6 +745,12 @@ class exports.Editor
             typ = editor_name
         @project_page.project_activity({event:'open', filename:filename, type:typ})
 
+        # This approach to public "editor"/viewer types is temporary.
+        if extra_opts.public_access
+            if editor_name == 'codemirror' and filename_extension(filename) == 'html'
+                editor = new StaticHTML(@, filename, opts.content, extra_opts)
+                return editor
+
         # Some of the editors below might get the content later and will
         # call @file_options again then.
         switch editor_name
@@ -3956,6 +3962,20 @@ class Image extends FileEditor
         @element.show()
         @element.css(top:@editor.editor_top_position())
         @element.maxheight()
+
+
+
+class StaticHTML extends FileEditor
+    constructor: (@editor, @filename, content, opts) ->
+        @element = templates.find(".salvus-editor-static-html").clone()
+        @element.html(content)
+
+    show: () =>
+        if not @is_active()
+            return
+        @element.show()
+        @element.css(top:@editor.editor_top_position())
+        @element.maxheight(offset:18)
 
 
 #**************************************************
