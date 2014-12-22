@@ -2131,9 +2131,10 @@ class ProjectPage
                 return false
         dialog.modal()
 
-    copy_to_another_project_dialog: (path, isdir) =>
+    copy_to_another_project_dialog: (path, isdir, cb) =>
         if not require('account').account_settings.is_signed_in()
             @copy_to_another_not_ready_dialog()
+            cb?("not signed in")
             return
 
         dialog = $(".salvus-project-copy-to-another-project-dialog").clone()
@@ -2231,7 +2232,12 @@ class ProjectPage
                         else
                             alert_message(type:"success", message:"Successfully copied #{src_path} to #{target_path} in #{target_project}")
                         cb(err)
-        ], (err) => cb?(err))
+        ], (err) =>
+            if err
+                cb?(err)
+            else
+                cb?(undefined, {project_id:target_project_id, path: target_path})
+        )
 
     move_file_dialog:  (path, cb) =>
         dialog = $(".project-move-file-dialog").clone()

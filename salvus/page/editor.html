@@ -242,13 +242,32 @@ Editor for files in a project
 
     <!-- Static HTML viewer -->
     <div class="salvus-editor-static-html">
-        <span class="visible-xs">
-            <span class="btn-group">
-                <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> <span class="hidden-xs">Files...</span></a>
+        <div style="margin-left:1em">
+            <span class="visible-xs">
+                <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> Files...</a>
             </span>
-        </span>
+        </div>
+        <div class="salvus-editor-static-html-content">
+            <iframe style="width:100%;border:0px;">
+            </iframe>
+        </div>
     </div>
 
+    <!-- IPython Notebook Viewer -->
+    <div class="salvus-editor-ipython-nbviewer">
+        <div style="margin-left:1em">
+            <span class="visible-xs">
+                <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> Files...</a>
+            </span>
+            <span class="hidden-xs">
+                <a href="#copy" class="btn btn-default btn-sm"><i class="fa fa-send-o"></i> Open IPython Notebook in Project...</a>
+            </span>
+        </div>
+        <div class="salvus-editor-ipython-nbviewer-content">
+            <iframe style="width:100%;border:0px;">
+            </iframe>
+        </div>
+    </div>
 
     <!-- Templates for the png-based PDF previewer; this is designed for the pdf changes in little ways locally.  -->
     <div class="salvus-editor-pdf-preview">

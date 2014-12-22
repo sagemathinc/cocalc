@@ -748,7 +748,10 @@ class exports.Editor
         # This approach to public "editor"/viewer types is temporary.
         if extra_opts.public_access
             if editor_name == 'codemirror' and filename_extension(filename) == 'html'
-                editor = new StaticHTML(@, filename, opts.content, extra_opts)
+                if opts.content.indexOf("#ipython_notebook") != -1
+                    editor = new IPythonNBViewer(@, filename, opts.content, extra_opts)
+                else
+                    editor = new StaticHTML(@, filename, opts.content, extra_opts)
                 return editor
 
         # Some of the editors below might get the content later and will
@@ -3966,16 +3969,66 @@ class Image extends FileEditor
 
 
 class StaticHTML extends FileEditor
-    constructor: (@editor, @filename, content, opts) ->
+    constructor: (@editor, @filename, @content, opts) ->
         @element = templates.find(".salvus-editor-static-html").clone()
-        @element.html(content)
+        @init_buttons()
+
+    show: () =>
+        if not @is_active()
+            return
+        if not @iframe?
+            @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
+            # We do this, since otherwise just loading the iframe using
+            #      @iframe.contents().find('html').html(@content)
+            # messes up the parent html page...
+            @iframe.contents().find('body')[0].innerHTML = @content
+            @iframe.contents().find('body').find("a").attr('target','_blank')
+        @element.show()
+        @element.css(top:@editor.editor_top_position())
+        @element.maxheight(offset:18)
+
+    init_buttons: () =>
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
+
+class IPythonNBViewer extends FileEditor
+    constructor: (@editor, @filename, @content, opts) ->
+        window.debug = @
+        @element = templates.find(".salvus-editor-ipython-nbviewer").clone()
+        @init_buttons()
 
     show: () =>
         if not @is_active()
             return
         @element.show()
+        if not @iframe?
+            @iframe = @element.find(".salvus-editor-ipython-nbviewer-content").find('iframe')
+            # We do this, since otherwise just loading the iframe using
+            #      @iframe.contents().find('html').html(@content)
+            # messes up the parent html page, e.g., foo.modal() is gone.
+            @iframe.contents().find('body')[0].innerHTML = @content
+
         @element.css(top:@editor.editor_top_position())
         @element.maxheight(offset:18)
+        @element.find(".salvus-editor-ipython-nbviewer-content").maxheight(offset:18)
+        @iframe.maxheight(offset:18)
+
+    init_buttons: () =>
+        @element.find("a[href=#copy]").click () =>
+            ipynb_filename = @filename.slice(0,@filename.length-4) + 'ipynb'
+            @editor.project_page.copy_to_another_project_dialog ipynb_filename, false, (err, x) =>
+                console.log("x=#{misc.to_json(x)}")
+                if not err
+                    require('projects').open_project
+                        project   : x.project_id
+                        target    : "files/" + x.path
+                        switch_to : true
+            return false
+
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
 
 
 #**************************************************
