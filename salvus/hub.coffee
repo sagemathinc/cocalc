@@ -694,8 +694,7 @@ class Client extends EventEmitter
             # and we keep everything waiting for them for up to 10 minutes,
             # in case this happens.
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
-            @_destroy_timer = setTimeout(@destroy, 1000*60*10)
-
+            @_destroy_timer = setTimeout(@destroy, 1000*10*60)
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
@@ -3147,19 +3146,24 @@ init_primus_server = () ->
             conn.removeListener('data',f)
             C = clients[id]
             #winston.debug("primus client ids=#{misc.to_json(misc.keys(clients))}")
-            if C? and not C.closed
-                winston.debug("primus_server: '#{id}' matches existing Client -- re-using")
-                cookies = new Cookies(conn.request)
-                if C._remember_me_value == cookies.get(program.base_url + 'remember_me')
-                    old_id = C.conn.id
-                    delete clients[old_id]
-                    C.conn = conn
-                    conn.id = id
-                    conn.write(conn.id)
-                    C.install_conn_handlers()
-                else
-                    winston.debug("primus_server: '#{id}' matches but cookies do not match, so not re-using")
+            if C?
+                if C.closed
+                    winston.debug("primus_server: '#{id}' matches expired Client -- deleting")
+                    delete clients[id]
                     C = undefined
+                else
+                    winston.debug("primus_server: '#{id}' matches existing Client -- re-using")
+                    cookies = new Cookies(conn.request)
+                    if C._remember_me_value == cookies.get(program.base_url + 'remember_me')
+                        old_id = C.conn.id
+                        C.conn.removeAllListeners()
+                        C.conn = conn
+                        conn.id = id
+                        conn.write(conn.id)
+                        C.install_conn_handlers()
+                    else
+                        winston.debug("primus_server: '#{id}' matches but cookies do not match, so not re-using")
+                        C = undefined
             if not C?
                 winston.debug("primus_server: '#{id}' unknown, so making a new Client with id #{conn.id}")
                 conn.write(conn.id)
