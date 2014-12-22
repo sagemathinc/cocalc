@@ -273,9 +273,11 @@ class AbstractSynchronizedDoc extends EventEmitter
     # "sync(cb)": keep trying to synchronize until success; then do cb()
     # _sync(cb) -- try once to sync; on any error cb(err).
     _sync: (cb) =>
-        #console.log("_sync")
         @_presync?()
-        snapshot = @live()
+        before = @live()
+        if before.string?
+            before = before.string()
+        #console.log("_sync, live='#{before}'")
         @dsync_client.push_edits (err) =>
             if err
                 if typeof(err)=='string' and err.indexOf('retry') != -1
@@ -288,12 +290,29 @@ class AbstractSynchronizedDoc extends EventEmitter
                     #console.log("connect: due to sync error: #{err}")
                     @connect () =>
                         cb?(err)
+                #console.log("_sync: error -- #{err}")
             else
-                s = snapshot
+                # Emit event that indicates document changed as
+                # a result of sync; it's critical to do this even
+                # if we're not done syncing, since it's used, e.g.,
+                # by Sage worksheets to render special codes.
+                @emit('sync')
+
+                s = @live()
                 if s.copy?
                     s = s.copy()
                 @_last_sync = s    # What was the last successful sync with upstream.
-                @emit('sync')
+
+                after = @live()
+                if after.string?
+                    after = after.string()
+                if before != after
+                    #console.log("change during sync so doing again")
+                    cb?("file changed during sync")
+                    return
+
+                # success!
+                #console.log("_sync: success")
                 cb?()
 
     # save(cb): write out file to disk retrying until success = worked *and* what was saved to disk eq.
@@ -512,6 +531,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @sync()
                 @init_cursorActivity_event()
                 @codemirror.on 'change', (instance, changeObj) =>
+                    #console.log("change event when live='#{@live().string()}'")
                     if changeObj.origin?
                         if changeObj.origin == 'undo'
                             @on_undo(instance, changeObj)
@@ -519,6 +539,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                             @on_redo(instance, changeObj)
                         if changeObj.origin != 'setValue'
                             @ui_synced(false)
+                            #console.log("change event causing call to sync")
                             @sync()
             # Done initializing and have got content.
             cb?()
@@ -611,7 +632,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     # applying missed patches to the new upstream version that we just got from the hub.
                     #console.log("now applying missed patches to the new upstream version that we just got from the hub: ", patch)
                     @_apply_patch_to_live(patch)
-                    @emit 'sync'
+                    @emit('sync')
 
                 if @opts.revision_tracking
                     @call
@@ -2115,19 +2136,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     break
 
             @set_cell_flag(marker, FLAGS.execute)
-            # sync (up to a certain number of times) until either computation happens or is acknowledged.
-            # Just successfully calling sync could return and mean that a sync started
-            # before this computation started had completed.
-            wait = 50
-            f = () =>
-                fs = @get_cell_flagstring(marker)
-                if not fs? or FLAGS.execute in fs
-                    @sync () =>
-                        wait = wait*1.4
-                        if wait < 15000
-                            setTimeout(f, wait)
-            @sync () =>
-                setTimeout(f, wait)
+            @sync()
 
     # purely client-side markdown rendering for a markdown, javascript, html, etc. block -- an optimization
     execute_cell_client_side: (opts) =>
