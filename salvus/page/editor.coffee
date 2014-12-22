@@ -4534,13 +4534,17 @@ class IPythonNotebook extends FileEditor
                 @reload_button.find("i").removeClass('fa-spin')
 
     init_buttons: () =>
-        @element.find("a").tooltip()
+        @element.find("a").tooltip(delay:{show: 500, hide: 100})
         @save_button = @element.find("a[href=#save]").click () =>
             @save()
             return false
 
         @reload_button = @element.find("a[href=#reload]").click () =>
             @reload()
+            return false
+
+        @publish_button = @element.find("a[href=#publish]").click () =>
+            @publish_ui()
             return false
 
         #@element.find("a[href=#json]").click () =>
@@ -4563,6 +4567,79 @@ class IPythonNotebook extends FileEditor
         @element.find("a[href=#tab]").click () =>
             @nb?.get_cell(@nb?.get_selected_index()).completer.startCompletion()
             return false
+
+    publish_ui: () =>
+        url = document.URL
+        url = url.slice(0,url.length-5) + 'html'
+        dialog = templates.find(".salvus-ipython-publish-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            return false
+        status = (mesg, percent) =>
+            dialog.find(".salvus-ipython-publish-status").text(mesg)
+            p = "#{percent}%"
+            dialog.find(".progress-bar").css('width',p).text(p)
+
+        @publish status, (err) =>
+            dialog.find(".salvus-ipython-publish-dialog-publishing")
+            if err
+                dialog.find(".salvus-ipython-publish-dialog-fail").show().find('span').text(err)
+            else
+                dialog.find(".salvus-ipython-publish-dialog-success").show()
+                url_box = dialog.find(".salvus-ipython-publish-url")
+                url_box.val(url)
+                url_box.click () ->
+                    $(this).select()
+
+    publish: (status, cb) =>
+        #d = (m) => console.log("ipython.publish('#{@filename}'): #{misc.to_json(m)}")
+        #d()
+        @publish_button.find("fa-refresh").show()
+        async.series([
+            (cb) =>
+                status?("saving",0)
+                @save(cb)
+            (cb) =>
+                status?("running nbconvert",30)
+                @nbconvert
+                    format : 'html'
+                    cb     : (err) =>
+                        cb(err)
+            (cb) =>
+                status?("making '#{@filename}' public", 70)
+                @editor.project_page.publish_path
+                    path        : @filename
+                    description : "IPython notebook #{@filename}"
+                    cb          : cb
+            (cb) =>
+                html = @filename.slice(0,@filename.length-5)+'html'
+                status?("making '#{html}' public", 90)
+                @editor.project_page.publish_path
+                    path        : html
+                    description : "IPython html version of #{@filename}"
+                    cb          : cb
+        ], (err) =>
+            status?("done", 100)
+            @publish_button.find("fa-refresh").hide()
+            cb?(err)
+        )
+
+    nbconvert: (opts) =>
+        opts = defaults opts,
+            format : required
+            cb     : undefined
+        salvus_client.exec
+            path        : @path
+            project_id  : @editor.project_id
+            command     : 'ipython'
+            args        : ['nbconvert', @filename, "--to=#{opts.format}"]
+            bash        : false
+            err_on_exit : true
+            timeout     : 30
+            cb          : (err, output) =>
+                console.log("nbconvert finished with err='#{err}, ouptut='#{misc.to_json(output)}'")
+                opts.cb?(err)
 
     # WARNING: Do not call this before @nb is defined!
     to_obj: () =>
