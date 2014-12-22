@@ -3147,7 +3147,7 @@ init_primus_server = () ->
             conn.removeListener('data',f)
             C = clients[id]
             #winston.debug("primus client ids=#{misc.to_json(misc.keys(clients))}")
-            if C?
+            if C? and not C.closed
                 winston.debug("primus_server: '#{id}' matches existing Client -- re-using")
                 cookies = new Cookies(conn.request)
                 if C._remember_me_value == cookies.get(program.base_url + 'remember_me')
