@@ -1505,6 +1505,11 @@ def serve(port, host):
         tm = time.time()
         log("pre-importing the sage library...")
 
+        # FOR testing purposes.
+        ##log("fake 40 second pause to slow things down for testing....")
+        ##time.sleep(40)
+        ##log("done with pause")
+
         # Monkey patching interact using the new and improved Salvus
         # implementation of interact.
         import sagenb.notebook.interact

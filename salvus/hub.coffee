@@ -113,9 +113,6 @@ init_salvus_version = () ->
     setInterval(update_salvus_version, 90*1000)
 
 
-syncstring = require('syncstring')
-SYNCSTRING_DISABLED = true
-
 misc_node = require('misc_node')
 
 to_json = misc.to_json
@@ -670,27 +667,48 @@ class Client extends EventEmitter
         @cookies = {}
         @remember_me_db = database.key_value_store(name: 'remember_me')
 
-        @conn.on "data", @handle_data_from_client
+        # check every few seconds
+        @_next_recent_activity_interval_s = RECENT_ACTIVITY_POLL_INTERVAL_MIN_S
+        setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
+
+        @install_conn_handlers()
+
+        cookies = new Cookies(@conn.request)
+        @_remember_me_value = cookies.get(program.base_url + 'remember_me')
+        @_validate_remember_me(@_remember_me_value)
+
+
+    install_conn_handlers: () =>
+        #winston.debug("install_conn_handlers")
+        if @_destroy_timer?
+            clearTimeout(@_destroy_timer)
+            delete @_destroy_timer
+
+        @conn.on "data", (data) =>
+            @_next_recent_activity_interval_s = RECENT_ACTIVITY_POLL_INTERVAL_MIN_S
+            @handle_data_from_client(data)
 
         @conn.on "end", () =>
-            winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  CLOSED")
-            @closed = true
-            @emit 'close'
-            @compute_session_uuids = []
-            c = clients[@conn.id]
-            delete clients[@conn.id]
-            for id,f of c.call_callbacks
-                f("connection closed")
-            delete c.call_callbacks
-
+            # Actually destroy Client in 10 minutes, unless user reconnects
+            # to this session.  Often the user may have a temporary network drop,
+            # and we keep everything waiting for them for up to 10 minutes,
+            # in case this happens.
+            winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
+            @_destroy_timer = setTimeout(@destroy, 1000*10*60)
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
-        cookies = new Cookies(@conn.request)
-        value = cookies.get(program.base_url + 'remember_me')
-        @_validate_remember_me(value)
-
-        #@check_for_remember_me()
+    destroy: () =>
+        winston.debug("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
+        @_next_recent_activity_interval_s = 0
+        @closed = true
+        @emit 'close'
+        @compute_session_uuids = []
+        c = clients[@conn.id]
+        delete clients[@conn.id]
+        for id,f of c.call_callbacks
+            f("connection closed")
+        delete c.call_callbacks
 
     remember_me_failed: (reason) =>
         @push_to_client(message.remember_me_failed(reason:reason))
@@ -816,16 +834,6 @@ class Client extends EventEmitter
             email_address : signed_in_mesg.email_address
             account_id    : signed_in_mesg.account_id
 
-        ###
-        get_notifications_syncdb @account_id, (err, db) =>
-            db.update
-                where :
-                    table     :'log'
-                    timestamp : new Date()
-                set   :
-                    action     : 'signed_in'
-                    ip_address : @ip_address
-        ###
 
     # Return the full name if user has signed in; otherwise returns undefined.
     fullname: () =>
@@ -923,9 +931,10 @@ class Client extends EventEmitter
                             winston.debug("WARNING: issue writing remember me cookie: #{err}")
 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
+        @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
         @set_cookie
             name  : program.base_url + 'remember_me'
-            value : [x[0], x[1], x[2], session_id].join('$')
+            value : @_remember_me_value
             ttl   : ttl
 
     invalidate_remember_me: (opts) ->
@@ -955,7 +964,10 @@ class Client extends EventEmitter
     ######################################################################
 
     handle_data_from_client: (data) =>
-        #winston.debug("handle_data_from_client(#{data.slice(0,100)})")
+
+        ##only uncommment this when doing low level debugging!
+        ##winston.debug("handle_data_from_client('#{misc.trunc(data.toString(),200)}')")
+
         # TODO: THIS IS A SIMPLE anti-DOS measure; it might be too
         # extreme... we shall see.  It prevents a number of attacks,
         # e.g., users storing a multi-gigabyte worksheet title,
@@ -2060,16 +2072,12 @@ class Client extends EventEmitter
                     account_id : @account_id
                     filename   : mesg.message.path
 
-            # Scan for activity
+            # Scan message for activity
             if @account_id?
-                fullname = @fullname()
-                if fullname?
-                    scan_local_hub_message_for_activity
-                        account_id    : @account_id
-                        project_id    : mesg.project_id
-                        project_title : project.cached_info?.title
-                        message       : mesg.message
-                        fullname      : fullname
+                scan_local_hub_message_for_activity
+                    account_id    : @account_id
+                    project_id    : mesg.project_id
+                    message       : mesg.message
 
             # Make the actual call
             project.call
@@ -2565,6 +2573,184 @@ class Client extends EventEmitter
     ################################################
     # Activity
     ################################################
+    mesg_get_all_activity: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in")
+            return
+        #dbg = (a,m) => winston.debug("mesg_get_all_activity -- #{a} -- #{misc.to_json(m)}")
+        activity    = undefined
+        events      = undefined
+        t0 = misc.mswalltime()
+        async.series([
+            (cb) =>
+                #dbg("get all projects that user collaborates on")
+                database.get_project_ids_with_user
+                    hidden     : true
+                    account_id : @account_id
+                    cb         : (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            @_activity_project_ids = x
+                            @_activity_project_ids_map = {}
+                            for project_id in x
+                                @_activity_project_ids_map[project_id] = true
+                            setTimeout((()=>delete @_activity_project_ids), 5*60*1000)  # cache for 5 minutes
+                            #dbg("got", x)
+                            cb()
+            (cb) =>
+                if not @_activity_project_ids? or @_activity_project_ids.length == 0
+                    events = []
+                    cb()
+                    return
+                #dbg("get activity logs for those projects")
+                database.select
+                    table     : 'activity_by_project2'
+                    columns   : ['project_id', 'timestamp', 'path', 'account_id', 'action', 'seen_by', 'read_by']
+                    objectify : true
+                    where     :
+                        project_id : {'in':@_activity_project_ids}
+                        timestamp  : {'>=':cass.hours_ago(ACTIVITY_LOG_DEFAULT_LENGTH_HOURS)}
+                    limit     : ACTIVITY_LOG_DEFAULT_MAX_LENGTH
+                    cb        : (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            events = x
+                            cb()
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                # success: send result to client
+                winston.debug("activity_log(account_id=#{@account_id}): nonblocking query time to get #{events.length} took #{misc.mswalltime(t0)}ms")
+                t0 = misc.mswalltime()
+                obj = misc.activity_log(account_id:@account_id, events:events).obj()
+                winston.debug("activity_log(account_id=#{@account_id}): *blocking* parse of #{events.length} events took #{misc.mswalltime(t0)}ms to parse")
+                @push_to_client(message.all_activity(id:mesg.id, activity_log:obj))
+        )
+
+    # when called, this will query for new activity
+    # and send message to user if there is any
+    push_recent_activity: (cb) =>
+        if @_push_recent_activity_is_being_called
+            winston.debug("push_recent_activity(id=#{@id}): hit lock")
+            return
+        @_push_recent_activity_is_being_called = true
+        if @_next_recent_activity_interval_s
+            @_next_recent_activity_interval_s = Math.min(RECENT_ACTIVITY_POLL_DECAY_RATIO*@_next_recent_activity_interval_s, RECENT_ACTIVITY_POLL_INTERVAL_MAX_S)
+            winston.debug("push_recent_activity(id=#{@id}): will call @push_recent_activity in #{@_next_recent_activity_interval_s}s")
+            setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
+        else
+            winston.debug("push_recent_activity(id=#{@id}): canceled @push_recent_activity")
+            delete @_push_recent_activity_is_being_called
+            return
+        if not @account_id?
+            delete @_push_recent_activity_is_being_called
+            return
+        events = undefined
+
+        async.series([
+            (cb) =>
+                if @_activity_project_ids?
+                    cb()
+                else
+                    database.get_project_ids_with_user
+                        hidden     : true
+                        account_id : @account_id
+                        cb         : (err, x) =>
+                            if err
+                                cb(err)
+                            else
+                                @_activity_project_ids = x
+                                @_activity_project_ids_map = {}
+                                for project_id in x
+                                    @_activity_project_ids_map[project_id] = true
+                                setTimeout((()=>delete @_activity_project_ids), 5*60*1000)  # cache for 5 minutes
+                                cb()
+            (cb) =>
+                if not @_activity_project_ids? or @_activity_project_ids.length == 0
+                    events = []
+                    cb()
+                    return
+                database.select
+                    table       : 'recent_activity_by_project2'
+                    columns     : ['project_id', 'timestamp', 'path', 'account_id', 'action', 'seen_by', 'read_by']
+                    objectify   : true
+                    consistency : 1  # less server load
+                    where       :
+                        project_id : {'in':@_activity_project_ids}
+                    cb    : (err, x) =>
+                        if err
+                            cb?(err)
+                        else
+                            events = x
+                            cb()
+        ], (err) =>
+            delete @_push_recent_activity_is_being_called
+            if err
+                cb?(err)
+            else
+                if events.length == 0
+                    cb?()
+                    return
+                if not @_recent_activity_sent?
+                    @_recent_activity_sent = {}
+                updates = []
+                for event in events
+                    ##if event.account_id == @account_id  # don't report our own events
+                    ##   continue
+                    j = misc.to_json(event)
+                    h = misc.hash_string(j)
+                    if @_recent_activity_sent[h]
+                        continue
+                    @_recent_activity_sent[h] = true
+                    updates.push(event)
+                if updates.length > 0
+                    @push_to_client(message.recent_activity(updates:updates))
+                cb?()
+        )
+
+    mesg_mark_activity: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in")
+            return
+        mark = mesg.mark
+        if mark != 'seen' and mark != 'read'
+            @error_to_client(id:mesg.id, error:"mark must be seen or read")
+        f = (event, cb) =>
+            # event = {path:'project_id/filesystem_path', timestamp:number}
+            try
+                project_id = event.path.slice(0,36)
+                if not @_activity_project_ids_map[project_id]?   # security
+                    cb()
+                    return
+                path = event.path.slice(37)
+                timestamp = event.timestamp
+            catch e
+                cb(e)
+            where = " WHERE project_id=? AND path=? AND timestamp=?"
+            param = [project_id, path, timestamp]
+            async.parallel([
+                (cb) =>
+                    query = "UPDATE activity_by_project2 SET #{mark}_by=#{mark}_by+{#{@account_id}}"
+                    database.cql(query+where, param, cb)
+                (cb) =>
+                    query = "UPDATE recent_activity_by_project2 USING TTL #{RECENT_ACTIVITY_TTL_S} SET #{mark}_by=#{mark}_by+{#{@account_id}}"
+                    database.cql(query+where, param, cb)
+            ], (err) =>
+                if not err
+                   @push_recent_activity()
+            )
+
+        async.map mesg.events, f, (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.success(id:mesg.id))
+
+
+
     mesg_path_activity: (mesg) =>
         if not @account_id?
             @error_to_client(id:mesg.id, error:"user must be signed in")
@@ -2613,189 +2799,49 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.success(id:mesg.id))
 
-
-    ################################################
-    # Synchronized Strings (associated to user not project)
-    ################################################
-    # Get a new syncstring session for the string with given id.
-    # Returns message with a session_id and also the value of the string.
-    get_syncstring: (mesg, cb) =>
-        if SYNCSTRING_DISABLED
-            @error_to_client(id:mesg.id, error:"syncstrings currently disabled")
-            cb("syncstrings currently disabled")
+    ############################################
+    # Bulk information about several projects or accounts
+    # (may be used by activity notifications, chat, etc.)
+    #############################################
+    mesg_get_project_titles: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in")
             return
-        if not @_syncstrings?
-            @_syncstrings = {}
-
-        # Get the the session client
-        if mesg.session_id?
-            # Authentication already happened in order for client
-            # to be placed in @_syncstrings.
-            session_id = mesg.session_id
-            client = @_syncstrings?[mesg.session_id]
-            if not client?
-                @push_to_client(message.syncstring_disconnect(id:mesg.id, session_id:mesg.session_id))
-            else
-                cb(undefined, client)
-            return
-
-        client = undefined
-        async.series([
-            (cb) =>
-                # check that mesg.string_id is valid
-                if not misc.is_valid_uuid_string(mesg.string_id)
-                    cb("invalid string_id uuid")
-                else
-                    cb()
-            (cb) =>
-                # check permissions
-                user_has_access_to_syncstring
-                    account_id : @account_id
-                    type       : 'write'
-                    string_id  : mesg.string_id
-                    cb         : (err, has_access) =>
-                        if err
-                            cb(err)
-                        else if not has_access
-                            cb("access to syncstring denied")
-                        else
-                            cb()
-            (cb) =>
-                # get and cache actual syncstring session
-                session_id = misc.uuid()       # create a new session
-                syncstring.syncstring
-                    string_id      : mesg.string_id
-                    session_id     : session_id
-                    push_to_client : @push_to_client
-                    cb             : (err, _client) =>
-                        if err
-                            cb(err)
-                        else
-                            client = @_syncstrings[session_id] = _client
-                            cb()
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            cb(err, client)
-        )
-
-    mesg_syncstring_get_session: (mesg) =>
-        @get_syncstring mesg, (err, client) =>
-            if err
-                return
-            resp = message.syncstring_session
-                id         : mesg.id
-                session_id : client.session_id
-                string     : client.live
-            @push_to_client(resp)
-
-    mesg_syncstring_diffsync: (mesg) =>
-        @get_syncstring mesg, (err, client) =>
-            if err
-                return
-            # Apply their edits to our object that represents the remote user.
-            # TODO: do we need to lock and give error if called again before previous call done?
-            client.recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
+        database.get_project_titles
+            project_ids : mesg.project_ids
+            use_cache   : true
+            cb          : (err, titles) =>
                 if err
-                    @error_to_client(err)
+                    @error_to_client(id:mesg.id, error:err)
                 else
-                    # Send back our own edits to the remote user, in case client.remote has changed
-                    # since last sync.
-                    client.push_edits_to_browser mesg.id, (err) =>
-                        #winston.debug("done pushing edits to browser (#{err})")
+                    @push_to_client(message.project_titles(titles:titles, id:mesg.id))
 
-    ################################################
-    # Synchronized databases (associated to user not project)
-    ################################################
-
-
-    mesg_get_notifications_syncdb: (mesg) =>
-        get_notifications_syncdb @account_id, (err, db) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.notifications_syncdb(id:mesg.id, string_id:db.string_id))
-
-
-    # Get a list of names and string_ids of the syncdbs that this user has access to.
-    #mesg_get_all_syncdbs: (mesg) =>
-
-    # Get access to a particular syncb given by its name or string_id
-    #mesg_get_syncdb: (mesg) =>
-
-    # Create a new syncdb
-    #mesg_create_syncdb: (mesg) =>
-
-    # Delete a syncdb
-    #mesg_delete_syncdb: (mesg) =>
+    mesg_get_user_names: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in")
+            return
+        database.get_user_names
+            account_ids : mesg.account_ids
+            use_cache   : true
+            cb          : (err, user_names) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.user_names(user_names:user_names, id:mesg.id))
 
 
 ##############################
 # User activity tracking
 ##############################
 
-# one notifications syncdb per *account* (not connection); keys are account id's
-notifications_syncdb_cache = {}
-get_notifications_syncdb = (account_id, cb) ->
-    if SYNCSTRING_DISABLED
-        cb("syncstring disabled")
-        return
-    if not account_id?
-        cb("user must be signed in")
-        return
+RECENT_ACTIVITY_POLL_INTERVAL_MIN_S = 8
+RECENT_ACTIVITY_POLL_INTERVAL_MAX_S = 60
+RECENT_ACTIVITY_POLL_DECAY_RATIO    = 1.3
+RECENT_ACTIVITY_TTL_S = 30 + RECENT_ACTIVITY_POLL_INTERVAL_MAX_S
 
-    if notifications_syncdb_cache[account_id]?
-        cb(undefined, notifications_syncdb_cache[account_id])
-        return
+ACTIVITY_LOG_DEFAULT_LENGTH_HOURS = 24*3  # 3 days
+ACTIVITY_LOG_DEFAULT_MAX_LENGTH = 2000    # at most this many events
 
-    string_id = undefined
-    db        = undefined
-    async.series([
-        (cb) =>
-            # get the notifications syncdb string_id
-            database.select_one
-                table   : 'accounts'
-                where   : {account_id : account_id}
-                columns : ['notifications_syncdb']
-                cb      : (err, result) =>
-                    if err
-                        cb(err)
-                    else
-                        string_id = result[0]
-                        cb()
-        (cb) =>
-            if string_id?
-                cb(); return
-            # no notifications syncdb yet, so create it and save back to db
-            string_id = misc.uuid()
-            database.update
-                table : 'accounts'
-                where : {account_id : account_id}
-                set   : {notifications_syncdb:string_id}
-                cb    : cb
-        (cb) =>
-            # grant user write access to this syncdb
-            set_syncstring_access
-                account_id : account_id
-                string_id  : string_id
-                type       : 'write'
-                cb         : cb
-        (cb) =>
-            # now initialize our local copy
-            syncstring.syncdb
-                string_id : string_id
-                cb        : (err, _db) ->
-                    if err
-                        cb(err)
-                    else
-                        db = _db
-                        notifications_syncdb_cache[account_id] = db
-                        cb()
-    ], (err) =>
-        if err
-            cb(err)
-        else
-            cb(undefined, db))
 
 # update notifications about non-comment activity on a file with at most this frequency.
 
@@ -2812,6 +2858,7 @@ normalize_path = (path) ->
     # Rules:
     # kdkd/tmp/.test.sagews.sage-chat --> kdkd/tmp/test.sagews, comment "chat"
     # foo/bar/.2014-11-01-175408.ipynb.syncdoc --> foo/bar/2014-11-01-175408.ipynb
+    path = path.slice(0,10000)  # prevent potential attacks involving a huge path breaking things (?)
     ext = misc.filename_extension(path)
     action = 'edit'
     if ext == "sage-chat"
@@ -2861,14 +2908,55 @@ activity_get_project_users = (opts) ->
             setTimeout( (()->delete _activity_get_project_users_cache[opts.project_id]), 60*1000*5 )
             opts.cb(undefined, users)
 
+NOTIFICATIONS_DELETE_OLD_DAYS = 30
+delete_old_notifications = (opts) ->
+    opts = defaults opts,
+        db         : required
+        min_delete : 0      # always delete at least this many notifications, mainly to clear up space
+        cb         : undefined
+    v = undefined
+    dbg = (m, obj) -> winston.debug("delete_old_notifications: #{m}, #{misc.to_json(obj)}")
+    dbg("min_delete ", opts.min_delete)
+    async.series([
+        (cb) ->
+            opts.db.select
+                where : {table:'activity'}
+                cb    : (err, _v) ->
+                    if err
+                        cb(err)
+                    else
+                        v = _v
+                        dbg("select all, got", v.length)
+                        cb()
+        (cb) ->
+            v.sort(misc.timestamp_cmp)
+            too_old = new Date() - 1000*60*60*24*NOTIFICATIONS_DELETE_OLD_DAYS
+            to_delete = (x for x in v when not x.timestamp?)  # get rid of any of these
+            v = (x for x in v when x.timestamp?)
+            i = v.length-1
+            while i >= 0 and v[i].timestamp <= too_old
+                to_delete.push(v[i])
+                i -= 1
+            while i >= 0 and to_delete.length < opts.min_delete
+                to_delete.push(v[i])
+                i -= 1
+            f = (x, cb) ->
+                opts.db.delete
+                    where : {table:'activity', project_id:x.project_id, path:x.path}
+                    cb    : cb
+            async.mapSeries(to_delete, f, (err) -> cb(err))
+    ], (err) ->
+        if err
+            dbg("ERROR -- ", err)
+        opts.cb?(err)
+    )
+
 path_activity_cache = {}
 path_activity = (opts) ->
     opts = defaults opts,
         account_id    : required
         project_id    : required
         path          : required
-        fullname      : required
-        project_title : undefined
         cb            : undefined
 
     ## completely disable notifications and login by uncommenting this:
@@ -2897,9 +2985,6 @@ path_activity = (opts) ->
 
     recent_activity = undefined
     is_new_activity = true
-
-    opts.fullname      = misc.trunc(opts.fullname, MAX_ACTIVITY_NAME_LENGTH)
-    opts.project_title = misc.trunc(opts.project_title, MAX_ACTIVITY_TITLE_LENGTH)
 
     # who gets notified
     targets = undefined
@@ -2942,93 +3027,30 @@ path_activity = (opts) ->
                     database.update
                         table : 'activity_by_path'
                         where : where
-                        set   : {account_id:opts.account_id, fullname:opts.fullname}
+                        set   : {account_id:opts.account_id}
                         cb    : cb
                 (cb) ->
-                    #dbg('set activity_by_project')
+                    #dbg('set activity_by_project2')
                     database.update
-                        table : 'activity_by_project'
+                        table : 'activity_by_project2'
                         where : where
-                        set   : {account_id:opts.account_id, fullname:opts.fullname}
+                        set   : {account_id:opts.account_id, action:action}
+                        cb    : cb
+                (cb) ->
+                    #dbg('set recent_activity_by_project2')
+                    database.update
+                        table : 'recent_activity_by_project2'
+                        where : where
+                        set   : {account_id:opts.account_id, action:action}
+                        ttl   : RECENT_ACTIVITY_TTL_S
                         cb    : cb
                 (cb) ->
                     #dbg('set activity_by_user')
                     database.update
                         table : 'activity_by_user'
                         where : {account_id:opts.account_id, timestamp:now_time}
-                        set   : {project_id:opts.project_id, path:path, fullname:opts.fullname, project_title:opts.project_title}
+                        set   : {project_id:opts.project_id, path:path}
                         cb    : cb
-                (cb) ->
-                    if SYNCSTRING_DISABLED
-                        # DISABLE temporarily; probably causing trouble.
-                        cb(); return
-                    #dbg('add to notifications')
-                    async.series([
-                        (cb) ->
-                            #dbg('determine project users')
-                            # everybody except opts.account_id will get a notification about this activity,
-                            # though to minimize db access we cache list of users for a few minutes, so
-                            # newly added users might not get notifications immediately (which is fine).
-                            activity_get_project_users
-                                project_id : opts.project_id
-                                cb         : (err, users) =>
-                                    #dbg("got back #{err}, #{misc.to_json(users)}")
-                                    if err
-                                        cb(err)
-                                    else
-                                        targets = (a for a in users when a != opts.account_id)
-                                        #dbg("set targets=#{misc.to_json(targets)}")
-                                        cb()
-                        (cb) ->
-                            if not targets? or targets.length == 0
-                                #dbg("no targets?! -- #{misc.to_json(targets)}")
-                                # nobody to report to -- e.g., common case of no project collaborators
-                                cb(); return
-
-                            #dbg('set activity_notifications')
-                            # make keys of last everybody but opts.account_id that has
-                            # recently touched the file, and values how recently they touched it.
-                            last = {}
-                            if recent_activity?
-                                for y in recent_activity
-                                    if y[1] != opts.account_id
-                                        t = last[y[1]]
-                                        if not t? or t < y[0]
-                                            last[y[1]] = y[0]
-
-                            where =
-                                table         : 'activity'
-                                project_id    : opts.project_id
-                                path          : path
-
-                            f = (account_id, cb) =>
-                                get_notifications_syncdb account_id, (err, db) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        x = db.select_one(where:where)
-                                        actions ={}
-                                        if x?
-                                            if not x.read
-                                                actions = x.actions
-                                        actions[action] = true
-                                        set =
-                                            timestamp     : now_time - 0
-                                            user_id       : opts.account_id
-                                            fullname      : opts.fullname
-                                            actions       : actions
-                                            seen          : false
-                                            read          : false
-                                            project_title : opts.project_title
-                                        if last[account_id]?
-                                            set.last_edit = last[account_id]
-                                        db.update
-                                            where : where
-                                            set : set
-                                        cb()
-
-                            async.map(targets, f, (err)=>cb(err))
-                    ], cb)
             ], (err) -> cb(err))
     ], (err) -> opts.cb?(err))
 
@@ -3039,9 +3061,7 @@ scan_local_hub_message_for_activity = (opts) ->
     opts = defaults opts,
         account_id    : required
         project_id    : required
-        fullname      : required
         message       : required
-        project_title : undefined
         cb            : undefined
     #dbg = (m) -> winston.debug("scan_local_hub_message_for_activity(#{opts.account_id},#{opts.project_id}): #{m}")
     #dbg(misc.to_json(codemirror_sessions))
@@ -3054,8 +3074,6 @@ scan_local_hub_message_for_activity = (opts) ->
                     account_id    : opts.account_id
                     project_id    : opts.project_id
                     path          : path
-                    fullname      : opts.fullname
-                    project_title : opts.project_title
                     cb            : opts.cb
                 return
     opts.cb?()
@@ -3078,12 +3096,16 @@ update_server_stats = () ->
                 _server_stats_cache = stats
 
 
+number_of_clients = () ->
+    v = (C for id,C of clients when not C._destroy_timer? and not C.closed)
+    return v.length
+
 database_is_working = false
 register_hub = (cb) ->
     database.update
         table : 'hub_servers'
         where : {host : program.host, port : program.port, dummy: true}
-        set   : {clients: misc.len(clients)}
+        set   : {clients: number_of_clients()}
         ttl   : 2*REGISTER_INTERVAL_S
         cb    : (err) ->
             if err
@@ -3118,7 +3140,36 @@ init_primus_server = () ->
     winston.debug("primus_server: listening on #{opts.pathname}")
     primus_server.on "connection", (conn) ->
         winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id}")
-        clients[conn.id] = new Client(conn)
+        f = (data) ->
+            id = data.toString()
+            winston.debug("primus_server: got id='#{id}'")
+            conn.removeListener('data',f)
+            C = clients[id]
+            #winston.debug("primus client ids=#{misc.to_json(misc.keys(clients))}")
+            if C?
+                if C.closed
+                    winston.debug("primus_server: '#{id}' matches expired Client -- deleting")
+                    delete clients[id]
+                    C = undefined
+                else
+                    winston.debug("primus_server: '#{id}' matches existing Client -- re-using")
+                    cookies = new Cookies(conn.request)
+                    if C._remember_me_value == cookies.get(program.base_url + 'remember_me')
+                        old_id = C.conn.id
+                        C.conn.removeAllListeners()
+                        C.conn = conn
+                        conn.id = id
+                        conn.write(conn.id)
+                        C.install_conn_handlers()
+                    else
+                        winston.debug("primus_server: '#{id}' matches but cookies do not match, so not re-using")
+                        C = undefined
+            if not C?
+                winston.debug("primus_server: '#{id}' unknown, so making a new Client with id #{conn.id}")
+                conn.write(conn.id)
+                clients[conn.id] = new Client(conn)
+
+        conn.on("data",f)
 
 #######################################################
 # Pushing a message to clients; querying for clients
@@ -3595,9 +3646,17 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # Create a binary channel that the client can use to write to the socket.
                 # (This uses our system for multiplexing JSON and multiple binary streams
                 #  over one single connection.)
-                channel = opts.client.register_data_handler (data) ->
+                recently_sent_reconnect = false
+                channel = opts.client.register_data_handler (data) =>
                     if not ignore
                         console_socket.write(data)
+                    else
+                        # send a reconnect message, but at most once every 5 seconds.
+                        if not recently_sent_reconnect
+                            recently_sent_reconnect = true
+                            setTimeout( (()=>recently_sent_reconnect=false), 5000 )
+                            winston.debug("console -- trying to write to closed console_socket with session_uuid=#{opts.session_uuid}")
+                            opts.client.push_to_client(message.session_reconnect(session_uuid:opts.session_uuid))
 
                 mesg = message.session_connected
                     session_uuid : opts.session_uuid
@@ -3992,64 +4051,6 @@ user_has_read_access_to_project = (opts) ->
             main_cb(err, false)
     )
 
-
-########################################
-# Permissions related to syncstrings
-########################################
-
-# 60 minutes -- forget "yes" approval for access after this much time:
-ACCESS_TO_SYNCSTRING_CACHE_MS = 60*60*1000
-_access_to_syncstring_cache = {}
-user_has_access_to_syncstring = (opts) ->
-    opts = defaults opts,
-        account_id : undefined   # if not given, means completely public
-        string_id  : required
-        type       : 'write'
-        cb         : required
-    if not opts.account_id?
-        opts.cb(undefined, false)  # no such strings for now
-        return
-
-    #winston.debug("user_has_access_to_syncstring (account_id=#{opts.account_id}, string_id=#{opts.string_id}, type=#{opts.type})")
-    t = _access_to_syncstring_cache[opts.string_id]?[opts.account_id]
-    if t? and (t == opts.type or (opts.type=='read' and t=='write'))
-        # cached access granted
-        opts.cb(undefined, true)
-        return
-
-    database.select
-        table   : 'syncstring_acls'
-        where   : {string_id : opts.string_id}
-        columns : ['acl']
-        cb      : (err, r) =>
-            if err
-                opts.cb(err)
-            else
-                #winston.debug("syncstring_acl db query output = #{misc.to_json(r)}")
-                if r.length == 0
-                    opts.cb(undefined, false)
-                else
-                    v = _access_to_syncstring_cache[opts.string_id] = {}
-                    for account_id, type of r[0][0]
-                        v[account_id] = type
-                    destruct = () =>
-                        delete _access_to_syncstring_cache[opts.string_id]
-                    setTimeout(destruct, ACCESS_TO_SYNCSTRING_CACHE_MS)
-                    t = v[opts.account_id]
-                    #winston.debug("v = #{misc.to_json(v)}; t=#{t}; opts.type=#{opts.type}")
-                    opts.cb(undefined, t == opts.type or (opts.type=='read' and t=='write'))
-
-set_syncstring_access = (opts) ->
-    opts = defaults opts,
-        account_id : undefined   # if not given, means completely public
-        string_id  : required
-        type       : 'write'     #   'write', 'read', ''
-        cb         : undefined
-    query = "UPDATE syncstring_acls SET acl[?]=? WHERE string_id=?"
-    database.cql(query, [opts.account_id, opts.type, opts.string_id], opts.cb)
-
-
-
 ########################################
 # Passwords
 ########################################
@@ -4158,7 +4159,6 @@ is_password_correct = (opts) ->
                     opts.cb?(false, password_hash_library.verify(opts.password, account.password_hash))
     else
         opts.cb?("One of password_hash, account_id, or email_address must be specified.")
-
 
 
 ########################################
@@ -5552,37 +5552,41 @@ init_bup_server = (cb) ->
 #############################################
 # Start everything running
 #############################################
+
 exports.start_server = start_server = () ->
     # the order of init below is important
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
 
-    # Once we connect to the database, start serving.
-    misc.retry_until_success
-        f           : connect_to_database
-        start_delay : 1000
-        max_delay   : 10000
-        cb          : () =>
-            winston.debug("connected to database.")
-            init_salvus_version()
-            if not SYNCSTRING_DISABLED
-                syncstring.init_syncstring_db(database)
-
+    async.series([
+        (cb) ->
+            winston.debug("Connecting to the database.")
+            misc.retry_until_success
+                f           : connect_to_database
+                start_delay : 1000
+                max_delay   : 10000
+                cb          : () ->
+                    winston.debug("connected to database.")
+                    init_salvus_version()
+                    cb()
+        (cb) ->
+            init_bup_server(cb)
+        (cb) ->
             # proxy server and http server, etc. relies on bup server having been created
-            init_bup_server () =>
-                init_http_server()
-                init_http_proxy_server()
+            init_http_server()
+            init_http_proxy_server()
 
-                # start updating stats cache every so often -- note: this is cached in the database, so it isn't
-                # too big a problem if we call it too frequently...
-                update_server_stats(); setInterval(update_server_stats, 120*1000)
-                register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
+            # start updating stats cache every so often -- note: this is cached in the database, so it isn't
+            # too big a problem if we call it too frequently...
+            update_server_stats(); setInterval(update_server_stats, 120*1000)
+            register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
+            init_primus_server()
+            init_stateless_exec()
+            http_server.listen(program.port, program.host)
 
-                init_primus_server()
-                init_stateless_exec()
-                http_server.listen(program.port, program.host)
-
-                winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+            winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+            cb()
+    ])
 
 ###
 # Command line admin stuff -- should maybe be moved to another program?

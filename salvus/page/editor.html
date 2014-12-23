@@ -177,7 +177,7 @@ Editor for files in a project
         <div class="salvus-editor-codemirror-chat-column hide">
             <div class="salvus-editor-codemirror-chat">
                 <div class="salvus-editor-codemirror-chat-output"></div>
-                <textarea class="salvus-editor-codemirror-chat-input form-control" placeholder="Write comment..."></textarea>
+                <textarea class="salvus-editor-codemirror-chat-input form-control" placeholder="Chat using HTML, Markdown or  LaTeX..."></textarea>
             </div>
         </div>
         <div class="salvus-editor-codemirror-input-container-layout-1 hide">
@@ -240,6 +240,34 @@ Editor for files in a project
         <div class="salvus-editor-image-container"><img><span>Loading...</span></div>
     </div>
 
+    <!-- Static HTML viewer -->
+    <div class="salvus-editor-static-html">
+        <div style="margin-left:1em">
+            <span class="visible-xs">
+                <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> Files...</a>
+            </span>
+        </div>
+        <div class="salvus-editor-static-html-content">
+            <iframe style="width:100%;border:0px;">
+            </iframe>
+        </div>
+    </div>
+
+    <!-- IPython Notebook Viewer -->
+    <div class="salvus-editor-ipython-nbviewer">
+        <div style="margin-left:1em">
+            <span class="visible-xs">
+                <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> Files...</a>
+            </span>
+            <span class="hidden-xs">
+                <a href="#copy" class="btn btn-default btn-sm"><i class="fa fa-send-o"></i> Open IPython Notebook in Project...</a>
+            </span>
+        </div>
+        <div class="salvus-editor-ipython-nbviewer-content">
+            <iframe style="width:100%;border:0px;">
+            </iframe>
+        </div>
+    </div>
 
     <!-- Templates for the png-based PDF previewer; this is designed for the pdf changes in little ways locally.  -->
     <div class="salvus-editor-pdf-preview">
@@ -343,7 +371,10 @@ Editor for files in a project
         <span class="sagews-input-hr sagews-input-newcell"></span>
     </div>
 
-    <div class="sagews-output"></div>
+    <div class="sagews-output">
+     <a href="#edit" class="sagews-output-edit-button btn btn-default btn-sm pull-right"><i class="fa fa-edit"></i> Edit</a>
+     <span></span>
+    </div>
 
     <div class="salvus-ipython-notebook">
         <!--<h3 style="margin-left:1em">IPython Notebook: <span class="salvus-ipython-filename"></span></h3>-->
@@ -352,6 +383,7 @@ Editor for files in a project
             <span class="hide salvus-ipython-notebook-danger">DANGER: Users on this VM could connect unless you stop your ipython-notebook server (they would have to know secret internal project-id).</span>
             <a href="#save" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Save .ipynb file to disk (file is constantly sync'd with server)."> <i class="fa fa-save"></i> Save</a>
             <a href="#reload" class="btn  btn-sm btn-warning" data-toggle="tooltip" data-placement="bottom" title="Reload this Notebook; use if the IPython server is killed or restarted on another port"> <i class="fa fa-refresh"></i> Reload</a>
+            <a href="#publish" class="btn btn-primary btn-sm" data-toggle="tooltip" data-placement="bottom" title="Publish this notebook for anybody to see"> <i class="fa fa-refresh fa-spin hide"> </i> <i class="fa fa-share-square-o"></i> Publish</a>
             <a href="#info" class="btn  btn-sm btn-info" data-toggle="tooltip" data-placement="bottom" title="Extra information about the IPython notebook"> <i class="fa fa-info-circle"></i> </a>
         </div>
         <div class="visible-xs">
@@ -379,6 +411,40 @@ Editor for files in a project
         <div class="salvus-ipython-notebook-notebook"></div>
     </div>
 
+    <div class="modal salvus-ipython-publish-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close btn-close" aria-hidden="true">
+                        <span style="font-size:20pt;">×</span>
+                    </button>
+                    <h3><i class="fa fa-share-square-o"> </i>  Publishing IPython Notebook</h3>
+                </div>
+                <div class="well">
+                    <div class="salvus-ipython-publish-dialog-publishing">Publishing...
+                        <span class="salvus-ipython-publish-status"></span>
+                        <br>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0"
+                                 aria-valuemax="100" style="width: 0%;">
+                                0%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="salvus-ipython-publish-dialog-fail hide"><b>Error:</b> <span></span></div>
+                    <div class="salvus-ipython-publish-dialog-success hide"><br>Share the following link:
+                        <br><br>
+                        <input class="form-control salvus-ipython-publish-url"><br>
+                        <span class="lighten">(Anybody may read this public notebook; only collaborators may change it.)</span>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-close pull-left btn-default btn-lg">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="modal salvus-file-print-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog">

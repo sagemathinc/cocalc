@@ -200,8 +200,6 @@ exports.connect_to_locked_socket = (opts) ->
         timeout : 5
         cb      : required
 
-    winston.debug("#{misc.to_json(opts)}")
-
     winston.debug("misc_node: connecting to a locked socket on port #{port}...")
     timer = undefined
 

@@ -203,7 +203,7 @@ class ProjectPage
         # sends a message to the hub.
         that = @
         @container.find(".project-project_title").blur () ->
-            new_title = $(@).html().trim()
+            new_title = $(@).text().trim()
             if new_title != that.project.title
                 if new_title == ""
                     new_title = "No title"
@@ -224,7 +224,7 @@ class ProjectPage
                             that.update_topbar()
 
         @container.find(".project-project_description").blur () ->
-            new_desc = $(@).html().trim()
+            new_desc = $(@).text().trim()
             if new_desc != that.project.description
                 if new_desc == ""
                     new_desc = "No description"
@@ -1621,7 +1621,6 @@ class ProjectPage
                         listing  : listing
                         no_focus : no_focus
                         cb       : cb
-                    @update_snapshot_link()
 
     invalidate_render_file_listing_cache: () =>
         delete @_update_file_list_tab_last_path
@@ -2132,9 +2131,10 @@ class ProjectPage
                 return false
         dialog.modal()
 
-    copy_to_another_project_dialog: (path, isdir) =>
+    copy_to_another_project_dialog: (path, isdir, cb) =>
         if not require('account').account_settings.is_signed_in()
             @copy_to_another_not_ready_dialog()
+            cb?("not signed in")
             return
 
         dialog = $(".salvus-project-copy-to-another-project-dialog").clone()
@@ -2232,7 +2232,12 @@ class ProjectPage
                         else
                             alert_message(type:"success", message:"Successfully copied #{src_path} to #{target_path} in #{target_project}")
                         cb(err)
-        ], (err) => cb?(err))
+        ], (err) =>
+            if err
+                cb?(err)
+            else
+                cb?(undefined, {project_id:target_project_id, path: target_path})
+        )
 
     move_file_dialog:  (path, cb) =>
         dialog = $(".project-move-file-dialog").clone()
@@ -3340,7 +3345,6 @@ class ProjectPage
             ])
             return false
 
-
     # Completely move the project, possibly moving it if it is on a broken host.
     ###
     init_project_move: () =>
@@ -3379,27 +3383,6 @@ class ProjectPage
         @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
             @visit_snapshot()
             return false
-        @update_snapshot_link()
-
-    update_snapshot_link: () =>
-        salvus_client.exec
-            project_id  : @project.project_id
-            command     : "ls ~/.snapshots/master/|tail -2"
-            err_on_exit : true
-            cb          : (err, output) =>
-                if not err
-                    try
-                        time = output.stdout.split('\n')[0].trim()
-                        if time  # could be empty, e.g., if no snapshots
-                            time = misc.parse_bup_timestamp(time)
-                            @_last_snapshot_time = time
-                            # critical to use replaceWith!
-                            c = @container.find(".project-snapshot-last-timeago span")
-                            d = $("<span>").attr('title', time.toISOString()).timeago()
-                            c.replaceWith(d)
-                    catch e
-                        console.log("error parsing last snapshot time (stdout='#{output.stdout}'): ", e)
-                        return
 
     update_local_status_link: () =>
         if @_update_local_status_link_lock

@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+## DEPRECATED
 
 #################################################################
 #
@@ -41,16 +42,23 @@ class SyncString extends diffsync.DiffSync
         misc.call_lock(obj:@)
         @init(doc:string)
         @last_sync = string
-        @listen()
-
-    listen: () =>
-        salvus_client.on("syncstring_diffsync2-#{@session_id}", @handle_diffsync_mesg)
+        @add_listeners()
         salvus_client.on('connected', @reconnect)
 
-    destroy: () =>
-        salvus_client.removeListener("syncstring_diffsync2-#{@session_id}", @handle_diffsync_mesg)
-        salvus_client.removeListener('connected', @reconnect)
+    _checksum: (doc) =>
+        return misc.hash_string(doc)  # must be the same as in backend file ../syncstring.coffee
 
+    add_listeners: () =>
+        salvus_client.on("syncstring_diffsync2-#{@session_id}", @handle_diffsync_mesg)
+        salvus_client.on("syncstring_diffsync2_reset-#{@session_id}", @reconnect)
+
+    remove_listeners: () =>
+        salvus_client.removeListener("syncstring_diffsync2-#{@session_id}", @handle_diffsync_mesg)
+        salvus_client.removeListener("syncstring_diffsync2_reset-#{@session_id}", @reconnect)
+
+    destroy: () =>
+        @remove_listeners()
+        salvus_client.removeListener('connected', @reconnect)
 
     write_mesg: (opts) =>
         opts = defaults opts,
@@ -74,7 +82,6 @@ class SyncString extends diffsync.DiffSync
 
     _reconnect: (cb) =>
         #console.log("_reconnect")
-        salvus_client.removeListener("syncstring_diffsync2-#{@session_id}", @handle_diffsync_mesg)
         # remember anything we did when offline
         need_patch = @last_sync != @live
         if need_patch
@@ -86,12 +93,13 @@ class SyncString extends diffsync.DiffSync
             string_id : @string_id
             cb        : (err, resp) =>
                 if err
-                    cb(err)
+                    cb?(err)
                 else
+                    @remove_listeners()
                     @session_id = resp.session_id
                     @init(doc:resp.string)
                     @last_sync = resp.string
-                    salvus_client.on("syncstring_diffsync2-#{@session_id}", @handle_diffsync_mesg)
+                    @add_listeners()
                     if need_patch
                         #console.log("applying offline patch: before='#{@live}'")
                         @live = diffsync.dmp.patch_apply(patch, @live)[0]
@@ -99,7 +107,15 @@ class SyncString extends diffsync.DiffSync
                     @_sync(cb)   # skip call with lock, since we're already in a lock
 
     sync: (cb) =>
-        @_call_with_lock(@_sync, cb)
+        f = (cb) =>
+            @_call_with_lock(@_sync, cb)
+        misc.retry_until_success
+            f         : f
+            max_tries : 30
+            factor    : 1.5
+            #name      : "SyncString"
+            #log       : (m) -> console.log(m)
+            cb        : cb
 
     _sync: (cb) =>
         # TODO: lock so this can only be called once at a time
@@ -115,9 +131,13 @@ class SyncString extends diffsync.DiffSync
                         edit_stack       : @edit_stack
                         last_version_ack : @last_version_received
                     cb    : (err, resp) =>
-                        #console.log("_sync: after write_mesg -- '#{@shadow}', '#{@live}'")
+                        #console.log("_sync: after write_mesg -- err='#{err}', resp='#{misc.to_json(resp)}'")
+
                         if err
-                            cb?(err)
+                            if err.indexOf('reset') != -1
+                                @_reconnect(cb)
+                            else
+                                cb?(err)
                         else if resp.event == 'syncstring_disconnect'
                             @_reconnect(cb)
                         else if resp.event == 'syncstring_diffsync'
@@ -133,32 +153,38 @@ class SyncString extends diffsync.DiffSync
         @_call_with_lock(((cb) => @_handle_diffsync_mesg(mesg, cb)), cb)
 
     _handle_diffsync_mesg: (mesg, cb) =>
-        #dbg = (m) => console.log("handle_diffsync_mesg: #{m}")
-        #dbg(misc.to_json(mesg))
+        #dbg = (f, m) => console.log("handle_diffsync_mesg: #{f} -- #{misc.to_json(m)}")
+        #dbg('',mesg)
         @recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
             if err
-                #dbg("recv_edits: #{err}")
+                #dbg("recv_edits error", err)
                 # would have to reset at this point (?)
-                cb?(err)
+                if err.indexOf('reset') != -1
+                    @_reconnect(cb)
+                else
+                    cb?(err)
                 return
-            # Send back our own edits to the hub
-            #dbg("send back our own edits to hub")
             @last_sync = @shadow
             @emit('sync')
+            #dbg("next push_edits")
             @push_edits (err) =>
                 # call to push_edits just computed @edit_stack and @last_version_received
                 if err
                     #dbg("error in push_edits -- #{err}")
                     cb?(err)
                 else
-                    #dbg("now sending our own edits out")
-                    resp = message.syncstring_diffsync
-                        id               : mesg.id
-                        edit_stack       : @edit_stack
-                        last_version_ack : @last_version_received
-                    salvus_client.send(resp)
+                    #dbg("success getting edit stack", @edit_stack)
+                    if @edit_stack.length > 0
+                        # only send if we have changes -- otherwise we get in an infinite loop.
+                        #dbg("now actually sending our own edits out")
+                        resp = message.syncstring_diffsync
+                            id               : mesg.id
+                            session_id       : mesg.session_id
+                            edit_stack       : @edit_stack
+                            last_version_ack : @last_version_received
+                        #dbg("sending response", resp)
+                        salvus_client.send(resp)
                     cb?()
-
 
 exports.syncstring = syncstring = (opts) ->
     opts = defaults opts,
@@ -183,6 +209,7 @@ _syncdb_cache = {}
 exports.syncdb = (opts) ->
     opts = defaults opts,
         string_id      : required
+        max_len        : undefined
         cb             : required
     d = _syncdb_cache[opts.string_id]
     if d?
@@ -196,7 +223,7 @@ exports.syncdb = (opts) ->
             else
                 doc = new diffsync.SynchronizedDB_DiffSyncWrapper(client)
                 client.on 'sync', () -> doc.emit("sync")
-                d = _syncdb_cache[opts.string_id] = new diffsync.SynchronizedDB(doc)
+                d = _syncdb_cache[opts.string_id] = new diffsync.SynchronizedDB(doc, undefined, undefined, opts.max_len)
                 opts.cb(undefined, d)
 
 

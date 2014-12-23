@@ -45,13 +45,25 @@ class Connection extends client.Connection
         conn = new Primus(url, opts)
         @_conn = conn
         conn.on 'open', () =>
+            if @_conn_id?
+                conn.write(@_conn_id)
+            else
+                conn.write("XXXXXXXXXXXXXXXXXXXX")
             @_connected = true
             if window.WebSocket?
                 protocol = 'websocket'
             else
                 protocol = 'polling'
             console.log("#{protocol} -- connected in #{walltime(t)} seconds")
+
             @emit("connected", protocol)
+
+            f = (data) =>
+                @_conn_id = data.toString()
+                conn.removeListener('data',f)
+                conn.on('data', ondata)
+            conn.on("data",f)
+
 
         conn.on 'message', (evt) =>
             #console.log("websocket -- message: ", evt)
@@ -65,11 +77,8 @@ class Connection extends client.Connection
             console.log("websocket -- closed")
             @_connected = false
             t = walltime()
+            conn.removeListener('data', ondata)
             @emit("connecting")
-
-        conn.on 'data', (data) =>
-            # console.log("websocket --data='#{data}'")
-            ondata(data)
 
         conn.on 'reconnecting', (opts) =>
             console.log('websocket --reconnecting in %d ms', opts.timeout)

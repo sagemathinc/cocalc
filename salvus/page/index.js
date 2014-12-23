@@ -22,7 +22,8 @@ console.coffee
 
 account.coffee
 
-syncstring.coffee
+# syncstring.coffee  # DEPRECATED
+
 syncdoc.coffee
 syncdb.coffee
 

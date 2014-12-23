@@ -494,6 +494,8 @@ exports.open_project = open_project = (opts) ->
                         project.location = info.bup_location
                         opts.item?.find(".projects-location").text("")
                     opts.cb?(undefined, proj)
+    else
+        opts.cb?(undefined, proj)
 
 ################################################
 # Create a New Project

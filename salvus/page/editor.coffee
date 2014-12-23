@@ -79,6 +79,7 @@ codemirror_associations =
     java   : 'text/x-java'
     jl     : 'text/x-julia'
     js     : 'javascript'
+    json   : 'javascript'
     lua    : 'lua'
     m      : 'text/x-octave'
     md     : 'gfm2'
@@ -744,6 +745,15 @@ class exports.Editor
         else
             typ = editor_name
         @project_page.project_activity({event:'open', filename:filename, type:typ})
+
+        # This approach to public "editor"/viewer types is temporary.
+        if extra_opts.public_access
+            if editor_name == 'codemirror' and filename_extension(filename) == 'html'
+                if opts.content.indexOf("#ipython_notebook") != -1
+                    editor = new IPythonNBViewer(@, filename, opts.content, extra_opts)
+                else
+                    editor = new StaticHTML(@, filename, opts.content, extra_opts)
+                return editor
 
         # Some of the editors below might get the content later and will
         # call @file_options again then.
@@ -1912,9 +1922,9 @@ class CodeMirrorEditor extends FileEditor
         # I don't know why this works, but it gets around a *massive bug*, where after
         # aggressive resizing, the codemirror editor gets all corrupted. For some reason,
         # doing this "usually" causes things to get properly fixed.  I don't know why.
-        hack = $("<div><br><br></div>")
+        hack = $("<div><br><br><br><br></div>")
         $("body").append(hack)
-        setTimeout((()=>hack.remove()), 1000)
+        setTimeout((()=>hack.remove()), 10000)
 
         for {cm,height,width} in v
             scroller = $(cm.getScrollerElement())
@@ -1923,9 +1933,6 @@ class CodeMirrorEditor extends FileEditor
             cm_wrapper.css
                 height : height
                 width  : width
-            # additional hack that might help avoid corruption... (I hate doing this)
-            @change_font_size(cm,+1)
-            @change_font_size(cm,-1)
 
         # This is another hack that specifically hopefully addresses an
         # issue where when I open a tab often the scrollbar is completely
@@ -2002,9 +2009,7 @@ class CodeMirrorEditor extends FileEditor
             return
         @show()
         if not IS_MOBILE
-            @codemirror.focus()
-            if @_split_view
-                @codemirror1.focus()
+            @codemirror_with_last_focus?.focus()
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
     #console.log("codemirror_session_editor '#{filename}'")
@@ -3963,6 +3968,70 @@ class Image extends FileEditor
         @element.maxheight()
 
 
+
+class StaticHTML extends FileEditor
+    constructor: (@editor, @filename, @content, opts) ->
+        @element = templates.find(".salvus-editor-static-html").clone()
+        @init_buttons()
+
+    show: () =>
+        if not @is_active()
+            return
+        if not @iframe?
+            @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
+            # We do this, since otherwise just loading the iframe using
+            #      @iframe.contents().find('html').html(@content)
+            # messes up the parent html page...
+            @iframe.contents().find('body')[0].innerHTML = @content
+            @iframe.contents().find('body').find("a").attr('target','_blank')
+        @element.show()
+        @element.css(top:@editor.editor_top_position())
+        @element.maxheight(offset:18)
+
+    init_buttons: () =>
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
+
+class IPythonNBViewer extends FileEditor
+    constructor: (@editor, @filename, @content, opts) ->
+        window.debug = @
+        @element = templates.find(".salvus-editor-ipython-nbviewer").clone()
+        @init_buttons()
+
+    show: () =>
+        if not @is_active()
+            return
+        @element.show()
+        if not @iframe?
+            @iframe = @element.find(".salvus-editor-ipython-nbviewer-content").find('iframe')
+            # We do this, since otherwise just loading the iframe using
+            #      @iframe.contents().find('html').html(@content)
+            # messes up the parent html page, e.g., foo.modal() is gone.
+            @iframe.contents().find('body')[0].innerHTML = @content
+
+        @element.css(top:@editor.editor_top_position())
+        @element.maxheight(offset:18)
+        @element.find(".salvus-editor-ipython-nbviewer-content").maxheight(offset:18)
+        @iframe.maxheight(offset:18)
+
+    init_buttons: () =>
+        @element.find("a[href=#copy]").click () =>
+            ipynb_filename = @filename.slice(0,@filename.length-4) + 'ipynb'
+            @editor.project_page.copy_to_another_project_dialog ipynb_filename, false, (err, x) =>
+                console.log("x=#{misc.to_json(x)}")
+                if not err
+                    require('projects').open_project
+                        project   : x.project_id
+                        target    : "files/" + x.path
+                        switch_to : true
+            return false
+
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
+
+
 #**************************************************
 # IPython Support
 #**************************************************
@@ -4519,13 +4588,17 @@ class IPythonNotebook extends FileEditor
                 @reload_button.find("i").removeClass('fa-spin')
 
     init_buttons: () =>
-        @element.find("a").tooltip()
+        @element.find("a").tooltip(delay:{show: 500, hide: 100})
         @save_button = @element.find("a[href=#save]").click () =>
             @save()
             return false
 
         @reload_button = @element.find("a[href=#reload]").click () =>
             @reload()
+            return false
+
+        @publish_button = @element.find("a[href=#publish]").click () =>
+            @publish_ui()
             return false
 
         #@element.find("a[href=#json]").click () =>
@@ -4548,6 +4621,79 @@ class IPythonNotebook extends FileEditor
         @element.find("a[href=#tab]").click () =>
             @nb?.get_cell(@nb?.get_selected_index()).completer.startCompletion()
             return false
+
+    publish_ui: () =>
+        url = document.URL
+        url = url.slice(0,url.length-5) + 'html'
+        dialog = templates.find(".salvus-ipython-publish-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            return false
+        status = (mesg, percent) =>
+            dialog.find(".salvus-ipython-publish-status").text(mesg)
+            p = "#{percent}%"
+            dialog.find(".progress-bar").css('width',p).text(p)
+
+        @publish status, (err) =>
+            dialog.find(".salvus-ipython-publish-dialog-publishing")
+            if err
+                dialog.find(".salvus-ipython-publish-dialog-fail").show().find('span').text(err)
+            else
+                dialog.find(".salvus-ipython-publish-dialog-success").show()
+                url_box = dialog.find(".salvus-ipython-publish-url")
+                url_box.val(url)
+                url_box.click () ->
+                    $(this).select()
+
+    publish: (status, cb) =>
+        #d = (m) => console.log("ipython.publish('#{@filename}'): #{misc.to_json(m)}")
+        #d()
+        @publish_button.find("fa-refresh").show()
+        async.series([
+            (cb) =>
+                status?("saving",0)
+                @save(cb)
+            (cb) =>
+                status?("running nbconvert",30)
+                @nbconvert
+                    format : 'html'
+                    cb     : (err) =>
+                        cb(err)
+            (cb) =>
+                status?("making '#{@filename}' public", 70)
+                @editor.project_page.publish_path
+                    path        : @filename
+                    description : "IPython notebook #{@filename}"
+                    cb          : cb
+            (cb) =>
+                html = @filename.slice(0,@filename.length-5)+'html'
+                status?("making '#{html}' public", 90)
+                @editor.project_page.publish_path
+                    path        : html
+                    description : "IPython html version of #{@filename}"
+                    cb          : cb
+        ], (err) =>
+            status?("done", 100)
+            @publish_button.find("fa-refresh").hide()
+            cb?(err)
+        )
+
+    nbconvert: (opts) =>
+        opts = defaults opts,
+            format : required
+            cb     : undefined
+        salvus_client.exec
+            path        : @path
+            project_id  : @editor.project_id
+            command     : 'ipython'
+            args        : ['nbconvert', @file, "--to=#{opts.format}"]
+            bash        : false
+            err_on_exit : true
+            timeout     : 30
+            cb          : (err, output) =>
+                console.log("nbconvert finished with err='#{err}, ouptut='#{misc.to_json(output)}'")
+                opts.cb?(err)
 
     # WARNING: Do not call this before @nb is defined!
     to_obj: () =>

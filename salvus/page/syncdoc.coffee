@@ -132,48 +132,7 @@ class DiffSyncDoc
             @opts.string = diffsync.dmp.patch_apply(p, @string())[0]
         else
             cm = @opts.cm
-            cm.setOption('readOnly', true)
-            try
-                s = @string()
-                x = diffsync.dmp.patch_apply(p, s)
-                new_value = x[0]
-
-                next_pos = (val, pos) ->
-                    # This functions answers the question:
-                    # If you were to insert the string val at the CodeMirror position pos
-                    # in a codemirror document, at what position (in codemirror) would
-                    # the inserted string end at?
-                    number_of_newlines = (val.match(/\n/g)||[]).length
-                    if number_of_newlines == 0
-                        return {line:pos.line, ch:pos.ch+val.length}
-                    else
-                        return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
-
-                pos = {line:0, ch:0}  # start at the beginning
-                diff = diffsync.dmp.diff_main(s, new_value)
-                for chunk in diff
-                    #console.log(chunk)
-                    op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
-                    val = chunk[1]  # the actual text to leave same, delete, or add
-                    pos1 = next_pos(val, pos)
-                    switch op
-                        when 0 # stay the same
-                            # Move our pos pointer to the next position
-                            pos = pos1
-                            #console.log("skipping to ", pos1)
-                        when -1 # delete
-                            # Delete until where val ends; don't change pos pointer.
-                            cm.replaceRange("", pos, pos1)
-                            #console.log("deleting from ", pos, " to ", pos1)
-                        when +1 # insert
-                            # Insert the new text right here.
-                            cm.replaceRange(val, pos)
-                            #console.log("inserted new text at ", pos)
-                            # Move our pointer to just beyond the text we just inserted.
-                            pos = pos1
-            catch e
-                console.log("BUG in patch_in_place")
-            cm.setOption('readOnly', @opts.readonly)
+            cm.patchApply(p)
 
 # DiffSyncDoc is useful outside, e.g., for task list.
 exports.DiffSyncDoc = DiffSyncDoc
@@ -314,9 +273,11 @@ class AbstractSynchronizedDoc extends EventEmitter
     # "sync(cb)": keep trying to synchronize until success; then do cb()
     # _sync(cb) -- try once to sync; on any error cb(err).
     _sync: (cb) =>
-        #console.log("_sync")
         @_presync?()
-        snapshot = @live()
+        before = @live()
+        if before.string?
+            before = before.string()
+        #console.log("_sync, live='#{before}'")
         @dsync_client.push_edits (err) =>
             if err
                 if typeof(err)=='string' and err.indexOf('retry') != -1
@@ -329,12 +290,29 @@ class AbstractSynchronizedDoc extends EventEmitter
                     #console.log("connect: due to sync error: #{err}")
                     @connect () =>
                         cb?(err)
+                #console.log("_sync: error -- #{err}")
             else
-                s = snapshot
+                # Emit event that indicates document changed as
+                # a result of sync; it's critical to do this even
+                # if we're not done syncing, since it's used, e.g.,
+                # by Sage worksheets to render special codes.
+                @emit('sync')
+
+                s = @live()
                 if s.copy?
                     s = s.copy()
                 @_last_sync = s    # What was the last successful sync with upstream.
-                @emit('sync')
+
+                after = @live()
+                if after.string?
+                    after = after.string()
+                if before != after
+                    #console.log("change during sync so doing again")
+                    cb?("file changed during sync")
+                    return
+
+                # success!
+                #console.log("_sync: success")
                 cb?()
 
     # save(cb): write out file to disk retrying until success = worked *and* what was saved to disk eq.
@@ -553,6 +531,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @sync()
                 @init_cursorActivity_event()
                 @codemirror.on 'change', (instance, changeObj) =>
+                    #console.log("change event when live='#{@live().string()}'")
                     if changeObj.origin?
                         if changeObj.origin == 'undo'
                             @on_undo(instance, changeObj)
@@ -560,6 +539,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                             @on_redo(instance, changeObj)
                         if changeObj.origin != 'setValue'
                             @ui_synced(false)
+                            #console.log("change event causing call to sync")
                             @sync()
             # Done initializing and have got content.
             cb?()
@@ -589,6 +569,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             alert_message(type:"error", message:m)
             cb(m)
 
+        #console.log("_connect -- '#{@filename}'")
         @_remove_listeners()
         @other_cursors = {}
         delete @session_uuid
@@ -613,12 +594,13 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
                 @codemirror.setOption('readOnly', @readonly)
                 @codemirror1.setOption('readOnly', @readonly)
+
                 if @_last_sync?
-                    # We have sync'd before.
+                    #console.log("We have sync'd before.")
                     synced_before = true
                     patch = @dsync_client._compute_edits(@_last_sync, @live())
                 else
-                    # This initialiation is the first sync.
+                    #console.log("This initialization is the first sync.")
                     @_last_sync   = DiffSyncDoc(string:resp.content)
                     synced_before = false
                     @editor._set(resp.content)
@@ -635,6 +617,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @dsync_server = new DiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
+
                 @_add_listeners()
                 @editor.has_unsaved_changes(false) # TODO: start with no unsaved changes -- not tech. correct!!
 
@@ -649,7 +632,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     # applying missed patches to the new upstream version that we just got from the hub.
                     #console.log("now applying missed patches to the new upstream version that we just got from the hub: ", patch)
                     @_apply_patch_to_live(patch)
-                    @emit 'sync'
+                    @emit('sync')
 
                 if @opts.revision_tracking
                     @call
@@ -661,7 +644,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                             if resp.event == 'error'
                                 err = resp.error
                             if err
-                                alert_message(type:"error", message:"error enabling revision saving -- #{err} -- #{@editor.filename}")
+                                #alert_message(type:"error", message:)
+                                # usually this is harmless -- it could happen on reconnect or network is flakie.
+                                console.log("ERROR: ", "error enabling revision saving -- #{err} -- #{@editor.filename}")
 
     ui_loading: () =>
         @element.find(".salvus-editor-codemirror-loading").show()
@@ -907,7 +892,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 header.hide()
             last_chat_name = mesg.name
             last_chat_time = new Date(mesg.date).getTime()
-            entry.find(".salvus-chat-entry-content").text(mesg.mesg.content).mathjax()
+
+            entry.find(".salvus-chat-entry-content").html(misc_page.markdown_to_html(mesg.mesg.content).s).mathjax()
 
         output.scrollTop(output[0].scrollHeight)
 
@@ -1442,7 +1428,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                 mark.processed = 38
                                 mark.uuid = uuid
                                 output = @elt_at_mark(mark)
-                                output.html('')
+                                output.find("span:first").empty()
                                 output.data('blobs',[])  # used to track visible files displaying data from database blob store
                             if mark.processed < x.length-1
                                 # new output to process
@@ -1689,7 +1675,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             element : required
             mark     : undefined
         mesg = opts.mesg
-        output = opts.element
+        output = opts.element.find("span:first")
         # mesg = object
         # output = jQuery wrapped element
 
@@ -1930,7 +1916,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
             width        : (@cm_lines().width()-25) + 'px'
             #'max-height' : (.9*@cm_wrapper().height()) + 'px'
 
-
         if cm.lineCount() < line + 2
             cm.replaceRange('\n', {line:line+1,ch:0})
         start = {line:line, ch:0}
@@ -1948,9 +1933,20 @@ class SynchronizedWorksheet extends SynchronizedDocument
         mark.uuid = cm.getRange({line:line, ch:1}, {line:line, ch:37})
         mark.type = MARKERS.output
 
-        # Double click output to toggle input
+        # Double click output to edit
         output.dblclick () =>
-            @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
+            @edit_cell
+                line : mark.find().from.line - 1
+                cm   : cm
+            ## used to be to toggle input
+            ##    @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
+
+        # Click edit button...
+        output.find("a[href=#edit]").click () =>
+            @edit_cell
+                line : mark.find().from.line - 1
+                cm   : cm
+            return false
 
         return mark
 
@@ -2017,6 +2013,40 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         return mark
                 line -= 1
         return
+
+    # Edit the cell whose input starts at the given 0-based line.
+    edit_cell: (opts) =>
+        opts = defaults opts,
+            line : required
+            cm   : required
+        #console.log("edit_cell: #{opts.line}")
+
+        block = @current_input_block(opts.line)
+        #console.log("block=",block)
+        # create or get cell start mark
+        {marker, created} = @cell_start_marker(block.start)
+        #console.log("marker=",marker)
+        if created  # we added a new line when creating start marker
+            block.end += 1
+        fs = @get_cell_flagstring(marker)
+        #console.log("fs=",fs)
+        if not fs?
+            return
+        # Put input cursor at beginning of input cell
+        focus_cursor = () =>
+            line = cm.getCursor().line
+            if line <= block.start or line > block.end
+                opts.cm.setCursor(line:block.start+1, ch:0)
+            opts.cm.focus()
+        if FLAGS.hide_input in fs
+            #console.log("hidden, so showing")
+            @remove_cell_flag(marker, FLAGS.hide_input)   # show input
+            @sync()
+            @process_sage_updates()
+        focus_cursor()
+
+        # If the input starts with %html, we replace the rendered output
+        # by a TinyMCE editor, and focus that.
 
     action: (opts={}) =>
         opts = defaults opts,
@@ -2151,19 +2181,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     break
 
             @set_cell_flag(marker, FLAGS.execute)
-            # sync (up to a certain number of times) until either computation happens or is acknowledged.
-            # Just successfully calling sync could return and mean that a sync started
-            # before this computation started had completed.
-            wait = 50
-            f = () =>
-                fs = @get_cell_flagstring(marker)
-                if not fs? or FLAGS.execute in fs
-                    @sync () =>
-                        wait = wait*1.4
-                        if wait < 15000
-                            setTimeout(f, wait)
-            @sync () =>
-                setTimeout(f, wait)
+            @sync()
 
     # purely client-side markdown rendering for a markdown, javascript, html, etc. block -- an optimization
     execute_cell_client_side: (opts) =>

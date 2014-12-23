@@ -271,8 +271,15 @@ class Console extends EventEmitter
                 else
                     @render(data)
 
+            @session.on 'reconnecting', () =>
+                #console.log('reconnecting')
+                @element.find(".salvus-console-terminal").css('opacity':'.5')
+                @element.find("a[href=#refresh]").addClass('btn-success').find(".fa").addClass('fa-spin')
+
             @session.on 'reconnect', () =>
                 #console.log("reconnect")
+                @element.find(".salvus-console-terminal").css('opacity':'1')
+                @element.find("a[href=#refresh]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
                 @_ignore_mesg = true
                 @value = ""
                 @reset()
