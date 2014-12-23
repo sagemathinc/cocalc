@@ -1428,7 +1428,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                 mark.processed = 38
                                 mark.uuid = uuid
                                 output = @elt_at_mark(mark)
-                                output.html('')
+                                output.find("span:first").empty()
                                 output.data('blobs',[])  # used to track visible files displaying data from database blob store
                             if mark.processed < x.length-1
                                 # new output to process
@@ -1675,7 +1675,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             element : required
             mark     : undefined
         mesg = opts.mesg
-        output = opts.element
+        output = opts.element.find("span:first")
         # mesg = object
         # output = jQuery wrapped element
 
@@ -1916,7 +1916,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
             width        : (@cm_lines().width()-25) + 'px'
             #'max-height' : (.9*@cm_wrapper().height()) + 'px'
 
-
         if cm.lineCount() < line + 2
             cm.replaceRange('\n', {line:line+1,ch:0})
         start = {line:line, ch:0}
@@ -1934,9 +1933,20 @@ class SynchronizedWorksheet extends SynchronizedDocument
         mark.uuid = cm.getRange({line:line, ch:1}, {line:line, ch:37})
         mark.type = MARKERS.output
 
-        # Double click output to toggle input
+        # Double click output to edit
         output.dblclick () =>
-            @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
+            @edit_cell
+                line : mark.find().from.line - 1
+                cm   : cm
+            ## used to be to toggle input
+            ##    @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
+
+        # Click edit button...
+        output.find("a[href=#edit]").click () =>
+            @edit_cell
+                line : mark.find().from.line - 1
+                cm   : cm
+            return false
 
         return mark
 
@@ -2003,6 +2013,40 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         return mark
                 line -= 1
         return
+
+    # Edit the cell whose input starts at the given 0-based line.
+    edit_cell: (opts) =>
+        opts = defaults opts,
+            line : required
+            cm   : required
+        #console.log("edit_cell: #{opts.line}")
+
+        block = @current_input_block(opts.line)
+        #console.log("block=",block)
+        # create or get cell start mark
+        {marker, created} = @cell_start_marker(block.start)
+        #console.log("marker=",marker)
+        if created  # we added a new line when creating start marker
+            block.end += 1
+        fs = @get_cell_flagstring(marker)
+        #console.log("fs=",fs)
+        if not fs?
+            return
+        # Put input cursor at beginning of input cell
+        focus_cursor = () =>
+            line = cm.getCursor().line
+            if line <= block.start or line > block.end
+                opts.cm.setCursor(line:block.start+1, ch:0)
+            opts.cm.focus()
+        if FLAGS.hide_input in fs
+            #console.log("hidden, so showing")
+            @remove_cell_flag(marker, FLAGS.hide_input)   # show input
+            @sync()
+            @process_sage_updates()
+        focus_cursor()
+
+        # If the input starts with %html, we replace the rendered output
+        # by a TinyMCE editor, and focus that.
 
     action: (opts={}) =>
         opts = defaults opts,
