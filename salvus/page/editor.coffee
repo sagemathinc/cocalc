@@ -79,6 +79,7 @@ codemirror_associations =
     java   : 'text/x-java'
     jl     : 'text/x-julia'
     js     : 'javascript'
+    json   : 'javascript'
     lua    : 'lua'
     m      : 'text/x-octave'
     md     : 'gfm2'
