@@ -5011,7 +5011,7 @@ initialize_sagews_editor = () ->
         elt.append(item)
 
     for i in [1..6]
-        item = $("<li><a href='#formatBlock' data-args='H#{i}'><font size=#{7-i}>Heading #{i}</font></a></li>")
+        item = $("<li><a href='#formatBlock' data-args='H#{i}'><H#{i}>Heading #{i}</H#{i}></a></li>")
         elt.append(item)
 
     item = $("<li><a href='#formatBlock' data-args='div'>Normal</a></li>")

@@ -147,8 +147,13 @@ $.fn.extend
                 one_line : false       # if true, blur when user presses the enter key
                 mathjax  : false       # if false, completey ignore ever running mathjax -- probably a good idea since support for running it is pretty broken.
 
+                cancel   : false       # if given, instead removes all handlers/editable from element
+
             t = $(this)
-            t.attr('contenteditable', true)
+
+            if opts.cancel
+                t.data('cancel_editor')?()
+                return
 
             if not opts.value?
                 opts.value = t.html()
@@ -204,18 +209,17 @@ $.fn.extend
                         set_value(new_cur)
                         report_change()
 
-            t.data('set_value', set_value)
-            t.data('get_value', get_value)
-            t.data('set_upstream', set_upstream)
 
-            t.on 'focus', ->
+            on_focus = () ->
+                console.log("on_focus")
                 if t.data('mode') == 'edit'
                     return
                 t.data('mode', 'edit')
                 t = $(this)
                 x = t.data('raw')
 
-            t.blur () ->
+            on_blur = () ->
+                console.log("on_blur")
                 t = $(this)
                 t.data
                     raw  : t.html()
@@ -223,15 +227,40 @@ $.fn.extend
                 if opts.mathjax
                     t.mathjax()
 
-            t.on 'paste', set_change_timer
-            t.on 'blur', set_change_timer
-            t.on 'keyup', set_change_timer
-            t.on 'keydown', (evt) ->
+
+            on_keydown = (evt) ->
                 if evt.which == 27 or (opts.one_line and evt.which == 13)
                     t.blur()
                     return false
 
-            t.data('last_update', opts.value)
+            t.attr('contenteditable', true)
+
+            handlers =
+                focus   : on_focus
+                blur    : on_blur
+                paste   : set_change_timer
+                keyup   : set_change_timer
+                keydown : set_change_timer
+
+            for evt, f of handlers
+                t.on(evt, f)
+
+            data =
+                set_value    : set_value
+                get_value    : get_value
+                set_upstream : set_upstream
+                last_update  : opts.value
+
+            t.data(data)
+
+            t.data 'cancel_editor', () =>
+                console.log("cancel_editor")
+                t.attr('contenteditable', false)
+                for evt, f of handlers
+                    t.unbind(evt, f)
+                for key,_ of data
+                    t.removeData(key)
+
             set_value(opts.value)
             return t
 

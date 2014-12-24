@@ -24,8 +24,10 @@
 
 # don't delete the following -- even if not used below, since this needs
 # to be available to page/ via browserify.
-async = require('async')
-marked = require('marked')
+async       = require('async')
+marked      = require('marked')
+to_markdown = require('to-markdown').toMarkdown
+
 # end "don't delete"
 
 _     = require('underscore')

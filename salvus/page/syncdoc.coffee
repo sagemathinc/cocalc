@@ -78,6 +78,8 @@ output_template     = templates.find(".sagews-output")
 
 account = require('account')
 
+to_markdown = require('to-markdown').toMarkdown
+
 
 CLIENT_SIDE_MODE_LINES = []
 for mode in ['md', 'html', 'coffeescript', 'javascript']
@@ -2051,10 +2053,21 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # If the input starts with %html, we create a TinyMCE editor,
         # and focus that.
         input = cm.getRange({line:block.start+1,ch:0}, {line:block.end,ch:0}).trim()
-        if input.slice(0,5) == "%html"
-            console.log("%html")
+        if input.slice(0,5) == '%html'
+            editor = 'html'
+            to_html   = (code) -> code
+            from_html = (code) -> code
+        else if input.slice(0,3) == '%md'
+            editor = 'md'
+            to_html   = (code) -> misc_page.markdown_to_html(code).s
+            from_html = to_markdown
+        else
+            editor = undefined
+
+        if editor
+            console.log("special editor: #{editor}")
             input_mark  = cm.findMarksAt({line:block.start, ch:1})[0]
-            output_mark = cm.findMarksAt({line:block.end, ch:1})[0]
+            output_mark = cm.findMarksAt({line:block.end,   ch:1})[0]
             if output_mark? and input_mark?
                 console.log("found input and output mark")
                 output = @elt_at_mark(output_mark)
@@ -2066,7 +2079,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 j = input.indexOf(")")
                 if j < i and j != -1
                     i = j
-                html_input = input.slice(i+1).trim()
+                html_input = to_html(input.slice(i+1).trim())
                 top_input = input.slice(0,i+1)
                 div.addClass("sagews-output-html")
                 div.html(html_input)
@@ -2074,7 +2087,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 ignore_changes = false
 
                 to = output_mark.find()?.from.line
-                cm.scrollIntoView({from:{line:Math.max(0,to-5),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
+                #cm.scrollIntoView({from:{line:Math.max(0,to-5),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
+                cm.setCursor(line:Math.max(0,to-2), ch:0)
 
                 button_bar = output.find(".sagews-output-editor-buttons")
 
@@ -2084,7 +2098,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     console.log(cmd, args)
                     if args?
                         args = "#{args}".split(',')
-                    document.execCommand(cmd, 0, args)  # TODO: make more cross platform
+                    if cmd == 'done'
+                        finish_editing()
+                    else
+                        document.execCommand(cmd, 0, args)  # TODO: make more cross platform
+                        div_changed()
 
                 ###
                 commands = ($(b).attr('href').slice(1) for b in button_bar.find("a"))
@@ -2106,6 +2124,23 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 #        rangy.removeMarkers(saved_sel)
                 #        saved_sel = undefined
 
+                finish_editing = () =>
+                    cm.off('change', on_cm_change)
+                    button_bar.find("a").unbind('click')
+                    pos = input_mark.find()
+                    cm.setCursor(pos.from)
+                    console.log("now do action")
+                    div.make_editable
+                        cancel : true
+                    @action
+                        execute : true
+                        advance : false
+
+                position_div = () =>
+                    #to   = output_mark.find()?.from.line
+                    #cm.setCursor(line:Math.max(0,to-2), ch:0)
+                    #cm.scrollIntoView({from:{line:Math.max(0,to),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
+
                 div_changed = () =>
                     console.log('change event')
                     new_html = div.html().trim()
@@ -2114,19 +2149,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     last_html = new_html
                     console.log(input_mark.find(), output_mark.find())
                     from = input_mark.find()?.from.line + 1
-                    if not from?
-                        return
                     to   = output_mark.find()?.from.line
-                    if not to?
-                        return
                     saved_sel = rangy.saveSelection()
                     ignore_changes = true
                     console.log("from=", from, " to=",to)
                     # save contenteditable selection
                     # replace range, which loses the div's selection
-                    cm.replaceRange(top_input + new_html+'\n',{line:from,ch:0}, {line:to,ch:0})
-                    cm.setCursor(line:Math.max(0,to-2), ch:0)
-                    cm.scrollIntoView({from:{line:Math.max(0,to),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
+                    s = top_input + from_html(new_html) + '\n'
+                    cm.replaceRange(s, {line:from,ch:0}, {line:to,ch:0})
+                    position_div()
                     # restore selection
                     rangy.restoreSelection(saved_sel)
                     rangy.removeMarkers(saved_sel)
@@ -2134,23 +2165,26 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     @sync()
                     ignore_changes = false
 
+                execute = () =>
+                    console.log("execute")
 
                 div.make_editable
-                    mathjax :  false
+                    mathjax  : false
                     onchange : div_changed
 
-                cm.on 'change', (instance, changeObj) =>
+                on_cm_change = (instance, changeObj) =>
                     console.log("cm change")
                     if ignore_changes
                         return
                     from = input_mark.find()?.from.line + 1
                     to   = output_mark.find()?.from.line
-                    if not from? or not to?
-                        return
-                    new_html = cm.getRange({line:from,ch:0}, {line:to,ch:0}).slice(top_input.length).trim()
+                    new_html = to_html(cm.getRange({line:from,ch:0}, {line:to,ch:0}).slice(top_input.length).trim())
                     if new_html != last_html
                         console.log("changed in our selection from '#{last_html}' to '#{new_html}'")
                         div.html(new_html)
+                        div_changed()
+
+                cm.on('change', on_cm_change)
 
                 ###
                 div.on 'blur', () =>
