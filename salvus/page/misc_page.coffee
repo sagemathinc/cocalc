@@ -145,6 +145,7 @@ $.fn.extend
                 onchange : undefined   # function that gets called with a diff when content changes
                 interval : 250         # milliseconds interval between sending update change events about content
                 one_line : false       # if true, blur when user presses the enter key
+                mathjax  : false       # if false, completey ignore ever running mathjax -- probably a good idea since support for running it is pretty broken.
 
             t = $(this)
             t.attr('contenteditable', true)
@@ -174,13 +175,14 @@ $.fn.extend
                 if opts.onchange? and not change_timer?
                     change_timer = setTimeout(report_change, opts.interval)
 
-            # set the text content; it will be subsequently processed by mathjax
+            # set the text content; it will be subsequently processed by mathjax, if opts.mathjax is true
             set_value = (value) ->
                 t.data
                     raw         : value
                     mode        : 'view'
                 t.html(value)
-                t.mathjax()
+                if opts.mathjax
+                    t.mathjax()
                 set_change_timer()
 
             get_value = () ->
@@ -218,7 +220,8 @@ $.fn.extend
                 t.data
                     raw  : t.html()
                     mode : 'view'
-                t.mathjax()
+                if opts.mathjax
+                    t.mathjax()
 
             t.on 'paste', set_change_timer
             t.on 'blur', set_change_timer

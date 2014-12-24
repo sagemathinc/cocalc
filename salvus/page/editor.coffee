@@ -4996,3 +4996,25 @@ class Course extends FileEditorWrapper
         @wrapped = @element.data('course')
 
 
+
+# Initialize fonts for the editor
+initialize_sagews_editor = () ->
+    elt = $(".sagews-output-editor-font").find(".dropdown-menu")
+    for font in 'Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Helvetica,Impact,Lucida Grande,Lucida Sans,Tahoma,Times,Times New Roman,Verdana'.split(',')
+        item = $("<li><a href='#fontName' data-args='#{font}'>#{font}</a></li>")
+        item.css('font-family', font)
+        elt.append(item)
+
+    elt = $(".sagews-output-editor-font-size").find(".dropdown-menu")
+    for size in [1..7]
+        item = $("<li><a href='#fontSize' data-args='#{size}'><font size=#{size}>Size #{size}</font></a></li>")
+        elt.append(item)
+
+    for i in [1..6]
+        item = $("<li><a href='#formatBlock' data-args='H#{i}'><font size=#{7-i}>Heading #{i}</font></a></li>")
+        elt.append(item)
+
+    item = $("<li><a href='#formatBlock' data-args='div'>Normal</a></li>")
+    elt.append(item)
+
+initialize_sagews_editor()

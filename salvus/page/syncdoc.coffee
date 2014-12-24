@@ -1428,7 +1428,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                 mark.processed = 38
                                 mark.uuid = uuid
                                 output = @elt_at_mark(mark)
-                                output.find("span:first").empty()
+                                output.find(".sagews-output-editor").hide()
+                                output.find(".sagews-output-editor-content").empty()
+                                output.find(".sagews-output-messages").empty()
                                 output.data('blobs',[])  # used to track visible files displaying data from database blob store
                             if mark.processed < x.length-1
                                 # new output to process
@@ -1675,7 +1677,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             element : required
             mark     : undefined
         mesg = opts.mesg
-        output = opts.element.find("span:first")
+        output = opts.element.find(".sagews-output-messages")
         # mesg = object
         # output = jQuery wrapped element
 
@@ -2021,6 +2023,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm   : required
         #console.log("edit_cell: #{opts.line}")
 
+        cm = opts.cm
         block = @current_input_block(opts.line)
         #console.log("block=",block)
         # create or get cell start mark
@@ -2036,8 +2039,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         focus_cursor = () =>
             line = cm.getCursor().line
             if line <= block.start or line > block.end
-                opts.cm.setCursor(line:block.start+1, ch:0)
-            opts.cm.focus()
+                cm.setCursor(line:block.end-1, ch:0)
+            cm.focus()
         if FLAGS.hide_input in fs
             #console.log("hidden, so showing")
             @remove_cell_flag(marker, FLAGS.hide_input)   # show input
@@ -2045,8 +2048,120 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @process_sage_updates()
         focus_cursor()
 
-        # If the input starts with %html, we replace the rendered output
-        # by a TinyMCE editor, and focus that.
+        # If the input starts with %html, we create a TinyMCE editor,
+        # and focus that.
+        input = cm.getRange({line:block.start+1,ch:0}, {line:block.end,ch:0}).trim()
+        if input.slice(0,5) == "%html"
+            console.log("%html")
+            input_mark  = cm.findMarksAt({line:block.start, ch:1})[0]
+            output_mark = cm.findMarksAt({line:block.end, ch:1})[0]
+            if output_mark? and input_mark?
+                console.log("found input and output mark")
+                output = @elt_at_mark(output_mark)
+                console.log("output elt=", output)
+                output.find(".sagews-output-editor").show()
+                div = output.find(".sagews-output-editor-content")
+                output.find(".sagews-output-messages").empty()
+                i = input.indexOf("\n")
+                j = input.indexOf(")")
+                if j < i and j != -1
+                    i = j
+                html_input = input.slice(i+1).trim()
+                top_input = input.slice(0,i+1)
+                div.addClass("sagews-output-html")
+                div.html(html_input)
+                last_html = html_input
+                ignore_changes = false
+
+                to = output_mark.find()?.from.line
+                cm.scrollIntoView({from:{line:Math.max(0,to-5),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
+
+                button_bar = output.find(".sagews-output-editor-buttons")
+
+                button_bar.find("a").click () ->
+                    args = $(this).data('args')
+                    cmd  = $(this).attr('href').slice(1)
+                    console.log(cmd, args)
+                    if args?
+                        args = "#{args}".split(',')
+                    document.execCommand(cmd, 0, args)  # TODO: make more cross platform
+
+                ###
+                commands = ($(b).attr('href').slice(1) for b in button_bar.find("a"))
+                for cmd in commands
+                    ((cmd) =>
+                        console.log("cmd='#{cmd}'")
+                        button_bar.find("a[href=##{cmd}]").click () =>
+                            document.execCommand(cmd)
+                            div_changed()
+                            return false
+                    )(cmd)
+                ###
+
+                #div.blur () =>
+                #    if not saved_sel?
+                #        saved_sel = rangy.saveSelection()
+                #div.focus () =>
+                #    if saved_sel?
+                #        rangy.removeMarkers(saved_sel)
+                #        saved_sel = undefined
+
+                div_changed = () =>
+                    console.log('change event')
+                    new_html = div.html().trim()
+                    if new_html == last_html
+                        return
+                    last_html = new_html
+                    console.log(input_mark.find(), output_mark.find())
+                    from = input_mark.find()?.from.line + 1
+                    if not from?
+                        return
+                    to   = output_mark.find()?.from.line
+                    if not to?
+                        return
+                    saved_sel = rangy.saveSelection()
+                    ignore_changes = true
+                    console.log("from=", from, " to=",to)
+                    # save contenteditable selection
+                    # replace range, which loses the div's selection
+                    cm.replaceRange(top_input + new_html+'\n',{line:from,ch:0}, {line:to,ch:0})
+                    cm.setCursor(line:Math.max(0,to-2), ch:0)
+                    cm.scrollIntoView({from:{line:Math.max(0,to),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
+                    # restore selection
+                    rangy.restoreSelection(saved_sel)
+                    rangy.removeMarkers(saved_sel)
+                    saved_sel = undefined
+                    @sync()
+                    ignore_changes = false
+
+
+                div.make_editable
+                    mathjax :  false
+                    onchange : div_changed
+
+                cm.on 'change', (instance, changeObj) =>
+                    console.log("cm change")
+                    if ignore_changes
+                        return
+                    from = input_mark.find()?.from.line + 1
+                    to   = output_mark.find()?.from.line
+                    if not from? or not to?
+                        return
+                    new_html = cm.getRange({line:from,ch:0}, {line:to,ch:0}).slice(top_input.length).trim()
+                    if new_html != last_html
+                        console.log("changed in our selection from '#{last_html}' to '#{new_html}'")
+                        div.html(new_html)
+
+                ###
+                div.on 'blur', () =>
+                    console.log('change event')
+                    new_html = div.html()
+                    console.log(input_mark.find(), output_mark.find())
+                    from = input_mark.find().from.line + 1
+                    to   = output_mark.find().from.line
+                    console.log("from=", from, " to=",to)
+                    cm.replaceRange(top_input + new_html+'\n',{line:from,ch:0},  {line:to,ch:0})
+                ###
 
     action: (opts={}) =>
         opts = defaults opts,

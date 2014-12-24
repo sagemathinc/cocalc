@@ -22,7 +22,8 @@
 
 {EventEmitter} = require('events')
 
-# don't delete the following -- even if not used below, since this needs to be available to page/
+# don't delete the following -- even if not used below, since this needs
+# to be available to page/ via browserify.
 async = require('async')
 marked = require('marked')
 # end "don't delete"
