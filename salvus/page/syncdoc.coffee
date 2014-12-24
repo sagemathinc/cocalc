@@ -1423,8 +1423,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     if marks.length == 0
                         @mark_output_line(cm, line)
                     mark = cm.findMarksAt({line:line, ch:1})[0]
-                    console.log("mark.editing = ", mark.editing)
-                    if mark?
+                    if mark? and not mark.editing
                         uuid = cm.getRange({line:line,ch:1}, {line:line,ch:37})
                         if misc.is_valid_uuid_string(uuid)
                             if mark.uuid != uuid # uuid changed -- completely new output
@@ -2066,13 +2065,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
             editor = undefined
 
         if editor
-            console.log("special editor: #{editor}")
+            #console.log("special editor: #{editor}")
             input_mark  = cm.findMarksAt({line:block.start, ch:1})[0]
             output_mark = cm.findMarksAt({line:block.end,   ch:1})[0]
             if output_mark? and input_mark?
-                console.log("found input and output mark")
+                #console.log("found input and output mark")
                 output = @elt_at_mark(output_mark)
-                console.log("output elt=", output)
+                #console.log("output elt=", output)
                 output.find(".sagews-output-editor").show()
                 div = output.find(".sagews-output-editor-content")
                 output.find(".sagews-output-messages").empty()
@@ -2107,7 +2106,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 button_bar.find("a").click () ->
                     args = $(this).data('args')
                     cmd  = $(this).attr('href').slice(1)
-                    console.log(cmd, args)
+                    #console.log(cmd, args)
                     if args?
                         args = "#{args}".split(',')
                     if cmd == 'done'
@@ -2145,45 +2144,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
                 init_color_control()
 
-                ###
-                sample = control.find("i")
-                input.change (ev) ->
-                    hex = input.val()
-                    input.colorpicker('setValue', hex)
-                input.on "changeColor", (ev) ->
-                    hex = ev.color.toHex()
-                    sample.css("background-color", hex)
-                    send(hex)
-                sample.click (ev) -> input.colorpicker('show')
-                ###
-
-
-                ###
-                commands = ($(b).attr('href').slice(1) for b in button_bar.find("a"))
-                for cmd in commands
-                    ((cmd) =>
-                        console.log("cmd='#{cmd}'")
-                        button_bar.find("a[href=##{cmd}]").click () =>
-                            document.execCommand(cmd)
-                            div_changed()
-                            return false
-                    )(cmd)
-                ###
-
-                #div.blur () =>
-                #    if not saved_sel?
-                #        saved_sel = rangy.saveSelection()
-                #div.focus () =>
-                #    if saved_sel?
-                #        rangy.removeMarkers(saved_sel)
-                #        saved_sel = undefined
 
                 finish_editing = () =>
                     cm.off('change', on_cm_change)
                     button_bar.find("a").unbind('click')
                     pos = input_mark.find()
                     cm.setCursor(pos.from)
-                    console.log("now do action")
+                    #console.log("now do action")
                     div.make_editable
                         cancel : true
                     @action
@@ -2197,14 +2164,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     #cm.scrollIntoView({from:{line:Math.max(0,to),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
 
                 div_changed = () =>
-                    console.log('change event')
+                    #console.log('change event')
                     if ignore_changes
                         return
                     new_html = div.html().trim()
                     if new_html == last_html
                         return
                     last_html = new_html
-                    console.log(input_mark.find(), output_mark.find())
+                    #console.log(input_mark.find(), output_mark.find())
                     from = input_mark.find()?.from.line + 1
                     to   = output_mark.find()?.from.line
 
@@ -2215,36 +2182,23 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     @sync()
                     ignore_changes = false
 
-                execute = () =>
-                    console.log("execute")
-
                 div.make_editable
                     mathjax  : false
                     onchange : div_changed
 
                 on_cm_change = (instance, changeObj) =>
-                    console.log("cm change")
+                    #console.log("cm change")
                     if ignore_changes
                         return
                     from = input_mark.find()?.from.line + 1
                     to   = output_mark.find()?.from.line
                     new_html = to_html(cm.getRange({line:from,ch:0}, {line:to,ch:0}).slice(top_input.length).trim())
                     if new_html != last_html
-                        console.log("changed in our selection from '#{last_html}' to '#{new_html}'")
+                        #console.log("changed in our selection from '#{last_html}' to '#{new_html}'")
                         div.html(new_html)
 
                 cm.on('change', on_cm_change)
 
-                ###
-                div.on 'blur', () =>
-                    console.log('change event')
-                    new_html = div.html()
-                    console.log(input_mark.find(), output_mark.find())
-                    from = input_mark.find().from.line + 1
-                    to   = output_mark.find().from.line
-                    console.log("from=", from, " to=",to)
-                    cm.replaceRange(top_input + new_html+'\n',{line:from,ch:0},  {line:to,ch:0})
-                ###
 
     action: (opts={}) =>
         opts = defaults opts,

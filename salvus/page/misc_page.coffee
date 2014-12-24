@@ -211,7 +211,7 @@ $.fn.extend
 
 
             on_focus = () ->
-                console.log("on_focus")
+                #console.log("on_focus")
                 if t.data('mode') == 'edit'
                     return
                 t.data('mode', 'edit')
@@ -219,7 +219,7 @@ $.fn.extend
                 x = t.data('raw')
 
             on_blur = () ->
-                console.log("on_blur")
+                #console.log("on_blur")
                 t = $(this)
                 t.data
                     raw  : t.html()
@@ -254,7 +254,7 @@ $.fn.extend
             t.data(data)
 
             t.data 'cancel_editor', () =>
-                console.log("cancel_editor")
+                #console.log("cancel_editor")
                 t.attr('contenteditable', false)
                 for evt, f of handlers
                     t.unbind(evt, f)
