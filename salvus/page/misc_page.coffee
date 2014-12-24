@@ -766,6 +766,29 @@ exports.set_window_title = (title) ->
         title = "(#{u}) #{title}"
     document.title = title
 
+# get the currently selected html
+exports.get_selection = () ->
+    if window.getSelection
+        sel = window.getSelection()
+        if sel.getRangeAt and sel.rangeCount
+            range = sel.getRangeAt(0)
+    else if document.selection
+        range = document.selection.createRange()
+    return range
+
+exports.restore_selection = (selected_range) ->
+    if window.getSelection || document.createRange
+        selection = window.getSelection()
+        if selected_range
+            try
+                selection.removeAllRanges()
+            catch ex
+                document.body.createTextRange().select()
+                document.selection.empty()
+            selection.addRange(selected_range)
+    else if document.selection and selected_range
+        selected_range.select()
+
 
 
 

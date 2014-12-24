@@ -1423,6 +1423,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     if marks.length == 0
                         @mark_output_line(cm, line)
                     mark = cm.findMarksAt({line:line, ch:1})[0]
+                    console.log("mark.editing = ", mark.editing)
                     if mark?
                         uuid = cm.getRange({line:line,ch:1}, {line:line,ch:37})
                         if misc.is_valid_uuid_string(uuid)
@@ -2086,9 +2087,20 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 last_html = html_input
                 ignore_changes = false
 
+                output_mark.editing = true
+
                 to = output_mark.find()?.from.line
                 #cm.scrollIntoView({from:{line:Math.max(0,to-5),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
                 cm.setCursor(line:Math.max(0,to-2), ch:0)
+
+                selection = undefined
+                save_selection = () =>
+                    selection = misc_page.get_selection()
+                restore_selection = () =>
+                    if selection?
+                        misc_page.restore_selection(selection)
+                div.on 'blur', () =>
+                    save_selection()
 
                 button_bar = output.find(".sagews-output-editor-buttons")
 
@@ -2101,8 +2113,50 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     if cmd == 'done'
                         finish_editing()
                     else
+                        restore_selection()
                         document.execCommand(cmd, 0, args)  # TODO: make more cross platform
+                        save_selection()
                         div_changed()
+
+                # initialize the color control
+                init_color_control = () =>
+                    elt   = button_bar.find(".sagews-output-editor-color-selector")
+                    button_bar_input = elt.find("input").colorpicker()
+                    sample = elt.find("i")
+                    set = (hex) ->
+                        restore_selection()
+                        document.execCommand("foreColor", 0, [hex])
+                        save_selection()
+                        div_changed()
+
+                    button_bar_input.change (ev) ->
+                        hex = button_bar_input.val()
+                        button_bar_input.colorpicker('setValue', hex)
+                        set(hex)
+
+                    button_bar_input.on "changeColor", (ev) ->
+                        hex = ev.color.toHex()
+                        sample.css("background-color", hex)
+                        set(hex)
+
+                    sample.click (ev) ->
+                        misc_page.restore_selection(selection)
+                        button_bar_input.colorpicker('show')
+
+                init_color_control()
+
+                ###
+                sample = control.find("i")
+                input.change (ev) ->
+                    hex = input.val()
+                    input.colorpicker('setValue', hex)
+                input.on "changeColor", (ev) ->
+                    hex = ev.color.toHex()
+                    sample.css("background-color", hex)
+                    send(hex)
+                sample.click (ev) -> input.colorpicker('show')
+                ###
+
 
                 ###
                 commands = ($(b).attr('href').slice(1) for b in button_bar.find("a"))
@@ -2135,6 +2189,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     @action
                         execute : true
                         advance : false
+                    output_mark.editing = false
 
                 position_div = () =>
                     #to   = output_mark.find()?.from.line
@@ -2143,6 +2198,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
                 div_changed = () =>
                     console.log('change event')
+                    if ignore_changes
+                        return
                     new_html = div.html().trim()
                     if new_html == last_html
                         return
@@ -2150,18 +2207,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     console.log(input_mark.find(), output_mark.find())
                     from = input_mark.find()?.from.line + 1
                     to   = output_mark.find()?.from.line
-                    saved_sel = rangy.saveSelection()
+
                     ignore_changes = true
-                    console.log("from=", from, " to=",to)
-                    # save contenteditable selection
-                    # replace range, which loses the div's selection
-                    s = top_input + from_html(new_html) + '\n'
-                    cm.replaceRange(s, {line:from,ch:0}, {line:to,ch:0})
-                    position_div()
-                    # restore selection
-                    rangy.restoreSelection(saved_sel)
-                    rangy.removeMarkers(saved_sel)
-                    saved_sel = undefined
+                    s = top_input + from_html(new_html)
+                    v = cm.getLine(to-1)
+                    cm.replaceRange(s, {line:from,ch:0}, {line:to-1,ch:v.length})
                     @sync()
                     ignore_changes = false
 
@@ -2182,7 +2232,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     if new_html != last_html
                         console.log("changed in our selection from '#{last_html}' to '#{new_html}'")
                         div.html(new_html)
-                        div_changed()
 
                 cm.on('change', on_cm_change)
 
