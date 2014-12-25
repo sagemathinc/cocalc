@@ -1141,7 +1141,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         # initialize the color control
         init_color_control = () =>
-            elt   = button_bar.find(".sagews-output-editor-color-selector")
+            elt   = button_bar.find(".sagews-output-editor-foreground-color-selector")
             button_bar_input = elt.find("input").colorpicker()
             sample = elt.find("i")
             set = (hex) ->
@@ -1166,6 +1166,32 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         init_color_control()
 
+        # initialize the color control
+        init_background_color_control = () =>
+            elt   = button_bar.find(".sagews-output-editor-background-color-selector")
+            button_bar_input = elt.find("input").colorpicker()
+            sample = elt.find("i")
+            set = (hex) ->
+                that.html_editor_restore_selection()
+                document.execCommand("hiliteColor", 0, [hex])
+                that.html_editor_save_selection()
+                that.html_editor_div_changed()
+
+            button_bar_input.change (ev) ->
+                hex = button_bar_input.val()
+                button_bar_input.colorpicker('setValue', hex)
+                set(hex)
+
+            button_bar_input.on "changeColor", (ev) ->
+                hex = ev.color.toHex()
+                sample.css("background-color", hex)
+                set(hex)
+
+            sample.click (ev) ->
+                that.html_editor_restore_selection()
+                button_bar_input.colorpicker('show')
+
+        init_background_color_control()
 
     _is_dangerous_undo_step: (cm, changes) =>
         for c in changes
