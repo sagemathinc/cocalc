@@ -1123,21 +1123,68 @@ class SynchronizedWorksheet extends SynchronizedDocument
     html_editor_div_changed: () =>
         console.log("@html_editor_div_changed: todo")
 
+    html_editor_link: () =>
+        @html_editor_restore_selection()
+        selection = document.getSelection()
+        displayed_text = selection+""
+
+        dialog = templates.find(".salvus-html-editor-link-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            setTimeout(focus, 50)
+            return false
+        url = dialog.find(".salvus-html-editor-url")
+        url.focus()
+        display = dialog.find(".salvus-html-editor-display")
+        target  = dialog.find(".salvus-html-editor-target")
+        title   = dialog.find(".salvus-html-editor-title")
+
+        display.val(displayed_text)
+
+        submit = () =>
+            dialog.modal('hide')
+            if target.val() == "_blank"
+                target = " target='_blank'"
+            else
+                target = ''
+            s = "<a href='#{url.val()}' title='#{title.val()}'#{target}>#{display.val()}</a>"
+            @html_editor_exec_command('insertHTML', s)  #TODO: won't work in IE
+
+        dialog.find(".btn-submit").off('click').click(submit)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                return false
+
+    html_editor_exec_command: (cmd, args, restore=true) =>
+        console.log("html_editor_exec_command #{misc.to_json([cmd,args])}")
+        if restore
+            @html_editor_restore_selection()
+        document.execCommand(cmd, 0, args)  # TODO: make more cross platform
+        @html_editor_save_selection()
+
     init_html_editor_buttons: () =>
         button_bar = @element.find(".salvus-editor-codemirror-worksheet-editable-buttons")
         button_bar.show()
 
         that = @
         button_bar.find("a").click () ->
+            that.html_editor_restore_selection()
             args = $(this).data('args')
             cmd  = $(this).attr('href').slice(1)
+            if args == 'special'
+                that["html_editor_#{cmd}"]()
+                return false
             #console.log(cmd, args)
             if args?
                 args = "#{args}".split(',')
-            that.html_editor_restore_selection()
-            document.execCommand(cmd, 0, args)  # TODO: make more cross platform
-            that.html_editor_save_selection()
+            that.html_editor_exec_command(cmd, args)
             that.html_editor_div_changed()
+            return false
 
         # initialize the color control
         init_color_control = () =>
@@ -1145,9 +1192,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             button_bar_input = elt.find("input").colorpicker()
             sample = elt.find("i")
             set = (hex) ->
-                that.html_editor_restore_selection()
-                document.execCommand("foreColor", 0, [hex])
-                that.html_editor_save_selection()
+                that.html_editor_exec_command("foreColor", [hex])
                 that.html_editor_div_changed()
 
             button_bar_input.change (ev) ->
@@ -1172,9 +1217,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             button_bar_input = elt.find("input").colorpicker()
             sample = elt.find("i")
             set = (hex) ->
-                that.html_editor_restore_selection()
-                document.execCommand("hiliteColor", 0, [hex])
-                that.html_editor_save_selection()
+                that.html_editor_exec_command("hiliteColor", [hex])
                 that.html_editor_div_changed()
 
             button_bar_input.change (ev) ->
@@ -1192,6 +1235,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 button_bar_input.colorpicker('show')
 
         init_background_color_control()
+
+
+
 
     _is_dangerous_undo_step: (cm, changes) =>
         for c in changes
