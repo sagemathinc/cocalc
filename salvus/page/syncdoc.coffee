@@ -1440,7 +1440,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                         output.removeClass('sagews-output-hide')
                                         try
                                             #t = misc.mswalltime()
-                                            @process_output_mesg(mesg:JSON.parse(s), element:output)
+                                            @process_output_mesg
+                                                mesg:JSON.parse(s)
+                                                element:output.find("span:first")
                                             #console.log("time to parse = ", misc.mswalltime(t))
                                             mark.processed += 1 + s.length
                                         catch e
@@ -1675,7 +1677,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             element : required
             mark     : undefined
         mesg = opts.mesg
-        output = opts.element.find("span:first")
+        output = opts.element
         # mesg = object
         # output = jQuery wrapped element
 
@@ -1780,7 +1782,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                         delete mesg.done
                                         @process_output_mesg
                                             mesg    : mesg
-                                            element : output
+                                            element : output.find("span:first")
 
                             for event, function_name of mesg.events
                                 img.data("salvus-events-#{event}", function_name)
