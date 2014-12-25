@@ -173,6 +173,45 @@ Editor for files in a project
                 </span>
 
             </div>
+            <div class="salvus-editor-codemirror-worksheet-editable-buttons hide">
+                <div class="btn-group">
+                    <a href="#bold" class="btn btn-default btn-sm"><i class="fa fa-bold"></i></a>
+                    <a href="#italic" class="btn btn-default btn-sm"><i class="fa fa-italic"></i></a>
+                    <a href="#underline" class="btn btn-default btn-sm"><i class="fa fa-underline"></i></a>
+                    <a href="#strikethrough" class="btn btn-default btn-sm"><i class="fa fa-strikethrough"></i></a>
+                    <a href="#justifyleft" class="btn btn-default btn-sm"><i class="fa fa-align-left"></i></a>
+                    <a href="#justifycenter" class="btn btn-default btn-sm"><i class="fa fa-align-center"></i></a>
+                    <a href="#justifyright" class="btn btn-default btn-sm"><i class="fa fa-align-right"></i></a>
+                    <a href="#justifyfull" class="btn btn-default btn-sm"><i class="fa fa-align-justify"></i></a>
+                    <a href="#outdent" class="btn btn-default btn-sm"><i class="fa fa-outdent"></i></a>
+                    <a href="#indent" class="btn btn-default btn-sm"><i class="fa fa-indent"></i></a>
+                    <a href="#undo" class="btn btn-default btn-sm"><i class="fa fa-undo"></i></a>
+                    <a href="#redo" class="btn btn-default btn-sm"><i class="fa fa-repeat"></i></a>
+                    <a href="#insertunorderedlist" class="btn btn-default btn-sm"><i class="fa fa-list"></i></a>
+                    <a href="#insertorderedlist" class="btn btn-default btn-sm"><i class="fa fa-list-ol"></i></a>
+                    <a href="#subscript" class="btn btn-default btn-sm"><i class="fa fa-subscript"></i></a>
+                    <a href="#superscript" class="btn btn-default btn-sm"><i class="fa fa-superscript"></i></a>
+                    <a href="#insertHorizontalRule" class="btn btn-default btn-sm"><i class="fa fa-columns fa-rotate-270 "></i></a>
+                    <div class="btn-group sagews-output-editor-font">
+                        <span class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" title="Font">
+                            <i class="fa fa-font"></i><b class="caret"></b>
+                        </span>
+                        <ul class="dropdown-menu">
+                        </ul>
+                    </div>
+                    <div class="btn-group sagews-output-editor-font-size">
+                        <span class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" title="Font">
+                            <i class="fa fa-text-height"></i><b class="caret"></b>
+                        </span>
+                        <ul class="dropdown-menu">
+                        </ul>
+                    </div>
+                    <div class="sagews-output-editor-color-selector input-group color" data-color-format="rgb">
+                        <input type="text" value="#000000" style="height:30px;" class="form-control">
+                        <span class="input-group-addon"><i class="fa" style="background-color:#000000; height: 16px; width: 16px"></i></span>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="salvus-editor-codemirror-chat-column hide">
             <div class="salvus-editor-codemirror-chat">
@@ -376,46 +415,6 @@ Editor for files in a project
             <a href="#edit" class="btn btn-default btn-sm"><i class="fa fa-edit"></i> Edit</a>
         </span>
         <div class="sagews-output-editor hide">
-            <div class="sagews-output-editor-buttons">
-                <div class="btn-group">
-                    <a href="#done" class="btn btn-success btn-sm"><i class="fa fa-check-circle"></i> Done</a>
-                    <a href="#bold" class="btn btn-default btn-sm"><i class="fa fa-bold"></i></a>
-                    <a href="#italic" class="btn btn-default btn-sm"><i class="fa fa-italic"></i></a>
-                    <a href="#underline" class="btn btn-default btn-sm"><i class="fa fa-underline"></i></a>
-                    <a href="#strikethrough" class="btn btn-default btn-sm"><i class="fa fa-strikethrough"></i></a>
-                    <a href="#justifyleft" class="btn btn-default btn-sm"><i class="fa fa-align-left"></i></a>
-                    <a href="#justifycenter" class="btn btn-default btn-sm"><i class="fa fa-align-center"></i></a>
-                    <a href="#justifyright" class="btn btn-default btn-sm"><i class="fa fa-align-right"></i></a>
-                    <a href="#justifyfull" class="btn btn-default btn-sm"><i class="fa fa-align-justify"></i></a>
-                    <a href="#outdent" class="btn btn-default btn-sm"><i class="fa fa-outdent"></i></a>
-                    <a href="#indent" class="btn btn-default btn-sm"><i class="fa fa-indent"></i></a>
-                    <a href="#undo" class="btn btn-default btn-sm"><i class="fa fa-undo"></i></a>
-                    <a href="#redo" class="btn btn-default btn-sm"><i class="fa fa-repeat"></i></a>
-                    <a href="#insertunorderedlist" class="btn btn-default btn-sm"><i class="fa fa-list"></i></a>
-                    <a href="#insertorderedlist" class="btn btn-default btn-sm"><i class="fa fa-list-ol"></i></a>
-                    <a href="#subscript" class="btn btn-default btn-sm"><i class="fa fa-subscript"></i></a>
-                    <a href="#superscript" class="btn btn-default btn-sm"><i class="fa fa-superscript"></i></a>
-                    <a href="#insertHorizontalRule" class="btn btn-default btn-sm"><i class="fa fa-columns fa-rotate-270 "></i></a>
-                    <div class="btn-group sagews-output-editor-font">
-                        <span class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" title="Font">
-                            <i class="fa fa-font"></i><b class="caret"></b>
-                        </span>
-                        <ul class="dropdown-menu">
-                        </ul>
-                    </div>
-                    <div class="btn-group sagews-output-editor-font-size">
-                        <span class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" title="Font">
-                            <i class="fa fa-text-height"></i><b class="caret"></b>
-                        </span>
-                        <ul class="dropdown-menu">
-                        </ul>
-                    </div>
-                    <div class="sagews-output-editor-color-selector input-group color" data-color-format="rgb">
-                        <input type="text" value="#000000" style="height:30px;" class="form-control">
-                        <span class="input-group-addon"><i class="fa" style="background-color:#000000; height: 16px; width: 16px"></i></span>
-                    </div>
-                </div>
-            </div>
             <div class="sagews-output-editor-content">
             </div>
         </div>

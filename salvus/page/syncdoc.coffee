@@ -1004,6 +1004,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @process_sage_updates(caller:"constructor")
 
         @init_worksheet_buttons()
+        @init_html_editor_buttons()
 
         @on 'sync', () =>
             #console.log("sync")
@@ -1111,6 +1112,60 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     if err
                         alert_message(type:"error", message:"Unable to restart Sage worksheet (maybe system is heavily loaded so Sage is taking a while to start up -- try again in a minute)")
             return false
+
+    html_editor_save_selection: () =>
+        @html_editor_selection = misc_page.get_selection()
+
+    html_editor_restore_selection: () =>
+        if @html_editor_selection?
+            misc_page.restore_selection(@html_editor_selection)
+
+    html_editor_div_changed: () =>
+        console.log("@html_editor_div_changed: todo")
+
+    init_html_editor_buttons: () =>
+        button_bar = @element.find(".salvus-editor-codemirror-worksheet-editable-buttons")
+        button_bar.show()
+
+        that = @
+        button_bar.find("a").click () ->
+            args = $(this).data('args')
+            cmd  = $(this).attr('href').slice(1)
+            #console.log(cmd, args)
+            if args?
+                args = "#{args}".split(',')
+            that.html_editor_restore_selection()
+            document.execCommand(cmd, 0, args)  # TODO: make more cross platform
+            that.html_editor_save_selection()
+            that.html_editor_div_changed()
+
+        # initialize the color control
+        init_color_control = () =>
+            elt   = button_bar.find(".sagews-output-editor-color-selector")
+            button_bar_input = elt.find("input").colorpicker()
+            sample = elt.find("i")
+            set = (hex) ->
+                that.html_editor_restore_selection()
+                document.execCommand("foreColor", 0, [hex])
+                that.html_editor_save_selection()
+                that.html_editor_div_changed()
+
+            button_bar_input.change (ev) ->
+                hex = button_bar_input.val()
+                button_bar_input.colorpicker('setValue', hex)
+                set(hex)
+
+            button_bar_input.on "changeColor", (ev) ->
+                hex = ev.color.toHex()
+                sample.css("background-color", hex)
+                set(hex)
+
+            sample.click (ev) ->
+                that.html_editor_restore_selection()
+                button_bar_input.colorpicker('show')
+
+        init_color_control()
+
 
     _is_dangerous_undo_step: (cm, changes) =>
         for c in changes
@@ -1939,11 +1994,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         # Double click output to edit
         output.dblclick () =>
-            @edit_cell
-                line : mark.find().from.line - 1
-                cm   : cm
+            #@edit_cell
+            #    line : mark.find().from.line - 1
+            #    cm   : cm
             ## used to be to toggle input
-            ##    @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
+            @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
 
         # Click edit button...
         output.find("a[href=#edit]").click () =>
@@ -2043,11 +2098,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
             if line <= block.start or line > block.end
                 cm.setCursor(line:block.end-1, ch:0)
             cm.focus()
+        ###
         if FLAGS.hide_input in fs
-            #console.log("hidden, so showing")
             @remove_cell_flag(marker, FLAGS.hide_input)   # show input
             @sync()
             @process_sage_updates()
+        ###
         focus_cursor()
 
         # If the input starts with %html, we create a TinyMCE editor,
@@ -2092,58 +2148,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 #cm.scrollIntoView({from:{line:Math.max(0,to-5),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
                 cm.setCursor(line:Math.max(0,to-2), ch:0)
 
-                selection = undefined
-                save_selection = () =>
-                    selection = misc_page.get_selection()
-                restore_selection = () =>
-                    if selection?
-                        misc_page.restore_selection(selection)
                 div.on 'blur', () =>
-                    save_selection()
-
-                button_bar = output.find(".sagews-output-editor-buttons")
-
-                button_bar.find("a").click () ->
-                    args = $(this).data('args')
-                    cmd  = $(this).attr('href').slice(1)
-                    #console.log(cmd, args)
-                    if args?
-                        args = "#{args}".split(',')
-                    if cmd == 'done'
-                        finish_editing()
-                    else
-                        restore_selection()
-                        document.execCommand(cmd, 0, args)  # TODO: make more cross platform
-                        save_selection()
-                        div_changed()
-
-                # initialize the color control
-                init_color_control = () =>
-                    elt   = button_bar.find(".sagews-output-editor-color-selector")
-                    button_bar_input = elt.find("input").colorpicker()
-                    sample = elt.find("i")
-                    set = (hex) ->
-                        restore_selection()
-                        document.execCommand("foreColor", 0, [hex])
-                        save_selection()
-                        div_changed()
-
-                    button_bar_input.change (ev) ->
-                        hex = button_bar_input.val()
-                        button_bar_input.colorpicker('setValue', hex)
-                        set(hex)
-
-                    button_bar_input.on "changeColor", (ev) ->
-                        hex = ev.color.toHex()
-                        sample.css("background-color", hex)
-                        set(hex)
-
-                    sample.click (ev) ->
-                        misc_page.restore_selection(selection)
-                        button_bar_input.colorpicker('show')
-
-                init_color_control()
-
+                    @html_editor_save_selection()
 
                 finish_editing = () =>
                     cm.off('change', on_cm_change)
@@ -2192,6 +2198,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         return
                     from = input_mark.find()?.from.line + 1
                     to   = output_mark.find()?.from.line
+                    if not from? or not to?
+                        return
                     new_html = to_html(cm.getRange({line:from,ch:0}, {line:to,ch:0}).slice(top_input.length).trim())
                     if new_html != last_html
                         #console.log("changed in our selection from '#{last_html}' to '#{new_html}'")
