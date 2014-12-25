@@ -5000,7 +5000,7 @@ class Course extends FileEditorWrapper
 # Initialize fonts for the editor
 initialize_sagews_editor = () ->
     elt = $(".sagews-output-editor-font").find(".dropdown-menu")
-    for font in 'Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Helvetica,Impact,Lucida Grande,Lucida Sans,Tahoma,Times,Times New Roman,Verdana'.split(',')
+    for font in 'Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana'.split(',')
         item = $("<li><a href='#fontName' data-args='#{font}'>#{font}</a></li>")
         item.css('font-family', font)
         elt.append(item)
@@ -5010,11 +5010,12 @@ initialize_sagews_editor = () ->
         item = $("<li><a href='#fontSize' data-args='#{size}'><font size=#{size}>Size #{size}</font></a></li>")
         elt.append(item)
 
-    for i in [1..6]
-        item = $("<li><a href='#formatBlock' data-args='H#{i}'><H#{i}>Heading #{i}</H#{i}></a></li>")
+    elt = $(".sagews-output-editor-block-type").find(".dropdown-menu")
+    for i in [6,5,4,3,2,1]
+        item = $("<li><a href='#formatBlock' data-args='H#{i}'><H#{i} style='margin:0'>Heading #{i}</H#{i}></a></li>")
         elt.append(item)
 
-    item = $("<li><a href='#formatBlock' data-args='div'>Normal</a></li>")
+    item = $("<li><a href='#formatBlock' data-args='div'>None</a></li>")
     elt.append(item)
 
 initialize_sagews_editor()
