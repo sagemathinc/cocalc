@@ -1164,7 +1164,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
         console.log("html_editor_exec_command #{misc.to_json([cmd,args])}")
         if restore
             @html_editor_restore_selection()
-        document.execCommand(cmd, 0, args)  # TODO: make more cross platform
+        if cmd == "ClassApplier"
+            rangy.createClassApplier(args[0], args[1]).applyToSelection()
+        else
+            document.execCommand(cmd, 0, args)  # TODO: make more cross platform
         @html_editor_save_selection()
 
     init_html_editor_buttons: () =>
@@ -1180,8 +1183,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 that["html_editor_#{cmd}"]()
                 return false
             #console.log(cmd, args)
-            if args?
+            if args? and typeof(args) != 'object'
                 args = "#{args}".split(',')
+            #console.log("after", args)
             that.html_editor_exec_command(cmd, args)
             that.html_editor_div_changed()
             return false

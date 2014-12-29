@@ -790,5 +790,3 @@ exports.restore_selection = (selected_range) ->
         selected_range.select()
 
 
-
-

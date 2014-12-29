@@ -5011,11 +5011,20 @@ initialize_sagews_editor = () ->
         elt.append(item)
 
     elt = $(".sagews-output-editor-block-type").find(".dropdown-menu")
-    for i in [6,5,4,3,2,1]
-        item = $("<li><a href='#formatBlock' data-args='H#{i}'><H#{i} style='margin:0'>Heading #{i}</H#{i}></a></li>")
+    for i in [1..6]
+        item = $("<li><a href='#formatBlock' data-args='H#{i}'><H#{i} style='margin:0'>Heading</H#{i}></a></li>")
         elt.append(item)
 
-    item = $("<li><a href='#formatBlock' data-args='div'>None</a></li>")
-    elt.append(item)
+    elt.prepend('<li role="presentation" class="divider"></li>')
+
+    # trick so that data is retained even when editor is cloned:
+    args = JSON.stringify([null, {normalize: true, elementTagName:'code', applyToEditableOnly:true}])
+    item = $("<li><a href='#ClassApplier' data-args='#{args}'><i class='fa fa-code'></i> <code>Code</code></a></li>")
+    elt.prepend(item)
+
+    elt.prepend('<li role="presentation" class="divider"></li>')
+    item = $("<li><a href='#removeFormat'><i class='fa fa-remove'></i>
+Remove</a></li>")
+    elt.prepend(item)
 
 initialize_sagews_editor()
