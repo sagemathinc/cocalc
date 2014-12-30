@@ -1099,7 +1099,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm = @focused_codemirror()
             block = @current_input_block(cm.getCursor().line)
             input = cm.getRange({line:block.start+1,ch:0}, {line:block.end,ch:0}).trim()
-            console.log(input, block)
             if input != ''
                 line = block.end + 1
                 cm.replaceRange("\n\n\n", {line:line,ch:0})
@@ -2262,6 +2261,20 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if not editor
             return
 
+        wrap_nbsp = (code) ->
+            if code.slice(0,6) != '&nbsp;'
+                code = '&nbsp;' + code
+            if code.slice(code.length-6) != '&nbsp;'
+                code = code + '&nbsp;'
+            return code
+
+        unwrap_nbsp = (code) ->
+            while code.slice(0,6) == '&nbsp;'
+                code = code.slice(6)
+            while code.slice(code.length-6) == '&nbsp;'
+                code = code.slice(0,code.length-6)
+            return code
+
         input_mark  = cm.findMarksAt({line:block.start, ch:1})[0]
         if not input_mark?
             return
@@ -2280,10 +2293,22 @@ class SynchronizedWorksheet extends SynchronizedDocument
             i = input.length
         html_input = to_html(input.slice(i+1).trim())
         top_input = input.slice(0,i+1)
+        if top_input[top_input.length-1] != '\n'
+            top_input += '\n'
         div.addClass("sagews-output-html")
-        div.html(html_input)
+        div.html(wrap_nbsp(html_input))
         if div.text().trim() == CLICK_TO_EDIT
-            div.html('')
+            div.html('&nbsp;\n&nbsp;')
+
+        decorate_mathjax = (e) =>
+            for c in "MathJax_SVG MathJax MathJax_MathML".split(' ')
+                e.find(".#{c}").addClass("salvus-editor-mathjax-editor")
+
+        mathjax = () =>
+            div.mathjax()
+            decorate_mathjax(div)
+
+        mathjax()
 
         last_html = html_input
         ignore_changes = false
@@ -2291,12 +2316,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
         to = output_mark.find()?.from.line
         #cm.scrollIntoView({from:{line:Math.max(0,to-5),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
         cm.setCursor(line:Math.max(0,to-2), ch:0)
-
-        #if $.browser.safari
-        #    div.on 'selectstart', ()=>
-        #        $(document).one 'mouseup keyup', () =>
-        #            @html_editor_save_selection()
-
 
         div.on 'blur', () =>
             #console.log('blur', div.html())
@@ -2317,27 +2336,89 @@ class SynchronizedWorksheet extends SynchronizedDocument
         #setInterval(@html_editor_save_selection, 500)
         div.on('keyup click mousedown mouseup',@html_editor_save_selection)
 
+        div.on 'click', (e) =>
+            target = $(e.target)
+            console.log("clicked...")
+            window.target = target
+            if target.hasClass("sagews-editor-latex-raw")
+                return
+            p = target.parent()
+            if p.hasClass("sagews-editor-latex-raw")
+                return
+            classes = p.attr('class') + target.attr('class')
+            if classes? and classes.indexOf? and classes.indexOf('MathJax') != -1
+                q = p.parent()
+                if q.hasClass("MathJax_SVG_Display") or q.hasClass("MathJax_Display") or q.hasClass("MathJax_MathML_Display")
+                    p = q
+                console.log("clicked on mathjax")
+                prev = p.prev()
+                if not prev.hasClass("MathJax_Preview")
+                    prev = undefined
+                script = p.next()
+                t = script.attr('type')
+                if not t?
+                    console.log("no type")
+                    return
+                v = t.split(';')
+                if v.length < 1
+                    console.log("no type info", v)
+                    return
+                if v[0] != 'math/tex'
+                    console.log("wrong type info", v)
+                    return
+                if v.length == 1
+                    delim = '$'
+                    s = $("<span class='sagews-editor-latex-raw'><textarea rows=1 cols=40></textarea></span>")
+                else
+                    delim = '$$'
+                    s = $("<div class='sagews-editor-latex-raw' style='text-align:center'><textarea rows=3 cols=40></textarea></div>")
+                s.attr('id', misc.uuid())
+                s.find("textarea").val(script.text()).on("change keyup paste",div_changed)
+                s.data('delim', delim)
+                script.replaceWith(s)
+                prev?.remove()
+                p.remove()
+                return false
+            else
+                close_all_latex_editors()
+                return
+
+        close_all_latex_editors = () =>
+            for s in div.find(".sagews-editor-latex-raw")
+                t = $(s)
+                delim = t.data('delim')
+                t1 = $("<span>#{delim}#{t.find('textarea').val()}#{delim}</span>")
+                t1.mathjax()
+                decorate_mathjax(t1)
+                t.replaceWith(t1)
+                t1.children().insertAfter(t1)
+                t1.remove()
+
         finish_editing = () =>
+            ignore_changes = false
+            div_changed()  # ensure any changes are saved
             @html_editor_bar.hide()
             cm.off('change', on_cm_change)
             div.make_editable
-                cancel : true
+                cancel   : true
             div.empty()
             div.unbind()  # remove all event handlers
             delete output_mark.finish_editing
 
         output_mark.finish_editing = finish_editing
 
-        position_div = () =>
-            #to   = output_mark.find()?.from.line
-            #cm.setCursor(line:Math.max(0,to-2), ch:0)
-            #cm.scrollIntoView({from:{line:Math.max(0,to),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
-
         div_changed = () =>
-            #console.log('change event')
+            console.log('change event')
             if ignore_changes
                 return
-            new_html = html_beautify(div.html())
+            e = div.clone()
+            for s in e.find(".sagews-editor-latex-raw")
+                t = $(s)
+                t0 = div.find("##{t.attr('id')}")
+                delim = t0.data('delim')
+                t.replaceWith("#{delim}#{t0.find('textarea').val()}#{delim}")
+            e.unmathjax()
+            new_html = unwrap_nbsp(html_beautify(e.html()))
             if new_html == last_html
                 return
             last_html = new_html
@@ -2358,9 +2439,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
         div.make_editable
             mathjax  : false
             onchange : div_changed
+            interval : 1000
 
         div.keydown (e) =>
             if e.which == 13 and (e.shiftKey or e.altKey or e.metaKey)
+                if div.find(".sagews-editor-latex-raw").length > 0
+                    close_all_latex_editors()
+                    return
                 finish_editing()
                 mark = output_mark.find()
                 if not mark
@@ -2387,12 +2472,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
             if new_html != last_html
                 #console.log("changed in our selection from '#{last_html}' to '#{new_html}'")
                 div.html(new_html)
+                div.mathjax()
 
         cm.on('change', on_cm_change)
 
         div.focus()
 
-        ##window.DEBUG_div = div  #TODO: delete
+        window.DEBUG_e = @
+        window.DEBUG_div = div  #TODO: delete
 
     enter_key: (cm) =>
         marks = cm.findMarksAt({line:cm.getCursor().line,ch:1})

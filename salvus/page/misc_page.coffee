@@ -135,6 +135,21 @@ $.fn.extend
                 MathJax.Hub.Queue([opts.cb, t])
             return t
 
+$.fn.extend
+    unmathjax: (opts={}) ->
+        opts = defaults(opts,{})
+        @each () ->
+            t = $(this)
+            for c in "MathJax_Preview MathJax_SVG MathJax_SVG_Display MathJax MathJax_MathML".split(' ')
+                t.find(".#{c}").remove()
+            for s in t.find("script[type='math/tex']")
+                a = $(s)
+                a.replaceWith("$#{a.text()}$")
+            for s in t.find("script[type='math/tex; mode=display']")
+                a = $(s)
+                a.replaceWith("$$#{a.text()}$$")
+            return t
+
 
 # Mathjax-enabled Contenteditable Editor plugin
 $.fn.extend
