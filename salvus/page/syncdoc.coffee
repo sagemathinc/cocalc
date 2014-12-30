@@ -2274,7 +2274,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 #console.log('change event')
                 if ignore_changes
                     return
-                new_html = div.html().trim()
+                new_html = html_beautify(div.html())
                 if new_html == last_html
                     return
                 last_html = new_html
