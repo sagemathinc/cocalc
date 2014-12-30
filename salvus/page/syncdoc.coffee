@@ -45,6 +45,10 @@ their 900 clients in parallel.
 
 ###
 
+
+
+CLICK_TO_EDIT = "(click to edit)"
+
 # seconds to wait for synchronized doc editing session, before reporting an error.
 # Don't make this too short, since when we open a link to a file in a project that
 # hasn't been opened in a while, it can take a while.
@@ -2023,9 +2027,21 @@ class SynchronizedWorksheet extends SynchronizedDocument
         input = cell_start_template.clone()
         if not @readonly
             input.addClass('sagews-input-live')
-            input.click () =>
+            input.click (e) =>
                 f = () =>
-                    @insert_new_cell(mark.find().from.line)
+                    line = mark.find().from.line
+                    @insert_new_cell(line)
+                    if e.shiftKey
+                        cm.replaceRange("%html\n#{CLICK_TO_EDIT}", {line:line+1,ch:0})
+                        @action
+                            execute : true
+                            advance : false
+                    if (e.altKey or e.metaKey)
+                        cm.replaceRange("%md\n#{CLICK_TO_EDIT}", {line:line+1,ch:0})
+                        @action
+                            execute : true
+                            advance : false
+
                 if IS_MOBILE
                     # It is way too easy to accidentally click on the insert new cell line on mobile.
                     bootbox.confirm "Create new cell?", (result) =>
@@ -2091,7 +2107,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
         #        cm   : cm
         #    return false
 
-        output.find(".sagews-output-messages").click () =>
+        output.find(".sagews-output-messages").click (e) =>
+            t = $(e.target)
+            if t.attr('href')?
+                return
             @edit_cell
                 line : mark.find().from.line - 1
                 cm   : cm
@@ -2188,7 +2207,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         else if input.slice(0,3) == '%md'
             # a markdown editor
             editor = 'md'
-            to_html   = (code) -> misc_page.markdown_to_html(code).s
+            to_html   = (code) -> misc_page.markdown_to_html(code).s.trim()
             from_html = to_markdown
         else
             editor = undefined
@@ -2214,10 +2233,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
             j = input.indexOf(")")
             if j < i and j != -1
                 i = j
+            if i == -1
+                i = input.length
             html_input = to_html(input.slice(i+1).trim())
             top_input = input.slice(0,i+1)
             div.addClass("sagews-output-html")
             div.html(html_input)
+            if div.text().trim() == CLICK_TO_EDIT
+                div.html('')
+
             last_html = html_input
             ignore_changes = false
 
