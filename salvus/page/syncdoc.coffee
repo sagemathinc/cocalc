@@ -2073,7 +2073,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         mark.uuid = cm.getRange({line:line, ch:1}, {line:line, ch:37})
         mark.type = MARKERS.output
 
-        # Double click output to edit
+        # Double click output to toggle input
         output.dblclick () =>
             #@edit_cell
             #    line : mark.find().from.line - 1
@@ -2082,7 +2082,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
 
         # Click edit button...
-        output.find("a[href=#edit]").click () =>
+        #output.find("a[href=#edit]").click () =>
+        #    @edit_cell
+        #        line : mark.find().from.line - 1
+        #        cm   : cm
+        #    return false
+
+        output.find(".sagews-output-messages").click () =>
             @edit_cell
                 line : mark.find().from.line - 1
                 cm   : cm
@@ -2154,47 +2160,30 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 line -= 1
         return
 
-    # Edit the cell whose input starts at the given 0-based line.
+    # Special HTML editor for the cell whose input starts at the given 0-based line.
     edit_cell: (opts) =>
         opts = defaults opts,
             line : required
             cm   : required
-        #console.log("edit_cell: #{opts.line}")
 
         cm = opts.cm
         block = @current_input_block(opts.line)
-        #console.log("block=",block)
         # create or get cell start mark
         {marker, created} = @cell_start_marker(block.start)
-        #console.log("marker=",marker)
         if created  # we added a new line when creating start marker
             block.end += 1
         fs = @get_cell_flagstring(marker)
-        #console.log("fs=",fs)
         if not fs?
             return
-        # Put input cursor at beginning of input cell
-        focus_cursor = () =>
-            line = cm.getCursor().line
-            if line <= block.start or line > block.end
-                cm.setCursor(line:block.end-1, ch:0)
-            cm.focus()
-        ###
-        if FLAGS.hide_input in fs
-            @remove_cell_flag(marker, FLAGS.hide_input)   # show input
-            @sync()
-            @process_sage_updates()
-        ###
-        focus_cursor()
 
-        # If the input starts with %html, we create an HTML editor,
-        # and focus that.
         input = cm.getRange({line:block.start+1,ch:0}, {line:block.end,ch:0}).trim()
         if input.slice(0,5) == '%html'
+            # an html editor:
             editor = 'html'
             to_html   = (code) -> code
             from_html = (code) -> code
         else if input.slice(0,3) == '%md'
+            # a markdown editor
             editor = 'md'
             to_html   = (code) -> misc_page.markdown_to_html(code).s
             from_html = to_markdown
@@ -2203,6 +2192,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         if not editor
             return
+
+        line = cm.getCursor().line
+        if line <= block.start or line > block.end
+            cm.setCursor(line:block.end-1, ch:0)
+        cm.focus()
 
         input_mark  = cm.findMarksAt({line:block.start, ch:1})[0]
         output_mark = cm.findMarksAt({line:block.end,   ch:1})[0]
@@ -2294,6 +2288,21 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 mathjax  : false
                 onchange : div_changed
 
+            div.keydown (e) =>
+                if e.which == 13 and (e.shiftKey or e.altKey or e.metaKey)
+                    mark = output_mark.find()
+                    if not mark
+                        return
+                    pos = mark.from
+                    cm.focus()
+                    @action
+                        pos     : pos
+                        advance : e.shiftKey
+                        execute : true
+                    if not e.shiftKey
+                        cm.setCursor(pos)
+                    return false
+
             on_cm_change = (instance, changeObj) =>
                 #console.log("cm change")
                 if ignore_changes
@@ -2309,6 +2318,16 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
             cm.on('change', on_cm_change)
 
+            div.focus()
+
+    enter_key: (cm) =>
+        marks = cm.findMarksAt({line:cm.getCursor().line,ch:1})
+        if marks.length > 0
+            @edit_cell
+                line : marks[0].find().from.line
+                cm   : cm
+        else
+            return CodeMirror.Pass
 
     action: (opts={}) =>
         opts = defaults opts,

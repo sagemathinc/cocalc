@@ -231,10 +231,10 @@ $.fn.extend
                     t.mathjax()
 
 
-            on_keydown = (evt) ->
-                if evt.which == 27 or (opts.one_line and evt.which == 13)
-                    t.blur()
-                    return false
+            #on_keydown = (evt) ->
+            #    if evt.which == 27 or (opts.one_line and evt.which == 13)
+            #        t.blur()
+            #        return false
 
             t.attr('contenteditable', true)
 
