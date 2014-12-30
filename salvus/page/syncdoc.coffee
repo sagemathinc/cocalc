@@ -82,9 +82,6 @@ output_template     = templates.find(".sagews-output")
 
 account = require('account')
 
-to_markdown = require('to-markdown').toMarkdown
-
-
 CLIENT_SIDE_MODE_LINES = []
 for mode in ['md', 'html', 'coffeescript', 'javascript']
     for s in ['', '(hide=false)', '(hide=true)', '(once=false)']
@@ -2208,7 +2205,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             # a markdown editor
             editor = 'md'
             to_html   = (code) -> misc_page.markdown_to_html(code).s.trim()
-            from_html = to_markdown
+            from_html = (code) -> misc_page.html_to_markdown(code).trim()
         else
             editor = undefined
 
@@ -2230,9 +2227,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
             div = output.find(".sagews-output-editor-content")
             output.find(".sagews-output-messages").empty()
             i = input.indexOf("\n")
-            j = input.indexOf(")")
-            if j < i and j != -1
-                i = j
             if i == -1
                 i = input.length
             html_input = to_html(input.slice(i+1).trim())

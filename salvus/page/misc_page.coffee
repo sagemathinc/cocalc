@@ -714,6 +714,10 @@ exports.markdown_to_html = (s) ->
 
     return {s:s, has_mathjax:has_mathjax}
 
+reMarker = new reMarked({gfm_code:true, li_bullet:'-'})
+exports.html_to_markdown = (s) ->
+    return reMarker.render(s)
+
 
 # return true if d is a valid string -- see http://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
 exports.is_valid_date = (d) ->

@@ -26,7 +26,6 @@
 # to be available to page/ via browserify.
 async       = require('async')
 marked      = require('marked')
-to_markdown = require('to-markdown').toMarkdown
 
 # end "don't delete"
 
