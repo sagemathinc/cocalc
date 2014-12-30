@@ -1095,6 +1095,23 @@ class SynchronizedWorksheet extends SynchronizedDocument
         buttons.find("a[href=#tab]").click () =>
             @editor.press_tab_key(@editor.codemirror_with_last_focus)
             return false
+        buttons.find("a[href=#new-html]").click () =>
+            cm = @focused_codemirror()
+            block = @current_input_block(cm.getCursor().line)
+            input = cm.getRange({line:block.start+1,ch:0}, {line:block.end,ch:0}).trim()
+            console.log(input, block)
+            if input != ''
+                line = block.end + 1
+                cm.replaceRange("\n\n\n", {line:line,ch:0})
+                @cell_start_marker(line)
+                @cell_start_marker(line+2)
+            else
+                line = block.start
+            cm.replaceRange("%html\n#{CLICK_TO_EDIT}", {line:line+1,ch:0})
+            cm.setCursor(line:line, ch:0)
+            @action
+                execute : true
+                advance : true
         interrupt_button = buttons.find("a[href=#interrupt]").click () =>
             interrupt_button.find("i").addClass('fa-spin')
             @interrupt

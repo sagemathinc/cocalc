@@ -83,10 +83,14 @@ Editor for files in a project
                 <span class="hidden-xs">
                     <span class="salvus-editor-codemirror-worksheet-buttons hide">
                         <span class="btn-group salvus-editor-write-only">
-                            <a href="#execute" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="right" title="Execute current or selected cells."><i class="fa fa-play"></i> &nbsp;<span class="hidden-sm">Run</span></a>
-                            <a href="#interrupt" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="right" title="Interrupt the running Sage process."><i class="fa fa-stop"></i> <span class="hidden-sm">Stop</span></a>
+                            <a href="#execute" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Execute current or selected cells."><i class="fa fa-play"></i> &nbsp;<span class="hidden-sm">Run</span></a>
+                            <a href="#interrupt" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="bottom" title="Interrupt the running Sage process."><i class="fa fa-stop"></i> <span class="hidden-sm">Stop</span></a>
                             <a href="#kill" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process."><i class="fa fa-refresh"></i> <span class="hidden-sm">Restart</span></a>
-                            <a href="#tab" class="btn btn-info btn-sm"> <i class="fa fa-step-forward"></i><span class="hidden-sm"> Tab</span></a>
+                            <a href="#tab" class="btn btn-info btn-sm"  data-toggle="tooltip" data-placement="bottom" title="Tab completion."> <i class="fa fa-step-forward"></i><span class="hidden-sm"> Tab</span></a>
+                            <a href="#new-html" class="btn btn-sm btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert a new text cell."> <i class="fa fa-plus-square-o"></i>
+                                <span class="hidden-sm">Text</span>
+                            </a>
+
                         </span>
                         <span class="btn-group salvus-editor-write-only">
                             <a href="#toggle-input" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="right" title="Toggle display of input of selected cells."><i class="fa fa-eye-slash"></i></a>
@@ -190,12 +194,10 @@ Editor for files in a project
                     <a href="#outdent" class="btn btn-default btn-sm"><i class="fa fa-outdent"></i></a>
                     <a href="#indent" class="btn btn-default btn-sm"><i class="fa fa-indent"></i></a>
                 </span>
-                <!--
                 <span class="btn-group">
                     <a href="#undo" class="btn btn-default btn-sm"><i class="fa fa-undo"></i></a>
                     <a href="#redo" class="btn btn-default btn-sm"><i class="fa fa-repeat"></i></a>
                 </span>
-                -->
                 <span class="btn-group">
                     <a href="#insertunorderedlist" class="btn btn-default btn-sm"><i class="fa fa-list"></i></a>
                     <a href="#insertorderedlist" class="btn btn-default btn-sm"><i class="fa fa-list-ol"></i></a>
