@@ -1181,6 +1181,32 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 dialog.modal('hide')
                 return false
 
+    html_editor_image: () =>
+        @html_editor_restore_selection()
+
+        dialog = templates.find(".salvus-html-editor-image-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            setTimeout(focus, 50)
+            return false
+        url = dialog.find(".salvus-html-editor-url")
+        url.focus()
+
+        submit = () =>
+            dialog.modal('hide')
+            s = "<img src='#{url.val()}'>"
+            @html_editor_exec_command('insertHTML', s)  #TODO: won't work in IE
+
+        dialog.find(".btn-submit").off('click').click(submit)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                return false
+
     html_editor_exec_command: (cmd, args) =>
         #console.log("html_editor_exec_command #{misc.to_json([cmd,args])}")
         @html_editor_restore_selection()
@@ -2365,6 +2391,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         cm.on('change', on_cm_change)
 
         div.focus()
+
+        ##window.DEBUG_div = div  #TODO: delete
 
     enter_key: (cm) =>
         marks = cm.findMarksAt({line:cm.getCursor().line,ch:1})
