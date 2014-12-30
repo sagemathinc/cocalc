@@ -93,8 +93,8 @@ Editor for files in a project
 
                         </span>
                         <span class="btn-group salvus-editor-write-only">
-                            <a href="#toggle-input" class="btn btn-default" data-toggle="tooltip" data-placement="right" title="Toggle display of input of selected cells."><i class="fa fa-eye-slash"></i></a>
-                            <a href="#toggle-output" class="btn btn-default" data-toggle="tooltip" data-placement="right" title="Toggle display of output of selected cells."><i class="fa fa-adjust"></i></a>
+                            <a href="#toggle-input" class="btn btn-default" data-toggle="tooltip" data-placement="right" title="Toggle display of input of selected cells."><i class="fa fa-code"></i></a>
+                            <a href="#toggle-output" class="btn btn-default" data-toggle="tooltip" data-placement="right" title="Toggle display of output of selected cells."><i class="fa fa-pie-chart"></i></a>
                             <a href="#delete-output" class="btn btn-default" data-toggle="tooltip" data-placement="right" title="Delete output of selected cells."><i class="fa fa-times-circle"></i></a>
                         </span>
                     </span>
@@ -443,11 +443,13 @@ Editor for files in a project
         <!-- <span class="sagews-output-edit-button-group  pull-right">
             <a href="#edit" class="btn btn-default btn-sm"><i class="fa fa-edit"></i> Edit</a>
         </span> -->
-        <div class="sagews-output-editor hide">
-            <div class="sagews-output-editor-content">
+        <div class="sagews-output-container">
+            <div class="sagews-output-editor hide">
+                <div class="sagews-output-editor-content">
+                </div>
             </div>
+             <span class="sagews-output-messages"></span>
         </div>
-         <span class="sagews-output-messages"></span>
     </div>
 
     <div class="salvus-ipython-notebook">

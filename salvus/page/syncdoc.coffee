@@ -1729,13 +1729,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
         for cm in [@codemirror, @codemirror1]
             mark = @find_output_mark(line, cm)
             if mark?
-                @elt_at_mark(mark).addClass('sagews-output-hide')
+                @elt_at_mark(mark).addClass('sagews-output-hide').find(".sagews-output-container").hide()
 
     show_output: (line) =>
         for cm in [@codemirror, @codemirror1]
             mark = @find_output_mark(line, cm)
             if mark?
-                @elt_at_mark(mark).removeClass('sagews-output-hide')
+                @elt_at_mark(mark).removeClass('sagews-output-hide').find(".sagews-output-container").show()
 
     execute_code: (opts) ->
         opts = defaults opts,
