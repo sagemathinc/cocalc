@@ -179,48 +179,49 @@ Editor for files in a project
             </div>
             <div class="salvus-editor-codemirror-worksheet-editable-buttons hide">
                 <span class="btn-group">
-                    <a href="#bold" class="btn btn-default btn-sm"><i class="fa fa-bold"></i></a>
-                    <a href="#italic" class="btn btn-default btn-sm"><i class="fa fa-italic"></i></a>
-                    <a href="#underline" class="btn btn-default btn-sm"><i class="fa fa-underline"></i></a>
-                    <a href="#strikethrough" class="btn btn-default btn-sm"><i class="fa fa-strikethrough"></i></a>
-                    <a href="#subscript" class="btn btn-default btn-sm"><i class="fa fa-subscript"></i></a>
-                    <a href="#superscript" class="btn btn-default btn-sm"><i class="fa fa-superscript"></i></a>
+                    <a href="#bold" class="btn btn-default btn-sm"  data-toggle="tooltip" data-placement="bottom" title="Bold"><i class="fa fa-bold"></i></a>
+                    <a href="#italic" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="bottom" title="Italic"><i class="fa fa-italic"></i></a>
+                    <a href="#underline" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="bottom" title="Underline"><i class="fa fa-underline"></i></a>
+                    <a href="#strikethrough" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="bottom" title="Strike through"><i class="fa fa-strikethrough"></i></a>
+                    <a href="#subscript" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="bottom" title="Subscript (use LaTeX for serious equations)"><i class="fa fa-subscript"></i></a>
+                    <a href="#superscript" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="bottom" title="Superscript"><i class="fa fa-superscript"></i></a>
                 </span>
                 <span class="btn-group">
-                    <a href="#justifyleft" class="btn btn-default btn-sm"><i class="fa fa-align-left"></i></a>
-                    <a href="#justifycenter" class="btn btn-default btn-sm"><i class="fa fa-align-center"></i></a>
-                    <a href="#justifyright" class="btn btn-default btn-sm"><i class="fa fa-align-right"></i></a>
-                    <a href="#justifyfull" class="btn btn-default btn-sm"><i class="fa fa-align-justify"></i></a>
-                    <a href="#outdent" class="btn btn-default btn-sm"><i class="fa fa-outdent"></i></a>
-                    <a href="#indent" class="btn btn-default btn-sm"><i class="fa fa-indent"></i></a>
+                    <a href="#justifyleft" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="bottom" title="Left justify"><i class="fa fa-align-left"></i></a>
+                    <a href="#justifycenter" class="btn btn-default btn-sm"  data-toggle="tooltip" data-placement="bottom" title="Justify center"><i class="fa fa-align-center"></i></a>
+                    <a href="#justifyright" class="btn btn-default btn-sm"  data-toggle="tooltip" data-placement="bottom" title="Right justify"><i class="fa fa-align-right"></i></a>
+                    <a href="#justifyfull" class="btn btn-default btn-sm"  data-toggle="tooltip" data-placement="bottom" title="Justify full"><i class="fa fa-align-justify"></i></a>
+                    <a href="#outdent" class="btn btn-default btn-sm"  data-toggle="tooltip" data-placement="bottom" title="Outdent"><i class="fa fa-outdent"></i></a>
+                    <a href="#indent" class="btn btn-default btn-sm"  data-toggle="tooltip" data-placement="bottom" title="Indent"><i class="fa fa-indent"></i></a>
                 </span>
                 <span class="btn-group">
-                    <a href="#undo" class="btn btn-default btn-sm"><i class="fa fa-undo"></i></a>
-                    <a href="#redo" class="btn btn-default btn-sm"><i class="fa fa-repeat"></i></a>
+                    <a href="#undo" class="btn btn-default btn-sm"  data-toggle="tooltip" data-placement="bottom" title="Undo"><i class="fa fa-undo"></i></a>
+                    <a href="#redo" class="btn btn-default btn-sm"  data-toggle="tooltip" data-placement="bottom" title="Redo"><i class="fa fa-repeat"></i></a>
                 </span>
                 <span class="btn-group">
-                    <a href="#insertunorderedlist" class="btn btn-default btn-sm"><i class="fa fa-list"></i></a>
-                    <a href="#insertorderedlist" class="btn btn-default btn-sm"><i class="fa fa-list-ol"></i></a>
-                    <a href="#link" data-args="special" class="btn btn-default btn-sm"><i class="fa fa-link"></i></a>
+                    <a href="#insertunorderedlist" class="btn btn-default btn-sm"  data-toggle="tooltip" data-placement="bottom" title="Insert unordered list"><i class="fa fa-list"></i></a>
+                    <a href="#insertorderedlist" class="btn btn-default btn-sm"  data-toggle="tooltip" data-placement="bottom" title="Insert ordered list"><i class="fa fa-list-ol"></i></a>
+                    <a href="#link" data-args="special" class="btn btn-default btn-sm"  data-toggle="tooltip" data-placement="bottom" title="Insert link..."><i class="fa fa-link"></i></a>
+                    <a href="#image" data-args="special" class="btn btn-default btn-sm"  data-toggle="tooltip" data-placement="bottom" title="Insert image..."><i class="fa fa-image"></i></a>
                    <!-- <a href="#insertHorizontalRule" class="btn btn-default btn-sm">&lt;hr&gt;</a> -->
                 </span>
                 <span class="btn-group">
-                    <span class="btn-group sagews-output-editor-font">
+                    <span class="btn-group sagews-output-editor-font smc-tooltip"  data-toggle="tooltip" data-placement="bottom" title="Fonts">
                         <span class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" title="Font">
                             <i class="fa fa-font"></i> <b class="caret"></b>
                         </span>
                         <ul class="dropdown-menu">
                         </ul>
                     </span>
-                    <span class="btn-group sagews-output-editor-font-size">
-                        <span class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" title="Font">
+                    <span class="btn-group sagews-output-editor-font-size smc-tooltip"  data-toggle="tooltip" data-placement="bottom" title="Font size">
+                        <span class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" title="Text height">
                             <i class="fa fa-text-height"></i> <b class="caret"></b>
                         </span>
                         <ul class="dropdown-menu">
                         </ul>
                     </span>
-                    <span class="btn-group sagews-output-editor-block-type">
-                        <span class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" title="Font">
+                    <span class="btn-group sagews-output-editor-block-type smc-tooltip"  data-toggle="tooltip" data-placement="bottom" title="Format type">
+                        <span class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" title="Header">
                             <i class="fa fa-header"></i> <b class="caret"></b>
                         </span>
                         <ul class="dropdown-menu">
@@ -228,15 +229,15 @@ Editor for files in a project
                     </span>
                 </span>
                 <span class="btn-group">
-                    <span class="sagews-output-editor-foreground-color-selector input-group color" data-color-format="rgb">
+                    <span class="sagews-output-editor-foreground-color-selector input-group color smc-tooltip" data-color-format="rgb" data-toggle="tooltip" data-placement="bottom" title="Text color">
                         <input type="text" style="height:30px; cursor:pointer" class="form-control">
-                        <span class="input-group-addon" style="background-color:white"><i class="fa fa-font" style="color:#FF0000; height: 16px; width: 16px"></i><b class="caret"></b></span>
+                        <span class="input-group-addon" style="padding: 3px;"><i class="fa fa-font" style="height: 16px; width: 16px"></i><b class="caret"></b></span>
                     </span>
                 </span>
                 <span class="btn-group">
-                    <span class="sagews-output-editor-background-color-selector input-group color" data-color-format="rgb">
+                    <span class="sagews-output-editor-background-color-selector input-group color smc-tooltip" data-color-format="rgb" data-toggle="tooltip" data-placement="bottom" title="Text background highlight color">
                         <input type="text" style="height:30px; cursor:pointer" class="form-control">
-                        <span class="input-group-addon"  style="background-color:#FFFF00"><i class="fa fa-font" style="height: 16px; width: 16px"></i><b class="caret"></b></span>
+                        <span class="input-group-addon"  style="padding: 3px;"><i class="fa fa-font" style="height: 16px; width: 16px"></i><b class="caret"></b></span>
                     </span>
                 </span>
             </div>
@@ -244,7 +245,7 @@ Editor for files in a project
         <div class="salvus-editor-codemirror-chat-column hide">
             <div class="salvus-editor-codemirror-chat">
                 <div class="salvus-editor-codemirror-chat-output"></div>
-                <textarea class="salvus-editor-codemirror-chat-input form-control" placeholder="Chat using HTML, Markdown or  LaTeX..."></textarea>
+                <textarea class="salvus-editor-codemirror-chat-input form-control" placeholder="Chat using HTML, Markdown and LaTeX..."></textarea>
             </div>
         </div>
         <div class="salvus-editor-codemirror-input-container-layout-1 hide">

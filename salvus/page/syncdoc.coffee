@@ -1194,6 +1194,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     init_html_editor_buttons: () =>
         @html_editor_bar = button_bar = @element.find(".salvus-editor-codemirror-worksheet-editable-buttons")
+        @html_editor_bar.find("a").tooltip(delay:{ show: 500, hide: 100 })
+        @html_editor_bar.find(".smc-tooltip").tooltip(delay:{ show: 500, hide: 100 })
 
         that = @
         button_bar.find("a").click () ->
