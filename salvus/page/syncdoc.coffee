@@ -1205,21 +1205,23 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 # The CSS wrapping version keeps wrapping new spans hence sucks.
                 #args = [null, {elementProperties:{style:{color:hex}}}]
                 #that.html_editor_exec_command("ClassApplier", args)
+                sample.css("color", hex)
+                button_bar_input.css("background-color", hex)
                 that.html_editor_exec_command("foreColor", hex)
 
             button_bar_input.change (ev) ->
                 hex = button_bar_input.val()
-                button_bar_input.colorpicker('setValue', hex)
                 set(hex)
 
             button_bar_input.on "changeColor", (ev) ->
                 hex = ev.color.toHex()
-                sample.css("background-color", hex)
                 set(hex)
 
             sample.click (ev) ->
                 that.html_editor_restore_selection()
                 button_bar_input.colorpicker('show')
+
+            set("#000000")
 
         init_color_control()
 
@@ -1229,21 +1231,23 @@ class SynchronizedWorksheet extends SynchronizedDocument
             button_bar_input = elt.find("input").colorpicker()
             sample = elt.find("i")
             set = (hex) ->
+                button_bar_input.css("background-color", hex)
+                elt.find(".input-group-addon").css("background-color", hex)
                 that.html_editor_exec_command("hiliteColor", hex)
 
             button_bar_input.change (ev) ->
                 hex = button_bar_input.val()
-                button_bar_input.colorpicker('setValue', hex)
                 set(hex)
 
             button_bar_input.on "changeColor", (ev) ->
                 hex = ev.color.toHex()
-                sample.css("background-color", hex)
                 set(hex)
 
             sample.click (ev) ->
                 that.html_editor_restore_selection()
                 button_bar_input.colorpicker('show')
+
+            set("#F7EFA1")
 
         init_background_color_control()
 
