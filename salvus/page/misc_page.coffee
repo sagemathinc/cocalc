@@ -142,7 +142,7 @@ $.fn.extend
         @each () ->
             opts = defaults opts,
                 value    : undefined   # defaults to what is already there
-                onchange : undefined   # function that gets called with a diff when content changes
+                onchange : undefined   # function that gets called when content changes
                 interval : 250         # milliseconds interval between sending update change events about content
                 one_line : false       # if true, blur when user presses the enter key
                 mathjax  : false       # if false, completey ignore ever running mathjax -- probably a good idea since support for running it is pretty broken.
@@ -153,12 +153,15 @@ $.fn.extend
 
             if opts.cancel
                 t.data('cancel_editor')?()
+                # TODO: clear state -- get rid of function data...
                 return
 
             if not opts.value?
                 opts.value = t.html()
 
             last_sync = opts.value
+
+            t.data('onchange', opts.onchange)
 
             change_timer = undefined
             report_change = () ->
@@ -767,7 +770,7 @@ exports.set_window_title = (title) ->
     document.title = title
 
 # get the currently selected html
-exports.get_selection = () ->
+exports.save_selection = () ->
     if window.getSelection
         sel = window.getSelection()
         if sel.getRangeAt and sel.rangeCount

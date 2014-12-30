@@ -5012,7 +5012,7 @@ initialize_sagews_editor = () ->
 
     elt = $(".sagews-output-editor-block-type").find(".dropdown-menu")
     for i in [1..6]
-        item = $("<li><a href='#formatBlock' data-args='H#{i}'><H#{i} style='margin:0'>Heading</H#{i}></a></li>")
+        item = $("<li><a href='#formatBlock' data-args='<H#{i}>'><H#{i} style='margin:0'>Heading</H#{i}></a></li>")
         elt.append(item)
 
     elt.prepend('<li role="presentation" class="divider"></li>')

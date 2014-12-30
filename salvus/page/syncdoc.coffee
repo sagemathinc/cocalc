@@ -1114,14 +1114,17 @@ class SynchronizedWorksheet extends SynchronizedDocument
             return false
 
     html_editor_save_selection: () =>
-        @html_editor_selection = misc_page.get_selection()
+        if not @_html_editor_with_focus?
+            return
+        #console.log("save_selection")
+        @html_editor_selection = misc_page.save_selection()
+        @html_editor_div = @_html_editor_with_focus
+
 
     html_editor_restore_selection: () =>
         if @html_editor_selection?
             misc_page.restore_selection(@html_editor_selection)
-
-    html_editor_div_changed: () =>
-        console.log("@html_editor_div_changed: todo")
+            #delete @html_editor_selection
 
     html_editor_link: () =>
         @html_editor_restore_selection()
@@ -1160,15 +1163,16 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 dialog.modal('hide')
                 return false
 
-    html_editor_exec_command: (cmd, args, restore=true) =>
+    html_editor_exec_command: (cmd, args) =>
         console.log("html_editor_exec_command #{misc.to_json([cmd,args])}")
-        if restore
-            @html_editor_restore_selection()
+        @html_editor_restore_selection()
         if cmd == "ClassApplier"
             rangy.createClassApplier(args[0], args[1]).applyToSelection()
         else
             document.execCommand(cmd, 0, args)  # TODO: make more cross platform
         @html_editor_save_selection()
+        @html_editor_div?.data('onchange')?()
+        #@html_editor_div?.focus()
 
     init_html_editor_buttons: () =>
         button_bar = @element.find(".salvus-editor-codemirror-worksheet-editable-buttons")
@@ -1184,10 +1188,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 return false
             #console.log(cmd, args)
             if args? and typeof(args) != 'object'
-                args = "#{args}".split(',')
+                args = "#{args}"
+                if args.indexOf(',') != -1
+                    args = args.split(',')
             #console.log("after", args)
             that.html_editor_exec_command(cmd, args)
-            that.html_editor_div_changed()
             return false
 
         # initialize the color control
@@ -1197,7 +1202,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
             sample = elt.find("i")
             set = (hex) ->
                 that.html_editor_exec_command("foreColor", [hex])
-                that.html_editor_div_changed()
 
             button_bar_input.change (ev) ->
                 hex = button_bar_input.val()
@@ -1222,7 +1226,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
             sample = elt.find("i")
             set = (hex) ->
                 that.html_editor_exec_command("hiliteColor", [hex])
-                that.html_editor_div_changed()
 
             button_bar_input.change (ev) ->
                 hex = button_bar_input.val()
@@ -2184,7 +2187,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         ###
         focus_cursor()
 
-        # If the input starts with %html, we create a TinyMCE editor,
+        # If the input starts with %html, we create an HTML editor,
         # and focus that.
         input = cm.getRange({line:block.start+1,ch:0}, {line:block.end,ch:0}).trim()
         if input.slice(0,5) == '%html'
@@ -2198,92 +2201,113 @@ class SynchronizedWorksheet extends SynchronizedDocument
         else
             editor = undefined
 
-        if editor
-            #console.log("special editor: #{editor}")
-            input_mark  = cm.findMarksAt({line:block.start, ch:1})[0]
-            output_mark = cm.findMarksAt({line:block.end,   ch:1})[0]
-            if output_mark? and input_mark?
-                #console.log("found input and output mark")
-                output = @elt_at_mark(output_mark)
-                #console.log("output elt=", output)
-                output.find(".sagews-output-editor").show()
-                div = output.find(".sagews-output-editor-content")
-                output.find(".sagews-output-messages").empty()
-                i = input.indexOf("\n")
-                j = input.indexOf(")")
-                if j < i and j != -1
-                    i = j
-                html_input = to_html(input.slice(i+1).trim())
-                top_input = input.slice(0,i+1)
-                div.addClass("sagews-output-html")
-                div.html(html_input)
-                last_html = html_input
+        if not editor
+            return
+
+        input_mark  = cm.findMarksAt({line:block.start, ch:1})[0]
+        output_mark = cm.findMarksAt({line:block.end,   ch:1})[0]
+        if output_mark? and input_mark?
+            #console.log("found input and output mark")
+            output = @elt_at_mark(output_mark)
+            #console.log("output elt=", output)
+            output.find(".sagews-output-editor").show()
+            div = output.find(".sagews-output-editor-content")
+            output.find(".sagews-output-messages").empty()
+            i = input.indexOf("\n")
+            j = input.indexOf(")")
+            if j < i and j != -1
+                i = j
+            html_input = to_html(input.slice(i+1).trim())
+            top_input = input.slice(0,i+1)
+            div.addClass("sagews-output-html")
+            div.html(html_input)
+            last_html = html_input
+            ignore_changes = false
+
+            output_mark.editing = true
+
+            to = output_mark.find()?.from.line
+            #cm.scrollIntoView({from:{line:Math.max(0,to-5),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
+            cm.setCursor(line:Math.max(0,to-2), ch:0)
+
+            #if $.browser.safari
+            #    div.on 'selectstart', ()=>
+            #        $(document).one 'mouseup keyup', () =>
+            #            @html_editor_save_selection()
+
+
+            div.on 'blur', () =>
+                #console.log('blur', div.html())
+                delete @_html_editor_with_focus
+                div.removeClass('sagews-output-editor-focus')
+
+            div.on 'focus', () =>
+                #console.log("focus", div.html())
+                @_html_editor_with_focus = div
+                div.addClass('sagews-output-editor-focus')
+                if @html_editor_div? and @html_editor_div.is(div)
+                    @html_editor_restore_selection()
+
+            #setInterval(@html_editor_save_selection, 500)
+            div.on('keyup click mousedown mouseup',@html_editor_save_selection)
+
+
+            finish_editing = () =>
+                cm.off('change', on_cm_change)
+                button_bar.find("a").unbind('click')
+                pos = input_mark.find()
+                cm.setCursor(pos.from)
+                #console.log("now do action")
+                div.make_editable
+                    cancel : true
+                @action
+                    execute : true
+                    advance : false
+                output_mark.editing = false
+
+            position_div = () =>
+                #to   = output_mark.find()?.from.line
+                #cm.setCursor(line:Math.max(0,to-2), ch:0)
+                #cm.scrollIntoView({from:{line:Math.max(0,to),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
+
+            div_changed = () =>
+                #console.log('change event')
+                if ignore_changes
+                    return
+                new_html = div.html().trim()
+                if new_html == last_html
+                    return
+                last_html = new_html
+                #console.log(input_mark.find(), output_mark.find())
+                from = input_mark.find()?.from.line + 1
+                to   = output_mark.find()?.from.line
+
+                ignore_changes = true
+                s = top_input + from_html(new_html)
+                v = cm.getLine(to-1)
+                #console.log("from=",from, "to=",to, "s='#{s}'")
+                cm.replaceRange(s, {line:from,ch:0}, {line:to-1,ch:v.length})
+                @sync()
                 ignore_changes = false
 
-                output_mark.editing = true
+            div.make_editable
+                mathjax  : false
+                onchange : div_changed
 
-                to = output_mark.find()?.from.line
-                #cm.scrollIntoView({from:{line:Math.max(0,to-5),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
-                cm.setCursor(line:Math.max(0,to-2), ch:0)
+            on_cm_change = (instance, changeObj) =>
+                #console.log("cm change")
+                if ignore_changes
+                    return
+                from = input_mark.find()?.from.line + 1
+                to   = output_mark.find()?.from.line
+                if not from? or not to?
+                    return
+                new_html = to_html(cm.getRange({line:from,ch:0}, {line:to,ch:0}).slice(top_input.length).trim())
+                if new_html != last_html
+                    #console.log("changed in our selection from '#{last_html}' to '#{new_html}'")
+                    div.html(new_html)
 
-                div.on 'blur', () =>
-                    @html_editor_save_selection()
-
-                finish_editing = () =>
-                    cm.off('change', on_cm_change)
-                    button_bar.find("a").unbind('click')
-                    pos = input_mark.find()
-                    cm.setCursor(pos.from)
-                    #console.log("now do action")
-                    div.make_editable
-                        cancel : true
-                    @action
-                        execute : true
-                        advance : false
-                    output_mark.editing = false
-
-                position_div = () =>
-                    #to   = output_mark.find()?.from.line
-                    #cm.setCursor(line:Math.max(0,to-2), ch:0)
-                    #cm.scrollIntoView({from:{line:Math.max(0,to),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
-
-                div_changed = () =>
-                    #console.log('change event')
-                    if ignore_changes
-                        return
-                    new_html = div.html().trim()
-                    if new_html == last_html
-                        return
-                    last_html = new_html
-                    #console.log(input_mark.find(), output_mark.find())
-                    from = input_mark.find()?.from.line + 1
-                    to   = output_mark.find()?.from.line
-
-                    ignore_changes = true
-                    s = top_input + from_html(new_html)
-                    v = cm.getLine(to-1)
-                    cm.replaceRange(s, {line:from,ch:0}, {line:to-1,ch:v.length})
-                    @sync()
-                    ignore_changes = false
-
-                div.make_editable
-                    mathjax  : false
-                    onchange : div_changed
-
-                on_cm_change = (instance, changeObj) =>
-                    #console.log("cm change")
-                    if ignore_changes
-                        return
-                    from = input_mark.find()?.from.line + 1
-                    to   = output_mark.find()?.from.line
-                    if not from? or not to?
-                        return
-                    new_html = to_html(cm.getRange({line:from,ch:0}, {line:to,ch:0}).slice(top_input.length).trim())
-                    if new_html != last_html
-                        #console.log("changed in our selection from '#{last_html}' to '#{new_html}'")
-                        div.html(new_html)
-
-                cm.on('change', on_cm_change)
+            cm.on('change', on_cm_change)
 
 
     action: (opts={}) =>
