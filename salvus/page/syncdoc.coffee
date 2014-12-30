@@ -1201,7 +1201,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
             button_bar_input = elt.find("input").colorpicker()
             sample = elt.find("i")
             set = (hex) ->
-                that.html_editor_exec_command("foreColor", [hex])
+                # The CSS wrapping version keeps wrapping new spans hence sucks.
+                #args = [null, {elementProperties:{style:{color:hex}}}]
+                #that.html_editor_exec_command("ClassApplier", args)
+                that.html_editor_exec_command("foreColor", hex)
 
             button_bar_input.change (ev) ->
                 hex = button_bar_input.val()
@@ -1225,7 +1228,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             button_bar_input = elt.find("input").colorpicker()
             sample = elt.find("i")
             set = (hex) ->
-                that.html_editor_exec_command("hiliteColor", [hex])
+                that.html_editor_exec_command("hiliteColor", hex)
 
             button_bar_input.change (ev) ->
                 hex = button_bar_input.val()
