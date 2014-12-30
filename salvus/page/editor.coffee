@@ -5032,7 +5032,7 @@ initialize_sagews_editor = () ->
 
     elt.prepend('<li role="presentation" class="divider"></li>')
     item = $("<li><a href='#removeFormat'><i class='fa fa-remove'></i>
-Remove</a></li>")
+Normal</a></li>")
     elt.prepend(item)
 
 initialize_sagews_editor()
