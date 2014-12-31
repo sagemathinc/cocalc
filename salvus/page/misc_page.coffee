@@ -150,6 +150,37 @@ $.fn.extend
                 a.replaceWith("$$#{a.text()}$$")
             return t
 
+$.fn.extend
+    equation_editor: (opts={}) ->
+        opts = defaults opts,
+            display  : false
+            value    : ''
+            onchange : undefined
+        @each () ->
+            t = $(this)
+            if opts.display
+                delim = '$$'
+                s = $("<div class='sagews-editor-latex-raw' style='text-align:center'><textarea rows=4 cols=60></textarea><br><span class='sagews-editor-latex-preview'></span></div>")
+            else
+                delim = '$'
+                s = $("<div class='sagews-editor-latex-raw' style='text-align:center'><textarea rows=1 cols=40></textarea><br><span class='sagews-editor-latex-preview'></span></span>")
+            s.attr('id', misc.uuid())
+            ed = s.find("textarea")
+            ed.val(opts.value)
+            preview = s.find(".sagews-editor-latex-preview")
+            update_preview = () ->
+                preview.mathjax
+                    tex     : ed.val()
+                    display : opts.display
+                    inline  : not opts.display
+            if opts.onchange?
+                ed.on "change keyup paste", () ->
+                    update_preview()
+                    opts.onchange()
+            s.data('delim', delim)
+            t.replaceWith(s)
+            update_preview()
+            return t
 
 # Mathjax-enabled Contenteditable Editor plugin
 $.fn.extend

@@ -1180,6 +1180,31 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 dialog.modal('hide')
                 return false
 
+    html_editor_insert_equation: (display) =>
+        if not @html_editor_div?
+            return
+        id = misc.uuid()
+        #@html_editor_exec_command('insertHTML', "<span id=#{id}></span>")
+
+        @html_editor_restore_selection()
+        sel = rangy.getSelection()
+        r = sel.getAllRanges()[0]
+        r.insertNode($("<span id=#{id}></span>")[0])
+
+        e = $("##{id}")
+        onchange = @html_editor_div.data('onchange')
+        e.equation_editor
+            display  : display
+            value    : 'x^2'
+            onchange : onchange
+        onchange()
+
+    html_editor_equation: () =>
+        @html_editor_insert_equation(false)
+
+    html_editor_display_equation: () =>
+        @html_editor_insert_equation(true)
+
     html_editor_image: () =>
         @html_editor_restore_selection()
 
@@ -2302,7 +2327,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         decorate_mathjax = (e) =>
             for c in "MathJax_SVG MathJax MathJax_MathML".split(' ')
-                e.find(".#{c}").addClass("salvus-editor-mathjax-editor")
+                e.find(".#{c}").addClass (pos, classes) ->
+                    if classes.indexOf("salvus-editor-mathjax-editor") == -1
+                        #$(this).after("&nbsp;")
+                        console.log("decorating...", this)
+                        $(this).after("<span class='salvus-html-editor-remove'>&nbsp</span>")
+                        return "salvus-editor-mathjax-editor"
 
         mathjax = () =>
             div.mathjax()
@@ -2337,28 +2367,39 @@ class SynchronizedWorksheet extends SynchronizedDocument
         div.on('keyup click mousedown mouseup',@html_editor_save_selection)
 
         div.on 'click', (e) =>
-            target = $(e.target)
+            p = $(e.target)
             console.log("clicked...")
-            window.target = target
-            if target.hasClass("sagews-editor-latex-raw")
+
+            window.target = p
+            if p.hasClass("sagews-editor-latex-raw") or p.hasParent(".sagews-editor-latex-raw").length > 0
                 return
-            p = target.parent()
-            if p.hasClass("sagews-editor-latex-raw")
-                return
-            classes = p.attr('class') + target.attr('class')
-            if classes? and classes.indexOf? and classes.indexOf('MathJax') != -1
-                q = p.parent()
-                if q.hasClass("MathJax_SVG_Display") or q.hasClass("MathJax_Display") or q.hasClass("MathJax_MathML_Display")
-                    p = q
+            is_mathjax = false
+            for c in "MathJax_SVG_Display MathJax_Display MathJax_MathML_Display MathJax_SVG MathJax_MathML MathJax".split(' ')
+                if p.hasParent(".#{c}").length > 0
+                    p = p.closest(".#{c}")
+                    is_mathjax = true
+                    break
+            classes = p.attr('class')
+            console.log("classes=", classes)
+            if is_mathjax or classes?.indexOf?('MathJax') != -1
                 console.log("clicked on mathjax")
+                window.p = p
                 prev = p.prev()
                 if not prev.hasClass("MathJax_Preview")
                     prev = undefined
                 script = p.next()
                 t = script.attr('type')
-                if not t?
-                    console.log("no type")
-                    return
+                if not t? # skip over filler
+                    tmp = script
+                    if not tmp.hasClass("salvus-html-editor-remove")
+                        console.log("no script found")
+                        return
+                    script = script.next()
+                    tmp.remove()
+                    t = script.attr('type')
+                    if not t?
+                        console.log("no script found")
+                        return
                 v = t.split(';')
                 if v.length < 1
                     console.log("no type info", v)
@@ -2366,16 +2407,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 if v[0] != 'math/tex'
                     console.log("wrong type info", v)
                     return
-                if v.length == 1
-                    delim = '$'
-                    s = $("<span class='sagews-editor-latex-raw'><textarea rows=1 cols=40></textarea></span>")
-                else
-                    delim = '$$'
-                    s = $("<div class='sagews-editor-latex-raw' style='text-align:center'><textarea rows=3 cols=40></textarea></div>")
-                s.attr('id', misc.uuid())
-                s.find("textarea").val(script.text()).on("change keyup paste",div_changed)
-                s.data('delim', delim)
-                script.replaceWith(s)
+
+                ed = script.equation_editor
+                    display  : v.length == 2
+                    value    : script.text()
+                    onchange : div_changed
+
+                ed.attr(id:misc.uuid())
+
                 prev?.remove()
                 p.remove()
                 return false
@@ -2412,11 +2451,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
             if ignore_changes
                 return
             e = div.clone()
+            e.find(".salvus-html-editor-remove").remove()
             for s in e.find(".sagews-editor-latex-raw")
                 t = $(s)
                 t0 = div.find("##{t.attr('id')}")
                 delim = t0.data('delim')
-                t.replaceWith("#{delim}#{t0.find('textarea').val()}#{delim}")
+                t.replaceWith("&nbsp;#{delim}#{t0.find('textarea').val()}#{delim}&nbsp;")
             e.unmathjax()
             new_html = unwrap_nbsp(html_beautify(e.html()))
             if new_html == last_html
@@ -2445,7 +2485,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             if e.which == 13 and (e.shiftKey or e.altKey or e.metaKey)
                 if div.find(".sagews-editor-latex-raw").length > 0
                     close_all_latex_editors()
-                    return
+                    return false
                 finish_editing()
                 mark = output_mark.find()
                 if not mark
