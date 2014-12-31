@@ -144,10 +144,10 @@ $.fn.extend
                 t.find(".#{c}").remove()
             for s in t.find("script[type='math/tex']")
                 a = $(s)
-                a.replaceWith("$#{a.text()}$")
+                a.replaceWith(" $#{a.text()}$ ")
             for s in t.find("script[type='math/tex; mode=display']")
                 a = $(s)
-                a.replaceWith("$$#{a.text()}$$")
+                a.replaceWith(" $$#{a.text()}$$ ")
             return t
 
 $.fn.extend
