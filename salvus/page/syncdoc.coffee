@@ -2444,6 +2444,31 @@ class SynchronizedWorksheet extends SynchronizedDocument
             div.unbind()  # remove all event handlers
             delete output_mark.finish_editing
 
+        localize_image_links = (e) =>
+            # make relative links to images use the raw server
+            for x in e.find("img")
+                y = $(x)
+                src = y.attr('src')
+                if src[0] == '/' or src.indexOf('://') != -1
+                    continue
+                new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
+                y.attr('src', new_src)
+
+        unlocalize_image_links = (e) =>
+            prefix = "/#{@project_id}/raw/#{@file_path()}/"
+            prefix2 = document.URL
+            i = 10 + prefix2.slice(10).indexOf('/')
+            prefix2 = prefix2.slice(0,i) + prefix
+            n  = prefix.length
+            n2 = prefix2.length
+            for x in e.find("img")
+                y = $(x)
+                src = y.attr('src')
+                if src.slice(0, n) == prefix
+                    y.attr('src', src.slice(n))
+                else if src.slice(0, n2) == prefix2
+                    y.attr('src', src.slice(n2))
+
         output_mark.finish_editing = finish_editing
 
         div_changed = () =>
@@ -2458,6 +2483,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 delim = t0.data('delim')
                 t.replaceWith("&nbsp;#{delim}#{t0.find('textarea').val()}#{delim}&nbsp;")
             e.unmathjax()
+            unlocalize_image_links(e)
+
             new_html = unwrap_nbsp(html_beautify(e.html()))
             if new_html == last_html
                 return
@@ -2474,6 +2501,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             #console.log("from=",from, "to=",to, "s='#{s}'")
             cm.replaceRange(s, {line:from,ch:0}, {line:to-1,ch:v.length})
             @sync()
+            localize_image_links(div)
             ignore_changes = false
 
         div.make_editable
@@ -2512,9 +2540,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
             if new_html != last_html
                 #console.log("changed in our selection from '#{last_html}' to '#{new_html}'")
                 div.html(new_html)
-                div.mathjax()
+                mathjax()
+                localize_image_links(div)
 
         cm.on('change', on_cm_change)
+        localize_image_links(div)
 
         div.focus()
 
