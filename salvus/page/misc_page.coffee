@@ -160,7 +160,7 @@ $.fn.extend
             t = $(this)
             if opts.display
                 delim = '$$'
-                s = $("<div class='sagews-editor-latex-raw' style='width:50%'><textarea></textarea><br><div class='sagews-editor-latex-preview'></div></div>")
+                s = $("<div class='sagews-editor-latex-raw' style='width:80%'><textarea></textarea><br><div class='sagews-editor-latex-preview'></div></div>")
             else
                 delim = '$'
                 s = $("<div class='sagews-editor-latex-raw' style='width:50%'><textarea></textarea><br><div class='sagews-editor-latex-preview'></div></span>")
@@ -192,7 +192,6 @@ $.fn.extend
             console.log("setting value to '#{opts.value}'")
             cm.setValue(opts.value)
             ed.val(opts.value)
-            window.cm = cm
             #cm.clearHistory()  # ensure that the undo history doesn't start with "empty document"
             $(cm.getWrapperElement()).css(height:'auto')
             preview = s.find(".sagews-editor-latex-preview")

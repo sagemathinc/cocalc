@@ -1436,8 +1436,6 @@ class CodeMirrorEditor extends FileEditor
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
 
-        window.cm = @codemirror
-
         elt1 = layout_elt.find(".salvus-editor-codemirror-input-box-1").find("textarea")
 
         @codemirror1 = make_editor(elt1[0])

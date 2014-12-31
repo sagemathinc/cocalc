@@ -1643,18 +1643,24 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     if marks.length == 0
                         @mark_output_line(cm, line)
                     mark = cm.findMarksAt({line:line, ch:1})[0]
-                    if mark?
+                    if mark? and not mark.finish_editing?
                         uuid = cm.getRange({line:line,ch:1}, {line:line,ch:37})
                         if misc.is_valid_uuid_string(uuid)
                             if mark.uuid != uuid # uuid changed -- completely new output
+                                console.log("uuid changed -- completely new output")
+                                output = @elt_at_mark(mark)
+                                if not output?
+                                    console.log("WARNING: sagews -- output element at line #{line} vanished!")
+                                    @mark_output_line(cm, line)
+                                    mark = cm.findMarksAt({line:line, ch:1})[0]
                                 mark.processed = 38
                                 mark.uuid = uuid
-                                output = @elt_at_mark(mark)
                                 output.find(".sagews-output-editor").hide()
                                 output.find(".sagews-output-editor-content").empty()
                                 output.find(".sagews-output-messages").empty()
                                 output.data('blobs',[])  # used to track visible files displaying data from database blob store
                             if mark.processed < x.length-1
+                                console.log("new output to process: #{mark.processed}, #{x.length}", x)
                                 # new output to process
                                 if mark.finish_editing?
                                     mark.finish_editing()
@@ -1662,7 +1668,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                 for s in t.split(MARKERS.output)
                                     if s.length > 0
                                         output = @elt_at_mark(mark)
-                                        # appearance of output shows output (bad design?)
+                                        # appearance of output shows output
                                         output.removeClass('sagews-output-hide')
                                         try
                                             #t = misc.mswalltime()
@@ -2152,6 +2158,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         # WARNING: Having a max-height that is SMALLER than the containing codemirror editor was *critical*
         # before Codemirror 3.14, due to a bug.
+        console.log("mark_output_line", line)
+
         output = output_template.clone().css
             width        : (@cm_lines().width()-25) + 'px'
             #'max-height' : (.9*@cm_wrapper().height()) + 'px'
@@ -2173,20 +2181,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
         mark.uuid = cm.getRange({line:line, ch:1}, {line:line, ch:37})
         mark.type = MARKERS.output
 
-        # Double click output to toggle input
         output.dblclick () =>
-            #@edit_cell
-            #    line : mark.find().from.line - 1
-            #    cm   : cm
-            ## used to be to toggle input
+            # Double click output to toggle input
             @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
-
-        # Click edit button...
-        #output.find("a[href=#edit]").click () =>
-        #    @edit_cell
-        #        line : mark.find().from.line - 1
-        #        cm   : cm
-        #    return false
 
         output.find(".sagews-output-messages").click (e) =>
             t = $(e.target)
@@ -2358,12 +2355,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
         cm.setCursor(line:Math.max(0,to-2), ch:0)
 
         div.on 'blur', () =>
-            #console.log('blur', div.html())
+            #console.log('blur')
             delete @_html_editor_with_focus
             div.removeClass('sagews-output-editor-focus')
 
+        ##rangy_sel = undefined
         div.on 'focus', () =>
-            #console.log("focus", div.html())
+            #console.log("focus")
             @_html_editor_with_focus = div
             @html_editor_bar.show()
             div.addClass('sagews-output-editor-focus')
@@ -2374,11 +2372,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 cm.setCursor(line:Math.max(0, line), ch:0)
 
         #setInterval(@html_editor_save_selection, 500)
-        div.on('keyup click mousedown mouseup',@html_editor_save_selection)
+        div.on 'keyup click mousedown mouseup', () =>
+            @html_editor_save_selection()
+            save_rangy_sel()
+            ##if rangy_sel?
+            ##    rangy.removeMarkers(rangy_sel)
+            ##rangy_sel = rangy.saveSelection()
+            ##window.rangy_sel = rangy_sel
+            ##console.log("saved rangy_sel", div.html())
 
         div.on 'click', (e) =>
             p = $(e.target)
-            console.log("clicked...")
+            #console.log("clicked...")
 
             window.target = p
             if p.hasClass("sagews-editor-latex-raw") or p.hasParent(".sagews-editor-latex-raw").length > 0
@@ -2444,8 +2449,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 t1.remove()
 
         finish_editing = () =>
+            if save_to_output_timer?
+                clearTimeout(save_to_output_timer)
+                save_to_output_timer = undefined
             ignore_changes = false
             div_changed()  # ensure any changes are saved
+            save_to_output()
             @html_editor_bar.hide()
             cm.off('change', on_cm_change)
             div.make_editable
@@ -2480,13 +2489,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     y.attr('src', src.slice(n2))
 
         output_mark.finish_editing = finish_editing
-
+        last_clean_html = undefined
         div_changed = () =>
             console.log('change event')
             if ignore_changes
                 return
             e = div.clone()
             e.find(".salvus-html-editor-remove").remove()
+            e.find(".rangySelectionBoundary").remove()
             for s in e.find(".sagews-editor-latex-raw")
                 t = $(s)
                 t0 = div.find("##{t.attr('id')}")
@@ -2506,13 +2516,83 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 return
 
             ignore_changes = true
-            s = top_input + from_html(new_html)
+            html = from_html(new_html)
+            last_clean_html = html
+            s = top_input + html
             v = cm.getLine(to-1)
             #console.log("from=",from, "to=",to, "s='#{s}'")
             cm.replaceRange(s, {line:from,ch:0}, {line:to-1,ch:v.length})
-            @sync()
+
+            # finally, update the output, so other viewers will see this
+            # and output won't be stale if input doesn't get re-evaluated.
             localize_image_links(div)
             ignore_changes = false
+            save_to_output_soon()
+
+        rangy_sel = undefined
+        save_rangy_sel = () =>
+            if not @_html_editor_with_focus?.is(div)
+                return
+            console.log("save_selection")
+            if rangy_sel?
+                try
+                    rangy.removeMarkers(rangy_sel)
+                catch e
+                    console.log("WARNING: ", e)
+                rangy_sel = undefined
+            try
+                rangy_sel = rangy.saveSelection()
+            catch e
+                console.log("WARNING: ", e)
+                rangy_sel = undefined
+
+        restore_rangy_sel = () =>
+            if rangy_sel? and @_html_editor_with_focus?.is(div)
+                console.log("restoring selection")
+                try
+                    rangy.restoreSelection(rangy_sel)
+                catch e
+                    console.log("WARNING: ", e)
+                    rangy_sel = undefined
+                @html_editor_save_selection()
+                save_rangy_sel()
+
+        save_to_output = () =>
+            if not last_clean_html?
+                return
+            line = output_mark.find()?.from.line
+            if not line?
+                return
+            v = cm.getLine(line)
+            output_uuid = misc.uuid()
+            output_mark.uuid = output_uuid
+            output_line = output_uuid + MARKERS.output + misc.to_json({html:last_clean_html}) + MARKERS.output
+            output_mark.processed = output_line.length
+            # we have to use rangy, which plants elements in DOM, to save/restore selection,
+            # since changing the underlying text behind output_mark causes CodeMirror to
+            # reset the selection.
+            cm.replaceRange(output_line, {line:line,ch:1}, {line:line,ch:v.length})
+            @sync()
+
+        save_to_output_timer = undefined
+        # save to output if this function hasn't been called in the last 5 seconds.
+        save_to_output_soon = () =>
+            if save_to_output_timer?
+                clearTimeout(save_to_output_timer)
+            save_to_output_timer = setTimeout(save_to_output, 5000)
+
+
+        #cm.on 'beforeChange', () =>
+        #    console.log("beforeChange")
+        #    save_rangy_sel()
+
+        cm.on 'update', () =>
+            console.log("update")
+            restore_rangy_sel()
+
+        #cm.on 'change', () =>
+        #    console.log("change")
+        #    restore_rangy_sel()
 
         div.make_editable
             mathjax  : false
