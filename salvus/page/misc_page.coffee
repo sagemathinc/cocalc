@@ -160,25 +160,55 @@ $.fn.extend
             t = $(this)
             if opts.display
                 delim = '$$'
-                s = $("<div class='sagews-editor-latex-raw' style='text-align:center'><textarea rows=4 cols=60></textarea><br><span class='sagews-editor-latex-preview'></span></div>")
+                s = $("<div class='sagews-editor-latex-raw' style='width:50%'><textarea></textarea><br><div class='sagews-editor-latex-preview'></div></div>")
             else
                 delim = '$'
-                s = $("<div class='sagews-editor-latex-raw' style='text-align:center'><textarea rows=1 cols=40></textarea><br><span class='sagews-editor-latex-preview'></span></span>")
+                s = $("<div class='sagews-editor-latex-raw' style='width:50%'><textarea></textarea><br><div class='sagews-editor-latex-preview'></div></span>")
             s.attr('id', misc.uuid())
             ed = s.find("textarea")
+            options =
+                autofocus               : true
+                mode                    : {name:'stex', globalVars: true}
+                lineNumbers             : false
+                showTrailingSpace       : false
+                indentUnit              : 4
+                tabSize                 : 4
+                smartIndent             : true
+                electricChars           : true
+                undoDepth               : 100
+                matchBrackets           : true
+                autoCloseBrackets       : true
+                autoCloseTags           : true
+                lineWrapping            : true
+                readOnly                : false
+                styleActiveLine         : 15
+                indentWithTabs          : false
+                showCursorWhenSelecting : true
+                viewportMargin          : Infinity
+                extraKeys               : {}
+
+            t.replaceWith(s)
+            cm = CodeMirror.fromTextArea(ed[0], options)
+            console.log("setting value to '#{opts.value}'")
+            cm.setValue(opts.value)
             ed.val(opts.value)
+            window.cm = cm
+            #cm.clearHistory()  # ensure that the undo history doesn't start with "empty document"
+            $(cm.getWrapperElement()).css(height:'auto')
             preview = s.find(".sagews-editor-latex-preview")
+            preview.click () =>
+                cm.focus()
             update_preview = () ->
                 preview.mathjax
-                    tex     : ed.val()
+                    tex     : cm.getValue()
                     display : opts.display
                     inline  : not opts.display
             if opts.onchange?
-                ed.on "change keyup paste", () ->
+                cm.on 'change', () =>
                     update_preview()
                     opts.onchange()
+                    ed.val(cm.getValue())
             s.data('delim', delim)
-            t.replaceWith(s)
             update_preview()
             return t
 
