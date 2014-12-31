@@ -1184,12 +1184,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if not @html_editor_div?
             return
         id = misc.uuid()
-        #@html_editor_exec_command('insertHTML', "<span id=#{id}></span>")
-
-        @html_editor_restore_selection()
-        sel = rangy.getSelection()
-        r = sel.getAllRanges()[0]
-        r.insertNode($("<span id=#{id}></span>")[0])
+        @html_editor_exec_command('insertHTML', "<span id=#{id}></span>")
 
         e = $("##{id}")
         onchange = @html_editor_div.data('onchange')
@@ -1219,8 +1214,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         submit = () =>
             dialog.modal('hide')
-            s = "<img src='#{url.val()}'>"
-            @html_editor_exec_command('insertHTML', s)  #TODO: won't work in IE
+            height = width = ''
+            h = dialog.find(".salvus-html-editor-height").val().trim()
+            if h.length > 0
+                height = " height=#{h}"
+            w = dialog.find(".salvus-html-editor-width").val().trim()
+            if w.length > 0
+                width = " width=#{w}"
+            s = "<img src='#{url.val()}'#{width}#{height}>"
+            @html_editor_exec_command('insertHTML', s)
 
         dialog.find(".btn-submit").off('click').click(submit)
         dialog.keydown (evt) =>
@@ -1237,7 +1239,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if cmd == "ClassApplier"
             rangy.createClassApplier(args[0], args[1]).applyToSelection()
         else
-            document.execCommand(cmd, 0, args)  # TODO: make more cross platform
+            if cmd == "insertHTML"
+                # more solid and cross platform, e.g., insertHTML doesn't exist on IE
+                sel = rangy.getSelection()
+                r = sel.getAllRanges()[0]
+                if typeof(args) != 'string'
+                    args = args[0]
+                r.insertNode($(args)[0])
+            else
+                document.execCommand(cmd, 0, args)  # TODO: make more cross platform
         @html_editor_save_selection()
         @html_editor_div?.data('onchange')?()
         #@html_editor_div?.focus()
