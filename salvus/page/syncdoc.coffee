@@ -1099,17 +1099,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         buttons.find("a[href=#new-html]").click () =>
             cm = @focused_codemirror()
-            block = @current_input_block(cm.getCursor().line)
-            input = cm.getRange({line:block.start+1,ch:0}, {line:block.end,ch:0}).trim()
-            if input != ''
-                line = block.end + 1
-                cm.replaceRange("\n\n\n", {line:line,ch:0})
-                @cell_start_marker(line)
-                @cell_start_marker(line+2)
+            line = cm.lineCount()-1
+            while line >= 0 and cm.getLine(line) == ""
+                line -= 1
+            if line >= 0 and cm.getLine(line)[0] == MARKERS.cell
+                cm.replaceRange("%html\n#{CLICK_TO_EDIT}", {line:line+1,ch:0})
+                cm.setCursor(line:line+1, ch:0)
             else
-                line = block.start
-            cm.replaceRange("%html\n#{CLICK_TO_EDIT}", {line:line+1,ch:0})
-            cm.setCursor(line:line, ch:0)
+                cm.replaceRange("\n\n\n", {line:line+1,ch:0})
+                @cell_start_marker(line+1)
+                @cell_start_marker(line+3)
+                cm.replaceRange("%html\n#{CLICK_TO_EDIT}", {line:line+2,ch:0})
+                cm.setCursor(line:line+2, ch:0)
             @action
                 execute : true
                 advance : true
@@ -1188,7 +1189,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if not @html_editor_div?
             return
         id = misc.uuid()
-        @html_editor_exec_command('insertHTML', "<span id=#{id}></span>")
+        @html_editor_exec_command('insertHTML', "<span id=#{id} contenteditable=false></span>")
 
         e = $("##{id}")
         onchange = @html_editor_div.data('onchange')
@@ -1575,7 +1576,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     _process_sage_updates: (cm, start, stop) =>
         #console.log("process_sage_updates(start=#{start}, stop=#{stop}):'#{cm.getValue()}'")
-        window.cm = cm
         if not start?
             start = 0
         if not stop?
@@ -1653,7 +1653,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         uuid = cm.getRange({line:line,ch:1}, {line:line,ch:37})
                         if misc.is_valid_uuid_string(uuid)
                             if mark.uuid != uuid # uuid changed -- completely new output
-                                console.log("uuid changed -- completely new output")
+                                #console.log("uuid changed -- completely new output")
                                 output = @elt_at_mark(mark)
                                 if not output?
                                     console.log("ERROR: sagews -- output element at line #{line} vanished!")
@@ -2385,7 +2385,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         #setInterval(@html_editor_save_selection, 500)
         div.on 'keyup click mousedown mouseup', () =>
             @html_editor_save_selection()
-            save_rangy_sel()
+            #save_rangy_sel()
 
         div.on 'click', (e) =>
             p = $(e.target)
@@ -2478,11 +2478,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     y.attr('src', src.slice(n2))
 
         div_changed = (force) =>
+            #console.log('div_changed')
             if (ignore_changes and not force) or not output_mark.finish_editing?
                 return
             e = div.clone()
             e.find(".salvus-html-editor-remove").remove()
-            e.find(".rangySelectionBoundary").remove()
+            #e.find(".rangySelectionBoundary").remove()
             for s in e.find(".sagews-editor-latex-raw")
                 t = $(s)
                 t0 = div.find("##{t.attr('id')}")
@@ -2513,10 +2514,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
             # and output won't be stale if input doesn't get re-evaluated.
             localize_image_links(div)
             ignore_changes = false
-            #save_to_output_soon()
+            save_to_output_soon()
             @sync()
 
-
+        ###
         rangy_sel = undefined
         save_rangy_sel = () =>
             if not @_html_editor_with_focus?.is(div)
@@ -2555,9 +2556,17 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 @html_editor_save_selection()
                 save_rangy_sel()
 
+        on_cm_update = () =>
+            #console.log("cm_update")
+            restore_rangy_sel()
+        if not $.browser.ie    # IE is terrible...
+            cm.on('update', on_cm_update)
+
         ###
+
         # This was a nightmare because it causes codemirror to update the output div, which contains the editor.  Have to change things so editor is contained somewhere else first (i.e., nontrivial project).
         save_to_output = () =>
+            save_to_output_timer = undefined
             line = output_mark.find()?.from.line
             if not line?
                 return
@@ -2570,7 +2579,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
             # we have to use rangy, which plants elements in DOM, to save/restore selection,
             # since changing the underlying text behind output_mark causes CodeMirror to
             # reset the selection.
+            rangy_sel = rangy.saveSelection()
             cm.replaceRange(output_line, {line:line,ch:1}, {line:line,ch:v.length})
+            rangy.restoreSelection(rangy_sel)
             @sync()
 
         save_to_output_timer = undefined
@@ -2579,14 +2590,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
             if save_to_output_timer?
                 clearTimeout(save_to_output_timer)
             save_to_output_timer = setTimeout(save_to_output, 5000)
-        ###
-
-
-        on_cm_update = () =>
-            #console.log("cm_update")
-            restore_rangy_sel()
-        if not $.browser.ie    # IE is terrible...
-            cm.on('update', on_cm_update)
 
         div.make_editable
             mathjax  : false
@@ -2607,6 +2610,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         return
                 pos = mark.from
                 cm.setCursor(pos)
+                cm.focus()
                 advance = e.shiftKey
                 @action
                     pos     : pos
@@ -2634,7 +2638,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 return
             if new_html != last_html
                 #console.log("cm_change: real change! #{misc.to_json(diffsync.dmp.patch_make(last_html, new_html))}")
-                rangy_sel = undefined
+                #rangy_sel = undefined
                 div.html(new_html)
                 mathjax()
                 localize_image_links(div)
@@ -2648,18 +2652,16 @@ class SynchronizedWorksheet extends SynchronizedDocument
         cm.scrollTo(scroll_info.left, scroll_info.top)
 
         finish_editing = () =>
-            rangy_sel = undefined
+            #rangy_sel = undefined
             #if save_to_output_timer?
             #    clearTimeout(save_to_output_timer)
             #    save_to_output_timer = undefined
             ignore_changes = false
-            if div_changed_timer?
-                clearTimeout(div_changed_timer)
             div_changed(true)  # ensure any changes are saved
             #save_to_output()
             @html_editor_bar.hide()
             cm.off('change', on_cm_change)
-            cm.off('update', on_cm_update)
+            #cm.off('update', on_cm_update)
             div.make_editable
                 cancel   : true
             div.empty()
@@ -2812,7 +2814,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             # close output editor, if open
             n = @find_output_line(pos.line)
             if n?
-                mark = cm.findMarksAt({line:n, ch:1})[0]
+                mark = opts.cm.findMarksAt({line:n, ch:1})[0]
                 if mark? and mark.finish_editing?
                     mark.finish_editing()
 

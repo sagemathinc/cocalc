@@ -227,7 +227,7 @@ $.fn.extend
             opts = defaults opts,
                 value    : undefined   # defaults to what is already there
                 onchange : undefined   # function that gets called when content changes
-                interval : 250         # milliseconds interval between sending update change events about content
+                interval : 250         # call onchange if there was a change, but no more for this many ms.
                 one_line : false       # if true, blur when user presses the enter key
                 mathjax  : false       # if false, completey ignore ever running mathjax -- probably a good idea since support for running it is pretty broken.
 
@@ -249,9 +249,7 @@ $.fn.extend
 
             change_timer = undefined
             report_change = () ->
-                if change_timer?
-                    clearTimeout(change_timer)
-                    change_timer = undefined
+                change_timer = undefined
                 last_update = t.data('last_update')
                 if t.data('mode') == 'edit'
                     now = t.html()
@@ -264,7 +262,9 @@ $.fn.extend
                     last_sync = now
 
             set_change_timer = () ->
-                if opts.onchange? and not change_timer?
+                if opts.onchange?
+                    if change_timer?
+                        clearTimeout(change_timer)
                     change_timer = setTimeout(report_change, opts.interval)
 
             # set the text content; it will be subsequently processed by mathjax, if opts.mathjax is true
