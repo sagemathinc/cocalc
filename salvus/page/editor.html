@@ -87,7 +87,7 @@ Editor for files in a project
                             <a href="#interrupt" class="btn btn-warning" data-toggle="tooltip" data-placement="bottom" title="Interrupt the running Sage process."><i class="fa fa-stop"></i> <span class="hidden-sm">Stop</span></a>
                             <a href="#kill" class="btn btn-warning" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process."><i class="fa fa-refresh"></i> <span class="hidden-sm">Restart</span></a>
                             <a href="#tab" class="btn btn-info"  data-toggle="tooltip" data-placement="bottom" title="Tab completion."> <i class="fa fa-step-forward"></i><span class="hidden-sm"> Tab</span></a>
-                            <a href="#new-html" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert a new text cell."> <i class="fa fa-plus-square-o"></i>
+                            <a href="#new-html" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert a new text cell."> <i class="fa fa-paragraph"></i>
                                 <span class="hidden-sm">Text</span>
                             </a>
 
@@ -106,8 +106,8 @@ Editor for files in a project
                     <a href="#shift-left" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text left"><i class="fa fa-outdent"></i></a>
                     <a href="#shift-right" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text right"><i class="fa fa-indent"></i></a>
                     <a href="#search" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Search"><i class="fa fa-search"></i></a>
-                    <a href="#prev" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Previous"><i class="fa fa-chevron-up"></i></a>
-                    <a href="#next" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Next"><i class="fa fa-chevron-down"></i></a>
+                    <!-- <a href="#prev" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Previous"><i class="fa fa-chevron-up"></i></a>
+                    <a href="#next" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Next"><i class="fa fa-chevron-down"></i></a>-->
                     <a href="#replace" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Replace"><i class="fa fa-exchange"></i></a>
                     <a href="#split-view" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Split view of document">
                         <i class="fa fa-columns fa-rotate-270 salvus-editor-layout-0"></i>
@@ -187,8 +187,8 @@ Editor for files in a project
                     <a href="#superscript" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Superscript"><i class="fa fa-superscript"></i></a>
                 </span>
                 <span class="btn-group">
-                    <a href="#equation" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Inline equation..."> \$x^2\$  </a>
-                    <a href="#display_equation" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Displayed equation..."> \$\$x^2\$\$  </a>
+                    <a href="#equation" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Inline equation..."> \$  </a>
+                    <a href="#display_equation" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Displayed equation..."> \$\$  </a>
                     <a href="#insertunorderedlist" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert unordered list"><i class="fa fa-list"></i></a>
                     <a href="#insertorderedlist" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert ordered list"><i class="fa fa-list-ol"></i></a>
                     <a href="#link" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert link..."><i class="fa fa-link"></i></a>
@@ -442,9 +442,6 @@ Editor for files in a project
     </div>
 
     <div class="sagews-output">
-        <!-- <span class="sagews-output-edit-button-group  pull-right">
-            <a href="#edit" class="btn btn-default btn-sm"><i class="fa fa-edit"></i> Edit</a>
-        </span> -->
         <div class="sagews-output-container">
             <div class="sagews-output-editor hide">
                 <div class="sagews-output-editor-content">

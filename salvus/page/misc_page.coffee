@@ -160,7 +160,7 @@ $.fn.extend
             t = $(this)
             if opts.display
                 delim = '$$'
-                s = $("<div class='sagews-editor-latex-raw' style='width:80%'><textarea></textarea><br><div class='sagews-editor-latex-preview'></div></div>")
+                s = $("<div class='sagews-editor-latex-raw' style='width:50%'><textarea></textarea><br><div class='sagews-editor-latex-preview'></div></div>")
             else
                 delim = '$'
                 s = $("<div class='sagews-editor-latex-raw' style='width:50%'><textarea></textarea><br><div class='sagews-editor-latex-preview'></div></span>")
@@ -189,8 +189,17 @@ $.fn.extend
 
             t.replaceWith(s)
             cm = CodeMirror.fromTextArea(ed[0], options)
-            console.log("setting value to '#{opts.value}'")
-            cm.setValue(opts.value)
+            #console.log("setting value to '#{opts.value}'")
+            trim_dollars = (code) ->
+                code = code.trim()
+                while code[0] == '$'
+                    code = code.slice(1)
+                while code[code.length-1] == '$'
+                    code = code.slice(0,code.length-1)
+                return code.trim()
+
+            cm.setValue(delim + '\n\n' + opts.value + '\n\n' +  delim)
+            cm.setCursor(line:2,ch:0)
             ed.val(opts.value)
             #cm.clearHistory()  # ensure that the undo history doesn't start with "empty document"
             $(cm.getWrapperElement()).css(height:'auto')
@@ -199,14 +208,14 @@ $.fn.extend
                 cm.focus()
             update_preview = () ->
                 preview.mathjax
-                    tex     : cm.getValue()
+                    tex     : trim_dollars(cm.getValue())
                     display : opts.display
                     inline  : not opts.display
             if opts.onchange?
                 cm.on 'change', () =>
                     update_preview()
                     opts.onchange()
-                    ed.val(cm.getValue())
+                    ed.val(trim_dollars(cm.getValue()))
             s.data('delim', delim)
             update_preview()
             return t
@@ -789,7 +798,15 @@ exports.markdown_to_html = (s) ->
 
     return {s:s, has_mathjax:has_mathjax}
 
-reMarker = new reMarked({gfm_code:true, li_bullet:'-'})
+opts =
+    gfm_code  : true
+    li_bullet :'-'
+    h_atx_suf : false
+    h1_setext : false
+    h2_setext : false
+    br_only   : true
+
+reMarker = new reMarked(opts)
 exports.html_to_markdown = (s) ->
     return reMarker.render(s)
 
