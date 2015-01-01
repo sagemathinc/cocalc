@@ -2283,12 +2283,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
             return
 
         input = cm.getRange({line:block.start+1,ch:0}, {line:block.end,ch:0}).trim()
-        if input.slice(0,5) == '%html'
+        i = input.indexOf('\n')
+        if i == -1
+            return
+        line0 = input.slice(0,i)
+        if line0 not in CLIENT_SIDE_MODE_LINES
+            return
+        if line0.slice(0,5) == '%html'
             # an html editor:
             editor = 'html'
             to_html   = (code) -> code
             from_html = (code) -> code
-        else if input.slice(0,3) == '%md'
+        else if line0.slice(0,3) == '%md'
             # a markdown editor
             editor = 'md'
             to_html   = (code) -> misc_page.markdown_to_html(code).s.trim()
@@ -2505,10 +2511,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
             ignore_changes = true
             input = from_html(new_html)
             last_input = input
-            s = top_input + input
             v = cm.getLine(to-1)
             #console.log("from=",from, "to=",to, "s='#{s}'")
-            cm.replaceRange(s, {line:from,ch:0}, {line:to-1,ch:v.length})
+            cm.replaceRange(input, {line:from+1,ch:0}, {line:to-1,ch:v.length})
 
             # finally, update the output, so other viewers will see this
             # and output won't be stale if input doesn't get re-evaluated.
@@ -2632,7 +2637,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 #console.log("on_cm_change: missing marks")
                 return
             try
-                new_html = to_html(cm.getRange({line:from,ch:0}, {line:to,ch:0}).slice(top_input.length)).trim()
+                new_html = to_html(cm.getRange({line:from+1,ch:0}, {line:to,ch:0})).trim()
             catch e
                 console.log("WARNING (on_cm_change): ", e)
                 return
@@ -2653,9 +2658,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         finish_editing = () =>
             #rangy_sel = undefined
-            #if save_to_output_timer?
-            #    clearTimeout(save_to_output_timer)
-            #    save_to_output_timer = undefined
+            if save_to_output_timer?
+                clearTimeout(save_to_output_timer)
+                save_to_output_timer = undefined
             ignore_changes = false
             div_changed(true)  # ensure any changes are saved
             #save_to_output()
