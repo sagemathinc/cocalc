@@ -479,7 +479,9 @@ SAGE_PIP_PACKAGES = [
     'singledispatch',  # needed by rpy2 ipython extension now
     'glpk',
     'qutip',    # QuTiP is open-source software for simulating the dynamics of open quantum systems.
-    'tinyarray'
+    'tinyarray',
+    'pysal',    # requested by Serge Rey of ASU for a course on Geographic Information Analysis
+    'folium'    # requested by Serge Rey of ASU for a course on Geographic Information Analysis
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -513,7 +515,9 @@ R_PACKAGES = [
     'rugarch',
     'quantmod',
     'swirl',
-    'psych'
+    'psych',
+    'spatstat',
+    'UsingR'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
