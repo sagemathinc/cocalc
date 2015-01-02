@@ -2271,6 +2271,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
             line : required
             cm   : required
 
+        return # DISABLED FOR NOW
+
         cm = opts.cm
         scroll_info = cm.getScrollInfo()
         block = @current_input_block(opts.line)
