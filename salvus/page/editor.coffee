@@ -126,9 +126,14 @@ file_associations['tex'] =
     opts   : {mode:'stex2', indent_unit:4, tab_size:4}
 
 file_associations['html'] =
-    editor : 'codemirror'
+    editor : 'html-md'
     icon   : 'fa-file-code-o'
-    opts   : {mode:'htmlmixed', indent_unit:4, tab_size:4}
+    opts   : {indent_unit:4, tab_size:4}
+
+file_associations['md'] =
+    editor : 'html-md'
+    icon   : 'fa-file-code-o'
+    opts   : {indent_unit:4, tab_size:4}
 
 file_associations['sass'] =
     editor : 'codemirror'
@@ -777,6 +782,8 @@ class exports.Editor
                 editor = new Image(@, filename, content, extra_opts)
             when 'latex'
                 editor = new LatexEditor(@, filename, content, extra_opts)
+            when 'html-md'
+                editor = new HTML_MD_Editor(@, filename, content, extra_opts)
             when 'history'
                 editor = new HistoryEditor(@, filename, content, extra_opts)
             when 'pdf'
@@ -3658,7 +3665,10 @@ class LatexEditor extends FileEditor
                         y              : y
                         highlight_line : true
                 opts.cb?(err)
-        
+
+
+
+
 
 #############################################
 # Viewer/editor (?) for history of changes to a document
@@ -5003,6 +5013,166 @@ class Course extends FileEditorWrapper
     init_wrapped: () ->
         @element = course.course(@editor, @filename)
         @wrapped = @element.data('course')
+
+
+#############################################
+# Editor for HTML/Markdown documents
+#############################################
+
+class HTML_MD_Editor extends FileEditor
+    constructor: (@editor, @filename, content, opts) ->
+        window.e = @
+        # The are two components, side by side
+        #     * source editor -- a CodeMirror editor
+        #     * preview/contenteditable -- rendered contenteditable view
+        @ext = filename_extension(@filename)   #'html' or 'md'
+
+        if @ext == 'html'
+            opts.mode = 'htmlmixed'
+        else if @ext == 'md'
+            opts.mode == 'gfm2'
+
+        @element = templates.find(".salvus-editor-html-md").clone()
+        @preview = @element.find(".salvus-editor-html-md-preview")
+        @iframe = @preview.find("iframe")
+
+        # initialize the codemirror editor
+        @source_editor = codemirror_session_editor(@editor, @filename, opts)
+        @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
+        @source_editor.action_key = @action_key
+
+        @source_editor.syncdoc.on 'connect', () =>
+            @update_preview()
+
+        @source_editor.syncdoc.on 'sync', () =>
+            @update_preview()
+
+        @init_buttons()
+        @init_draggable_split()
+        @element.find(".salvus-editor-codemirror-worksheet-editable-buttons").show()
+
+        # this is entirely because of the chat
+        # currently being part of @source_editor, and
+        # only calling the show for that; once chat
+        # is refactored out, delete this.
+        @source_editor.on 'show-chat', () =>
+            @show()
+        @source_editor.on 'hide-chat', () =>
+            @show()
+
+    init_draggable_split: () =>
+        @_split_pos = @local_storage("split_pos")
+        @_dragbar = dragbar = @element.find(".salvus-editor-html-md-resize-bar")
+        dragbar.css(position:'absolute')
+        dragbar.draggable
+            axis : 'x'
+            containment : @element
+            zIndex      : 100
+            stop        : (event, ui) =>
+                # compute the position of bar as a number from 0 to 1
+                left  = @element.offset().left
+                chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
+                if chat_pos.left
+                    width = chat_pos.left - left
+                else
+                    width = @element.width()
+                p     = dragbar.offset().left
+                @_split_pos = (p - left) / width
+                @local_storage('split_pos', @_split_pos)
+                @show()
+
+    inverse_search: (cb) =>
+
+    forward_search: (cb) =>
+
+    action_key: () =>
+
+    remove: () =>
+        @element.remove()
+
+    init_buttons: () =>
+        @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
+
+        @element.find("a[href=#save]").click () =>
+            @click_save_button()
+
+        @element.find("a[href=#forward-search]").click () =>
+            @forward_search(active:true)
+            return false
+
+        @element.find("a[href=#inverse-search]").click () =>
+            @inverse_search(active:true)
+            return false
+
+    click_save_button: () =>
+        @save()
+
+    save: (cb) =>
+        @source_editor.syncdoc.save(cb)
+
+    sync: (cb) =>
+        @source_editor.syncdoc.sync(cb)
+
+    update_preview: () =>
+        console.log("update_preview")
+        source = @source_editor._get()
+        if @iframe_html? and source != @_last_source_from_html
+            @iframe_html.html(source)
+
+    update_source: () =>
+        console.log("update_source")
+        if not @iframe_html?
+            return
+        source = html_beautify(@iframe_html.html())
+        @_last_source_from_html = source
+        @source_editor.syncdoc.focused_codemirror().setValueNoJump(source)
+        @sync()
+
+    _get: () =>
+        return @source_editor._get()
+
+    _set: (content) =>
+        @source_editor._set(content)
+
+    _show: (opts={}) =>
+        if not @_split_pos?
+            @_split_pos = .5
+        @_split_pos = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, @_split_pos))
+        if not @iframe_html?
+            @iframe_html = @iframe.contents().find('html')
+            @iframe_html.attr('contenteditable', true)
+            @iframe_html.on('keyup click mouseup', @update_source) # TODO: way too aggressive
+
+        @element.css(top:@editor.editor_top_position(), position:'fixed')
+        @element.width($(window).width())
+
+        width = @element.width()
+        chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
+        if chat_pos.left
+            width = chat_pos.left
+
+        {top, left} = @element.offset()
+        editor_width = (width - left)*@_split_pos
+
+        @_dragbar.css('left',editor_width+left)
+        @source_editor.show(width:editor_width)
+
+        button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
+
+        @_dragbar.height(@source_editor.element.height())
+        @_dragbar.css('top',top)
+
+        # position the preview
+        @preview.css
+            left  : editor_width + left + 7
+            width : width - (editor_width + left + 7)
+            top   : top
+        @preview.maxheight()
+        @iframe.maxheight()
+
+    focus: () =>
+        @source_editor?.focus()
+
 
 
 
