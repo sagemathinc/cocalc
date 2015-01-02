@@ -1999,6 +1999,9 @@ class CodeMirrorEditor extends FileEditor
         if opts.width?
             width         = opts.width
 
+        if opts.top?
+            top           = opts.top
+
         # height of codemirror editors
         cm_height         = Math.floor((elem_height - button_bar_height)/font_height) * font_height
 
@@ -5053,16 +5056,12 @@ class HTML_MD_Editor extends FileEditor
         @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
         @source_editor.action_key = @action_key
 
-        @source_editor.syncdoc.on 'connect', () =>
-            @update_preview()
-
-        cm = @source_editor.syncdoc.codemirror
+        cm = @cm()
         cm.on 'change', @update_preview
         cm.on 'cursorActivity', @update_preview
 
         @init_buttons()
         @init_draggable_split()
-        @source_editor.element.find(".salvus-editor-codemirror-worksheet-editable-buttons").show()
 
         # this is entirely because of the chat
         # currently being part of @source_editor, and
@@ -5072,6 +5071,9 @@ class HTML_MD_Editor extends FileEditor
             @show()
         @source_editor.on 'hide-chat', () =>
             @show()
+
+    cm: () =>
+        return @source_editor.syncdoc.focused_codemirror()
 
     init_draggable_split: () =>
         @_split_pos = @local_storage("split_pos")
@@ -5108,14 +5110,86 @@ class HTML_MD_Editor extends FileEditor
 
         @element.find("a[href=#save]").click () =>
             @click_save_button()
+        @init_edit_buttons()
 
-        @element.find("a[href=#forward-search]").click () =>
-            @forward_search(active:true)
+    init_edit_buttons: () =>
+        @edit_buttons = @element.find(".salvus-editor-html-md-buttons")
+        @edit_buttons.show()
+
+        if @ext != 'html'
+            @edit_buttons.find("a[href=#clean]").hide()
+
+        that = @
+        @edit_buttons.find("a").click () ->
+            args = $(this).data('args')
+            cmd  = $(this).attr('href').slice(1)
+            if args? and typeof(args) != 'object'
+                args = "#{args}"
+                if args.indexOf(',') != -1
+                    args = args.split(',')
+            that.cm().edit_selection
+                cmd  : cmd
+                args : args
+                mode : that.ext
+            that.sync()
             return false
 
-        @element.find("a[href=#inverse-search]").click () =>
-            @inverse_search(active:true)
-            return false
+        # initialize the color controls
+        ###
+        init_color_control = () =>
+            elt   = button_bar.find(".sagews-output-editor-foreground-color-selector")
+            button_bar_input = elt.find("input").colorpicker()
+            sample = elt.find("i")
+            set = (hex) ->
+                # The CSS wrapping version keeps wrapping new spans hence sucks.
+                #args = [null, {elementProperties:{style:{color:hex}}}]
+                #that.html_editor_exec_command("ClassApplier", args)
+                sample.css("color", hex)
+                button_bar_input.css("background-color", hex)
+                that.html_editor_exec_command("foreColor", hex)
+
+            button_bar_input.change (ev) ->
+                hex = button_bar_input.val()
+                set(hex)
+
+            button_bar_input.on "changeColor", (ev) ->
+                hex = ev.color.toHex()
+                set(hex)
+
+            sample.click (ev) ->
+                that.html_editor_restore_selection()
+                button_bar_input.colorpicker('show')
+
+            set("#000000")
+
+        init_color_control()
+
+        # initialize the color control
+        init_background_color_control = () =>
+            elt   = button_bar.find(".sagews-output-editor-background-color-selector")
+            button_bar_input = elt.find("input").colorpicker()
+            sample = elt.find("i")
+            set = (hex) ->
+                button_bar_input.css("background-color", hex)
+                elt.find(".input-group-addon").css("background-color", hex)
+                that.html_editor_exec_command("hiliteColor", hex)
+
+            button_bar_input.change (ev) ->
+                hex = button_bar_input.val()
+                set(hex)
+
+            button_bar_input.on "changeColor", (ev) ->
+                hex = ev.color.toHex()
+                set(hex)
+
+            sample.click (ev) ->
+                that.html_editor_restore_selection()
+                button_bar_input.colorpicker('show')
+
+            set("#fff8bd")
+
+        init_background_color_control()
+        ###
 
     click_save_button: () =>
         @save()
@@ -5201,11 +5275,13 @@ class HTML_MD_Editor extends FileEditor
 
         @_dragbar.css('left',editor_width+left)
 
+        @source_editor.show
+            width : editor_width
+            top   : top + @edit_buttons.height()
+
         button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
         @element.maxheight(offset:button_bar_height)
         @preview.maxheight(offset:button_bar_height)
-
-        @source_editor.show(width:editor_width)
 
         @_dragbar.height(@source_editor.element.height())
         @_dragbar.css('top',top)
@@ -5225,18 +5301,19 @@ class HTML_MD_Editor extends FileEditor
 
 # Initialize fonts for the editor
 initialize_sagews_editor = () ->
-    elt = $(".sagews-output-editor-font").find(".dropdown-menu")
+    bar = $(".salvus-editor-codemirror-worksheet-editable-buttons")
+    elt = bar.find(".sagews-output-editor-font").find(".dropdown-menu")
     for font in 'Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana'.split(',')
         item = $("<li><a href='#fontName' data-args='#{font}'>#{font}</a></li>")
         item.css('font-family', font)
         elt.append(item)
 
-    elt = $(".sagews-output-editor-font-size").find(".dropdown-menu")
+    elt = bar.find(".sagews-output-editor-font-size").find(".dropdown-menu")
     for size in [1..7]
         item = $("<li><a href='#fontSize' data-args='#{size}'><font size=#{size}>Size #{size}</font></a></li>")
         elt.append(item)
 
-    elt = $(".sagews-output-editor-block-type").find(".dropdown-menu")
+    elt = bar.find(".sagews-output-editor-block-type").find(".dropdown-menu")
     for i in [1..6]
         item = $("<li><a href='#formatBlock' data-args='<H#{i}>'><H#{i} style='margin:0'>Heading</H#{i}></a></li>")
         elt.append(item)
@@ -5254,3 +5331,29 @@ Normal</a></li>")
     elt.prepend(item)
 
 initialize_sagews_editor()
+
+
+
+# Initialize fonts for the editor
+initialize_md_html_editor = () ->
+    bar = $(".salvus-editor-html-md")
+    elt = bar.find(".sagews-output-editor-font-face").find(".dropdown-menu")
+    for font in misc_page.FONT_FACES
+        item = $("<li><a href='#font_face' data-args='#{font}'>#{font}</a></li>")
+        item.css('font-family', font)
+        elt.append(item)
+
+    elt = bar.find(".sagews-output-editor-font-size").find(".dropdown-menu")
+    for size in [1..7]
+        item = $("<li><a href='#font_size' data-args='#{size}'><font size=#{size}>Size #{size} #{if i==3 then 'default' else ''}</font></a></li>")
+        elt.append(item)
+
+    elt = bar.find(".sagews-output-editor-block-type").find(".dropdown-menu")
+    for i in [1..4]
+        elt.append($("<li><a href='#format_heading_#{i}'><H#{i} style='margin:0'>Heading #{i}</H#{i}></a></li>"))
+    elt.append('<li role="presentation" class="divider"></li>')
+    elt.append($("<li><a href='#format_code'><i class='fa fa-code'></i> <code>Code</code></a></li>"))
+
+
+initialize_md_html_editor()
+

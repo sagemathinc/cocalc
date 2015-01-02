@@ -693,6 +693,272 @@ exports.define_codemirror_extensions = () ->
         CodeMirror.registerHelper("hint", "stex", tex_hint)
 
 
+    EDIT_COMMANDS =
+        md :
+            bold :
+                wrap :
+                    left  : '**'
+                    right : '**'
+            italic :
+                wrap :
+                    left  : '_'
+                    right : '_'
+            underline :
+                wrap :
+                    left  : '<u>'
+                    right : '</u>'
+            strikethrough :
+                wrap :
+                    left  : '~~'
+                    right : '~~'
+            insertunorderedlist :
+                wrap :
+                    left  : "\n - "
+                    right : "\n"
+            format_heading_1 :  # todo -- define via for loop below
+                strip : ['format_heading_2','format_heading_3','format_heading_4']
+                wrap :
+                    left  : "#"
+                    right : ""
+            format_heading_2 :
+                strip : ['format_heading_1','format_heading_3','format_heading_4']
+                wrap :
+                    left  : "##"
+                    right : ""
+            format_heading_3 :
+                strip : ['format_heading_1','format_heading_2','format_heading_4']
+                wrap :
+                    left  : "###"
+                    right : ""
+            format_heading_4 :
+                strip : ['format_heading_1','format_heading_2','format_heading_3']
+                wrap :
+                    left  : "####"
+                    right : ""
+            format_code :  # TODO: I think indentation is probably nicer?  on single line ` is nicer.
+                wrap :
+                    left  : '```'
+                    right : '```'
+
+        html:
+            italic :
+                wrap :
+                    left  : '<em>'
+                    right : '</em>'
+            bold :
+                wrap :
+                    left  : '<strong>'
+                    right : '</strong>'
+            underline :
+                wrap :
+                    left  : '<u>'
+                    right : '</u>'
+            strikethrough :
+                wrap :
+                    left  : '<strike>'
+                    right : '</strike>'
+            subscript :
+                wrap :
+                    left  : '<sub>'
+                    right : '</sub>'
+            superscript :
+                wrap :
+                    left  : '<sup>'
+                    right : '</sup>'
+            insertunorderedlist :
+                wrap :
+                    left  : "\n<ul>\n    <li> "
+                    right : "</li>\n</ul>\n"
+            insertorderedlist :
+                wrap :
+                    left  : "\n<ol>\n    <li> "
+                    right : "</li>\n</ol>\n"
+            justifyleft :    # todo -- define via for loop below
+                strip : ['justifycenter','justifyright','justifyfull']
+                wrap :
+                    left  : ""
+                    right : ""
+            justifycenter :
+                strip : ['justifycenter','justifyright','justifyleft']
+                wrap :
+                    left  : "<div align='center'>"
+                    right : "</div>"
+            justifyright :
+                strip : ['justifycenter','justifyright','justifyleft']
+                wrap :
+                    left  : "<div align='right'>"
+                    right : "</div>"
+            justifyfull :
+                strip : ['justifycenter','justifyright','justifyleft']
+                wrap :
+                    left  : "<div align='justify'>"
+                    right : "</div>"
+            format_heading_1 :  # todo -- define via for loop below
+                strip : ['format_heading_2','format_heading_3','format_heading_4']
+                wrap :
+                    left  : "<h1>"
+                    right : "</h1>"
+            format_heading_2 :
+                strip : ['format_heading_1','format_heading_3','format_heading_4']
+                wrap :
+                    left  : "<h2>"
+                    right : "</h2>"
+            format_heading_3 :
+                strip : ['format_heading_1','format_heading_2','format_heading_4']
+                wrap :
+                    left  : "<h3>"
+                    right : "</h3>"
+            format_heading_4 :
+                strip : ['format_heading_1','format_heading_2','format_heading_3']
+                wrap :
+                    left  : "<h4>"
+                    right : "</h4>"
+            format_code :
+                wrap :
+                    left  : '<pre>'
+                    right : '</pre>'
+            equation :
+                wrap :
+                    left  : "$ "
+                    right : " $"
+            display_equation :
+                wrap :
+                    left  : "$$ "
+                    right : " $$"
+
+
+    CodeMirror.defineExtension 'edit_selection', (opts) ->
+        opts = defaults opts,
+            cmd  : required
+            args : undefined
+            mode : undefined
+        cm = @
+        mode = opts.mode
+        if not mode?
+            mode = cm.getOption('mode').name
+        if mode.slice(0,3) == 'gfm'
+            mode = 'md'
+        else if mode.slice(0,9) == 'mixedhtml'
+            mode = 'html'
+        else if mode.indexOf('stex') != -1
+            mode = 'tex' # not supported yet!
+        if mode not in ['md', 'html']
+            throw "unknown mode '#{opts.mode}'"
+
+        args = opts.args
+        cmd = opts.cmd
+
+        #console.log("edit_selection '#{misc.to_json(opts)}'")
+
+        strip = (src, left, right) ->
+            #console.log("strip:'#{src}','#{left}','#{right}'")
+            left  = left.trim().toLowerCase()
+            right = right.trim().toLowerCase()
+            src0   = src.toLowerCase()
+            if src0.length >= left.length + right.length and src0.slice(0,left.length) == left and src0.slice(src.length-right.length) == right
+                console.log('strip match')
+                return src.slice(left.length, src.length - right.length)
+
+        selections = cm.listSelections()
+        selections.reverse()
+        for selection in selections
+            from = selection.from()
+            to = selection.to()
+            src = cm.getRange(from, to)
+            # trim whitespace
+            i = 0
+            while i<src.length and /\s/.test(src[i])
+                i += 1
+            j = src.length-1
+            while j > 0 and /\s/.test(src[j])
+                j -= 1
+            j += 1
+            left_white = src.slice(0,i)
+            right_white = src.slice(j)
+            src = src.slice(i,j)
+            src0 = src
+
+
+            mode1 = mode
+            how = EDIT_COMMANDS[mode1][cmd]
+            if mode1 == 'md' and not how?
+                # html fallback for markdown
+                mode1 = 'html'
+                how = EDIT_COMMANDS[mode1][cmd]
+
+            done = false
+            if how?.wrap?
+                if how.strip?
+                    # Strip out any tags/wrapping from conflicting modes.
+                    for c in how.strip
+                        wrap = EDIT_COMMANDS[mode1][c].wrap
+                        if wrap?
+                            {left, right} = wrap
+                            src1 = strip(src, left, right)
+                            if src1?
+                                src = src1
+
+                {left, right} = how.wrap
+                src1 = strip(src, left, right)
+                if src1
+                    # strip the wrapping
+                    src = src1
+                else
+                    # do the wrapping
+                    src = "#{left}#{src}#{right}"
+                done = true
+
+            if cmd == 'font_size'
+                if mode == 'html' or mode =='md'
+                    for i in [1..7]
+                        src1 = strip(src, "<font size=#{i}>", '</font>')
+                        if src1
+                            src = src1
+                    if args != '3'
+                        src = "<font size=#{args}>#{src}</font>"
+
+            if cmd == 'font_face'
+                if mode == 'html' or mode =='md'
+                    for face in FONT_FACES
+                        src1 = strip(src, "<font face='#{face}'>", '</font>')
+                        if src1
+                            src = src1
+                    src = "<font face='#{args}'>#{src}</font>"
+
+            if cmd == 'clean'
+                if mode == 'html'
+                    src = html_beautify($("<div>").html(src).html())
+                    done = true
+
+            if cmd == 'unformat'
+                if mode == 'html'
+                    src = $("<div>").html(src).text()
+                    done = true
+                else if mode == 'md'
+                    src = $("<div>").html(markdown_to_html(src).s).text()
+                    done = true
+
+            if not done?
+                console.log("not implemented")
+                return "not implemented"
+
+            if src != src0
+                cm.replaceRange(left_white + src + right_white, from, to)
+                if not selection.empty()
+                    # now select the new range
+                    delta = src.length - src0.length
+                    cm.addSelection(from, {line:to.line, ch:to.ch+delta})
+                else
+                    # restore cursor
+                    if left?
+                        delta = left.length
+                    else
+                        delta = 0  # not really right if multiple lines -- should really not touch cursor when possible.
+                    cm.addSelection({line:from.line, ch:to.ch+delta})
+
+
+exports.FONT_FACES = FONT_FACES = 'Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana'.split(',')
+
 cm_start_end = (selection) ->
     {head, anchor} = selection
     start = head
@@ -770,7 +1036,7 @@ marked.setOptions
     smartLists  : true
     smartypants : true
 
-exports.markdown_to_html = (s) ->
+exports.markdown_to_html = markdown_to_html = (s) ->
     # replace mathjax, which is delimited by $, $$, \( \), and \[ \]
     v = misc.parse_mathjax(s)
     if v.length > 0
