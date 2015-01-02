@@ -1977,7 +1977,7 @@ class CodeMirrorEditor extends FileEditor
         top               = @editor.editor_top_position()
         height            = $(window).height()
         elem_height       = height - top - 5
-        button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
+        button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height       = @codemirror.defaultTextHeight()
         chat              = @_chat_is_hidden? and not @_chat_is_hidden
 
@@ -5020,36 +5020,40 @@ class Course extends FileEditorWrapper
 #############################################
 
 class HTML_MD_Editor extends FileEditor
-    constructor: (@editor, @filename, content, opts) ->
+    constructor: (@editor, @filename, content, @opts) ->
         window.e = @
         # The are two components, side by side
         #     * source editor -- a CodeMirror editor
-        #     * preview/contenteditable -- rendered contenteditable view
+        #     * preview/contenteditable -- rendered view
         @ext = filename_extension(@filename)   #'html' or 'md'
 
         if @ext == 'html'
-            opts.mode = 'htmlmixed'
+            @opts.mode = 'htmlmixed'
         else if @ext == 'md'
-            opts.mode == 'gfm2'
+            @opts.mode = 'gfm2'
+        else
+            throw "file must have extension md or html"
 
         @element = templates.find(".salvus-editor-html-md").clone()
         @preview = @element.find(".salvus-editor-html-md-preview")
-        @iframe = @preview.find("iframe")
+        #@iframe  = @preview.find("iframe")
+        @iframe = @iframe_html = @preview
 
         # initialize the codemirror editor
-        @source_editor = codemirror_session_editor(@editor, @filename, opts)
+        @source_editor = codemirror_session_editor(@editor, @filename, @opts)
         @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
         @source_editor.action_key = @action_key
 
         @source_editor.syncdoc.on 'connect', () =>
             @update_preview()
 
-        @source_editor.syncdoc.on 'sync', () =>
-            @update_preview()
+        cm = @source_editor.syncdoc.codemirror
+        cm.on 'change', @update_preview
+        cm.on 'cursorActivity', @update_preview
 
         @init_buttons()
         @init_draggable_split()
-        @element.find(".salvus-editor-codemirror-worksheet-editable-buttons").show()
+        @source_editor.element.find(".salvus-editor-codemirror-worksheet-editable-buttons").show()
 
         # this is entirely because of the chat
         # currently being part of @source_editor, and
@@ -5115,18 +5119,39 @@ class HTML_MD_Editor extends FileEditor
 
     update_preview: () =>
         console.log("update_preview")
-        source = @source_editor._get()
-        if @iframe_html? and source != @_last_source_from_html
-            @iframe_html.html(source)
-
-    update_source: () =>
-        console.log("update_source")
         if not @iframe_html?
+            return # nothing to do
+        # TODO: will need to use an official html sanitizer,
+        # and will also need to make this more local so it scales,
+        # rather than globally recreating whole DOM.  Not sure how -- maybe react?
+
+        # add in cursor(s)
+
+        source = @source_editor._get()
+        cm = @source_editor.syncdoc.focused_codemirror()
+        pos = cm.getCursor()
+        # figure out where pos is in the source and put HTML cursor there
+        lines = source.split('\n')
+        line = lines[pos.line]
+        lines[pos.line] = line.slice(0,pos.ch)+"<span class='smc-html-cursor'></span>"+line.slice(pos.ch)
+        source = lines.join('\n')
+        if source == @_last_source_from_html
             return
-        source = html_beautify(@iframe_html.html())
         @_last_source_from_html = source
-        @source_editor.syncdoc.focused_codemirror().setValueNoJump(source)
-        @sync()
+
+        if @ext == 'md'
+            source = misc_page.markdown_to_html(source).s
+        # make elt
+        elt = $("<span>").html(source)
+        # remove any javascript
+        elt.find('script').remove()
+
+        # finally set html
+        @iframe_html.html(elt.html())
+        @iframe_html.find(".smc-html-cursor").css
+            'border-left': "1px solid black"
+            'margin-right': '-1px'
+        @iframe_html.mathjax()
 
     _get: () =>
         return @source_editor._get()
@@ -5140,8 +5165,6 @@ class HTML_MD_Editor extends FileEditor
         @_split_pos = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, @_split_pos))
         if not @iframe_html?
             @iframe_html = @iframe.contents().find('html')
-            @iframe_html.attr('contenteditable', true)
-            @iframe_html.on('keyup click mouseup', @update_source) # TODO: way too aggressive
 
         @element.css(top:@editor.editor_top_position(), position:'fixed')
         @element.width($(window).width())
@@ -5155,9 +5178,12 @@ class HTML_MD_Editor extends FileEditor
         editor_width = (width - left)*@_split_pos
 
         @_dragbar.css('left',editor_width+left)
-        @source_editor.show(width:editor_width)
 
         button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
+        @element.maxheight(offset:button_bar_height)
+        @preview.maxheight(offset:button_bar_height)
+
+        @source_editor.show(width:editor_width)
 
         @_dragbar.height(@source_editor.element.height())
         @_dragbar.css('top',top)
@@ -5167,8 +5193,7 @@ class HTML_MD_Editor extends FileEditor
             left  : editor_width + left + 7
             width : width - (editor_width + left + 7)
             top   : top
-        @preview.maxheight()
-        @iframe.maxheight()
+
 
     focus: () =>
         @source_editor?.focus()
