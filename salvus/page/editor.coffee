@@ -75,7 +75,7 @@ codemirror_associations =
     h      : 'text/x-c++hdr'
     hs     : 'text/x-haskell'
     lhs    : 'text/x-haskell'
-    html   : 'htmlmixed'
+    html   : 'htmlmixed2'
     java   : 'text/x-java'
     jl     : 'text/x-julia'
     js     : 'javascript'
@@ -217,7 +217,7 @@ sagews_decorator_modes = [
     ['cython'      , 'python'],
     ['file'        , 'text'],
     ['fortran'     , 'text/x-fortran'],
-    ['html'        , 'htmlmixed'],
+    ['html'        , 'htmlmixed2'],
     ['javascript'  , 'javascript'],
     ['latex'       , 'stex']
     ['lisp'        , 'ecl'],
@@ -246,6 +246,15 @@ exports.define_codemirror_sagews_mode = () ->
                 close : x[1]
                 mode  : CodeMirror.getMode(config, 'stex')
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "gfm"), options...)
+
+    CodeMirror.defineMode "htmlmixed2", (config) ->
+        options = []
+        for x in [['$$','$$'], ['$','$'], ['\\[','\\]'], ['\\(','\\)']]
+            options.push
+                open  : x[0]
+                close : x[1]
+                mode  : CodeMirror.getMode(config, 'stex')
+        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "htmlmixed"), options...)
 
     CodeMirror.defineMode "stex2", (config) ->
         options = []
@@ -5028,7 +5037,7 @@ class HTML_MD_Editor extends FileEditor
         @ext = filename_extension(@filename)   #'html' or 'md'
 
         if @ext == 'html'
-            @opts.mode = 'htmlmixed'
+            @opts.mode = 'htmlmixed2'
         else if @ext == 'md'
             @opts.mode = 'gfm2'
         else
@@ -5121,6 +5130,7 @@ class HTML_MD_Editor extends FileEditor
         console.log("update_preview")
         if not @iframe_html?
             return # nothing to do
+        t0 = misc.mswalltime()
         # TODO: will need to use an official html sanitizer,
         # and will also need to make this more local so it scales,
         # rather than globally recreating whole DOM.  Not sure how -- maybe react?
@@ -5129,11 +5139,21 @@ class HTML_MD_Editor extends FileEditor
 
         source = @source_editor._get()
         cm = @source_editor.syncdoc.focused_codemirror()
-        pos = cm.getCursor()
         # figure out where pos is in the source and put HTML cursor there
         lines = source.split('\n')
-        line = lines[pos.line]
-        lines[pos.line] = line.slice(0,pos.ch)+"<span class='smc-html-cursor'></span>"+line.slice(pos.ch)
+        for s in cm.listSelections()
+            pos = s.head
+            line = lines[pos.line]
+            # TODO: for now, tags have to start/end on a single line
+            i = pos.ch
+            left = line.slice(0,i)
+            j = left.lastIndexOf('>')
+            k = left.lastIndexOf('<')
+            if k > j
+                # in a tag
+                i = k
+            lines[pos.line] = line.slice(0,i)+"<span class='smc-html-cursor'></span>"+line.slice(i)
+
         source = lines.join('\n')
         if source == @_last_source_from_html
             return
@@ -5151,6 +5171,8 @@ class HTML_MD_Editor extends FileEditor
         @iframe_html.find(".smc-html-cursor").css
             'border-left': "1px solid black"
             'margin-right': '-1px'
+        console.log("update_preview time=#{misc.mswalltime(t0)}ms")
+
         @iframe_html.mathjax()
 
     _get: () =>
