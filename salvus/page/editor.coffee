@@ -5048,8 +5048,6 @@ class HTML_MD_Editor extends FileEditor
 
         @element = templates.find(".salvus-editor-html-md").clone()
         @preview = @element.find(".salvus-editor-html-md-preview")
-        #@iframe  = @preview.find("iframe")
-        @iframe = @iframe_html = @preview
 
         # initialize the codemirror editor
         @source_editor = codemirror_session_editor(@editor, @filename, @opts)
@@ -5200,14 +5198,21 @@ class HTML_MD_Editor extends FileEditor
     sync: (cb) =>
         @source_editor.syncdoc.sync(cb)
 
+    outside_tag: (line, i) ->
+        left = line.slice(0,i)
+        j = left.lastIndexOf('>')
+        k = left.lastIndexOf('<')
+        if k > j
+            return k
+        else
+            return i
+
     update_preview: () =>
         console.log("update_preview")
-        if not @iframe_html?
-            return # nothing to do
         t0 = misc.mswalltime()
-        # TODO: will need to use an official html sanitizer,
+        # TODO: might want to use an official html sanitizer,
         # and will also need to make this more local so it scales,
-        # rather than globally recreating whole DOM.  Not sure how -- maybe react?
+        # rather than globally recreating whole DOM.
 
         # add in cursor(s)
 
@@ -5215,18 +5220,32 @@ class HTML_MD_Editor extends FileEditor
         cm = @source_editor.syncdoc.focused_codemirror()
         # figure out where pos is in the source and put HTML cursor there
         lines = source.split('\n')
+        markers =
+            cursor : "<span class='smc-html-cursor'></span>"
+            from   : "\uFE23"
+            to     : "\uFE24"
+
         for s in cm.listSelections()
-            pos = s.head
-            line = lines[pos.line]
-            # TODO: for now, tags have to start/end on a single line
-            i = pos.ch
-            left = line.slice(0,i)
-            j = left.lastIndexOf('>')
-            k = left.lastIndexOf('<')
-            if k > j
-                # in a tag
-                i = k
-            lines[pos.line] = line.slice(0,i)+"<span class='smc-html-cursor'></span>"+line.slice(i)
+            if s.empty()
+                # a single cursor
+                pos = s.head
+                line = lines[pos.line]
+                # TODO: for now, tags have to start/end on a single line
+                i = @outside_tag(line, pos.ch)
+                lines[pos.line] = line.slice(0,i)+markers.cursor+line.slice(i)
+            else
+                # a selection range
+                to = s.to()
+                line = lines[to.line]
+                to.ch = @outside_tag(line, to.ch)
+                i = to.ch
+                lines[to.line] = line.slice(0,i) + markers.to + line.slice(i)
+
+                from = s.from()
+                line = lines[from.line]
+                from.ch = @outside_tag(line, from.ch)
+                i = from.ch
+                lines[from.line] = line.slice(0,i) + markers.from + line.slice(i)
 
         source = lines.join('\n')
         if source == @_last_source_from_html
@@ -5235,19 +5254,27 @@ class HTML_MD_Editor extends FileEditor
 
         if @ext == 'md'
             source = misc_page.markdown_to_html(source).s
-        # make elt
-        elt = $("<span>").html(source)
-        # remove any javascript
-        elt.find('script').remove()
 
-        # finally set html
-        @iframe_html.html(elt.html())
-        @iframe_html.find(".smc-html-cursor").css
-            'border-left': "1px solid black"
-            'margin-right': '-1px'
+        # remove any javascript and make html more sane
+        elt = $("<span>").html(source)
+        elt.find('script').remove()
+        source = elt.html()
+
+        # add smc-html-selection class to everything that is selected
+        # TODO: this will *only* work when there is one range selection!!
+        i = source.indexOf(markers.from)
+        j = source.indexOf(markers.to)
+        if i != -1 and j != -1
+            elt = $("<span>")
+            elt.html(source.slice(i+1,j))
+            elt.find('*').addClass('smc-html-selection')
+            source = source.slice(0,i) + "<span class='smc-html-selection'>" + elt.html() + "</span>" + source.slice(j+1)
+
+        # finally set html in the live DOM
+        @preview.html(source)
         console.log("update_preview time=#{misc.mswalltime(t0)}ms")
 
-        @iframe_html.mathjax()
+        @preview.mathjax()
 
     _get: () =>
         return @source_editor._get()
@@ -5259,9 +5286,6 @@ class HTML_MD_Editor extends FileEditor
         if not @_split_pos?
             @_split_pos = .5
         @_split_pos = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, @_split_pos))
-        if not @iframe_html?
-            @iframe_html = @iframe.contents().find('html')
-
         @element.css(top:@editor.editor_top_position(), position:'fixed')
         @element.width($(window).width())
 

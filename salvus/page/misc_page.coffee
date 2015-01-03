@@ -850,14 +850,19 @@ exports.define_codemirror_extensions = () ->
 
         #console.log("edit_selection '#{misc.to_json(opts)}'")
 
+        # TODO: will have to make this more sophisticated, so it can
+        # deal with nesting.
         strip = (src, left, right) ->
             #console.log("strip:'#{src}','#{left}','#{right}'")
             left  = left.trim().toLowerCase()
             right = right.trim().toLowerCase()
             src0   = src.toLowerCase()
-            if src0.length >= left.length + right.length and src0.slice(0,left.length) == left and src0.slice(src.length-right.length) == right
-                console.log('strip match')
-                return src.slice(left.length, src.length - right.length)
+            i = src0.indexOf(left)
+            if i != -1
+                j = src0.lastIndexOf(right)
+                if j != -1
+                    #console.log('strip match')
+                    return src.slice(0,i) + src.slice(i+left.length,j) + src.slice(j+right.length)
 
         selections = cm.listSelections()
         selections.reverse()
