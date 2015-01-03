@@ -739,6 +739,10 @@ exports.define_codemirror_extensions = () ->
                 wrap :
                     left  : '```'
                     right : '```'
+            indent :
+                wrap :
+                    left  : "> "
+                    right : ""
 
         html:
             italic :
@@ -765,6 +769,10 @@ exports.define_codemirror_extensions = () ->
                 wrap :
                     left  : '<sup>'
                     right : '</sup>'
+            comment :
+                wrap :
+                    left  : '<!--'
+                    right : '-->'
             insertunorderedlist :
                 wrap :
                     left  : "\n<ul>\n    <li> "
@@ -793,6 +801,10 @@ exports.define_codemirror_extensions = () ->
                 wrap :
                     left  : "<div align='justify'>"
                     right : "</div>"
+            indent :
+                wrap :
+                    left  : "<blockquote>"
+                    right : "</blockquote>"
             format_heading_1 :  # todo -- define via for loop below
                 strip : ['format_heading_2','format_heading_3','format_heading_4']
                 wrap :

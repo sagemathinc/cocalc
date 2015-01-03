@@ -441,6 +441,7 @@ Editor for files in a project
                 <a href="#strikethrough" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Strike through"><i class="fa fa-strikethrough"></i></a>
                 <a href="#subscript" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Subscript (use LaTeX for serious equations)"><i class="fa fa-subscript"></i></a>
                 <a href="#superscript" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Superscript"><i class="fa fa-superscript"></i></a>
+                <a href="#comment" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Comment selected text"><i class="fa fa-comment-o"></i></a>
             </span>
             <span class="btn-group">
                 <a href="#equation" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Inline equation..."> \$  </a>
@@ -456,10 +457,9 @@ Editor for files in a project
                 <a href="#justifycenter" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Justify center"><i class="fa fa-align-center"></i></a>
                 <a href="#justifyright" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Right justify"><i class="fa fa-align-right"></i></a>
                 <a href="#justifyfull" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Justify full"><i class="fa fa-align-justify"></i></a>
-                <a href="#outdent" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Outdent"><i class="fa fa-outdent"></i></a>
-                <a href="#indent" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Indent"><i class="fa fa-indent"></i></a>
+                <a href="#indent" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Indent/quote selected text"><i class="fa fa-indent"></i></a>
                 <a href="#unformat" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Remove formatting"><i class="fa fa-remove"></i></a>
-                <a href="#clean" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Make selected HTML valid"><i class="fa fa-html5"></i></a>
+                <a href="#clean" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Make selected HTML valid"><i class="fa fa-code"></i></a>
             </span>
             <span class="btn-group">
                 <span class="btn-group sagews-output-editor-font-face smc-tooltip"  data-toggle="tooltip" data-placement="bottom" title="Fonts">
@@ -673,7 +673,7 @@ Editor for files in a project
                     </div>
                     <div class="row">
                         <div class="col-sm-4 lighten">
-                            Displayed Text (required)
+                            Displayed Text (optional)
                         </div>
                         <div class="col-sm-8">
                             <input class="form-control salvus-html-editor-display" type="text"  placeholder="Displayed Text">
@@ -687,7 +687,7 @@ Editor for files in a project
                             <input class="form-control salvus-html-editor-title" type="text" placeholder="Title">
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="row salvus-html-editor-target-row">
                         <div class="col-sm-4 lighten">
                             Target
                         </div>
@@ -739,6 +739,14 @@ Editor for files in a project
                         </div>
                         <div class="col-sm-8">
                             <input class="form-control salvus-html-editor-height" type="text" placeholder="Height">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-4 lighten">
+                            Title (optional)
+                        </div>
+                        <div class="col-sm-8">
+                            <input class="form-control salvus-html-editor-title" type="text" placeholder="Title">
                         </div>
                     </div>
 

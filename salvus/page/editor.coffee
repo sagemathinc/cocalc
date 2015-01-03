@@ -5055,11 +5055,13 @@ class HTML_MD_Editor extends FileEditor
         @source_editor.action_key = @action_key
 
         cm = @cm()
-        cm.on 'change', @update_preview
-        cm.on 'cursorActivity', @update_preview
+        cm.on('change', @update_preview)
+        #cm.on 'cursorActivity', @update_preview
 
         @init_buttons()
         @init_draggable_split()
+
+        @init_preview_select()
 
         # this is entirely because of the chat
         # currently being part of @source_editor, and
@@ -5114,9 +5116,6 @@ class HTML_MD_Editor extends FileEditor
         @edit_buttons = @element.find(".salvus-editor-html-md-buttons")
         @edit_buttons.show()
 
-        if @ext != 'html'
-            @edit_buttons.find("a[href=#clean]").hide()
-
         that = @
         @edit_buttons.find("a").click () ->
             args = $(this).data('args')
@@ -5125,12 +5124,23 @@ class HTML_MD_Editor extends FileEditor
                 args = "#{args}"
                 if args.indexOf(',') != -1
                     args = args.split(',')
-            that.cm().edit_selection
-                cmd  : cmd
-                args : args
-                mode : that.ext
-            that.sync()
+            switch cmd
+                when "link"
+                    that.insert_link()
+                when "image"
+                    that.insert_image()
+                else
+                    that.cm().edit_selection
+                        cmd  : cmd
+                        args : args
+                        mode : that.ext
+                    that.sync()
             return false
+
+        if @ext != 'html'
+            # hide some buttons, since these are not markdown friendly operations:
+            for t in ['clean', 'insertorderedlist']
+                @edit_buttons.find("a[href=##{t}]").hide()
 
         # initialize the color controls
         ###
@@ -5193,7 +5203,7 @@ class HTML_MD_Editor extends FileEditor
         @save()
 
     save: (cb) =>
-        @source_editor.syncdoc.save(cb)
+        @source_editor.save(cb)
 
     sync: (cb) =>
         @source_editor.syncdoc.sync(cb)
@@ -5206,6 +5216,11 @@ class HTML_MD_Editor extends FileEditor
             return k
         else
             return i
+
+    file_path: () =>
+        if not @_file_path?
+            @_file_path = misc.path_split(@filename).head
+        return @_file_path
 
     update_preview: () =>
         console.log("update_preview")
@@ -5221,31 +5236,53 @@ class HTML_MD_Editor extends FileEditor
         # figure out where pos is in the source and put HTML cursor there
         lines = source.split('\n')
         markers =
-            cursor : "<span class='smc-html-cursor'></span>"
+            cursor : "\uFE22"
             from   : "\uFE23"
             to     : "\uFE24"
 
-        for s in cm.listSelections()
-            if s.empty()
-                # a single cursor
-                pos = s.head
-                line = lines[pos.line]
-                # TODO: for now, tags have to start/end on a single line
-                i = @outside_tag(line, pos.ch)
-                lines[pos.line] = line.slice(0,i)+markers.cursor+line.slice(i)
-            else
-                # a selection range
-                to = s.to()
-                line = lines[to.line]
-                to.ch = @outside_tag(line, to.ch)
-                i = to.ch
-                lines[to.line] = line.slice(0,i) + markers.to + line.slice(i)
+        if @ext == 'html'
+            for s in cm.listSelections()
+                if s.empty()
+                    # a single cursor
+                    pos = s.head
+                    line = lines[pos.line]
+                    # TODO: for now, tags have to start/end on a single line
+                    i = @outside_tag(line, pos.ch)
+                    lines[pos.line] = line.slice(0,i)+markers.cursor+line.slice(i)
+                else if false  # disable
+                    # a selection range
+                    to = s.to()
+                    line = lines[to.line]
+                    to.ch = @outside_tag(line, to.ch)
+                    i = to.ch
+                    lines[to.line] = line.slice(0,i) + markers.to + line.slice(i)
 
-                from = s.from()
-                line = lines[from.line]
-                from.ch = @outside_tag(line, from.ch)
-                i = from.ch
-                lines[from.line] = line.slice(0,i) + markers.from + line.slice(i)
+                    from = s.from()
+                    line = lines[from.line]
+                    from.ch = @outside_tag(line, from.ch)
+                    i = from.ch
+                    lines[from.line] = line.slice(0,i) + markers.from + line.slice(i)
+
+        if @ext == 'html'
+            # embed position data by putting invisible spans before each element.
+            for i in [0...lines.length]
+                line = lines[i]
+                line2 = ''
+                for j in [0...line.length]
+                    if line[j] == "<"  # TODO: worry about < in mathjax...
+                        s = line.slice(0,j)
+                        c = s.split(markers.cursor).length + s.split(markers.from).length + s.split(markers.to).length - 3  # TODO: ridiculously inefficient
+                        line2 = "<span data-line=#{i} data-ch=#{j-c} class='smc-pos'></span>" + line.slice(j) + line2
+                        line = line.slice(0,j)
+                lines[i] = "<span data-line=#{i} data-ch=0 class='smc-pos'></span>"+line + line2
+        else
+            # For markdown, we put the line position at the end of each line.  That's the
+            # best we can do without actually getting into the guts of the md --> html
+            # converter library.
+            if 0   # as is, this won't work at all.
+              for i in [0...lines.length]
+                if lines[i].trim().length == 0
+                    lines[i] = "\n<span data-line=#{i} data-ch=0 class='smc-pos'></span>\n"
 
         source = lines.join('\n')
         if source == @_last_source_from_html
@@ -5253,12 +5290,16 @@ class HTML_MD_Editor extends FileEditor
         @_last_source_from_html = source
 
         if @ext == 'md'
-            source = misc_page.markdown_to_html(source).s
+            m = misc_page.markdown_to_html(source)
+            source = m.s
 
         # remove any javascript and make html more sane
         elt = $("<span>").html(source)
         elt.find('script').remove()
+        elt.find('link').remove()
         source = elt.html()
+
+        source = misc.replace_all(source, markers.cursor, "<span class='smc-html-cursor'></span>")
 
         # add smc-html-selection class to everything that is selected
         # TODO: this will *only* work when there is one range selection!!
@@ -5272,9 +5313,64 @@ class HTML_MD_Editor extends FileEditor
 
         # finally set html in the live DOM
         @preview.html(source)
+
+        @localize_image_links(@preview)
+
+        ## this would disable clickable links...
+        #@preview.find("a").click () =>
+        #    return false
+        # Make it so preview links can be clicked, don't close SMC page.
+        @preview.find("a").attr("target","_blank")
+        @preview.find("table").addClass('table')  # bootstrap table
+
+        if not m? or m.has_mathjax
+            @preview.mathjax()
+
+        # this is possibly bad:
+        @preview.find(".smc-html-cursor").scrollintoview()
+        @preview.find(".smc-html-cursor").remove()
+
         console.log("update_preview time=#{misc.mswalltime(t0)}ms")
 
-        @preview.mathjax()
+    localize_image_links: (e) =>
+        # make relative links to images use the raw server
+        for x in e.find("img")
+            y = $(x)
+            src = y.attr('src')
+            if not src? or src[0] == '/' or src.indexOf('://') != -1
+                continue
+            new_src = "/#{@editor.project_id}/raw/#{@file_path()}/#{src}"
+            y.attr('src', new_src)
+
+    init_preview_select: () =>
+        @preview.click (evt) =>
+            sel = window.getSelection()
+            window.sel = sel
+            window.evt = evt
+            if @ext=='html'
+                p = $(evt.target).prevAll(".smc-pos:first")
+            else
+                p = $(evt.target).nextAll(".smc-pos:first")
+
+            console.log("evt.target after ", p)
+            if p.length == 0
+                if @ext=='html'
+                    p = $(sel.anchorNode).prevAll(".smc-pos:first")
+                else
+                    p = $(sel.anchorNode).nextAll(".smc-pos:first")
+                console.log("anchorNode after ", p)
+            if p.length == 0
+                console.log("clicked but not able to determine position")
+                return
+            pos = p.data()
+            console.log("p.data=#{misc.to_json(pos)}, focusOffset=#{sel.focusOffset}")
+            if not pos?
+                pos = {ch:0, line:0}
+            pos = {ch:pos.ch + sel.focusOffset, line:pos.line}
+            console.log("clicked on ", pos)
+            @cm().setCursor(pos)
+            @cm().scrollIntoView(pos.line)
+            @cm().focus()
 
     _get: () =>
         return @source_editor._get()
@@ -5308,7 +5404,7 @@ class HTML_MD_Editor extends FileEditor
         @preview.maxheight(offset:button_bar_height)
 
         @_dragbar.height(@source_editor.element.height())
-        @_dragbar.css('top',top)
+        @_dragbar.css('top',top-9)  # -9 = ugly hack
 
         # position the preview
         @preview.css
@@ -5321,7 +5417,116 @@ class HTML_MD_Editor extends FileEditor
         @source_editor?.focus()
 
 
+    insert_link: () =>
+        dialog = templates.find(".salvus-html-editor-link-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            setTimeout(focus, 50)
+            return false
+        url = dialog.find(".salvus-html-editor-url")
+        url.focus()
+        display = dialog.find(".salvus-html-editor-display")
+        target  = dialog.find(".salvus-html-editor-target")
+        title   = dialog.find(".salvus-html-editor-title")
 
+        selected_text = @cm().getSelection()
+        display.val(selected_text)
+
+        if @ext == 'md'
+            dialog.find(".salvus-html-editor-target-row").hide()
+
+        submit = () =>
+            dialog.modal('hide')
+            if @ext == 'md'
+                if title.val().length > 0
+                    title = " \"#{title.val()}\""
+                else
+                    title= ""
+
+                d = display.val()
+                if d.length > 0
+                    s = "[#{d}](#{url.val()}#{title})"
+                else
+                    s = url.val()
+            else
+                if target.val() == "_blank"
+                    target = " target='_blank'"
+                else
+                    target = ''
+                if title.val().length > 0
+                    title = " #{title.val()}"
+                else
+                    title= ''
+                if display.val().length > 0
+                    display = " #{display.val()}"
+                else
+                    display = url.val()
+                s = "<a href='#{url.val()}' #{title}#{target}>#{display}</a>"
+
+            cm = @cm()
+            selections = cm.listSelections()
+            selections.reverse()
+            for sel in selections
+                if sel.empty()
+                    cm.replaceRange(s, sel.head)
+                else
+                    cm.replaceRange(s, sel.from(), sel.to())
+            @sync()
+
+        dialog.find(".btn-submit").off('click').click(submit)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                return false
+
+    insert_image: () =>
+
+        dialog = templates.find(".salvus-html-editor-image-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            return false
+        url = dialog.find(".salvus-html-editor-url")
+        url.focus()
+
+        submit = () =>
+            dialog.modal('hide')
+            title  = dialog.find(".salvus-html-editor-title").val().trim()
+            height = width = ''
+            h = dialog.find(".salvus-html-editor-height").val().trim()
+            if h.length > 0
+                height = " height=#{h}"
+            w = dialog.find(".salvus-html-editor-width").val().trim()
+            if w.length > 0
+                width = " width=#{w}"
+            if width.length == 0 and height.length == 0 and @ext == 'md'
+                # use markdown's funny image format if width/height not given
+                if title.length > 0
+                    title = " \"#{title}\""
+                s = "![](#{url.val()}#{title})"
+            else
+                if title.length > 0
+                    title = " title='#{title}'"
+                s = "<img src='#{url.val()}'#{width}#{height}#{title}>"
+            cm = @cm()
+            selections = cm.listSelections()
+            selections.reverse()
+            for sel in selections
+                cm.replaceRange(s, sel.head)
+            @sync()
+
+        dialog.find(".btn-submit").off('click').click(submit)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                return false
 
 # Initialize fonts for the editor
 initialize_sagews_editor = () ->
