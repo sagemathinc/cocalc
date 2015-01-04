@@ -1564,6 +1564,9 @@ class CodeMirrorEditor extends FileEditor
         @syncdoc?.disconnect_from_session()
         cb?()
 
+    codemirrors: () =>
+        return [@codemirror, @codemirror1]
+
     action_key: (opts) =>
         # opts ignored by default; worksheets use them....
         @click_save_button()
@@ -5085,6 +5088,8 @@ class HTML_MD_Editor extends FileEditor
 
         @init_preview_select()
 
+        @init_keybindings()
+
         # this is entirely because of the chat
         # currently being part of @source_editor, and
         # only calling the show for that; once chat
@@ -5096,6 +5101,28 @@ class HTML_MD_Editor extends FileEditor
 
     cm: () =>
         return @source_editor.syncdoc.focused_codemirror()
+
+    init_keybindings: () =>
+        keybindings =  # inspired by http://www.door2windows.com/list-of-all-keyboard-shortcuts-for-sticky-notes-in-windows-7/
+            bold      : 'Cmd-B Ctrl-B'
+            italic    : 'Cmd-I Ctrl-I'
+            underline : 'Cmd-U Ctrl-U'
+            comment   : 'Shift-Ctrl-3'
+            strikethrough : 'Shift-Cmd-X Shift-Ctrl-X'
+            justifycenter : "Cmd-E Ctrl-E"
+            justifyright  : "Cmd-R Ctrl-R"
+            subscript     : "Cmd-= Ctrl-="
+            superscript   : "Shift-Cmd-= Shift-Ctrl-="
+            insertunorderedlist : "Shift-Cmd-L Shift-Ctrl-L"
+            insertimage : "Shift-Cmd-I Shift-Ctrl-I"
+
+        extra_keys = @cm().getOption("extraKeys") # current keybindings
+        for cmd, keys of keybindings
+            for k in keys.split(' ')
+                ( (cmd) => extra_keys[k] = (cm) => @command(cm, cmd) )(cmd)
+
+        for cm in @source_editor.codemirrors()
+            cm.setOption("extraKeys", extra_keys)
 
     init_draggable_split: () =>
         @_split_pos = @local_storage("split_pos")
@@ -5134,6 +5161,20 @@ class HTML_MD_Editor extends FileEditor
             @click_save_button()
         @init_edit_buttons()
 
+    command: (cm, cmd, args) =>
+        switch cmd
+            when "link"
+                @insert_link(cm)
+            when "image"
+                @insert_image(cm)
+            else
+                cm.edit_selection
+                    cmd  : cmd
+                    args : args
+                    mode : @ext
+                @sync()
+
+
     init_edit_buttons: () =>
         that = @
         @edit_buttons.find("a").click () ->
@@ -5143,17 +5184,7 @@ class HTML_MD_Editor extends FileEditor
                 args = "#{args}"
                 if args.indexOf(',') != -1
                     args = args.split(',')
-            switch cmd
-                when "link"
-                    that.insert_link()
-                when "image"
-                    that.insert_image()
-                else
-                    that.cm().edit_selection
-                        cmd  : cmd
-                        args : args
-                        mode : that.ext
-                    that.sync()
+            that.command(that.cm(), cmd, args)
             return false
 
         if true #  @ext != 'html'
@@ -5499,7 +5530,7 @@ class HTML_MD_Editor extends FileEditor
         @source_editor?.focus()
 
 
-    insert_link: () =>
+    insert_link: (cm) =>
         dialog = templates.find(".salvus-html-editor-link-dialog").clone()
         dialog.modal('show')
         dialog.find(".btn-close").off('click').click () ->
@@ -5513,7 +5544,7 @@ class HTML_MD_Editor extends FileEditor
         title   = dialog.find(".salvus-html-editor-title")
         anchor  = dialog.find(".salvus-html-editor-anchor")
 
-        selected_text = @cm().getSelection()
+        selected_text = cm.getSelection()
         display.val(selected_text)
 
         if @ext in ['md', 'rst', 'tex']
@@ -5587,7 +5618,6 @@ class HTML_MD_Editor extends FileEditor
                 else
                     s = "\\url{#{url}}"
 
-            cm = @cm()
             selections = cm.listSelections()
             selections.reverse()
             for sel in selections
@@ -5610,7 +5640,7 @@ class HTML_MD_Editor extends FileEditor
         # ensures that the given line is the pre-amble of the latex document.
         # TODO: actually implement this!
 
-    insert_image: () =>
+    insert_image: (cm) =>
 
         dialog = templates.find(".salvus-html-editor-image-dialog").clone()
         dialog.modal('show')
@@ -5682,7 +5712,6 @@ class HTML_MD_Editor extends FileEditor
                 if title.length > 0
                     title = " title='#{title}'"
                 s = "<img src='#{url.val()}'#{width}#{height}#{title}>"
-            cm = @cm()
             selections = cm.listSelections()
             selections.reverse()
             for sel in selections
