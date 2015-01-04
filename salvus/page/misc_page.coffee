@@ -694,6 +694,72 @@ exports.define_codemirror_extensions = () ->
 
 
     EDIT_COMMANDS =
+        tex :
+            bold :
+                wrap :
+                    left  : '{\\bf '
+                    right : '}'
+            italic :
+                wrap :
+                    left  : '{\\em '
+                    right : '}'
+            underline :
+                wrap :
+                    left  : '\\underline{'
+                    right : '}'
+            insertunorderedlist :
+                wrap :
+                    left  : "\\begin{itemize}\n    \\item\n"
+                    right : "\\end{itemize}"
+            insertorderedlist :
+                wrap :
+                    left  : "\\begin{enumerate}\n    \\item\n"
+                    right : "\\end{enumerate}"
+            format_heading_1 :
+                strip : ['format_heading_2','format_heading_3','format_heading_4']
+                wrap :
+                    left  : "\\section{"
+                    right : "}"
+            format_heading_2 :
+                strip : ['format_heading_1','format_heading_3','format_heading_4']
+                wrap :
+                    left  : "\\subsection{"
+                    right : "}"
+            format_heading_3 :
+                strip : ['format_heading_1','format_heading_2','format_heading_4']
+                wrap :
+                    left  : "\\subsubsection{"
+                    right : "}"
+            format_heading_4 :
+                strip : ['format_heading_1','format_heading_2','format_heading_4']
+                wrap :
+                    left  : "\\subsubsubsection{"
+                    right : "}"
+            format_code :
+                wrap :
+                    left  : '\n\\begin{verbatim}\n'
+                    right : '\n\\end{verbatim}\n'
+            indent :
+                wrap :
+                    left  : "\n\\begin{quote}\n"
+                    right : "\n\\end{quote}\n"
+            subscript :
+                wrap :
+                    left  : '_{'
+                    right : '}'
+            superscript :
+                wrap :
+                    left  : '^{'
+                    right : '}'
+            comment :
+                wrap :      # TODO: multi-line
+                    left  : '% '
+                    right : ''
+            horizontalRule:
+                wrap:
+                    left  : "\n\noindent\makebox[\linewidth]{\rule{\paperwidth}{0.4pt}}\n"
+                    right : ""
+
         md :
             bold :
                 wrap :
@@ -746,6 +812,10 @@ exports.define_codemirror_extensions = () ->
             indent :
                 wrap :
                     left  : "> "
+                    right : ""
+            horizontalRule:
+                wrap:
+                    left  : "\n------------------\n"
                     right : ""
 
         html:
@@ -841,7 +911,136 @@ exports.define_codemirror_extensions = () ->
                 wrap :
                     left  : "$$ "
                     right : " $$"
+            table:
+                wrap:
+                    left  : "<table>\n <tr><th>Header 1</th><th>Header 2</th></tr>\n <tr><td>"
+                    right : "</td><td>cell 2</td></tr>\n <tr><td>cell 3</td><td>cell 4</td></tr>\n</table>"
+            horizontalRule:
+                wrap:
+                    left  : "\n<hr size='1'/>\n"
+                    right : ""
 
+        rst:
+            # there is intentionally no underline or strikethough in rst
+            italic :
+                wrap :
+                    left  : '*'
+                    right : '*'
+            bold :
+                wrap :
+                    left  : '**'
+                    right : '**'
+            subscript :
+                wrap :
+                    left  : ' :sub:`'
+                    right : '` '
+            superscript :
+                wrap :
+                    left  : ' :sup:`'
+                    right : '` '
+            comment :
+                wrap :
+                    left  : '\n.. '
+                    right : ''
+            insertunorderedlist :
+                wrap :
+                    left  : "\n  - "
+                    right : ""
+            insertorderedlist :
+                wrap :
+                    left  : "\n  1. "
+                    right : ""
+            justifyleft :    # todo -- define via for loop below
+                strip : ['justifycenter','justifyright','justifyfull']
+                wrap :
+                    left  : ""
+                    right : ""
+            justifycenter :
+                strip : ['justifycenter','justifyright','justifyleft']
+                wrap :
+                    left  : "\n.. class:: center\n\n"
+                    right : ""
+            justifyright :
+                strip : ['justifycenter','justifyright','justifyleft']
+                wrap :
+                    left  : "\n.. class:: right\n\n"
+                    right : ""
+            justifyfull :
+                strip : ['justifycenter','justifyright','justifyleft']
+                wrap :
+                    left  : "\n.. class:: justify\n\n"
+                    right : ""
+            indent :
+                wrap :
+                    left  : "\n  "
+                    right : ""
+            format_heading_1 :  # todo -- define via for loop below
+                strip : ['format_heading_2','format_heading_3','format_heading_4']
+                wrap :
+                    left  : "\n===============\n"
+                    right : "\n===============\n"
+            format_heading_2 :
+                strip : ['format_heading_1','format_heading_3','format_heading_4']
+                wrap :
+                    left  : "\n---------------\n"
+                    right : "\n---------------\n"
+            format_heading_3 :
+                strip : ['format_heading_1','format_heading_2','format_heading_4']
+                wrap :
+                    left  : "\n"
+                    right : "\n=============\n"
+            format_heading_4 :
+                strip : ['format_heading_1','format_heading_2','format_heading_3']
+                wrap :
+                    left  : "\n"
+                    right : "\n-------------\n"
+            format_code :
+                wrap :
+                    left  : '\n.. code::\n\n    '
+                    right : '\n'
+            equation :
+                wrap :
+                    left  : " :math:`"
+                    right : "` "
+            display_equation :
+                wrap :
+                    left  : "\n.. math::\n\n    "
+                    right : "\n"
+            table: # the first is the more complex grid table, the second one is a "simple" table
+                wrap :
+                    left  : """
+                            +------------+------------+-----------+
+                            | Header 1   | Header 2   | Header 3  |
+                            +============+============+===========+
+                            | body row 1 | column 2   | column 3  |
+                            +------------+------------+-----------+
+                            | body row 2 | Cells may span columns.|
+                            +------------+------------+-----------+
+                            | body row 3 | Cells may  | - Cells   |
+                            +------------+ span rows. | - contain |
+                            | body row 4 |            | - blocks. |
+                            +------------+------------+-----------+
+
+                            """
+                    ###
+                    left  : """
+                            =====  =====  ======
+                               Inputs     Output
+                            ------------  ------
+                              A      B    A or B
+                            =====  =====  ======
+                            False  False  False
+                            True   False  True
+                            False  True   True
+                            True   True   True
+                            =====  =====  ======
+                            """
+                    ###
+                    right : "\n"
+            horizontalRule:
+                wrap:
+                    left  : "\n------------------\n"
+                    right : ""
 
     CodeMirror.defineExtension 'edit_selection', (opts) ->
         opts = defaults opts,
@@ -858,13 +1057,11 @@ exports.define_codemirror_extensions = () ->
             mode = 'html'
         else if mode.indexOf('mediawiki') != -1
             mode = 'wiki'
-            mode = 'md'  # FOR now!
         else if mode.indexOf('rst') != -1
             mode = 'rst'
-            mode = 'md'  # FOR now!
         else if mode.indexOf('stex') != -1
             mode = 'tex' # not supported yet!
-        if mode not in ['md', 'html']
+        if mode not in ['md', 'html', 'tex', 'rst', 'wiki']
             throw "unknown mode '#{opts.mode}'"
 
         args = opts.args

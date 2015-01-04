@@ -1993,7 +1993,11 @@ class CodeMirrorEditor extends FileEditor
         @element.show()
 
         # do size computations: determine height and width of the codemirror editor(s)
-        top               = @editor.editor_top_position()
+        if not opts.top?
+            top           = @editor.editor_top_position()
+        else
+            top           = opts.top
+
         height            = $(window).height()
         elem_height       = height - top - 5
         button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
@@ -5063,6 +5067,8 @@ class HTML_MD_Editor extends FileEditor
             throw "file must have extension md or html or rst or wiki or tex"
 
         @element = templates.find(".salvus-editor-html-md").clone()
+        @edit_buttons = @element.find(".salvus-editor-html-md-buttons")
+        @edit_buttons.show()
         @preview = @element.find(".salvus-editor-html-md-preview")
 
         # initialize the codemirror editor
@@ -5129,9 +5135,6 @@ class HTML_MD_Editor extends FileEditor
         @init_edit_buttons()
 
     init_edit_buttons: () =>
-        @edit_buttons = @element.find(".salvus-editor-html-md-buttons")
-        @edit_buttons.show()
-
         that = @
         @edit_buttons.find("a").click () ->
             args = $(this).data('args')
@@ -5243,7 +5246,7 @@ class HTML_MD_Editor extends FileEditor
         if f?
             f(cb)
         else
-            @to_html_via_pandoc(cb)
+            @to_html_via_pandoc(cb:cb)
 
     html_to_html: (cb) =>   # cb(error, {source:?, mathjax:?})  where mathjax is true/false
         # add in cursor(s)
@@ -5313,30 +5316,49 @@ class HTML_MD_Editor extends FileEditor
         m = misc_page.markdown_to_html(source)
         cb(undefined, {html:m.s, mathjax:m.mathjax})
 
-    to_html_via_pandoc: (cb) =>
+    rst_to_html: (cb) =>
+        @to_html_via_exec
+            command     : "rst2html"
+            args        : [@filename]
+            cb          : cb
+
+    to_html_via_pandoc: (opts) =>
+        opts.command = "pandoc"
+        opts.args = ["--toc", "-t", "html", '--highlight-style', 'pygments', @filename]
+        @to_html_via_exec(opts)
+
+    to_html_via_exec: (opts) =>
+        opts = defaults opts,
+            command     : required
+            args        : required
+            postprocess : undefined
+            cb          : required   # cb(error, {html:?, mathjax:?})
         html = undefined
+        warnings = undefined
         async.series([
             (cb) =>
                 @save(cb)
             (cb) =>
                 salvus_client.exec
                     project_id  : @editor.project_id
-                    command     : "pandoc"
-                    args        : ["--toc", "-t", "html", @filename]
-                    err_on_exit : true
+                    command     : opts.command
+                    args        : opts.args
+                    err_on_exit : false
                     cb          : (err, output) =>
+                        #console.log("salvus_client.exec ", err, output)
                         if err
                             cb(err)
-                        else if output.stderr.length > 0
-                            cb(output.stderr)
                         else
                             html = output.stdout
+                            warnings = output.stderr
                             cb()
         ], (err) =>
             if err
-                cb(err)
+                opts.cb(err)
             else
-                cb(undefined, {html:html, mathjax:true})
+                if opts.postprocess?
+                    html = opts.postprocess(html)
+                opts.cb(undefined, {html:html, mathjax:true, warnings:warnings})
         )
 
     update_preview: () =>
@@ -5348,9 +5370,10 @@ class HTML_MD_Editor extends FileEditor
         @_update_preview_lock = true
         console.log("update_preview")
         @to_html (err, r) =>
+            @_update_preview_lock = false
             if err
                 console.log("failed to render preview: #{err}")
-            @_update_preview_lock = false
+                return
             source = r.html
 
             # remove any javascript and make html more sane
@@ -5392,6 +5415,14 @@ class HTML_MD_Editor extends FileEditor
                 continue
             new_src = "/#{@editor.project_id}/raw/#{@file_path()}/#{src}"
             y.attr('src', new_src)
+        # make relative links to objects use the raw server
+        for x in e.find("object")
+            y = $(x)
+            src = y.attr('data')
+            if not src? or src[0] == '/' or src.indexOf('://') != -1
+                continue
+            new_src = "/#{@editor.project_id}/raw/#{@file_path()}/#{src}"
+            y.attr('data', new_src)
 
     init_preview_select: () =>
         @preview.click (evt) =>
@@ -5480,40 +5511,81 @@ class HTML_MD_Editor extends FileEditor
         display = dialog.find(".salvus-html-editor-display")
         target  = dialog.find(".salvus-html-editor-target")
         title   = dialog.find(".salvus-html-editor-title")
+        anchor  = dialog.find(".salvus-html-editor-anchor")
 
         selected_text = @cm().getSelection()
         display.val(selected_text)
 
-        if @ext == 'md'
+        if @ext in ['md', 'rst', 'tex']
             dialog.find(".salvus-html-editor-target-row").hide()
 
         submit = () =>
             dialog.modal('hide')
             if @ext == 'md'
+                # [Python](http://www.python.org/)
+                title  = ""
+                anchor = ""
+
                 if title.val().length > 0
                     title = " \"#{title.val()}\""
-                else
-                    title= ""
+
+                if anchor.val().length > 0
+                    anchor = "\##{anchor.val()}"
 
                 d = display.val()
                 if d.length > 0
-                    s = "[#{d}](#{url.val()}#{title})"
+                    s = "[#{d}](#{url.val()}#{anchor}#{title})"
                 else
                     s = url.val()
-            else
+
+            else if @ext == "html"
+                target = ""
+                title  = ""
+                anchor = ""
                 if target.val() == "_blank"
-                    target = " target='_blank'"
-                else
-                    target = ''
+                    target = "target='_blank'"
+
                 if title.val().length > 0
-                    title = " #{title.val()}"
-                else
-                    title= ''
+                    title = "title='#{title.val()}'"
+
+                if anchor.val().length >0
+                    anchor = "\##{anchor.val()}"
+
                 if display.val().length > 0
-                    display = " #{display.val()}"
+                    display = "#{display.val()}"
                 else
                     display = url.val()
-                s = "<a href='#{url.val()}' #{title}#{target}>#{display}</a>"
+                s = "<a href='#{url.val()}#{anchor}' #{title} #{target}>#{display}</a>"
+
+            else if @ext == "rst"
+                # `Python <http://www.python.org/#target>`_
+                anchor = ""
+                if anchor.val().length > 0
+                    anchor = "\##{anchor.val()}"
+
+                if display.val().length > 0
+                    display = "#{display.val()}"
+                else
+                    display = "#{url.val()}"
+
+                s = "`#{display} <#{url.val()}#{anchor}>`_"
+
+            else if @ext == "tex"
+                # \url{http://www.wikibooks.org}
+                # \href{http://www.wikibooks.org}{Wikibooks home}
+                @tex_ensure_preamble("\\usepackage{url}")
+                anchor = ""
+                if anchor.val().length > 0
+                    anchor = "\\\##{anchor.val()}"
+                display = display.val()
+                url = url.val()
+                url = url.replace(/#/g, "\\\#")  # should end up as \#
+                url = url.replace(/&/g, "\\&")   # ... \&
+                url = url.replace(/_/g, "\\_")   # ... \_
+                if display.length > 0
+                    s = "\\href{#{url}#{anchor}}{#{display}}"
+                else
+                    s = "\\url{#{url}}"
 
             cm = @cm()
             selections = cm.listSelections()
@@ -5533,6 +5605,10 @@ class HTML_MD_Editor extends FileEditor
             if evt.which == 27 # escape
                 dialog.modal('hide')
                 return false
+
+    tex_ensure_preamble: (line) =>
+        # ensures that the given line is the pre-amble of the latex document.
+        # TODO: actually implement this!
 
     insert_image: () =>
 
@@ -5554,7 +5630,9 @@ class HTML_MD_Editor extends FileEditor
             w = dialog.find(".salvus-html-editor-width").val().trim()
             if w.length > 0
                 width = " width=#{w}"
-            if width.length == 0 and height.length == 0 and @ext == 'md'
+            if @ext == 'rst'
+                s = "\n.. image:: #{url.val()}\n"
+            else if width.length == 0 and height.length == 0 and @ext == 'md'
                 # use markdown's funny image format if width/height not given
                 if title.length > 0
                     title = " \"#{title}\""
