@@ -1363,6 +1363,7 @@ class CodeMirrorEditor extends FileEditor
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
+            "Enter"        : @enter_key
             "Ctrl-Space"   : "autocomplete"
 
             #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
@@ -1434,8 +1435,6 @@ class CodeMirrorEditor extends FileEditor
 
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
-
-        window.cm = @codemirror
 
         elt1 = layout_elt.find(".salvus-editor-codemirror-input-box-1").find("textarea")
 
@@ -1545,6 +1544,12 @@ class CodeMirrorEditor extends FileEditor
 
     interrupt_key: () =>
         # does nothing for generic editor, but important, e.g., for the sage worksheet editor.
+
+    enter_key: (editor) =>
+        if @custom_enter_key?
+            @custom_enter_key(editor)
+        else
+            return CodeMirror.Pass
 
     press_tab_key: (editor) =>
         if editor.somethingSelected()
@@ -2029,6 +2034,7 @@ codemirror_session_editor = exports.codemirror_session_editor = (editor, filenam
                 sync_interval   : 250
             E.syncdoc = new (syncdoc.SynchronizedWorksheet)(E, opts)
             E.action_key = E.syncdoc.action
+            E.custom_enter_key = E.syncdoc.enter_key
             E.interrupt_key = E.syncdoc.interrupt
             E.tab_nothing_selected = () => E.syncdoc.introspect()
         when "sage-history"
@@ -4189,8 +4195,8 @@ class IPythonNotebook extends FileEditor
                 salvus_client.exec
                     project_id : @editor.project_id
                     path       : @path
-                    command    : "stat"
-                    args       : ['--printf', '%Y ', @file, @syncdoc_filename]
+                    command    : "stat"   # %Z below = time of last change, seconds since Epoch; use this not %Y since often users put file in place, but with old time
+                    args       : ['--printf', '%Z ', @file, @syncdoc_filename]
                     timeout    : 15
                     err_on_exit: false
                     cb         : (err, output) =>
@@ -4996,3 +5002,35 @@ class Course extends FileEditorWrapper
         @wrapped = @element.data('course')
 
 
+
+# Initialize fonts for the editor
+initialize_sagews_editor = () ->
+    elt = $(".sagews-output-editor-font").find(".dropdown-menu")
+    for font in 'Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana'.split(',')
+        item = $("<li><a href='#fontName' data-args='#{font}'>#{font}</a></li>")
+        item.css('font-family', font)
+        elt.append(item)
+
+    elt = $(".sagews-output-editor-font-size").find(".dropdown-menu")
+    for size in [1..7]
+        item = $("<li><a href='#fontSize' data-args='#{size}'><font size=#{size}>Size #{size}</font></a></li>")
+        elt.append(item)
+
+    elt = $(".sagews-output-editor-block-type").find(".dropdown-menu")
+    for i in [1..6]
+        item = $("<li><a href='#formatBlock' data-args='<H#{i}>'><H#{i} style='margin:0'>Heading</H#{i}></a></li>")
+        elt.append(item)
+
+    elt.prepend('<li role="presentation" class="divider"></li>')
+
+    # trick so that data is retained even when editor is cloned:
+    args = JSON.stringify([null, {normalize: true, elementTagName:'code', applyToEditableOnly:true}])
+    item = $("<li><a href='#ClassApplier' data-args='#{args}'><i class='fa fa-code'></i> <code>Code</code></a></li>")
+    elt.prepend(item)
+
+    elt.prepend('<li role="presentation" class="divider"></li>')
+    item = $("<li><a href='#removeFormat'><i class='fa fa-remove'></i>
+Normal</a></li>")
+    elt.prepend(item)
+
+initialize_sagews_editor()

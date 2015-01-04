@@ -45,6 +45,10 @@ their 900 clients in parallel.
 
 ###
 
+
+
+CLICK_TO_EDIT = "Edit text..."
+
 # seconds to wait for synchronized doc editing session, before reporting an error.
 # Don't make this too short, since when we open a link to a file in a project that
 # hasn't been opened in a while, it can take a while.
@@ -78,10 +82,9 @@ output_template     = templates.find(".sagews-output")
 
 account = require('account')
 
-
 CLIENT_SIDE_MODE_LINES = []
 for mode in ['md', 'html', 'coffeescript', 'javascript']
-    for s in ['', '(hide=false)', '(hide=true)', '(once=false)']
+    for s in ['', '(hide=false)', '(hide=0)', '(hide=1)', '(hide=true)', '(once=false)']
         CLIENT_SIDE_MODE_LINES.push("%#{mode}#{s}")
 
 
@@ -1002,6 +1005,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @process_sage_updates(caller:"constructor")
 
         @init_worksheet_buttons()
+        @init_html_editor_buttons()
 
         @on 'sync', () =>
             #console.log("sync")
@@ -1088,9 +1092,29 @@ class SynchronizedWorksheet extends SynchronizedDocument
         buttons.find("a[href=#delete-output]").click () =>
             @action(execute:false, delete_output:true)
             return false
+
         buttons.find("a[href=#tab]").click () =>
             @editor.press_tab_key(@editor.codemirror_with_last_focus)
             return false
+
+        buttons.find("a[href=#new-html]").click () =>
+            cm = @focused_codemirror()
+            line = cm.lineCount()-1
+            while line >= 0 and cm.getLine(line) == ""
+                line -= 1
+            if line >= 0 and cm.getLine(line)[0] == MARKERS.cell
+                cm.replaceRange("%html\n#{CLICK_TO_EDIT}", {line:line+1,ch:0})
+                cm.setCursor(line:line+1, ch:0)
+            else
+                cm.replaceRange("\n\n\n", {line:line+1,ch:0})
+                @cell_start_marker(line+1)
+                @cell_start_marker(line+3)
+                cm.replaceRange("%html\n#{CLICK_TO_EDIT}", {line:line+2,ch:0})
+                cm.setCursor(line:line+2, ch:0)
+            @action
+                execute : true
+                advance : true
+
         interrupt_button = buttons.find("a[href=#interrupt]").click () =>
             interrupt_button.find("i").addClass('fa-spin')
             @interrupt
@@ -1109,6 +1133,210 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     if err
                         alert_message(type:"error", message:"Unable to restart Sage worksheet (maybe system is heavily loaded so Sage is taking a while to start up -- try again in a minute)")
             return false
+
+    html_editor_save_selection: () =>
+        if not @_html_editor_with_focus?
+            return
+        #console.log("save_selection")
+        @html_editor_selection = misc_page.save_selection()
+        @html_editor_div = @_html_editor_with_focus
+        @html_editor_scroll_info = @focused_codemirror().getScrollInfo()
+
+
+    html_editor_restore_selection: () =>
+        if @html_editor_selection?
+            misc_page.restore_selection(@html_editor_selection)
+            #delete @html_editor_selection
+
+    html_editor_link: () =>
+        @html_editor_restore_selection()
+        selection = document.getSelection()
+        displayed_text = selection+""
+
+        dialog = templates.find(".salvus-html-editor-link-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            setTimeout(focus, 50)
+            return false
+        url = dialog.find(".salvus-html-editor-url")
+        url.focus()
+        display = dialog.find(".salvus-html-editor-display")
+        target  = dialog.find(".salvus-html-editor-target")
+        title   = dialog.find(".salvus-html-editor-title")
+
+        display.val(displayed_text)
+
+        submit = () =>
+            dialog.modal('hide')
+            if target.val() == "_blank"
+                target = " target='_blank'"
+            else
+                target = ''
+            s = "<a href='#{url.val()}' title='#{title.val()}'#{target}>#{display.val()}</a>"
+            @html_editor_exec_command('insertHTML', s)  #TODO: won't work in IE
+
+        dialog.find(".btn-submit").off('click').click(submit)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                return false
+
+    html_editor_insert_equation: (display) =>
+        if not @html_editor_div?
+            return
+        id = misc.uuid()
+        @html_editor_exec_command('insertHTML', "<span id=#{id} contenteditable=false></span>")
+
+        e = $("##{id}")
+        onchange = @html_editor_div.data('onchange')
+        e.equation_editor
+            display  : display
+            value    : 'x^2'
+            onchange : onchange
+        onchange()
+
+    html_editor_equation: () =>
+        @html_editor_insert_equation(false)
+
+    html_editor_display_equation: () =>
+        @html_editor_insert_equation(true)
+
+    html_editor_image: () =>
+        @html_editor_restore_selection()
+
+        dialog = templates.find(".salvus-html-editor-image-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            setTimeout(focus, 50)
+            return false
+        url = dialog.find(".salvus-html-editor-url")
+        url.focus()
+
+        submit = () =>
+            dialog.modal('hide')
+            height = width = ''
+            h = dialog.find(".salvus-html-editor-height").val().trim()
+            if h.length > 0
+                height = " height=#{h}"
+            w = dialog.find(".salvus-html-editor-width").val().trim()
+            if w.length > 0
+                width = " width=#{w}"
+            s = "<img src='#{url.val()}'#{width}#{height}>"
+            @html_editor_exec_command('insertHTML', s)
+
+        dialog.find(".btn-submit").off('click').click(submit)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                return false
+
+    html_editor_exec_command: (cmd, args) =>
+        #console.log("html_editor_exec_command #{misc.to_json([cmd,args])}")
+        if @html_editor_scroll_info?
+            @focused_codemirror().scrollTo(@html_editor_scroll_info.left, @html_editor_scroll_info.top)
+        @html_editor_restore_selection()
+        if cmd == "ClassApplier"
+            rangy.createClassApplier(args[0], args[1]).applyToSelection()
+        else
+            if cmd == "insertHTML"
+                # more solid and cross platform, e.g., insertHTML doesn't exist on IE
+                sel = rangy.getSelection()
+                r = sel.getAllRanges()[0]
+                if typeof(args) != 'string'
+                    args = args[0]
+                r.insertNode($(args)[0])
+            else
+                document.execCommand(cmd, 0, args)  # TODO: make more cross platform
+        @html_editor_save_selection()
+        @html_editor_div?.data('onchange')?()
+
+    init_html_editor_buttons: () =>
+        @html_editor_bar = button_bar = @element.find(".salvus-editor-codemirror-worksheet-editable-buttons")
+        @html_editor_bar.find("a").tooltip(delay:{ show: 500, hide: 100 })
+        @html_editor_bar.find(".smc-tooltip").tooltip(delay:{ show: 500, hide: 100 })
+
+        that = @
+        button_bar.find("a").click () ->
+            that.html_editor_restore_selection()
+            args = $(this).data('args')
+            cmd  = $(this).attr('href').slice(1)
+            if args == 'special'
+                that["html_editor_#{cmd}"]()
+                return false
+            #console.log(cmd, args)
+            if args? and typeof(args) != 'object'
+                args = "#{args}"
+                if args.indexOf(',') != -1
+                    args = args.split(',')
+            #console.log("after", args)
+            that.html_editor_exec_command(cmd, args)
+            return false
+
+        # initialize the color control
+        init_color_control = () =>
+            elt   = button_bar.find(".sagews-output-editor-foreground-color-selector")
+            button_bar_input = elt.find("input").colorpicker()
+            sample = elt.find("i")
+            set = (hex) ->
+                # The CSS wrapping version keeps wrapping new spans hence sucks.
+                #args = [null, {elementProperties:{style:{color:hex}}}]
+                #that.html_editor_exec_command("ClassApplier", args)
+                sample.css("color", hex)
+                button_bar_input.css("background-color", hex)
+                that.html_editor_exec_command("foreColor", hex)
+
+            button_bar_input.change (ev) ->
+                hex = button_bar_input.val()
+                set(hex)
+
+            button_bar_input.on "changeColor", (ev) ->
+                hex = ev.color.toHex()
+                set(hex)
+
+            sample.click (ev) ->
+                that.html_editor_restore_selection()
+                button_bar_input.colorpicker('show')
+
+            set("#000000")
+
+        init_color_control()
+
+        # initialize the color control
+        init_background_color_control = () =>
+            elt   = button_bar.find(".sagews-output-editor-background-color-selector")
+            button_bar_input = elt.find("input").colorpicker()
+            sample = elt.find("i")
+            set = (hex) ->
+                button_bar_input.css("background-color", hex)
+                elt.find(".input-group-addon").css("background-color", hex)
+                that.html_editor_exec_command("hiliteColor", hex)
+
+            button_bar_input.change (ev) ->
+                hex = button_bar_input.val()
+                set(hex)
+
+            button_bar_input.on "changeColor", (ev) ->
+                hex = ev.color.toHex()
+                set(hex)
+
+            sample.click (ev) ->
+                that.html_editor_restore_selection()
+                button_bar_input.colorpicker('show')
+
+            set("#fff8bd")
+
+        init_background_color_control()
+
+
+
 
     _is_dangerous_undo_step: (cm, changes) =>
         for c in changes
@@ -1347,7 +1575,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         ##console.log("process_sage_updates(opts=#{misc.to_json({caller:opts.caller, start:opts.start, stop:opts.stop})}): time=#{misc.mswalltime(tm)}ms")
 
     _process_sage_updates: (cm, start, stop) =>
-
+        #console.log("process_sage_updates(start=#{start}, stop=#{stop}):'#{cm.getValue()}'")
         if not start?
             start = 0
         if not stop?
@@ -1421,28 +1649,35 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     if marks.length == 0
                         @mark_output_line(cm, line)
                     mark = cm.findMarksAt({line:line, ch:1})[0]
-                    if mark?
+                    if mark? and not mark.finish_editing?
                         uuid = cm.getRange({line:line,ch:1}, {line:line,ch:37})
                         if misc.is_valid_uuid_string(uuid)
                             if mark.uuid != uuid # uuid changed -- completely new output
+                                #console.log("uuid changed -- completely new output")
+                                output = @elt_at_mark(mark)
+                                if not output?
+                                    console.log("ERROR: sagews -- output element at line #{line} vanished!")
+                                    return
                                 mark.processed = 38
                                 mark.uuid = uuid
-                                output = @elt_at_mark(mark)
-                                output.find("span:first").empty()
+                                output.find(".sagews-output-editor").hide()
+                                output.find(".sagews-output-editor-content").empty()
+                                output.find(".sagews-output-messages").empty().show()
                                 output.data('blobs',[])  # used to track visible files displaying data from database blob store
                             if mark.processed < x.length-1
+                                #console.log("new output to process: #{mark.processed}, #{x.length}", x)
                                 # new output to process
                                 t = x.slice(mark.processed, x.length-1)
                                 for s in t.split(MARKERS.output)
                                     if s.length > 0
                                         output = @elt_at_mark(mark)
-                                        # appearance of output shows output (bad design?)
+                                        # appearance of output shows output
                                         output.removeClass('sagews-output-hide')
                                         try
                                             #t = misc.mswalltime()
                                             @process_output_mesg
                                                 mesg:JSON.parse(s)
-                                                element:output.find("span:first")
+                                                element:output.find(".sagews-output-messages")
                                             #console.log("time to parse = ", misc.mswalltime(t))
                                             mark.processed += 1 + s.length
                                         catch e
@@ -1524,6 +1759,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             collapsed      : true
         marker = cm.markText({line:line, ch:0}, {line:end-1, ch:cm.getLine(end-1).length}, opts)
         marker.type = 'hide_input'
+        #console.log("hide_input: ", {line:line, ch:0}, {line:end-1, ch:cm.getLine(end-1).length})
         for c in @codemirrors()
             c.refresh()
 
@@ -1537,13 +1773,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
         for cm in [@codemirror, @codemirror1]
             mark = @find_output_mark(line, cm)
             if mark?
-                @elt_at_mark(mark).addClass('sagews-output-hide')
+                @elt_at_mark(mark).addClass('sagews-output-hide').find(".sagews-output-container").hide()
 
     show_output: (line) =>
         for cm in [@codemirror, @codemirror1]
             mark = @find_output_mark(line, cm)
             if mark?
-                @elt_at_mark(mark).removeClass('sagews-output-hide')
+                @elt_at_mark(mark).removeClass('sagews-output-hide').find(".sagews-output-container").show()
 
     execute_code: (opts) ->
         opts = defaults opts,
@@ -1782,7 +2018,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                         delete mesg.done
                                         @process_output_mesg
                                             mesg    : mesg
-                                            element : output.find("span:first")
+                                            element : output.find(".sagews-output-messages")
 
                             for event, function_name of mesg.events
                                 img.data("salvus-events-#{event}", function_name)
@@ -1882,9 +2118,21 @@ class SynchronizedWorksheet extends SynchronizedDocument
         input = cell_start_template.clone()
         if not @readonly
             input.addClass('sagews-input-live')
-            input.click () =>
+            input.click (e) =>
                 f = () =>
-                    @insert_new_cell(mark.find().from.line)
+                    line = mark.find().from.line
+                    @insert_new_cell(line)
+                    if e.shiftKey
+                        cm.replaceRange("%html\n#{CLICK_TO_EDIT}", {line:line+1,ch:0})
+                        @action
+                            execute : true
+                            advance : false
+                    if (e.altKey or e.metaKey)
+                        cm.replaceRange("%md\n#{CLICK_TO_EDIT}", {line:line+1,ch:0})
+                        @action
+                            execute : true
+                            advance : false
+
                 if IS_MOBILE
                     # It is way too easy to accidentally click on the insert new cell line on mobile.
                     bootbox.confirm "Create new cell?", (result) =>
@@ -1914,6 +2162,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         # WARNING: Having a max-height that is SMALLER than the containing codemirror editor was *critical*
         # before Codemirror 3.14, due to a bug.
+        #console.log("mark_output_line", line)
+
         output = output_template.clone().css
             width        : (@cm_lines().width()-25) + 'px'
             #'max-height' : (.9*@cm_wrapper().height()) + 'px'
@@ -1935,20 +2185,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
         mark.uuid = cm.getRange({line:line, ch:1}, {line:line, ch:37})
         mark.type = MARKERS.output
 
-        # Double click output to edit
-        output.dblclick () =>
-            @edit_cell
-                line : mark.find().from.line - 1
-                cm   : cm
-            ## used to be to toggle input
-            ##    @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
+        if not @readonly
+            output.dblclick () =>
+                # Double click output to toggle input
+                @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
 
-        # Click edit button...
-        output.find("a[href=#edit]").click () =>
-            @edit_cell
-                line : mark.find().from.line - 1
-                cm   : cm
-            return false
+            output.click (e) =>
+                t = $(e.target)
+                if t.attr('href')? or t.hasParent('.sagews-output-editor').length > 0
+                    return
+                @edit_cell
+                    line : mark.find().from.line - 1
+                    cm   : cm
+                return false
 
         return mark
 
@@ -2016,39 +2265,426 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 line -= 1
         return
 
-    # Edit the cell whose input starts at the given 0-based line.
+    # Special HTML editor for the cell whose input starts at the given 0-based line.
     edit_cell: (opts) =>
         opts = defaults opts,
             line : required
             cm   : required
-        #console.log("edit_cell: #{opts.line}")
 
+        return # DISABLED FOR NOW
+
+        cm = opts.cm
+        scroll_info = cm.getScrollInfo()
         block = @current_input_block(opts.line)
-        #console.log("block=",block)
         # create or get cell start mark
         {marker, created} = @cell_start_marker(block.start)
-        #console.log("marker=",marker)
         if created  # we added a new line when creating start marker
             block.end += 1
         fs = @get_cell_flagstring(marker)
-        #console.log("fs=",fs)
         if not fs?
             return
-        # Put input cursor at beginning of input cell
-        focus_cursor = () =>
-            line = cm.getCursor().line
-            if line <= block.start or line > block.end
-                opts.cm.setCursor(line:block.start+1, ch:0)
-            opts.cm.focus()
-        if FLAGS.hide_input in fs
-            #console.log("hidden, so showing")
-            @remove_cell_flag(marker, FLAGS.hide_input)   # show input
-            @sync()
-            @process_sage_updates()
-        focus_cursor()
 
-        # If the input starts with %html, we replace the rendered output
-        # by a TinyMCE editor, and focus that.
+        input = cm.getRange({line:block.start+1,ch:0}, {line:block.end,ch:0}).trim()
+        i = input.indexOf('\n')
+        if i == -1
+            return
+        line0 = input.slice(0,i)
+        if line0 not in CLIENT_SIDE_MODE_LINES
+            return
+        if line0.slice(0,5) == '%html'
+            # an html editor:
+            editor = 'html'
+            to_html   = (code) -> code
+            from_html = (code) -> code
+        else if line0.slice(0,3) == '%md'
+            # a markdown editor
+            editor = 'md'
+            to_html   = (code) -> misc_page.markdown_to_html(code).s.trim()
+            from_html = (code) -> misc_page.html_to_markdown(code).trim()
+        else
+            editor = undefined
+
+        if not editor
+            return
+
+        wrap_nbsp = (code) ->
+            if code.slice(0,6) != '&nbsp;'
+                code = '&nbsp;' + code
+            if code.slice(code.length-6) != '&nbsp;'
+                code = code + '&nbsp;'
+            return code.trim()
+
+        unwrap_nbsp = (code) ->
+            while code.slice(0,6) == '&nbsp;'
+                code = code.slice(6)
+            while code.slice(code.length-6) == '&nbsp;'
+                code = code.slice(0,code.length-6)
+            return code.trim()
+
+        input_mark  = cm.findMarksAt({line:block.start, ch:1})[0]
+        if not input_mark?
+            return
+        output_mark = cm.findMarksAt({line:block.end,   ch:1})[0]
+        if not output_mark?
+            return
+
+        #console.log("found input and output mark")
+        output = @elt_at_mark(output_mark)
+        #console.log("output elt=", output)
+        output.find(".sagews-output-editor").show()
+        div = output.find(".sagews-output-editor-content")
+        output.find(".sagews-output-messages").empty()
+        i = input.indexOf("\n")
+        if i == -1
+            i = input.length
+        html_input = to_html(input.slice(i+1).trim())
+        top_input = input.slice(0,i+1)
+        if top_input[top_input.length-1] != '\n'
+            top_input += '\n'
+        div.addClass("sagews-output-html")
+        div.html(wrap_nbsp(html_input))
+        if div.text().trim() == CLICK_TO_EDIT
+            div.html('&nbsp;\n&nbsp;')
+
+        decorate_mathjax = (e) =>
+            for c in "MathJax_SVG MathJax MathJax_MathML".split(' ')
+                e.find(".#{c}").addClass("salvus-editor-mathjax-editor")
+                ###
+                    (pos, classes) ->
+                    if classes.indexOf("salvus-editor-mathjax-editor") == -1
+                        #$(this).after("&nbsp;")
+                        #console.log("decorating...", this)
+                        $(this).after("<span class='salvus-html-editor-remove'>&nbsp</span>")
+                        return "salvus-editor-mathjax-editor"
+                ###
+            div.find(".MathJax_SVG_Display").attr('contenteditable', false)
+            div.find(".MathJax_Display").attr('contenteditable', false)
+            div.find(".MathJax_MathML_Display").attr('contenteditable', false)
+
+        mathjax = () =>
+            div.mathjax()
+            decorate_mathjax(div)
+        mathjax()
+
+        last_html = html_input
+        last_input = top_input
+        ignore_changes = false
+
+        to = output_mark.find()?.from.line
+        #cm.scrollIntoView({from:{line:Math.max(0,to-5),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
+        cm.setCursor(line:Math.max(0,to-2), ch:0)
+
+        div.on 'blur', () =>
+            #console.log('blur')
+            delete @_html_editor_with_focus
+            div.removeClass('sagews-output-editor-focus')
+
+        div.on 'focus', () =>
+            #console.log("focus")
+            @_html_editor_with_focus = div
+            @html_editor_bar.show()
+            div.addClass('sagews-output-editor-focus')
+            if @html_editor_div? and @html_editor_div.is(div)
+                @html_editor_restore_selection()
+            line = input_mark.find()?.from.line
+            if line?
+                cm.setCursor(line:Math.max(0, line), ch:0)
+
+        #setInterval(@html_editor_save_selection, 500)
+        div.on 'keyup click mousedown mouseup', () =>
+            @html_editor_save_selection()
+            #save_rangy_sel()
+
+        div.on 'click', (e) =>
+            p = $(e.target)
+            #console.log("clicked...")
+
+            if p.hasClass("sagews-editor-latex-raw") or p.hasParent(".sagews-editor-latex-raw").length > 0
+                return
+            is_mathjax = false
+            for c in "MathJax_SVG_Display MathJax_Display MathJax_MathML_Display MathJax_SVG MathJax_MathML MathJax".split(' ')
+                if p.hasParent(".#{c}").length > 0
+                    p = p.closest(".#{c}")
+                    is_mathjax = true
+                    break
+            classes = p.attr('class')
+            #console.log("classes=", classes)
+            if is_mathjax or classes?.indexOf?('MathJax') != -1
+                #console.log("clicked on mathjax")
+                prev = p.prev()
+                if not prev.hasClass("MathJax_Preview")
+                    prev = undefined
+                script = p.next()
+                t = script.attr('type')
+                if not t? # skip over filler
+                    tmp = script
+                    if not tmp.hasClass("salvus-html-editor-remove")
+                        #console.log("no script found")
+                        return
+                    script = script.next()
+                    tmp.remove()
+                    t = script.attr('type')
+                    if not t?
+                        #console.log("no script found")
+                        return
+                v = t.split(';')
+                if v.length < 1
+                    #console.log("no type info", v)
+                    return
+                if v[0] != 'math/tex'
+                    #console.log("wrong type info", v)
+                    return
+
+                ed = script.equation_editor
+                    display  : v.length == 2
+                    value    : script.text()
+                    onchange : div_changed
+
+                ed.attr(id:misc.uuid())
+
+                prev?.remove()
+                p.remove()
+                return false
+            else
+                close_all_latex_editors()
+                return
+
+        close_all_latex_editors = () =>
+            for s in div.find(".sagews-editor-latex-raw")
+                t = $(s)
+                delim = t.data('delim')
+                t1 = $("<span>#{delim}#{t.find('textarea').val()}#{delim}</span>")
+                t1.mathjax()
+                decorate_mathjax(t1)
+                t.replaceWith(t1)
+                t1.children().insertAfter(t1)
+                t1.remove()
+
+        localize_image_links = (e) =>
+            # make relative links to images use the raw server
+            for x in e.find("img")
+                y = $(x)
+                src = y.attr('src')
+                if src[0] == '/' or src.indexOf('://') != -1
+                    continue
+                new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
+                y.attr('src', new_src)
+
+        unlocalize_image_links = (e) =>
+            prefix = "/#{@project_id}/raw/#{@file_path()}/"
+            prefix2 = document.URL
+            i = 10 + prefix2.slice(10).indexOf('/')
+            prefix2 = prefix2.slice(0,i) + prefix
+            n  = prefix.length
+            n2 = prefix2.length
+            for x in e.find("img")
+                y = $(x)
+                src = y.attr('src')
+                if src.slice(0, n) == prefix
+                    y.attr('src', src.slice(n))
+                else if src.slice(0, n2) == prefix2
+                    y.attr('src', src.slice(n2))
+
+        div_changed = (force) =>
+            #console.log('div_changed')
+            if (ignore_changes and not force) or not output_mark.finish_editing?
+                return
+            e = div.clone()
+            e.find(".salvus-html-editor-remove").remove()
+            #e.find(".rangySelectionBoundary").remove()
+            for s in e.find(".sagews-editor-latex-raw")
+                t = $(s)
+                t0 = div.find("##{t.attr('id')}")
+                delim = t0.data('delim')
+                t.replaceWith("#{delim}#{t0.find('textarea').val()}#{delim} ")
+            e.unmathjax()
+            unlocalize_image_links(e)
+
+            new_html = unwrap_nbsp(html_beautify(e.html())).trim()
+            if new_html == last_html
+                return
+            last_html = new_html
+            #console.log(input_mark.find(), output_mark.find())
+            from = input_mark.find()?.from.line + 1
+            to   = output_mark.find()?.from.line
+            if not from? or not to?
+                return
+
+            ignore_changes = true
+            input = from_html(new_html)
+            last_input = input
+            v = cm.getLine(to-1)
+            #console.log("from=",from, "to=",to, "s='#{s}'")
+            cm.replaceRange(input, {line:from+1,ch:0}, {line:to-1,ch:v.length})
+
+            # finally, update the output, so other viewers will see this
+            # and output won't be stale if input doesn't get re-evaluated.
+            localize_image_links(div)
+            ignore_changes = false
+            save_to_output_soon()
+            @sync()
+
+        ###
+        rangy_sel = undefined
+        save_rangy_sel = () =>
+            if not @_html_editor_with_focus?.is(div)
+                return
+            #console.log("save_selection")
+            if rangy_sel?
+                try
+                    rangy.removeMarkers(rangy_sel)
+                catch e
+                    #console.log("WARNING: ", e)
+                rangy_sel = undefined
+            try
+                rangy_sel = rangy.saveSelection()
+            catch e
+                #console.log("WARNING: ", e)
+                rangy_sel = undefined
+
+        restore_rangy_sel = () =>
+            #console.log("rangy restoring selection")
+            if rangy_sel? and @_html_editor_with_focus?.is(div)
+                for x in rangy_sel.rangeInfos
+                    for k in ['startMarkerId', 'MarkerId', 'endMarkerId']
+                        a = x[k]
+                        if a? and not div.find("##{a}").length > 0
+                            console.log("skipping -- missing a marker")
+                            rangy_sel = undefined
+                            div.find(".rangySelectionBoundary").remove()
+                            @html_editor_save_selection()
+                            save_rangy_sel()
+                            return
+                try
+                    rangy.restoreSelection(rangy_sel)
+                catch e
+                    console.log("WARNING: ", e)
+                    rangy_sel = undefined
+                @html_editor_save_selection()
+                save_rangy_sel()
+
+        on_cm_update = () =>
+            #console.log("cm_update")
+            restore_rangy_sel()
+        if not $.browser.ie    # IE is terrible...
+            cm.on('update', on_cm_update)
+
+        ###
+
+        # This was a nightmare because it causes codemirror to update the output div, which contains the editor.  Have to change things so editor is contained somewhere else first (i.e., nontrivial project).
+        save_to_output = () =>
+            save_to_output_timer = undefined
+            line = output_mark.find()?.from.line
+            if not line?
+                return
+            v = cm.getLine(line)
+            output_uuid = misc.uuid()
+            output_mark.uuid = output_uuid
+            mesg = {}; mesg[editor] = last_input
+            output_line = output_uuid + MARKERS.output + misc.to_json(mesg) + MARKERS.output
+            output_mark.processed = output_line.length
+            # we have to use rangy, which plants elements in DOM, to save/restore selection,
+            # since changing the underlying text behind output_mark causes CodeMirror to
+            # reset the selection.
+            rangy_sel = rangy.saveSelection()
+            cm.replaceRange(output_line, {line:line,ch:1}, {line:line,ch:v.length})
+            rangy.restoreSelection(rangy_sel)
+            @sync()
+
+        save_to_output_timer = undefined
+        # save to output if this function hasn't been called in the last 5 seconds.
+        save_to_output_soon = () =>
+            if save_to_output_timer?
+                clearTimeout(save_to_output_timer)
+            save_to_output_timer = setTimeout(save_to_output, 5000)
+
+        div.make_editable
+            mathjax  : false
+            onchange : div_changed
+            interval : 1000
+
+        div_keydown = (e) =>
+            if e.which == 27 or (e.which == 13 and (e.shiftKey or e.altKey or e.metaKey))
+                if div.find(".sagews-editor-latex-raw").length > 0
+                    close_all_latex_editors()
+                    div.focus()
+                    return false
+                finish_editing()
+                mark = output_mark.find()
+                if not mark
+                    mark = input_mark.find()
+                    if not mark?
+                        return
+                pos = mark.from
+                cm.setCursor(pos)
+                cm.focus()
+                advance = e.shiftKey
+                @action
+                    pos     : pos
+                    advance : advance
+                    execute : true
+                    cm      : cm
+                return false
+
+        div.keydown(div_keydown)
+
+        on_cm_change = (instance, changeObj) =>
+            #console.log("on_cm_change")
+            if ignore_changes
+                #console.log("cm_change: ignore_changes")
+                return
+            from = input_mark.find()?.from.line + 1
+            to   = output_mark.find()?.from.line
+            if not from? or not to?
+                #console.log("on_cm_change: missing marks")
+                return
+            try
+                new_html = to_html(cm.getRange({line:from+1,ch:0}, {line:to,ch:0})).trim()
+            catch e
+                console.log("WARNING (on_cm_change): ", e)
+                return
+            if new_html != last_html
+                #console.log("cm_change: real change! #{misc.to_json(diffsync.dmp.patch_make(last_html, new_html))}")
+                #rangy_sel = undefined
+                div.html(new_html)
+                mathjax()
+                localize_image_links(div)
+            #else
+                #console.log("cm_change: same html")
+
+        cm.on('change', on_cm_change)
+        localize_image_links(div)
+
+        div.focus()
+        cm.scrollTo(scroll_info.left, scroll_info.top)
+
+        finish_editing = () =>
+            #rangy_sel = undefined
+            if save_to_output_timer?
+                clearTimeout(save_to_output_timer)
+                save_to_output_timer = undefined
+            ignore_changes = false
+            div_changed(true)  # ensure any changes are saved
+            #save_to_output()
+            @html_editor_bar.hide()
+            cm.off('change', on_cm_change)
+            #cm.off('update', on_cm_update)
+            div.make_editable
+                cancel   : true
+            div.empty()
+            div.unbind()  # remove all event handlers
+            delete output_mark.finish_editing
+
+        output_mark.finish_editing = finish_editing
+
+    enter_key: (cm) =>
+        marks = cm.findMarksAt({line:cm.getCursor().line,ch:1})
+        if marks.length > 0
+            @edit_cell
+                line : marks[0].find().from.line
+                cm   : cm
+        else
+            return CodeMirror.Pass
 
     action: (opts={}) =>
         opts = defaults opts,
@@ -2182,6 +2818,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         return
                     break
 
+            # close output editor, if open
+            n = @find_output_line(pos.line)
+            if n?
+                mark = opts.cm.findMarksAt({line:n, ch:1})[0]
+                if mark? and mark.finish_editing?
+                    mark.finish_editing()
+
             @set_cell_flag(marker, FLAGS.execute)
             @sync()
 
@@ -2193,6 +2836,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
             marker    : required
         cm = @focused_codemirror()
         block = opts.block
+
+        # clean up output
+        output_marks = cm.findMarksAt({line:block.end, ch:1})
+        if output_marks.length > 0
+            for o in output_marks
+                o.finish_editing?()
+            output_mark = output_marks[0]
 
         # get the input text -- after the mode line
         input = cm.getRange({line:block.start+1,ch:0}, {line:block.end+1,ch:0})
@@ -2213,7 +2863,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         else
             mode = opts.mode_line.slice(1,i)
         hide = false
-        if mode in ['html', 'md'] and opts.mode_line.indexOf('false') == -1
+        if mode in ['html', 'md'] and opts.mode_line.indexOf('false') == -1 and opts.mode_line.indexOf('0') == -1
             hide = true
 
         # create corresponding output line: this is important since it ensures that all clients will *see* the new output too

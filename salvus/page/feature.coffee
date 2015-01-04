@@ -49,3 +49,8 @@ if $.browser.chrome
     $(".salvus-chrome-only").show()
 
 $.browser.firefox = navigator.userAgent.toLowerCase().indexOf('firefox') > 0
+
+$.browser.safari = navigator.userAgent.toLowerCase().indexOf('safari') > 0
+
+$.browser.ie = navigator.userAgent.toLowerCase().indexOf('windows') > 0
+

@@ -135,6 +135,90 @@ $.fn.extend
                 MathJax.Hub.Queue([opts.cb, t])
             return t
 
+$.fn.extend
+    unmathjax: (opts={}) ->
+        opts = defaults(opts,{})
+        @each () ->
+            t = $(this)
+            for c in "MathJax_Preview MathJax_SVG MathJax_SVG_Display MathJax MathJax_MathML".split(' ')
+                t.find(".#{c}").remove()
+            for s in t.find("script[type='math/tex']")
+                a = $(s)
+                a.replaceWith(" $#{a.text()}$ ")
+            for s in t.find("script[type='math/tex; mode=display']")
+                a = $(s)
+                a.replaceWith(" $$#{a.text()}$$ ")
+            return t
+
+$.fn.extend
+    equation_editor: (opts={}) ->
+        opts = defaults opts,
+            display  : false
+            value    : ''
+            onchange : undefined
+        @each () ->
+            t = $(this)
+            if opts.display
+                delim = '$$'
+                s = $("<div class='sagews-editor-latex-raw' style='width:50%'><textarea></textarea><br><div class='sagews-editor-latex-preview'></div></div>")
+            else
+                delim = '$'
+                s = $("<div class='sagews-editor-latex-raw' style='width:50%'><textarea></textarea><br><div class='sagews-editor-latex-preview'></div></span>")
+            s.attr('id', misc.uuid())
+            ed = s.find("textarea")
+            options =
+                autofocus               : true
+                mode                    : {name:'stex', globalVars: true}
+                lineNumbers             : false
+                showTrailingSpace       : false
+                indentUnit              : 4
+                tabSize                 : 4
+                smartIndent             : true
+                electricChars           : true
+                undoDepth               : 100
+                matchBrackets           : true
+                autoCloseBrackets       : true
+                autoCloseTags           : true
+                lineWrapping            : true
+                readOnly                : false
+                styleActiveLine         : 15
+                indentWithTabs          : false
+                showCursorWhenSelecting : true
+                viewportMargin          : Infinity
+                extraKeys               : {}
+
+            t.replaceWith(s)
+            cm = CodeMirror.fromTextArea(ed[0], options)
+            #console.log("setting value to '#{opts.value}'")
+            trim_dollars = (code) ->
+                code = code.trim()
+                while code[0] == '$'
+                    code = code.slice(1)
+                while code[code.length-1] == '$'
+                    code = code.slice(0,code.length-1)
+                return code.trim()
+
+            cm.setValue(delim + '\n\n' + opts.value + '\n\n' +  delim)
+            cm.setCursor(line:2,ch:0)
+            ed.val(opts.value)
+            #cm.clearHistory()  # ensure that the undo history doesn't start with "empty document"
+            $(cm.getWrapperElement()).css(height:'auto')
+            preview = s.find(".sagews-editor-latex-preview")
+            preview.click () =>
+                cm.focus()
+            update_preview = () ->
+                preview.mathjax
+                    tex     : trim_dollars(cm.getValue())
+                    display : opts.display
+                    inline  : not opts.display
+            if opts.onchange?
+                cm.on 'change', () =>
+                    update_preview()
+                    opts.onchange()
+                    ed.val(trim_dollars(cm.getValue()))
+            s.data('delim', delim)
+            update_preview()
+            return t
 
 # Mathjax-enabled Contenteditable Editor plugin
 $.fn.extend
@@ -142,23 +226,30 @@ $.fn.extend
         @each () ->
             opts = defaults opts,
                 value    : undefined   # defaults to what is already there
-                onchange : undefined   # function that gets called with a diff when content changes
-                interval : 250         # milliseconds interval between sending update change events about content
+                onchange : undefined   # function that gets called when content changes
+                interval : 250         # call onchange if there was a change, but no more for this many ms.
                 one_line : false       # if true, blur when user presses the enter key
+                mathjax  : false       # if false, completey ignore ever running mathjax -- probably a good idea since support for running it is pretty broken.
+
+                cancel   : false       # if given, instead removes all handlers/editable from element
 
             t = $(this)
-            t.attr('contenteditable', true)
+
+            if opts.cancel
+                t.data('cancel_editor')?()
+                # TODO: clear state -- get rid of function data...
+                return
 
             if not opts.value?
                 opts.value = t.html()
 
             last_sync = opts.value
 
+            t.data('onchange', opts.onchange)
+
             change_timer = undefined
             report_change = () ->
-                if change_timer?
-                    clearTimeout(change_timer)
-                    change_timer = undefined
+                change_timer = undefined
                 last_update = t.data('last_update')
                 if t.data('mode') == 'edit'
                     now = t.html()
@@ -171,16 +262,19 @@ $.fn.extend
                     last_sync = now
 
             set_change_timer = () ->
-                if opts.onchange? and not change_timer?
+                if opts.onchange?
+                    if change_timer?
+                        clearTimeout(change_timer)
                     change_timer = setTimeout(report_change, opts.interval)
 
-            # set the text content; it will be subsequently processed by mathjax
+            # set the text content; it will be subsequently processed by mathjax, if opts.mathjax is true
             set_value = (value) ->
                 t.data
                     raw         : value
                     mode        : 'view'
                 t.html(value)
-                t.mathjax()
+                if opts.mathjax
+                    t.mathjax()
                 set_change_timer()
 
             get_value = () ->
@@ -202,33 +296,58 @@ $.fn.extend
                         set_value(new_cur)
                         report_change()
 
-            t.data('set_value', set_value)
-            t.data('get_value', get_value)
-            t.data('set_upstream', set_upstream)
 
-            t.on 'focus', ->
+            on_focus = () ->
+                #console.log("on_focus")
                 if t.data('mode') == 'edit'
                     return
                 t.data('mode', 'edit')
                 t = $(this)
                 x = t.data('raw')
 
-            t.blur () ->
+            on_blur = () ->
+                #console.log("on_blur")
                 t = $(this)
                 t.data
                     raw  : t.html()
                     mode : 'view'
-                t.mathjax()
+                if opts.mathjax
+                    t.mathjax()
 
-            t.on 'paste', set_change_timer
-            t.on 'blur', set_change_timer
-            t.on 'keyup', set_change_timer
-            t.on 'keydown', (evt) ->
-                if evt.which == 27 or (opts.one_line and evt.which == 13)
-                    t.blur()
-                    return false
 
-            t.data('last_update', opts.value)
+            #on_keydown = (evt) ->
+            #    if evt.which == 27 or (opts.one_line and evt.which == 13)
+            #        t.blur()
+            #        return false
+
+            t.attr('contenteditable', true)
+
+            handlers =
+                focus   : on_focus
+                blur    : on_blur
+                paste   : set_change_timer
+                keyup   : set_change_timer
+                keydown : set_change_timer
+
+            for evt, f of handlers
+                t.on(evt, f)
+
+            data =
+                set_value    : set_value
+                get_value    : get_value
+                set_upstream : set_upstream
+                last_update  : opts.value
+
+            t.data(data)
+
+            t.data 'cancel_editor', () =>
+                #console.log("cancel_editor")
+                t.attr('contenteditable', false)
+                for evt, f of handlers
+                    t.unbind(evt, f)
+                for key,_ of data
+                    t.removeData(key)
+
             set_value(opts.value)
             return t
 
@@ -679,6 +798,18 @@ exports.markdown_to_html = (s) ->
 
     return {s:s, has_mathjax:has_mathjax}
 
+opts =
+    gfm_code  : true
+    li_bullet :'-'
+    h_atx_suf : false
+    h1_setext : false
+    h2_setext : false
+    br_only   : true
+
+reMarker = new reMarked(opts)
+exports.html_to_markdown = (s) ->
+    return reMarker.render(s)
+
 
 # return true if d is a valid string -- see http://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
 exports.is_valid_date = (d) ->
@@ -734,6 +865,27 @@ exports.set_window_title = (title) ->
         title = "(#{u}) #{title}"
     document.title = title
 
+# get the currently selected html
+exports.save_selection = () ->
+    if window.getSelection
+        sel = window.getSelection()
+        if sel.getRangeAt and sel.rangeCount
+            range = sel.getRangeAt(0)
+    else if document.selection
+        range = document.selection.createRange()
+    return range
 
+exports.restore_selection = (selected_range) ->
+    if window.getSelection || document.createRange
+        selection = window.getSelection()
+        if selected_range
+            try
+                selection.removeAllRanges()
+            catch ex
+                document.body.createTextRange().select()
+                document.selection.empty()
+            selection.addRange(selected_range)
+    else if document.selection and selected_range
+        selected_range.select()
 
 

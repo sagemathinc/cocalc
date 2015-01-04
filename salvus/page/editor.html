@@ -53,7 +53,7 @@ Editor for files in a project
                     <i class="fa fa-comments-o salvus-editor-chat-new-chats hide"></i>
                     <i class="fa fa-comment salvus-editor-chat-no-new-chats"></i>
                 </div>
-                <a class="btn btn-info btn-sm hidden-xs" href="#file-info"><i class="fa fa-info-circle"> </i> <span class="hidden-sm"></span></a>
+                <a class="btn btn-info hidden-xs" href="#file-info"><i class="fa fa-info-circle"> </i> <span class="hidden-sm"></span></a>
 
                 <span class="visible-xs">
                     <span class="btn-group">
@@ -83,56 +83,60 @@ Editor for files in a project
                 <span class="hidden-xs">
                     <span class="salvus-editor-codemirror-worksheet-buttons hide">
                         <span class="btn-group salvus-editor-write-only">
-                            <a href="#execute" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="right" title="Execute current or selected cells."><i class="fa fa-play"></i> &nbsp;<span class="hidden-sm">Run</span></a>
-                            <a href="#interrupt" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="right" title="Interrupt the running Sage process."><i class="fa fa-stop"></i> <span class="hidden-sm">Stop</span></a>
-                            <a href="#kill" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process."><i class="fa fa-refresh"></i> <span class="hidden-sm">Restart</span></a>
-                            <a href="#tab" class="btn btn-info btn-sm"> <i class="fa fa-step-forward"></i><span class="hidden-sm"> Tab</span></a>
+                            <a href="#execute" class="btn btn-success" data-toggle="tooltip" data-placement="bottom" title="Execute current or selected cells."><i class="fa fa-play"></i> &nbsp;<span class="hidden-sm">Run</span></a>
+                            <a href="#interrupt" class="btn btn-warning" data-toggle="tooltip" data-placement="bottom" title="Interrupt the running Sage process."><i class="fa fa-stop"></i> <span class="hidden-sm">Stop</span></a>
+                            <a href="#kill" class="btn btn-warning" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process."><i class="fa fa-refresh"></i> <span class="hidden-sm">Restart</span></a>
+                            <a href="#tab" class="btn btn-info"  data-toggle="tooltip" data-placement="bottom" title="Tab completion."> <i class="fa fa-step-forward"></i><span class="hidden-sm"> Tab</span></a>
+                            <a href="#new-html" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert a new text cell."> <i class="fa fa-paragraph"></i>
+                                <span class="hidden-sm">Text</span>
+                            </a>
+
                         </span>
                         <span class="btn-group salvus-editor-write-only">
-                            <a href="#toggle-input" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="right" title="Toggle display of input of selected cells."><i class="fa fa-eye-slash"></i></a>
-                            <a href="#toggle-output" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="right" title="Toggle display of output of selected cells."><i class="fa fa-adjust"></i></a>
-                            <a href="#delete-output" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="right" title="Delete output of selected cells."><i class="fa fa-times-circle"></i></a>
+                            <a href="#toggle-input" class="btn btn-default" data-toggle="tooltip" data-placement="right" title="Toggle display of input of selected cells."><i class="fa fa-code"></i></a>
+                            <a href="#toggle-output" class="btn btn-default" data-toggle="tooltip" data-placement="right" title="Toggle display of output of selected cells."><i class="fa fa-pie-chart"></i></a>
+                            <a href="#delete-output" class="btn btn-default" data-toggle="tooltip" data-placement="right" title="Delete output of selected cells."><i class="fa fa-times-circle"></i></a>
                         </span>
                     </span>
                 </span>
                 <span class="hidden-xs btn-group editor-btn-group">
-                    <a href="#undo" class="btn btn-sm btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Undo"><i class="fa fa-undo"></i></a>
-                    <a href="#redo" class="btn btn-sm btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Redo"><i class="fa fa-repeat"></i></a>
-                    <a href="#autoindent" class="btn btn-sm btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Autoindent selected text"><i class="fa fa-magic"></i></a>
-                    <a href="#shift-left" class="btn btn-sm btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text left"><i class="fa fa-outdent"></i></a>
-                    <a href="#shift-right" class="btn btn-sm btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text right"><i class="fa fa-indent"></i></a>
-                    <a href="#search" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Search"><i class="fa fa-search"></i></a>
-                    <a href="#prev" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Previous"><i class="fa fa-chevron-up"></i></a>
-                    <a href="#next" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Next"><i class="fa fa-chevron-down"></i></a>
-                    <a href="#replace" class="btn btn-sm btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Replace"><i class="fa fa-exchange"></i></a>
-                    <a href="#split-view" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Split view of document">
+                    <a href="#undo" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Undo"><i class="fa fa-undo"></i></a>
+                    <a href="#redo" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Redo"><i class="fa fa-repeat"></i></a>
+                    <a href="#autoindent" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Autoindent selected text"><i class="fa fa-magic"></i></a>
+                    <a href="#shift-left" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text left"><i class="fa fa-outdent"></i></a>
+                    <a href="#shift-right" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text right"><i class="fa fa-indent"></i></a>
+                    <a href="#search" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Search"><i class="fa fa-search"></i></a>
+                    <!-- <a href="#prev" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Previous"><i class="fa fa-chevron-up"></i></a>
+                    <a href="#next" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Next"><i class="fa fa-chevron-down"></i></a>-->
+                    <a href="#replace" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Replace"><i class="fa fa-exchange"></i></a>
+                    <a href="#split-view" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Split view of document">
                         <i class="fa fa-columns fa-rotate-270 salvus-editor-layout-0"></i>
                         <i class="fa fa-columns salvus-editor-layout-1"></i>
                         <i class="fa fa-tablet fa-rotate-90 salvus-editor-layout-2" style="font-size: 12pt;"></i>
                     </a>
-                    <a href="#decrease-font" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Decrease text size"><i class="fa fa-font" style="font-size:7pt"> </i> </a>
-                    <a href="#increase-font" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Increase text size"><i class="fa fa-font" style="font-size:11pt"> </i> </a>
-                    <a href="#goto-line" class="btn btn-sm btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Go to line"><i class="fa fa-bolt"> </i> </a>
-                    <a href="#print" class="btn btn-sm btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
+                    <a href="#decrease-font" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Decrease text size"><i class="fa fa-font" style="font-size:7pt"> </i> </a>
+                    <a href="#increase-font" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Increase text size"><i class="fa fa-font" style="font-size:11pt"> </i> </a>
+                    <a href="#goto-line" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Go to line"><i class="fa fa-bolt"> </i> </a>
+                    <a href="#print" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
                 </span>
 
                 <span class="salvus-editor-save-group">
-                    <a href="#save" class="hidden-xs btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Save file to disk (file is constantly sync'd with server).">
+                    <a href="#save" class="hidden-xs btn btn-success" data-toggle="tooltip" data-placement="bottom" title="Save file to disk (file is constantly sync'd with server).">
                         <i class="fa fa-save"></i>
                         <span class="hidden-sm">Save</span>
                     </a>
                 </span>
 
                 <span class="hidden-xs">
-                    <a href="#history" class="btn btn-sm btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
+                    <a href="#history" class="btn btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
                         <i class="fa fa-history"></i>
                         <span class="hidden-sm">History</span>
                     </a>
                 </span>
 
                 <span class="hidden-xs">
-                    <a class="btn btn-primary btn-sm" href="#copy-to-another-project"><i class="fa fa-send-o"> </i> <span>Copy To Your Project...</span></a>
-                    <!--<a class="btn btn-success btn-sm" href="#download-file"><i class="fa fa-cloud-download"> </i> <span class="hidden-sm">Download</span></a>-->
+                    <a class="btn btn-primary" href="#copy-to-another-project"><i class="fa fa-send-o"> </i> <span>Copy To Your Project...</span></a>
+                    <!--<a class="btn btn-success" href="#download-file"><i class="fa fa-cloud-download"> </i> <span class="hidden-sm">Download</span></a>-->
                 </span>
 
                 <span class="salvus-editor-codemirror-loading hide">
@@ -141,8 +145,8 @@ Editor for files in a project
 
                 <span class="salvus-editor-history-controls hide">
                     <span class="salvus-editor-history-control-button-container btn-group">
-                        <a href="#back" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="bottom" title="Back"><i class="fa fa-step-backward"></i></a>
-                        <a href="#forward" class="btn btn-default btn-sm disabled" data-toggle="tooltip" data-placement="bottom" title="Forward"><i class="fa fa-step-forward"></i></a>
+                        <a href="#back" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Back"><i class="fa fa-step-backward"></i></a>
+                        <a href="#forward" class="btn btn-default disabled" data-toggle="tooltip" data-placement="bottom" title="Forward"><i class="fa fa-step-forward"></i></a>
                     </span>
                     <span class="salvus-editor-history-revision-number"></span>
                     <span class="salvus-editor-history-revision-time"></span>
@@ -151,14 +155,14 @@ Editor for files in a project
 
                 <span class="salvus-editor-latex-buttons hide">
                     <span class="btn-group">
-                       <a href="#forward-search" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Forward search (Alt+Enter)"><i class="fa fa-mail-forward"></i><span class="hidden-xs"> Forward</span></a>
-                       <a href="#inverse-search" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Inverse search (Double or Ctrl+Click)"><i class="fa fa-mail-reply"></i><span class="hidden-xs">  Inverse</span></a>
+                       <a href="#forward-search" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Forward search (Alt+Enter)"><i class="fa fa-mail-forward"></i><span class="hidden-xs"> Forward</span></a>
+                       <a href="#inverse-search" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Inverse search (Double or Ctrl+Click)"><i class="fa fa-mail-reply"></i><span class="hidden-xs">  Inverse</span></a>
                     </span>
                     <span class="btn-group">
-                        <a href="#png-preview" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Show preview"><i class="fa fa-building"></i> Preview</a>
-                        <a href="#errors" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Show errors and warnings"><i class="fa fa-bug"></i><span class="hidden-xs">  Issues </span><span class="salvus-latex-errors-counter"></span> <span class="salvus-latex-warnings-counter"></span></a>
-                        <a href="#pdf-preview" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Show final rendered PDF"><i class="fa fa-eye"></i> PDF</a>
-                        <a href="#log" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Show compilation log (save causes recompile)"><i class="fa fa-bolt"></i><span class="hidden-xs">  Build</span>
+                        <a href="#png-preview" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show preview"><i class="fa fa-building"></i> Preview</a>
+                        <a href="#errors" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show errors and warnings"><i class="fa fa-bug"></i><span class="hidden-xs">  Issues </span><span class="salvus-latex-errors-counter"></span> <span class="salvus-latex-warnings-counter"></span></a>
+                        <a href="#pdf-preview" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show final rendered PDF"><i class="fa fa-eye"></i> PDF</a>
+                        <a href="#log" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show compilation log (save causes recompile)"><i class="fa fa-bolt"></i><span class="hidden-xs">  Build</span>
                             <span class="salvus-latex-build-status"></span></a>
                     </span>
                 </span>
@@ -173,11 +177,77 @@ Editor for files in a project
                 </span>
 
             </div>
+            <div class="salvus-editor-codemirror-worksheet-editable-buttons hide">
+                <span class="btn-group">
+                    <a href="#bold" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Bold"><i class="fa fa-bold"></i></a>
+                    <a href="#italic" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Italic"><i class="fa fa-italic"></i></a>
+                    <a href="#underline" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Underline"><i class="fa fa-underline"></i></a>
+                    <a href="#strikethrough" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Strike through"><i class="fa fa-strikethrough"></i></a>
+                    <a href="#subscript" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Subscript (use LaTeX for serious equations)"><i class="fa fa-subscript"></i></a>
+                    <a href="#superscript" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Superscript"><i class="fa fa-superscript"></i></a>
+                </span>
+                <span class="btn-group">
+                    <a href="#equation" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Inline equation..."> \$  </a>
+                    <a href="#display_equation" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Displayed equation..."> \$\$  </a>
+                    <a href="#insertunorderedlist" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert unordered list"><i class="fa fa-list"></i></a>
+                    <a href="#insertorderedlist" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert ordered list"><i class="fa fa-list-ol"></i></a>
+                    <a href="#link" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert link..."><i class="fa fa-link"></i></a>
+                    <a href="#image" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert image..."><i class="fa fa-image"></i></a>
+                   <!-- <a href="#insertHorizontalRule" class="btn btn-default">&lt;hr&gt;</a> -->
+                </span>
+                <span class="btn-group">
+                    <a href="#justifyleft" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Left justify"><i class="fa fa-align-left"></i></a>
+                    <a href="#justifycenter" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Justify center"><i class="fa fa-align-center"></i></a>
+                    <a href="#justifyright" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Right justify"><i class="fa fa-align-right"></i></a>
+                    <a href="#justifyfull" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Justify full"><i class="fa fa-align-justify"></i></a>
+                    <a href="#outdent" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Outdent"><i class="fa fa-outdent"></i></a>
+                    <a href="#indent" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Indent"><i class="fa fa-indent"></i></a>
+                </span>
+                <span class="btn-group">
+                    <a href="#undo" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Undo"><i class="fa fa-undo"></i></a>
+                    <a href="#redo" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Redo"><i class="fa fa-repeat"></i></a>
+                </span>
+                <span class="btn-group">
+                    <span class="btn-group sagews-output-editor-font smc-tooltip"  data-toggle="tooltip" data-placement="bottom" title="Fonts">
+                        <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Font">
+                            <i class="fa fa-font"></i> <b class="caret"></b>
+                        </span>
+                        <ul class="dropdown-menu">
+                        </ul>
+                    </span>
+                    <span class="btn-group sagews-output-editor-font-size smc-tooltip"  data-toggle="tooltip" data-placement="bottom" title="Font size">
+                        <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Text height">
+                            <i class="fa fa-text-height"></i> <b class="caret"></b>
+                        </span>
+                        <ul class="dropdown-menu">
+                        </ul>
+                    </span>
+                    <span class="btn-group sagews-output-editor-block-type smc-tooltip"  data-toggle="tooltip" data-placement="bottom" title="Format type">
+                        <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Header">
+                            <i class="fa fa-header"></i> <b class="caret"></b>
+                        </span>
+                        <ul class="dropdown-menu">
+                        </ul>
+                    </span>
+                </span>
+                <span class="btn-group">
+                    <span class="sagews-output-editor-foreground-color-selector input-group color smc-tooltip" data-color-format="rgb" data-toggle="tooltip" data-placement="bottom" title="Text color">
+                        <input type="text" style="cursor:pointer" class="form-control">
+                        <span class="input-group-addon" style="padding: 3px;"><i class="fa fa-font" style="height: 16px; width: 16px"></i><b class="caret"></b></span>
+                    </span>
+                </span>
+                <span class="btn-group">
+                    <span class="sagews-output-editor-background-color-selector input-group color smc-tooltip" data-color-format="rgb" data-toggle="tooltip" data-placement="bottom" title="Text background highlight color">
+                        <input type="text" style="cursor:pointer" class="form-control">
+                        <span class="input-group-addon"  style="padding: 3px;"><i class="fa fa-font" style="height: 16px; width: 16px"></i><b class="caret"></b></span>
+                    </span>
+                </span>
+            </div>
         </div>
         <div class="salvus-editor-codemirror-chat-column hide">
             <div class="salvus-editor-codemirror-chat">
                 <div class="salvus-editor-codemirror-chat-output"></div>
-                <textarea class="salvus-editor-codemirror-chat-input form-control" placeholder="Chat using HTML, Markdown or  LaTeX..."></textarea>
+                <textarea class="salvus-editor-codemirror-chat-input form-control" placeholder="Chat using HTML, Markdown and LaTeX..."></textarea>
             </div>
         </div>
         <div class="salvus-editor-codemirror-input-container-layout-1 hide">
@@ -372,8 +442,13 @@ Editor for files in a project
     </div>
 
     <div class="sagews-output">
-     <a href="#edit" class="sagews-output-edit-button btn btn-default btn-sm pull-right"><i class="fa fa-edit"></i> Edit</a>
-     <span></span>
+        <div class="sagews-output-container">
+            <div class="sagews-output-editor hide">
+                <div class="sagews-output-editor-content">
+                </div>
+            </div>
+             <span class="sagews-output-messages"></span>
+        </div>
     </div>
 
     <div class="salvus-ipython-notebook">
@@ -500,4 +575,105 @@ Editor for files in a project
             </div>
         </div>
     </div>
+
+    <div class="modal salvus-html-editor-link-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close btn-close" aria-hidden="true">
+                        <span style="font-size:20pt;">×</span>
+                    </button>
+                    <h3><i class="fa fa-link"> </i>  Insert Link</h3>
+                </div>
+                <div class="well" style="margin:1em">
+                    <div class="row">
+                        <div class="col-sm-4 lighten">
+                            URL (required)
+                        </div>
+                        <div class="col-sm-8">
+                            <input class="form-control salvus-html-editor-url" type="text" placeholder="URL">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-4 lighten">
+                            Displayed Text (required)
+                        </div>
+                        <div class="col-sm-8">
+                            <input class="form-control salvus-html-editor-display" type="text"  placeholder="Displayed Text">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-4 lighten">
+                            Title (optional)
+                        </div>
+                        <div class="col-sm-8">
+                            <input class="form-control salvus-html-editor-title" type="text" placeholder="Title">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-4 lighten">
+                            Target
+                        </div>
+                        <div class="col-sm-8">
+                            <select class="form-control salvus-html-editor-target">
+                                <option value="">None</option>
+                                <option value="_blank">New Window</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-close btn-default">Cancel</button>
+                    <button class="btn btn-primary btn-submit">Create Link</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal salvus-html-editor-image-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close btn-close" aria-hidden="true">
+                        <span style="font-size:20pt;">×</span>
+                    </button>
+                    <h3><i class="fa fa-image"> </i>  Insert Image</h3>
+                </div>
+                <div class="well" style="margin:1em">
+                    <div class="row">
+                        <div class="col-sm-4 lighten">
+                            URL or Filename
+                        </div>
+                        <div class="col-sm-8">
+                            <input class="form-control salvus-html-editor-url" type="text" placeholder="URL">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-4 lighten">
+                            Width (optional)
+                        </div>
+                        <div class="col-sm-8">
+                            <input class="form-control salvus-html-editor-width" type="text"  placeholder="Width">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-4 lighten">
+                            Height (optional)
+                        </div>
+                        <div class="col-sm-8">
+                            <input class="form-control salvus-html-editor-height" type="text" placeholder="Height">
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-close btn-default">Cancel</button>
+                    <button class="btn btn-primary btn-submit">Insert Image</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
+
+

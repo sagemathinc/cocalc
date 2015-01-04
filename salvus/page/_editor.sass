@@ -296,17 +296,56 @@
   padding: 1ex
   padding-right: 0px
   margin: 0px
-  overflow-y: auto
   white-space: normal
   border-left: 3px solid orange
   margin-left: -4px
 
-.sagews-output-edit-button
+.sagews-output-edit-button-group
   visibility: hidden
-  margin-top: -6px;
 
-.sagews-output:hover .sagews-output-edit-button
+.sagews-output:hover .sagews-output-edit-button-group
   visibility: visible
+
+.sagews-output-editor
+  font-family: helvetica
+  border: 3px solid lightblue
+
+.sagews-output-editor-content
+  padding: 6px;
+
+.sagews-output-editor-buttons
+  background-color: #efefef
+  margin-bottom: 5px
+  border: 1px solid lightgrey
+
+.salvus-editor-codemirror-worksheet-editable-buttons
+  padding-top: 3px;
+
+.salvus-editor-mathjax-editor
+  cursor      : pointer
+  border      : 1px solid lightgrey !important
+  padding     : 3px !important
+  margin-left : 5px
+
+.sagews-editor-latex-raw
+  border     : 1px solid lightgrey
+  padding    : 3px
+  box-shadow : 3px 3px 3px 3px #888888
+  margin     : 0 auto
+
+.sagews-editor-latex-preview
+  border: 1px solid black;
+  padding: 12px;
+
+.sagews-output-editor-foreground-color-selector
+  cursor: pointer
+  width: 1px
+  height: 30px
+
+.sagews-output-editor-background-color-selector
+  cursor: pointer
+  width: 1px
+  height: 30px
 
 .sagews-output-html
   font-family: helvetica
