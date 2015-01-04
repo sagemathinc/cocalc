@@ -1244,7 +1244,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @focused_codemirror().scrollTo(@html_editor_scroll_info.left, @html_editor_scroll_info.top)
         @html_editor_restore_selection()
         if cmd == "ClassApplier"
-            rangy.createClassApplier(args[0], args[1]).applyToSelection()
+            rangy?.createClassApplier(args[0], args[1]).applyToSelection()
         else
             if cmd == "insertHTML"
                 # more solid and cross platform, e.g., insertHTML doesn't exist on IE
@@ -2270,6 +2270,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         opts = defaults opts,
             line : required
             cm   : required
+        # DISABLED!
+        return
 
         cm = opts.cm
         scroll_info = cm.getScrollInfo()
@@ -2522,52 +2524,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
             save_to_output_soon()
             @sync()
 
-        ###
-        rangy_sel = undefined
-        save_rangy_sel = () =>
-            if not @_html_editor_with_focus?.is(div)
-                return
-            #console.log("save_selection")
-            if rangy_sel?
-                try
-                    rangy.removeMarkers(rangy_sel)
-                catch e
-                    #console.log("WARNING: ", e)
-                rangy_sel = undefined
-            try
-                rangy_sel = rangy.saveSelection()
-            catch e
-                #console.log("WARNING: ", e)
-                rangy_sel = undefined
-
-        restore_rangy_sel = () =>
-            #console.log("rangy restoring selection")
-            if rangy_sel? and @_html_editor_with_focus?.is(div)
-                for x in rangy_sel.rangeInfos
-                    for k in ['startMarkerId', 'MarkerId', 'endMarkerId']
-                        a = x[k]
-                        if a? and not div.find("##{a}").length > 0
-                            console.log("skipping -- missing a marker")
-                            rangy_sel = undefined
-                            div.find(".rangySelectionBoundary").remove()
-                            @html_editor_save_selection()
-                            save_rangy_sel()
-                            return
-                try
-                    rangy.restoreSelection(rangy_sel)
-                catch e
-                    console.log("WARNING: ", e)
-                    rangy_sel = undefined
-                @html_editor_save_selection()
-                save_rangy_sel()
-
-        on_cm_update = () =>
-            #console.log("cm_update")
-            restore_rangy_sel()
-        if not $.browser.ie    # IE is terrible...
-            cm.on('update', on_cm_update)
-
-        ###
 
         # This was a nightmare because it causes codemirror to update the output div, which contains the editor.  Have to change things so editor is contained somewhere else first (i.e., nontrivial project).
         save_to_output = () =>
@@ -2584,9 +2540,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
             # we have to use rangy, which plants elements in DOM, to save/restore selection,
             # since changing the underlying text behind output_mark causes CodeMirror to
             # reset the selection.
-            rangy_sel = rangy.saveSelection()
+            rangy_sel = rangy?.saveSelection()
             cm.replaceRange(output_line, {line:line,ch:1}, {line:line,ch:v.length})
-            rangy.restoreSelection(rangy_sel)
+            rangy?.restoreSelection(rangy_sel)
             @sync()
 
         save_to_output_timer = undefined
