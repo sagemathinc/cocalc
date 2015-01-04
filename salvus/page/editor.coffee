@@ -124,10 +124,10 @@ file_associations['tex'] =
     editor : 'latex'
     icon   : 'fa-file-excel-o'
     opts   : {mode:'stex2', indent_unit:4, tab_size:4}
-#file_associations['tex'] =  # TODO: only for TESTING!!!
-#    editor : 'html-md'
-#    icon   : 'fa-file-code-o'
-#    opts   : {indent_unit:4, tab_size:4}
+file_associations['tex'] =  # TODO: only for TESTING!!!
+    editor : 'html-md'
+    icon   : 'fa-file-code-o'
+    opts   : {indent_unit:4, tab_size:4}
 
 
 file_associations['html'] =
@@ -5620,6 +5620,13 @@ class HTML_MD_Editor extends FileEditor
         url = dialog.find(".salvus-html-editor-url")
         url.focus()
 
+        if @ext == "tex"
+            # different units and don't let user specify the height
+            dialog.find(".salvus-html-editor-height-row").hide()
+            dialog.find(".salvus-html-editor-image-width-header-tex").show()
+            dialog.find(".salvus-html-editor-image-width-header-default").hide()
+            dialog.find(".salvus-html-editor-width").val('80')
+
         submit = () =>
             dialog.modal('hide')
             title  = dialog.find(".salvus-html-editor-title").val().trim()
@@ -5630,14 +5637,48 @@ class HTML_MD_Editor extends FileEditor
             w = dialog.find(".salvus-html-editor-width").val().trim()
             if w.length > 0
                 width = " width=#{w}"
+
             if @ext == 'rst'
+                # .. image:: picture.jpeg
+                #    :height: 100px
+                #    :width: 200 px
+                #    :alt: alternate text
+                #    :align: right
                 s = "\n.. image:: #{url.val()}\n"
-            else if width.length == 0 and height.length == 0 and @ext == 'md'
+                height = dialog.find(".salvus-html-editor-height").val().trim()
+                if height.length > 0
+                    s += "   :height: #{height}px\n"
+                width = dialog.find(".salvus-html-editor-width").val().trim()
+                if width.length > 0
+                    s += "   :width: #{width}px\n"
+                if title.length > 0
+                    s += "   :alt: #{title}\n"
+
+            else if @ext == 'md' and width.length == 0 and height.length == 0
                 # use markdown's funny image format if width/height not given
                 if title.length > 0
                     title = " \"#{title}\""
                 s = "![](#{url.val()}#{title})"
-            else
+
+            else if @ext == "tex"
+                @tex_ensure_preamble("\\usepackage{graphicx}")
+                width = parseInt(dialog.find(".salvus-html-editor-width").val(), 10)
+                if "#{width}" == "NaN"
+                    width = "0.8"
+                else
+                    width = "#{width/100.0}"
+                if title.length > 0
+                    s = """
+                        \\begin{figure}[p]
+                            \\centering
+                            \\includegraphics[width=#{width}\\textwidth]{#{url.val()}}
+                            \\caption{#{title}}
+                        \\end{figure}
+                        """
+                else
+                    s = "\\includegraphics[width=#{width}\\textwidth]{#{url.val()}}"
+
+            else # fallback for @ext == "md" but height or width is given
                 if title.length > 0
                     title = " title='#{title}'"
                 s = "<img src='#{url.val()}'#{width}#{height}#{title}>"
