@@ -124,6 +124,11 @@ file_associations['tex'] =
     editor : 'latex'
     icon   : 'fa-file-excel-o'
     opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+#file_associations['tex'] =  # TODO: only for TESTING!!!
+#    editor : 'html-md'
+#    icon   : 'fa-file-code-o'
+#    opts   : {indent_unit:4, tab_size:4}
+
 
 file_associations['html'] =
     editor : 'html-md'
@@ -135,15 +140,20 @@ file_associations['md'] =
     icon   : 'fa-file-code-o'
     opts   : {indent_unit:4, tab_size:4}
 
+file_associations['rst'] =
+    editor : 'html-md'
+    icon   : 'fa-file-code-o'
+    opts   : {indent_unit:4, tab_size:4}
+
+file_associations['wiki'] =
+    editor : 'html-md'
+    icon   : 'fa-file-code-o'
+    opts   : {indent_unit:4, tab_size:4}
+
 file_associations['sass'] =
     editor : 'codemirror'
     icon   : 'fa-file-code-o'
     opts   : {mode:'text/x-sass', indent_unit:2, tab_size:2}
-
-file_associations['wiki'] =
-    editor : 'codemirror'
-    icon   : 'fa-file-code-o'
-    opts   : {mode:'mediawiki', indent_unit:4, tab_size:4}
 
 file_associations['css'] =
     editor : 'codemirror'
@@ -5043,8 +5053,14 @@ class HTML_MD_Editor extends FileEditor
             @opts.mode = 'htmlmixed2'
         else if @ext == 'md'
             @opts.mode = 'gfm2'
+        else if @ext == 'rst'
+            @opts.mode = 'rst'
+        else if @ext == 'wiki'
+            @opts.mode = 'mediawiki'
+        else if @ext == 'tex'  # for testing/experimentation
+            @opts.mode = 'stex2'
         else
-            throw "file must have extension md or html"
+            throw "file must have extension md or html or rst or wiki or tex"
 
         @element = templates.find(".salvus-editor-html-md").clone()
         @preview = @element.find(".salvus-editor-html-md-preview")
@@ -5137,9 +5153,9 @@ class HTML_MD_Editor extends FileEditor
                     that.sync()
             return false
 
-        if @ext != 'html'
+        if true #  @ext != 'html'
             # hide some buttons, since these are not markdown friendly operations:
-            for t in ['clean', 'insertorderedlist']
+            for t in ['clean'] # I don't like this!
                 @edit_buttons.find("a[href=##{t}]").hide()
 
         # initialize the color controls
@@ -5222,15 +5238,15 @@ class HTML_MD_Editor extends FileEditor
             @_file_path = misc.path_split(@filename).head
         return @_file_path
 
-    update_preview: () =>
-        console.log("update_preview")
-        t0 = misc.mswalltime()
-        # TODO: might want to use an official html sanitizer,
-        # and will also need to make this more local so it scales,
-        # rather than globally recreating whole DOM.
+    to_html: (cb) =>
+        f = @["#{@ext}_to_html"]
+        if f?
+            f(cb)
+        else
+            @to_html_via_pandoc(cb)
 
+    html_to_html: (cb) =>   # cb(error, {source:?, mathjax:?})  where mathjax is true/false
         # add in cursor(s)
-
         source = @source_editor._get()
         cm = @source_editor.syncdoc.focused_codemirror()
         # figure out where pos is in the source and put HTML cursor there
@@ -5275,29 +5291,8 @@ class HTML_MD_Editor extends FileEditor
                         line2 = "<span data-line=#{i} data-ch=#{j-c} class='smc-pos'></span>" + line.slice(j) + line2
                         line = line.slice(0,j)
                 lines[i] = "<span data-line=#{i} data-ch=0 class='smc-pos'></span>"+line + line2
-        else
-            # For markdown, we put the line position at the end of each line.  That's the
-            # best we can do without actually getting into the guts of the md --> html
-            # converter library.
-            if 0   # as is, this won't work at all.
-              for i in [0...lines.length]
-                if lines[i].trim().length == 0
-                    lines[i] = "\n<span data-line=#{i} data-ch=0 class='smc-pos'></span>\n"
 
         source = lines.join('\n')
-        if source == @_last_source_from_html
-            return
-        @_last_source_from_html = source
-
-        if @ext == 'md'
-            m = misc_page.markdown_to_html(source)
-            source = m.s
-
-        # remove any javascript and make html more sane
-        elt = $("<span>").html(source)
-        elt.find('script').remove()
-        elt.find('link').remove()
-        source = elt.html()
 
         source = misc.replace_all(source, markers.cursor, "<span class='smc-html-cursor'></span>")
 
@@ -5311,26 +5306,82 @@ class HTML_MD_Editor extends FileEditor
             elt.find('*').addClass('smc-html-selection')
             source = source.slice(0,i) + "<span class='smc-html-selection'>" + elt.html() + "</span>" + source.slice(j+1)
 
-        # finally set html in the live DOM
-        @preview.html(source)
+        cb(undefined, {html:source, mathjax:true}) # TODO: mathjax
 
-        @localize_image_links(@preview)
+    md_to_html: (cb) =>
+        source = @source_editor._get()
+        m = misc_page.markdown_to_html(source)
+        cb(undefined, {html:m.s, mathjax:m.mathjax})
 
-        ## this would disable clickable links...
-        #@preview.find("a").click () =>
-        #    return false
-        # Make it so preview links can be clicked, don't close SMC page.
-        @preview.find("a").attr("target","_blank")
-        @preview.find("table").addClass('table')  # bootstrap table
+    to_html_via_pandoc: (cb) =>
+        html = undefined
+        async.series([
+            (cb) =>
+                @save(cb)
+            (cb) =>
+                salvus_client.exec
+                    project_id  : @editor.project_id
+                    command     : "pandoc"
+                    args        : ["--toc", "-t", "html", @filename]
+                    err_on_exit : true
+                    cb          : (err, output) =>
+                        if err
+                            cb(err)
+                        else if output.stderr.length > 0
+                            cb(output.stderr)
+                        else
+                            html = output.stdout
+                            cb()
+        ], (err) =>
+            if err
+                cb(err)
+            else
+                cb(undefined, {html:html, mathjax:true})
+        )
 
-        if not m? or m.has_mathjax
-            @preview.mathjax()
+    update_preview: () =>
+        if @_update_preview_lock
+            @_update_preview_redo = true
+            return
 
-        # this is possibly bad:
-        @preview.find(".smc-html-cursor").scrollintoview()
-        @preview.find(".smc-html-cursor").remove()
+        t0 = misc.mswalltime()
+        @_update_preview_lock = true
+        console.log("update_preview")
+        @to_html (err, r) =>
+            if err
+                console.log("failed to render preview: #{err}")
+            @_update_preview_lock = false
+            source = r.html
 
-        console.log("update_preview time=#{misc.mswalltime(t0)}ms")
+            # remove any javascript and make html more sane
+            elt = $("<span>").html(source)
+            elt.find('script').remove()
+            elt.find('link').remove()
+            source = elt.html()
+
+            # finally set html in the live DOM
+            @preview.html(source)
+
+            @localize_image_links(@preview)
+
+            ## this would disable clickable links...
+            #@preview.find("a").click () =>
+            #    return false
+            # Make it so preview links can be clicked, don't close SMC page.
+            @preview.find("a").attr("target","_blank")
+            @preview.find("table").addClass('table')  # bootstrap table
+
+            if r.mathjax
+                @preview.mathjax()
+
+            # this is possibly bad:
+            @preview.find(".smc-html-cursor").scrollintoview()
+            @preview.find(".smc-html-cursor").remove()
+
+            console.log("update_preview time=#{misc.mswalltime(t0)}ms")
+            if @_update_preview_redo
+                @_update_preview_redo = false
+                @update_preview()
 
     localize_image_links: (e) =>
         # make relative links to images use the raw server
@@ -5573,8 +5624,10 @@ initialize_md_html_editor = () ->
         elt.append(item)
 
     elt = bar.find(".sagews-output-editor-font-size").find(".dropdown-menu")
-    for size in [1..7]
-        item = $("<li><a href='#font_size' data-args='#{size}'><font size=#{size}>Size #{size} #{if i==3 then 'default' else ''}</font></a></li>")
+    v = [1..7]
+    v.reverse()
+    for size in v
+        item = $("<li><a href='#font_size' data-args='#{size}'><font size=#{size}>Size #{size} #{if size==3 then 'default' else ''}</font></a></li>")
         elt.append(item)
 
     elt = bar.find(".sagews-output-editor-block-type").find(".dropdown-menu")

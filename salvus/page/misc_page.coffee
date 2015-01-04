@@ -715,6 +715,10 @@ exports.define_codemirror_extensions = () ->
                 wrap :
                     left  : "\n - "
                     right : "\n"
+            insertorderedlist :
+                wrap :
+                    left  : "\n 1. "
+                    right : "\n"
             format_heading_1 :  # todo -- define via for loop below
                 strip : ['format_heading_2','format_heading_3','format_heading_4']
                 wrap :
@@ -852,6 +856,12 @@ exports.define_codemirror_extensions = () ->
             mode = 'md'
         else if mode.slice(0,9) == 'mixedhtml'
             mode = 'html'
+        else if mode.indexOf('mediawiki') != -1
+            mode = 'wiki'
+            mode = 'md'  # FOR now!
+        else if mode.indexOf('rst') != -1
+            mode = 'rst'
+            mode = 'md'  # FOR now!
         else if mode.indexOf('stex') != -1
             mode = 'tex' # not supported yet!
         if mode not in ['md', 'html']
