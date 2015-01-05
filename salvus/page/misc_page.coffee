@@ -1111,14 +1111,14 @@ exports.define_codemirror_extensions = () ->
                             |+Table Caption
                             !colspan="2" style="text-align:center; color:blue;"|Table Header
                             |-
-                            |Orange
-                            |Apple
+                            |Integral
+                            |Derivative
                             |-
-                            |Bread
-                            |Pie
+                            |Sin
+                            |Cos
                             |-
-                            |Butter
-                            |Ice cream
+                            |Tan
+                            |Sec
                             |}
                             """
                     right : "\n"
@@ -1134,7 +1134,7 @@ exports.define_codemirror_extensions = () ->
             mode = cm.getOption('mode').name
         if mode.slice(0,3) == 'gfm'
             mode = 'md'
-        else if mode.slice(0,9) == 'mixedhtml'
+        else if mode.slice(0,9) == 'htmlmixed'
             mode = 'html'
         else if mode.indexOf('mediawiki') != -1
             mode = 'mediawiki'

@@ -5077,6 +5077,8 @@ class HTML_MD_Editor extends FileEditor
         @source_editor = codemirror_session_editor(@editor, @filename, @opts)
         @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
         @source_editor.action_key = @action_key
+        @source_editor.click_save_button = @click_save_button
+        @spell_check()
 
         cm = @cm()
         cm.on('change', @update_preview)
@@ -5310,12 +5312,52 @@ class HTML_MD_Editor extends FileEditor
                 cb?(undefined, output)
         )
 
+    misspelled_words: (opts) =>
+        opts = defaults opts,
+            lang : undefined
+            cb   : required
+        if not opts.lang?
+            opts.lang = misc_page.language()
+        if opts.lang == 'disable'
+            opts.cb(undefined,[])
+            return
+        if @ext == "html"
+            mode = "html"
+        else if @ext == "tex"
+            mode = 'tex'
+        else
+            mode = 'none'
+        #t0 = misc.mswalltime()
+        salvus_client.exec
+            project_id  : @editor.project_id
+            command     : "cat '#{@filename}'|aspell --mode=#{mode} --lang=#{opts.lang} list|sort|uniq"
+            bash        : true
+            err_on_exit : true
+            cb          : (err, output) =>
+                #console.log("spell_check time: #{misc.mswalltime(t0)}ms")
+                if err
+                    opts.cb(err); return
+                if output.stderr
+                    opts.cb(output.stderr); return
+                opts.cb(undefined, output.stdout.slice(0,output.stdout.length-1).split('\n'))  # have to slice final \n
+
+    spell_check: () =>
+        @misspelled_words
+            cb : (err, words) =>
+                if err
+                    return
+                else
+                    for cm in @source_editor.codemirrors()
+                        cm.spellcheck_highlight(words)
 
     click_save_button: () =>
         @save()
 
     save: (cb) =>
-        @source_editor.save(cb)
+        @source_editor.syncdoc.save (err) =>
+            if not err
+                @spell_check()
+            cb?(err)
 
     sync: (cb) =>
         @source_editor.syncdoc.sync(cb)
