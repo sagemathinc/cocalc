@@ -243,7 +243,8 @@ sagews_decorator_modes = [
     ['script'      , 'shell'],
     ['sh'          , 'shell'],
     ['julia'       , 'text/x-julia'],
-    ['wiki'        , 'mediawiki']
+    ['wiki'        , 'mediawiki'],
+    ['mediawiki'   , 'mediawiki']
 ]
 
 exports.define_codemirror_sagews_mode = () ->
@@ -5063,7 +5064,9 @@ class HTML_MD_Editor extends FileEditor
             @opts.mode = 'gfm2'
         else if @ext == 'rst'
             @opts.mode = 'rst'
-        else if @ext == 'wiki'
+        else if @ext == 'wiki' or @ext == "mediawiki"
+            # canonicalize .wiki and .mediawiki (as used on github!) to "mediawiki"
+            @ext = "mediawiki"
             @opts.mode = 'mediawiki'
         else if @ext == 'tex'  # for testing/experimentation
             @opts.mode = 'stex2'
@@ -5288,7 +5291,7 @@ class HTML_MD_Editor extends FileEditor
     convert_to_pdf: (cb) =>  # cb(err, {stdout:?, stderr:?, filename:?})
         s = path_split(@filename)
         target = s.tail + '.pdf'
-        if @ext in ['md', 'html', 'rst', 'wiki']
+        if @ext in ['md', 'html', 'rst', 'mediawiki']
             # pandoc --latex-engine=xelatex a.wiki -o a.pdf
             command = 'pandoc'
             args    = ['--latex-engine=xelatex', s.tail, '-o', target]
@@ -5747,7 +5750,7 @@ class HTML_MD_Editor extends FileEditor
                 if anchor.length > 0
                     anchor = "\##{anchor}"
                 if display.length > 0
-                    display = " " + display
+                    display = " #{display}"
                 s = "[#{url.val()}#{anchor}#{display}]"
 
             selections = cm.listSelections()

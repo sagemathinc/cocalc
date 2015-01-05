@@ -913,8 +913,23 @@ exports.define_codemirror_extensions = () ->
                     right : " $$"
             table:
                 wrap:
-                    left  : "<table>\n <tr><th>Header 1</th><th>Header 2</th></tr>\n <tr><td>"
-                    right : "</td><td>cell 2</td></tr>\n <tr><td>cell 3</td><td>cell 4</td></tr>\n</table>"
+                    left  : """
+                            <table>
+                                <tr>
+                                    <th>Header 1</th>
+                                    <th>Header 2</th>
+                                </tr>
+                                <tr>
+                                    <td>Cell 1</td>
+                                    <td>Cell 2</td>
+                                </tr>
+                                <tr>
+                                    <td>Cell 3</td>
+                                    <td>Cell 4</td>
+                                </tr>
+                            </table>
+                            """
+                    right : "\n"
             horizontalRule:
                 wrap:
                     left  : "\n<hr size='1'/>\n"
@@ -996,7 +1011,12 @@ exports.define_codemirror_extensions = () ->
                     right : "\n-------------\n"
             format_code :
                 wrap :
-                    left  : '\n.. code::\n\n    '
+                    left  : """
+                            .. code:: python
+
+                                def f(x):
+                                    return 2*x
+                            """
                     right : '\n'
             equation :
                 wrap :
@@ -1062,20 +1082,20 @@ exports.define_codemirror_extensions = () ->
                     right : '</strike>'
             insertunorderedlist :
                 wrap :
-                    left  : "\n * "
+                    left  : "\n* item1\n* item2\n* "
                     right : "\n"
             insertorderedlist :
                 wrap :
-                    left  : "\n # "
+                    left  : "\n# one\n# two\n# "
                     right : "\n"
             comment :
                 wrap :
                     left  : '\n<!-- '
                     right : ' -->\n'
-            indent:
+            indent: # pre tag is more for code, but makes more sense than a dysfunctional ":"
                 wrap:
-                    left  : "\n: "
-                    right : ""
+                    left  : "\n<pre>"
+                    right : "</pre>\n"
             format_heading_1 :  # todo -- define via for loop below
                 strip : ['format_heading_2','format_heading_3','format_heading_4']
                 wrap :
@@ -1098,8 +1118,8 @@ exports.define_codemirror_extensions = () ->
                     right : " =====\n"
             format_code :
                 wrap :
-                    left  : ' <nowiki>'
-                    right : '</nowiki>'
+                    left  : ' <code>'
+                    right : '</code> '
             horizontalRule:
                 wrap:
                     left  : "\n----\n"
@@ -1109,7 +1129,8 @@ exports.define_codemirror_extensions = () ->
                     left  : """\n
                             {| class="table"
                             |+Table Caption
-                            !colspan="2" style="text-align:center; color:blue;"|Table Header
+                            ! Column 1
+                            ! Column 2
                             |-
                             |Integral
                             |Derivative
