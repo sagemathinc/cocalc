@@ -845,8 +845,8 @@ exports.define_codemirror_extensions = () ->
                     right : '</sup>'
             comment :
                 wrap :
-                    left  : '<!--'
-                    right : '-->'
+                    left  : '<!-- '
+                    right : ' -->'
             insertunorderedlist :
                 wrap :
                     left  : "\n<ul>\n    <li> "
@@ -1042,6 +1042,87 @@ exports.define_codemirror_extensions = () ->
                     left  : "\n------------------\n"
                     right : ""
 
+
+        mediawiki : # https://www.mediawiki.org/wiki/Help:Formatting
+            bold :
+                wrap :
+                    left  : "'''"
+                    right : "'''"
+            italic :
+                wrap :
+                    left  : "''"
+                    right : "''"
+            underline :
+                wrap :
+                    left  : '<u>'
+                    right : '</u>'
+            strikethrough :
+                wrap :
+                    left  : '<strike>'
+                    right : '</strike>'
+            insertunorderedlist :
+                wrap :
+                    left  : "\n * "
+                    right : "\n"
+            insertorderedlist :
+                wrap :
+                    left  : "\n # "
+                    right : "\n"
+            comment :
+                wrap :
+                    left  : '\n<!-- '
+                    right : ' -->\n'
+            indent:
+                wrap:
+                    left  : "\n: "
+                    right : ""
+            format_heading_1 :  # todo -- define via for loop below
+                strip : ['format_heading_2','format_heading_3','format_heading_4']
+                wrap :
+                    left  : "\n== "
+                    right : " ==\n"
+            format_heading_2 :
+                strip : ['format_heading_1','format_heading_3','format_heading_4']
+                wrap :
+                    left  : "\n=== "
+                    right : " ===\n"
+            format_heading_3 :
+                strip : ['format_heading_1','format_heading_2','format_heading_4']
+                wrap :
+                    left  : "\n==== "
+                    right : " ====\n"
+            format_heading_4 :
+                strip : ['format_heading_1','format_heading_2','format_heading_3']
+                wrap :
+                    left  : "\n===== "
+                    right : " =====\n"
+            format_code :
+                wrap :
+                    left  : ' <nowiki>'
+                    right : '</nowiki>'
+            horizontalRule:
+                wrap:
+                    left  : "\n----\n"
+                    right : ""
+            table: # https://www.mediawiki.org/wiki/Help:Tables
+                wrap:
+                    left  : """\n
+                            {| class="table"
+                            |+Table Caption
+                            !colspan="2" style="text-align:center; color:blue;"|Table Header
+                            |-
+                            |Orange
+                            |Apple
+                            |-
+                            |Bread
+                            |Pie
+                            |-
+                            |Butter
+                            |Ice cream
+                            |}
+                            """
+                    right : "\n"
+
     CodeMirror.defineExtension 'edit_selection', (opts) ->
         opts = defaults opts,
             cmd  : required
@@ -1056,12 +1137,12 @@ exports.define_codemirror_extensions = () ->
         else if mode.slice(0,9) == 'mixedhtml'
             mode = 'html'
         else if mode.indexOf('mediawiki') != -1
-            mode = 'wiki'
+            mode = 'mediawiki'
         else if mode.indexOf('rst') != -1
             mode = 'rst'
         else if mode.indexOf('stex') != -1
             mode = 'tex' # not supported yet!
-        if mode not in ['md', 'html', 'tex', 'rst', 'wiki']
+        if mode not in ['md', 'html', 'tex', 'rst', 'mediawiki']
             throw "unknown mode '#{opts.mode}'"
 
         args = opts.args
@@ -1105,7 +1186,7 @@ exports.define_codemirror_extensions = () ->
 
             mode1 = mode
             how = EDIT_COMMANDS[mode1][cmd]
-            if mode1 == 'md' and not how?
+            if not how? and mode1 in ['md', 'mediawiki', 'rst']
                 # html fallback for markdown
                 mode1 = 'html'
                 how = EDIT_COMMANDS[mode1][cmd]

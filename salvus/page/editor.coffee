@@ -5110,11 +5110,9 @@ class HTML_MD_Editor extends FileEditor
             comment   : 'Shift-Ctrl-3'
             strikethrough : 'Shift-Cmd-X Shift-Ctrl-X'
             justifycenter : "Cmd-E Ctrl-E"
-            justifyright  : "Cmd-R Ctrl-R"
+            #justifyright  : "Cmd-R Ctrl-R"  # messes up page reload
             subscript     : "Cmd-= Ctrl-="
             superscript   : "Shift-Cmd-= Shift-Ctrl-="
-            insertunorderedlist : "Shift-Cmd-L Shift-Ctrl-L"
-            insertimage : "Shift-Cmd-I Shift-Ctrl-I"
 
         extra_keys = @cm().getOption("extraKeys") # current keybindings
         for cmd, keys of keybindings
@@ -5167,11 +5165,13 @@ class HTML_MD_Editor extends FileEditor
                 @insert_link(cm)
             when "image"
                 @insert_image(cm)
+            when "SpecialChar"
+                @special_char(cm)
             else
                 cm.edit_selection
                     cmd  : cmd
                     args : args
-                    mode : @ext
+                    mode : @opts.mode
                 @sync()
 
 
@@ -5554,13 +5554,13 @@ class HTML_MD_Editor extends FileEditor
             dialog.modal('hide')
             if @ext == 'md'
                 # [Python](http://www.python.org/)
-                title  = ""
-                anchor = ""
+                title  = title.val()
+                anchor = anchor.val()
 
-                if title.val().length > 0
+                if title.length > 0
                     title = " \"#{title.val()}\""
 
-                if anchor.val().length > 0
+                if anchor.length > 0
                     anchor = "\##{anchor.val()}"
 
                 d = display.val()
@@ -5570,16 +5570,17 @@ class HTML_MD_Editor extends FileEditor
                     s = url.val()
 
             else if @ext == "html"
-                target = ""
-                title  = ""
-                anchor = ""
-                if target.val() == "_blank"
+                target = target.val().trim()
+                title  = title.val().trim()
+                anchor = anchor.val().trim()
+
+                if target == "_blank"
                     target = "target='_blank'"
 
-                if title.val().length > 0
+                if title.length > 0
                     title = "title='#{title.val()}'"
 
-                if anchor.val().length >0
+                if anchor.length >0
                     anchor = "\##{anchor.val()}"
 
                 if display.val().length > 0
@@ -5590,9 +5591,9 @@ class HTML_MD_Editor extends FileEditor
 
             else if @ext == "rst"
                 # `Python <http://www.python.org/#target>`_
-                anchor = ""
-                if anchor.val().length > 0
-                    anchor = "\##{anchor.val()}"
+                anchor = anchor.val().trim()
+                if anchor.length > 0
+                    anchor = "\##{anchor}"
 
                 if display.val().length > 0
                     display = "#{display.val()}"
@@ -5605,10 +5606,10 @@ class HTML_MD_Editor extends FileEditor
                 # \url{http://www.wikibooks.org}
                 # \href{http://www.wikibooks.org}{Wikibooks home}
                 @tex_ensure_preamble("\\usepackage{url}")
-                anchor = ""
-                if anchor.val().length > 0
+                anchor = anchor.val().trim()
+                if anchor.length > 0
                     anchor = "\\\##{anchor.val()}"
-                display = display.val()
+                display = display.val().trim()
                 url = url.val()
                 url = url.replace(/#/g, "\\\#")  # should end up as \#
                 url = url.replace(/&/g, "\\&")   # ... \&
@@ -5617,6 +5618,17 @@ class HTML_MD_Editor extends FileEditor
                     s = "\\href{#{url}#{anchor}}{#{display}}"
                 else
                     s = "\\url{#{url}}"
+
+            else if @ext == "mediawiki"
+                # https://www.mediawiki.org/wiki/Help:Links
+                # [http://mediawiki.org MediaWiki]
+                anchor = anchor.val().trim()
+                display = display.val().trim()
+                if anchor.length > 0
+                    anchor = "\##{anchor}"
+                if display.length > 0
+                    display = " " + display
+                s = "[#{url.val()}#{anchor}#{display}]"
 
             selections = cm.listSelections()
             selections.reverse()
@@ -5708,6 +5720,17 @@ class HTML_MD_Editor extends FileEditor
                 else
                     s = "\\includegraphics[width=#{width}\\textwidth]{#{url.val()}}"
 
+            else if @ext == "mediawiki"
+                # https://www.mediawiki.org/wiki/Help:Images
+                # [[File:Example.jpg|<width>[x<height>]px]]
+                size = ""
+                if w.length > 0
+                    size = "|#{w}"
+                    if h.length > 0
+                        size += "x#{h}"
+                    size += "px"
+                s = "[[File:#{url.val()}#{size}]]"
+
             else # fallback for @ext == "md" but height or width is given
                 if title.length > 0
                     title = " title='#{title}'"
@@ -5719,6 +5742,40 @@ class HTML_MD_Editor extends FileEditor
             @sync()
 
         dialog.find(".btn-submit").off('click').click(submit)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                return false
+
+    special_char: (cm) =>
+
+        dialog = templates.find(".salvus-html-editor-symbols-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            return false
+
+        selected = (evt) =>
+            # TODO this evt.target should be the clicked element
+            $target = $(evt.target)
+            if $target.prop("tagName") != "SPAN"
+                return
+            dialog.modal('hide')
+            code = $target.attr("title")
+            s = "&#{code};"
+            # TODO HTML-based formats will work, but not LaTeX.
+            # I suggest to show a completely different table for LaTeX special characters and do not bother with a translation table
+
+            selections = cm.listSelections()
+            selections.reverse()
+            for sel in selections
+                cm.replaceRange(s, sel.head)
+            @sync()
+
+        dialog.find(".salvus-html-editor-symbols-dialog-table").off("click").click(selected)
         dialog.keydown (evt) =>
             if evt.which == 13 # enter
                 submit()
