@@ -1603,7 +1603,7 @@ class CodeMirrorEditor extends FileEditor
 
         # TODO: implement printing for other file types
         if @filename.slice(@filename.length-7) != '.sagews'
-            @element.find("a[href=#print]").hide()
+            @element.find("a[href=#print]").unbind().hide()
 
     click_edit_button: (name) =>
         cm = @codemirror_with_last_focus
@@ -5073,7 +5073,6 @@ class HTML_MD_Editor extends FileEditor
         @edit_buttons = @element.find(".salvus-editor-html-md-buttons")
         @edit_buttons.show()
         @preview = @element.find(".salvus-editor-html-md-preview")
-
         # initialize the codemirror editor
         @source_editor = codemirror_session_editor(@editor, @filename, @opts)
         @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
@@ -5154,9 +5153,8 @@ class HTML_MD_Editor extends FileEditor
 
     init_buttons: () =>
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
-
-        @element.find("a[href=#save]").click () =>
-            @click_save_button()
+        @element.find("a[href=#save]").click(@click_save_button)
+        @print_button = @element.find("a[href=#print]").show().click(@print)
         @init_edit_buttons()
 
     command: (cm, cmd, args) =>
@@ -5248,6 +5246,70 @@ class HTML_MD_Editor extends FileEditor
 
         init_background_color_control()
         ###
+
+    print: () =>
+        if @_printing
+            return
+        @_printing = true
+        @print_button.icon_spin(start:true, delay:0).addClass("disabled")
+        @convert_to_pdf (err, output) =>
+            @_printing = false
+            @print_button.removeClass('disabled')
+            @print_button.icon_spin(false)
+            if err
+                alert_message(type:"error", message:"Printing error -- #{err}")
+            else
+                salvus_client.read_file_from_project
+                    project_id : @editor.project_id
+                    path       : output.filename
+                    cb         : (err, mesg) =>
+                        if err
+                            cb(err)
+                        else
+                            url = mesg.url + "?nocache=#{Math.random()}"
+                            window.open(url,'_blank')
+
+    convert_to_pdf: (cb) =>  # cb(err, {stdout:?, stderr:?, filename:?})
+        target = @filename + '.pdf'
+        if @ext in ['md', 'html', 'rst', 'wiki']
+            # pandoc --latex-engine=xelatex a.wiki -o a.pdf
+            command = 'pandoc'
+            args    = ['--latex-engine=xelatex', @filename, '-o', @filename+'.pdf']
+            bash = false
+        else if @ext == 'tex'
+            t = "." + misc.uuid()
+            @base_filename = @filename_tex.slice(0, @filename_tex.length-4)
+            command = "mkdir -p #{t}; xelatex -output-directory=#{t} '#{@filename}'; mv '#{t}/*.pdf' '#{target}'; rm -rf #{t}"
+            bash = true
+
+        target = @filename + ".pdf"
+        output = undefined
+        async.series([
+            (cb) =>
+                @save(cb)
+            (cb) =>
+                salvus_client.exec
+                    project_id  : @editor.project_id
+                    command     : command
+                    args        : args
+                    err_on_exit : true
+                    bash        : bash
+                    path        : path_split(@filename).head
+                    cb          : (err, o) =>
+                        console.log("convert_to_pdf output ", err, output)
+                        if err
+                            cb(err)
+                        else
+                            output = o
+                            cb()
+        ], (err) =>
+            if err
+                cb?(err)
+            else
+                output.filename = target
+                cb?(undefined, output)
+        )
+
 
     click_save_button: () =>
         @save()
