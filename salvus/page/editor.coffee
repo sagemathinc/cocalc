@@ -3993,6 +3993,7 @@ class StaticHTML extends FileEditor
         @element.show()
         @element.css(top:@editor.editor_top_position())
         @element.maxheight(offset:18)
+        @iframe.maxheight()
 
     init_buttons: () =>
         @element.find("a[href=#close]").click () =>
