@@ -5194,61 +5194,54 @@ class HTML_MD_Editor extends FileEditor
                 @edit_buttons.find("a[href=##{t}]").hide()
 
         # initialize the color controls
-        ###
+        button_bar = @edit_buttons
         init_color_control = () =>
             elt   = button_bar.find(".sagews-output-editor-foreground-color-selector")
             button_bar_input = elt.find("input").colorpicker()
             sample = elt.find("i")
-            set = (hex) ->
-                # The CSS wrapping version keeps wrapping new spans hence sucks.
-                #args = [null, {elementProperties:{style:{color:hex}}}]
-                #that.html_editor_exec_command("ClassApplier", args)
+            set = (hex) =>
                 sample.css("color", hex)
                 button_bar_input.css("background-color", hex)
-                that.html_editor_exec_command("foreColor", hex)
+                @command(@cm(), "color", hex)
 
-            button_bar_input.change (ev) ->
+            button_bar_input.change (ev) =>
                 hex = button_bar_input.val()
                 set(hex)
 
-            button_bar_input.on "changeColor", (ev) ->
+            button_bar_input.on "changeColor", (ev) =>
                 hex = ev.color.toHex()
                 set(hex)
 
-            sample.click (ev) ->
-                that.html_editor_restore_selection()
+            sample.click (ev) =>
                 button_bar_input.colorpicker('show')
 
             set("#000000")
 
         init_color_control()
-
         # initialize the color control
         init_background_color_control = () =>
             elt   = button_bar.find(".sagews-output-editor-background-color-selector")
             button_bar_input = elt.find("input").colorpicker()
             sample = elt.find("i")
-            set = (hex) ->
+            set = (hex) =>
                 button_bar_input.css("background-color", hex)
                 elt.find(".input-group-addon").css("background-color", hex)
-                that.html_editor_exec_command("hiliteColor", hex)
+                @command(@cm(), "background-color", hex)
 
-            button_bar_input.change (ev) ->
+            button_bar_input.change (ev) =>
                 hex = button_bar_input.val()
                 set(hex)
 
-            button_bar_input.on "changeColor", (ev) ->
+            button_bar_input.on "changeColor", (ev) =>
                 hex = ev.color.toHex()
                 set(hex)
 
-            sample.click (ev) ->
-                that.html_editor_restore_selection()
+            sample.click (ev) =>
                 button_bar_input.colorpicker('show')
 
             set("#fff8bd")
 
         init_background_color_control()
-        ###
 
     print: () =>
         if @_printing

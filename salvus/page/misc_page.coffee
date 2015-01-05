@@ -1214,7 +1214,7 @@ exports.define_codemirror_extensions = () ->
                 done = true
 
             if cmd == 'font_size'
-                if mode == 'html' or mode =='md'
+                if mode in ['html', 'md', 'mediawiki']
                     for i in [1..7]
                         src1 = strip(src, "<font size=#{i}>", '</font>')
                         if src1
@@ -1222,8 +1222,26 @@ exports.define_codemirror_extensions = () ->
                     if args != '3'
                         src = "<font size=#{args}>#{src}</font>"
 
+            if cmd == 'color'
+                if mode in ['html', 'md', 'mediawiki']
+                    src0 = src.toLowerCase().trim()
+                    if src0.slice(0,12) == "<font color="
+                        i = src.indexOf('>')
+                        j = src.lastIndexOf('<')
+                        src = src.slice(i+1,j)
+                    src = "<font color=#{args}>#{src}</font>"
+
+            if cmd == 'background-color'
+                if mode in ['html', 'md', 'mediawiki']
+                    src0 = src.toLowerCase().trim()
+                    if src0.slice(0,23) == "<span style='background"
+                        i = src.indexOf('>')
+                        j = src.lastIndexOf('<')
+                        src = src.slice(i+1,j)
+                    src = "<span style='background-color:#{args}'>#{src}</span>"
+
             if cmd == 'font_face'
-                if mode == 'html' or mode =='md'
+                if mode in ['html', 'md', 'mediawiki']
                     for face in FONT_FACES
                         src1 = strip(src, "<font face='#{face}'>", '</font>')
                         if src1
