@@ -5503,7 +5503,7 @@ class HTML_MD_Editor extends FileEditor
 
         t0 = misc.mswalltime()
         @_update_preview_lock = true
-        console.log("update_preview")
+        #console.log("update_preview")
         @to_html (err, r) =>
             @_update_preview_lock = false
             if err
@@ -5536,7 +5536,7 @@ class HTML_MD_Editor extends FileEditor
             @preview.find(".smc-html-cursor").scrollintoview()
             @preview.find(".smc-html-cursor").remove()
 
-            console.log("update_preview time=#{misc.mswalltime(t0)}ms")
+            #console.log("update_preview time=#{misc.mswalltime(t0)}ms")
             if @_update_preview_redo
                 @_update_preview_redo = false
                 @update_preview()
