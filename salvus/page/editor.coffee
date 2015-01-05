@@ -124,10 +124,10 @@ file_associations['tex'] =
     editor : 'latex'
     icon   : 'fa-file-excel-o'
     opts   : {mode:'stex2', indent_unit:4, tab_size:4}
-file_associations['tex'] =  # TODO: only for TESTING!!!
-    editor : 'html-md'
-    icon   : 'fa-file-code-o'
-    opts   : {indent_unit:4, tab_size:4}
+#file_associations['tex'] =  # TODO: only for TESTING!!!
+#    editor : 'html-md'
+#    icon   : 'fa-file-code-o'
+#    opts   : {indent_unit:4, tab_size:4}
 
 
 file_associations['html'] =
@@ -5080,7 +5080,6 @@ class HTML_MD_Editor extends FileEditor
         @source_editor = codemirror_session_editor(@editor, @filename, @opts)
         @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
         @source_editor.action_key = @action_key
-        @source_editor.click_save_button = @click_save_button
         @spell_check()
 
         cm = @cm()
@@ -5365,8 +5364,8 @@ class HTML_MD_Editor extends FileEditor
                     for cm in @source_editor.codemirrors()
                         cm.spellcheck_highlight(words)
 
-    click_save_button: () =>
-        @save()
+    has_unsaved_changes: () =>
+        return @source_editor.has_unsaved_changes()
 
     save: (cb) =>
         @source_editor.syncdoc.save (err) =>
