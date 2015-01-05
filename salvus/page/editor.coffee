@@ -145,7 +145,7 @@ file_associations['rst'] =
     icon   : 'fa-file-code-o'
     opts   : {indent_unit:4, tab_size:4}
 
-file_associations['wiki'] =
+file_associations['mediawiki'] = file_associations['wiki'] =
     editor : 'html-md'
     icon   : 'fa-file-code-o'
     opts   : {indent_unit:4, tab_size:4}
