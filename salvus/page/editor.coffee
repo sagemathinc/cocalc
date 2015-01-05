@@ -5070,10 +5070,12 @@ class HTML_MD_Editor extends FileEditor
         else
             throw "file must have extension md or html or rst or wiki or tex"
 
+        @disable_preview = @local_storage("disable_preview")
         @element = templates.find(".salvus-editor-html-md").clone()
         @edit_buttons = @element.find(".salvus-editor-html-md-buttons")
         @edit_buttons.show()
         @preview = @element.find(".salvus-editor-html-md-preview")
+        @preview_content = @preview.find(".salvus-editor-html-md-preview-content")
         # initialize the codemirror editor
         @source_editor = codemirror_session_editor(@editor, @filename, @opts)
         @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
@@ -5159,6 +5161,7 @@ class HTML_MD_Editor extends FileEditor
         @element.find("a[href=#save]").click(@click_save_button)
         @print_button = @element.find("a[href=#print]").show().click(@print)
         @init_edit_buttons()
+        @init_preview_buttons()
 
     command: (cm, cmd, args) =>
         switch cmd
@@ -5175,6 +5178,24 @@ class HTML_MD_Editor extends FileEditor
                     mode : @opts.mode
                 @sync()
 
+    init_preview_buttons: () =>
+        disable = @element.find("a[href=#disable-preview]").click () =>
+            disable.hide()
+            enable.show()
+            @disable_preview = true
+            @local_storage("disable_preview", true)
+            @preview_content.html('')
+
+        enable = @element.find("a[href=#enable-preview]").click () =>
+            disable.show()
+            enable.hide()
+            @disable_preview = false
+            @local_storage("disable_preview", false)
+            @update_preview()
+
+        if @disable_preview
+            enable.show()
+            disable.hide()
 
     init_edit_buttons: () =>
         that = @
@@ -5266,16 +5287,16 @@ class HTML_MD_Editor extends FileEditor
                             window.open(url,'_blank')
 
     convert_to_pdf: (cb) =>  # cb(err, {stdout:?, stderr:?, filename:?})
-        target = @filename + '.pdf'
+        s = path_split(@filename)
+        target = s.tail + '.pdf'
         if @ext in ['md', 'html', 'rst', 'wiki']
             # pandoc --latex-engine=xelatex a.wiki -o a.pdf
             command = 'pandoc'
-            args    = ['--latex-engine=xelatex', @filename, '-o', @filename+'.pdf']
+            args    = ['--latex-engine=xelatex', s.tail, '-o', target]
             bash = false
         else if @ext == 'tex'
             t = "." + misc.uuid()
-            @base_filename = @filename_tex.slice(0, @filename_tex.length-4)
-            command = "mkdir -p #{t}; xelatex -output-directory=#{t} '#{@filename}'; mv '#{t}/*.pdf' '#{target}'; rm -rf #{t}"
+            command = "mkdir -p #{t}; xelatex -output-directory=#{t} '#{s.tail}'; mv '#{t}/*.pdf' '#{target}'; rm -rf #{t}"
             bash = true
 
         target = @filename + ".pdf"
@@ -5290,7 +5311,7 @@ class HTML_MD_Editor extends FileEditor
                     args        : args
                     err_on_exit : true
                     bash        : bash
-                    path        : path_split(@filename).head
+                    path        : s.head
                     cb          : (err, o) =>
                         console.log("convert_to_pdf output ", err, output)
                         if err
@@ -5302,7 +5323,7 @@ class HTML_MD_Editor extends FileEditor
             if err
                 cb?(err)
             else
-                output.filename = target
+                output.filename = @filename + ".pdf"
                 cb?(undefined, output)
         )
 
@@ -5491,6 +5512,9 @@ class HTML_MD_Editor extends FileEditor
         )
 
     update_preview: () =>
+        if @disable_preview
+            return
+
         if @_update_preview_lock
             @_update_preview_redo = true
             return
@@ -5512,23 +5536,22 @@ class HTML_MD_Editor extends FileEditor
             source = elt.html()
 
             # finally set html in the live DOM
-            @preview.html(source)
+            @preview_content.html(source)
 
-            @localize_image_links(@preview)
+            @localize_image_links(@preview_content)
 
             ## this would disable clickable links...
             #@preview.find("a").click () =>
             #    return false
             # Make it so preview links can be clicked, don't close SMC page.
-            @preview.find("a").attr("target","_blank")
-            @preview.find("table").addClass('table')  # bootstrap table
+            @preview_content.find("a").attr("target","_blank")
+            @preview_content.find("table").addClass('table')  # bootstrap table
 
             if r.mathjax
-                @preview.mathjax()
+                @preview_content.mathjax()
 
-            # this is possibly bad:
-            @preview.find(".smc-html-cursor").scrollintoview()
-            @preview.find(".smc-html-cursor").remove()
+            #@preview_content.find(".smc-html-cursor").scrollintoview()
+            #@preview_content.find(".smc-html-cursor").remove()
 
             #console.log("update_preview time=#{misc.mswalltime(t0)}ms")
             if @_update_preview_redo
@@ -5554,7 +5577,7 @@ class HTML_MD_Editor extends FileEditor
             y.attr('data', new_src)
 
     init_preview_select: () =>
-        @preview.click (evt) =>
+        @preview_content.click (evt) =>
             sel = window.getSelection()
             window.sel = sel
             window.evt = evt
@@ -5563,18 +5586,18 @@ class HTML_MD_Editor extends FileEditor
             else
                 p = $(evt.target).nextAll(".smc-pos:first")
 
-            console.log("evt.target after ", p)
+            #console.log("evt.target after ", p)
             if p.length == 0
                 if @ext=='html'
                     p = $(sel.anchorNode).prevAll(".smc-pos:first")
                 else
                     p = $(sel.anchorNode).nextAll(".smc-pos:first")
-                console.log("anchorNode after ", p)
+                #console.log("anchorNode after ", p)
             if p.length == 0
                 console.log("clicked but not able to determine position")
                 return
             pos = p.data()
-            console.log("p.data=#{misc.to_json(pos)}, focusOffset=#{sel.focusOffset}")
+            #console.log("p.data=#{misc.to_json(pos)}, focusOffset=#{sel.focusOffset}")
             if not pos?
                 pos = {ch:0, line:0}
             pos = {ch:pos.ch + sel.focusOffset, line:pos.line}
