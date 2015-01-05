@@ -4035,6 +4035,7 @@ class StaticHTML extends FileEditor
         @element.show()
         @element.css(top:@editor.editor_top_position())
         @element.maxheight(offset:18)
+        @iframe.maxheight()
 
     init_buttons: () =>
         @element.find("a[href=#close]").click () =>
@@ -4237,8 +4238,8 @@ class IPythonNotebook extends FileEditor
                 salvus_client.exec
                     project_id : @editor.project_id
                     path       : @path
-                    command    : "stat"
-                    args       : ['--printf', '%Y ', @file, @syncdoc_filename]
+                    command    : "stat"   # %Z below = time of last change, seconds since Epoch; use this not %Y since often users put file in place, but with old time
+                    args       : ['--printf', '%Z ', @file, @syncdoc_filename]
                     timeout    : 15
                     err_on_exit: false
                     cb         : (err, output) =>
