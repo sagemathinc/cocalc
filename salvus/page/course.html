@@ -270,7 +270,7 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
                     <h3><i class="fa fa-question-circle"> </i>  Course Help</h3>
                 </div>
                 <div class="modal-body">
-                    Course documents allow you to manage a <i>list of students</i>, <i>create projects</i> for each
+                    Courses allow you to manage a <i>list of students</i>, <i>create projects</i> for each
                     of them, <i>share homework</i> and folders with them, <i>collect
                     homework</i>, and <i>grade and return</i> it to students.
 
@@ -288,7 +288,7 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
                     <p>
                         Once you add a student, click on <a  class="btn btn-warning"><i class="fa fa-plus-circle"> </i>  Create Project</a> next to your
                         student's name to create their project (or click  <a class="btn btn-warning"><i class="fa fa-plus-circle"> </i>  Create all <span></span> Projects...</a> to create 2 or more student projects).  You own the project, and they will be added as a collaborator, and invited by email if they
-                        do not yet have an account.  Don't worry, student projects are hidden by default from your main project listing.
+                        do not yet have an account.  Don't worry if you have 100s of studnets, since student projects are hidden by default from your main project listing.
                         <!--view
                         (click <button class="btn btn-info btn-sm"> <i class="fa fa-eye-slash"></i> Hidden</button> to see hidden projects in your project listing).-->
                     </p>
@@ -308,18 +308,21 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
                         Click to select the folder and it will be added to your
                         list of assignments.
                         To make <b>copies</b> of this folder available to all of your students whose projects you have created,
-                        click the <a class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Assign</a> button.
-                        <span class="lighten">NOTE: You can share arbitrary folders with any contents with your
+                        click the <a class="btn btn-warning"><i class="fa fa-share-square-o"> </i>  Assign all...</a> button.
+                        <br>
+                        <span class="lighten">(NOTE: Students will not be explicitly notified that you have made an assignment available.)</span>
+
+                        <span class="lighten">(NOTE: You can share arbitrary folders with any contents with your
                             students -- folders don't have
                             to contain "assignments", and may contain anything, Sage worksheets, IPython notebooks,
-                            LaTeX documents, etc.</span>
+                            LaTeX documents, etc.)</span>
                     </p>
 
 
                     <h4>Collecting and Grading Assignments</h4>
                     <p>
                         To collect an assignment from your students,
-                        click <a  class="btn btn-warning"><i class="fa fa-share-square-o fa-rotate-180"> </i>  Collect</a> to the right of an assignment
+                        click <a  class="btn btn-warning"><i class="fa fa-share-square-o fa-rotate-180"> </i>  Collect all...</a> to the right of an assignment
                         to collect it from all students.
                         <span class="lighten">
                         (NOTE: There is currently no way to schedule collection to happen at a specific time -- it happens
@@ -334,7 +337,7 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
                         student's assignment. Edit the
                         files there, indicating grades on each problem, etc.
                         <span class="lighten">
-                            NOTE: There is no special support yet for recording grades, knowing which homework you have graded already, etc.
+                            (NOTE: There is no special support yet for recording grades, knowing which homework you have graded already, etc.)
                         </span>
                     </p>
 
@@ -362,7 +365,8 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
                     </ul>
 
                     <h4>Technical Remarks</h4>
-                    The underlying file format of a .course file is a plain text file with one line in JSON format for each student,
+                    The underlying file format of a .course file is a plain text file with
+                    one line in JSON format for each student,
                     shared assignment, and for settings.
 
                 </div>

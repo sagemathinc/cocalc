@@ -481,7 +481,9 @@ class Course
             e.find("a[href=#delete]").click () =>
                 mesg = "<h3><i class='fa fa-trash'></i> Delete Student</h3><hr>Delete #{name}?"
                 if not @_show_deleted_students.is(":checked")
-                    mesg += "<br><br><span class='lighten'>(Select 'Show deleted students' in settings to see deleted students.)</span>"
+                    mesg += "<br><br><span class='lighten'>(Select 'Show deleted students' in settings to see deleted students, which can always undelete.)</span>"
+                else
+                    mesg += "<br><br><span class='lighten'>(You can always undelete deleted students.)</span>"
                 bootbox.confirm mesg, (result) =>
                     if result
                         @delete_student(student_id: opts.student_id)
@@ -984,6 +986,9 @@ class Course
                 mesg = "<h3><i class='fa fa-trash'></i> Delete Assignment</h3><hr>Delete #{assignment.path}?"
                 if not @_show_deleted_assignments.is(":checked")
                     mesg += "<br><br><span class='lighten'>(Select 'Show deleted assignments' in settings to see deleted assignments.)</span>"
+                else
+                    mesg += "<br><br><span class='lighten'>(You can always undelete deleted assignments.)</span>"
+
                 bootbox.confirm mesg, (result) =>
                     if result
                         @delete_assignment(assignment_id: opts.assignment.assignment_id)
@@ -1103,12 +1108,13 @@ class Course
                     if not which.student.project_id?
                         bootbox.alert("You must create #{student_name}'s project first.")
                         return
+                    alert_message(message:"Copying assignment to #{which.name}'s project...")
                     @assign_files_to_students
                         assignment_id : which.assignment.assignment_id
                         students      : [which.student]
                         cb            : (err) =>
                             if err
-                                alert_message(type:"error", message:"Error copying files to #{which.name} -- #{err}")
+                                alert_message(type:"error", message:"Error copying files to #{which.name} -- #{misc.to_json(err)}")
                             else
                                 alert_message(message:"Successfully copied assignment to #{which.name}")
                     return false
@@ -1129,25 +1135,26 @@ class Course
             else
                 if student.project_id?
                     collected = false
-                    elt = $("<span>#{student_name} -- NOT collected yet</span>")
+                    elt = $("<span>#{student_name} -- NOT collected (click to collect now)</span>")
                 else
                     collected = false
                     elt = $("<span>#{student_name} -- CREATE student project first</span>")
             # use a closure to save params
             (() =>
-                which = {student:student, assignment:assignment, collected:collected}
+                which = {student:student, assignment:assignment, collected:collected, name:student_name}
                 t = template_student_collected.clone()
                 t.find("a").empty().append(elt)
                 t.click () =>
                     if which.collected
                         @open_collected_assignment(student:which.student, assignment:which.assignment)
                     else
+                        alert_message(message:"Collecting assignment from #{which.name}'s project...")
                         @collect_assignment_from_students
                             assignment_id : which.assignment.assignment_id
                             students : [which.student]
                             cb       : (err) =>
                                 if err
-                                    alert_message(type:"error", message:"Error collecting files from #{which.name} -- #{err}")
+                                    alert_message(type:"error", message:"Error collecting files from #{which.name} -- #{misc.to_json(err)}")
                                 else
                                     alert_message(message:"Successfully collected assignment from #{which.name}")
                     return false
@@ -1166,8 +1173,7 @@ class Course
 
         where = {table:'assignments', assignment_id:opts.assignment_id}
         assignment = @db.select_one(where:where)
-        if not assignment.last_collect?
-            assignment.last_collect = {}
+        errors = undefined
         collect_from = (student, cb) =>
             #console.log("collecting '#{assignment.path}' from #{student.email_address}")
             if not student.project_id?
@@ -1183,16 +1189,22 @@ class Course
                 delete_missing    : assignment.collect_delete_missing
                 timeout           : assignment.timeout
                 cb                : (err) =>
-                    #console.log("finished collect with with #{student.email_address} -- err=#{err}")
+                    #console.log("finished collect from #{student.email_address} -- err=#{err}")
+                    assignment = @db.select_one(where:where)
+                    if not assignment.last_collect?
+                        assignment.last_collect = {}
                     assignment.last_collect[student.student_id] = {time:misc.mswalltime(), error:err}
                     if err
-                        cb(err)
+                        if not errors?
+                            errors = {}
+                        errors[student.student_id] = err
                     else
                         @db.update
-                            set   : {last_collect:assignment.last_collect}
+                            set   : {last_collect : assignment.last_collect}
                             where : where
-                        @db.save(cb)
-        async.mapLimit(opts.students, MAP_LIMIT, collect_from, (err) => opts.cb(err))
+                        @db.save()
+                    cb()   # explicitly ignore errors here
+        async.mapLimit(opts.students, MAP_LIMIT, collect_from, () => opts.cb(errors))
 
     # copy the files for the given assignment_id to the given students
     assign_files_to_students: (opts) =>
@@ -1203,13 +1215,11 @@ class Course
 
         if not opts.students?
             opts.students = @students()
-
         where = {table:'assignments', assignment_id:opts.assignment_id}
+        errors = undefined
         assignment = @db.select_one(where:where)
-        if not assignment.last_assignment?
-            assignment.last_assignment = {}
         assignment_with = (student, cb) =>
-            #console.log("assigning '#{assignment.path}' to #{student.email_address}")
+            #console.log("assigning '#{assignment.path}' to #{student.email_address}...")
             if not student.project_id?
                 # console.log("can't assign to #{student.email_address} -- no project")
                 cb()
@@ -1223,16 +1233,23 @@ class Course
                 delete_missing    : assignment.delete_missing
                 timeout           : assignment.timeout
                 cb                : (err) =>
-                    #console.log("finished sending assignment to #{student.email_address} -- err=#{err}")
+                    # console.log("finished sending assignment to #{student.email_address} -- err=#{err}")
+                    assignment = @db.select_one(where:where)
+                    if not assignment.last_assignment?
+                        assignment.last_assignment = {}
                     assignment.last_assignment[student.student_id] = {time:misc.mswalltime(), error:err}
+                    # console.log("now assignment.last_assignment='#{misc.to_json(assignment.last_assignment)}'")
                     if err
-                        cb(err)
+                        if not errors?
+                            errors = {}
+                        errors[student.student_id] = err
                     else
                         @db.update
                             set   : {last_assignment:assignment.last_assignment}
                             where : where
-                        @db.save(cb)
-        async.mapLimit(opts.students, MAP_LIMIT, assignment_with, (err) => opts.cb(err))
+                        @db.save()
+                    cb()   # explicitly ignore errors here
+        async.mapLimit(opts.students, MAP_LIMIT, assignment_with, () => opts.cb(errors))
 
     return_graded_to_students: (opts) =>
         opts = defaults opts,
@@ -1244,8 +1261,6 @@ class Course
             opts.students = @students()
 
         assignment = @db.select_one(where:{table:'assignments', assignment_id:opts.assignment_id})
-        if not assignment.last_return_graded?
-            assignment.last_return_graded = {}
         assignment_with = (student, cb) =>
             #console.log("returning '#{assignment.path}' to #{student.email_address}")
             # Only try to return if the student's project has been created *and* the assignment
@@ -1270,8 +1285,11 @@ class Course
                             type    : "error"
                             message : "Error returning assignment to #{@student_name(student)} -- #{err}"
                     #console.log("finished returning assignment to #{student.email_address} -- err=#{err}")
+                    assignment = @db.select_one(where:{table:'assignments', assignment_id:opts.assignment_id})
+                    if not assignment.last_return_graded?
+                        assignment.last_return_graded = {}
                     assignment.last_return_graded[student.student_id] = {time:misc.mswalltime(), error:err}
-                    cb()  # explicitly don't pass error back, since we still want to return rest of assignments
+                    cb()  # explicitly don't pass error back
         async.mapLimit(opts.students, MAP_LIMIT, assignment_with, (err) => opts.cb(err))
 
 
