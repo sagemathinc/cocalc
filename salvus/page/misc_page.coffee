@@ -696,11 +696,11 @@ exports.define_codemirror_extensions = () ->
         tex :
             bold :
                 wrap :
-                    left  : '{\\bf '
+                    left  : '\\textbf{'
                     right : '}'
             italic :
                 wrap :
-                    left  : '{\\em '
+                    left  : '\\textit{'
                     right : '}'
             underline :
                 wrap :
@@ -756,7 +756,8 @@ exports.define_codemirror_extensions = () ->
                     right : ''
             horizontalRule:
                 wrap:
-                    left  : "\n\noindent\makebox[\linewidth]{\rule{\paperwidth}{0.4pt}}\n"
+                    left  : "\\hrulefill"
+                    #left  : "\n\\noindent\\makebox[\\linewidth]{\\rule{\\paperwidth}{0.4pt}}\n"
                     right : ""
 
         md :
@@ -787,30 +788,30 @@ exports.define_codemirror_extensions = () ->
             format_heading_1 :  # todo -- define via for loop below
                 strip : ['format_heading_2','format_heading_3','format_heading_4']
                 wrap :
-                    left  : "#"
+                    left  : "\n# "
                     right : ""
             format_heading_2 :
                 strip : ['format_heading_1','format_heading_3','format_heading_4']
                 wrap :
-                    left  : "##"
+                    left  : "\n## "
                     right : ""
             format_heading_3 :
                 strip : ['format_heading_1','format_heading_2','format_heading_4']
                 wrap :
-                    left  : "###"
+                    left  : "\n### "
                     right : ""
             format_heading_4 :
                 strip : ['format_heading_1','format_heading_2','format_heading_3']
                 wrap :
-                    left  : "####"
+                    left  : "\n#### "
                     right : ""
             format_code :  # TODO: I think indentation is probably nicer?  on single line ` is nicer.
                 wrap :
-                    left  : '```'
-                    right : '```'
+                    left  : '\n```'
+                    right : '\n```\n'
             indent :
                 wrap :
-                    left  : "> "
+                    left  : "\n> "
                     right : ""
             horizontalRule:
                 wrap:
