@@ -278,7 +278,7 @@ class AbstractSynchronizedDoc extends EventEmitter
     _sync: (cb) =>
         @_presync?()
         before = @live()
-        if before.string?
+        if before? and before.string?
             before = before.string()
         #console.log("_sync, live='#{before}'")
         @dsync_client.push_edits (err) =>
