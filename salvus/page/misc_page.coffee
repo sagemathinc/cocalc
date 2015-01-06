@@ -296,7 +296,6 @@ $.fn.extend
                         set_value(new_cur)
                         report_change()
 
-
             on_focus = () ->
                 #console.log("on_focus")
                 if t.data('mode') == 'edit'

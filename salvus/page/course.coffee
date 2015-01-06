@@ -218,7 +218,7 @@ class Course
         for x in changes
             if x.insert?.table == "settings"
                 for prop in misc.keys(SETTINGS)
-                    @element.find(".salvus-course-editor-#{prop}").data('set_upstream')(x.insert[prop])
+                    @element.find(".salvus-course-editor-#{prop}").data('set_upstream')?(x.insert[prop])
             else if x.insert?.table == "students"
                 @render_student(x.insert)
             else if x.insert?.table == "assignments"
