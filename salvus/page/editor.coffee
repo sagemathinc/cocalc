@@ -5225,10 +5225,11 @@ class HTML_MD_Editor extends FileEditor
             elt   = button_bar.find(".sagews-output-editor-foreground-color-selector")
             button_bar_input = elt.find("input").colorpicker()
             sample = elt.find("i")
-            set = (hex) =>
+            set = (hex, init) =>
                 sample.css("color", hex)
                 button_bar_input.css("background-color", hex)
-                @command(@cm(), "color", hex)
+                if not init
+                    @command(@cm(), "color", hex)
 
             button_bar_input.change (ev) =>
                 hex = button_bar_input.val()
@@ -5241,7 +5242,7 @@ class HTML_MD_Editor extends FileEditor
             sample.click (ev) =>
                 button_bar_input.colorpicker('show')
 
-            set("#000000")
+            set("#000000", true)
 
         init_color_control()
         # initialize the color control
@@ -5249,10 +5250,11 @@ class HTML_MD_Editor extends FileEditor
             elt   = button_bar.find(".sagews-output-editor-background-color-selector")
             button_bar_input = elt.find("input").colorpicker()
             sample = elt.find("i")
-            set = (hex) =>
+            set = (hex, init) =>
                 button_bar_input.css("background-color", hex)
                 elt.find(".input-group-addon").css("background-color", hex)
-                @command(@cm(), "background-color", hex)
+                if not init
+                    @command(@cm(), "background-color", hex)
 
             button_bar_input.change (ev) =>
                 hex = button_bar_input.val()
@@ -5265,7 +5267,7 @@ class HTML_MD_Editor extends FileEditor
             sample.click (ev) =>
                 button_bar_input.colorpicker('show')
 
-            set("#fff8bd")
+            set("#fff8bd", true)
 
         init_background_color_control()
 
