@@ -4545,7 +4545,7 @@ class IPythonNotebook extends FileEditor
                             # stuff in SMC, not sync!
                             websocket_reconnect = () =>
                                 @nb?.kernel?.start_channels()
-                            @_reconnect_interval = setInterval(websocket_reconnect, 5000)
+                            @_reconnect_interval = setInterval(websocket_reconnect, 60000)
 
                             @status()
                             cb()
