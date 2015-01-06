@@ -2917,6 +2917,8 @@ def wiki(doc=None, hide=True):
     html(pandoc('mediawiki', doc=doc), hide=hide)
 
 
+mediawiki = wiki
+
 ######
 
 def load_html_resource(filename):

@@ -11,6 +11,10 @@
   padding: 0
   background: white
 
+  // get rid of bootstrap's width: 100% for .table elements in the editor content
+  .table
+    width: auto
+
 .salvus-editor-close-button-x
   font-size: 14px
   margin-top: 9px
@@ -521,3 +525,29 @@ code
   width: 6px
   &:hover
     background: #ddd
+
+.salvus-editor-resize-bar-layout-2, .salvus-editor-html-md-resize-bar
+  cursor: ew-resize
+  background: #efefef
+  width: 6px
+  &:hover
+    background: #ddd
+
+.salvus-editor-html-md-preview
+  border     : 1px solid lightgrey
+  padding    : 12px
+  background : white
+  position   : absolute
+  overflow   : auto
+  margin-top : -10px   // horrible temporary hack
+
+.smc-html-selection
+  background-color: lightgrey
+  border: 1px solid lightgrey
+
+.smc-html-cursor
+  border-left: 1px solid black
+  margin-right: -1px
+
+.salvus-html-editor-symbols-dialog td:hover
+  background: lightblue

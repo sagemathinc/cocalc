@@ -935,3 +935,6 @@ class ActivityLog
 
 exports.activity_log = (opts) -> new ActivityLog(opts)
 
+# see http://stackoverflow.com/questions/1144783/replacing-all-occurrences-of-a-string-in-javascript
+exports.replace_all = (string, search, replace) ->
+    string.split(search).join(replace)

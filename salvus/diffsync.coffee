@@ -819,6 +819,7 @@ class exports.SynchronizedDB extends EventEmitter
             return
         set   = opts.set
         where = opts.where
+        #console.log("update(set='#{misc.to_json(set)}',where='#{misc.to_json(where)}')")
         i = 0
         for hash, val of @_data
             match = true
@@ -829,6 +830,7 @@ class exports.SynchronizedDB extends EventEmitter
                     break
             if match
                 # modify exactly one existing database entry
+                #console.log("update: change '#{misc.to_json(x)}'?")
                 changed = false
                 before = misc.deep_copy(x)
                 for k, v of set
@@ -837,6 +839,7 @@ class exports.SynchronizedDB extends EventEmitter
                         changed = true
                     x[k] = v
                 if changed
+                    #console.log("update: yes, to '#{misc.to_json(x)}'")
                     if @max_len?
                         cur_len = @_doc.live().length
                         new_len = misc.to_json(x).length - misc.to_json(before).length + cur_len
@@ -846,7 +849,9 @@ class exports.SynchronizedDB extends EventEmitter
                     # actually changed something
                     changes.push({insert:misc.deep_copy(x)})
                     @emit("change", changes)
+                    #console.log("update: from '#{@_doc.live()}'")
                     @_set_doc_from_data(hash)
+                    #console.log("update: to   '#{@_doc.live()}'")
                 return
             i += 1
 
