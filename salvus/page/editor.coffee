@@ -5471,7 +5471,7 @@ class HTML_MD_Editor extends FileEditor
     md_to_html: (cb) =>
         source = @source_editor._get()
         m = misc_page.markdown_to_html(source)
-        cb(undefined, {html:m.s, mathjax:m.mathjax})
+        cb(undefined, {html:m.s, mathjax:m.has_mathjax})
 
     rst_to_html: (cb) =>
         @to_html_via_exec
