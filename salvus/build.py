@@ -486,7 +486,10 @@ SAGE_PIP_PACKAGES = [
     'qutip',    # QuTiP is open-source software for simulating the dynamics of open quantum systems.
     'tinyarray',
     'pysal',    # requested by Serge Rey of ASU for a course on Geographic Information Analysis
-    'folium'    # requested by Serge Rey of ASU for a course on Geographic Information Analysis
+    'folium',   # requested by Serge Rey of ASU for a course on Geographic Information Analysis
+    'pint',     # units package: http://pint.readthedocs.org/en/0.6/
+    'seaborn',
+    'ipythonblocks'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
