@@ -773,7 +773,7 @@ class exports.Editor
 
         # This approach to public "editor"/viewer types is temporary.
         if extra_opts.public_access
-            if editor_name == 'codemirror' and filename_extension(filename) == 'html'
+            if filename_extension(filename) == 'html'
                 if opts.content.indexOf("#ipython_notebook") != -1
                     editor = new IPythonNBViewer(@, filename, opts.content, extra_opts)
                 else
