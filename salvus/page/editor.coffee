@@ -127,28 +127,28 @@ file_associations['tex'] =
 #file_associations['tex'] =  # TODO: only for TESTING!!!
 #    editor : 'html-md'
 #    icon   : 'fa-file-code-o'
-#    opts   : {indent_unit:4, tab_size:4}
+#    opts   : {indent_unit:4, tab_size:4, mode:'stex2'}
 
 
 file_associations['html'] =
     editor : 'html-md'
     icon   : 'fa-file-code-o'
-    opts   : {indent_unit:4, tab_size:4}
+    opts   : {indent_unit:4, tab_size:4, mode:'htmlmixed2'}
 
 file_associations['md'] =
     editor : 'html-md'
     icon   : 'fa-file-code-o'
-    opts   : {indent_unit:4, tab_size:4}
+    opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
 
 file_associations['rst'] =
     editor : 'html-md'
     icon   : 'fa-file-code-o'
-    opts   : {indent_unit:4, tab_size:4}
+    opts   : {indent_unit:4, tab_size:4, mode:'rst'}
 
 file_associations['mediawiki'] = file_associations['wiki'] =
     editor : 'html-md'
     icon   : 'fa-file-code-o'
-    opts   : {indent_unit:4, tab_size:4}
+    opts   : {indent_unit:4, tab_size:4, mode:'mediawiki'}
 
 file_associations['sass'] =
     editor : 'codemirror'
@@ -803,7 +803,10 @@ class exports.Editor
             when 'latex'
                 editor = new LatexEditor(@, filename, content, extra_opts)
             when 'html-md'
-                editor = new HTML_MD_Editor(@, filename, content, extra_opts)
+                if extra_opts.public_access
+                    editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
+                else
+                    editor = new HTML_MD_Editor(@, filename, content, extra_opts)
             when 'history'
                 editor = new HistoryEditor(@, filename, content, extra_opts)
             when 'pdf'
