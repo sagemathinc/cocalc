@@ -813,7 +813,10 @@ class Course
             if no_invite
                 return email_address
             else
-                return "#{email_address} (invited)"
+                if student.project_id?
+                    return "#{email_address} (invited)"
+                else
+                    return "#{email_address} (create project to invite student)"
 
     course_project_settings: (student_id) =>
         z = @db.select_one(where:{table:'settings'})
