@@ -19,6 +19,10 @@ export LD_LIBRARY_PATH=$P/data/local/lib:$LD_LIBRARY_PATH
 # For people building Sage from source.
 export SAGE_ATLAS_LIB=/usr/lib/
 
+# The Ubuntu default is TERM=xterm, which causes weird trouble with vim (e.g., start in replace mode),
+# likely due to bugs in either vim.7.4 or ubuntu (searching finds much about this online)
+# Using TERM=screen seems to work well in all cases.
+export TERM=screen
 
 # Optional custom environment that gets sourced on startup of their project.
 # Be careful with this -- you might make it impossible to access your project
