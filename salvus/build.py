@@ -678,9 +678,16 @@ class BuildSage(object):
         self.install_pydelay()
         self.install_gdal()
         self.install_stein_watkins()
+        self.install_ipython_patch()
         self.clean_up()
         self.extend_sys_path()
         self.fix_permissions()
+
+    def install_ipython_patch(self):
+        """
+        TODO:
+        """
+        raise RuntimeError("TODO: change line 171 of '/usr/local/sage/current/local/lib/python/site-packages/IPython/html/notebookapp.py' to 'static_url_prefix = '/static/ipython/''")
 
     def patch_sage_location(self):
         """
