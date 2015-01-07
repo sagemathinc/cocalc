@@ -96,6 +96,12 @@ Up the number of watches (mainly for bup watch):
 
 Install https://github.com/williamstein/python-inotify and https://github.com/williamstein/bup-1 systemwide.
 
+# BASH
+
+Add this to the top of /etc/bash.bashrc, at least for now, due to bugs in Ubuntu and vim?!
+
+   TERM=screen
+
 # OBSPY --
 
 Add this to /etc/apt/sources.list then "apt-get update; apt-get install python-obspy":
