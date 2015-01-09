@@ -75,7 +75,7 @@ codemirror_associations =
     h      : 'text/x-c++hdr'
     hs     : 'text/x-haskell'
     lhs    : 'text/x-haskell'
-    html   : 'htmlmixed2'
+    html   : 'htmlmixed'
     java   : 'text/x-java'
     jl     : 'text/x-julia'
     js     : 'javascript'
@@ -133,7 +133,7 @@ file_associations['tex'] =
 file_associations['html'] =
     editor : 'html-md'
     icon   : 'fa-file-code-o'
-    opts   : {indent_unit:4, tab_size:4, mode:'htmlmixed2'}
+    opts   : {indent_unit:4, tab_size:4, mode:'htmlmixed'}
 
 file_associations['md'] =
     editor : 'html-md'
@@ -227,7 +227,7 @@ sagews_decorator_modes = [
     ['cython'      , 'python'],
     ['file'        , 'text'],
     ['fortran'     , 'text/x-fortran'],
-    ['html'        , 'htmlmixed2'],
+    ['html'        , 'htmlmixed'],
     ['javascript'  , 'javascript'],
     ['latex'       , 'stex']
     ['lisp'        , 'ecl'],
@@ -249,6 +249,8 @@ sagews_decorator_modes = [
 
 exports.define_codemirror_sagews_mode = () ->
 
+    # not using these two gfm2 and htmlmixed2 modes, with their sub-latex mode, since
+    # detection of math isn't good enough.  e.g., \$ causes math mode and $ doesn't seem to...   \$500 and $\sin(x)$.
     CodeMirror.defineMode "gfm2", (config) ->
         options = []
         for x in [['$$','$$'], ['$','$'], ['\\[','\\]'], ['\\(','\\)']]
@@ -264,7 +266,7 @@ exports.define_codemirror_sagews_mode = () ->
             options.push
                 open  : x[0]
                 close : x[1]
-                mode  : CodeMirror.getMode(config, 'stex')
+                mode  : CodeMirror.getMode(config, mode)
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "htmlmixed"), options...)
 
     CodeMirror.defineMode "stex2", (config) ->
@@ -5050,21 +5052,20 @@ class Course extends FileEditorWrapper
 
 
 #############################################
-# Editor for HTML/Markdown documents
+# Editor for HTML/Markdown/ReST documents
 #############################################
 
 class HTML_MD_Editor extends FileEditor
     constructor: (@editor, @filename, content, @opts) ->
-        window.e = @
         # The are two components, side by side
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
         @ext = filename_extension(@filename)   #'html' or 'md'
 
         if @ext == 'html'
-            @opts.mode = 'htmlmixed2'
+            @opts.mode = 'htmlmixed'
         else if @ext == 'md'
-            @opts.mode = 'gfm2'
+            @opts.mode = 'gfm'
         else if @ext == 'rst'
             @opts.mode = 'rst'
         else if @ext == 'wiki' or @ext == "mediawiki"
@@ -5086,6 +5087,7 @@ class HTML_MD_Editor extends FileEditor
         @source_editor = codemirror_session_editor(@editor, @filename, @opts)
         @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
         @source_editor.action_key = @action_key
+
         @spell_check()
 
         cm = @cm()
