@@ -2068,20 +2068,24 @@ class CodeMirrorEditor extends FileEditor
         if not IS_MOBILE
             @codemirror_with_last_focus?.focus()
 
+    ############
+    # Editor button bar support code
+    ############
+
     textedit_command: (cm, cmd, args) =>
         switch cmd
             when "link"
-                @edit_insert_link(cm)
+                cm.insert_link()
             when "image"
-                @edit_insert_image(cm)
+                cm.insert_image()
             when "SpecialChar"
-                @edit_special_char(cm)
+                cm.insert_special_char()
             else
                 cm.edit_selection
                     cmd  : cmd
                     args : args
                     mode : @opts.mode
-                @syncdoc?.sync()
+        @syncdoc?.sync()
 
     # add a textedit toolbar to the editor
     init_sagews_edit_buttons: () =>
@@ -2097,7 +2101,7 @@ class CodeMirrorEditor extends FileEditor
 
         # activite the buttons in the bar
         that = @
-        @textedit_buttons.find("a").click () ->
+        edit_button_click = () ->
             args = $(this).data('args')
             cmd  = $(this).attr('href').slice(1)
             if args? and typeof(args) != 'object'
@@ -2106,17 +2110,22 @@ class CodeMirrorEditor extends FileEditor
                     args = args.split(',')
             that.textedit_command(that.focused_codemirror(), cmd, args)
             return false
+        @textedit_buttons.find("a").click(edit_button_click)
+        @codeedit_buttons.find("a").click(edit_button_click)
 
+        f = (cm) =>
+            pos = cm.getCursor()
+            if pos.line == cm.lineCount() - 1
+                return
+            name = cm.getModeAt(pos).name
+            if name in ['xml', 'stex', 'markdown', 'mediawiki']
+                @textedit_buttons.show()
+                @codeedit_buttons.hide()
+            else
+                @textedit_buttons.hide()
+                @codeedit_buttons.show()
         for cm in [@codemirror, @codemirror1]
-            cm.on 'cursorActivity', (cm) =>
-                console.log("cursor activity")
-                name = cm.getModeAt(cm.getCursor()).name
-                if name in ['xml', 'stex', 'markdown', 'mediawiki']
-                    @textedit_buttons.show()
-                    @codeedit_buttons.hide()
-                else
-                    @textedit_buttons.hide()
-                    @codeedit_buttons.show()
+            cm.on('cursorActivity', f)
 
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
@@ -5238,11 +5247,11 @@ class HTML_MD_Editor extends FileEditor
     command: (cm, cmd, args) =>
         switch cmd
             when "link"
-                @insert_link(cm)
+                cm.insert_link()
             when "image"
-                @insert_image(cm)
+                cm.insert_image()
             when "SpecialChar"
-                @special_char(cm)
+                cm.insert_special_char()
             else
                 cm.edit_selection
                     cmd  : cmd
@@ -5725,259 +5734,7 @@ class HTML_MD_Editor extends FileEditor
         @source_editor?.focus()
 
 
-    insert_link: (cm) =>
-        dialog = templates.find(".salvus-html-editor-link-dialog").clone()
-        dialog.modal('show')
-        dialog.find(".btn-close").off('click').click () ->
-            dialog.modal('hide')
-            setTimeout(focus, 50)
-            return false
-        url = dialog.find(".salvus-html-editor-url")
-        url.focus()
-        display = dialog.find(".salvus-html-editor-display")
-        target  = dialog.find(".salvus-html-editor-target")
-        title   = dialog.find(".salvus-html-editor-title")
-        anchor  = dialog.find(".salvus-html-editor-anchor")
 
-        selected_text = cm.getSelection()
-        display.val(selected_text)
-
-        if @ext in ['md', 'rst', 'tex']
-            dialog.find(".salvus-html-editor-target-row").hide()
-
-        submit = () =>
-            dialog.modal('hide')
-            if @ext == 'md'
-                # [Python](http://www.python.org/)
-                title  = title.val()
-                anchor = anchor.val()
-
-                if title.length > 0
-                    title = " \"#{title.val()}\""
-
-                if anchor.length > 0
-                    anchor = "\##{anchor.val()}"
-
-                d = display.val()
-                if d.length > 0
-                    s = "[#{d}](#{url.val()}#{anchor}#{title})"
-                else
-                    s = url.val()
-
-            else if @ext == "html"
-                target = target.val().trim()
-                title  = title.val().trim()
-                anchor = anchor.val().trim()
-
-                if target == "_blank"
-                    target = "target='_blank'"
-
-                if title.length > 0
-                    title = "title='#{title.val()}'"
-
-                if anchor.length >0
-                    anchor = "\##{anchor.val()}"
-
-                if display.val().length > 0
-                    display = "#{display.val()}"
-                else
-                    display = url.val()
-                s = "<a href='#{url.val()}#{anchor}' #{title} #{target}>#{display}</a>"
-
-            else if @ext == "rst"
-                # `Python <http://www.python.org/#target>`_
-                anchor = anchor.val().trim()
-                if anchor.length > 0
-                    anchor = "\##{anchor}"
-
-                if display.val().length > 0
-                    display = "#{display.val()}"
-                else
-                    display = "#{url.val()}"
-
-                s = "`#{display} <#{url.val()}#{anchor}>`_"
-
-            else if @ext == "tex"
-                # \url{http://www.wikibooks.org}
-                # \href{http://www.wikibooks.org}{Wikibooks home}
-                @tex_ensure_preamble("\\usepackage{url}")
-                anchor = anchor.val().trim()
-                if anchor.length > 0
-                    anchor = "\\\##{anchor.val()}"
-                display = display.val().trim()
-                url = url.val()
-                url = url.replace(/#/g, "\\\#")  # should end up as \#
-                url = url.replace(/&/g, "\\&")   # ... \&
-                url = url.replace(/_/g, "\\_")   # ... \_
-                if display.length > 0
-                    s = "\\href{#{url}#{anchor}}{#{display}}"
-                else
-                    s = "\\url{#{url}}"
-
-            else if @ext == "mediawiki"
-                # https://www.mediawiki.org/wiki/Help:Links
-                # [http://mediawiki.org MediaWiki]
-                anchor = anchor.val().trim()
-                display = display.val().trim()
-                if anchor.length > 0
-                    anchor = "\##{anchor}"
-                if display.length > 0
-                    display = " #{display}"
-                s = "[#{url.val()}#{anchor}#{display}]"
-
-            selections = cm.listSelections()
-            selections.reverse()
-            for sel in selections
-                if sel.empty()
-                    cm.replaceRange(s, sel.head)
-                else
-                    cm.replaceRange(s, sel.from(), sel.to())
-            @sync()
-
-        dialog.find(".btn-submit").off('click').click(submit)
-        dialog.keydown (evt) =>
-            if evt.which == 13 # enter
-                submit()
-                return false
-            if evt.which == 27 # escape
-                dialog.modal('hide')
-                return false
-
-    tex_ensure_preamble: (line) =>
-        # ensures that the given line is the pre-amble of the latex document.
-        # TODO: actually implement this!
-
-    insert_image: (cm) =>
-
-        dialog = templates.find(".salvus-html-editor-image-dialog").clone()
-        dialog.modal('show')
-        dialog.find(".btn-close").off('click').click () ->
-            dialog.modal('hide')
-            return false
-        url = dialog.find(".salvus-html-editor-url")
-        url.focus()
-
-        if @ext == "tex"
-            # different units and don't let user specify the height
-            dialog.find(".salvus-html-editor-height-row").hide()
-            dialog.find(".salvus-html-editor-image-width-header-tex").show()
-            dialog.find(".salvus-html-editor-image-width-header-default").hide()
-            dialog.find(".salvus-html-editor-width").val('80')
-
-        submit = () =>
-            dialog.modal('hide')
-            title  = dialog.find(".salvus-html-editor-title").val().trim()
-            height = width = ''
-            h = dialog.find(".salvus-html-editor-height").val().trim()
-            if h.length > 0
-                height = " height=#{h}"
-            w = dialog.find(".salvus-html-editor-width").val().trim()
-            if w.length > 0
-                width = " width=#{w}"
-
-            if @ext == 'rst'
-                # .. image:: picture.jpeg
-                #    :height: 100px
-                #    :width: 200 px
-                #    :alt: alternate text
-                #    :align: right
-                s = "\n.. image:: #{url.val()}\n"
-                height = dialog.find(".salvus-html-editor-height").val().trim()
-                if height.length > 0
-                    s += "   :height: #{height}px\n"
-                width = dialog.find(".salvus-html-editor-width").val().trim()
-                if width.length > 0
-                    s += "   :width: #{width}px\n"
-                if title.length > 0
-                    s += "   :alt: #{title}\n"
-
-            else if @ext == 'md' and width.length == 0 and height.length == 0
-                # use markdown's funny image format if width/height not given
-                if title.length > 0
-                    title = " \"#{title}\""
-                s = "![](#{url.val()}#{title})"
-
-            else if @ext == "tex"
-                @tex_ensure_preamble("\\usepackage{graphicx}")
-                width = parseInt(dialog.find(".salvus-html-editor-width").val(), 10)
-                if "#{width}" == "NaN"
-                    width = "0.8"
-                else
-                    width = "#{width/100.0}"
-                if title.length > 0
-                    s = """
-                        \\begin{figure}[p]
-                            \\centering
-                            \\includegraphics[width=#{width}\\textwidth]{#{url.val()}}
-                            \\caption{#{title}}
-                        \\end{figure}
-                        """
-                else
-                    s = "\\includegraphics[width=#{width}\\textwidth]{#{url.val()}}"
-
-            else if @ext == "mediawiki"
-                # https://www.mediawiki.org/wiki/Help:Images
-                # [[File:Example.jpg|<width>[x<height>]px]]
-                size = ""
-                if w.length > 0
-                    size = "|#{w}"
-                    if h.length > 0
-                        size += "x#{h}"
-                    size += "px"
-                s = "[[File:#{url.val()}#{size}]]"
-
-            else # fallback for @ext == "md" but height or width is given
-                if title.length > 0
-                    title = " title='#{title}'"
-                s = "<img src='#{url.val()}'#{width}#{height}#{title}>"
-            selections = cm.listSelections()
-            selections.reverse()
-            for sel in selections
-                cm.replaceRange(s, sel.head)
-            @sync()
-
-        dialog.find(".btn-submit").off('click').click(submit)
-        dialog.keydown (evt) =>
-            if evt.which == 13 # enter
-                submit()
-                return false
-            if evt.which == 27 # escape
-                dialog.modal('hide')
-                return false
-
-    special_char: (cm) =>
-
-        dialog = templates.find(".salvus-html-editor-symbols-dialog").clone()
-        dialog.modal('show')
-        dialog.find(".btn-close").off('click').click () ->
-            dialog.modal('hide')
-            return false
-
-        selected = (evt) =>
-            # TODO this evt.target should be the clicked element
-            $target = $(evt.target)
-            if $target.prop("tagName") != "SPAN"
-                return
-            dialog.modal('hide')
-            code = $target.attr("title")
-            s = "&#{code};"
-            # TODO HTML-based formats will work, but not LaTeX.
-            # I suggest to show a completely different table for LaTeX special characters and do not bother with a translation table
-
-            selections = cm.listSelections()
-            selections.reverse()
-            for sel in selections
-                cm.replaceRange(s, sel.head)
-            @sync()
-
-        dialog.find(".salvus-html-editor-symbols-dialog-table").off("click").click(selected)
-        dialog.keydown (evt) =>
-            if evt.which == 13 # enter
-                submit()
-                return false
-            if evt.which == 27 # escape
-                dialog.modal('hide')
-                return false
 
 # Initialize fonts for the editor
 initialize_sagews_editor = () ->

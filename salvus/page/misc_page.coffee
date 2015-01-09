@@ -1159,7 +1159,39 @@ exports.define_codemirror_extensions = () ->
                 wrap :
                     left  : '# '
                     right : ''
+            forloop :
+                wrap :
+                    left  : 'for i in range(5):\n    print i\n'
+                    right : ''
 
+    CodeMirror.defineExtension 'get_edit_mode', (opts) ->
+        opts = defaults opts, {}
+        cm = @
+        switch cm.getModeAt(cm.getCursor()).name
+            when 'markdown'
+                return 'md'
+            when 'xml'
+                return 'html'
+            when 'mediawiki'
+                return 'mediawiki'
+            when 'stex'
+                return 'tex'
+            when 'python'
+                return 'python'
+            else
+                mode = cm.getOption('mode').name
+                if mode.slice(0,3) == 'gfm'
+                    return 'md'
+                else if mode.slice(0,9) == 'htmlmixed'
+                    return 'html'
+                else if mode.indexOf('mediawiki') != -1
+                    return 'mediawiki'
+                else if mode.indexOf('rst') != -1
+                    return 'rst'
+                else if mode.indexOf('stex') != -1
+                    return 'tex'
+                if mode not in ['md', 'html', 'tex', 'rst', 'mediawiki', 'sagews']
+                    return 'html'
 
     CodeMirror.defineExtension 'edit_selection', (opts) ->
         opts = defaults opts,
@@ -1169,19 +1201,7 @@ exports.define_codemirror_extensions = () ->
         cm = @
         default_mode = opts.mode
         if not default_mode?
-            default_mode = cm.getOption('mode').name   # default
-        if default_mode.slice(0,3) == 'gfm'
-            default_mode = 'md'
-        else if default_mode.slice(0,9) == 'htmlmixed'
-            default_mode = 'html'
-        else if default_mode.indexOf('mediawiki') != -1
-            default_mode = 'mediawiki'
-        else if default_mode.indexOf('rst') != -1
-            default_mode = 'rst'
-        else if default_mode.indexOf('stex') != -1
-            default_mode = 'tex'
-        if default_mode not in ['md', 'html', 'tex', 'rst', 'mediawiki', 'sagews']
-            default_mode = 'html'  # good fallback
+            default_mode = cm.get_edit_mode()
 
         canonical_mode = (name) ->
             switch name
@@ -1332,6 +1352,262 @@ exports.define_codemirror_extensions = () ->
                     else
                         delta = 0  # not really right if multiple lines -- should really not touch cursor when possible.
                     cm.addSelection({line:from.line, ch:to.ch+delta})
+
+    CodeMirror.defineExtension 'insert_link', (opts) ->
+        opts = defaults opts, {}
+        cm = @
+        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-link-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            setTimeout(focus, 50)
+            return false
+        url = dialog.find(".salvus-html-editor-url")
+        url.focus()
+        display = dialog.find(".salvus-html-editor-display")
+        target  = dialog.find(".salvus-html-editor-target")
+        title   = dialog.find(".salvus-html-editor-title")
+
+        selected_text = cm.getSelection()
+        display.val(selected_text)
+
+        mode = cm.get_edit_mode()
+
+        if mode in ['md', 'rst', 'tex']
+            dialog.find(".salvus-html-editor-target-row").hide()
+
+        submit = () =>
+            dialog.modal('hide')
+            if mode == 'md'
+                # [Python](http://www.python.org/)
+                title  = title.val()
+
+                if title.length > 0
+                    title = " \"#{title}\""
+
+                d = display.val()
+                if d.length > 0
+                    s = "[#{d}](#{url.val()}#{title})"
+                else
+                    s = url.val()
+
+            else if mode == "rst"
+                # `Python <http://www.python.org/#target>`_
+
+                if display.val().length > 0
+                    display = "#{display.val()}"
+                else
+                    display = "#{url.val()}"
+
+                s = "`#{display} <#{url.val()}>`_"
+
+            else if mode == "tex"
+                # \url{http://www.wikibooks.org}
+                # \href{http://www.wikibooks.org}{Wikibooks home}
+                cm.tex_ensure_preamble?("\\usepackage{url}")
+                display = display.val().trim()
+                url = url.val()
+                url = url.replace(/#/g, "\\\#")  # should end up as \#
+                url = url.replace(/&/g, "\\&")   # ... \&
+                url = url.replace(/_/g, "\\_")   # ... \_
+                if display.length > 0
+                    s = "\\href{#{url}}{#{display}}"
+                else
+                    s = "\\url{#{url}}"
+
+            else if mode == "mediawiki"
+                # https://www.mediawiki.org/wiki/Help:Links
+                # [http://mediawiki.org MediaWiki]
+                display = display.val().trim()
+                if display.length > 0
+                    display = " #{display}"
+                s = "[#{url.val()}#{display}]"
+
+            else   # if mode == "html"  ## HTML default fallback
+                target = target.val().trim()
+                title  = title.val().trim()
+
+                if target == "_blank"
+                    target = " target='_blank'"
+
+                if title.length > 0
+                    title = " title='#{title}'"
+
+                if display.val().length > 0
+                    display = "#{display.val()}"
+                else
+                    display = url.val()
+                s = "<a href='#{url.val()}'#{title}#{target}>#{display}</a>"
+
+            selections = cm.listSelections()
+            selections.reverse()
+            for sel in selections
+                if sel.empty()
+                    console.log(cm, s, sel.head)
+                    cm.replaceRange(s, sel.head)
+                else
+                    cm.replaceRange(s, sel.from(), sel.to())
+
+        dialog.find(".btn-submit").off('click').click(submit)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                return false
+
+
+
+    CodeMirror.defineExtension 'tex_ensure_preamble', (code) ->
+        cm = @
+        # ensures that the given line is the pre-amble of the latex document.
+        # TODO: actually implement this!
+
+        # in latex document do one thing
+
+        # in sagews will do something to %latex.
+
+    CodeMirror.defineExtension 'insert_image', (opts) ->
+        opts = defaults opts, {}
+        cm = @
+
+        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-image-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            return false
+        url = dialog.find(".salvus-html-editor-url")
+        url.focus()
+
+        mode = cm.get_edit_mode()
+
+        if mode == "tex"
+            # different units and don't let user specify the height
+            dialog.find(".salvus-html-editor-height-row").hide()
+            dialog.find(".salvus-html-editor-image-width-header-tex").show()
+            dialog.find(".salvus-html-editor-image-width-header-default").hide()
+            dialog.find(".salvus-html-editor-width").val('80')
+
+        submit = () =>
+            dialog.modal('hide')
+            title  = dialog.find(".salvus-html-editor-title").val().trim()
+            height = width = ''
+            h = dialog.find(".salvus-html-editor-height").val().trim()
+            if h.length > 0
+                height = " height=#{h}"
+            w = dialog.find(".salvus-html-editor-width").val().trim()
+            if w.length > 0
+                width = " width=#{w}"
+
+            if mode == 'rst'
+                # .. image:: picture.jpeg
+                #    :height: 100px
+                #    :width: 200 px
+                #    :alt: alternate text
+                #    :align: right
+                s = "\n.. image:: #{url.val()}\n"
+                height = dialog.find(".salvus-html-editor-height").val().trim()
+                if height.length > 0
+                    s += "   :height: #{height}px\n"
+                width = dialog.find(".salvus-html-editor-width").val().trim()
+                if width.length > 0
+                    s += "   :width: #{width}px\n"
+                if title.length > 0
+                    s += "   :alt: #{title}\n"
+
+            else if mode == 'md' and width.length == 0 and height.length == 0
+                # use markdown's funny image format if width/height not given
+                if title.length > 0
+                    title = " \"#{title}\""
+                s = "![](#{url.val()}#{title})"
+
+            else if mode == "tex"
+                cm.tex_ensure_preamble("\\usepackage{graphicx}")
+                width = parseInt(dialog.find(".salvus-html-editor-width").val(), 10)
+                if "#{width}" == "NaN"
+                    width = "0.8"
+                else
+                    width = "#{width/100.0}"
+                if title.length > 0
+                    s = """
+                        \\begin{figure}[p]
+                            \\centering
+                            \\includegraphics[width=#{width}\\textwidth]{#{url.val()}}
+                            \\caption{#{title}}
+                        \\end{figure}
+                        """
+                else
+                    s = "\\includegraphics[width=#{width}\\textwidth]{#{url.val()}}"
+
+            else if mode == "mediawiki"
+                # https://www.mediawiki.org/wiki/Help:Images
+                # [[File:Example.jpg|<width>[x<height>]px]]
+                size = ""
+                if w.length > 0
+                    size = "|#{w}"
+                    if h.length > 0
+                        size += "x#{h}"
+                    size += "px"
+                s = "[[File:#{url.val()}#{size}]]"
+
+            else # fallback for mode == "md" but height or width is given
+                if title.length > 0
+                    title = " title='#{title}'"
+                s = "<img src='#{url.val()}'#{width}#{height}#{title}>"
+            selections = cm.listSelections()
+            selections.reverse()
+            for sel in selections
+                cm.replaceRange(s, sel.head)
+
+        dialog.find(".btn-submit").off('click').click(submit)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                return false
+
+    CodeMirror.defineExtension 'insert_special_char', (opts) ->
+        cm = @
+
+        mode = cm.get_edit_mode()
+        if mode not in ['html', 'md']
+            bootbox.alert("<h3>Not Implemented</h3><br>#{mode} special symbols not yet implemented")
+            return
+
+        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-symbols-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            return false
+
+
+        selected = (evt) =>
+            # TODO this evt.target should be the clicked element
+            target = $(evt.target)
+            if target.prop("tagName") != "SPAN"
+                return
+            dialog.modal('hide')
+            code = target.attr("title")
+            s = "&#{code};"
+            # TODO HTML-based formats will work, but not LaTeX.
+            # I suggest to show a completely different table for LaTeX special characters and do not bother with a translation table
+
+            selections = cm.listSelections()
+            selections.reverse()
+            for sel in selections
+                cm.replaceRange(s, sel.head)
+
+        dialog.find(".salvus-html-editor-symbols-dialog-table").off("click").click(selected)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                return false
 
 
 exports.FONT_FACES = FONT_FACES = 'Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana'.split(',')
