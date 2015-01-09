@@ -433,71 +433,7 @@ Editor for files in a project
 
     <!-- Template for the HTML-MD editor -->
     <div class="salvus-editor-html-md">
-        <div class="salvus-editor-html-md-buttons">
-            <span class="btn-group">
-                <a href="#bold" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Bold"><i class="fa fa-bold"></i></a>
-                <a href="#italic" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Italic"><i class="fa fa-italic"></i></a>
-                <a href="#underline" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Underline"><i class="fa fa-underline"></i></a>
-                <a href="#strikethrough" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Strike through"><i class="fa fa-strikethrough"></i></a>
-                <a href="#subscript" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Subscript (use LaTeX for serious equations)"><i class="fa fa-subscript"></i></a>
-                <a href="#superscript" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Superscript"><i class="fa fa-superscript"></i></a>
-                <a href="#comment" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Comment selected text"><i class="fa fa-comment-o"></i></a>
-            </span>
-            <span class="btn-group">
-                <a href="#equation" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Inline equation..."> \$  </a>
-                <a href="#display_equation" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Displayed equation..."> \$\$  </a>
-                <a href="#insertunorderedlist" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert unordered list"><i class="fa fa-list"></i></a>
-                <a href="#insertorderedlist" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert ordered list"><i class="fa fa-list-ol"></i></a>
-                <a href="#link" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert link..."><i class="fa fa-link"></i></a>
-                <a href="#image" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert image..."><i class="fa fa-image"></i></a>
-                <a href="#table" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert table"><i class="fa fa-table"></i></a>
-                <a href="#horizontalRule" data-args="special" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Insert horizontal line"><i class="fa">&mdash;</i></a>
-                <a href="#SpecialChar" data-args="special" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Insert Special Character ..."><i class="fa">&Omega;</i></a>
-            </span>
-            <span class="btn-group">
-                <a href="#justifyleft" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Left justify"><i class="fa fa-align-left"></i></a>
-                <a href="#justifycenter" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Justify center"><i class="fa fa-align-center"></i></a>
-                <a href="#justifyright" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Right justify"><i class="fa fa-align-right"></i></a>
-                <a href="#justifyfull" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Justify full"><i class="fa fa-align-justify"></i></a>
-                <a href="#indent" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Indent/quote selected text"><i class="fa fa-indent"></i></a>
-                <a href="#unformat" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Remove formatting"><i class="fa fa-remove"></i></a>
-                <a href="#clean" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Make selected HTML valid"><i class="fa fa-code"></i></a>
-            </span>
-            <span class="btn-group">
-                <span class="btn-group sagews-output-editor-font-face smc-tooltip"  data-toggle="tooltip" data-placement="bottom" title="Fonts">
-                    <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Font">
-                        <i class="fa fa-font"></i> <b class="caret"></b>
-                    </span>
-                    <ul class="dropdown-menu">
-                    </ul>
-                </span>
-                <span class="btn-group sagews-output-editor-font-size smc-tooltip"  data-toggle="tooltip" data-placement="bottom" title="Font size">
-                    <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Text height">
-                        <i class="fa fa-text-height"></i> <b class="caret"></b>
-                    </span>
-                    <ul class="dropdown-menu">
-                    </ul>
-                </span>
-                <span class="btn-group sagews-output-editor-block-type smc-tooltip"  data-toggle="tooltip" data-placement="bottom" title="Format type">
-                    <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Header">
-                        <i class="fa fa-header"></i> <b class="caret"></b>
-                    </span>
-                    <ul class="dropdown-menu">
-                    </ul>
-                </span>
-            </span>
-            <span class="btn-group">
-                <span class="sagews-output-editor-foreground-color-selector input-group color smc-tooltip" data-color-format="rgb" data-toggle="tooltip" data-placement="bottom" title="Text color">
-                    <input type="text" style="cursor:pointer" class="form-control">
-                    <span class="input-group-addon" style="padding: 3px;"><i class="fa fa-font" style="height: 16px; width: 16px"></i><b class="caret"></b></span>
-                </span>
-            </span>
-            <span class="btn-group">
-                <span class="sagews-output-editor-background-color-selector input-group color smc-tooltip" data-color-format="rgb" data-toggle="tooltip" data-placement="bottom" title="Text background highlight color">
-                    <input type="text" style="cursor:pointer" class="form-control">
-                    <span class="input-group-addon"  style="padding: 3px;"><i class="fa fa-font" style="height: 16px; width: 16px"></i><b class="caret"></b></span>
-                </span>
-            </span>
+        <div class="salvus-editor-html-md-textedit-buttonbar">
         </div>
         <div class="salvus-editor-html-md-source-editor">
         </div>
@@ -1061,6 +997,73 @@ Editor for files in a project
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="salvus-editor-textedit-buttonbar">
+        <span class="btn-group">
+            <a href="#bold" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Bold"><i class="fa fa-bold"></i></a>
+            <a href="#italic" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Italic"><i class="fa fa-italic"></i></a>
+            <a href="#underline" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Underline"><i class="fa fa-underline"></i></a>
+            <a href="#strikethrough" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Strike through"><i class="fa fa-strikethrough"></i></a>
+            <a href="#subscript" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Subscript (use LaTeX for serious equations)"><i class="fa fa-subscript"></i></a>
+            <a href="#superscript" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Superscript"><i class="fa fa-superscript"></i></a>
+            <a href="#comment" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Comment selected text"><i class="fa fa-comment-o"></i></a>
+        </span>
+        <span class="btn-group">
+            <a href="#equation" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Inline equation..."> \$  </a>
+            <a href="#display_equation" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Displayed equation..."> \$\$  </a>
+            <a href="#insertunorderedlist" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert unordered list"><i class="fa fa-list"></i></a>
+            <a href="#insertorderedlist" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert ordered list"><i class="fa fa-list-ol"></i></a>
+            <a href="#link" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert link..."><i class="fa fa-link"></i></a>
+            <a href="#image" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert image..."><i class="fa fa-image"></i></a>
+            <a href="#table" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert table"><i class="fa fa-table"></i></a>
+            <a href="#horizontalRule" data-args="special" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Insert horizontal line"><i class="fa">&mdash;</i></a>
+            <a href="#SpecialChar" data-args="special" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Insert Special Character ..."><i class="fa">&Omega;</i></a>
+        </span>
+        <span class="btn-group">
+            <a href="#justifyleft" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Left justify"><i class="fa fa-align-left"></i></a>
+            <a href="#justifycenter" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Justify center"><i class="fa fa-align-center"></i></a>
+            <a href="#justifyright" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Right justify"><i class="fa fa-align-right"></i></a>
+            <a href="#justifyfull" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Justify full"><i class="fa fa-align-justify"></i></a>
+            <a href="#indent" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Indent/quote selected text"><i class="fa fa-indent"></i></a>
+            <a href="#unformat" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Remove formatting"><i class="fa fa-remove"></i></a>
+            <a href="#clean" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Make selected HTML valid"><i class="fa fa-code"></i></a>
+        </span>
+        <span class="btn-group">
+            <span class="btn-group sagews-output-editor-font-face smc-tooltip"  data-toggle="tooltip" data-placement="bottom" title="Fonts">
+                <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Font">
+                    <i class="fa fa-font"></i> <b class="caret"></b>
+                </span>
+                <ul class="dropdown-menu">
+                </ul>
+            </span>
+            <span class="btn-group sagews-output-editor-font-size smc-tooltip"  data-toggle="tooltip" data-placement="bottom" title="Font size">
+                <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Text height">
+                    <i class="fa fa-text-height"></i> <b class="caret"></b>
+                </span>
+                <ul class="dropdown-menu">
+                </ul>
+            </span>
+            <span class="btn-group sagews-output-editor-block-type smc-tooltip"  data-toggle="tooltip" data-placement="bottom" title="Format type">
+                <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Header">
+                    <i class="fa fa-header"></i> <b class="caret"></b>
+                </span>
+                <ul class="dropdown-menu">
+                </ul>
+            </span>
+        </span>
+        <span class="btn-group">
+            <span class="sagews-output-editor-foreground-color-selector input-group color smc-tooltip" data-color-format="rgb" data-toggle="tooltip" data-placement="bottom" title="Text color">
+                <input type="text" style="cursor:pointer" class="form-control">
+                <span class="input-group-addon" style="padding: 3px;"><i class="fa fa-font" style="height: 16px; width: 16px"></i><b class="caret"></b></span>
+            </span>
+        </span>
+        <span class="btn-group">
+            <span class="sagews-output-editor-background-color-selector input-group color smc-tooltip" data-color-format="rgb" data-toggle="tooltip" data-placement="bottom" title="Text background highlight color">
+                <input type="text" style="cursor:pointer" class="form-control">
+                <span class="input-group-addon"  style="padding: 3px;"><i class="fa fa-font" style="height: 16px; width: 16px"></i><b class="caret"></b></span>
+            </span>
+        </span>
     </div>
 
 </div>

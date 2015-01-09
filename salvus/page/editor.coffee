@@ -5078,11 +5078,16 @@ class HTML_MD_Editor extends FileEditor
             throw "file must have extension md or html or rst or wiki or tex"
 
         @disable_preview = @local_storage("disable_preview")
+
         @element = templates.find(".salvus-editor-html-md").clone()
-        @edit_buttons = @element.find(".salvus-editor-html-md-buttons")
-        @edit_buttons.show()
+
+        # create the textedit button bar.
+        @edit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone()
+        @element.find(".salvus-editor-html-md-textedit-buttonbar").append(@edit_buttons)
+
         @preview = @element.find(".salvus-editor-html-md-preview")
         @preview_content = @preview.find(".salvus-editor-html-md-preview-content")
+
         # initialize the codemirror editor
         @source_editor = codemirror_session_editor(@editor, @filename, @opts)
         @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
@@ -5610,7 +5615,7 @@ class HTML_MD_Editor extends FileEditor
             if not pos?
                 pos = {ch:0, line:0}
             pos = {ch:pos.ch + sel.focusOffset, line:pos.line}
-            console.log("clicked on ", pos)
+            #console.log("clicked on ", pos)
             @cm().setCursor(pos)
             @cm().scrollIntoView(pos.line)
             @cm().focus()
@@ -5951,7 +5956,7 @@ initialize_sagews_editor()
 
 # Initialize fonts for the editor
 initialize_md_html_editor = () ->
-    bar = $(".salvus-editor-html-md")
+    bar = $(".salvus-editor-textedit-buttonbar")
     elt = bar.find(".sagews-output-editor-font-face").find(".dropdown-menu")
     for font in misc_page.FONT_FACES
         item = $("<li><a href='#font_face' data-args='#{font}'>#{font}</a></li>")
