@@ -554,10 +554,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         return v
 
     focused_codemirror: () =>
-        if @editor.codemirror_with_last_focus?
-            return @editor.codemirror_with_last_focus
-        else
-            return @codemirror
+        @editor.focused_codemirror()
 
     _sync: (cb) =>
         if not @dsync_client?

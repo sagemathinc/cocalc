@@ -1154,27 +1154,49 @@ exports.define_codemirror_extensions = () ->
                             """
                     right : "\n"
 
+        python:
+            comment :
+                wrap :
+                    left  : '# '
+                    right : ''
+
+
     CodeMirror.defineExtension 'edit_selection', (opts) ->
         opts = defaults opts,
             cmd  : required
             args : undefined
             mode : undefined
         cm = @
-        mode = opts.mode
-        if not mode?
-            mode = cm.getOption('mode').name
-        if mode.slice(0,3) == 'gfm'
-            mode = 'md'
-        else if mode.slice(0,9) == 'htmlmixed'
-            mode = 'html'
-        else if mode.indexOf('mediawiki') != -1
-            mode = 'mediawiki'
-        else if mode.indexOf('rst') != -1
-            mode = 'rst'
-        else if mode.indexOf('stex') != -1
-            mode = 'tex' # not supported yet!
-        if mode not in ['md', 'html', 'tex', 'rst', 'mediawiki']
-            throw "unknown mode '#{opts.mode}'"
+        default_mode = opts.mode
+        if not default_mode?
+            default_mode = cm.getOption('mode').name   # default
+        if default_mode.slice(0,3) == 'gfm'
+            default_mode = 'md'
+        else if default_mode.slice(0,9) == 'htmlmixed'
+            default_mode = 'html'
+        else if default_mode.indexOf('mediawiki') != -1
+            default_mode = 'mediawiki'
+        else if default_mode.indexOf('rst') != -1
+            default_mode = 'rst'
+        else if default_mode.indexOf('stex') != -1
+            default_mode = 'tex'
+        if default_mode not in ['md', 'html', 'tex', 'rst', 'mediawiki', 'sagews']
+            default_mode = 'html'  # good fallback
+
+        canonical_mode = (name) ->
+            switch name
+                when 'markdown'
+                    return 'md'
+                when 'xml'
+                    return 'html'
+                when 'mediawiki'
+                    return 'mediawiki'
+                when 'stex'
+                    return 'tex'
+                when 'python'
+                    return 'python'
+                else
+                    return default_mode
 
         args = opts.args
         cmd = opts.cmd
@@ -1198,6 +1220,7 @@ exports.define_codemirror_extensions = () ->
         selections = cm.listSelections()
         selections.reverse()
         for selection in selections
+            mode = canonical_mode(cm.getModeAt(selection.head).name)
             from = selection.from()
             to = selection.to()
             src = cm.getRange(from, to)

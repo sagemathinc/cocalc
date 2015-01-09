@@ -1495,6 +1495,10 @@ class CodeMirrorEditor extends FileEditor
         if opts.read_only
             @set_readonly_ui()
 
+        if @filename.slice(@filename.length-7) == '.sagews'
+            @init_sagews_edit_buttons()
+
+
     init_draggable_splits: () =>
         @_layout1_split_pos = @local_storage("layout1_split_pos")
         @_layout2_split_pos = @local_storage("layout2_split_pos")
@@ -1572,6 +1576,12 @@ class CodeMirrorEditor extends FileEditor
 
     codemirrors: () =>
         return [@codemirror, @codemirror1]
+
+    focused_codemirror: () =>
+        if @codemirror_with_last_focus?
+            return @codemirror_with_last_focus
+        else
+            return @codemirror
 
     action_key: (opts) =>
         # opts ignored by default; worksheets use them....
@@ -2057,6 +2067,57 @@ class CodeMirrorEditor extends FileEditor
         @show()
         if not IS_MOBILE
             @codemirror_with_last_focus?.focus()
+
+    textedit_command: (cm, cmd, args) =>
+        switch cmd
+            when "link"
+                @edit_insert_link(cm)
+            when "image"
+                @edit_insert_image(cm)
+            when "SpecialChar"
+                @edit_special_char(cm)
+            else
+                cm.edit_selection
+                    cmd  : cmd
+                    args : args
+                    mode : @opts.mode
+                @syncdoc?.sync()
+
+    # add a textedit toolbar to the editor
+    init_sagews_edit_buttons: () =>
+        window.editor = @  # DEBUG
+
+        # add the text editing button bar
+        @textedit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone().hide()
+        @element.find(".salvus-editor-codemirror-textedit-buttons").append(@textedit_buttons).show()
+
+        # add the code editing button bar
+        @codeedit_buttons = templates.find(".salvus-editor-codeedit-buttonbar").clone()
+        @element.find(".salvus-editor-codemirror-textedit-buttons").append(@codeedit_buttons)
+
+        # activite the buttons in the bar
+        that = @
+        @textedit_buttons.find("a").click () ->
+            args = $(this).data('args')
+            cmd  = $(this).attr('href').slice(1)
+            if args? and typeof(args) != 'object'
+                args = "#{args}"
+                if args.indexOf(',') != -1
+                    args = args.split(',')
+            that.textedit_command(that.focused_codemirror(), cmd, args)
+            return false
+
+        for cm in [@codemirror, @codemirror1]
+            cm.on 'cursorActivity', (cm) =>
+                console.log("cursor activity")
+                name = cm.getModeAt(cm.getCursor()).name
+                if name in ['xml', 'stex', 'markdown', 'mediawiki']
+                    @textedit_buttons.show()
+                    @codeedit_buttons.hide()
+                else
+                    @textedit_buttons.hide()
+                    @codeedit_buttons.show()
+
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
     #console.log("codemirror_session_editor '#{filename}'")
@@ -4050,7 +4111,6 @@ class StaticHTML extends FileEditor
 
 class IPythonNBViewer extends FileEditor
     constructor: (@editor, @filename, @content, opts) ->
-        window.debug = @
         @element = templates.find(".salvus-editor-ipython-nbviewer").clone()
         @init_buttons()
 
