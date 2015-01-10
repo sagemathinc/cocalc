@@ -92,7 +92,7 @@ USE_BUP_WATCH = False
 # on the system with arbitrary content.
 UNSAFE_MODE=False
 
-import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd, codecs, re
+import argparse, base64, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd, codecs, re
 from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
 
@@ -1393,7 +1393,7 @@ if __name__ == "__main__":
 
     def do_read_file(*args, **kwds):
         try:
-            print json.dumps(project.read_file(*args, **kwds))
+            print json.dumps({'base64':base64.b64encode(project.read_file(*args, **kwds))})
         except Exception, mesg:
             print json.dumps({"error":str(mesg)})
     parser_read_file = subparsers.add_parser('read_file', help='read a file from disk')

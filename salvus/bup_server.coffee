@@ -3205,7 +3205,7 @@ class ClientProject
                     if resp.result?.error
                         opts.cb(resp.result.error)
                     else
-                        opts.cb(undefined, resp?.result)
+                        opts.cb(undefined, new Buffer(resp.result.base64, 'base64').toString('ascii'))
 
     copy_path: (opts) =>
         opts = defaults opts,
