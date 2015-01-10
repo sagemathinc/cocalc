@@ -1037,8 +1037,7 @@ exports.define_codemirror_extensions = () ->
                     left  : "\n.. math::\n\n    "
                     right : "\n"
             table: # the first is the more complex grid table, the second one is a "simple" table
-                wrap :
-                    left  : """
+                    insert: """
                             +------------+------------+-----------+
                             | Header 1   | Header 2   | Header 3  |
                             +============+============+===========+
@@ -1052,25 +1051,22 @@ exports.define_codemirror_extensions = () ->
                             +------------+------------+-----------+
 
                             """
-                    ###
-                    left  : """
-                            =====  =====  ======
-                               Inputs     Output
-                            ------------  ------
-                              A      B    A or B
-                            =====  =====  ======
-                            False  False  False
-                            True   False  True
-                            False  True   True
-                            True   True   True
-                            =====  =====  ======
-                            """
-                    ###
-                    right : "\n"
+                            ###
+                            insert: """
+                                    =====  =====  ======
+                                       Inputs     Output
+                                    ------------  ------
+                                      A      B    A or B
+                                    =====  =====  ======
+                                    False  False  False
+                                    True   False  True
+                                    False  True   True
+                                    True   True   True
+                                    =====  =====  ======
+                                    """
+                            ###
             horizontalRule:
-                wrap:
-                    left  : "\n------------------\n"
-                    right : ""
+                 insert : "\n------------------\n"
 
 
         mediawiki : # https://www.mediawiki.org/wiki/Help:Formatting
@@ -1135,8 +1131,7 @@ exports.define_codemirror_extensions = () ->
                     left  : "\n----\n"
                     right : ""
             table: # https://www.mediawiki.org/wiki/Help:Tables
-                wrap:
-                    left  : """\n
+                    insert: """\n
                             {| class="table"
                             |+Table Caption
                             ! Column 1
@@ -1152,7 +1147,6 @@ exports.define_codemirror_extensions = () ->
                             |Sec
                             |}
                             """
-                    right : "\n"
 
         python:
             comment :
@@ -1160,9 +1154,80 @@ exports.define_codemirror_extensions = () ->
                     left  : '# '
                     right : ''
             forloop :
-                wrap :
-                    left  : 'for i in range(5):\n    print i\n'
+                    insert: '\nfor i in range(5):\n    print i\n'
+            forlistloop:
+                    insert: """
+                            l = [1, 2, 5, 8, 10]
+                            for i in l:
+                                print i
+                            """
+            forelseloop:
+                    insert: """
+                            for k in [1, 2, 5, 10]:
+                                if k == 3:
+                                    print "found k, returning"
+                                    break
+                            else:
+                                print "Haven't found k == 3"
+                            """
+            "if":
+                    insert: "\nif i == 1:\n    print 'i equals 1'\n"
+            ifelse:
+                    insert: "\nif i == 1:\n    print 'i equals 1'\nelse:\n    print 'i is not 1'\n"
+            cases:
+                    insert: """
+                            if i == 0:
+                                print "i is zero"
+                            elif i == 1:
+                                print "i is one"
+                            else:
+                                print "i is neither zero or one"
+                            """
+
+        sage:
+            differentiate:
+                   insert : 'diff(1 + x + x^2, x)'
+            integrate:
+                   insert : 'integrate(1 + x + x^2, x)'
+            matrix:
+                   insert : "matrix(RDF, [[1, 2], [3, -1]])"
+            plot2d:
+                   insert : "plot(x * sin(x), (x, -2, 10))"
+            plot3d:
+                   insert : "\nvar('x y')\nplot3d(x * sin(y), (x, -5, 5), (y, -5, 5))"
+            graphs:
+                   insert : "# Press the TAB key after graphs. to see a list of predefined graphs.\ngraphs."
+            petersen:
+                   insert : "G = graphs.PetersenGraph()\nG.plot()"
+            factor:
+                   insert : "factor(2015)"
+            var:
+                   insert : "x = var('x')"
+            help:
+                wrap:
+                    left  : "help("
+                    right : ")"
+
+        r:
+            comment:
+                wrap:
+                    left  : "# "
                     right : ''
+            vector:
+                   insert : "v <- c(1,1,2,3,5,8,13)"
+            forloop:
+                wrap:
+                    left  : """
+                            for (i in seq(1, 10, by=2)) {
+                                print(sprintf("i = %s", i));\n
+                            """
+                    right : "\n}\n"
+            summary:
+                   insert : "summary(v)"
+            plot:
+                wrap:
+                    left  : "\nplot(x)"
+                    right : ""
 
     CodeMirror.defineExtension 'get_edit_mode', (opts) ->
         opts = defaults opts, {}
@@ -1176,8 +1241,12 @@ exports.define_codemirror_extensions = () ->
                 return 'mediawiki'
             when 'stex'
                 return 'tex'
-            when 'python'
+            when 'python' # TODO how to tell it to return sage when in a sagews file?
                 return 'python'
+            when 'r'
+                return 'r'
+            when 'sagews'    # this doesn't work
+                return 'sage'
             else
                 mode = cm.getOption('mode').name
                 if mode.slice(0,3) == 'gfm'
@@ -1190,7 +1259,7 @@ exports.define_codemirror_extensions = () ->
                     return 'rst'
                 else if mode.indexOf('stex') != -1
                     return 'tex'
-                if mode not in ['md', 'html', 'tex', 'rst', 'mediawiki', 'sagews']
+                if mode not in ['md', 'html', 'tex', 'rst', 'mediawiki', 'sagews', 'r', 'sagews']
                     return 'html'
 
     CodeMirror.defineExtension 'edit_selection', (opts) ->
@@ -1215,13 +1284,17 @@ exports.define_codemirror_extensions = () ->
                     return 'tex'
                 when 'python'
                     return 'python'
+                when 'r'
+                    return 'r'
+                when 'sagews'
+                    return 'sage'
                 else
                     return default_mode
 
         args = opts.args
         cmd = opts.cmd
 
-        #console.log("edit_selection '#{misc.to_json(opts)}'")
+        console.log("edit_selection '#{misc.to_json(opts)}', mode='#{default_mode}'")
 
         # TODO: will have to make this more sophisticated, so it can
         # deal with nesting.
@@ -1241,6 +1314,7 @@ exports.define_codemirror_extensions = () ->
         selections.reverse()
         for selection in selections
             mode = canonical_mode(cm.getModeAt(selection.head).name)
+            console.log("edit_selection(mode='#{mode}'), selection=", selection)
             from = selection.from()
             to = selection.to()
             src = cm.getRange(from, to)
@@ -1256,7 +1330,6 @@ exports.define_codemirror_extensions = () ->
             right_white = src.slice(j)
             src = src.slice(i,j)
             src0 = src
-
 
             mode1 = mode
             how = EDIT_COMMANDS[mode1][cmd]
@@ -1285,6 +1358,12 @@ exports.define_codemirror_extensions = () ->
                 else
                     # do the wrapping
                     src = "#{left}#{src}#{right}"
+                done = true
+
+            if how?.insert? # to insert the code snippet right below, next line
+                # TODO no idea what the strip(...) above is actually doing
+                # if text is selected (is that src?) then there is only some new stuff below it. that's it.
+                src = "#{src}\n#{how.insert}"
                 done = true
 
             if cmd == 'font_size'
@@ -1352,6 +1431,7 @@ exports.define_codemirror_extensions = () ->
                     else
                         delta = 0  # not really right if multiple lines -- should really not touch cursor when possible.
                     cm.addSelection({line:from.line, ch:to.ch+delta})
+
 
     CodeMirror.defineExtension 'insert_link', (opts) ->
         opts = defaults opts, {}
@@ -1585,7 +1665,6 @@ exports.define_codemirror_extensions = () ->
 
 
         selected = (evt) =>
-            # TODO this evt.target should be the clicked element
             target = $(evt.target)
             if target.prop("tagName") != "SPAN"
                 return
@@ -1593,7 +1672,7 @@ exports.define_codemirror_extensions = () ->
             code = target.attr("title")
             s = "&#{code};"
             # TODO HTML-based formats will work, but not LaTeX.
-            # I suggest to show a completely different table for LaTeX special characters and do not bother with a translation table
+            # As long as the input encoding in LaTeX is utf8, just insert the actual utf8 character (target.text())
 
             selections = cm.listSelections()
             selections.reverse()

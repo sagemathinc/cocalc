@@ -2084,7 +2084,6 @@ class CodeMirrorEditor extends FileEditor
                 cm.edit_selection
                     cmd  : cmd
                     args : args
-                    mode : @opts.mode
         @syncdoc?.sync()
 
     # add a textedit toolbar to the editor
@@ -2099,6 +2098,12 @@ class CodeMirrorEditor extends FileEditor
         @codeedit_buttons = templates.find(".salvus-editor-codeedit-buttonbar").clone()
         @element.find(".salvus-editor-codemirror-textedit-buttons").append(@codeedit_buttons)
 
+        # the r-editing button bar
+        @redit_buttons =  templates.find(".salvus-editor-redit-buttonbar").clone()
+        @element.find(".salvus-editor-codemirror-textedit-buttons").append(@redit_buttons)
+
+        all_edit_buttons = [@textedit_buttons, @codeedit_buttons, @redit_buttons]
+
         # activite the buttons in the bar
         that = @
         edit_button_click = () ->
@@ -2109,21 +2114,31 @@ class CodeMirrorEditor extends FileEditor
                 if args.indexOf(',') != -1
                     args = args.split(',')
             that.textedit_command(that.focused_codemirror(), cmd, args)
-            return false
-        @textedit_buttons.find("a").click(edit_button_click)
-        @codeedit_buttons.find("a").click(edit_button_click)
+            return true # <- this return true does the magic of closing the dropdown menu when a button is clicked
 
+        for edit_buttons in all_edit_buttons
+            edit_buttons.find("a").click(edit_button_click)
+
+        show_edit_buttons = (which_one) ->
+            for edit_buttons in all_edit_buttons
+                if edit_buttons == which_one
+                    edit_buttons.show()
+                else
+                    edit_buttons.hide()
+
+        # TODO: this code below is sketchy, as it turns out.
         f = (cm) =>
             pos = cm.getCursor()
             if pos.line == cm.lineCount() - 1
                 return
             name = cm.getModeAt(pos).name
             if name in ['xml', 'stex', 'markdown', 'mediawiki']
-                @textedit_buttons.show()
-                @codeedit_buttons.hide()
+                show_edit_buttons(@textedit_buttons)
+            else if name in ["r"]
+                show_edit_buttons(@redit_buttons)
             else
-                @textedit_buttons.hide()
-                @codeedit_buttons.show()
+                show_edit_buttons(@codeedit_buttons)
+
         for cm in [@codemirror, @codemirror1]
             cm.on('cursorActivity', f)
 
@@ -5796,3 +5811,145 @@ initialize_md_html_editor = () ->
 
 initialize_md_html_editor()
 
+# adding Python & Sage menu entries programmatically (editing HTML directly is too painful)
+# TODO make a general class for menu entries and hence use these functions for all menu entries?
+initialize_sage_python_r_toolbar = () ->
+
+    # this adds the content of a dropdown menu (basically, single or triple entries)
+    add_menu = (bar, entries) ->
+        dropdown = $("<span class='btn-group'></span>")
+        dropdown.append($("""
+        <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="#{entries[1]}">
+         <i class="fa">#{entries[0]}</i> <b class="caret"></b>
+        </span>
+        """))
+
+        droplist = $("<ul class='dropdown-menu'></ul>")
+        for item in entries[2]
+            if item.length == 1 # new divider
+                e = ($("""
+                    <li class="divider"></li>
+                    <li role="presentation" class="dropdown-header">#{item[0]}</li>
+                """))
+            else if item.length in [2, 3] # item in the menu
+                help = ""
+                if item.length == 3 and item[2].length > 0
+                    help = "data-toggle='tooltip' data-placement='right' title='#{item[2]}'"
+                e = $("<li><a href='#{item[1]}' #{help}>#{item[0]}</a></li>")
+            droplist.append(e)
+
+        dropdown.append(droplist)
+        bar.append(dropdown)
+
+    # this adds a single icon to the bar
+    add_icon = (bar, inner, href, comment) ->
+        help = ""
+        if comment.length > 0
+            help = "data-toggle='tooltip' data-placement='bottom' title='#{comment}'"
+        icon = $("<a href='#{href}' class='btn btn-default' #{help}></a>")
+        icon.html(inner)
+        bar.append(icon)
+
+    # reference example, TODO delete it
+    """
+            <span class="btn-group">
+                <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Control Structures">
+                    <i class="fa">Control</i> <b class="caret"></b>
+                </span>
+                <ul class="dropdown-menu">
+                    <li role="presentation" class="dropdown-header">Loops</li>
+                    <li><a href='#forloop' data-toggle="tooltip" data-placement="right" title="Iterate over a range of integers">For-Loop</a></li>
+                    <li><a href="#forlistloop">For-Loop over a list</a></li>
+                    <li class="divider"></li>
+                    <li role="presentation" class="dropdown-header">Decisions</li>
+                    <li><a href='#if'>If clause</a></li>
+                    <li><a href='#ifelse'>If-else clause</a></li>
+                    <li class="divider"></li>
+                    <li role="presentation" class="dropdown-header">Advanced</li>
+                    <li><a href="#cases">Cases</a></li>
+                    <li><a href='#forelseloop'>For-Else Loop</a></li>
+                </ul>
+            </span>
+            <a href='#comment' class='btn btn-default' data-toggle="tooltip" data-placement="bottom" title="Comment selected text"><i class="fa fa-comment-o"></i></a>
+        </span>
+    """
+
+    codebar  = $(".salvus-editor-codeedit-buttonbar")
+    # -- python specific --
+    pybar    = $("<span class='btn-group salvus-editor-codeedit-buttonbar-python'></span>")
+
+    # structured dropdown menu data: button text, title info, list of ["button, "#id", "title help (optional)"]
+    py_control = ["Control", "Control Structures",
+           [["Loops"],
+            ["For-Loop", "#forloop", "Iterate over a range of integers"],
+            ["For-Loop over a list", "#forlistloop", "Iterate over a list"],
+            ["Decisions"],
+            ["If", "#if"],
+            ["If-Else", "#ifelse"],
+            ["Advanced"],
+            ["Cases", "#cases", "Deciding between different cases"],
+            ["For-Else Loop", "#forelseloop", "Searching for an item with a fallback."]
+        ]]
+
+
+    add_menu(pybar, py_control)
+    add_icon(pybar, "<i class='fa fa-comment-o'></i>", "#comment", "Comment selected text")
+
+    codebar.append(pybar)
+
+    # -- sage specific --
+    sagebar  = $("<span class='btn-group salvus-editor-codeedit-buttonbar-sage'></span>")
+
+    sage_calculus = ["Calculus", "Calculus",
+                     [["&part; Differentiate", "#differentiate", "Differentiate a function"],
+                      ["&int; Integrate",      "#integrate",     "Integrate a function"]
+                    ]]
+    sage_linalg = ["LinAlg", "Linear Algebra",
+                   [["Matrix", "#matrix"]]]
+    sage_plotting = ["Plotting", "Plotting and Graphics",
+                     [["Plot 2D", "#plot2d", "Plot f(x)"],
+                      ["Plot 3D", "#plot3d", "Plot f(x, y)"]
+                    ]]
+    sage_graphs = ["Graphs", "Graph Theory",
+                  [["graphs.", "#graphs"],
+                   ["Petersen Graph", "#petersen"]
+                  ]]
+    sage_nt = ["NT", "Number Theory",
+              [["Factorization", "#factor"]
+              ]]
+
+    add_icon(sagebar, "x", "#var", "Define a variable")
+    add_menu(sagebar, sage_calculus)
+    add_menu(sagebar, sage_linalg)
+    add_menu(sagebar, sage_plotting)
+    add_menu(sagebar, sage_graphs)
+    add_menu(sagebar, sage_nt)
+    add_icon(sagebar, "<i class='fa fa-question-circle'></i>", "#help", "Help")
+
+    codebar.append(sagebar)
+
+    # -- r specific --
+    rbar = $(".salvus-editor-redit-buttonbar")
+
+    r_basic = $("<span class='btn-group'></span>")
+    add_icon(r_basic, "<i class='fa fa-comment-o'></i>", "#comment", "Comment selected text")
+    add_icon(r_basic, "x", "#vector", "Insert a vector") # TODO $\vec x$ should work, but it only produces a partially rendered mathjax formula?
+    add_icon(r_basic, "for", "#forloop", "Insert a for loop")
+
+    r_stats = $("<span class='btn-group'></span>")
+    r_stats_entries = ["Stats", "Basic Statistical Functions",
+                      [["Summary of obejct v", "#summary"]]
+                      ]
+    add_menu(r_stats, r_stats_entries)
+
+    r_plot = $("<span class='btn-group'></span>")
+    r_plot_entries = ["Plots", "Basic Plots",
+                     [["Plot of object x", "#plot"]
+                     ]]
+    add_menu(r_plot, r_plot_entries)
+
+    rbar.append(r_basic)
+    rbar.append(r_stats)
+    rbar.append(r_plot)
+
+initialize_sage_python_r_toolbar()
