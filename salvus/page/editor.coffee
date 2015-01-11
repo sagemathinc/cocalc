@@ -2126,11 +2126,19 @@ class CodeMirrorEditor extends FileEditor
                 else
                     edit_buttons.hide()
 
-        # TODO: this code below is sketchy, as it turns out.
-        f = (cm) =>
+        # The code below changes the bar at the top depending on where the cursor
+        # is located.  We only change the edit bar if the cursor hasn't moved for
+        # a while, to be more efficient, avoid noise, and be less annoying to the user.
+        bar_timeout = undefined
+        f = () =>
+            if bar_timeout?
+                clearTimeout(bar_timeout)
+            bar_timeout = setTimeout(update_context_sensitive_bar, 700)
+
+        update_context_sensitive_bar = () =>
+            cm = @focused_codemirror()
             pos = cm.getCursor()
-            if pos.line == cm.lineCount() - 1
-                return
+            console.log("update_context_sensitive_bar, pos=#{misc.to_json(pos)}")
             name = cm.getModeAt(pos).name
             if name in ['xml', 'stex', 'markdown', 'mediawiki']
                 show_edit_buttons(@textedit_buttons)
@@ -5911,7 +5919,7 @@ initialize_sage_python_r_toolbar = () ->
                       ["Plot 3D", "#plot3d", "Plot f(x, y)"]
                     ]]
     sage_graphs = ["Graphs", "Graph Theory",
-                  [["graphs.", "#graphs"],
+                  [["graphs.<tab>", "#graphs"],
                    ["Petersen Graph", "#petersen"]
                   ]]
     sage_nt = ["NT", "Number Theory",
@@ -5938,7 +5946,7 @@ initialize_sage_python_r_toolbar = () ->
 
     r_stats = $("<span class='btn-group'></span>")
     r_stats_entries = ["Stats", "Basic Statistical Functions",
-                      [["Summary of obejct v", "#summary"]]
+                      [["Summary of object v", "#summary"]]
                       ]
     add_menu(r_stats, r_stats_entries)
 
