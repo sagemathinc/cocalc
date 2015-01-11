@@ -5913,13 +5913,15 @@ initialize_sage_python_r_toolbar = () ->
                       ["&int; Integrate",      "#integrate",     "Integrate a function"]
                     ]]
     sage_linalg = ["LinAlg", "Linear Algebra",
-                   [["Matrix", "#matrix"]]]
+                  [["Matrix",      "#matrix"],
+                  ["Determinant", "#det"]
+                  ]]
     sage_plotting = ["Plotting", "Plotting and Graphics",
                      [["Plot 2D", "#plot2d", "Plot f(x)"],
                       ["Plot 3D", "#plot3d", "Plot f(x, y)"]
                     ]]
     sage_graphs = ["Graphs", "Graph Theory",
-                  [["graphs.<tab>", "#graphs"],
+                  [["graphs.&lt;tab&gt;", "#graphs"],
                    ["Petersen Graph", "#petersen"]
                   ]]
     sage_nt = ["NT", "Number Theory",
@@ -5942,21 +5944,27 @@ initialize_sage_python_r_toolbar = () ->
     r_basic = $("<span class='btn-group'></span>")
     add_icon(r_basic, "<i class='fa fa-comment-o'></i>", "#comment", "Comment selected text")
     add_icon(r_basic, "x", "#vector", "Insert a vector") # TODO $\vec x$ should work, but it only produces a partially rendered mathjax formula?
-    add_icon(r_basic, "for", "#forloop", "Insert a for loop")
+
+    r_control = $("<span class='btn-group'></span>")
+    r_control_entries = ["Control", "Control Structures",
+                        [["For-Loop", "#forloop", "Insert a for loop"]
+                        ]]
+    add_menu(r_control, r_control_entries)
 
     r_stats = $("<span class='btn-group'></span>")
     r_stats_entries = ["Stats", "Basic Statistical Functions",
-                      [["Summary of object v", "#summary"]]
+                      [["Summary of some object", "#summary"]]
                       ]
     add_menu(r_stats, r_stats_entries)
 
     r_plot = $("<span class='btn-group'></span>")
     r_plot_entries = ["Plots", "Basic Plots",
-                     [["Plot of object x", "#plot"]
+                     [["Plot x/y pairs", "#plot"]
                      ]]
     add_menu(r_plot, r_plot_entries)
 
     rbar.append(r_basic)
+    rbar.append(r_control)
     rbar.append(r_stats)
     rbar.append(r_plot)
 

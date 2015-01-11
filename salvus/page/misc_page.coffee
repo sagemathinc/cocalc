@@ -1207,12 +1207,14 @@ exports.define_codemirror_extensions = () ->
                 wrap:
                     left  : "help("
                     right : ")"
+            det:
+                wrap:
+                    right : ".det()"
 
         r:
             comment:
                 wrap:
                     left  : "# "
-                    right : ''
             vector:
                    insert : "v <- c(1,1,2,3,5,8,13)"
             forloop:
@@ -1223,11 +1225,11 @@ exports.define_codemirror_extensions = () ->
                             """
                     right : "\n}\n"
             summary:
-                   insert : "summary(v)"
-            plot:
                 wrap:
-                    left  : "\nplot(x)"
-                    right : ""
+                    left  : "summary("
+                    right : ")"
+            plot:
+                   insert : "\nplot(c(1,2,4,8,16,32,64), c(1,1,2,3,5,8,13), type=\"l\")"
 
     CodeMirror.defineExtension 'get_edit_mode', (opts) ->
         opts = defaults opts, {}
@@ -1334,9 +1336,13 @@ exports.define_codemirror_extensions = () ->
 
             mode1 = mode
             how = EDIT_COMMANDS[mode1][cmd]
-            if not how? and mode1 in ['md', 'mediawiki', 'rst']
-                # html fallback for markdown
-                mode1 = 'html'
+            if not how?
+                if mode1 in ['md', 'mediawiki', 'rst']
+                    # html fallback for markdown
+                    mode1 = 'html'
+                else if mode1 == "python"
+                    # Sage fallback in python mode. TODO There should be a Sage mode.
+                    mode1 = "sage"
                 how = EDIT_COMMANDS[mode1][cmd]
 
             done = false
@@ -1351,7 +1357,8 @@ exports.define_codemirror_extensions = () ->
                             if src1?
                                 src = src1
 
-                {left, right} = how.wrap
+                left  = if how.wrap.left?  then how.wrap.left else ""
+                right = if how.wrap.right? then how.wrap.right else ""
                 src1 = strip(src, left, right)
                 if src1
                     # strip the wrapping
@@ -1423,7 +1430,8 @@ exports.define_codemirror_extensions = () ->
             # so, the addSelection is fine, but how to remove the current "selection"?
             # HSY: building this replacements array works better:
             # cursor always afterwards, even if there are two selections in text (via ctrl), etc.
-            # only drawback is, that this doesn't pay attention to src != src0 (I would ignore this, move on)
+            # only drawback is, that this doesn't pay attention to src != src0 (I would ignore this)
+            # and when wrapping, the cursor is also at the end.
             ###
             if src != src0
                 replaceRange(left_white + src + right_white, from, to)
@@ -1439,7 +1447,7 @@ exports.define_codemirror_extensions = () ->
                         delta = 0  # not really right if multiple lines -- should really not touch cursor when possible.
                     cm.addSelection({line:from.line, ch:to.ch+delta})
             ###
-            console.log("replacements:", replacements)
+            console.log("replacements: " + replacements)
             replacements.push(left_white + src + right_white)
         cm.replaceSelections(replacements)
 
