@@ -314,6 +314,8 @@ class Console extends EventEmitter
             @_ignore_mesg = false
 
     render: (data) =>
+        if not data?
+            return
         try
             @terminal.write(data)
             if @value == ""
