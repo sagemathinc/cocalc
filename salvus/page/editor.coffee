@@ -3470,7 +3470,7 @@ class LatexEditor extends FileEditor
         @_right_pane_position =
             start : editor_width + left + 7
             end   : width
-            top   : top + button_bar_height
+            top   : top + button_bar_height + 1
 
         if not @_show_before?
             @show_page('png-preview')
