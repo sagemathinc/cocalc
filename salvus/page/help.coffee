@@ -34,7 +34,7 @@ update_stats = () ->
             $(".salvus-stats").find("i.fa-refresh").removeClass('fa-spin')
             if err
                 return
-            X = $(".salvus-stats").show()
+            X = $(".salvus-stats-live").show()
             X.find(".salvus-stats-accounts").text(stats.accounts)
             X.find(".salvus-stats-projects").text(stats.projects)
             X.find(".salvus-stats-active_projects").text(stats.active_projects)
