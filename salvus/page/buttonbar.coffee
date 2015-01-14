@@ -762,6 +762,7 @@ exports.commands =
 #
 
 make_bar = (cls) ->
+    cls ?= ""
     return $("<span class='btn-group #{cls}'></span>")
 
 # this adds the content of a dropdown menu (basically, single or triple entries)
@@ -1036,23 +1037,23 @@ initialize_sage_python_r_toolbar = () ->
     # -- r specific --
     rbar = $(".salvus-editor-redit-buttonbar")
 
-    r_basic = $("<span class='btn-group smc-tooltip'></span>")
+    r_basic = make_bar()
     add_icon(r_basic, "<i class='fa'>#</i>", "#comment", "Comment selected text")
     add_icon(r_basic, "$\\vec v$", "#vector", "Insert a vector")
 
-    r_control = $("<span class='btn-group smc-tooltip'></span>")
+    r_control = $("<span class='btn-group'></span>")
     r_control_entries = ["Control", "Control Structures",
                         [["For-Loop", "#forloop", "Insert a for loop"]
                         ]]
     add_menu(r_control, r_control_entries)
 
-    r_stats = $("<span class='btn-group smc-tooltip'></span>")
+    r_stats = make_bar()
     r_stats_entries = ["Stats", "Basic Statistical Functions",
                       [["Summary of some object", "#summary"]]
                       ]
     add_menu(r_stats, r_stats_entries)
 
-    r_plot = $("<span class='btn-group smc-tooltip'></span>")
+    r_plot = make_bar()
     r_plot_entries = ["Plots", "Basic Plots",
                      [["Plot x/y pairs", "#plot"]
                      ]]
@@ -1066,7 +1067,7 @@ initialize_sage_python_r_toolbar = () ->
 initialize_sage_python_r_toolbar()
 
 initialize_latex_buttonbar = () ->
-    latexbar = make_bar("")
+    latexbar = make_bar()
     add_icon(latexbar, "<i class='fa fa-comment'></i>", "#comment", "Comment selected text")
 
     templates = ["Templates", "These templates come exclusively on top",
@@ -1079,6 +1080,7 @@ initialize_latex_buttonbar = () ->
     add_menu(latexbar, templates)
 
     # TODO merge this with the usual text formatting toolbar, such that its list of actions is inserted here
+    # IDEA: maybe, clicking on the "Format" dropdown shows the cloned formatting toolbar?
     text = ["Format", "Text formatting",
             [
              ["<b>Bold</b>", "#bold"]
