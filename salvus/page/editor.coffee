@@ -34,6 +34,8 @@ MAX_LATEX_WARNINGS = 50
 MIN_SPLIT = 0.02
 MAX_SPLIT = 0.98  # maximum pane split proportion for editing
 
+TOOLTIP_DELAY = delay: {show: 500, hide: 100}
+
 async = require('async')
 
 message = require('message')
@@ -2128,6 +2130,7 @@ class CodeMirrorEditor extends FileEditor
 
         for edit_buttons in all_edit_buttons
             edit_buttons.find("a").click(edit_button_click)
+            edit_buttons.find("*[title]").tooltip(TOOLTIP_DELAY)
 
         show_edit_buttons = (which_one) ->
             for edit_buttons in all_edit_buttons
