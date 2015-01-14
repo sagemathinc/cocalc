@@ -2114,7 +2114,7 @@ class CodeMirrorEditor extends FileEditor
         @cython_buttons =  templates.find(".salvus-editor-cython-buttonbar").clone()
         @element.find(".salvus-editor-codemirror-textedit-buttons").append(@cython_buttons)
 
-        all_edit_buttons = [@textedit_buttons, @codeedit_buttons, @redit_buttons]
+        all_edit_buttons = [@textedit_buttons, @codeedit_buttons, @redit_buttons, @cython_buttons]
 
         # activite the buttons in the bar
         that = @
@@ -3137,6 +3137,9 @@ class LatexEditor extends FileEditor
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
         @latex_editor.action_key = @action_key
         @element.find(".salvus-editor-latex-buttons").show()
+
+        latex_buttonbar = @element.find(".salvus-editor-latex-buttonbar")
+        latex_buttonbar.show()
 
         @latex_editor.syncdoc.on 'connect', () =>
             @preview.zoom_width = @load_conf().zoom_width
