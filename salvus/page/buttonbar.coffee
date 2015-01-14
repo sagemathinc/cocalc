@@ -1081,11 +1081,21 @@ initialize_latex_buttonbar = () ->
 
     # TODO merge this with the usual text formatting toolbar, such that its list of actions is inserted here
     # IDEA: maybe, clicking on the "Format" dropdown shows the cloned formatting toolbar?
-    text = ["Format", "Text formatting",
-            [
-             ["<b>Bold</b>", "#bold"]
-            ]]
-    add_menu(latexbar, text)
+    #text = ["Format", "Text formatting",[]]
+    #add_menu(latexbar, text)
+    formatting = $("<span class='btn-group'></span>")
+    formatting.append($("""
+    <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Text Formatting">
+     <i class="fa">Format</i> <b class="caret"></b>
+    </span>
+    """))
+    format_buttons = $(".salvus-editor-codemirror-worksheet-editable-buttons").clone()
+    format_buttons.addClass("dropdown-menu")
+    format_buttons.removeClass("hide")
+    format_buttons.css("min-width", 300);
+    formatting.append(format_buttons)
+    latexbar.append(formatting)
+    # end format button idea
 
     formulas = ["Formula", "These are some standard formuas",
                 [
