@@ -224,7 +224,7 @@ MARKERS  = diffsync.MARKERS
 
 sagews_decorator_modes = [
     ['coffeescript', 'coffeescript'],
-    ['cython'      , 'python'],
+    ['cython'      , 'cython'],
     ['file'        , 'text'],
     ['fortran'     , 'text/x-fortran'],
     ['html'        , 'htmlmixed'],
@@ -281,6 +281,11 @@ exports.define_codemirror_sagews_mode = () ->
             close : "}"
             mode  : CodeMirror.getMode(config, 'sagews')
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex"), options...)
+
+    CodeMirror.defineMode "cython", (config) ->
+        # TODO: need to figure out how to do this so that the name
+        # of the mode is cython
+        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"))
 
     CodeMirror.defineMode "sagews", (config) ->
         options = []
@@ -822,6 +827,7 @@ class exports.Editor
             else
                 throw("Unknown editor type '#{editor_name}'")
 
+        window.editor = @  # DEBUG
         return editor
 
     create_opened_file_tab: (filename) =>
@@ -2088,7 +2094,8 @@ class CodeMirrorEditor extends FileEditor
 
     # add a textedit toolbar to the editor
     init_sagews_edit_buttons: () =>
-        window.editor = @  # DEBUG
+        if @opts.readonly  # no editing button bar needed for read-only files
+            return
 
         # add the text editing button bar
         @textedit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone().hide()
@@ -2101,6 +2108,9 @@ class CodeMirrorEditor extends FileEditor
         # the r-editing button bar
         @redit_buttons =  templates.find(".salvus-editor-redit-buttonbar").clone()
         @element.find(".salvus-editor-codemirror-textedit-buttons").append(@redit_buttons)
+
+        @cython_buttons =  templates.find(".salvus-editor-cython-buttonbar").clone()
+        @element.find(".salvus-editor-codemirror-textedit-buttons").append(@cython_buttons)
 
         all_edit_buttons = [@textedit_buttons, @codeedit_buttons, @redit_buttons]
 
@@ -2133,22 +2143,26 @@ class CodeMirrorEditor extends FileEditor
         f = () =>
             if bar_timeout?
                 clearTimeout(bar_timeout)
-            bar_timeout = setTimeout(update_context_sensitive_bar, 700)
+            bar_timeout = setTimeout(update_context_sensitive_bar, 250)
 
         update_context_sensitive_bar = () =>
             cm = @focused_codemirror()
             pos = cm.getCursor()
-            console.log("update_context_sensitive_bar, pos=#{misc.to_json(pos)}")
             name = cm.getModeAt(pos).name
+            console.log("update_context_sensitive_bar, pos=#{misc.to_json(pos)}, name=#{name}")
             if name in ['xml', 'stex', 'markdown', 'mediawiki']
                 show_edit_buttons(@textedit_buttons)
             else if name in ["r"]
                 show_edit_buttons(@redit_buttons)
+            else if name in ["cython"]  # doesn't work yet, since name=python still
+                show_edit_buttons(@cython_buttons)
             else
                 show_edit_buttons(@codeedit_buttons)
 
         for cm in [@codemirror, @codemirror1]
             cm.on('cursorActivity', f)
+
+        update_context_sensitive_bar()
 
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
@@ -5878,19 +5892,35 @@ initialize_sage_python_r_toolbar = () ->
                     <li><a href='#forelseloop'>For-Else Loop</a></li>
                 </ul>
             </span>
-            <a href='#comment' class='btn btn-default' data-toggle="tooltip" data-placement="bottom" title="Comment selected text"><i class="fa fa-comment-o"></i></a>
+            <a href='#comment' class='btn btn-default' data-toggle="tooltip" data-placement="bottom" title="Comment selected code"><i class="fa">#</i></a>
         </span>
     """
 
     codebar  = $(".salvus-editor-codeedit-buttonbar")
     # -- python specific --
     pybar    = $("<span class='btn-group salvus-editor-codeedit-buttonbar-python'></span>")
+    add_icon(pybar, "<i class='fa'>#</i>", "#comment", "Comment selected text")
+
+
+    py_control = ["Data", "Basic Data Types",
+           [
+            ["Construction"],
+            ["Dictionary", "#dict"],
+            ["List", "#list"],
+            ["List Comprehension", "#list_comprehension"],
+            ["Set", "#set"],
+            ["Tuple", "#tuple"],
+            ["Properties"],
+            ["Length", "#len"]
+        ]]
+    add_menu(pybar, py_control)
 
     # structured dropdown menu data: button text, title info, list of ["button, "#id", "title help (optional)"]
     py_control = ["Control", "Control Structures",
            [["Loops"],
             ["For-Loop", "#forloop", "Iterate over a range of integers"],
             ["For-Loop over a list", "#forlistloop", "Iterate over a list"],
+            ["While loop", "#whileloop", "Loop while a condition holds"],
             ["Decisions"],
             ["If", "#if"],
             ["If-Else", "#ifelse"],
@@ -5898,43 +5928,100 @@ initialize_sage_python_r_toolbar = () ->
             ["Cases", "#cases", "Deciding between different cases"],
             ["For-Else Loop", "#forelseloop", "Searching for an item with a fallback."]
         ]]
-
-
     add_menu(pybar, py_control)
-    add_icon(pybar, "<i class='fa fa-comment-o'></i>", "#comment", "Comment selected text")
 
+    py_func = ["Functions", "Define Functions",
+           [
+            ["Function", "#function", "Define a Python function"],
+            ["Lambda", "#lambda", "A Python lambda function"]
+        ]]
+
+    add_menu(pybar, py_func)
+
+    py_classes = ["Classes", "Define Classes",
+           [
+            ["Class", "#simple_class", "Define a simple class"],
+            ["Class with inheritence", "#class_inheritence", "A class that inherits from other classes"]
+        ]]
+
+    add_menu(pybar, py_classes)
     codebar.append(pybar)
+
+    # -- Cython specific
+    cythonbar  = $("<span class='btn-group salvus-editor-codeedit-buttonbar-cython'></span>")
+    cython_classes = ["Cython Classes", "Define cdef'd Classes",
+           [
+            ["cdef Class", "#cython_class", "Define a Cython class"],
+           ]
+         ]
+    add_menu(cythonbar, cython_classes)
+    cythonbar.append(cythonbar)
 
     # -- sage specific --
     sagebar  = $("<span class='btn-group salvus-editor-codeedit-buttonbar-sage'></span>")
 
     sage_calculus = ["Calculus", "Calculus",
                      [["&part; Differentiate", "#differentiate", "Differentiate a function"],
-                      ["&int; Integrate",      "#integrate",     "Integrate a function"]
+                      ["&int; Numerical Integral",      "#nintegrate",     "Numerically integrate a function"]
+                      ["Symbolic Function",      "#symbolic_function",     "Define a symbolic function"]
+                      ["&int; Symbolic Integral",      "#integrate",     "Integrate a function"]
                     ]]
-    sage_linalg = ["LinAlg", "Linear Algebra",
-                  [["Matrix",      "#matrix"],
-                  ["Determinant", "#det"]
+    sage_linalg = ["Linear", "Linear Algebra",
+                  [
+                    ["Matrix $M$",      "#matrix", "Define a matrix"],
+                    ["Vector $\\vec v$",  "#vector", "Define a vector"],
+                    ["Functions"]
+                    ["Characteristic Polynomial", "#charpoly"]
+                    ["Determinant", "#det"]
+                    ["Eigenvectors", "#eigen", "Eigenvalues and eigenvectors of matrix"]
+                    ["SVD", "#svd", "Singular value decomposition of matrix"]
+
+                    ["Numpy"],
+                    ["Array",      "#numpy_array"],
                   ]]
-    sage_plotting = ["Plotting", "Plotting and Graphics",
-                     [["Plot 2D", "#plot2d", "Plot f(x)"],
-                      ["Plot 3D", "#plot3d", "Plot f(x, y)"]
+    sage_plotting = ["Plots", "Plotting Graphics",
+                     [
+                      ["2D Plotting"],
+                      ["Function", "#plot2d", "Plot f(x)"],
+                      ["Line", "#plot_line", "Sequence of line segments"],
+                      ["Points", "#plot_points", "Plot many points"],
+                      ["Polygon", "#plot_polygon"],
+                      ["Random Walk", "#plot_random_walk", "A random walk"],
+                      ["Text", "#plot_text", "Draw text"],
+
+                      ["3D Plotting"],
+                      ["Cube", "#cube", "Show a colored cube"]
+                      ["Function", "#plot3d", "Plot f(x, y)"],
+                      ["Icosahedron", "#icosahedron"]
+                      ["Implicit 3D Plot", "#implicit_plot3d", "Create an implicit 3D plot"]
+                      ["Tetrahedron", "#tetrahedron"]
+                      ["Text", "#plot_text3d", "Draw text"],
+                      ["Torus", "#plot_torus"]
+                      ["Parametric Curve", "#parametric_curve3d"]
+                      ["Parametric Surface", "#parametric_surface"]
+                      ["Polytope", "#polytope"]
                     ]]
     sage_graphs = ["Graphs", "Graph Theory",
                   [["graphs.&lt;tab&gt;", "#graphs"],
-                   ["Petersen Graph", "#petersen"]
+                   ["Petersen Graph", "#petersen", "Define the Peterson graph"]
                   ]]
-    sage_nt = ["NT", "Number Theory",
-              [["Factorization", "#factor"]
+    sage_nt = ["Number Theory", "Number Theory",
+              [
+               ["Binary Quadratic Form", "#binary_quadform", "Define a binary quadratic form"],
+               ["Continued Fraction", "#contfrac", "Compute a continued fraction"],
+               ["Elliptic Curve", "#ellcurve", "Define an elliptic curve"],
+               ["Factor", "#factor", "Factorization of something"],
+               ["Mod $n$", "#mod", "Number modulo n"],
+               ["Prime Numbers", "#primes", "Enumerate prime numbers"]
               ]]
 
-    add_icon(sagebar, "x", "#var", "Define a variable")
+    add_icon(sagebar, "$x$", "#var", "Define a symbolic variable", true)
+    add_menu(sagebar, sage_plotting)
     add_menu(sagebar, sage_calculus)
     add_menu(sagebar, sage_linalg)
-    add_menu(sagebar, sage_plotting)
     add_menu(sagebar, sage_graphs)
     add_menu(sagebar, sage_nt)
-    add_icon(sagebar, "<i class='fa fa-question-circle'></i>", "#help", "Help")
+    add_icon(sagebar, "<i class='fa fa-question-circle'></i> Help", "#help", "Help")
 
     codebar.append(sagebar)
 
@@ -5942,8 +6029,8 @@ initialize_sage_python_r_toolbar = () ->
     rbar = $(".salvus-editor-redit-buttonbar")
 
     r_basic = $("<span class='btn-group'></span>")
-    add_icon(r_basic, "<i class='fa fa-comment-o'></i>", "#comment", "Comment selected text")
-    add_icon(r_basic, "x", "#vector", "Insert a vector") # TODO $\vec x$ should work, but it only produces a partially rendered mathjax formula?
+    add_icon(r_basic, "<i class='fa'>#</i>", "#comment", "Comment selected text")
+    add_icon(r_basic, "$\\vec v$", "#vector", "Insert a vector")
 
     r_control = $("<span class='btn-group'></span>")
     r_control_entries = ["Control", "Control Structures",

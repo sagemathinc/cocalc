@@ -1153,16 +1153,28 @@ exports.define_codemirror_extensions = () ->
                 wrap :
                     left  : '# '
                     right : ''
+            len :
+                insert : "len([1, 2, 5, 6, 10])"
+            list :
+                insert : "[1, 2, 5, 6, 10]"
+            list_comprehension :
+                insert : "[n+1 for n in range(10) if n%2==0]"
+            dict :
+                insert : "{'sage':'math', 3:7}"
+            set :
+                insert : "{7, 3, 2}"
+            tuple :
+                insert : "(2, 3, 7)"
             forloop :
-                    insert: '\nfor i in range(5):\n    print i\n'
+                insert: '\nfor i in range(5):\n    print i\n'
             forlistloop:
-                    insert: """
+                insert: """
                             l = [1, 2, 5, 8, 10]
                             for i in l:
                                 print i
                             """
             forelseloop:
-                    insert: """
+                insert: """
                             for k in [1, 2, 5, 10]:
                                 if k == 3:
                                     print "found k, returning"
@@ -1170,12 +1182,19 @@ exports.define_codemirror_extensions = () ->
                             else:
                                 print "Haven't found k == 3"
                             """
+            whileloop:
+                insert: """
+                            n = 0
+                            while n < 5:
+                                print n
+                                n += 1
+                            """
             "if":
-                    insert: "\nif i == 1:\n    print 'i equals 1'\n"
+                insert: "\nif i == 1:\n    print 'i equals 1'\n"
             ifelse:
-                    insert: "\nif i == 1:\n    print 'i equals 1'\nelse:\n    print 'i is not 1'\n"
+                insert: "\nif i == 1:\n    print 'i equals 1'\nelse:\n    print 'i is not 1'\n"
             cases:
-                    insert: """
+                insert: """
                             if i == 0:
                                 print "i is zero"
                             elif i == 1:
@@ -1183,40 +1202,176 @@ exports.define_codemirror_extensions = () ->
                             else:
                                 print "i is neither zero or one"
                             """
+            function:
+                insert: """
+                            def f(a, b=0):
+                                \"\"\"
+                                This function returns the sum of a and b.
+                                \"\"\"
+                                return a + b
+                            """
+            lambda :
+                insert: """f = lambda a, b: a + b"""
+            simple_class :
+                insert: """
+                            class MyClass(object):
+                                \"\"\"
+                                This is a simple class.
+                                \"\"\"
+                                def __init__(self, a):
+                                    self.a = a
+                                def __repr__(self):
+                                    return "Instance of MyClass with a = %s"%self.a
 
+                            print(MyClass(5))
+                            """
+            class_inheritence :
+                insert: """
+                            class A(object):
+                                def __repr__(self):
+                                    return "instance of A"
+                                def foo(self):
+                                    return "foo"
+
+                            class B(object):
+                                def __repr__(self):
+                                    return "instance of B"
+                                def bar(self):
+                                    return "bar"
+
+                            class C(A, B):
+                                \"\"\"
+                                This is a class that inerits from classes A and B.
+                                \"\"\"
+                                def __repr__(self):
+                                    return "instance of C"
+
+                            # Both foo and bar are defined on instances of C.
+                            c = C()
+                            print(c.foo(), c.bar())
+                            """
+        cython:
+            cython_class :
+                insert: """
+                            cdef class MyClass:
+                                \"\"\"
+                                This is a Cython class.
+                                \"\"\"
+                                cdef int a
+                                def __init__(self, int a):
+                                    self.a = a
+                                def __repr__(self):
+                                    return "Instance of MyClass with a = %s"%self.a
+
+                            print(MyClass(5))
+                            """
         sage:
-            differentiate:
-                   insert : 'diff(1 + x + x^2, x)'
-            integrate:
-                   insert : 'integrate(1 + x + x^2, x)'
-            matrix:
-                   insert : "matrix(RDF, [[1, 2], [3, -1]])"
-            plot2d:
-                   insert : "plot(x * sin(x), (x, -2, 10))"
-            plot3d:
-                   insert : "\nvar('x y')\nplot3d(x * sin(y), (x, -5, 5), (y, -5, 5))"
-            graphs:
-                   insert : "# Press the TAB key after graphs. to see a list of predefined graphs.\ngraphs."
-            petersen:
-                   insert : "G = graphs.PetersenGraph()\nG.plot()"
-            factor:
-                   insert : "factor(2015)"
-            var:
-                   insert : "x = var('x')"
             help:
                 wrap:
                     left  : "help("
                     right : ")"
+            differentiate:
+                insert : 'diff(1 + x + x^2, x)'
+            integrate:
+                insert : 'integrate(1 + x + x^2, x)'
+            nintegrate:
+                insert : 'numerical_integral(1 + x + x^2, 0, 3)[0]  # [1] gives error bound'
+            symbolic_function:
+                insert : 'f(x,y) = x * sin(y)'
+            matrix:
+                insert : "matrix(2, 3, [1,pi,3, e,5,6])"
+            vector:
+                insert : "vector([pi, 2, 3, e])"
+            plot2d:
+                insert : "plot(x * sin(x), (x, -2, 10))"
+            plot_line:
+                insert : "line([(0,0), (1,2), (1/2,pi), (1/2,pi/2)], color='darkgreen', thickness=3)"
+            plot_polygon:
+                insert : """
+                            a = polygon2d([(0,0), (1,2), (1/2,pi), (1/2,pi/2)], color='orange')
+                            b = polygon2d([(0,0), (1,2), (1/2,pi), (1/2,pi/2)], color='black', fill=False, thickness=3)
+                            show(a + b)
+                         """
+            plot_random_walk:
+                insert : "stats.TimeSeries(1000).randomize('normal').sums().plot()"
+            plot_text:
+                insert : 'text("Text and LaTeX: $\\alpha^3 + 1$", (1,1), color="black", fontsize=15, rotation=30)'
+            plot_points:
+                insert : "show(points([(1,0), (sqrt(2)/2,sqrt(2)/2), (0,1), (1/2,1/2)], color='darkgreen', pointsize=50), aspect_ratio=1)"
+            plot3d:
+                insert : "\n%var x y\nplot3d(x * sin(y), (x, -5, 5), (y, -5, 5))"
+            plot_torus:
+                insert : """
+                        from sage.plot.plot3d.shapes import Torus
+                        inner_radius = .3; outer_radius = 1
+                        show(Torus(outer_radius, inner_radius, color='orange'), aspect_ratio=1, spin=3)
+                        """
+            parametric_curve3d:
+                insert : """
+                        %var u
+                        parametric_plot3d( (sin(u), cos(u), u/10), (u, 0, 20), thickness=5, color='green', plot_points=100)
+                        """
+            parametric_surface:
+                insert : """
+                        %var u, v
+                        fx = (3*(1+sin(v)) + 2*(1-cos(v)/2)*cos(u))*cos(v)
+                        fy = (4+2*(1-cos(v)/2)*cos(u))*sin(v)
+                        fz = -2*(1-cos(v)/2) * sin(u)
+                        parametric_plot3d([fx, fy, fz], (u, 0, 2*pi), (v, 0, 2*pi), color="green", opacity=.7, mesh=1, spin=5)
+                        """
+            implicit_plot3d:
+                insert : """
+                            %var x y z
+                            g = golden_ratio; r = 4.77
+                            p = 2 - (cos(x + g*y) + cos(x - g*y) + cos(y + g*z) +
+                                     cos(y - g*z) + cos(z - g*x) + cos(z + g*x))
+                            show(implicit_plot3d(p, (x, -r, r), (y, -r, r), (z, -r, r),
+                                            plot_points=30, color='orange', mesh=1, opacity=.7), spin=1)
+                        """
+            icosahedron :
+                insert : "show(icosahedron(color='green', opacity=.5, mesh=3), spin=1)"
+            cube :
+                insert : """
+                            show(cube(color=['red', 'blue', 'green'], frame_thickness=2,
+                                      frame_color='brown', opacity=0.8), frame=False)
+                        """
+            plot_text3d:
+                insert : 'text3d("Text in 3D", (1,1, 1), color="darkred", fontsize=20)'
+            graphs:
+                insert : "# Press the TAB key after 'graphs.' to see a list of predefined graphs.\ngraphs."
+            petersen:
+                insert : "G = graphs.PetersenGraph()\nG.plot()"
+            factor:
+                insert : "factor(2015)"
+            primes:
+                insert : "prime_range(100)"
+            mod:
+                insert : "Mod(5, 12)"
+            contfrac:
+                insert : "continued_fraction(e)"
+            binary_quadform:
+                insert : "BinaryQF([1,2,3])"
+            ellcurve:
+                insert : "EllipticCurve([1,2,3,4,5])"
+            var:
+                insert : "%var x, theta"
             det:
-                wrap:
-                    right : ".det()"
+                insert : "matrix(2, 2, [1,2, 3,4]).det()"
+            charpoly:
+                insert : "matrix(2, 2, [1,2, 3,4]).charpoly()"
+            eigen:
+                insert : "matrix(3,[1,2,3, 4,5,6, 7,8,9]).right_eigenvectors()"
+            svd:
+                insert : "matrix(CDF, 3, [1,2,3, 4,5,6, 7,8,9]).SVD()"
+            numpy_array:
+                insert : "import numpy\nnumpy.array([[1,2,3], [4,5,6]], dtype=float)"
 
         r:
             comment:
                 wrap:
                     left  : "# "
             vector:
-                   insert : "v <- c(1,1,2,3,5,8,13)"
+                insert : "v <- c(1,1,2,3,5,8,13)"
             forloop:
                 wrap:
                     left  : """
@@ -1229,7 +1384,7 @@ exports.define_codemirror_extensions = () ->
                     left  : "summary("
                     right : ")"
             plot:
-                   insert : "\nplot(c(1,2,4,8,16,32,64), c(1,1,2,3,5,8,13), type=\"l\")"
+                insert : "\nplot(c(1,2,4,8,16,32,64), c(1,1,2,3,5,8,13), type=\"l\")"
 
     CodeMirror.defineExtension 'get_edit_mode', (opts) ->
         opts = defaults opts, {}
