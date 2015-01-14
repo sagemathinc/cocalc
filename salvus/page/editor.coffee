@@ -2166,6 +2166,7 @@ class CodeMirrorEditor extends FileEditor
             cm.on('cursorActivity', f)
 
         update_context_sensitive_bar()
+        @element.find(".salvus-editor-codemirror-textedit-buttons").mathjax()
 
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
