@@ -4610,7 +4610,7 @@ class IPythonNotebook extends FileEditor
     initialize: (cb) =>
         async.series([
             (cb) =>
-                @status("Connecting to the IPython Notebook server")
+                @status("Connecting to your IPython Notebook server")
                 ipython_notebook_server
                     project_id : @editor.project_id
                     cb         : (err, server) =>
