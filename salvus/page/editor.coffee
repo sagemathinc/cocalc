@@ -829,7 +829,6 @@ class exports.Editor
             else
                 throw("Unknown editor type '#{editor_name}'")
 
-        window.editor = @  # DEBUG
         return editor
 
     create_opened_file_tab: (filename) =>
@@ -2100,6 +2099,10 @@ class CodeMirrorEditor extends FileEditor
             return
 
         if IS_MOBILE  # no edit button bar on mobile either -- too big (for now at least)
+            return
+
+        if not require('account').account_settings.settings.editor_settings.extra_button_bar
+            # explicitly disabled by user
             return
 
         NAME_TO_MODE = {xml:'%html', markdown:'%md', mediawiki:'%wiki'}

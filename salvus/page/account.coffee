@@ -447,7 +447,8 @@ EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
                               'code_folding'
                               'electric_chars',
                               'spaces_instead_of_tabs',
-                              'track_revisions']
+                              'track_revisions',
+                              'extra_button_bar']
 
 OTHER_SETTINGS_CHECKBOXES = ['confirm_close',
                              'mask_files']
