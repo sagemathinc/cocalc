@@ -706,7 +706,7 @@ class Client extends EventEmitter
         @compute_session_uuids = []
         c = clients[@conn.id]
         delete clients[@conn.id]
-        if c.call_callbacks?
+        if c? and c.call_callbacks?
             for id,f of c.call_callbacks
                 f("connection closed")
             delete c.call_callbacks
