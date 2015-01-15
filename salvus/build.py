@@ -685,6 +685,7 @@ class BuildSage(object):
         self.install_gdal()
         self.install_stein_watkins()
         self.install_ipython_patch()
+        self.install_jsanimation()
         self.clean_up()
         self.extend_sys_path()
         self.fix_permissions()
@@ -694,6 +695,9 @@ class BuildSage(object):
         TODO:
         """
         raise RuntimeError("TODO: change line 171 of '/usr/local/sage/current/local/lib/python/site-packages/IPython/html/notebookapp.py' to 'static_url_prefix = '/static/ipython/''")
+
+    def install_jsanimation(self):
+        self.cmd("cd /tmp && rm -rf JSAnimation && git clone https://github.com/jakevdp/JSAnimation.git && cd JSAnimation && python setup.py install && rm -rf /tmp/JSAnimation")
 
     def patch_sage_location(self):
         """
