@@ -2099,28 +2099,58 @@ class CodeMirrorEditor extends FileEditor
         if @opts.readonly  # no editing button bar needed for read-only files
             return
 
+        if IS_MOBILE  # no edit button bar on mobile either -- too big (for now at least)
+            return
+
+        NAME_TO_MODE = {xml:'%html', markdown:'%md', mediawiki:'%wiki'}
+        for x in sagews_decorator_modes
+            mode = x[0]
+            name = x[1]
+            v = name.split('-')
+            if v.length > 1
+                name = v[1]
+            NAME_TO_MODE[name] = "%#{mode}"
+
+        name_to_mode = (name) ->
+            n = NAME_TO_MODE[name]
+            if n?
+                return n
+            else
+                return "%#{name}"
+
         # add the text editing button bar
+        e = @element.find(".salvus-editor-codemirror-textedit-buttons")
         @textedit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone().hide()
-        @element.find(".salvus-editor-codemirror-textedit-buttons").append(@textedit_buttons).show()
+        e.append(@textedit_buttons).show()
 
         # add the code editing button bar
         @codeedit_buttons = templates.find(".salvus-editor-codeedit-buttonbar").clone()
-        @element.find(".salvus-editor-codemirror-textedit-buttons").append(@codeedit_buttons)
+        e.append(@codeedit_buttons)
 
         # the r-editing button bar
         @redit_buttons =  templates.find(".salvus-editor-redit-buttonbar").clone()
-        @element.find(".salvus-editor-codemirror-textedit-buttons").append(@redit_buttons)
+        e.append(@redit_buttons)
+
+        # the Julia-editing button bar
+        @julia_edit_buttons =  templates.find(".salvus-editor-julia-edit-buttonbar").clone()
+        e.append(@julia_edit_buttons)
 
         @cython_buttons =  templates.find(".salvus-editor-cython-buttonbar").clone()
-        @element.find(".salvus-editor-codemirror-textedit-buttons").append(@cython_buttons)
+        e.append(@cython_buttons)
 
-        all_edit_buttons = [@textedit_buttons, @codeedit_buttons, @redit_buttons, @cython_buttons]
+        @fallback_buttons = templates.find(".salvus-editor-fallback-edit-buttonbar").clone()
+        e.append(@fallback_buttons)
+
+        all_edit_buttons = [@textedit_buttons, @codeedit_buttons, @redit_buttons,
+                            @cython_buttons, @julia_edit_buttons, @fallback_buttons]
 
         # activite the buttons in the bar
         that = @
         edit_button_click = () ->
             args = $(this).data('args')
             cmd  = $(this).attr('href').slice(1)
+            if cmd == 'todo'
+                return
             if args? and typeof(args) != 'object'
                 args = "#{args}"
                 if args.indexOf(',') != -1
@@ -2128,16 +2158,29 @@ class CodeMirrorEditor extends FileEditor
             that.textedit_command(that.focused_codemirror(), cmd, args)
             return true # <- this return true does the magic of closing the dropdown menu when a button is clicked
 
+        @fallback_buttons.find("a[href=#todo]").click () =>
+            bootbox.alert("<i class='fa fa-wrench' style='font-size: 18pt;margin-right: 1em;'></i> Button bar not yet implemented in <code>#{mode_display.text()}</code> cells.")
+            return false
+
         for edit_buttons in all_edit_buttons
             edit_buttons.find("a").click(edit_button_click)
             edit_buttons.find("*[title]").tooltip(TOOLTIP_DELAY)
 
-        show_edit_buttons = (which_one) ->
+        mode_display = @element.find(".salvus-editor-codeedit-buttonbar-mode")
+        set_mode_display = (name) ->
+            #console.log("set_mode_display: #{name}")
+            if name?
+                mode_display.text(name_to_mode(name))
+            else
+                mode_display.text("")
+
+        show_edit_buttons = (which_one, name) ->
             for edit_buttons in all_edit_buttons
                 if edit_buttons == which_one
                     edit_buttons.show()
                 else
                     edit_buttons.hide()
+            set_mode_display(name)
 
         # The code below changes the bar at the top depending on where the cursor
         # is located.  We only change the edit bar if the cursor hasn't moved for
@@ -2152,15 +2195,19 @@ class CodeMirrorEditor extends FileEditor
             cm = @focused_codemirror()
             pos = cm.getCursor()
             name = cm.getModeAt(pos).name
-            console.log("update_context_sensitive_bar, pos=#{misc.to_json(pos)}, name=#{name}")
+            #console.log("update_context_sensitive_bar, pos=#{misc.to_json(pos)}, name=#{name}")
             if name in ['xml', 'stex', 'markdown', 'mediawiki']
-                show_edit_buttons(@textedit_buttons)
-            else if name in ["r"]
-                show_edit_buttons(@redit_buttons)
-            else if name in ["cython"]  # doesn't work yet, since name=python still
-                show_edit_buttons(@cython_buttons)
+                show_edit_buttons(@textedit_buttons, name)
+            else if name == "r"
+                show_edit_buttons(@redit_buttons, name)
+            else if name == "julia"
+                show_edit_buttons(@julia_edit_buttons, name)
+            else if name == "cython"  # doesn't work yet, since name=python still
+                show_edit_buttons(@cython_buttons, name)
+            else if name == "python"  # doesn't work yet, since name=python still
+                show_edit_buttons(@codeedit_buttons, "sage")
             else
-                show_edit_buttons(@codeedit_buttons)
+                show_edit_buttons(@fallback_buttons, name)
 
         for cm in [@codemirror, @codemirror1]
             cm.on('cursorActivity', f)

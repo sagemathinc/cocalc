@@ -658,6 +658,8 @@ exports.commands =
                      b = polygon2d([(0,0), (1,2), (1/2,pi), (1/2,pi/2)], color='black', fill=False, thickness=3)
                      show(a + b)
                      """
+        plot_parametric:
+            insert : "parametric_plot([cos(x) + 2*cos(x/4), sin(x) - 2*sin(x/4)], (x,0,8*pi), color='green', thickness=3, fill = True)"
         plot_random_walk:
             insert : "stats.TimeSeries(1000).randomize('normal').sums().plot()"
         plot_text:
@@ -694,6 +696,19 @@ exports.commands =
                     show(implicit_plot3d(p, (x, -r, r), (y, -r, r), (z, -r, r),
                                     plot_points=30, color='orange', mesh=1, opacity=.7), spin=1)
                     """
+
+        random_walk_3d:
+            insert : """
+                    v = [(0,0,0)]
+                    for i in range(1000):
+                        v.append([a+random()-.5 for a in v[-1]])
+                    line3d(v, color='red', thickness=3, spin=3)
+                    """
+        polytope :
+            insert : """
+                    points = [(2,0,0), (0,2,0), (0,0,2), (-1,0,0), (0,-1,0), (0,0,-1)]
+                    show(LatticePolytope(points).plot3d(), spin=5)
+                    """
         icosahedron :
             insert : "show(icosahedron(color='green', opacity=.5, mesh=3), spin=1)"
         cube :
@@ -706,11 +721,23 @@ exports.commands =
         graphs:
             insert : "# Press the TAB key after 'graphs.' to see a list of predefined graphs.\ngraphs."
         petersen:
-            insert : "G = graphs.PetersenGraph()\nG.plot()"
+            insert : "graphs.PetersenGraph()"
+        random_graph:
+            insert : "graphs.RandomGNM(15, 20)  # 15 vertices and 20 edges"
+        chromatic_number:
+            insert : "graphs.PetersenGraph().chromatic_number()"
+        auto_group_graph:
+            insert : "graphs.PetersenGraph().automorphism_group()"
+        graph_2dplot:
+            insert : "graphs.PetersenGraph().plot()"
+        graph_3dplot:
+            insert : "show(graphs.PetersenGraph().plot3d(), frame=False)"
         factor:
             insert : "factor(2015)"
         primes:
             insert : "prime_range(100)"
+        prime_pi:
+            insert : "prime_pi(10^6)"
         mod:
             insert : "Mod(5, 12)"
         contfrac:
@@ -732,7 +759,83 @@ exports.commands =
         numpy_array:
             insert : "import numpy\nnumpy.array([[1,2,3], [4,5,6]], dtype=float)"
 
-    r:
+        ring_AA:
+            insert : "AA"
+        ring_CC:
+            insert : "CC"
+        ring_CDF:
+            insert : "CDF"
+        ring_CIF:
+            insert : "CIF"
+        ring_CLF:
+            insert : "CLF"
+        ring_FF_p:
+            insert : "GF(7)"
+        ring_FF_pr:
+            insert : "GF(7^3,'a')"
+        ring_QQ:
+            insert : "QQ"
+        ring_QQbar:
+            insert : "QQbar"
+        ring_QQp:
+            insert : "Qp(7)"
+        ring_RR:
+            insert : "RR"
+        ring_RDF:
+            insert : "RDF"
+        ring_RIF:
+            insert : "RIF"
+        ring_RLF:
+            insert : "RLF"
+        ring_ZZ:
+            insert : "ZZ"
+        ring_ZZp:
+            insert : "Zp(7)"
+        ring_QQx:
+            insert : "R.<x> = QQ[]"
+        ring_QQxyz:
+            insert : "R.<x,y,z> = QQ[]"
+        ring_ZZxp:
+            insert : "R = PolynomialRing(ZZ, ['x%s'%p for p in primes(100)])\nR.inject_variables()"
+        ring_QQ_quo:
+            insert : "R.<x,y> = QQ[]; R.<xx, yy> = R.quo([y^2 - x^3 - x])"
+
+    julia:
+        comment:
+            wrap:
+                left : "# "
+                right: ""
+        assign:
+            insert : "a = 5"
+        forloop:
+            insert : """
+                    for animal in ["dog", "cat", "mouse"]
+                        println("$animal is a mammal")
+                    end
+                    """
+        function :
+            insert : """
+                    function add(x, y)
+                        println("x is $x and y is $y")
+                        # Functions return the value of their last statement
+                        x + y
+                    end
+
+                    println(add(2000, 15))
+                    """
+        ifelse:
+            insert : """
+                    a = 10
+                    if a > 10
+                        println("a is bigger than 10.")
+                    elseif a < 10    # This elseif clause is optional.
+                        println("a is smaller than 10.")
+                    else             # The else clause is optional too.
+                        println("a is indeed 10.")
+                    end
+                    """
+
+    r:                 # http://cran.r-project.org/doc/manuals/r-release/R-intro.html
         comment:
             wrap:
                 left  : "# "
@@ -745,12 +848,143 @@ exports.commands =
                             print(sprintf("i = %s", i));
                         """
                 right : "\n}\n"
+        ifelse:
+            insert: """
+                    k <- 10
+                    if (k > 5) {
+                      print("k greater than 5")
+                    } else {
+                      print("k less or equal than 5")
+                    }
+                    """
         summary:
             wrap:
                 left  : "summary("
                 right : ")"
         plot:
-            insert : "\nplot(c(1,2,4,8,16,32,64), c(1,1,2,3,5,8,13), type=\"l\")"
+            insert: "\nplot(c(1,2,4,8,16,32,64), c(1,1,2,3,5,8,13), type=\"l\")"
+        seq:
+            insert: "-5:5"
+        seq_by:
+            insert: "seq(-5, 5, by=.2)"
+        seq_length:
+            insert: "seq(length=51, from=-5, by=.2)"
+        rep1:
+            insert: "rep(c(5,1,3), times = 3)"
+        rep2:
+            insert: "rep(c(5,1,3), each = 3)"
+        charvec:
+            insert: """paste(c("X","Y"), 1:10, sep="")"""
+        mean:
+            insert: "mean(c(4,3,4,2,-1,3,2,3,2))"
+        matrix:
+            insert: "array(1:20, dim=c(4,5))"
+        assign:
+            insert: """
+                    x <- "hello"
+                    print(x)
+                    """
+        outer:
+            insert: "c(1,2) %o% c(4,4)"
+        matrixmult:
+            insert: """
+                    x <- c(1,2,3,4)
+                    A <- array(seq(1:20), dim=c(5,4))
+                    A %*% x
+                    """
+        function:
+            insert: """
+                    f <- function(x, y) {
+                       y <- 2 * x + y
+                       return(y + cos(x))
+                    }
+                    f(1,2)
+                    """
+        inverse:
+            insert: "solve(array(c(2,1,-4,1), dim=c(2,2)))"
+        solvelin:
+            insert: "solve(array(c(2,1,-4,1), dim=c(2,2)), c(6,7))"
+        svd:
+            insert: "svd(array(-9:6, dim=c(4,4)))"
+        list1:
+            insert: """
+                    # index into a list via [[idx]]
+                    l <- list(1,"fred", c(1,2,3))
+                    print(l[[1]])
+                    print(l[[2]])
+                    print(l[[3]])
+                    """
+        list2:
+            insert: """
+                    # assoziated list of names and objects
+                    l <- list(a = 1, b = c(1,2,3))
+                    print(l$a) # access a in l
+                    print(l$b)
+                    """
+        arrayselect:
+            insert: "x <- c(4,7,3,2,9)\nx[x > 4]"
+        dataframe:
+            insert:
+                    """
+                    a <- c(1,2,1)
+                    b <- c("Fred", "Susan", "Joe")
+                    c <- seq(1, by=.01, length=3)
+                    df <- data.frame(sex = a, name = b, result = c)
+                    df
+                    # for more information: help(data.frame)
+                    """
+        normal:
+            insert: "rnorm(10, mean = 100, sd = 1)"
+        stem:
+            insert: "# condensed overview of all numbers in the given list\nstem(rnorm(1000, mean = 5, sd = 10))"
+        attach:
+            insert: "# attach loads internal datasets\nattach(faithful)\nprint(summary(faithful))\nprint(head(faithful))"
+        histdensity:
+            insert: """
+                    attach(faithful)
+                    hist(eruptions, seq(1.6, 5.2, 0.2), prob=TRUE)
+                    lines(density(eruptions, bw=0.1))
+                    rug(eruptions)
+                    """
+        qqplot:
+            insert: """
+                    attach(faithful)
+                    long <- eruptions[eruptions > 3]
+                    par(pty="s")   # square figure
+                    qqnorm(long)
+                    qqline(long)
+                    """
+        boxplot:
+            insert: """
+                    a <- rnorm(10)
+                    b <- rnorm(10, mean=2)
+                    boxplot(a, b)
+                    """
+        contour:
+            insert: """
+                    x <- seq(-pi, pi, len=50)
+                    y <- x
+                    f <- outer(x, y, function(x, y) cos(y)/(1 + x^2))
+                    contour(x, y, f, nlevels=15)
+                    """
+        lm:
+            insert: """
+                    x1 <- c(1,2,3,4,3,4,5,7,5,7,8,9)
+                    x2 <- c(1,1,1,1,2,2,2,3,3,3,4,4)
+                    df <- data.frame(x1=x1, x2=x2)
+                    lm(y ~ x1 + x2, data=df)
+                    """
+        nlm:
+            insert: """
+                    x <- c(0.02, 0.02, 0.06, 0.06, 0.11, 0.11, 0.22, 0.22, 0.56, 0.56,  1.10, 1.10)
+                    y <- c(76, 47, 97, 107, 123, 139, 159, 152, 191, 201, 207, 200)
+                    # function to be fitted
+                    fn <- function(p) sum((y - (p[1] * x)/(p[2] + x))^2)
+                    # supplying nlm with starting varlues
+                    nlm(fn, p = c(200, 0.1), hessian = TRUE)
+                    """
+
+
 
 
 #
@@ -961,7 +1195,7 @@ initialize_sage_python_r_toolbar = () ->
     sage_calculus = ["Calculus", "Calculus",
                      [["&part; Differentiate", "#differentiate", "Differentiate a function"],
                       ["&int; Numerical Integral",      "#nintegrate",     "Numerically integrate a function"]
-                      ["Symbolic Function",      "#symbolic_function",     "Define a symbolic function"]
+                      ["$f(x,y) = \\cdots $ - Symbolic Function",      "#symbolic_function",     "Define a symbolic function"]
                       ["&int; Symbolic Integral",      "#integrate",     "Integrate a function"]
                     ]]
     sage_linalg = ["Linear", "Linear Algebra",
@@ -982,26 +1216,34 @@ initialize_sage_python_r_toolbar = () ->
                       ["2D Plotting"],
                       ["Function", "#plot2d", "Plot f(x)"],
                       ["Line", "#plot_line", "Sequence of line segments"],
+                      ["Parametric", "#plot_parametric", "Parematric plot"],
                       ["Points", "#plot_points", "Plot many points"],
                       ["Polygon", "#plot_polygon"],
                       ["Random Walk", "#plot_random_walk", "A random walk"],
                       ["Text", "#plot_text", "Draw text"],
-
                       ["3D Plotting"],
-                      ["Cube", "#cube", "Show a colored cube"]
+                      ["Cube", "#cube", "Show a colored cube"],
                       ["Function", "#plot3d", "Plot f(x, y)"],
-                      ["Icosahedron", "#icosahedron"]
-                      ["Implicit 3D Plot", "#implicit_plot3d", "Create an implicit 3D plot"]
-                      ["Tetrahedron", "#tetrahedron"]
+                      ["Icosahedron", "#icosahedron"],
+                      ["Implicit Plot", "#implicit_plot3d", "Create an implicit 3D plot"],
+                      ["Parametric Curve", "#parametric_curve3d"],
+                      ["Parametric Surface", "#parametric_surface"],
+                      ["Polytope", "#polytope"],
+                      ["Random Walk", "#random_walk_3d", "A 3d Random Walk"],
+                      ["Tetrahedron", "#tetrahedron"],
                       ["Text", "#plot_text3d", "Draw text"],
                       ["Torus", "#plot_torus"]
-                      ["Parametric Curve", "#parametric_curve3d"]
-                      ["Parametric Surface", "#parametric_surface"]
-                      ["Polytope", "#polytope"]
                     ]]
     sage_graphs = ["Graphs", "Graph Theory",
                   [["graphs.&lt;tab&gt;", "#graphs"],
                    ["Petersen Graph", "#petersen", "Define the Peterson graph"]
+                   ["Random Graph", "#random_graph"]
+                   ['Invariants'],
+                   ["Automorphism Group", "#auto_group_graph", "Automorphism group of a graph"]
+                   ["Chromatic Number", "#chromatic_number", "Chromatic number of a graph"],
+                   ['Visualization'],
+                   ["2D Plot", "#graph_2dplot"],
+                   ["3D Plot", "#graph_3dplot"]
                   ]]
     sage_nt = ["Number Theory", "Number Theory",
               [
@@ -1010,17 +1252,33 @@ initialize_sage_python_r_toolbar = () ->
                ["Elliptic Curve", "#ellcurve", "Define an elliptic curve"],
                ["Factor", "#factor", "Factorization of something"],
                ["Mod $n$", "#mod", "Number modulo n"],
-               ["Prime Numbers", "#primes", "Enumerate prime numbers"]
+               ["List Prime Numbers", "#primes", "Enumerate prime numbers"]
+               ["Count Prime Numbers", "#prime_pi", "Count prime numbers"]
               ]]
 
     sage_rings = ["Rings", "Rings and Fields",
               [
-               ["$\\ZZ$ (Integers)", "#ring_ZZ"],
-               ["$\\QQ$ (Rational Numbers)", "#ring_QQ"],
-               ["$\\RR$ (Real Numbers)", "#ring_RR"],
-               ["$\\RDF$ (Double Precision)", "#ring_RDF"],
-               ["$\\FF_p$ (Prime Finite Field)", "#ring_FF_p"],
-               ["$\\FF_{p^r}$ (Finite Field)", "#ring_FF_pr"],
+               ["$\\CC$ - Complex Numbers", "#ring_CC"],
+               ["$\\QQ$ - Rational Numbers", "#ring_QQ"],
+               ["$\\RR$ - Real Numbers", "#ring_RR"],
+               ["$\\ZZ$ - Integers", "#ring_ZZ"],
+               ["Polynomial Rings"],
+               ["$\\QQ[x, y, z]$", "#ring_QQxyz"],
+               ["$\\QQ[x, y]/(y^2-x^3-x)$", "#ring_QQ_quo"],
+               ["$\\ZZ[x_2, x_3, \\ldots, x_{97}]$", "#ring_ZZxp"],
+               ["Advanced Rings"],
+               ["$\\mathbb{A}$ - Algebraic Reals", "#ring_AA"],
+               ["$\\CDF$ - Complex Double", "#ring_CDF"],
+               ["$\\CC$ - Complex Interval", "#ring_CIF"],
+               ["$\\CLF$ - Complex Lazy", "#ring_CLF"],
+               ["$\\FF_p$ - Prime Finite Field", "#ring_FF_p"],
+               ["$\\FF_{p^r}$ - Finite Field", "#ring_FF_pr"],
+               ["$\\overline{\\QQ}$ - Algebraic Closure", "#ring_QQbar"],
+               ["$\\QQ_p$ - $p$-adic Numbers", "#ring_QQp"],
+               ["$\\RDF$ - Real Double", "#ring_RDF"],
+               ["$\\RR$ - Real Interval", "#ring_RIF"],
+               ["$\\RLF$ - Real Lazy", "#ring_RLF"],
+               ["$\\ZZ_p$ - $p$-adic Integers", "#ring_ZZp"],
               ]]
 
     add_icon(sagebar, "$x$", "#var", "Define a symbolic variable", true)
@@ -1041,21 +1299,63 @@ initialize_sage_python_r_toolbar = () ->
     add_icon(r_basic, "<i class='fa'>#</i>", "#comment", "Comment selected text")
     add_icon(r_basic, "$\\vec v$", "#vector", "Insert a vector")
 
-    r_control = $("<span class='btn-group'></span>")
+    r_control = make_bar()
     r_control_entries = ["Control", "Control Structures",
-                        [["For-Loop", "#forloop", "Insert a for loop"]
+                        [
+                            ["Assignment", "#assign", "Give an object a (variable)name"],
+                            ["For-Loop", "#forloop", "Insert a for loop"],
+                            ["Function definition", "#function", "Define a function"],
+                            ["If-Else", "#ifelse"]
                         ]]
     add_menu(r_control, r_control_entries)
 
+    r_data = make_bar()
+    r_bar_entries = ["Data", "Data structures",
+                     [
+                        ["List, indexed", "#list1"],
+                        ["List, associative", "#list2"],
+                        ["Array selection", "#arrayselect"]
+                        ["Data Frame", "#dataframe"],
+                        ["Attach", "#attach"]
+                     ]]
+
+    r_funcs = make_bar()
+    r_funcs_entries = ["Functions", "Some selected functions",
+                       [
+                        ["Sequence Simple", "#seq"]
+                        ["Sequence Stepsize", "#seq_by"],
+                        ["Sequence Length", "#seq_length"],
+                        ["Repetitions (times)", "rep1"],
+                        ["Repetitions (each)", "rep2"],
+                        ["Character Vector", "#charvec"],
+                        ["Matrix array", "#matrix"],
+                        ["Matrix multipliation", "#matrixmult"]
+                        ["Outer product", "#outer"],
+                        ["Inverse matrix", "#inverse"],
+                        ["Solve A*x=b", "#solvelin"],
+                        ["SVD", "#svd"]
+                      ]]
+
     r_stats = make_bar()
     r_stats_entries = ["Stats", "Basic Statistical Functions",
-                      [["Summary of some object", "#summary"]]
-                      ]
+                      [
+                        ["Statistical summary", "#summary"],
+                        ["Mean", "#mean"],
+                        ["Normal Distribution", "#normal"],
+                        ["Linear Model", "#lm"],
+                        ["Nonlinear Model", "#nlm"]
+                      ]]
     add_menu(r_stats, r_stats_entries)
 
     r_plot = make_bar()
     r_plot_entries = ["Plots", "Basic Plots",
-                     [["Plot x/y pairs", "#plot"]
+                     [
+                        ["Plot x/y pairs", "#plot"],
+                        ["Stem Plot", "#stem"],
+                        ["Histogram + Density + Rug", "#histdensity"],
+                        ["QQ-Plot", "#qqplot", "Quantile-quantile plot"],
+                        ["Boxplot", "#boxplot"],
+                        ["Contour Plot", "#contour"]
                      ]]
     add_menu(r_plot, r_plot_entries)
 
@@ -1063,6 +1363,24 @@ initialize_sage_python_r_toolbar = () ->
     rbar.append(r_control)
     rbar.append(r_stats)
     rbar.append(r_plot)
+
+    # -- Julia specific --
+    julia_bar = $(".salvus-editor-julia-edit-buttonbar")
+
+    julia_basic = make_bar()
+    add_icon(julia_basic, "<i class='fa'>#</i>", "#comment", "Comment selected text")
+
+    julia_control = make_bar()
+    julia_control_entries = ["Control", "Control Structures",
+                        [
+                            ["Assignment", "#assign", "Give an object a (variable)name"],
+                            ["For-Loop", "#forloop", "Insert a for loop"],
+                            ["Function definition", "#function", "Define a function"],
+                            ["If-Else", "#ifelse"]
+                        ]]
+    add_menu(julia_control, julia_control_entries)
+    julia_bar.append(julia_basic)
+    julia_bar.append(julia_control)
 
 initialize_sage_python_r_toolbar()
 
@@ -1109,4 +1427,5 @@ initialize_latex_buttonbar = () ->
     bb = $(".salvus-editor-latex-buttonbar")
     bb.append(latexbar)
 
-initialize_latex_buttonbar()
+# NOT READY YET.
+#initialize_latex_buttonbar()

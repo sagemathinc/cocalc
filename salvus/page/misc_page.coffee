@@ -712,6 +712,8 @@ exports.define_codemirror_extensions = () ->
                 return 'python'
             when 'r'
                 return 'r'
+            when 'julia'
+                return 'julia'
             when 'sagews'    # this doesn't work
                 return 'sage'
             else
@@ -761,7 +763,7 @@ exports.define_codemirror_extensions = () ->
         args = opts.args
         cmd = opts.cmd
 
-        console.log("edit_selection '#{misc.to_json(opts)}', mode='#{default_mode}'")
+        #console.log("edit_selection '#{misc.to_json(opts)}', mode='#{default_mode}'")
 
         # TODO: will have to make this more sophisticated, so it can
         # deal with nesting.
@@ -782,7 +784,7 @@ exports.define_codemirror_extensions = () ->
         #selections.reverse()
         for selection in selections
             mode = canonical_mode(cm.getModeAt(selection.head).name)
-            console.log("edit_selection(mode='#{mode}'), selection=", selection)
+            #console.log("edit_selection(mode='#{mode}'), selection=", selection)
             from = selection.from()
             to = selection.to()
             src = cm.getRange(from, to)
@@ -888,7 +890,7 @@ exports.define_codemirror_extensions = () ->
                     done = true
 
             if not done?
-                console.log("not implemented")
+                #console.log("not implemented")
                 return "not implemented"
 
             # TODO this is very much broken, because you always get two cursors.
@@ -912,7 +914,7 @@ exports.define_codemirror_extensions = () ->
                         delta = 0  # not really right if multiple lines -- should really not touch cursor when possible.
                     cm.addSelection({line:from.line, ch:to.ch+delta})
             ###
-            console.log("replacements: " + replacements)
+            #console.log("replacements: " + replacements)
             replacements.push(left_white + src + right_white)
         cm.replaceSelections(replacements)
 
@@ -1007,7 +1009,7 @@ exports.define_codemirror_extensions = () ->
             selections.reverse()
             for sel in selections
                 if sel.empty()
-                    console.log(cm, s, sel.head)
+                    #console.log(cm, s, sel.head)
                     cm.replaceRange(s, sel.head)
                 else
                     cm.replaceRange(s, sel.from(), sel.to())
