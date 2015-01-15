@@ -125,6 +125,7 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
 
     <script type="text/x-mathjax-config">
     MathJax.Hub.Config({
+       skipStartupTypeset: true,
        extensions: ["tex2jax.js","fp.js","asciimath2jax.js"],
        jax: ["input/TeX","input/AsciiMath", "output/SVG"],
        tex2jax: {
@@ -140,6 +141,7 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
                 NN:    ["\\Bold{N}",0],
                 RR:    ["\\Bold{R}",0],
                 CC:    ["\\Bold{C}",0],
+                FF:    ["\\Bold{F}",0],
                 QQ:    ["\\Bold{Q}",0],
                 QQbar: ["\\overline{\\QQ}",0],
                 CDF:   ["\\Bold{C}",0],

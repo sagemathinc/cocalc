@@ -34,6 +34,8 @@ MAX_LATEX_WARNINGS = 50
 MIN_SPLIT = 0.02
 MAX_SPLIT = 0.98  # maximum pane split proportion for editing
 
+TOOLTIP_DELAY = delay: {show: 500, hide: 100}
+
 async = require('async')
 
 message = require('message')
@@ -75,7 +77,7 @@ codemirror_associations =
     h      : 'text/x-c++hdr'
     hs     : 'text/x-haskell'
     lhs    : 'text/x-haskell'
-    html   : 'htmlmixed2'
+    html   : 'htmlmixed'
     java   : 'text/x-java'
     jl     : 'text/x-julia'
     js     : 'javascript'
@@ -133,7 +135,7 @@ file_associations['tex'] =
 file_associations['html'] =
     editor : 'html-md'
     icon   : 'fa-file-code-o'
-    opts   : {indent_unit:4, tab_size:4, mode:'htmlmixed2'}
+    opts   : {indent_unit:4, tab_size:4, mode:'htmlmixed'}
 
 file_associations['md'] =
     editor : 'html-md'
@@ -224,10 +226,10 @@ MARKERS  = diffsync.MARKERS
 
 sagews_decorator_modes = [
     ['coffeescript', 'coffeescript'],
-    ['cython'      , 'python'],
+    ['cython'      , 'cython'],
     ['file'        , 'text'],
     ['fortran'     , 'text/x-fortran'],
-    ['html'        , 'htmlmixed2'],
+    ['html'        , 'htmlmixed'],
     ['javascript'  , 'javascript'],
     ['latex'       , 'stex']
     ['lisp'        , 'ecl'],
@@ -249,6 +251,8 @@ sagews_decorator_modes = [
 
 exports.define_codemirror_sagews_mode = () ->
 
+    # not using these two gfm2 and htmlmixed2 modes, with their sub-latex mode, since
+    # detection of math isn't good enough.  e.g., \$ causes math mode and $ doesn't seem to...   \$500 and $\sin(x)$.
     CodeMirror.defineMode "gfm2", (config) ->
         options = []
         for x in [['$$','$$'], ['$','$'], ['\\[','\\]'], ['\\(','\\)']]
@@ -264,7 +268,7 @@ exports.define_codemirror_sagews_mode = () ->
             options.push
                 open  : x[0]
                 close : x[1]
-                mode  : CodeMirror.getMode(config, 'stex')
+                mode  : CodeMirror.getMode(config, mode)
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "htmlmixed"), options...)
 
     CodeMirror.defineMode "stex2", (config) ->
@@ -279,6 +283,11 @@ exports.define_codemirror_sagews_mode = () ->
             close : "}"
             mode  : CodeMirror.getMode(config, 'sagews')
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex"), options...)
+
+    CodeMirror.defineMode "cython", (config) ->
+        # TODO: need to figure out how to do this so that the name
+        # of the mode is cython
+        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"))
 
     CodeMirror.defineMode "sagews", (config) ->
         options = []
@@ -1493,6 +1502,10 @@ class CodeMirrorEditor extends FileEditor
         if opts.read_only
             @set_readonly_ui()
 
+        if @filename.slice(@filename.length-7) == '.sagews'
+            @init_sagews_edit_buttons()
+
+
     init_draggable_splits: () =>
         @_layout1_split_pos = @local_storage("layout1_split_pos")
         @_layout2_split_pos = @local_storage("layout2_split_pos")
@@ -1570,6 +1583,12 @@ class CodeMirrorEditor extends FileEditor
 
     codemirrors: () =>
         return [@codemirror, @codemirror1]
+
+    focused_codemirror: () =>
+        if @codemirror_with_last_focus?
+            return @codemirror_with_last_focus
+        else
+            return @codemirror
 
     action_key: (opts) =>
         # opts ignored by default; worksheets use them....
@@ -2055,6 +2074,150 @@ class CodeMirrorEditor extends FileEditor
         @show()
         if not IS_MOBILE
             @codemirror_with_last_focus?.focus()
+
+    ############
+    # Editor button bar support code
+    ############
+
+    textedit_command: (cm, cmd, args) =>
+        switch cmd
+            when "link"
+                cm.insert_link()
+            when "image"
+                cm.insert_image()
+            when "SpecialChar"
+                cm.insert_special_char()
+            else
+                cm.edit_selection
+                    cmd  : cmd
+                    args : args
+        @syncdoc?.sync()
+
+    # add a textedit toolbar to the editor
+    init_sagews_edit_buttons: () =>
+        if @opts.readonly  # no editing button bar needed for read-only files
+            return
+
+        if IS_MOBILE  # no edit button bar on mobile either -- too big (for now at least)
+            return
+
+        if not require('account').account_settings.settings.editor_settings.extra_button_bar
+            # explicitly disabled by user
+            return
+
+        NAME_TO_MODE = {xml:'%html', markdown:'%md', mediawiki:'%wiki'}
+        for x in sagews_decorator_modes
+            mode = x[0]
+            name = x[1]
+            v = name.split('-')
+            if v.length > 1
+                name = v[1]
+            NAME_TO_MODE[name] = "%#{mode}"
+
+        name_to_mode = (name) ->
+            n = NAME_TO_MODE[name]
+            if n?
+                return n
+            else
+                return "%#{name}"
+
+        # add the text editing button bar
+        e = @element.find(".salvus-editor-codemirror-textedit-buttons")
+        @textedit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone().hide()
+        e.append(@textedit_buttons).show()
+
+        # add the code editing button bar
+        @codeedit_buttons = templates.find(".salvus-editor-codeedit-buttonbar").clone()
+        e.append(@codeedit_buttons)
+
+        # the r-editing button bar
+        @redit_buttons =  templates.find(".salvus-editor-redit-buttonbar").clone()
+        e.append(@redit_buttons)
+
+        # the Julia-editing button bar
+        @julia_edit_buttons =  templates.find(".salvus-editor-julia-edit-buttonbar").clone()
+        e.append(@julia_edit_buttons)
+
+        @cython_buttons =  templates.find(".salvus-editor-cython-buttonbar").clone()
+        e.append(@cython_buttons)
+
+        @fallback_buttons = templates.find(".salvus-editor-fallback-edit-buttonbar").clone()
+        e.append(@fallback_buttons)
+
+        all_edit_buttons = [@textedit_buttons, @codeedit_buttons, @redit_buttons,
+                            @cython_buttons, @julia_edit_buttons, @fallback_buttons]
+
+        # activite the buttons in the bar
+        that = @
+        edit_button_click = () ->
+            args = $(this).data('args')
+            cmd  = $(this).attr('href').slice(1)
+            if cmd == 'todo'
+                return
+            if args? and typeof(args) != 'object'
+                args = "#{args}"
+                if args.indexOf(',') != -1
+                    args = args.split(',')
+            that.textedit_command(that.focused_codemirror(), cmd, args)
+            return true # <- this return true does the magic of closing the dropdown menu when a button is clicked
+
+        @fallback_buttons.find("a[href=#todo]").click () =>
+            bootbox.alert("<i class='fa fa-wrench' style='font-size: 18pt;margin-right: 1em;'></i> Button bar not yet implemented in <code>#{mode_display.text()}</code> cells.")
+            return false
+
+        for edit_buttons in all_edit_buttons
+            edit_buttons.find("a").click(edit_button_click)
+            edit_buttons.find("*[title]").tooltip(TOOLTIP_DELAY)
+
+        mode_display = @element.find(".salvus-editor-codeedit-buttonbar-mode")
+        set_mode_display = (name) ->
+            #console.log("set_mode_display: #{name}")
+            if name?
+                mode_display.text(name_to_mode(name))
+            else
+                mode_display.text("")
+
+        show_edit_buttons = (which_one, name) ->
+            for edit_buttons in all_edit_buttons
+                if edit_buttons == which_one
+                    edit_buttons.show()
+                else
+                    edit_buttons.hide()
+            set_mode_display(name)
+
+        # The code below changes the bar at the top depending on where the cursor
+        # is located.  We only change the edit bar if the cursor hasn't moved for
+        # a while, to be more efficient, avoid noise, and be less annoying to the user.
+        bar_timeout = undefined
+        f = () =>
+            if bar_timeout?
+                clearTimeout(bar_timeout)
+            bar_timeout = setTimeout(update_context_sensitive_bar, 250)
+
+        update_context_sensitive_bar = () =>
+            cm = @focused_codemirror()
+            pos = cm.getCursor()
+            name = cm.getModeAt(pos).name
+            #console.log("update_context_sensitive_bar, pos=#{misc.to_json(pos)}, name=#{name}")
+            if name in ['xml', 'stex', 'markdown', 'mediawiki']
+                show_edit_buttons(@textedit_buttons, name)
+            else if name == "r"
+                show_edit_buttons(@redit_buttons, name)
+            else if name == "julia"
+                show_edit_buttons(@julia_edit_buttons, name)
+            else if name == "cython"  # doesn't work yet, since name=python still
+                show_edit_buttons(@cython_buttons, name)
+            else if name == "python"  # doesn't work yet, since name=python still
+                show_edit_buttons(@codeedit_buttons, "sage")
+            else
+                show_edit_buttons(@fallback_buttons, name)
+
+        for cm in [@codemirror, @codemirror1]
+            cm.on('cursorActivity', f)
+
+        update_context_sensitive_bar()
+        @element.find(".salvus-editor-codemirror-textedit-buttons").mathjax()
+
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
     #console.log("codemirror_session_editor '#{filename}'")
@@ -3026,6 +3189,9 @@ class LatexEditor extends FileEditor
         @latex_editor.action_key = @action_key
         @element.find(".salvus-editor-latex-buttons").show()
 
+        latex_buttonbar = @element.find(".salvus-editor-latex-buttonbar")
+        latex_buttonbar.show()
+
         @latex_editor.syncdoc.on 'connect', () =>
             @preview.zoom_width = @load_conf().zoom_width
             @update_preview()
@@ -3398,7 +3564,7 @@ class LatexEditor extends FileEditor
         @_right_pane_position =
             start : editor_width + left + 7
             end   : width
-            top   : top + button_bar_height
+            top   : top + button_bar_height + 1
 
         if not @_show_before?
             @show_page('png-preview')
@@ -4048,7 +4214,6 @@ class StaticHTML extends FileEditor
 
 class IPythonNBViewer extends FileEditor
     constructor: (@editor, @filename, @content, opts) ->
-        window.debug = @
         @element = templates.find(".salvus-editor-ipython-nbviewer").clone()
         @init_buttons()
 
@@ -4445,7 +4610,7 @@ class IPythonNotebook extends FileEditor
     initialize: (cb) =>
         async.series([
             (cb) =>
-                @status("Connecting to the IPython Notebook server")
+                @status("Connecting to your IPython Notebook server")
                 ipython_notebook_server
                     project_id : @editor.project_id
                     cb         : (err, server) =>
@@ -5050,21 +5215,20 @@ class Course extends FileEditorWrapper
 
 
 #############################################
-# Editor for HTML/Markdown documents
+# Editor for HTML/Markdown/ReST documents
 #############################################
 
 class HTML_MD_Editor extends FileEditor
     constructor: (@editor, @filename, content, @opts) ->
-        window.e = @
         # The are two components, side by side
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
         @ext = filename_extension(@filename)   #'html' or 'md'
 
         if @ext == 'html'
-            @opts.mode = 'htmlmixed2'
+            @opts.mode = 'htmlmixed'
         else if @ext == 'md'
-            @opts.mode = 'gfm2'
+            @opts.mode = 'gfm'
         else if @ext == 'rst'
             @opts.mode = 'rst'
         else if @ext == 'wiki' or @ext == "mediawiki"
@@ -5077,15 +5241,21 @@ class HTML_MD_Editor extends FileEditor
             throw "file must have extension md or html or rst or wiki or tex"
 
         @disable_preview = @local_storage("disable_preview")
+
         @element = templates.find(".salvus-editor-html-md").clone()
-        @edit_buttons = @element.find(".salvus-editor-html-md-buttons")
-        @edit_buttons.show()
+
+        # create the textedit button bar.
+        @edit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone()
+        @element.find(".salvus-editor-html-md-textedit-buttonbar").append(@edit_buttons)
+
         @preview = @element.find(".salvus-editor-html-md-preview")
         @preview_content = @preview.find(".salvus-editor-html-md-preview-content")
+
         # initialize the codemirror editor
         @source_editor = codemirror_session_editor(@editor, @filename, @opts)
         @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
         @source_editor.action_key = @action_key
+
         @spell_check()
 
         cm = @cm()
@@ -5171,11 +5341,11 @@ class HTML_MD_Editor extends FileEditor
     command: (cm, cmd, args) =>
         switch cmd
             when "link"
-                @insert_link(cm)
+                cm.insert_link()
             when "image"
-                @insert_image(cm)
+                cm.insert_image()
             when "SpecialChar"
-                @special_char(cm)
+                cm.insert_special_char()
             else
                 cm.edit_selection
                     cmd  : cmd
@@ -5608,7 +5778,7 @@ class HTML_MD_Editor extends FileEditor
             if not pos?
                 pos = {ch:0, line:0}
             pos = {ch:pos.ch + sel.focusOffset, line:pos.line}
-            console.log("clicked on ", pos)
+            #console.log("clicked on ", pos)
             @cm().setCursor(pos)
             @cm().scrollIntoView(pos.line)
             @cm().focus()
@@ -5657,318 +5827,4 @@ class HTML_MD_Editor extends FileEditor
     focus: () =>
         @source_editor?.focus()
 
-
-    insert_link: (cm) =>
-        dialog = templates.find(".salvus-html-editor-link-dialog").clone()
-        dialog.modal('show')
-        dialog.find(".btn-close").off('click').click () ->
-            dialog.modal('hide')
-            setTimeout(focus, 50)
-            return false
-        url = dialog.find(".salvus-html-editor-url")
-        url.focus()
-        display = dialog.find(".salvus-html-editor-display")
-        target  = dialog.find(".salvus-html-editor-target")
-        title   = dialog.find(".salvus-html-editor-title")
-        anchor  = dialog.find(".salvus-html-editor-anchor")
-
-        selected_text = cm.getSelection()
-        display.val(selected_text)
-
-        if @ext in ['md', 'rst', 'tex']
-            dialog.find(".salvus-html-editor-target-row").hide()
-
-        submit = () =>
-            dialog.modal('hide')
-            if @ext == 'md'
-                # [Python](http://www.python.org/)
-                title  = title.val()
-                anchor = anchor.val()
-
-                if title.length > 0
-                    title = " \"#{title.val()}\""
-
-                if anchor.length > 0
-                    anchor = "\##{anchor.val()}"
-
-                d = display.val()
-                if d.length > 0
-                    s = "[#{d}](#{url.val()}#{anchor}#{title})"
-                else
-                    s = url.val()
-
-            else if @ext == "html"
-                target = target.val().trim()
-                title  = title.val().trim()
-                anchor = anchor.val().trim()
-
-                if target == "_blank"
-                    target = "target='_blank'"
-
-                if title.length > 0
-                    title = "title='#{title.val()}'"
-
-                if anchor.length >0
-                    anchor = "\##{anchor.val()}"
-
-                if display.val().length > 0
-                    display = "#{display.val()}"
-                else
-                    display = url.val()
-                s = "<a href='#{url.val()}#{anchor}' #{title} #{target}>#{display}</a>"
-
-            else if @ext == "rst"
-                # `Python <http://www.python.org/#target>`_
-                anchor = anchor.val().trim()
-                if anchor.length > 0
-                    anchor = "\##{anchor}"
-
-                if display.val().length > 0
-                    display = "#{display.val()}"
-                else
-                    display = "#{url.val()}"
-
-                s = "`#{display} <#{url.val()}#{anchor}>`_"
-
-            else if @ext == "tex"
-                # \url{http://www.wikibooks.org}
-                # \href{http://www.wikibooks.org}{Wikibooks home}
-                @tex_ensure_preamble("\\usepackage{url}")
-                anchor = anchor.val().trim()
-                if anchor.length > 0
-                    anchor = "\\\##{anchor.val()}"
-                display = display.val().trim()
-                url = url.val()
-                url = url.replace(/#/g, "\\\#")  # should end up as \#
-                url = url.replace(/&/g, "\\&")   # ... \&
-                url = url.replace(/_/g, "\\_")   # ... \_
-                if display.length > 0
-                    s = "\\href{#{url}#{anchor}}{#{display}}"
-                else
-                    s = "\\url{#{url}}"
-
-            else if @ext == "mediawiki"
-                # https://www.mediawiki.org/wiki/Help:Links
-                # [http://mediawiki.org MediaWiki]
-                anchor = anchor.val().trim()
-                display = display.val().trim()
-                if anchor.length > 0
-                    anchor = "\##{anchor}"
-                if display.length > 0
-                    display = " #{display}"
-                s = "[#{url.val()}#{anchor}#{display}]"
-
-            selections = cm.listSelections()
-            selections.reverse()
-            for sel in selections
-                if sel.empty()
-                    cm.replaceRange(s, sel.head)
-                else
-                    cm.replaceRange(s, sel.from(), sel.to())
-            @sync()
-
-        dialog.find(".btn-submit").off('click').click(submit)
-        dialog.keydown (evt) =>
-            if evt.which == 13 # enter
-                submit()
-                return false
-            if evt.which == 27 # escape
-                dialog.modal('hide')
-                return false
-
-    tex_ensure_preamble: (line) =>
-        # ensures that the given line is the pre-amble of the latex document.
-        # TODO: actually implement this!
-
-    insert_image: (cm) =>
-
-        dialog = templates.find(".salvus-html-editor-image-dialog").clone()
-        dialog.modal('show')
-        dialog.find(".btn-close").off('click').click () ->
-            dialog.modal('hide')
-            return false
-        url = dialog.find(".salvus-html-editor-url")
-        url.focus()
-
-        if @ext == "tex"
-            # different units and don't let user specify the height
-            dialog.find(".salvus-html-editor-height-row").hide()
-            dialog.find(".salvus-html-editor-image-width-header-tex").show()
-            dialog.find(".salvus-html-editor-image-width-header-default").hide()
-            dialog.find(".salvus-html-editor-width").val('80')
-
-        submit = () =>
-            dialog.modal('hide')
-            title  = dialog.find(".salvus-html-editor-title").val().trim()
-            height = width = ''
-            h = dialog.find(".salvus-html-editor-height").val().trim()
-            if h.length > 0
-                height = " height=#{h}"
-            w = dialog.find(".salvus-html-editor-width").val().trim()
-            if w.length > 0
-                width = " width=#{w}"
-
-            if @ext == 'rst'
-                # .. image:: picture.jpeg
-                #    :height: 100px
-                #    :width: 200 px
-                #    :alt: alternate text
-                #    :align: right
-                s = "\n.. image:: #{url.val()}\n"
-                height = dialog.find(".salvus-html-editor-height").val().trim()
-                if height.length > 0
-                    s += "   :height: #{height}px\n"
-                width = dialog.find(".salvus-html-editor-width").val().trim()
-                if width.length > 0
-                    s += "   :width: #{width}px\n"
-                if title.length > 0
-                    s += "   :alt: #{title}\n"
-
-            else if @ext == 'md' and width.length == 0 and height.length == 0
-                # use markdown's funny image format if width/height not given
-                if title.length > 0
-                    title = " \"#{title}\""
-                s = "![](#{url.val()}#{title})"
-
-            else if @ext == "tex"
-                @tex_ensure_preamble("\\usepackage{graphicx}")
-                width = parseInt(dialog.find(".salvus-html-editor-width").val(), 10)
-                if "#{width}" == "NaN"
-                    width = "0.8"
-                else
-                    width = "#{width/100.0}"
-                if title.length > 0
-                    s = """
-                        \\begin{figure}[p]
-                            \\centering
-                            \\includegraphics[width=#{width}\\textwidth]{#{url.val()}}
-                            \\caption{#{title}}
-                        \\end{figure}
-                        """
-                else
-                    s = "\\includegraphics[width=#{width}\\textwidth]{#{url.val()}}"
-
-            else if @ext == "mediawiki"
-                # https://www.mediawiki.org/wiki/Help:Images
-                # [[File:Example.jpg|<width>[x<height>]px]]
-                size = ""
-                if w.length > 0
-                    size = "|#{w}"
-                    if h.length > 0
-                        size += "x#{h}"
-                    size += "px"
-                s = "[[File:#{url.val()}#{size}]]"
-
-            else # fallback for @ext == "md" but height or width is given
-                if title.length > 0
-                    title = " title='#{title}'"
-                s = "<img src='#{url.val()}'#{width}#{height}#{title}>"
-            selections = cm.listSelections()
-            selections.reverse()
-            for sel in selections
-                cm.replaceRange(s, sel.head)
-            @sync()
-
-        dialog.find(".btn-submit").off('click').click(submit)
-        dialog.keydown (evt) =>
-            if evt.which == 13 # enter
-                submit()
-                return false
-            if evt.which == 27 # escape
-                dialog.modal('hide')
-                return false
-
-    special_char: (cm) =>
-
-        dialog = templates.find(".salvus-html-editor-symbols-dialog").clone()
-        dialog.modal('show')
-        dialog.find(".btn-close").off('click').click () ->
-            dialog.modal('hide')
-            return false
-
-        selected = (evt) =>
-            # TODO this evt.target should be the clicked element
-            $target = $(evt.target)
-            if $target.prop("tagName") != "SPAN"
-                return
-            dialog.modal('hide')
-            code = $target.attr("title")
-            s = "&#{code};"
-            # TODO HTML-based formats will work, but not LaTeX.
-            # I suggest to show a completely different table for LaTeX special characters and do not bother with a translation table
-
-            selections = cm.listSelections()
-            selections.reverse()
-            for sel in selections
-                cm.replaceRange(s, sel.head)
-            @sync()
-
-        dialog.find(".salvus-html-editor-symbols-dialog-table").off("click").click(selected)
-        dialog.keydown (evt) =>
-            if evt.which == 13 # enter
-                submit()
-                return false
-            if evt.which == 27 # escape
-                dialog.modal('hide')
-                return false
-
-# Initialize fonts for the editor
-initialize_sagews_editor = () ->
-    bar = $(".salvus-editor-codemirror-worksheet-editable-buttons")
-    elt = bar.find(".sagews-output-editor-font").find(".dropdown-menu")
-    for font in 'Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana'.split(',')
-        item = $("<li><a href='#fontName' data-args='#{font}'>#{font}</a></li>")
-        item.css('font-family', font)
-        elt.append(item)
-
-    elt = bar.find(".sagews-output-editor-font-size").find(".dropdown-menu")
-    for size in [1..7]
-        item = $("<li><a href='#fontSize' data-args='#{size}'><font size=#{size}>Size #{size}</font></a></li>")
-        elt.append(item)
-
-    elt = bar.find(".sagews-output-editor-block-type").find(".dropdown-menu")
-    for i in [1..6]
-        item = $("<li><a href='#formatBlock' data-args='<H#{i}>'><H#{i} style='margin:0'>Heading</H#{i}></a></li>")
-        elt.append(item)
-
-    elt.prepend('<li role="presentation" class="divider"></li>')
-
-    # trick so that data is retained even when editor is cloned:
-    args = JSON.stringify([null, {normalize: true, elementTagName:'code', applyToEditableOnly:true}])
-    item = $("<li><a href='#ClassApplier' data-args='#{args}'><i class='fa fa-code'></i> <code>Code</code></a></li>")
-    elt.prepend(item)
-
-    elt.prepend('<li role="presentation" class="divider"></li>')
-    item = $("<li><a href='#removeFormat'><i class='fa fa-remove'></i>
-Normal</a></li>")
-    elt.prepend(item)
-
-initialize_sagews_editor()
-
-
-
-# Initialize fonts for the editor
-initialize_md_html_editor = () ->
-    bar = $(".salvus-editor-html-md")
-    elt = bar.find(".sagews-output-editor-font-face").find(".dropdown-menu")
-    for font in misc_page.FONT_FACES
-        item = $("<li><a href='#font_face' data-args='#{font}'>#{font}</a></li>")
-        item.css('font-family', font)
-        elt.append(item)
-
-    elt = bar.find(".sagews-output-editor-font-size").find(".dropdown-menu")
-    v = [1..7]
-    v.reverse()
-    for size in v
-        item = $("<li><a href='#font_size' data-args='#{size}'><font size=#{size}>Size #{size} #{if size==3 then 'default' else ''}</font></a></li>")
-        elt.append(item)
-
-    elt = bar.find(".sagews-output-editor-block-type").find(".dropdown-menu")
-    for i in [1..4]
-        elt.append($("<li><a href='#format_heading_#{i}'><H#{i} style='margin:0'>Heading #{i}</H#{i}></a></li>"))
-    elt.append('<li role="presentation" class="divider"></li>')
-    elt.append($("<li><a href='#format_code'><i class='fa fa-code'></i> <code>Code</code></a></li>"))
-
-
-initialize_md_html_editor()
 

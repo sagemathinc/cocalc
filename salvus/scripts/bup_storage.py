@@ -120,7 +120,7 @@ DEFAULT_SETTINGS = {
     'cpu_shares' : 256,
     'cores'      : 1,
     'login_shell': '/bin/bash',
-    'mintime'    : 60*60*3,  # default = 3 hours idle (no save) time before kill
+    'mintime'    : int(60*60*1.5),  # default = 1.5 hours idle (no save) time before kill
     'inode'      : 200000,  # not used with ZFS
     'network'    : False
 }

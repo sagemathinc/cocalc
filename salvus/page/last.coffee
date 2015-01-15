@@ -37,6 +37,7 @@ editor    = require('editor')
 $(document).on "click", (e) ->
     if e.button == 1 and $(e.target).hasClass("salvus-no-middle-click")
         e.preventDefault()
+        e.stopPropagation() # ?
 
 # asynchronously load additional dependencies, e.g., CodeMirror, term.js....
 # These are things that aren't needed for the initial page initialization,
@@ -49,3 +50,6 @@ if window.salvus_target and not localStorage.remember_me
     require('history').load_target(window.salvus_target)
 else
     top_navbar.switch_to_page('account')
+
+# Run MathJax on certain elements of the page
+$(".salvus-mathjax-on-startup").mathjax()

@@ -8,6 +8,7 @@
 
 feature.coffee
 
+buttonbar.coffee
 misc_page.coffee
 
 salvus_client.coffee

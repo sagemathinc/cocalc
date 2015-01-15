@@ -26,6 +26,8 @@ misc           = require('misc')
 
 {dmp}          = require('diffsync')
 
+buttonbar      = require('buttonbar')
+
 
 templates = $("#salvus-misc-templates")
 
@@ -692,467 +694,42 @@ exports.define_codemirror_extensions = () ->
         CodeMirror.registerHelper("hint", "stex", tex_hint)
 
 
-    EDIT_COMMANDS =
-        tex :
-            bold :
-                wrap :
-                    left  : '\\textbf{'
-                    right : '}'
-            italic :
-                wrap :
-                    left  : '\\textit{'
-                    right : '}'
-            underline :
-                wrap :
-                    left  : '\\underline{'
-                    right : '}'
-            insertunorderedlist :
-                wrap :
-                    left  : "\\begin{itemize}\n    \\item\n"
-                    right : "\\end{itemize}"
-            insertorderedlist :
-                wrap :
-                    left  : "\\begin{enumerate}\n    \\item\n"
-                    right : "\\end{enumerate}"
-            format_heading_1 :
-                strip : ['format_heading_2','format_heading_3','format_heading_4']
-                wrap :
-                    left  : "\\section{"
-                    right : "}"
-            format_heading_2 :
-                strip : ['format_heading_1','format_heading_3','format_heading_4']
-                wrap :
-                    left  : "\\subsection{"
-                    right : "}"
-            format_heading_3 :
-                strip : ['format_heading_1','format_heading_2','format_heading_4']
-                wrap :
-                    left  : "\\subsubsection{"
-                    right : "}"
-            format_heading_4 :
-                strip : ['format_heading_1','format_heading_2','format_heading_4']
-                wrap :
-                    left  : "\\subsubsubsection{"
-                    right : "}"
-            format_code :
-                wrap :
-                    left  : '\n\\begin{verbatim}\n'
-                    right : '\n\\end{verbatim}\n'
-            indent :
-                wrap :
-                    left  : "\n\\begin{quote}\n"
-                    right : "\n\\end{quote}\n"
-            subscript :
-                wrap :
-                    left  : '_{'
-                    right : '}'
-            superscript :
-                wrap :
-                    left  : '^{'
-                    right : '}'
-            comment :
-                wrap :      # TODO: multi-line
-                    left  : '% '
-                    right : ''
-            horizontalRule:
-                wrap:
-                    left  : "\\hrulefill"
-                    #left  : "\n\\noindent\\makebox[\\linewidth]{\\rule{\\paperwidth}{0.4pt}}\n"
-                    right : ""
+    EDIT_COMMANDS = buttonbar.commands
 
-        md :
-            bold :
-                wrap :
-                    left  : '**'
-                    right : '**'
-            italic :
-                wrap :
-                    left  : '_'
-                    right : '_'
-            underline :
-                wrap :
-                    left  : '<u>'
-                    right : '</u>'
-            strikethrough :
-                wrap :
-                    left  : '~~'
-                    right : '~~'
-            insertunorderedlist :
-                wrap :
-                    left  : "\n - "
-                    right : "\n"
-            insertorderedlist :
-                wrap :
-                    left  : "\n 1. "
-                    right : "\n"
-            format_heading_1 :  # todo -- define via for loop below
-                strip : ['format_heading_2','format_heading_3','format_heading_4']
-                wrap :
-                    left  : "\n# "
-                    right : ""
-            format_heading_2 :
-                strip : ['format_heading_1','format_heading_3','format_heading_4']
-                wrap :
-                    left  : "\n## "
-                    right : ""
-            format_heading_3 :
-                strip : ['format_heading_1','format_heading_2','format_heading_4']
-                wrap :
-                    left  : "\n### "
-                    right : ""
-            format_heading_4 :
-                strip : ['format_heading_1','format_heading_2','format_heading_3']
-                wrap :
-                    left  : "\n#### "
-                    right : ""
-            format_code :  # TODO: I think indentation is probably nicer?  on single line ` is nicer.
-                wrap :
-                    left  : '\n```'
-                    right : '\n```\n'
-            indent :
-                wrap :
-                    left  : "\n> "
-                    right : ""
-            horizontalRule:
-                wrap:
-                    left  : "\n------------------\n"
-                    right : ""
-            table :
-                wrap:
-                    left : """
-                           | Left-Aligned  | Center Aligned  | Right Aligned |
-                           | :------------ |:---------------:| -----:|
-                           | col 3 is      | some wordy text | 1600 |
-                           | col 2 is      | centered        |  12 |
-                           | zebra stripes | and math       |  $\\pi^3$ |
-                           """
-                    right : ""
-
-        html:
-            italic :
-                wrap :
-                    left  : '<em>'
-                    right : '</em>'
-            bold :
-                wrap :
-                    left  : '<strong>'
-                    right : '</strong>'
-            underline :
-                wrap :
-                    left  : '<u>'
-                    right : '</u>'
-            strikethrough :
-                wrap :
-                    left  : '<strike>'
-                    right : '</strike>'
-            subscript :
-                wrap :
-                    left  : '<sub>'
-                    right : '</sub>'
-            superscript :
-                wrap :
-                    left  : '<sup>'
-                    right : '</sup>'
-            comment :
-                wrap :
-                    left  : '<!-- '
-                    right : ' -->'
-            insertunorderedlist :
-                wrap :
-                    left  : "\n<ul>\n    <li> "
-                    right : "</li>\n</ul>\n"
-            insertorderedlist :
-                wrap :
-                    left  : "\n<ol>\n    <li> "
-                    right : "</li>\n</ol>\n"
-            justifyleft :    # todo -- define via for loop below
-                strip : ['justifycenter','justifyright','justifyfull']
-                wrap :
-                    left  : ""
-                    right : ""
-            justifycenter :
-                strip : ['justifycenter','justifyright','justifyleft']
-                wrap :
-                    left  : "<div align='center'>"
-                    right : "</div>"
-            justifyright :
-                strip : ['justifycenter','justifyright','justifyleft']
-                wrap :
-                    left  : "<div align='right'>"
-                    right : "</div>"
-            justifyfull :
-                strip : ['justifycenter','justifyright','justifyleft']
-                wrap :
-                    left  : "<div align='justify'>"
-                    right : "</div>"
-            indent :
-                wrap :
-                    left  : "<blockquote>"
-                    right : "</blockquote>"
-            format_heading_1 :  # todo -- define via for loop below
-                strip : ['format_heading_2','format_heading_3','format_heading_4']
-                wrap :
-                    left  : "<h1>"
-                    right : "</h1>"
-            format_heading_2 :
-                strip : ['format_heading_1','format_heading_3','format_heading_4']
-                wrap :
-                    left  : "<h2>"
-                    right : "</h2>"
-            format_heading_3 :
-                strip : ['format_heading_1','format_heading_2','format_heading_4']
-                wrap :
-                    left  : "<h3>"
-                    right : "</h3>"
-            format_heading_4 :
-                strip : ['format_heading_1','format_heading_2','format_heading_3']
-                wrap :
-                    left  : "<h4>"
-                    right : "</h4>"
-            format_code :
-                wrap :
-                    left  : '<pre>'
-                    right : '</pre>'
-            equation :
-                wrap :
-                    left  : "$ "
-                    right : " $"
-            display_equation :
-                wrap :
-                    left  : "$$ "
-                    right : " $$"
-            table:
-                wrap:
-                    left  : """
-                            <table>
-                                <tr>
-                                    <th>Header 1</th>
-                                    <th>Header 2</th>
-                                </tr>
-                                <tr>
-                                    <td>Cell 1</td>
-                                    <td>Cell 2</td>
-                                </tr>
-                                <tr>
-                                    <td>Cell 3</td>
-                                    <td>Cell 4</td>
-                                </tr>
-                            </table>
-                            """
-                    right : "\n"
-            horizontalRule:
-                wrap:
-                    left  : "\n<hr size='1'/>\n"
-                    right : ""
-
-        rst:
-            # there is intentionally no underline or strikethough in rst
-            italic :
-                wrap :
-                    left  : '*'
-                    right : '*'
-            bold :
-                wrap :
-                    left  : '**'
-                    right : '**'
-            subscript :
-                wrap :
-                    left  : ' :sub:`'
-                    right : '` '
-            superscript :
-                wrap :
-                    left  : ' :sup:`'
-                    right : '` '
-            comment :
-                wrap :
-                    left  : '\n.. '
-                    right : ''
-            insertunorderedlist :
-                wrap :
-                    left  : "\n  - "
-                    right : ""
-            insertorderedlist :
-                wrap :
-                    left  : "\n  1. "
-                    right : ""
-            justifyleft :    # todo -- define via for loop below
-                strip : ['justifycenter','justifyright','justifyfull']
-                wrap :
-                    left  : ""
-                    right : ""
-            justifycenter :
-                strip : ['justifycenter','justifyright','justifyleft']
-                wrap :
-                    left  : "\n.. class:: center\n\n"
-                    right : ""
-            justifyright :
-                strip : ['justifycenter','justifyright','justifyleft']
-                wrap :
-                    left  : "\n.. class:: right\n\n"
-                    right : ""
-            justifyfull :
-                strip : ['justifycenter','justifyright','justifyleft']
-                wrap :
-                    left  : "\n.. class:: justify\n\n"
-                    right : ""
-            indent :
-                wrap :
-                    left  : "\n  "
-                    right : ""
-            format_heading_1 :  # todo -- define via for loop below
-                strip : ['format_heading_2','format_heading_3','format_heading_4']
-                wrap :
-                    left  : "\n===============\n"
-                    right : "\n===============\n"
-            format_heading_2 :
-                strip : ['format_heading_1','format_heading_3','format_heading_4']
-                wrap :
-                    left  : "\n---------------\n"
-                    right : "\n---------------\n"
-            format_heading_3 :
-                strip : ['format_heading_1','format_heading_2','format_heading_4']
-                wrap :
-                    left  : "\n"
-                    right : "\n=============\n"
-            format_heading_4 :
-                strip : ['format_heading_1','format_heading_2','format_heading_3']
-                wrap :
-                    left  : "\n"
-                    right : "\n-------------\n"
-            format_code :
-                wrap :
-                    left  : """
-                            .. code:: python
-
-                                def f(x):
-                                    return 2*x
-                            """
-                    right : '\n'
-            equation :
-                wrap :
-                    left  : " :math:`"
-                    right : "` "
-            display_equation :
-                wrap :
-                    left  : "\n.. math::\n\n    "
-                    right : "\n"
-            table: # the first is the more complex grid table, the second one is a "simple" table
-                wrap :
-                    left  : """
-                            +------------+------------+-----------+
-                            | Header 1   | Header 2   | Header 3  |
-                            +============+============+===========+
-                            | body row 1 | column 2   | column 3  |
-                            +------------+------------+-----------+
-                            | body row 2 | Cells may span columns.|
-                            +------------+------------+-----------+
-                            | body row 3 | Cells may  | - Cells   |
-                            +------------+ span rows. | - contain |
-                            | body row 4 |            | - blocks. |
-                            +------------+------------+-----------+
-
-                            """
-                    ###
-                    left  : """
-                            =====  =====  ======
-                               Inputs     Output
-                            ------------  ------
-                              A      B    A or B
-                            =====  =====  ======
-                            False  False  False
-                            True   False  True
-                            False  True   True
-                            True   True   True
-                            =====  =====  ======
-                            """
-                    ###
-                    right : "\n"
-            horizontalRule:
-                wrap:
-                    left  : "\n------------------\n"
-                    right : ""
-
-
-        mediawiki : # https://www.mediawiki.org/wiki/Help:Formatting
-            bold :
-                wrap :
-                    left  : "'''"
-                    right : "'''"
-            italic :
-                wrap :
-                    left  : "''"
-                    right : "''"
-            underline :
-                wrap :
-                    left  : '<u>'
-                    right : '</u>'
-            strikethrough :
-                wrap :
-                    left  : '<strike>'
-                    right : '</strike>'
-            insertunorderedlist :
-                wrap :
-                    left  : "\n* item1\n* item2\n* "
-                    right : "\n"
-            insertorderedlist :
-                wrap :
-                    left  : "\n# one\n# two\n# "
-                    right : "\n"
-            comment :
-                wrap :
-                    left  : '\n<!-- '
-                    right : ' -->\n'
-            indent: # pre tag is more for code, but makes more sense than a dysfunctional ":"
-                wrap:
-                    left  : "\n<pre>"
-                    right : "</pre>\n"
-            format_heading_1 :  # todo -- define via for loop below
-                strip : ['format_heading_2','format_heading_3','format_heading_4']
-                wrap :
-                    left  : "\n== "
-                    right : " ==\n"
-            format_heading_2 :
-                strip : ['format_heading_1','format_heading_3','format_heading_4']
-                wrap :
-                    left  : "\n=== "
-                    right : " ===\n"
-            format_heading_3 :
-                strip : ['format_heading_1','format_heading_2','format_heading_4']
-                wrap :
-                    left  : "\n==== "
-                    right : " ====\n"
-            format_heading_4 :
-                strip : ['format_heading_1','format_heading_2','format_heading_3']
-                wrap :
-                    left  : "\n===== "
-                    right : " =====\n"
-            format_code :
-                wrap :
-                    left  : ' <code>'
-                    right : '</code> '
-            horizontalRule:
-                wrap:
-                    left  : "\n----\n"
-                    right : ""
-            table: # https://www.mediawiki.org/wiki/Help:Tables
-                wrap:
-                    left  : """\n
-                            {| class="table"
-                            |+Table Caption
-                            ! Column 1
-                            ! Column 2
-                            |-
-                            |Integral
-                            |Derivative
-                            |-
-                            |Sin
-                            |Cos
-                            |-
-                            |Tan
-                            |Sec
-                            |}
-                            """
-                    right : "\n"
+    CodeMirror.defineExtension 'get_edit_mode', (opts) ->
+        opts = defaults opts, {}
+        cm = @
+        switch cm.getModeAt(cm.getCursor()).name
+            when 'markdown'
+                return 'md'
+            when 'xml'
+                return 'html'
+            when 'mediawiki'
+                return 'mediawiki'
+            when 'stex'
+                return 'tex'
+            when 'python' # TODO how to tell it to return sage when in a sagews file?
+                return 'python'
+            when 'r'
+                return 'r'
+            when 'julia'
+                return 'julia'
+            when 'sagews'    # this doesn't work
+                return 'sage'
+            else
+                mode = cm.getOption('mode').name
+                if mode.slice(0,3) == 'gfm'
+                    return 'md'
+                else if mode.slice(0,9) == 'htmlmixed'
+                    return 'html'
+                else if mode.indexOf('mediawiki') != -1
+                    return 'mediawiki'
+                else if mode.indexOf('rst') != -1
+                    return 'rst'
+                else if mode.indexOf('stex') != -1
+                    return 'tex'
+                if mode not in ['md', 'html', 'tex', 'rst', 'mediawiki', 'sagews', 'r']
+                    return 'html'
 
     CodeMirror.defineExtension 'edit_selection', (opts) ->
         opts = defaults opts,
@@ -1160,26 +737,33 @@ exports.define_codemirror_extensions = () ->
             args : undefined
             mode : undefined
         cm = @
-        mode = opts.mode
-        if not mode?
-            mode = cm.getOption('mode').name
-        if mode.slice(0,3) == 'gfm'
-            mode = 'md'
-        else if mode.slice(0,9) == 'htmlmixed'
-            mode = 'html'
-        else if mode.indexOf('mediawiki') != -1
-            mode = 'mediawiki'
-        else if mode.indexOf('rst') != -1
-            mode = 'rst'
-        else if mode.indexOf('stex') != -1
-            mode = 'tex' # not supported yet!
-        if mode not in ['md', 'html', 'tex', 'rst', 'mediawiki']
-            throw "unknown mode '#{opts.mode}'"
+        default_mode = opts.mode
+        if not default_mode?
+            default_mode = cm.get_edit_mode()
+
+        canonical_mode = (name) ->
+            switch name
+                when 'markdown'
+                    return 'md'
+                when 'xml'
+                    return 'html'
+                when 'mediawiki'
+                    return 'mediawiki'
+                when 'stex'
+                    return 'tex'
+                when 'python'
+                    return 'python'
+                when 'r'
+                    return 'r'
+                when 'sagews'
+                    return 'sage'
+                else
+                    return default_mode
 
         args = opts.args
         cmd = opts.cmd
 
-        #console.log("edit_selection '#{misc.to_json(opts)}'")
+        #console.log("edit_selection '#{misc.to_json(opts)}', mode='#{default_mode}'")
 
         # TODO: will have to make this more sophisticated, so it can
         # deal with nesting.
@@ -1195,9 +779,12 @@ exports.define_codemirror_extensions = () ->
                     #console.log('strip match')
                     return src.slice(0,i) + src.slice(i+left.length,j) + src.slice(j+right.length)
 
+        replacements = Array()
         selections = cm.listSelections()
-        selections.reverse()
+        #selections.reverse()
         for selection in selections
+            mode = canonical_mode(cm.getModeAt(selection.head).name)
+            #console.log("edit_selection(mode='#{mode}'), selection=", selection)
             from = selection.from()
             to = selection.to()
             src = cm.getRange(from, to)
@@ -1214,12 +801,15 @@ exports.define_codemirror_extensions = () ->
             src = src.slice(i,j)
             src0 = src
 
-
             mode1 = mode
             how = EDIT_COMMANDS[mode1][cmd]
-            if not how? and mode1 in ['md', 'mediawiki', 'rst']
-                # html fallback for markdown
-                mode1 = 'html'
+            if not how?
+                if mode1 in ['md', 'mediawiki', 'rst']
+                    # html fallback for markdown
+                    mode1 = 'html'
+                else if mode1 == "python"
+                    # Sage fallback in python mode. TODO There should be a Sage mode.
+                    mode1 = "sage"
                 how = EDIT_COMMANDS[mode1][cmd]
 
             done = false
@@ -1234,7 +824,8 @@ exports.define_codemirror_extensions = () ->
                             if src1?
                                 src = src1
 
-                {left, right} = how.wrap
+                left  = if how.wrap.left?  then how.wrap.left else ""
+                right = if how.wrap.right? then how.wrap.right else ""
                 src1 = strip(src, left, right)
                 if src1
                     # strip the wrapping
@@ -1242,6 +833,12 @@ exports.define_codemirror_extensions = () ->
                 else
                     # do the wrapping
                     src = "#{left}#{src}#{right}"
+                done = true
+
+            if how?.insert? # to insert the code snippet right below, next line
+                # TODO no idea what the strip(...) above is actually doing
+                # if text is selected (is that src?) then there is only some new stuff below it. that's it.
+                src = "#{src}\n#{how.insert}"
                 done = true
 
             if cmd == 'font_size'
@@ -1293,11 +890,18 @@ exports.define_codemirror_extensions = () ->
                     done = true
 
             if not done?
-                console.log("not implemented")
+                #console.log("not implemented")
                 return "not implemented"
 
+            # TODO this is very much broken, because you always get two cursors.
+            # so, the addSelection is fine, but how to remove the current "selection"?
+            # HSY: building this replacements array works better:
+            # cursor always afterwards, even if there are two selections in text (via ctrl), etc.
+            # only drawback is, that this doesn't pay attention to src != src0 (I would ignore this)
+            # and when wrapping, the cursor is also at the end.
+            ###
             if src != src0
-                cm.replaceRange(left_white + src + right_white, from, to)
+                replaceRange(left_white + src + right_white, from, to)
                 if not selection.empty()
                     # now select the new range
                     delta = src.length - src0.length
@@ -1309,9 +913,269 @@ exports.define_codemirror_extensions = () ->
                     else
                         delta = 0  # not really right if multiple lines -- should really not touch cursor when possible.
                     cm.addSelection({line:from.line, ch:to.ch+delta})
+            ###
+            #console.log("replacements: " + replacements)
+            replacements.push(left_white + src + right_white)
+        cm.replaceSelections(replacements)
 
 
-exports.FONT_FACES = FONT_FACES = 'Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana'.split(',')
+    CodeMirror.defineExtension 'insert_link', (opts) ->
+        opts = defaults opts, {}
+        cm = @
+        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-link-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            setTimeout(focus, 50)
+            return false
+        url = dialog.find(".salvus-html-editor-url")
+        url.focus()
+        display = dialog.find(".salvus-html-editor-display")
+        target  = dialog.find(".salvus-html-editor-target")
+        title   = dialog.find(".salvus-html-editor-title")
+
+        selected_text = cm.getSelection()
+        display.val(selected_text)
+
+        mode = cm.get_edit_mode()
+
+        if mode in ['md', 'rst', 'tex']
+            dialog.find(".salvus-html-editor-target-row").hide()
+
+        submit = () =>
+            dialog.modal('hide')
+            if mode == 'md'
+                # [Python](http://www.python.org/)
+                title  = title.val()
+
+                if title.length > 0
+                    title = " \"#{title}\""
+
+                d = display.val()
+                if d.length > 0
+                    s = "[#{d}](#{url.val()}#{title})"
+                else
+                    s = url.val()
+
+            else if mode == "rst"
+                # `Python <http://www.python.org/#target>`_
+
+                if display.val().length > 0
+                    display = "#{display.val()}"
+                else
+                    display = "#{url.val()}"
+
+                s = "`#{display} <#{url.val()}>`_"
+
+            else if mode == "tex"
+                # \url{http://www.wikibooks.org}
+                # \href{http://www.wikibooks.org}{Wikibooks home}
+                cm.tex_ensure_preamble?("\\usepackage{url}")
+                display = display.val().trim()
+                url = url.val()
+                url = url.replace(/#/g, "\\\#")  # should end up as \#
+                url = url.replace(/&/g, "\\&")   # ... \&
+                url = url.replace(/_/g, "\\_")   # ... \_
+                if display.length > 0
+                    s = "\\href{#{url}}{#{display}}"
+                else
+                    s = "\\url{#{url}}"
+
+            else if mode == "mediawiki"
+                # https://www.mediawiki.org/wiki/Help:Links
+                # [http://mediawiki.org MediaWiki]
+                display = display.val().trim()
+                if display.length > 0
+                    display = " #{display}"
+                s = "[#{url.val()}#{display}]"
+
+            else   # if mode == "html"  ## HTML default fallback
+                target = target.val().trim()
+                title  = title.val().trim()
+
+                if target == "_blank"
+                    target = " target='_blank'"
+
+                if title.length > 0
+                    title = " title='#{title}'"
+
+                if display.val().length > 0
+                    display = "#{display.val()}"
+                else
+                    display = url.val()
+                s = "<a href='#{url.val()}'#{title}#{target}>#{display}</a>"
+
+            selections = cm.listSelections()
+            selections.reverse()
+            for sel in selections
+                if sel.empty()
+                    #console.log(cm, s, sel.head)
+                    cm.replaceRange(s, sel.head)
+                else
+                    cm.replaceRange(s, sel.from(), sel.to())
+
+        dialog.find(".btn-submit").off('click').click(submit)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                return false
+
+
+
+    CodeMirror.defineExtension 'tex_ensure_preamble', (code) ->
+        cm = @
+        # ensures that the given line is the pre-amble of the latex document.
+        # TODO: actually implement this!
+
+        # in latex document do one thing
+
+        # in sagews will do something to %latex.
+
+    CodeMirror.defineExtension 'insert_image', (opts) ->
+        opts = defaults opts, {}
+        cm = @
+
+        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-image-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            return false
+        url = dialog.find(".salvus-html-editor-url")
+        url.focus()
+
+        mode = cm.get_edit_mode()
+
+        if mode == "tex"
+            # different units and don't let user specify the height
+            dialog.find(".salvus-html-editor-height-row").hide()
+            dialog.find(".salvus-html-editor-image-width-header-tex").show()
+            dialog.find(".salvus-html-editor-image-width-header-default").hide()
+            dialog.find(".salvus-html-editor-width").val('80')
+
+        submit = () =>
+            dialog.modal('hide')
+            title  = dialog.find(".salvus-html-editor-title").val().trim()
+            height = width = ''
+            h = dialog.find(".salvus-html-editor-height").val().trim()
+            if h.length > 0
+                height = " height=#{h}"
+            w = dialog.find(".salvus-html-editor-width").val().trim()
+            if w.length > 0
+                width = " width=#{w}"
+
+            if mode == 'rst'
+                # .. image:: picture.jpeg
+                #    :height: 100px
+                #    :width: 200 px
+                #    :alt: alternate text
+                #    :align: right
+                s = "\n.. image:: #{url.val()}\n"
+                height = dialog.find(".salvus-html-editor-height").val().trim()
+                if height.length > 0
+                    s += "   :height: #{height}px\n"
+                width = dialog.find(".salvus-html-editor-width").val().trim()
+                if width.length > 0
+                    s += "   :width: #{width}px\n"
+                if title.length > 0
+                    s += "   :alt: #{title}\n"
+
+            else if mode == 'md' and width.length == 0 and height.length == 0
+                # use markdown's funny image format if width/height not given
+                if title.length > 0
+                    title = " \"#{title}\""
+                s = "![](#{url.val()}#{title})"
+
+            else if mode == "tex"
+                cm.tex_ensure_preamble("\\usepackage{graphicx}")
+                width = parseInt(dialog.find(".salvus-html-editor-width").val(), 10)
+                if "#{width}" == "NaN"
+                    width = "0.8"
+                else
+                    width = "#{width/100.0}"
+                if title.length > 0
+                    s = """
+                        \\begin{figure}[p]
+                            \\centering
+                            \\includegraphics[width=#{width}\\textwidth]{#{url.val()}}
+                            \\caption{#{title}}
+                        \\end{figure}
+                        """
+                else
+                    s = "\\includegraphics[width=#{width}\\textwidth]{#{url.val()}}"
+
+            else if mode == "mediawiki"
+                # https://www.mediawiki.org/wiki/Help:Images
+                # [[File:Example.jpg|<width>[x<height>]px]]
+                size = ""
+                if w.length > 0
+                    size = "|#{w}"
+                    if h.length > 0
+                        size += "x#{h}"
+                    size += "px"
+                s = "[[File:#{url.val()}#{size}]]"
+
+            else # fallback for mode == "md" but height or width is given
+                if title.length > 0
+                    title = " title='#{title}'"
+                s = "<img src='#{url.val()}'#{width}#{height}#{title}>"
+            selections = cm.listSelections()
+            selections.reverse()
+            for sel in selections
+                cm.replaceRange(s, sel.head)
+
+        dialog.find(".btn-submit").off('click').click(submit)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                return false
+
+    CodeMirror.defineExtension 'insert_special_char', (opts) ->
+        cm = @
+
+        mode = cm.get_edit_mode()
+        if mode not in ['html', 'md']
+            bootbox.alert("<h3>Not Implemented</h3><br>#{mode} special symbols not yet implemented")
+            return
+
+        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-symbols-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            return false
+
+
+        selected = (evt) =>
+            target = $(evt.target)
+            if target.prop("tagName") != "SPAN"
+                return
+            dialog.modal('hide')
+            code = target.attr("title")
+            s = "&#{code};"
+            # TODO HTML-based formats will work, but not LaTeX.
+            # As long as the input encoding in LaTeX is utf8, just insert the actual utf8 character (target.text())
+
+            selections = cm.listSelections()
+            selections.reverse()
+            for sel in selections
+                cm.replaceRange(s, sel.head)
+
+        dialog.find(".salvus-html-editor-symbols-dialog-table").off("click").click(selected)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                return false
+
+
+FONT_FACES = buttonbar.FONT_FACES
 
 cm_start_end = (selection) ->
     {head, anchor} = selection
