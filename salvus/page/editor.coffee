@@ -117,15 +117,22 @@ codemirror_associations =
 
 file_associations = exports.file_associations = {}
 for ext, mode of codemirror_associations
+    name = mode
+    i = name.indexOf('x-')
+    if i != -1
+        name = name.slice(i+2)
+    name = name.replace('src','')
     file_associations[ext] =
         editor : 'codemirror'
         icon   : 'fa-file-code-o'
         opts   : {mode:mode}
+        name   : name
 
 file_associations['tex'] =
     editor : 'latex'
     icon   : 'fa-file-excel-o'
     opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    name   : "latex"
 #file_associations['tex'] =  # TODO: only for TESTING!!!
 #    editor : 'html-md'
 #    icon   : 'fa-file-code-o'
@@ -136,74 +143,103 @@ file_associations['html'] =
     editor : 'html-md'
     icon   : 'fa-file-code-o'
     opts   : {indent_unit:4, tab_size:4, mode:'htmlmixed'}
+    name   : "html"
 
 file_associations['md'] =
     editor : 'html-md'
     icon   : 'fa-file-code-o'
     opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
+    name   : "markdown"
 
 file_associations['rst'] =
     editor : 'html-md'
     icon   : 'fa-file-code-o'
     opts   : {indent_unit:4, tab_size:4, mode:'rst'}
+    name   : "ReST"
 
 file_associations['mediawiki'] = file_associations['wiki'] =
     editor : 'html-md'
     icon   : 'fa-file-code-o'
     opts   : {indent_unit:4, tab_size:4, mode:'mediawiki'}
+    name   : "MediaWiki"
 
 file_associations['sass'] =
     editor : 'codemirror'
     icon   : 'fa-file-code-o'
     opts   : {mode:'text/x-sass', indent_unit:2, tab_size:2}
+    name   : "SASS"
 
 file_associations['css'] =
     editor : 'codemirror'
     icon   : 'fa-file-code-o'
     opts   : {mode:'css', indent_unit:4, tab_size:4}
-
-file_associations['sage-terminal'] =
-    editor : 'terminal'
-    icon   : 'fa-terminal'
-    opts   : {}
+    name   : "CSS"
 
 file_associations['term'] =
     editor : 'terminal'
     icon   : 'fa-terminal'
     opts   : {}
+    name   : "Terminal"
 
 file_associations['ipynb'] =
     editor : 'ipynb'
     icon   : 'fa-list-alt'
     opts   : {}
+    name   : "ipython notebook"
 
 for ext in ['png', 'jpg', 'gif', 'svg']
     file_associations[ext] =
         editor : 'image'
         icon   : 'fa-file-image-o'
         opts   : {}
+        name   : ext
+        exclude_from_menu : true
 
 file_associations['pdf'] =
     editor : 'pdf'
     icon   : 'fa-file-pdf-o'
     opts   : {}
+    name   : 'pdf'
+    exclude_from_menu : true
 
 file_associations['tasks'] =
     editor : 'tasks'
     icon   : 'fa-tasks'
     opts   : {}
+    name   : 'task list'
 
 file_associations['course'] =
     editor : 'course'
     icon   : 'fa-graduation-cap'
     opts   : {}
+    name   : 'course'
 
 
 file_associations['sage-history'] =
     editor : 'history'
     icon   : 'fa-history'
     opts   : {}
+    name   : 'sage history'
+    exclude_from_menu : true
 
+initialize_new_file_type_list = () ->
+    file_type_list = $(".smc-new-file-type-list")
+    file_types_so_far = {}
+    v = misc.keys(file_associations)
+    v.sort()
+
+    for ext in v
+        if not ext
+            continue
+        data = file_associations[ext]
+        if data.exclude_from_menu
+            continue
+        if data.name? and not file_types_so_far[data.name]
+            file_types_so_far[data.name] = true
+            e = $("<li><a href='#new-file' data-ext='#{ext}'><i class='fa #{data.icon}'></i> <span style='text-transform:capitalize'>#{data.name} </span> <span class='lighten'>(.#{ext})</span></a></li>")
+            file_type_list.append(e)
+
+initialize_new_file_type_list()
 
 exports.file_icon_class = file_icon_class = (ext) ->
     if (file_associations[ext]? and file_associations[ext].icon?) then file_associations[ext].icon else 'fa-file-o'
