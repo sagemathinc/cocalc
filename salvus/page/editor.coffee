@@ -5393,6 +5393,9 @@ class HTML_MD_Editor extends FileEditor
         button_bar = @edit_buttons
         init_color_control = () =>
             elt   = button_bar.find(".sagews-output-editor-foreground-color-selector")
+            if IS_MOBILE
+                elt.hide()
+                return
             button_bar_input = elt.find("input").colorpicker()
             sample = elt.find("i")
             set = (hex, init) =>
@@ -5418,6 +5421,9 @@ class HTML_MD_Editor extends FileEditor
         # initialize the color control
         init_background_color_control = () =>
             elt   = button_bar.find(".sagews-output-editor-background-color-selector")
+            if IS_MOBILE
+                elt.hide()
+                return
             button_bar_input = elt.find("input").colorpicker()
             sample = elt.find("i")
             set = (hex, init) =>
