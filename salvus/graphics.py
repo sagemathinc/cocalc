@@ -556,7 +556,10 @@ def graph_to_d3_jsonable(G,
       link_strength       = 1.5,
       gravity             = .04,
       vertex_size         = 7,
-      edge_thickness      = 4):
+      edge_thickness      = 4,
+      width               = None,
+      height              = None,
+      **ignored):
     r"""
     Display a graph in SageMathCloud using the D3 visualization library.
 
@@ -724,7 +727,9 @@ def graph_to_d3_jsonable(G,
             "vertex_labels"  : bool(vertex_labels),
             "edge_labels"    : bool(edge_labels),
             "vertex_size"    : int(vertex_size),
-            "edge_thickness" : int(edge_thickness)}
+            "edge_thickness" : int(edge_thickness),
+            "width"          : json_float(width),
+            "height"         : json_float(height) }
 
 
 

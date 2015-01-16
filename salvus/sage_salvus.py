@@ -2231,17 +2231,24 @@ def show_3d_plot_using_tachyon(obj, **kwds):
     salvus.file(t)
     os.unlink(t)
 
+def show_graph_using_d3(obj, **kwds):
+    salvus.d3_graph(obj, **kwds)
+
 from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
 
-def show(obj, svg=True, **kwds):
+def show(obj, svg=True, d3=True, **kwds):
     """
     Show a 2d or 3d graphics object, animation, or matplotlib figure, or show an
     expression typeset nicely using LaTeX.
 
        - display: (default: True); if True, use display math for expression (big and centered).
 
-       - svg: (default: True); if True, render graphics using svg (otherwise use png)
+       - svg: (default: True); if True, show 2d plots using svg (otherwise use png)
+
+       - d3: (default: True); if True, show graphs (vertices and edges) using an interactive D3 viewer
+           for the many options for this viewer, type 'import graphics; graphics.graph_to_d3_jsonable?'
+         If false, graphs are converted to plots and displayed as usual.
 
        - renderer: (default: 'webgl'); for 3d graphics
            - 'webgl' (fastest) using hardware accelerated 3d;
@@ -2290,6 +2297,8 @@ def show(obj, svg=True, **kwds):
         else:
             salvus.threed(obj, **kwds)
             # graphics.show_3d_plot_using_threejs(obj, **kwds)
+    elif d3 and isinstance(obj, (sage.graphs.graph.Graph, sage.graphs.digraph.DiGraph)):
+        show_graph_using_d3(obj, **kwds)
     else:
         if 'display' not in kwds:
             kwds['display'] = True
