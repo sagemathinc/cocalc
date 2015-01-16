@@ -18,6 +18,7 @@ top_navbar.coffee
 alerts.coffee
 
 3d.coffee
+d3.coffee
 
 console.coffee
 

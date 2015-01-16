@@ -1939,6 +1939,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if mesg.interact?
             @interact(output, mesg.interact)
 
+        if mesg.d3?
+            e = $("<span>")
+            output.append(e)
+            e.d3
+                viewer : mesg.d3.viewer
+                data   : mesg.d3.data
+
         if mesg.md?
             # markdown
             x = misc_page.markdown_to_html(mesg.md)
