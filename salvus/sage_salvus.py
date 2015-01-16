@@ -2297,8 +2297,11 @@ def show(obj, svg=True, d3=True, **kwds):
         else:
             salvus.threed(obj, **kwds)
             # graphics.show_3d_plot_using_threejs(obj, **kwds)
-    elif d3 and isinstance(obj, (sage.graphs.graph.Graph, sage.graphs.digraph.DiGraph)):
-        show_graph_using_d3(obj, **kwds)
+    elif isinstance(obj, (sage.graphs.graph.Graph, sage.graphs.digraph.DiGraph)):
+        if d3:
+            show_graph_using_d3(obj, **kwds)
+        else:
+            show(obj.plot(), **kwds)
     else:
         if 'display' not in kwds:
             kwds['display'] = True
