@@ -193,6 +193,7 @@ message
     html         : undefined   # arbitrary html stream
     md           : undefined   # github flavored markdown
     tex          : undefined   # tex/latex stream -- is an object {tex:..., display:...}
+    d3           : undefined   # d3 data document, e.g,. {d3:{viewer:'graph', data:{...}}}
     hide         : undefined   # 'input' or 'output'; hide display of given component of cell
     show         : undefined   # 'input' or 'output'; show display of given component of cell
     auto         : undefined   # true or false; sets whether or not cell auto-executess on process restart

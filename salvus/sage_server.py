@@ -211,19 +211,25 @@ class Message(object):
         return self._new('execute_javascript', locals())
 
     def output(self, id,
-               stdout=None,
-               stderr=None,
-               code=None,
-               html=None,
-               javascript=None,
-               coffeescript=None,
-               interact=None,
-               md=None,
-               tex=None,
-               file=None,
-               obj=None,
-               done=None, once=None, hide=None,
-               show=None, auto=None, events=None, clear=None):
+               stdout       = None,
+               stderr       = None,
+               code         = None,
+               html         = None,
+               javascript   = None,
+               coffeescript = None,
+               interact     = None,
+               md           = None,
+               tex          = None,
+               d3           = None,
+               file         = None,
+               obj          = None,
+               done         = None,
+               once         = None,
+               hide         = None,
+               show         = None,
+               auto         = None,
+               events       = None,
+               clear        = None):
         m = self._new('output')
         m['id'] = id
         t = truncate_text
@@ -245,6 +251,7 @@ class Message(object):
         if javascript is not None: m['javascript'] = javascript
         if coffeescript is not None: m['coffeescript'] = coffeescript
         if interact is not None: m['interact'] = interact
+        if d3 is not None: m['d3'] = d3
         if obj is not None: m['obj'] = json.dumps(obj)
         if file is not None: m['file'] = file    # = {'filename':..., 'uuid':...}
         if done is not None: m['done'] = done
@@ -582,7 +589,6 @@ class Salvus(object):
         """
         self.javascript("worksheet.editor.close(obj)", obj = filename, once=True)
 
-
     def threed(self,
                g,                   # sage Graphic3d object.
                width        = None,
@@ -671,6 +677,11 @@ class Salvus(object):
 
         # send message pointing to the 3d 'file', which will get downloaded from database
         self._send_output(id=self._id, file={'filename':unicode8("%s.sage3d"%uuid), 'uuid':uuid}, done=done)
+
+
+    def d3_graph(self, g, **kwds):
+        from graphics import graph_to_d3_jsonable
+        self._send_output(id=self._id, d3={"viewer":"graph", "data":graph_to_d3_jsonable(g, **kwds)})
 
     def file(self, filename, show=True, done=False, download=False, once=False, events=None, raw=False):
         """
