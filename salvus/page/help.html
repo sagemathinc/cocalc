@@ -127,207 +127,246 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
     - Create interactive wdigets that run code?
     -->
             </ul>
-
-            <div id="help-create-an-account">
-                <br><br>
-                <div class="salvus-help-answer">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <h3><i class="fa fa-user"> </i> Create an account (<a href="https://www.youtube.com/embed/eadnL5hDg9M" target="_blank">video</a>)</h3>
-                            Navigate to <a href="https://cloud.sagemath.com" target="_blank">https://cloud.sagemath.com</a>.
-                            If you're already signed in, first sign out
-                            by clicking on your email address by the  <i class="fa fa-cog"> </i> icon
-                            in the upper right, and clicking "Sign out".
-                            Click on "create an account", then enter the first name, last name, email address, and password for
-                            the new account you would like to create, and read and agree to the terms of usage.
-                            You may <a href="#help-change-my-username">change your email address, password, etc.</a>
-                            at any time later, and also reset your password in case you forget it.
-                        </div>
-                    </div>
-                    <div class="lighten">
-                        <h4>Technical Notes</h4>
-                        <ul>
-                            <li> If you want to associate multiple accounts to the same email address, e.g.,
-                                to sagemath@gmail.com, instead
-                                use sagemath+1@gmail.com, sagemath+2@gmail.com, etc.  These accounts will be treated differently, but all email
-                                notifications, password resets, etc., will go to sagemath@gmail.com.   There's no reason you should
-                                need to do this.
-                            </li>
-                            <li> You may create as many accounts as you want for free, but there is no reason you should need
-                                to.</li>
-                            <li> The only requirement on your password is that it not be "Very weak" according
-                                to the password strength checker.  However, please
-                                use a strong password, especially when you start using the SageMathCloud frequently.</li>
-                            <li> Only the hash of your password is stored by the server, which uses 1000 iterations
-                                of the sha-512 hash function, with a salt length of 32.  This makes it much more
-                                difficult for a hacker to brute-force your password, even if they have the database of
-                                password hashes, since every guess takes much more work to make.
-                            </li>
-
-                        </ul>
-                    </div>
+        </div>
+    </div>
+<br><br>
+<h3><i class="fa fa-cubes"> </i> Getting Started With SageMathCloud</h3>
+<div class="panel-group salvus-mathjax-on-startup" id="help-accordion">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title" data-toggle="collapse" data-parent="#help-accordion" href="#help-accordion-account">
+                <a>
+                    <i class="fa fa-user"> </i> Create an account
+                </a>
+            </h3>
+        </div>
+        <div id="help-accordion-account" class="panel-collapse collapse"><!-- note: add class "in" to show the contents -->
+            <div class="panel-body">
+                <p>
+                <iframe width="420" height="315" src="//www.youtube.com/embed/eadnL5hDg9M" frameborder="0" allowfullscreen></iframe>
+                </p>
+                <p>
+                Navigate to <a href="https://cloud.sagemath.com" target="_blank">https://cloud.sagemath.com</a>.
+                If you're already signed in, first sign out
+                by clicking on your email address by the  <i class="fa fa-cog"> </i> icon
+                in the upper right, and clicking "Sign out".
+                Click on "create an account", then enter the first name, last name, email address, and password for
+                the new account you would like to create, and read and agree to the terms of usage.
+                You may <a href="#help-change-my-username">change your email address, password, etc.</a>
+                at any time later, and also reset your password in case you forget it.
+                </p>
+                <div class="lighten">
+                <h4>
+                    Technical Notes
+                </h4>
+                <ul>
+                    <li> If you want to associate multiple accounts to the same email address, e.g.,
+                        to sagemath@gmail.com, instead
+                        use sagemath+1@gmail.com, sagemath+2@gmail.com, etc.  These accounts will be treated differently, but all email
+                        notifications, password resets, etc., will go to sagemath@gmail.com.   There's no reason you should
+                        need to do this.
+                    </li>
+                    <li> You may create as many accounts as you want for free, but there is no reason you should need
+                        to.</li>
+                    <li> The only requirement on your password is that it not be "Very weak" according
+                        to the password strength checker.  However, please
+                        use a strong password, especially when you start using the SageMathCloud frequently.</li>
+                    <li> Only the hash of your password is stored by the server, which uses 1000 iterations
+                        of the sha-512 hash function, with a salt length of 32.  This makes it much more
+                        difficult for a hacker to brute-force your password, even if they have the database of
+                        password hashes, since every guess takes much more work to make.
+                    </li>
+                </ul>
                 </div>
             </div>
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title" data-toggle="collapse" data-parent="#help-accordion" href="#help-accordion-email">
+                <a>
+                    <i class="fa fa-user"> </i>  Change your name, email address, or password
+                </a>
+            </h3>
+        </div>
+        <div id="help-accordion-email" class="panel-collapse collapse">
+            <div class="panel-body">
+                 <p>
+                     <iframe width="420" height="315" src="//www.youtube.com/embed/A9zltIsU2cM" frameborder="0" allowfullscreen></iframe>
+                </p>
+                <p>
+                    Log into <a href="https://cloud.sagemath.com" target="_blank">https://cloud.sagemath.com</a>,
+                    then click in the upper right corner on your email address by
+                    the <i class="fa fa-cog"> </i> icon.
+                    Change your first or last name in the settings tab that appears, then click save.
+                </p>
+                <p>
+                    To change your password, click the "Change password" link, enter your old password,
+                    then enter a new password.
+                </p>
 
-            <div id="help-change-my-username">
-                <br><br>
-                <div class="salvus-help-answer">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <h3><i class="fa fa-user"> </i>  Change your name, email address, or password (<a href="https://www.youtube.com/embed/A9zltIsU2cM" target="_blank">video</a>)</h3>
-                            <p>
-                                Log into <a href="https://cloud.sagemath.com" target="_blank">https://cloud.sagemath.com</a>,
-                                then click in the upper right corner on your email address by
-                                the <i class="fa fa-cog"> </i> icon.
-                                Change your first or last name in the settings tab that appears, then click save.
-                            </p>
-                            <p>
-                                To change your password, click the "Change password" link, enter your old password,
-                                then enter a new password.
-                            </p>
+                <p>
+                    To change the email account that is linked to your SageMathCloud account, click
+                    on the "change" link next to your email address, type in the password (to your SageMathCloud
+                    account), then enter a new email address.
+                </p>
 
-                            <p>
-                                To change the email account that is linked to your SageMathCloud account, click
-                                on the "change" link next to your email address, type in the password (to your SageMathCloud
-                                account), then enter a new email address.
-                            </p>
-
-                        </div>
-                    </div>
-
-                    <div class="lighten">
-                        <h4>Technical Notes</h4>
-                        <ul class="lighten">
-                            <li>Changing your first or last name at any time is pretty harmless, since it
-                                only changes the name other people see when collaborating with
-                                you on projects.
-                            </li>
-                            <li>The primary purpose of providing an email address is that you
-                                can use it to reset your password when you forget it.
-                            </li>
-                        </ul>
-                    </div>
+                <div class="lighten">
+                    <h4>Technical Notes</h4>
+                    <ul class="lighten">
+                        <li>Changing your first or last name at any time is pretty harmless, since it
+                            only changes the name other people see when collaborating with
+                            you on projects.
+                        </li>
+                        <li>The primary purpose of providing an email address is that you
+                            can use it to reset your password when you forget it.
+                        </li>
+                    </ul>
                 </div>
             </div>
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title" data-toggle="collapse" data-parent="#help-accordion" href="#help-accordion-examples">
+                <a>
+                    <i class="fa fa-line-chart"> </i> Get a bunch of examples
+                </a>
+            </h3>
+        </div>
+        <div id="help-accordion-examples" class="panel-collapse collapse">
+            <div class="panel-body">
+                <div>
+                    To easily copy our collection of examples into a project, just click "+New", paste in this link<pre>https://github.com/sagemath/cloud-examples.git</pre> and click "From Web".  In a few seconds you'll find a directory <pre>sage-cloud-templates</pre> in your project, full of examples.
+                </div>
+                <div class="col-sm-4">
+                    <!-- This significantly slows the page load! -->
+                    <!--<img class="pull-right" width="252" src="/art/templates.png" alt="templates"> -->
+                </div>
 
-            <div id="help-examples">
-                <br><br>
-                <div class="salvus-help-answer">
-                    <div class="row">
-                        <div class="col-sm-8">
-                            <h3><i class="fa fa-line-chart"> </i> Get a bunch of examples</h3>
+                <div class="lighten">
+                    <h4>Technical Notes</h4>
+                    <ul class="lighten">
+                        <li>The collection of examples is a <a target="_blank" href="https://github.com/haraldschilly/sage-cloud-templates">Github repository</a>, which we regularly update.
+                            In a terminal in the sage-cloud-templates directory, you can type
+                            <pre>git pull</pre>
+                            to get the latest changes and
+                            examples (you may have to type <span class="tt">"git commit -a"</span> first, if you have made changes).
+                            You can also <a href="https://github.com/haraldschilly/sage-cloud-templates/commits/master" target="_blank">see what's new in the Github repository</a>.
 
-                            To easily copy our collection of examples into a project, just click "+New", paste in this link<pre>https://github.com/sagemath/cloud-examples.git</pre> and click "From Web".  In a few seconds you'll find a directory <pre>sage-cloud-templates</pre> in your project, full of examples.
-                        </div>
-                        <div class="col-sm-4">
-                            <!-- This significantly slows the page load! -->
-                            <!--<img class="pull-right" width="252" src="/art/templates.png" alt="templates"> -->
-                        </div>
-                    </div>
-                    <div class="lighten">
-                        <h4>Technical Notes</h4>
-                        <ul class="lighten">
-                            <li>The collection of examples is a <a target="_blank" href="https://github.com/haraldschilly/sage-cloud-templates">Github repository</a>, which we regularly update.
-                                In a terminal in the sage-cloud-templates directory, you can type
-                                <pre>git pull</pre>
-                                to get the latest changes and
-                                examples (you may have to type <span class="tt">"git commit -a"</span> first, if you have made changes).
-                                You can also <a href="https://github.com/haraldschilly/sage-cloud-templates/commits/master" target="_blank">see what's new in the Github repository</a>.
-
-                            </li>
-                        </ul>
-                    </div>
+                        </li>
+                    </ul>
                 </div>
             </div>
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title" data-toggle="collapse" data-parent="#help-accordion" href="#help-accordion-latex">
+                <a>
+                    <i class="fa salvus-mathjax-on-startup"> $x^2$ </i> Using $\LaTeX$
+                </a>
+            </h3>
+        </div>
+        <div id="help-accordion-latex" class="panel-collapse collapse">
+            <div class="panel-body">
+                <ul>
+                    <li><a href="https://www.youtube.com/embed/IaachWg4IEQ" target="_blank">video1</a></li>
+                    <li><a href="https://www.youtube.com/embed/cXhnX3UtizI" target="_blank">video2</a></li>
+                    <li>and <a target="_blank" href="https://www.youtube.com/playlist?list=PLnC5h3PY-znxc090kGv7W4FpbotlWsrm0">Vincent Knight's 21 videos introducing LaTeX</a></li>
+                </ul>
+                <p>
+                    <a href="http://www.latex-project.org/" target="_blank">$LaTeX$</a> is a system for creating
 
-            <div id="help-latex">
-                <br><br>
-                <div class="salvus-help-answer salvus-mathjax-on-startup">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <h3>Using $\LaTeX$ (<a href="https://www.youtube.com/embed/IaachWg4IEQ" target="_blank">video1</a>, <a href="https://www.youtube.com/embed/cXhnX3UtizI" target="_blank">video2</a>, and <a target="_blank" href="https://www.youtube.com/playlist?list=PLnC5h3PY-znxc090kGv7W4FpbotlWsrm0">Vincent Knight's 21 videos introducing LaTeX</a>)</h3>
-
-                            <a href="http://www.latex-project.org/" target="_blank">$LaTeX$</a> is a system for creating
-
-                            professional quality documents, with excellent support for typesetting mathematical formulas like
-                            $J_\alpha(x) = \sum\limits_{m=0}^\infty \frac{(-1)^m}{m! \, \Gamma(m + \alpha + 1)}{\left({\frac{x}{2}}\right)}^{2 m + \alpha}$.
-                            There are two main ways to use latex in the SageMathCloud:<br><br>
-                            <ol>
-                                <li> In chats or in worksheet cells that start with %html or %md,
-                                    enclose mathematical formulas in single or double
-                                    dollar signs and they will be typeset (using
-                                    <a href="http://www.mathjax.org/" target="_blank">MathJax</a>) when
-                                    you submit them.  In addition to dollar
-                                    signs, you can use the other standard latex equation wrappers
-                                    \­[ \] and \­(  \).
-                                    In worksheets, if f is some object, you can type <span class="tt">show(f)</span>
-                                    to see f nicely typeset using the latex generated by <span class="tt">latex(f)</span>.
-                                    In a worksheet, type <span class="tt">typeset_mode(True)</span> to show the nicely
-                                    typeset version of objects by default.  You may also use MathJax in
-                                    Markdown cells in IPython notebooks.<br><br>
-                                </li>
-                                <li>You can edit a full LaTeX document by creating or uploading
-                                    a file with an extension of .tex, then opening it.
-                                    The tex file appears on the left, and there is a preview of
-                                    the compiled version on the right,
-                                    which is updated whenever you save the file (ctrl+s).
-                                    By clicking <i class="fa fa-film"> </i>, you can split the tex
-                                    editor so that you can see two parts of the file at once.
-                                    You can also use inverse and forward search to easily move back
-                                    and forth between the tex file and the preview.  In addition
-                                    the preview, there is an error and warning log with buttons
-                                    to jump to the corresponding issue in the tex file or preview.
-                                    There's also a button to show or download the final high-quality PDF.
-                                    In addition, you can see the output of running pdflatex, bibtex, and
-                                    <a href="http://www.sagemath.org/doc/tutorial/sagetex.html" target="_blank">use
-                                        SageTex</a> (which should "just work"), make any of those programs re-run, and customize the
-                                    latex build command.  If necessary, you can do extremely sophisticated processing of tex files
-                                    in a Terminal (<span class="salvus-a"><i class="fa fa-plus-circle"></i> New</span>  --&gt; Terminal).
-                                </li>
-                            </ol>
-                        </div>
-                    </div>
+                    professional quality documents, with excellent support for typesetting mathematical formulas like
+                    $J_\alpha(x) = \sum\limits_{m=0}^\infty \frac{(-1)^m}{m! \, \Gamma(m + \alpha + 1)}{\left({\frac{x}{2}}\right)}^{2 m + \alpha}$.
+                    There are two main ways to use latex in the SageMathCloud:<br><br>
+                <ol>
+                    <li> In chats or in worksheet cells that start with %html or %md,
+                        enclose mathematical formulas in single or double
+                        dollar signs and they will be typeset (using
+                        <a href="http://www.mathjax.org/" target="_blank">MathJax</a>) when
+                        you submit them.  In addition to dollar
+                        signs, you can use the other standard latex equation wrappers
+                        \­[ \] and \­(  \).
+                        In worksheets, if f is some object, you can type <span class="tt">show(f)</span>
+                        to see f nicely typeset using the latex generated by <span class="tt">latex(f)</span>.
+                        In a worksheet, type <span class="tt">typeset_mode(True)</span> to show the nicely
+                        typeset version of objects by default.  You may also use MathJax in
+                        Markdown cells in IPython notebooks.<br><br>
+                    </li>
+                    <li>You can edit a full LaTeX document by creating or uploading
+                        a file with an extension of .tex, then opening it.
+                        The tex file appears on the left, and there is a preview of
+                        the compiled version on the right,
+                        which is updated whenever you save the file (ctrl+s).
+                        By clicking <i class="fa fa-film"> </i>, you can split the tex
+                        editor so that you can see two parts of the file at once.
+                        You can also use inverse and forward search to easily move back
+                        and forth between the tex file and the preview.  In addition
+                        the preview, there is an error and warning log with buttons
+                        to jump to the corresponding issue in the tex file or preview.
+                        There's also a button to show or download the final high-quality PDF.
+                        In addition, you can see the output of running pdflatex, bibtex, and
+                        <a href="http://www.sagemath.org/doc/tutorial/sagetex.html" target="_blank">use
+                            SageTex</a> (which should "just work"), make any of those programs re-run, and customize the
+                        latex build command.  If necessary, you can do extremely sophisticated processing of tex files
+                        in a Terminal (<span class="salvus-a"><i class="fa fa-plus-circle"></i> New</span>  --&gt; Terminal).
+                    </li>
+                </ol>
+                </p>
+        </div>
+        </div>
+    </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title" data-toggle="collapse" data-parent="#help-accordion" href="#help-accordion-r">
+                        <a>
+                            <i class="fa fa-area-chart"> </i> Use R in Worksheets
+                        </a>
+                    </h3>
                 </div>
-            </div>
-
-
-            <div id="help-r">
-                <br><br>
-                <div class="salvus-help-answer">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <h3><i class="fa fa-area-chart"> </i> Use R in Worksheets (<a href="https://www.youtube.com/embed/JtVuX4yb70A" target="_blank">video</a>)</h3>
+                <div id="help-accordion-r" class="panel-collapse collapse">
+                    <div class="panel-body">
+                        <p>
+                            <iframe width="420" height="315" src="//www.youtube.com/embed/JtVuX4yb70A" frameborder="0" allowfullscreen></iframe>
+                        </p>
+                        <p>
                             In a project, click <span class="salvus-a"><i class="fa fa-plus-circle"></i> New</span> then the
                             "Sage" button.  In the worksheet that appears, type <pre>%default_mode r</pre>
-                            then press shift+enter.
-                            For the reset of the worksheet, type normal R commands, followed by shift+enter.
-                            Plotting should just work as usual in R.
-                            See <a href="https://github.com/haraldschilly/sage-cloud-templates/tree/master/r" target="_blank">these example worksheets</a>.
-                        </div>
-                    </div>
+                        then press shift+enter.
+                        For the reset of the worksheet, type normal R commands, followed by shift+enter.
+                        Plotting should just work as usual in R.
+                        See <a href="https://github.com/haraldschilly/sage-cloud-templates/tree/master/r" target="_blank">these example worksheets</a>.
+                        </p>
                 </div>
             </div>
-
-
-            <div id="help-ipython">
-                <br><br>
-                <div class="salvus-help-answer">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <h3><i class="fa fa-bar-chart"> </i> Use IPython Notebooks (<a href="https://www.youtube.com/embed/sDBbt8U4aJw" target="_blank">video</a>)</h3>
-                            In a project, click <span class="salvus-a"><i class="fa fa-plus-circle"></i> New</span> then the
-                            "IPython" button, or just open an ipynb file.
-                            The notebook will be opened using IPython's html-based client,
-                            with support for embedded graphics.
-                            To support the collaborative nature of the SageMathCloud,
-                            we've enhanced the IPython notebook with realtime sync,
-                            so if you open the same notebook on multiple computers (or if multiple
-                            people open the same notebook), they will stay in sync.
-                            Also, if you want to use the Sage preparser, type
-                            <span class="tt">%load_ext sage</span> into a notebook cell.
-                        </div>
-                    </div>
-
+        </div>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title" data-toggle="collapse" data-parent="#help-accordion" href="#help-accordion-ipython">
+                    <a>
+                        <i class="fa fa-bar-chart"> </i> Use IPython Notebooks
+                    </a>
+                </h3>
+            </div>
+            <div id="help-accordion-ipython" class="panel-collapse collapse">
+                <div class="panel-body">
+                    <p>
+                        <iframe width="420" height="315" src="//www.youtube.com/embed/sDBbt8U4aJw" frameborder="0" allowfullscreen></iframe>
+                    </p>
+                    <p>
+                        In a project, click <span class="salvus-a"><i class="fa fa-plus-circle"></i> New</span> then the
+                        "IPython" button, or just open an ipynb file.
+                        The notebook will be opened using IPython's html-based client,
+                        with support for embedded graphics.
+                        To support the collaborative nature of the SageMathCloud,
+                        we've enhanced the IPython notebook with realtime sync,
+                        so if you open the same notebook on multiple computers (or if multiple
+                        people open the same notebook), they will stay in sync.
+                        Also, if you want to use the Sage preparser, type
+                        <span class="tt">%load_ext sage</span> into a notebook cell.
+                    </p>
                     <div class="lighten">
                         <h4>Technical Notes</h4>
                         <ul class="lighten">
@@ -341,7 +380,6 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
                     </div>
                 </div>
             </div>
-
         </div>
-    </div>
+</div>
 </div>
