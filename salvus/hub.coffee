@@ -2476,7 +2476,7 @@ class Client extends EventEmitter
                     return
                 project.read_file
                     path    : mesg.path
-                    maxsize : 1000000  # restrict to 1MB -- for now
+                    maxsize : 5000000  # restrict to 5MB -- for now
                     cb      : (err, data) =>
                         if err
                             @error_to_client(id:mesg.id, error:err)

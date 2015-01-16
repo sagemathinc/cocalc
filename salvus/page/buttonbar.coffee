@@ -711,11 +711,13 @@ exports.commands =
                     """
         icosahedron :
             insert : "show(icosahedron(color='green', opacity=.5, mesh=3), spin=1)"
+        tetrahedron:
+            insert : "show(tetrahedron(color='lime', opacity=.5, mesh=3), spin=1)"
         cube :
             insert : """
-                        show(cube(color=['red', 'blue', 'green'], frame_thickness=2,
-                                  frame_color='brown', opacity=0.8), frame=False)
-                    """
+                     show(cube(color=['red', 'blue', 'green'], frame_thickness=2,
+                              frame_color='brown', opacity=0.8), frame=False)
+                     """
         plot_text3d:
             insert : 'text3d("Text in 3D", (1,1, 1), color="darkred", fontsize=20)'
         graphs:
@@ -723,7 +725,7 @@ exports.commands =
         petersen:
             insert : "graphs.PetersenGraph()"
         random_graph:
-            insert : "graphs.RandomGNM(15, 20)  # 15 vertices and 20 edges"
+            insert : "g=graphs.RandomGNM(15, 20)  # 15 vertices and 20 edges\ng.incidence_matrix()"
         chromatic_number:
             insert : "graphs.PetersenGraph().chromatic_number()"
         auto_group_graph:
@@ -798,7 +800,15 @@ exports.commands =
         ring_ZZxp:
             insert : "R = PolynomialRing(ZZ, ['x%s'%p for p in primes(100)])\nR.inject_variables()"
         ring_QQ_quo:
-            insert : "R.<x,y> = QQ[]; R.<xx, yy> = R.quo([y^2 - x^3 - x])"
+            insert : "R.<x,y> = QQ[]\nR.<xx, yy> = R.quo([y^2 - x^3 - x])"
+        interact_fx:
+            insert : """
+                     @interact
+                     def interactive_function(a = slider(0, 10, .05, default=4),
+                                              b = (-3, 3, .1)):
+                         f(x) = b * x + sin(a * x)
+                         plot(f, (x, -5, 5)).show()
+                     """
 
     julia:
         comment:
@@ -969,10 +979,14 @@ exports.commands =
                     """
         lm:
             insert: """
+                    y  <- c(0,3,2,2,4,5,8,9,7,6,2,0)
                     x1 <- c(1,2,3,4,3,4,5,7,5,7,8,9)
                     x2 <- c(1,1,1,1,2,2,2,3,3,3,4,4)
                     df <- data.frame(x1=x1, x2=x2)
-                    lm(y ~ x1 + x2, data=df)
+                    model <-lm(y ~ x1 + x2, data=df)
+                    model
+                    summary(model)
+                    anova(model)
                     """
         nlm:
             insert: """
@@ -1196,7 +1210,9 @@ initialize_sage_python_r_toolbar = () ->
                      [["&part; Differentiate", "#differentiate", "Differentiate a function"],
                       ["&int; Numerical Integral",      "#nintegrate",     "Numerically integrate a function"]
                       ["$f(x,y) = \\cdots $ - Symbolic Function",      "#symbolic_function",     "Define a symbolic function"]
-                      ["&int; Symbolic Integral",      "#integrate",     "Integrate a function"]
+                      ["&int; Symbolic Integral",      "#integrate",     "Integrate a function"],
+                      ["Interact Plots"],
+                      ["Interactive f(x)", "#interact_fx"]
                     ]]
     sage_linalg = ["Linear", "Linear Algebra",
                   [
