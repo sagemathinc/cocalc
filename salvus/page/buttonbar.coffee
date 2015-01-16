@@ -725,13 +725,13 @@ exports.commands =
         petersen:
             insert : "graphs.PetersenGraph()"
         random_graph:
-            insert : "g=graphs.RandomGNM(15, 20)  # 15 vertices and 20 edges\ng.incidence_matrix()"
+            insert : "g = graphs.RandomGNM(15, 20)  # 15 vertices and 20 edges\nshow(g)\ng.incidence_matrix()"
         chromatic_number:
-            insert : "graphs.PetersenGraph().chromatic_number()"
+            insert : "g = graphs.PetersenGraph().chromatic_number()\nshow(g)"
         auto_group_graph:
             insert : "graphs.PetersenGraph().automorphism_group()"
         graph_2dplot:
-            insert : "graphs.PetersenGraph().plot()"
+            insert : "show(graphs.PetersenGraph())"
         graph_3dplot:
             insert : "show(graphs.PetersenGraph().plot3d(), frame=False)"
         factor:

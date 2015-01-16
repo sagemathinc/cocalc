@@ -1281,10 +1281,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         init_color_control = () =>
             elt   = button_bar.find(".sagews-output-editor-foreground-color-selector")
             if IS_MOBILE
-                console.log("mobile so not initializing color")
                 elt.hide()
                 return
-            console.log("initializing color")
             button_bar_input = elt.find("input").colorpicker()
             sample = elt.find("i")
             set = (hex) ->

@@ -546,7 +546,7 @@ class InteractiveGraphics(object):
 # written by Nathann Cohen in 2013.
 ###
 def graph_to_d3_jsonable(G,
-      vertex_labels       = False,
+      vertex_labels       = True,
       edge_labels         = False,
       vertex_partition    = [],
       edge_partition      = [],
@@ -568,7 +568,7 @@ def graph_to_d3_jsonable(G,
     - ``G`` -- the graph
 
     - ``vertex_labels`` (boolean) -- Whether to display vertex labels (set to
-      ``False`` by default).
+      ``True`` by default).
 
     - ``edge_labels`` (boolean) -- Whether to display edge labels (set to
       ``False`` by default).
@@ -587,7 +587,7 @@ def graph_to_d3_jsonable(G,
 
     - ``vertex_size`` -- The size of a vertex' circle. Set to `7` by default.
 
-    - ``edge_thickness`` -- Thickness of an edge. Set to ``4`` by default.
+    - ``edge_thickness`` -- Thickness of an edge. Set to ``2`` by default.
 
     - ``charge`` -- the vertices' charge. Defines how they repulse each
       other. See `<https://github.com/mbostock/d3/wiki/Force-Layout>`_ for more
