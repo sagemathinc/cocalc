@@ -1304,7 +1304,8 @@ class ProjectPage
             return false
 
         click_new_file_button = (evt) =>
-            ext = $(evt.target).data('ext')
+            if evt?
+                ext = $(evt.target).closest('a').data('ext')
             target = @new_file_tab_input.val()
             if target.indexOf("://") != -1 or misc.startswith(target, "git@github.com:")
                 download_button.icon_spin(start:true, delay:500)

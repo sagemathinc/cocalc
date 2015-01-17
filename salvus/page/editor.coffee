@@ -2098,10 +2098,10 @@ class CodeMirrorEditor extends FileEditor
 
             chat_output    = chat_elt.find(".salvus-editor-codemirror-chat-output")
             chat_input     = chat_elt.find(".salvus-editor-codemirror-chat-input")
-            chat_input_top = $(window).height()-chat_input.height() - 15
+            chat_input_top = $(window).height() - chat_input.height() - 15
 
             chat_input.offset({top:chat_input_top})
-            chat_output.height(chat_input_top - top - 60)
+            chat_output.height(chat_input_top - chat_output.offset().top - 30)
 
 
     focus: () =>
@@ -5798,8 +5798,6 @@ class HTML_MD_Editor extends FileEditor
     init_preview_select: () =>
         @preview_content.click (evt) =>
             sel = window.getSelection()
-            window.sel = sel
-            window.evt = evt
             if @ext=='html'
                 p = $(evt.target).prevAll(".smc-pos:first")
             else
