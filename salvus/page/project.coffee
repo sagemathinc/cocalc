@@ -1306,12 +1306,13 @@ class ProjectPage
         click_new_file_button = (evt) =>
             if evt?
                 ext = $(evt.target).closest('a').data('ext')
+            else
+                ext = undefined
             target = @new_file_tab_input.val()
             if target.indexOf("://") != -1 or misc.startswith(target, "git@github.com:")
                 download_button.icon_spin(start:true, delay:500)
                 new_file_from_web target, () =>
                     download_button.icon_spin(false)
-
             else
                 create_file(ext)
             return false
