@@ -2186,9 +2186,9 @@ from sage.misc.all import tmp_filename
 from sage.plot.animate import Animation
 import matplotlib.figure
 
-def show_animation(obj, **kwds):
-    t = tmp_filename(ext='.gif')
-    obj.gif(savefile=t, **kwds)
+def show_animation(obj, delay=20, **kwds):
+    t = tmp_filename(ext='.webm')
+    obj.ffmpeg(t, delay=delay, **kwds)
     salvus.file(t)
     os.unlink(t)
 
@@ -2261,11 +2261,22 @@ def show(obj, svg=True, d3=True, **kwds):
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
          for mousemove.  This works for Sage 2d graphics and matplotlib figures.
 
-    For animations, there are two options::
+    ANIMATIONS:
 
-       - ``delay`` - (default: 20) delay in hundredths of a second between frames
+       - animations are encoded and displayed using the highly compressed web-friendly
+         webm format, which has some options:
 
-       - ``iterations`` - integer (default: 0); number of iterations of animation. If 0, loop forever.
+            - ``delay`` - integer (default: 20); delay in hundredths of a
+              second between frames.
+
+            - ``ffmpeg_options`` - string (default: ''); this string is
+              passed directly to ffmpeg.
+
+
+         You can also use options directly to the animate command, e.g., the figsize option below:
+
+              a = animate([plot(sin(x + a), (x, 0, 2*pi)) for a in [0, pi/4, .., 2*pi]], figsize=6)
+              show(a, delay=30)
 
 
     EXAMPLES:
