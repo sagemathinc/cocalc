@@ -2190,11 +2190,12 @@ def show_animation(obj, delay=20, gif=False, **kwds):
     if gif:
         t = tmp_filename(ext='.gif')
         obj.gif(delay, t, **kwds)
+        salvus.file(t, raw=False)
+        os.unlink(t)
     else:
         t = tmp_filename(ext='.webm')
         obj.ffmpeg(t, delay=delay, **kwds)
-    salvus.file(t)
-    os.unlink(t)
+        salvus.file(t, raw=True)   # and let delete when worksheet ends - need this so can replay video.
 
 def show_2d_plot_using_matplotlib(obj, svg, **kwds):
     if isinstance(obj, matplotlib.image.AxesImage):
