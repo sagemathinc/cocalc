@@ -2114,20 +2114,24 @@ class CodeMirrorEditor extends FileEditor
     ############
     # Editor button bar support code
     ############
-
     textedit_command: (cm, cmd, args) =>
         switch cmd
             when "link"
-                cm.insert_link()
+                cm.insert_link(cb:() => @syncdoc?.sync())
+                return false  # don't return true or get an infinite recurse
             when "image"
-                cm.insert_image()
+                cm.insert_image(cb:() => @syncdoc?.sync())
+                return false  # don't return true or get an infinite recurse
             when "SpecialChar"
-                cm.insert_special_char()
+                cm.insert_special_char(cb:() => @syncdoc?.sync())
+                return false  # don't return true or get an infinite recurse
             else
                 cm.edit_selection
                     cmd  : cmd
                     args : args
-        @syncdoc?.sync()
+                @syncdoc?.sync()
+                # needed so that dropdown menu closes when clicked.
+                return true
 
     # add a textedit toolbar to the editor
     init_sagews_edit_buttons: () =>
@@ -2194,8 +2198,7 @@ class CodeMirrorEditor extends FileEditor
                 args = "#{args}"
                 if args.indexOf(',') != -1
                     args = args.split(',')
-            that.textedit_command(that.focused_codemirror(), cmd, args)
-            return true # <- this return true does the magic of closing the dropdown menu when a button is clicked
+            return that.textedit_command(that.focused_codemirror(), cmd, args)
 
         @fallback_buttons.find("a[href=#todo]").click () =>
             bootbox.alert("<i class='fa fa-wrench' style='font-size: 18pt;margin-right: 1em;'></i> Button bar not yet implemented in <code>#{mode_display.text()}</code> cells.")

@@ -919,8 +919,9 @@ exports.define_codemirror_extensions = () ->
         cm.replaceSelections(replacements)
 
 
-    CodeMirror.defineExtension 'insert_link', (opts) ->
-        opts = defaults opts, {}
+    CodeMirror.defineExtension 'insert_link', (opts={}) ->
+        opts = defaults opts,
+            cb : undefined
         cm = @
         dialog = $("#salvus-editor-templates").find(".salvus-html-editor-link-dialog").clone()
         dialog.modal('show')
@@ -1013,6 +1014,7 @@ exports.define_codemirror_extensions = () ->
                     cm.replaceRange(s, sel.head)
                 else
                     cm.replaceRange(s, sel.from(), sel.to())
+            opts.cb?()
 
         dialog.find(".btn-submit").off('click').click(submit)
         dialog.keydown (evt) =>
@@ -1021,6 +1023,7 @@ exports.define_codemirror_extensions = () ->
                 return false
             if evt.which == 27 # escape
                 dialog.modal('hide')
+                opts.cb?()
                 return false
 
 
@@ -1034,8 +1037,9 @@ exports.define_codemirror_extensions = () ->
 
         # in sagews will do something to %latex.
 
-    CodeMirror.defineExtension 'insert_image', (opts) ->
-        opts = defaults opts, {}
+    CodeMirror.defineExtension 'insert_image', (opts={}) ->
+        opts = defaults opts,
+            cb : undefined
         cm = @
 
         dialog = $("#salvus-editor-templates").find(".salvus-html-editor-image-dialog").clone()
@@ -1125,6 +1129,7 @@ exports.define_codemirror_extensions = () ->
             selections.reverse()
             for sel in selections
                 cm.replaceRange(s, sel.head)
+            opts.cb?()
 
         dialog.find(".btn-submit").off('click').click(submit)
         dialog.keydown (evt) =>
@@ -1133,9 +1138,12 @@ exports.define_codemirror_extensions = () ->
                 return false
             if evt.which == 27 # escape
                 dialog.modal('hide')
+                opts.cb?()
                 return false
 
-    CodeMirror.defineExtension 'insert_special_char', (opts) ->
+    CodeMirror.defineExtension 'insert_special_char', (opts={}) ->
+        opts = defaults opts,
+            cb : undefined
         cm = @
 
         mode = cm.get_edit_mode()
@@ -1164,6 +1172,7 @@ exports.define_codemirror_extensions = () ->
             selections.reverse()
             for sel in selections
                 cm.replaceRange(s, sel.head)
+            opts.cb?()
 
         dialog.find(".salvus-html-editor-symbols-dialog-table").off("click").click(selected)
         dialog.keydown (evt) =>
@@ -1172,6 +1181,7 @@ exports.define_codemirror_extensions = () ->
                 return false
             if evt.which == 27 # escape
                 dialog.modal('hide')
+                opts.cb?()
                 return false
 
 
