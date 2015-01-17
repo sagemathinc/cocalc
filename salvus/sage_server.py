@@ -138,7 +138,10 @@ class ConnectionJSON(object):
 
     def send_file(self, filename):
         log("sending file '%s'"%filename)
-        return self.send_blob(open(filename, 'rb').read())
+        f = open(filename, 'rb')
+        data = f.read()
+        f.close()
+        return self.send_blob(data)
 
     def _recv(self, n):
         #print "_recv(%s)"%n
@@ -715,9 +718,6 @@ class Salvus(object):
             This will only work if the file is not deleted; however, arbitrarily
             large files can be streamed this way.
 
-        NOTE: If the filename ends in webm, raw=True is always used, since raw=False
-        doesn't work properly with some browsers.
-
         This function creates an output message {file:...}; if the user saves
         a worksheet containing this message, then any referenced blobs are made
         permanent in the database.
@@ -727,9 +727,6 @@ class Salvus(object):
         same Sha1 hash.
         """
         filename = unicode8(filename)
-        if os.path.splitext(filename)[1] == u'.webm':
-            raw = True
-
         if raw:
             info = self.project_info()
             path = os.path.abspath(filename)

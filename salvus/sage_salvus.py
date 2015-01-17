@@ -2186,9 +2186,13 @@ from sage.misc.all import tmp_filename
 from sage.plot.animate import Animation
 import matplotlib.figure
 
-def show_animation(obj, delay=20, **kwds):
-    t = tmp_filename(ext='.webm')
-    obj.ffmpeg(t, delay=delay, **kwds)
+def show_animation(obj, delay=20, gif=False, **kwds):
+    if gif:
+        t = tmp_filename(ext='.gif')
+        obj.gif(delay, t, **kwds)
+    else:
+        t = tmp_filename(ext='.webm')
+        obj.ffmpeg(t, delay=delay, **kwds)
     salvus.file(t)
     os.unlink(t)
 
@@ -2263,15 +2267,14 @@ def show(obj, svg=True, d3=True, **kwds):
 
     ANIMATIONS:
 
-       - animations are encoded and displayed using the highly compressed web-friendly
-         webm format, which has some options:
+       - animations are by default encoded and displayed using an efficiently web-friendly
+         format (currently webm, which is **not supported** by Safari or IE).
 
             - ``delay`` - integer (default: 20); delay in hundredths of a
               second between frames.
 
-            - ``ffmpeg_options`` - string (default: ''); this string is
-              passed directly to ffmpeg.
-
+            - gif=False -- if you set gif=True, instead use an animated gif,
+              which is much less efficient, but works on all browsers.
 
          You can also use options directly to the animate command, e.g., the figsize option below:
 

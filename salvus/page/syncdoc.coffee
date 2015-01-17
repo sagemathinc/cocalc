@@ -1991,7 +1991,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     # TODO: harden DOM creation below?
 
                     when 'webm'
-                        video = $("<video src='#{target}' class='sagews-output-video' preload controls loop>")
+                        if $.browser.safari or $.browser.ie
+                            output.append($("<br><strong>WARNING:</strong> webm animations not supported on Safari or IE; use an animated gif instead, e.g., the gif=True option to show.<br>"))
+                        if $.browser.firefox
+                            output.append($("<br><strong>WARNING:</strong> Right click and select play.<br>"))
+                        video = $("<video src='#{target}' class='sagews-output-video' preload controls>")
                         output.append(video)
 
                     when 'sage3d'

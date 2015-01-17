@@ -41,16 +41,18 @@ isMobile = exports.isMobile =
 if not $.browser?
     $.browser = {}
 
-$.browser.chrome = /chrom(e|ium)/.test(navigator.userAgent.toLowerCase());
+user_agent = navigator.userAgent.toLowerCase()
+
+$.browser.chrome = /chrom(e|ium)/.test(user_agent);
 
 exports.IS_MOBILE = exports.isMobile.any()
 
 if $.browser.chrome
     $(".salvus-chrome-only").show()
 
-$.browser.firefox = navigator.userAgent.toLowerCase().indexOf('firefox') > 0
+$.browser.firefox = not $.browser.chrome and user_agent.indexOf('firefox') > 0
 
-$.browser.safari = navigator.userAgent.toLowerCase().indexOf('safari') > 0
+$.browser.safari = not $.browser.chrome and user_agent.indexOf('safari') > 0
 
-$.browser.ie = navigator.userAgent.toLowerCase().indexOf('windows') > 0
+$.browser.ie = not $.browser.chrome and user_agent.indexOf('windows') > 0
 
