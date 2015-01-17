@@ -3351,3 +3351,27 @@ import sage.interfaces
 sage.interfaces.julia = julia # the module
 julia = julia.julia # specific instance
 sage.interfaces.all.julia = julia
+
+
+
+
+# Help command
+import sage.misc.sagedoc
+import sage.version
+def help(*args, **kwds):
+    if len(args) > 0 or len(kwds) > 0:
+        sage.misc.sagedoc.help(*args, **kwds)
+    else:
+        s = """
+## Welcome to Sage %s!
+
+- **Online documentation:** [View the Sage documentation online](http://www.sagemath.org/doc/).
+
+- **Help:** For help on any object or function, for example `matrix_plot`, enter `matrix_plot?` followed by tab or shift+enter.  For help on any module (or object or function), for example, `sage.matrix`, enter `help(sage.matrix)`.
+
+- **Tab completion:** Type `obj` followed by tab to see all completions of obj.  To see all methods you may call on `obj`, type `obj.` followed by tab.
+
+- **Source code:** Enter `matrix_plot??` followed by tab or shift+enter to look at the source code of `matrix_plot`.
+
+- **License information:** For license information about Sage and its components, enter `license()`."""%sage.version.version
+        salvus.md(s)
