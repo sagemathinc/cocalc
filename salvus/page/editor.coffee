@@ -2200,6 +2200,12 @@ class CodeMirrorEditor extends FileEditor
                     args = args.split(',')
             return that.textedit_command(that.focused_codemirror(), cmd, args)
 
+
+        # TODO: activate color editing buttons -- for now just hide them
+        @element.find(".sagews-output-editor-foreground-color-selector").hide()
+        @element.find(".sagews-output-editor-background-color-selector").hide()
+
+
         @fallback_buttons.find("a[href=#todo]").click () =>
             bootbox.alert("<i class='fa fa-wrench' style='font-size: 18pt;margin-right: 1em;'></i> Button bar not yet implemented in <code>#{mode_display.text()}</code> cells.")
             return false

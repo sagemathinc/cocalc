@@ -779,7 +779,6 @@ exports.define_codemirror_extensions = () ->
                     #console.log('strip match')
                     return src.slice(0,i) + src.slice(i+left.length,j) + src.slice(j+right.length)
 
-        replacements = Array()
         selections = cm.listSelections()
         #selections.reverse()
         for selection in selections
@@ -893,30 +892,21 @@ exports.define_codemirror_extensions = () ->
                 #console.log("not implemented")
                 return "not implemented"
 
-            # TODO this is very much broken, because you always get two cursors.
-            # so, the addSelection is fine, but how to remove the current "selection"?
-            # HSY: building this replacements array works better:
-            # cursor always afterwards, even if there are two selections in text (via ctrl), etc.
-            # only drawback is, that this doesn't pay attention to src != src0 (I would ignore this)
-            # and when wrapping, the cursor is also at the end.
-            ###
-            if src != src0
-                replaceRange(left_white + src + right_white, from, to)
-                if not selection.empty()
-                    # now select the new range
-                    delta = src.length - src0.length
-                    cm.addSelection(from, {line:to.line, ch:to.ch+delta})
+            if src == src0
+                continue
+
+            cm.replaceRange(left_white + src + right_white, from, to)
+            if selection.empty()
+                # restore cursor
+                if left?
+                    delta = left.length
                 else
-                    # restore cursor
-                    if left?
-                        delta = left.length
-                    else
-                        delta = 0  # not really right if multiple lines -- should really not touch cursor when possible.
-                    cm.addSelection({line:from.line, ch:to.ch+delta})
-            ###
-            #console.log("replacements: " + replacements)
-            replacements.push(left_white + src + right_white)
-        cm.replaceSelections(replacements)
+                    delta = 0
+                cm.setCursor({line:from.line, ch:to.ch+delta})
+            else
+                # now select the new range
+                delta = src.length - src0.length
+                cm.addSelection(from, {line:to.line, ch:to.ch+delta})
 
 
     CodeMirror.defineExtension 'insert_link', (opts={}) ->
