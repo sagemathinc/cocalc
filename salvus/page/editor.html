@@ -1079,6 +1079,55 @@ Editor for files in a project
         <a class="btn btn-default" href="#todo">&hellip;</a>
     </div>
 
-</div>
+    <!-- smc wizard, see wizard.coffee -->
+    <div class="modal smc-wizard" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <button type="button" class="close btn-close" aria-hidden="true" data-dismiss="modal">
+                            <span style="font-size: 20pt">×</span>
+                        </button>
+                        <h2><i class="fa fa-graduation-cap"></i> Sage Wizard</h2>
+                    </div>
+                    <div class="smc-wizard-status">
+                        loading ...
+                    </div>
+                </div>
+                <div>
+                    <div class="row" style="margin-bottom:1em">
+                        <div class="col-sm-3">
+                            <select class="form-control" size="6">
+                            </select>
+                        </div>
+                        <div class="col-sm-3">
+                            <select class="form-control" size="6">
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <select class="form-control" size="6">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="panel panel-default smc-wizard-descr">
+                                <div class="panel-heading"></div>
+                                <div class="panel-body"></div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <pre class="code"></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-close btn-default">Cancel</button>
+                    <button class="btn btn-primary btn-submit">Insert Cell</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+</div>
 
