@@ -24,12 +24,53 @@ wizard_template = $(".smc-wizard")
 class Wizard
     constructor: () ->
         @dialog = wizard_template.clone()
+
+        @nav      = @dialog.find(".smc-wizard-nav")
+        @lvl1     = @dialog.find(".smc-wizard-lvl1")
+        @lvl2     = @dialog.find(".smc-wizard-lvl2")
+        @document = @dialog.find(".smc-wizard-doc")
+        @code     = @dialog.find(".smc-wizard-code")
+        @descr    = @dialog.find(".smc-wizard-descr > div.panel-body")
+
         @init()
         @dialog.modal('show')
 
     init: () ->
-        @dialog.find(".btn-close").click () =>
+
+        @dialog.find(".btn-close").on "click", =>
             @dialog.modal('hide')
             return false
+
+        @nav.on "click", "li", (evt) =>
+            evt.preventDefault()
+            pill = $(evt.target)
+            @set_nav(pill)
+            @fill_list(@lvl1, ["a", "B", "CCC", pill.attr("href").substring(1)])
+            return false
+
+        @lvl1.on "click", "li", (evt) =>
+            evt.preventDefault()
+            select1 = $(evt.target).attr("data")
+            console.log("lvl2: #{select1}")
+            @fill_list(@lvl2, ["1", "2", "3", "#{select1}"])
+            return false
+
+        @lvl2.on "click", "li", (evt) =>
+            evt.preventDefault()
+            select2 = $(evt.target).attr("data")
+            console.log("lvl1: #{select2}")
+            @fill_list(@document, ["bla", "bla2"])
+            return false
+
+    set_nav: (which) ->
+        for pill in @nav.find("li")
+            console.log(pill, which)
+            $(pill).toggleClass "active", pill == which.parent().get(0)
+
+    fill_list: (list, entries) ->
+        list.empty()
+        for entry in entries
+            # <li class="list-group-item active"><span class="badge">3</span>...</li>
+            list.append($("<li class='list-group-item' data='#{entry}'>#{entry}</li>"))
 
 exports.show = () -> new Wizard()

@@ -1,15 +1,29 @@
 .smc-wizard
   > div
-    min-width: 60vw
+    min-width: 75vw
 
     > div.modal-content
 
-      div.modal-header
-        padding-top: 0
+      > div.modal-header
+        > h2
+          margin-top: 10px
+        .nav-pills
+          margin-top: 10px
+        .btn-close
+          margin-top: 10px
+          > span
+            font-size: 30px
 
-      div.modal-header + div
-        margin: 1em
+      > div.modal-body
+        > div.row:first-child
+          // margin-bottom: 1em
+          ul
+            height:175px
+            overflow:auto
+            > li
+              cursor: pointer
 
-      div.smc-wizard-descr,
-      pre.code
-        min-height: 200px
+        div.smc-wizard-descr,
+        pre.code
+          height:200px
+          overflow:auto
