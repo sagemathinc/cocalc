@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
 #    Copyright (C) 2015, SageMathCloud Authors
 #
@@ -19,12 +19,17 @@
 #
 ###############################################################################
 
+_ = require("underscore")
+
 wizard_template = $(".smc-wizard")
+
+data = null
 
 class Wizard
     constructor: () ->
         @dialog = wizard_template.clone()
 
+        # the elements
         @nav      = @dialog.find(".smc-wizard-nav")
         @lvl1     = @dialog.find(".smc-wizard-lvl1")
         @lvl2     = @dialog.find(".smc-wizard-lvl2")
@@ -32,40 +37,100 @@ class Wizard
         @code     = @dialog.find(".smc-wizard-code")
         @descr    = @dialog.find(".smc-wizard-descr > div.panel-body")
 
+        # the state
+        @lang     = undefined
+        @cat1     = undefined
+        @cat2     = undefined
+        @title    = undefined
+        @doc      = undefined
+
         @init()
         @dialog.modal('show')
 
-    init: () ->
+    init: () =>
+        cb = () =>
+            console.log "cb called"
+            @init_nav()
+            @init_buttons()
 
+        if data?
+            # console.log "data exists"
+            cb()
+        else
+            # console.log "data null"
+            $.ajax # TODO use some of those clever retry-functions
+                url: window.salvus_base_url + "/static/wizard/wizard.js"
+                dataType: "json"
+                error: (jqXHR, textStatus, errorThrown) =>
+                    console.log "AJAX Error: #{textStatus}"
+                success: (data2, textStatus, jqXHR) =>
+                    # console.log "Successful AJAX call: #{data}"
+                    data = data2
+                    cb()
+
+    init_nav: () ->
+        # <li role="presentation"><a href="#sage">Sage</a></li>
+        N = {"sage": "Sage", "python": "Python", "r": "R", "gap" :"GAP", "cython" : "Cython"}
+        for key in _.keys(data)
+            name = key
+            if N[key]?
+                name = N[key]
+            @nav.append($("<li role='presentation'><a href='##{key}'>#{name}</a></li>"))
+
+    init_buttons: () ->
         @dialog.find(".btn-close").on "click", =>
             @dialog.modal('hide')
+            return false
+
+        @dialog.find(".btn-submit").on "click", =>
+            @dialog.modal('hide')
+            window.alert("INSERT CODE:\n" + @doc[0])
             return false
 
         @nav.on "click", "li", (evt) =>
             evt.preventDefault()
             pill = $(evt.target)
-            @set_nav(pill)
-            @fill_list(@lvl1, ["a", "B", "CCC", pill.attr("href").substring(1)])
+            @set_active(@nav, pill.parent())
+            @lang = pill.attr("href").substring(1)
+            @fill_list(@lvl1, _.keys(data[@lang]))
+            @lvl2.empty()
+            @document.empty()
             return false
 
         @lvl1.on "click", "li", (evt) =>
             evt.preventDefault()
-            select1 = $(evt.target).attr("data")
-            console.log("lvl2: #{select1}")
-            @fill_list(@lvl2, ["1", "2", "3", "#{select1}"])
+            t = $(evt.target)
+            @set_active(@lvl1, t)
+            @cat1 = t.attr("data")
+            # console.log("lvl1: #{select1}")
+            @fill_list(@lvl2, _.keys(data[@lang][@cat1]))
+            @document.empty()
             return false
 
         @lvl2.on "click", "li", (evt) =>
             evt.preventDefault()
-            select2 = $(evt.target).attr("data")
-            console.log("lvl1: #{select2}")
-            @fill_list(@document, ["bla", "bla2"])
+            t = $(evt.target)
+            @set_active(@lvl2, t)
+            @cat2 = t.attr("data")
+            # console.log("lvl2: #{select2}")
+            @fill_list(@document, _.keys(data[@lang][@cat1][@cat2]))
             return false
 
-    set_nav: (which) ->
-        for pill in @nav.find("li")
-            console.log(pill, which)
-            $(pill).toggleClass "active", pill == which.parent().get(0)
+        @document.on "click", "li", (evt) =>
+            evt.preventDefault()
+            t = $(evt.target)
+            @set_active(@document, t)
+            @title = t.attr("data")
+            # console.log("document: #{doc}")
+            @doc = data[@lang][@cat1][@cat2][@title]
+            @code.text(@doc[0])
+            @descr.text(@doc[1])
+            return false
+
+    set_active: (list, which) ->
+        for pill in list.find("li")
+            # console.log(pill, which.get(0))
+            $(pill).toggleClass "active", pill == which.get(0)
 
     fill_list: (list, entries) ->
         list.empty()

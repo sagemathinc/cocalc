@@ -5,7 +5,7 @@
     > div.modal-content
 
       > div.modal-header
-        > h2
+        h2
           margin-top: 10px
         .nav-pills
           margin-top: 10px
@@ -22,6 +22,8 @@
             overflow:auto
             > li
               cursor: pointer
+              &:not(.active):hover
+                background-color: #eee
 
         div.smc-wizard-descr,
         pre.code
