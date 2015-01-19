@@ -1223,8 +1223,8 @@ class GlobalProject
                     path : misc.path_split(opts.target_path).head
                     cb   : cb
             (cb) =>
-                dbg("get coordinates (server_id, datacenter, addr) for source and target projects (in parallel)")
-                async.parallel([
+                dbg("get coordinates (server_id, datacenter, addr) for source and target projects")
+                async.series([
                     (cb) =>
                         dbg("get coords of source project")
                         @get_running_location_and_dc
@@ -2502,7 +2502,7 @@ class GlobalClient
     	x.c.repair(dryrun:true, cb:(e,projects)->console.log("DONE",e);x.projects=projects)
         x.projects.length
 
-        status=[];x.c.repair(limit:1, status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
+        status=[];x.c.repair(limit:3, status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
 
     ###
     repair: (opts) =>
