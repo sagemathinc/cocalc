@@ -19,7 +19,6 @@ export LD_LIBRARY_PATH=$P/data/local/lib:$LD_LIBRARY_PATH
 # For people building Sage from source.
 export SAGE_ATLAS_LIB=/usr/lib/
 
-
 # Optional custom environment that gets sourced on startup of their project.
 # Be careful with this -- you might make it impossible to access your project
 # (but if that happens, email SMC support and we'll fix it).

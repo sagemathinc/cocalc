@@ -1,5 +1,27 @@
 ###############################################################################
 #
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
+###############################################################################
+#
 # Project page -- browse the files in a project, etc.
 #
 ###############################################################################
@@ -181,7 +203,7 @@ class ProjectPage
         # sends a message to the hub.
         that = @
         @container.find(".project-project_title").blur () ->
-            new_title = $(@).html().trim()
+            new_title = $(@).text().trim()
             if new_title != that.project.title
                 if new_title == ""
                     new_title = "No title"
@@ -202,7 +224,7 @@ class ProjectPage
                             that.update_topbar()
 
         @container.find(".project-project_description").blur () ->
-            new_desc = $(@).html().trim()
+            new_desc = $(@).text().trim()
             if new_desc != that.project.description
                 if new_desc == ""
                     new_desc = "No description"
@@ -1281,15 +1303,18 @@ class ProjectPage
                         @display_tab("project-file-listing")
             return false
 
-        click_new_file_button = () =>
+        click_new_file_button = (evt) =>
+            if evt?
+                ext = $(evt.target).closest('a').data('ext')
+            else
+                ext = undefined
             target = @new_file_tab_input.val()
             if target.indexOf("://") != -1 or misc.startswith(target, "git@github.com:")
                 download_button.icon_spin(start:true, delay:500)
                 new_file_from_web target, () =>
                     download_button.icon_spin(false)
-
             else
-                create_file()
+                create_file(ext)
             return false
 
         @new_file_tab.find("a[href=#new-file]").click(click_new_file_button)
@@ -1599,7 +1624,6 @@ class ProjectPage
                         listing  : listing
                         no_focus : no_focus
                         cb       : cb
-                    @update_snapshot_link()
 
     invalidate_render_file_listing_cache: () =>
         delete @_update_file_list_tab_last_path
@@ -2110,9 +2134,10 @@ class ProjectPage
                 return false
         dialog.modal()
 
-    copy_to_another_project_dialog: (path, isdir) =>
+    copy_to_another_project_dialog: (path, isdir, cb) =>
         if not require('account').account_settings.is_signed_in()
             @copy_to_another_not_ready_dialog()
+            cb?("not signed in")
             return
 
         dialog = $(".salvus-project-copy-to-another-project-dialog").clone()
@@ -2210,7 +2235,12 @@ class ProjectPage
                         else
                             alert_message(type:"success", message:"Successfully copied #{src_path} to #{target_path} in #{target_project}")
                         cb(err)
-        ], (err) => cb?(err))
+        ], (err) =>
+            if err
+                cb?(err)
+            else
+                cb?(undefined, {project_id:target_project_id, path: target_path})
+        )
 
     move_file_dialog:  (path, cb) =>
         dialog = $(".project-move-file-dialog").clone()
@@ -2248,7 +2278,7 @@ class ProjectPage
                     path       : '.'
                     cb         : (err, output) =>
                         if err
-                            alert_message(type:"error", message:"Error moving #{new_src} to #{new_dest} -- #{output.stderr}")
+                            alert_message(type:"error", message:"Error moving #{new_src} to #{new_dest} -- #{err}")
                         else
                             alert_message(type:"success", message:"Successfully moved #{new_src} to #{new_dest}")
                             if path == @current_pathname()
@@ -2638,7 +2668,7 @@ class ProjectPage
                 continue
             try
                 entry = JSON.parse(e)
-            catch
+            catch e
                 entry = {event:'other'}
 
             elt = undefined
@@ -3318,7 +3348,6 @@ class ProjectPage
             ])
             return false
 
-
     # Completely move the project, possibly moving it if it is on a broken host.
     ###
     init_project_move: () =>
@@ -3357,27 +3386,6 @@ class ProjectPage
         @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
             @visit_snapshot()
             return false
-        @update_snapshot_link()
-
-    update_snapshot_link: () =>
-        salvus_client.exec
-            project_id  : @project.project_id
-            command     : "ls ~/.snapshots/master/|tail -2"
-            err_on_exit : true
-            cb          : (err, output) =>
-                if not err
-                    try
-                        time = output.stdout.split('\n')[0].trim()
-                        if time  # could be empty, e.g., if no snapshots
-                            time = misc.parse_bup_timestamp(time)
-                            @_last_snapshot_time = time
-                            # critical to use replaceWith!
-                            c = @container.find(".project-snapshot-last-timeago span")
-                            d = $("<span>").attr('title', time.toISOString()).timeago()
-                            c.replaceWith(d)
-                    catch e
-                        console.log("error parsing last snapshot time (stdout='#{output.stdout}'): ", e)
-                        return
 
     update_local_status_link: () =>
         if @_update_local_status_link_lock

@@ -1,3 +1,23 @@
+<!--
+SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and the Terminal.
+
+    Copyright (C) 2014, William Stein
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+
 <!-- Modal dialogs for manipulating paths -->
 
 <div id="project-delete-path-dialog" class="modal" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
@@ -438,7 +458,7 @@ margin-right: 2em;
                     <div class="project-file-listing-buttons">
                         <!-- Snapshots link -->
                         <div class="project-snapshot pull-right salvus-project-write-access" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
-                            <a href="#snapshot" data-toggle="tooltip" data-placement="bottom" title="Recover  past versions of your files." style="margin-left: 1ex;"><i class="fa fa-camera-retro"> </i> <span style="font-size:14px">&nbsp;Snapshots</span><div class="project-snapshot-last-timeago"><span></span></div></a>
+                            <a href="#snapshot" data-toggle="tooltip" data-placement="bottom" title="Recover  past versions of your files." style="margin-left: 1ex;"><i class="fa fa-camera-retro"> </i> <span style="font-size:14px">&nbsp;Snapshots</span><br></a>
                         </div>
 
                         <!-- Trash can link -->
@@ -466,7 +486,7 @@ margin-right: 2em;
                     </div>
 
                     <!-- command line prompt -->
-                    <div class="project-command-line pull-right col-sm-3">
+                    <div class="project-command-line salvus-project-write-access pull-right col-sm-3">
                         <div class="input-group" style="width:100%">
                             <input class="project-command-line-input form-control salvus-project-write-access" type="text"
                                    placeholder="Terminal command..." data-toggle="tooltip" data-placement="top"
@@ -538,7 +558,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                 <h4>Name your file or paste in a web link</h4>
                                 <input class="project-new-file-path-input form-control" type="text" placeholder="Name your new file, worksheet, terminal or directory..." style="width:100%">
                                 <br>
-                                <h4>Select the type</h4>
+                                <h4>Select the type of file, directory or link</h4>
                                 <span style="width:100%">
                                     <div class="row">
                                         <div class="col-sm-6">
@@ -546,7 +566,15 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                             <a class="btn btn-default" style="margin-top:1ex" href="#new-ipython" data-toggle="tooltip" data-placement="top" title="An IPython notebook"><i class="fa fa-file-code-o"></i> IPython Notebook</a>
                                         </div>
                                         <div class="col-sm-6">
-                                            <a class="btn btn-default" style="margin-top:1ex" href="#new-file" data-toggle="tooltip" data-placement="bottom" title="New file of any type"><i class="fa fa-file"></i> File</a>
+                                            <div class="btn-group" style="margin-top:1ex" >
+                                                <a href="#new-file" class="btn btn-default"><i class="fa fa-file"></i> File</a>
+                                                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                                                    <span class="caret"></span>
+                                                    <span class="sr-only">Toggle Dropdown</span>
+                                                </button>
+                                                <ul class="dropdown-menu smc-new-file-type-list" role="menu" style="max-height: 400px; overflow-y: auto;">
+                                                </ul>
+                                            </div>
                                             <a class="btn btn-default" style="margin-top:1ex" href="#new-folder" data-toggle="tooltip" data-placement="bottom" title="New folder"><i class="fa fa-folder-open-o"></i> Folder</a>
                                             <a class="btn btn-default" style="margin-top:1ex" href="#new-download" data-toggle="tooltip" data-placement="bottom" title="Copy file or directory from the web"><i class="fa fa-cloud"></i> From Internet <span class="salvus-network-blocked">(most sites blocked)</span></a>
                                         </div>
@@ -556,7 +584,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                             <a class="btn btn-default" style="margin-top:1ex" href="#new-latex" data-toggle="tooltip" data-placement="top" title="Full LaTeX document"><i class="fa fa-file-excel-o"></i> LaTeX Document</a>
                                             <a class="btn btn-default" style="margin-top:1ex" href="#new-terminal" data-toggle="tooltip" data-placement="top" title="Command line terminal session"><i class="fa fa-terminal"></i> Terminal</a>
                                             <a class="btn btn-default" style="margin-top:1ex" href="#new-tasks" data-toggle="tooltip" data-placement="top" title="List of tasks to complete"><i class="fa fa-tasks"></i> Task List</a>
-                                            <a class="btn btn-default"  style="margin-top:1ex"  href="#new-course" data-toggle="tooltip" data-placement="top" title="A course with many students"><i class="fa fa-graduation-cap"></i> Course</a>
+                                            <a class="btn btn-default"  style="margin-top:1ex"  href="#new-course" data-toggle="tooltip" data-placement="top" title="A course with many students"><i class="fa fa-graduation-cap"></i> Manage a Course</a>
                                         </div>
                                         <div class="col-sm-6">
                                         </div>
@@ -762,7 +790,8 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                 <div class="row">
                                     <div class="lighten col-sm-12">
                                         Not working?  <b><i>Immediately email me</i></b> (William Stein) at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>, and include the following URL:
-                                        <input class="form-control salvus-settings-url" >
+                                        <input class="form-control salvus-settings-url" style="margin-bottom: 5px;">
+                                        Also, consider <a href="https://www.washington.edu/giving/make-a-gift/?page=make&code=SGEMCS" target="_blank">donating to the SageMathCloud Support Fund.</a>
                                     </div>
                                 </div>
                             </div>
@@ -807,6 +836,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                     <span class="lighten"> Email <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a> if you need me to raise a quota (which is currently <b><i>free</i></b>).
                                         Include the following URL in your email:
                                         <input class="form-control salvus-settings-url" ></span>
+                                    and consider <a href="https://www.washington.edu/giving/make-a-gift/?page=make&code=SGEMCS" target="_blank">donating to the SageMathCloud Support Fund.</a>
                                 </span>
                             </div>
                         </div>

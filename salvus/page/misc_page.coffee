@@ -1,8 +1,32 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 {IS_MOBILE}    = require("feature")
 
 misc           = require('misc')
 
 {dmp}          = require('diffsync')
+
+buttonbar      = require('buttonbar')
 
 
 templates = $("#salvus-misc-templates")
@@ -113,6 +137,90 @@ $.fn.extend
                 MathJax.Hub.Queue([opts.cb, t])
             return t
 
+$.fn.extend
+    unmathjax: (opts={}) ->
+        opts = defaults(opts,{})
+        @each () ->
+            t = $(this)
+            for c in "MathJax_Preview MathJax_SVG MathJax_SVG_Display MathJax MathJax_MathML".split(' ')
+                t.find(".#{c}").remove()
+            for s in t.find("script[type='math/tex']")
+                a = $(s)
+                a.replaceWith(" $#{a.text()}$ ")
+            for s in t.find("script[type='math/tex; mode=display']")
+                a = $(s)
+                a.replaceWith(" $$#{a.text()}$$ ")
+            return t
+
+$.fn.extend
+    equation_editor: (opts={}) ->
+        opts = defaults opts,
+            display  : false
+            value    : ''
+            onchange : undefined
+        @each () ->
+            t = $(this)
+            if opts.display
+                delim = '$$'
+                s = $("<div class='sagews-editor-latex-raw' style='width:50%'><textarea></textarea><br><div class='sagews-editor-latex-preview'></div></div>")
+            else
+                delim = '$'
+                s = $("<div class='sagews-editor-latex-raw' style='width:50%'><textarea></textarea><br><div class='sagews-editor-latex-preview'></div></span>")
+            s.attr('id', misc.uuid())
+            ed = s.find("textarea")
+            options =
+                autofocus               : true
+                mode                    : {name:'stex', globalVars: true}
+                lineNumbers             : false
+                showTrailingSpace       : false
+                indentUnit              : 4
+                tabSize                 : 4
+                smartIndent             : true
+                electricChars           : true
+                undoDepth               : 100
+                matchBrackets           : true
+                autoCloseBrackets       : true
+                autoCloseTags           : true
+                lineWrapping            : true
+                readOnly                : false
+                styleActiveLine         : 15
+                indentWithTabs          : false
+                showCursorWhenSelecting : true
+                viewportMargin          : Infinity
+                extraKeys               : {}
+
+            t.replaceWith(s)
+            cm = CodeMirror.fromTextArea(ed[0], options)
+            #console.log("setting value to '#{opts.value}'")
+            trim_dollars = (code) ->
+                code = code.trim()
+                while code[0] == '$'
+                    code = code.slice(1)
+                while code[code.length-1] == '$'
+                    code = code.slice(0,code.length-1)
+                return code.trim()
+
+            cm.setValue(delim + '\n\n' + opts.value + '\n\n' +  delim)
+            cm.setCursor(line:2,ch:0)
+            ed.val(opts.value)
+            #cm.clearHistory()  # ensure that the undo history doesn't start with "empty document"
+            $(cm.getWrapperElement()).css(height:'auto')
+            preview = s.find(".sagews-editor-latex-preview")
+            preview.click () =>
+                cm.focus()
+            update_preview = () ->
+                preview.mathjax
+                    tex     : trim_dollars(cm.getValue())
+                    display : opts.display
+                    inline  : not opts.display
+            if opts.onchange?
+                cm.on 'change', () =>
+                    update_preview()
+                    opts.onchange()
+                    ed.val(trim_dollars(cm.getValue()))
+            s.data('delim', delim)
+            update_preview()
+            return t
 
 # Mathjax-enabled Contenteditable Editor plugin
 $.fn.extend
@@ -120,23 +228,30 @@ $.fn.extend
         @each () ->
             opts = defaults opts,
                 value    : undefined   # defaults to what is already there
-                onchange : undefined   # function that gets called with a diff when content changes
-                interval : 250         # milliseconds interval between sending update change events about content
+                onchange : undefined   # function that gets called when content changes
+                interval : 250         # call onchange if there was a change, but no more for this many ms.
                 one_line : false       # if true, blur when user presses the enter key
+                mathjax  : false       # if false, completey ignore ever running mathjax -- probably a good idea since support for running it is pretty broken.
+
+                cancel   : false       # if given, instead removes all handlers/editable from element
 
             t = $(this)
-            t.attr('contenteditable', true)
+
+            if opts.cancel
+                t.data('cancel_editor')?()
+                # TODO: clear state -- get rid of function data...
+                return
 
             if not opts.value?
                 opts.value = t.html()
 
             last_sync = opts.value
 
+            t.data('onchange', opts.onchange)
+
             change_timer = undefined
             report_change = () ->
-                if change_timer?
-                    clearTimeout(change_timer)
-                    change_timer = undefined
+                change_timer = undefined
                 last_update = t.data('last_update')
                 if t.data('mode') == 'edit'
                     now = t.html()
@@ -149,16 +264,19 @@ $.fn.extend
                     last_sync = now
 
             set_change_timer = () ->
-                if opts.onchange? and not change_timer?
+                if opts.onchange?
+                    if change_timer?
+                        clearTimeout(change_timer)
                     change_timer = setTimeout(report_change, opts.interval)
 
-            # set the text content; it will be subsequently processed by mathjax
+            # set the text content; it will be subsequently processed by mathjax, if opts.mathjax is true
             set_value = (value) ->
                 t.data
                     raw         : value
                     mode        : 'view'
                 t.html(value)
-                t.mathjax()
+                if opts.mathjax
+                    t.mathjax()
                 set_change_timer()
 
             get_value = () ->
@@ -180,33 +298,57 @@ $.fn.extend
                         set_value(new_cur)
                         report_change()
 
-            t.data('set_value', set_value)
-            t.data('get_value', get_value)
-            t.data('set_upstream', set_upstream)
-
-            t.on 'focus', ->
+            on_focus = () ->
+                #console.log("on_focus")
                 if t.data('mode') == 'edit'
                     return
                 t.data('mode', 'edit')
                 t = $(this)
                 x = t.data('raw')
 
-            t.blur () ->
+            on_blur = () ->
+                #console.log("on_blur")
                 t = $(this)
                 t.data
                     raw  : t.html()
                     mode : 'view'
-                t.mathjax()
+                if opts.mathjax
+                    t.mathjax()
 
-            t.on 'paste', set_change_timer
-            t.on 'blur', set_change_timer
-            t.on 'keyup', set_change_timer
-            t.on 'keydown', (evt) ->
-                if evt.which == 27 or (opts.one_line and evt.which == 13)
-                    t.blur()
-                    return false
 
-            t.data('last_update', opts.value)
+            #on_keydown = (evt) ->
+            #    if evt.which == 27 or (opts.one_line and evt.which == 13)
+            #        t.blur()
+            #        return false
+
+            t.attr('contenteditable', true)
+
+            handlers =
+                focus   : on_focus
+                blur    : on_blur
+                paste   : set_change_timer
+                keyup   : set_change_timer
+                keydown : set_change_timer
+
+            for evt, f of handlers
+                t.on(evt, f)
+
+            data =
+                set_value    : set_value
+                get_value    : get_value
+                set_upstream : set_upstream
+                last_update  : opts.value
+
+            t.data(data)
+
+            t.data 'cancel_editor', () =>
+                #console.log("cancel_editor")
+                t.attr('contenteditable', false)
+                for evt, f of handlers
+                    t.unbind(evt, f)
+                for key,_ of data
+                    t.removeData(key)
+
             set_value(opts.value)
             return t
 
@@ -335,31 +477,57 @@ exports.define_codemirror_extensions = () ->
         if changeObj?
             @apply_changeObj(changeObj)
 
-    # Set the value of the buffer to something new, and make some attempt
-    # to maintain the view, e.g., cursor position and scroll position.
-    # This function is very, very naive now, but will get better using better algorithms.
+    # Set the value of the buffer to something new by replacing just the ranges
+    # that changed, so that the view/history/etc. doesn't get messed up.
     CodeMirror.defineExtension 'setValueNoJump', (value) ->
-        try
-            scroll = @getScrollInfo()
-            pos = @getCursor()
-        catch e
-            # nothing
-        @setValue(value)
-        try
-            if pos?
-                @setCursor(pos)
-            if scroll?
-                @scrollTo(scroll.left, scroll.top)
-            if pos?
-                @scrollIntoView(pos)   #I've seen tracebacks from this saying "cannot call method chunckSize of undefined"
-                                   #which cause havoc on the reset of sync, which assumes setValueNoJump works, and
-                                   # leads to user data loss.  I consider this a codemirror bug, but of course
-                                   # just not moving the view in such cases is a reasonable workaround.
-        catch e
-            # nothing
+        cur_value = @getValue()
+        @.diffApply(dmp.diff_main(@getValue(), value))
 
+    CodeMirror.defineExtension 'patchApply', (patch) ->
+        ## TODO: this is a very stupid/inefficient way to turn
+        ## a patch into a diff.  We should just directly rewrite
+        ## the code below to work with patch.
+        cur_value = @getValue()
+        new_value = dmp.patch_apply(patch, cur_value)[0]
+        diff = dmp.diff_main(cur_value, new_value)
+        @.diffApply(diff)
 
+    CodeMirror.defineExtension 'diffApply', (diff) ->
+        ## TODO: this is a very stupid/inefficient way to turn
+        ## a patch into a diff.  We should just directly rewrite
+        ## the code below to work with patch.
+        next_pos = (val, pos) ->
+            # This functions answers the question:
+            # If you were to insert the string val at the CodeMirror position pos
+            # in a codemirror document, at what position (in codemirror) would
+            # the inserted string end at?
+            number_of_newlines = (val.match(/\n/g)||[]).length
+            if number_of_newlines == 0
+                return {line:pos.line, ch:pos.ch+val.length}
+            else
+                return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
 
+        pos = {line:0, ch:0}  # start at the beginning
+        for chunk in diff
+            #console.log(chunk)
+            op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
+            val = chunk[1]  # the actual text to leave same, delete, or add
+            pos1 = next_pos(val, pos)
+            switch op
+                when 0 # stay the same
+                    # Move our pos pointer to the next position
+                    pos = pos1
+                    #console.log("skipping to ", pos1)
+                when -1 # delete
+                    # Delete until where val ends; don't change pos pointer.
+                    @replaceRange("", pos, pos1)
+                    #console.log("deleting from ", pos, " to ", pos1)
+                when +1 # insert
+                    # Insert the new text right here.
+                    @replaceRange(val, pos)
+                    #console.log("inserted new text at ", pos)
+                    # Move our pointer to just beyond the text we just inserted.
+                    pos = pos1
 
     # This is an improved rewrite of simple-hint.js from the CodeMirror3 distribution.
     CodeMirror.defineExtension 'showCompletions', (opts) ->
@@ -526,6 +694,489 @@ exports.define_codemirror_extensions = () ->
         CodeMirror.registerHelper("hint", "stex", tex_hint)
 
 
+    EDIT_COMMANDS = buttonbar.commands
+
+    CodeMirror.defineExtension 'get_edit_mode', (opts) ->
+        opts = defaults opts, {}
+        cm = @
+        switch cm.getModeAt(cm.getCursor()).name
+            when 'markdown'
+                return 'md'
+            when 'xml'
+                return 'html'
+            when 'mediawiki'
+                return 'mediawiki'
+            when 'stex'
+                return 'tex'
+            when 'python' # TODO how to tell it to return sage when in a sagews file?
+                return 'python'
+            when 'r'
+                return 'r'
+            when 'julia'
+                return 'julia'
+            when 'sagews'    # this doesn't work
+                return 'sage'
+            else
+                mode = cm.getOption('mode').name
+                if mode.slice(0,3) == 'gfm'
+                    return 'md'
+                else if mode.slice(0,9) == 'htmlmixed'
+                    return 'html'
+                else if mode.indexOf('mediawiki') != -1
+                    return 'mediawiki'
+                else if mode.indexOf('rst') != -1
+                    return 'rst'
+                else if mode.indexOf('stex') != -1
+                    return 'tex'
+                if mode not in ['md', 'html', 'tex', 'rst', 'mediawiki', 'sagews', 'r']
+                    return 'html'
+
+    CodeMirror.defineExtension 'edit_selection', (opts) ->
+        opts = defaults opts,
+            cmd  : required
+            args : undefined
+            mode : undefined
+        cm = @
+        default_mode = opts.mode
+        if not default_mode?
+            default_mode = cm.get_edit_mode()
+
+        canonical_mode = (name) ->
+            switch name
+                when 'markdown'
+                    return 'md'
+                when 'xml'
+                    return 'html'
+                when 'mediawiki'
+                    return 'mediawiki'
+                when 'stex'
+                    return 'tex'
+                when 'python'
+                    return 'python'
+                when 'r'
+                    return 'r'
+                when 'sagews'
+                    return 'sage'
+                else
+                    return default_mode
+
+        args = opts.args
+        cmd = opts.cmd
+
+        #console.log("edit_selection '#{misc.to_json(opts)}', mode='#{default_mode}'")
+
+        # TODO: will have to make this more sophisticated, so it can
+        # deal with nesting.
+        strip = (src, left, right) ->
+            #console.log("strip:'#{src}','#{left}','#{right}'")
+            left  = left.trim().toLowerCase()
+            right = right.trim().toLowerCase()
+            src0   = src.toLowerCase()
+            i = src0.indexOf(left)
+            if i != -1
+                j = src0.lastIndexOf(right)
+                if j != -1
+                    #console.log('strip match')
+                    return src.slice(0,i) + src.slice(i+left.length,j) + src.slice(j+right.length)
+
+        selections = cm.listSelections()
+        #selections.reverse()
+        for selection in selections
+            mode = canonical_mode(cm.getModeAt(selection.head).name)
+            #console.log("edit_selection(mode='#{mode}'), selection=", selection)
+            from = selection.from()
+            to = selection.to()
+            src = cm.getRange(from, to)
+            # trim whitespace
+            i = 0
+            while i<src.length and /\s/.test(src[i])
+                i += 1
+            j = src.length-1
+            while j > 0 and /\s/.test(src[j])
+                j -= 1
+            j += 1
+            left_white = src.slice(0,i)
+            right_white = src.slice(j)
+            src = src.slice(i,j)
+            src0 = src
+
+            mode1 = mode
+            how = EDIT_COMMANDS[mode1][cmd]
+            if not how?
+                if mode1 in ['md', 'mediawiki', 'rst']
+                    # html fallback for markdown
+                    mode1 = 'html'
+                else if mode1 == "python"
+                    # Sage fallback in python mode. TODO There should be a Sage mode.
+                    mode1 = "sage"
+                how = EDIT_COMMANDS[mode1][cmd]
+
+            done = false
+            if how?.wrap?
+                if how.strip?
+                    # Strip out any tags/wrapping from conflicting modes.
+                    for c in how.strip
+                        wrap = EDIT_COMMANDS[mode1][c].wrap
+                        if wrap?
+                            {left, right} = wrap
+                            src1 = strip(src, left, right)
+                            if src1?
+                                src = src1
+
+                left  = if how.wrap.left?  then how.wrap.left else ""
+                right = if how.wrap.right? then how.wrap.right else ""
+                src1 = strip(src, left, right)
+                if src1
+                    # strip the wrapping
+                    src = src1
+                else
+                    # do the wrapping
+                    src = "#{left}#{src}#{right}"
+                done = true
+
+            if how?.insert? # to insert the code snippet right below, next line
+                # TODO no idea what the strip(...) above is actually doing
+                # if text is selected (is that src?) then there is only some new stuff below it. that's it.
+                src = "#{src}\n#{how.insert}"
+                done = true
+
+            if cmd == 'font_size'
+                if mode in ['html', 'md', 'mediawiki']
+                    for i in [1..7]
+                        src1 = strip(src, "<font size=#{i}>", '</font>')
+                        if src1
+                            src = src1
+                    if args != '3'
+                        src = "<font size=#{args}>#{src}</font>"
+
+            if cmd == 'color'
+                if mode in ['html', 'md', 'mediawiki']
+                    src0 = src.toLowerCase().trim()
+                    if src0.slice(0,12) == "<font color="
+                        i = src.indexOf('>')
+                        j = src.lastIndexOf('<')
+                        src = src.slice(i+1,j)
+                    src = "<font color=#{args}>#{src}</font>"
+
+            if cmd == 'background-color'
+                if mode in ['html', 'md', 'mediawiki']
+                    src0 = src.toLowerCase().trim()
+                    if src0.slice(0,23) == "<span style='background"
+                        i = src.indexOf('>')
+                        j = src.lastIndexOf('<')
+                        src = src.slice(i+1,j)
+                    src = "<span style='background-color:#{args}'>#{src}</span>"
+
+            if cmd == 'font_face'
+                if mode in ['html', 'md', 'mediawiki']
+                    for face in FONT_FACES
+                        src1 = strip(src, "<font face='#{face}'>", '</font>')
+                        if src1
+                            src = src1
+                    src = "<font face='#{args}'>#{src}</font>"
+
+            if cmd == 'clean'
+                if mode == 'html'
+                    src = html_beautify($("<div>").html(src).html())
+                    done = true
+
+            if cmd == 'unformat'
+                if mode == 'html'
+                    src = $("<div>").html(src).text()
+                    done = true
+                else if mode == 'md'
+                    src = $("<div>").html(markdown_to_html(src).s).text()
+                    done = true
+
+            if not done?
+                #console.log("not implemented")
+                return "not implemented"
+
+            if src == src0
+                continue
+
+            cm.replaceRange(left_white + src + right_white, from, to)
+            if selection.empty()
+                # restore cursor
+                if left?
+                    delta = left.length
+                else
+                    delta = 0
+                cm.setCursor({line:from.line, ch:to.ch+delta})
+            else
+                # now select the new range
+                delta = src.length - src0.length
+                cm.addSelection(from, {line:to.line, ch:to.ch+delta})
+
+
+    CodeMirror.defineExtension 'insert_link', (opts={}) ->
+        opts = defaults opts,
+            cb : undefined
+        cm = @
+        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-link-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            setTimeout(focus, 50)
+            return false
+        url = dialog.find(".salvus-html-editor-url")
+        url.focus()
+        display = dialog.find(".salvus-html-editor-display")
+        target  = dialog.find(".salvus-html-editor-target")
+        title   = dialog.find(".salvus-html-editor-title")
+
+        selected_text = cm.getSelection()
+        display.val(selected_text)
+
+        mode = cm.get_edit_mode()
+
+        if mode in ['md', 'rst', 'tex']
+            dialog.find(".salvus-html-editor-target-row").hide()
+
+        submit = () =>
+            dialog.modal('hide')
+            if mode == 'md'
+                # [Python](http://www.python.org/)
+                title  = title.val()
+
+                if title.length > 0
+                    title = " \"#{title}\""
+
+                d = display.val()
+                if d.length > 0
+                    s = "[#{d}](#{url.val()}#{title})"
+                else
+                    s = url.val()
+
+            else if mode == "rst"
+                # `Python <http://www.python.org/#target>`_
+
+                if display.val().length > 0
+                    display = "#{display.val()}"
+                else
+                    display = "#{url.val()}"
+
+                s = "`#{display} <#{url.val()}>`_"
+
+            else if mode == "tex"
+                # \url{http://www.wikibooks.org}
+                # \href{http://www.wikibooks.org}{Wikibooks home}
+                cm.tex_ensure_preamble?("\\usepackage{url}")
+                display = display.val().trim()
+                url = url.val()
+                url = url.replace(/#/g, "\\\#")  # should end up as \#
+                url = url.replace(/&/g, "\\&")   # ... \&
+                url = url.replace(/_/g, "\\_")   # ... \_
+                if display.length > 0
+                    s = "\\href{#{url}}{#{display}}"
+                else
+                    s = "\\url{#{url}}"
+
+            else if mode == "mediawiki"
+                # https://www.mediawiki.org/wiki/Help:Links
+                # [http://mediawiki.org MediaWiki]
+                display = display.val().trim()
+                if display.length > 0
+                    display = " #{display}"
+                s = "[#{url.val()}#{display}]"
+
+            else   # if mode == "html"  ## HTML default fallback
+                target = target.val().trim()
+                title  = title.val().trim()
+
+                if target == "_blank"
+                    target = " target='_blank'"
+
+                if title.length > 0
+                    title = " title='#{title}'"
+
+                if display.val().length > 0
+                    display = "#{display.val()}"
+                else
+                    display = url.val()
+                s = "<a href='#{url.val()}'#{title}#{target}>#{display}</a>"
+
+            selections = cm.listSelections()
+            selections.reverse()
+            for sel in selections
+                if sel.empty()
+                    #console.log(cm, s, sel.head)
+                    cm.replaceRange(s, sel.head)
+                else
+                    cm.replaceRange(s, sel.from(), sel.to())
+            opts.cb?()
+
+        dialog.find(".btn-submit").off('click').click(submit)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                opts.cb?()
+                return false
+
+
+
+    CodeMirror.defineExtension 'tex_ensure_preamble', (code) ->
+        cm = @
+        # ensures that the given line is the pre-amble of the latex document.
+        # TODO: actually implement this!
+
+        # in latex document do one thing
+
+        # in sagews will do something to %latex.
+
+    CodeMirror.defineExtension 'insert_image', (opts={}) ->
+        opts = defaults opts,
+            cb : undefined
+        cm = @
+
+        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-image-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            return false
+        url = dialog.find(".salvus-html-editor-url")
+        url.focus()
+
+        mode = cm.get_edit_mode()
+
+        if mode == "tex"
+            # different units and don't let user specify the height
+            dialog.find(".salvus-html-editor-height-row").hide()
+            dialog.find(".salvus-html-editor-image-width-header-tex").show()
+            dialog.find(".salvus-html-editor-image-width-header-default").hide()
+            dialog.find(".salvus-html-editor-width").val('80')
+
+        submit = () =>
+            dialog.modal('hide')
+            title  = dialog.find(".salvus-html-editor-title").val().trim()
+            height = width = ''
+            h = dialog.find(".salvus-html-editor-height").val().trim()
+            if h.length > 0
+                height = " height=#{h}"
+            w = dialog.find(".salvus-html-editor-width").val().trim()
+            if w.length > 0
+                width = " width=#{w}"
+
+            if mode == 'rst'
+                # .. image:: picture.jpeg
+                #    :height: 100px
+                #    :width: 200 px
+                #    :alt: alternate text
+                #    :align: right
+                s = "\n.. image:: #{url.val()}\n"
+                height = dialog.find(".salvus-html-editor-height").val().trim()
+                if height.length > 0
+                    s += "   :height: #{height}px\n"
+                width = dialog.find(".salvus-html-editor-width").val().trim()
+                if width.length > 0
+                    s += "   :width: #{width}px\n"
+                if title.length > 0
+                    s += "   :alt: #{title}\n"
+
+            else if mode == 'md' and width.length == 0 and height.length == 0
+                # use markdown's funny image format if width/height not given
+                if title.length > 0
+                    title = " \"#{title}\""
+                s = "![](#{url.val()}#{title})"
+
+            else if mode == "tex"
+                cm.tex_ensure_preamble("\\usepackage{graphicx}")
+                width = parseInt(dialog.find(".salvus-html-editor-width").val(), 10)
+                if "#{width}" == "NaN"
+                    width = "0.8"
+                else
+                    width = "#{width/100.0}"
+                if title.length > 0
+                    s = """
+                        \\begin{figure}[p]
+                            \\centering
+                            \\includegraphics[width=#{width}\\textwidth]{#{url.val()}}
+                            \\caption{#{title}}
+                        \\end{figure}
+                        """
+                else
+                    s = "\\includegraphics[width=#{width}\\textwidth]{#{url.val()}}"
+
+            else if mode == "mediawiki"
+                # https://www.mediawiki.org/wiki/Help:Images
+                # [[File:Example.jpg|<width>[x<height>]px]]
+                size = ""
+                if w.length > 0
+                    size = "|#{w}"
+                    if h.length > 0
+                        size += "x#{h}"
+                    size += "px"
+                s = "[[File:#{url.val()}#{size}]]"
+
+            else # fallback for mode == "md" but height or width is given
+                if title.length > 0
+                    title = " title='#{title}'"
+                s = "<img src='#{url.val()}'#{width}#{height}#{title}>"
+            selections = cm.listSelections()
+            selections.reverse()
+            for sel in selections
+                cm.replaceRange(s, sel.head)
+            opts.cb?()
+
+        dialog.find(".btn-submit").off('click').click(submit)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                opts.cb?()
+                return false
+
+    CodeMirror.defineExtension 'insert_special_char', (opts={}) ->
+        opts = defaults opts,
+            cb : undefined
+        cm = @
+
+        mode = cm.get_edit_mode()
+        if mode not in ['html', 'md']
+            bootbox.alert("<h3>Not Implemented</h3><br>#{mode} special symbols not yet implemented")
+            return
+
+        dialog = $("#salvus-editor-templates").find(".salvus-html-editor-symbols-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            return false
+
+
+        selected = (evt) =>
+            target = $(evt.target)
+            if target.prop("tagName") != "SPAN"
+                return
+            dialog.modal('hide')
+            code = target.attr("title")
+            s = "&#{code};"
+            # TODO HTML-based formats will work, but not LaTeX.
+            # As long as the input encoding in LaTeX is utf8, just insert the actual utf8 character (target.text())
+
+            selections = cm.listSelections()
+            selections.reverse()
+            for sel in selections
+                cm.replaceRange(s, sel.head)
+            opts.cb?()
+
+        dialog.find(".salvus-html-editor-symbols-dialog-table").off("click").click(selected)
+        dialog.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                dialog.modal('hide')
+                opts.cb?()
+                return false
+
+
+FONT_FACES = buttonbar.FONT_FACES
+
 cm_start_end = (selection) ->
     {head, anchor} = selection
     start = head
@@ -603,7 +1254,7 @@ marked.setOptions
     smartLists  : true
     smartypants : true
 
-exports.markdown_to_html = (s) ->
+exports.markdown_to_html = markdown_to_html = (s) ->
     # replace mathjax, which is delimited by $, $$, \( \), and \[ \]
     v = misc.parse_mathjax(s)
     if v.length > 0
@@ -630,6 +1281,18 @@ exports.markdown_to_html = (s) ->
             s = s.replace("@@@@#{i}@@@@", misc.mathjax_escape(w[i].replace(/\$/g, "$$$$")))
 
     return {s:s, has_mathjax:has_mathjax}
+
+opts =
+    gfm_code  : true
+    li_bullet :'-'
+    h_atx_suf : false
+    h1_setext : false
+    h2_setext : false
+    br_only   : true
+
+reMarker = new reMarked(opts)
+exports.html_to_markdown = (s) ->
+    return reMarker.render(s)
 
 
 # return true if d is a valid string -- see http://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
@@ -686,6 +1349,27 @@ exports.set_window_title = (title) ->
         title = "(#{u}) #{title}"
     document.title = title
 
+# get the currently selected html
+exports.save_selection = () ->
+    if window.getSelection
+        sel = window.getSelection()
+        if sel.getRangeAt and sel.rangeCount
+            range = sel.getRangeAt(0)
+    else if document.selection
+        range = document.selection.createRange()
+    return range
 
+exports.restore_selection = (selected_range) ->
+    if window.getSelection || document.createRange
+        selection = window.getSelection()
+        if selected_range
+            try
+                selection.removeAllRanges()
+            catch ex
+                document.body.createTextRange().select()
+                document.selection.empty()
+            selection.addRange(selected_range)
+    else if document.selection and selected_range
+        selected_range.select()
 
 

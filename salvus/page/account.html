@@ -1,3 +1,23 @@
+<!--
+SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and the Terminal.
+
+    Copyright (C) 2014, William Stein
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+
 <!-- Forgot password: dialog to request email be sent (and token placed in database) -->
 
 <div class="modal" id="account-forgot_password" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
@@ -29,7 +49,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
-                <h3><i class="fa fa-signal" style="margin-right:1em"></i> Connection</h3>
+                <h3><i class="fa fa-wifi" style="margin-right:1em"></i> Connection</h3>
             </div>
             <div class="modal-body">
                 <div class="salvus-connection-ping row">
@@ -116,7 +136,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
         </div>
     </div>
 
-    <div class="row hide" id="account-create_account">
+    <div class="row hide  salvus-mathjax-on-startup" id="account-create_account">
         <div class="col-sm-6 ">
             <img src="favicon-128.png" width="64" height="64" class="img img-rounded">
             <h2>Welcome to SageMathCloud™!</h2>
@@ -124,7 +144,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 
             <ul class="hidden-xs">
                 <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-line-chart"></i>  <b>Mathematics software:</b> Use Sage, R, Octave, Python, Cython, GAP, Pari, Macaulay2, Singular, and more</li>
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-list-alt"></i>  <b>Interactive editing:</b> Collaboratively edit LaTeX documents, IPython notebooks and Sage worksheets</li>
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-list-alt"></i>  <b>Interactive editing:</b> Collaboratively edit $\LaTeX$ documents, IPython notebooks and Sage worksheets</li>
                 <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-file-code-o"></i>  <b>Programming:</b> Write, compile, and run code in most languages</li>
                 <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-tasks"></i>  <b>Organize:</b> Manage todo list with hashtags</li>
                 <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-graduation-cap"></i>  <b>Teach:</b> Organize teaching a course</li>
@@ -133,7 +153,11 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
             </ul>
             <br>
             <hr>
-            <span class="lighten">SageMathCloud is a free service with support from University of Washington, the National Science Foundation and Google.
+            <span class="lighten">SageMathCloud is a free service hosted at University of Washington that is supported by the National Science Foundation (awards
+                <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1161226" target="_blank">1161226</a>,
+                <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1147802" target="_blank">1147802</a>,
+                <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1020378" target="_blank">1020378</a>
+                and <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1015114" target="_blank">1015114</a>) and <a href="https://research.google.com/university/relations/appengine/index.html" target="_blank">Google's Education Grant program.</a>
                   <!-- There are currently <b>288 cores</b>, <b>1.2TB RAM</b> and
                     <b>50TB disk</b> space dedicated to the SageMathCloud cluster at University of Washington, and
                     around <b>20 cores</b>, <b>128GB RAM</b>, and <b>2.5TB disk space</b> on Google Compute Engine. -->
@@ -507,6 +531,15 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                 <div class="checkbox"><label class="" rel="tooltip" title="If checked, the revision history of your files will be tracked from now on.">
                                     <input type="checkbox" checked="checked" class="account-settings-track_revisions">Track revisions:
                                     <span class="lighten">record the changes you make on a file</span>
+                                    </label></div>
+                            </div>
+                        </div>
+
+                       <div class="row">
+                            <div class="col-sm-12 ">
+                                <div class="checkbox"><label class="" rel="tooltip" title="If checked, some editors will provide an extra button bar.">
+                                    <input type="checkbox" checked="checked" class="account-settings-extra_button_bar">Extra button bar:
+                                    <span class="lighten">more editing functions (mainly in Sage worksheets)</span>
                                     </label></div>
                             </div>
                         </div>

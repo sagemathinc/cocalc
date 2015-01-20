@@ -1,3 +1,25 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 ##################################################
 # Editor for files in a project
 
@@ -11,6 +33,8 @@ MAX_LATEX_WARNINGS = 50
 
 MIN_SPLIT = 0.02
 MAX_SPLIT = 0.98  # maximum pane split proportion for editing
+
+TOOLTIP_DELAY = delay: {show: 500, hide: 100}
 
 async = require('async')
 
@@ -57,6 +81,7 @@ codemirror_associations =
     java   : 'text/x-java'
     jl     : 'text/x-julia'
     js     : 'javascript'
+    json   : 'javascript'
     lua    : 'lua'
     m      : 'text/x-octave'
     md     : 'gfm2'
@@ -92,73 +117,129 @@ codemirror_associations =
 
 file_associations = exports.file_associations = {}
 for ext, mode of codemirror_associations
+    name = mode
+    i = name.indexOf('x-')
+    if i != -1
+        name = name.slice(i+2)
+    name = name.replace('src','')
     file_associations[ext] =
         editor : 'codemirror'
         icon   : 'fa-file-code-o'
         opts   : {mode:mode}
+        name   : name
 
 file_associations['tex'] =
     editor : 'latex'
     icon   : 'fa-file-excel-o'
     opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    name   : "latex"
+#file_associations['tex'] =  # TODO: only for TESTING!!!
+#    editor : 'html-md'
+#    icon   : 'fa-file-code-o'
+#    opts   : {indent_unit:4, tab_size:4, mode:'stex2'}
+
 
 file_associations['html'] =
-    editor : 'codemirror'
+    editor : 'html-md'
     icon   : 'fa-file-code-o'
-    opts   : {mode:'htmlmixed', indent_unit:4, tab_size:4}
+    opts   : {indent_unit:4, tab_size:4, mode:'htmlmixed'}
+    name   : "html"
 
-file_associations['wiki'] =
+file_associations['md'] =
+    editor : 'html-md'
+    icon   : 'fa-file-code-o'
+    opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
+    name   : "markdown"
+
+file_associations['rst'] =
+    editor : 'html-md'
+    icon   : 'fa-file-code-o'
+    opts   : {indent_unit:4, tab_size:4, mode:'rst'}
+    name   : "ReST"
+
+file_associations['mediawiki'] = file_associations['wiki'] =
+    editor : 'html-md'
+    icon   : 'fa-file-code-o'
+    opts   : {indent_unit:4, tab_size:4, mode:'mediawiki'}
+    name   : "MediaWiki"
+
+file_associations['sass'] =
     editor : 'codemirror'
     icon   : 'fa-file-code-o'
-    opts   : {mode:'mediawiki', indent_unit:4, tab_size:4}
+    opts   : {mode:'text/x-sass', indent_unit:2, tab_size:2}
+    name   : "SASS"
 
 file_associations['css'] =
     editor : 'codemirror'
     icon   : 'fa-file-code-o'
     opts   : {mode:'css', indent_unit:4, tab_size:4}
-
-file_associations['sage-terminal'] =
-    editor : 'terminal'
-    icon   : 'fa-terminal'
-    opts   : {}
+    name   : "CSS"
 
 file_associations['term'] =
     editor : 'terminal'
     icon   : 'fa-terminal'
     opts   : {}
+    name   : "Terminal"
 
 file_associations['ipynb'] =
     editor : 'ipynb'
     icon   : 'fa-list-alt'
     opts   : {}
+    name   : "ipython notebook"
 
 for ext in ['png', 'jpg', 'gif', 'svg']
     file_associations[ext] =
         editor : 'image'
         icon   : 'fa-file-image-o'
         opts   : {}
+        name   : ext
+        exclude_from_menu : true
 
 file_associations['pdf'] =
     editor : 'pdf'
     icon   : 'fa-file-pdf-o'
     opts   : {}
+    name   : 'pdf'
+    exclude_from_menu : true
 
 file_associations['tasks'] =
     editor : 'tasks'
     icon   : 'fa-tasks'
     opts   : {}
+    name   : 'task list'
 
 file_associations['course'] =
     editor : 'course'
     icon   : 'fa-graduation-cap'
     opts   : {}
+    name   : 'course'
 
 
 file_associations['sage-history'] =
     editor : 'history'
     icon   : 'fa-history'
     opts   : {}
+    name   : 'sage history'
+    exclude_from_menu : true
 
+initialize_new_file_type_list = () ->
+    file_type_list = $(".smc-new-file-type-list")
+    file_types_so_far = {}
+    v = misc.keys(file_associations)
+    v.sort()
+
+    for ext in v
+        if not ext
+            continue
+        data = file_associations[ext]
+        if data.exclude_from_menu
+            continue
+        if data.name? and not file_types_so_far[data.name]
+            file_types_so_far[data.name] = true
+            e = $("<li><a href='#new-file' data-ext='#{ext}'><i class='fa #{data.icon}'></i> <span style='text-transform:capitalize'>#{data.name} </span> <span class='lighten'>(.#{ext})</span></a></li>")
+            file_type_list.append(e)
+
+initialize_new_file_type_list()
 
 exports.file_icon_class = file_icon_class = (ext) ->
     if (file_associations[ext]? and file_associations[ext].icon?) then file_associations[ext].icon else 'fa-file-o'
@@ -181,7 +262,7 @@ MARKERS  = diffsync.MARKERS
 
 sagews_decorator_modes = [
     ['coffeescript', 'coffeescript'],
-    ['cython'      , 'python'],
+    ['cython'      , 'cython'],
     ['file'        , 'text'],
     ['fortran'     , 'text/x-fortran'],
     ['html'        , 'htmlmixed'],
@@ -200,11 +281,14 @@ sagews_decorator_modes = [
     ['script'      , 'shell'],
     ['sh'          , 'shell'],
     ['julia'       , 'text/x-julia'],
-    ['wiki'        , 'mediawiki']
+    ['wiki'        , 'mediawiki'],
+    ['mediawiki'   , 'mediawiki']
 ]
 
 exports.define_codemirror_sagews_mode = () ->
 
+    # not using these two gfm2 and htmlmixed2 modes, with their sub-latex mode, since
+    # detection of math isn't good enough.  e.g., \$ causes math mode and $ doesn't seem to...   \$500 and $\sin(x)$.
     CodeMirror.defineMode "gfm2", (config) ->
         options = []
         for x in [['$$','$$'], ['$','$'], ['\\[','\\]'], ['\\(','\\)']]
@@ -213,6 +297,15 @@ exports.define_codemirror_sagews_mode = () ->
                 close : x[1]
                 mode  : CodeMirror.getMode(config, 'stex')
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "gfm"), options...)
+
+    CodeMirror.defineMode "htmlmixed2", (config) ->
+        options = []
+        for x in [['$$','$$'], ['$','$'], ['\\[','\\]'], ['\\(','\\)']]
+            options.push
+                open  : x[0]
+                close : x[1]
+                mode  : CodeMirror.getMode(config, mode)
+        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "htmlmixed"), options...)
 
     CodeMirror.defineMode "stex2", (config) ->
         options = []
@@ -226,6 +319,11 @@ exports.define_codemirror_sagews_mode = () ->
             close : "}"
             mode  : CodeMirror.getMode(config, 'sagews')
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex"), options...)
+
+    CodeMirror.defineMode "cython", (config) ->
+        # TODO: need to figure out how to do this so that the name
+        # of the mode is cython
+        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"))
 
     CodeMirror.defineMode "sagews", (config) ->
         options = []
@@ -718,6 +816,15 @@ class exports.Editor
             typ = editor_name
         @project_page.project_activity({event:'open', filename:filename, type:typ})
 
+        # This approach to public "editor"/viewer types is temporary.
+        if extra_opts.public_access
+            if filename_extension(filename) == 'html'
+                if opts.content.indexOf("#ipython_notebook") != -1
+                    editor = new IPythonNBViewer(@, filename, opts.content, extra_opts)
+                else
+                    editor = new StaticHTML(@, filename, opts.content, extra_opts)
+                return editor
+
         # Some of the editors below might get the content later and will
         # call @file_options again then.
         switch editor_name
@@ -740,6 +847,11 @@ class exports.Editor
                 editor = new Image(@, filename, content, extra_opts)
             when 'latex'
                 editor = new LatexEditor(@, filename, content, extra_opts)
+            when 'html-md'
+                if extra_opts.public_access
+                    editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
+                else
+                    editor = new HTML_MD_Editor(@, filename, content, extra_opts)
             when 'history'
                 editor = new HistoryEditor(@, filename, content, extra_opts)
             when 'pdf'
@@ -1326,6 +1438,7 @@ class CodeMirrorEditor extends FileEditor
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
+            "Enter"        : @enter_key
             "Ctrl-Space"   : "autocomplete"
 
             #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
@@ -1398,8 +1511,6 @@ class CodeMirrorEditor extends FileEditor
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
 
-        window.cm = @codemirror
-
         elt1 = layout_elt.find(".salvus-editor-codemirror-input-box-1").find("textarea")
 
         @codemirror1 = make_editor(elt1[0])
@@ -1426,6 +1537,10 @@ class CodeMirrorEditor extends FileEditor
 
         if opts.read_only
             @set_readonly_ui()
+
+        if @filename.slice(@filename.length-7) == '.sagews'
+            @init_sagews_edit_buttons()
+
 
     init_draggable_splits: () =>
         @_layout1_split_pos = @local_storage("layout1_split_pos")
@@ -1502,12 +1617,27 @@ class CodeMirrorEditor extends FileEditor
         @syncdoc?.disconnect_from_session()
         cb?()
 
+    codemirrors: () =>
+        return [@codemirror, @codemirror1]
+
+    focused_codemirror: () =>
+        if @codemirror_with_last_focus?
+            return @codemirror_with_last_focus
+        else
+            return @codemirror
+
     action_key: (opts) =>
         # opts ignored by default; worksheets use them....
         @click_save_button()
 
     interrupt_key: () =>
         # does nothing for generic editor, but important, e.g., for the sage worksheet editor.
+
+    enter_key: (editor) =>
+        if @custom_enter_key?
+            @custom_enter_key(editor)
+        else
+            return CodeMirror.Pass
 
     press_tab_key: (editor) =>
         if editor.somethingSelected()
@@ -1532,7 +1662,7 @@ class CodeMirrorEditor extends FileEditor
 
         # TODO: implement printing for other file types
         if @filename.slice(@filename.length-7) != '.sagews'
-            @element.find("a[href=#print]").hide()
+            @element.find("a[href=#print]").unbind().hide()
 
     click_edit_button: (name) =>
         cm = @codemirror_with_last_focus
@@ -1589,6 +1719,7 @@ class CodeMirrorEditor extends FileEditor
             elt.data('font-size', size)
 
     change_font_size: (cm, delta) =>
+        #console.log("change_font_size #{cm.name}, #{delta}")
         scroll_before = cm.getScrollInfo()
 
         elt = $(cm.getWrapperElement())
@@ -1884,9 +2015,9 @@ class CodeMirrorEditor extends FileEditor
         # I don't know why this works, but it gets around a *massive bug*, where after
         # aggressive resizing, the codemirror editor gets all corrupted. For some reason,
         # doing this "usually" causes things to get properly fixed.  I don't know why.
-        hack = $("<div><br><br></div>")
+        hack = $("<div><br><br><br><br></div>")
         $("body").append(hack)
-        setTimeout((()=>hack.remove()), 1000)
+        setTimeout((()=>hack.remove()), 10000)
 
         for {cm,height,width} in v
             scroller = $(cm.getScrollerElement())
@@ -1924,10 +2055,14 @@ class CodeMirrorEditor extends FileEditor
         @element.show()
 
         # do size computations: determine height and width of the codemirror editor(s)
-        top               = @editor.editor_top_position()
+        if not opts.top?
+            top           = @editor.editor_top_position()
+        else
+            top           = opts.top
+
         height            = $(window).height()
         elem_height       = height - top - 5
-        button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
+        button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height       = @codemirror.defaultTextHeight()
         chat              = @_chat_is_hidden? and not @_chat_is_hidden
 
@@ -1939,6 +2074,9 @@ class CodeMirrorEditor extends FileEditor
 
         if opts.width?
             width         = opts.width
+
+        if opts.top?
+            top           = opts.top
 
         # height of codemirror editors
         cm_height         = Math.floor((elem_height - button_bar_height)/font_height) * font_height
@@ -1960,10 +2098,10 @@ class CodeMirrorEditor extends FileEditor
 
             chat_output    = chat_elt.find(".salvus-editor-codemirror-chat-output")
             chat_input     = chat_elt.find(".salvus-editor-codemirror-chat-input")
-            chat_input_top = $(window).height()-chat_input.height() - 15
+            chat_input_top = $(window).height() - chat_input.height() - 15
 
             chat_input.offset({top:chat_input_top})
-            chat_output.height(chat_input_top - top - 60)
+            chat_output.height(chat_input_top - chat_output.offset().top - 30)
 
 
     focus: () =>
@@ -1971,9 +2109,160 @@ class CodeMirrorEditor extends FileEditor
             return
         @show()
         if not IS_MOBILE
-            @codemirror.focus()
-            if @_split_view
-                @codemirror1.focus()
+            @codemirror_with_last_focus?.focus()
+
+    ############
+    # Editor button bar support code
+    ############
+    textedit_command: (cm, cmd, args) =>
+        switch cmd
+            when "link"
+                cm.insert_link(cb:() => @syncdoc?.sync())
+                return false  # don't return true or get an infinite recurse
+            when "image"
+                cm.insert_image(cb:() => @syncdoc?.sync())
+                return false  # don't return true or get an infinite recurse
+            when "SpecialChar"
+                cm.insert_special_char(cb:() => @syncdoc?.sync())
+                return false  # don't return true or get an infinite recurse
+            else
+                cm.edit_selection
+                    cmd  : cmd
+                    args : args
+                @syncdoc?.sync()
+                # needed so that dropdown menu closes when clicked.
+                return true
+
+    # add a textedit toolbar to the editor
+    init_sagews_edit_buttons: () =>
+        if @opts.readonly  # no editing button bar needed for read-only files
+            return
+
+        if IS_MOBILE  # no edit button bar on mobile either -- too big (for now at least)
+            return
+
+        if not require('account').account_settings.settings.editor_settings.extra_button_bar
+            # explicitly disabled by user
+            return
+
+        NAME_TO_MODE = {xml:'%html', markdown:'%md', mediawiki:'%wiki'}
+        for x in sagews_decorator_modes
+            mode = x[0]
+            name = x[1]
+            v = name.split('-')
+            if v.length > 1
+                name = v[1]
+            NAME_TO_MODE[name] = "%#{mode}"
+
+        name_to_mode = (name) ->
+            n = NAME_TO_MODE[name]
+            if n?
+                return n
+            else
+                return "%#{name}"
+
+        # add the text editing button bar
+        e = @element.find(".salvus-editor-codemirror-textedit-buttons")
+        @textedit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone().hide()
+        e.append(@textedit_buttons).show()
+
+        # add the code editing button bar
+        @codeedit_buttons = templates.find(".salvus-editor-codeedit-buttonbar").clone()
+        e.append(@codeedit_buttons)
+
+        # the r-editing button bar
+        @redit_buttons =  templates.find(".salvus-editor-redit-buttonbar").clone()
+        e.append(@redit_buttons)
+
+        # the Julia-editing button bar
+        @julia_edit_buttons =  templates.find(".salvus-editor-julia-edit-buttonbar").clone()
+        e.append(@julia_edit_buttons)
+
+        @cython_buttons =  templates.find(".salvus-editor-cython-buttonbar").clone()
+        e.append(@cython_buttons)
+
+        @fallback_buttons = templates.find(".salvus-editor-fallback-edit-buttonbar").clone()
+        e.append(@fallback_buttons)
+
+        all_edit_buttons = [@textedit_buttons, @codeedit_buttons, @redit_buttons,
+                            @cython_buttons, @julia_edit_buttons, @fallback_buttons]
+
+        # activite the buttons in the bar
+        that = @
+        edit_button_click = () ->
+            args = $(this).data('args')
+            cmd  = $(this).attr('href').slice(1)
+            if cmd == 'todo'
+                return
+            if args? and typeof(args) != 'object'
+                args = "#{args}"
+                if args.indexOf(',') != -1
+                    args = args.split(',')
+            return that.textedit_command(that.focused_codemirror(), cmd, args)
+
+
+        # TODO: activate color editing buttons -- for now just hide them
+        @element.find(".sagews-output-editor-foreground-color-selector").hide()
+        @element.find(".sagews-output-editor-background-color-selector").hide()
+
+
+        @fallback_buttons.find("a[href=#todo]").click () =>
+            bootbox.alert("<i class='fa fa-wrench' style='font-size: 18pt;margin-right: 1em;'></i> Button bar not yet implemented in <code>#{mode_display.text()}</code> cells.")
+            return false
+
+        for edit_buttons in all_edit_buttons
+            edit_buttons.find("a").click(edit_button_click)
+            edit_buttons.find("*[title]").tooltip(TOOLTIP_DELAY)
+
+        mode_display = @element.find(".salvus-editor-codeedit-buttonbar-mode")
+        set_mode_display = (name) ->
+            #console.log("set_mode_display: #{name}")
+            if name?
+                mode_display.text(name_to_mode(name))
+            else
+                mode_display.text("")
+
+        show_edit_buttons = (which_one, name) ->
+            for edit_buttons in all_edit_buttons
+                if edit_buttons == which_one
+                    edit_buttons.show()
+                else
+                    edit_buttons.hide()
+            set_mode_display(name)
+
+        # The code below changes the bar at the top depending on where the cursor
+        # is located.  We only change the edit bar if the cursor hasn't moved for
+        # a while, to be more efficient, avoid noise, and be less annoying to the user.
+        bar_timeout = undefined
+        f = () =>
+            if bar_timeout?
+                clearTimeout(bar_timeout)
+            bar_timeout = setTimeout(update_context_sensitive_bar, 250)
+
+        update_context_sensitive_bar = () =>
+            cm = @focused_codemirror()
+            pos = cm.getCursor()
+            name = cm.getModeAt(pos).name
+            #console.log("update_context_sensitive_bar, pos=#{misc.to_json(pos)}, name=#{name}")
+            if name in ['xml', 'stex', 'markdown', 'mediawiki']
+                show_edit_buttons(@textedit_buttons, name)
+            else if name == "r"
+                show_edit_buttons(@redit_buttons, name)
+            else if name == "julia"
+                show_edit_buttons(@julia_edit_buttons, name)
+            else if name == "cython"  # doesn't work yet, since name=python still
+                show_edit_buttons(@cython_buttons, name)
+            else if name == "python"  # doesn't work yet, since name=python still
+                show_edit_buttons(@codeedit_buttons, "sage")
+            else
+                show_edit_buttons(@fallback_buttons, name)
+
+        for cm in [@codemirror, @codemirror1]
+            cm.on('cursorActivity', f)
+
+        update_context_sensitive_bar()
+        @element.find(".salvus-editor-codemirror-textedit-buttons").mathjax()
+
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
     #console.log("codemirror_session_editor '#{filename}'")
@@ -1993,6 +2282,7 @@ codemirror_session_editor = exports.codemirror_session_editor = (editor, filenam
                 sync_interval   : 250
             E.syncdoc = new (syncdoc.SynchronizedWorksheet)(E, opts)
             E.action_key = E.syncdoc.action
+            E.custom_enter_key = E.syncdoc.enter_key
             E.interrupt_key = E.syncdoc.interrupt
             E.tab_nothing_selected = () => E.syncdoc.introspect()
         when "sage-history"
@@ -2919,191 +3209,7 @@ class PDF_PreviewEmbed extends FileEditor
     hide: () =>
         @element.hide()
 
-#############################################
-# Viewer/editor (?) for history of changes to a document
-#############################################
 
-class HistoryEditor extends FileEditor
-    constructor: (@editor, @filename, content, opts) ->
-        opts.mode = ''
-
-        @_parse_logstring_cache = {}
-        @_parse_logstring_inverse_cache = {}
-
-        # create history editor
-        @element = templates.find(".salvus-editor-history").clone()
-        @history_editor = codemirror_session_editor(@editor, @filename, opts)
-        fname = misc.path_split(@filename).tail
-        @ext = misc.filename_extension(fname[1..-14])
-
-        @element.find(".salvus-editor-history-history_editor").append(@history_editor.element)
-        @history_editor.codemirror.setOption("readOnly", true)
-        @history_editor.show()
-
-        if @ext == "sagews"
-            opts0 =
-                allow_javascript_eval : false
-                static_viewer         : true
-                read_only             : true
-            @worksheet = new (syncdoc.SynchronizedWorksheet)(@history_editor, opts0)
-
-        @slider = @element.find(".salvus-editor-history-slider")
-        @forward_button = @element.find("a[href=#forward]")
-        @back_button = @element.find("a[href=#back]")
-
-        @init_history()
-
-        @diffsync = new syncdoc.DiffSyncDoc
-            cm          : @history_editor.codemirror
-            readonly    : true
-
-        @forward_button.click () =>
-            if @forward_button.hasClass("disabled")
-                return false
-            @slider.slider("option", "value", @revision_num + 1)
-            @goto_revision(@revision_num + 1)
-            return false
-
-        @back_button.click () =>
-            if @back_button.hasClass("disabled")
-                return false
-            @slider.slider("option", "value", @revision_num - 1)
-            @goto_revision(@revision_num - 1)
-            return false
-
-    init_history: () =>
-        @element.find(".editor-btn-group").children().not(".btn-history").hide()
-        @element.find(".salvus-editor-save-group").hide()
-        @element.find(".salvus-editor-chat-title").hide()
-        @element.find(".salvus-editor-history-controls").show()
-        @slider.show()
-        async.series([
-            (cb) =>
-                require('syncdoc').synchronized_string
-                    project_id : @editor.project_id
-                    filename   : @filename
-                    cb         : (err, doc) =>
-                        @file_history = doc
-                        cb(err)
-            (cb) =>
-                @file_history.on 'sync', () =>
-                    @render_history(false)
-                @render_history(true)
-        ])
-
-    @revision_num = -1
-
-    parse_logstring: (s) =>
-        ##return JSON.parse(s)
-        # In goto_revision below it looks like parse_logstring can get frequently called,
-        # often on the same log entry repeatedly.  So we cache the parsing.
-        obj = @_parse_logstring_cache[s]
-        if obj?
-            return obj
-        try
-            obj = JSON.parse(s)
-            obj.patch = diffsync.decompress_patch_compat(obj.patch)
-        catch e
-            # It's better to do this than have the entire history become completely unusable.
-            # Also, we should always *assume* any file can get corrupted.
-            console.log("ERROR -- corrupt line in history -- '#{s}'")
-            obj = {time:0, patch:[]}
-        @_parse_logstring_cache[s] = obj
-        return obj
-
-    # same as parse_logstring above, but patch is replaced by its inverse
-    parse_logstring_inverse: (s) =>
-        ##obj = JSON.parse(s); diffsync.invert_patch_in_place(obj.patch)
-        ##return obj
-        # In goto_revision below it looks like parse_logstring can get frequently called,
-        # often on the same log entry repeatedly.  So we cache the parsing.
-        obj = @_parse_logstring_inverse_cache[s]
-        if obj?
-            return obj
-        obj = misc.deep_copy(@parse_logstring(s))
-        diffsync.invert_patch_in_place(obj.patch)
-        @_parse_logstring_inverse_cache[s] = obj
-        return obj
-
-    goto_revision: (num) ->
-        #t = misc.mswalltime()
-        @element.find(".salvus-editor-history-revision-number").text("Revision " + num)
-        if num == 0
-            @element.find(".salvus-editor-history-revision-time").text("")
-        else
-            @element.find(".salvus-editor-history-revision-time").text(new Date(@parse_logstring(@log[@nlines-num+1]).time).toLocaleString())
-        if @revision_num - num > 2
-            #console.log("goto_revision #{num} from #{@revision_num}"); t = misc.mswalltime()
-            text = @history_editor.codemirror.getValue()
-            text_old = text
-            #console.log("got value", misc.mswalltime(t)); t = misc.mswalltime()
-            for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
-                text = diffsync.dmp.patch_apply(@parse_logstring(patch).patch, text)[0]
-            #console.log("patched text", misc.mswalltime(t)); t = misc.mswalltime()
-            @history_editor.codemirror.setValueNoJump(text)
-            #console.log("changed editor", misc.mswalltime(t)); t = misc.mswalltime()
-        else if @revision_num > num
-            for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
-                @diffsync.patch_in_place(@parse_logstring(patch).patch)
-        else if num - @revision_num > 2
-            text = @history_editor.codemirror.getValue()
-            text_old = text
-            for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
-                text = diffsync.dmp.patch_apply(@parse_logstring_inverse(patch).patch, text)[0]
-            @history_editor.codemirror.setValueNoJump(text)
-        else
-            for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
-                @diffsync.patch_in_place(@parse_logstring_inverse(patch).patch)
-        @revision_num = num
-        if @revision_num == 0
-            @back_button.addClass("disabled")
-        else
-            @back_button.removeClass("disabled")
-        if @revision_num == @nlines
-            @forward_button.addClass("disabled")
-        else
-            @forward_button.removeClass("disabled")
-        if @ext == 'sagews'
-            @worksheet.process_sage_updates()
-        #console.log("going to revision #{num} took #{misc.mswalltime(t)}ms")
-
-    render_history: (first) =>
-        @log = @file_history.live().split("\n")
-        @nlines = @log.length - 1
-        if first
-            @element.find(".salvus-editor-history-revision-number").text("Revision " + @nlines)
-            if @nlines == 0
-                @element.find(".salvus-editor-history-revision-time").text("")
-                @back_button.addClass("disabled")
-            else
-                @element.find(".salvus-editor-history-revision-time").text(new Date(@parse_logstring(@log[1]).time).toLocaleString())
-            @history_editor.codemirror.setValue(JSON.parse(@log[0]))
-            @revision_num = @nlines
-            if @ext != "" and require('editor').file_associations[@ext].opts.mode?
-                @history_editor.codemirror.setOption("mode", require('editor').file_associations[@ext].opts.mode)
-            @slider.slider
-                animate : false
-                min     : 0
-                max     : @nlines
-                step    : 1
-                value   : @revision_num
-                slide  : (event, ui) =>
-                    @goto_revision(ui.value)
-
-        else
-            @slider.slider
-                max : @nlines
-            @forward_button.removeClass("disabled")
-        if @ext == 'sagews'
-            @worksheet.process_sage_updates()
-
-    show: () =>
-        if not @is_active()
-            return
-        @element?.show()
-        @history_editor?.show()
-        if @ext == 'sagews'
-            @worksheet.process_sage_updates()
 
 #############################################
 # Editor for LaTeX documents
@@ -3127,6 +3233,9 @@ class LatexEditor extends FileEditor
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
         @latex_editor.action_key = @action_key
         @element.find(".salvus-editor-latex-buttons").show()
+
+        latex_buttonbar = @element.find(".salvus-editor-latex-buttonbar")
+        latex_buttonbar.show()
 
         @latex_editor.syncdoc.on 'connect', () =>
             @preview.zoom_width = @load_conf().zoom_width
@@ -3257,7 +3366,7 @@ class LatexEditor extends FileEditor
             k = doc.length
         try
             conf = misc.from_json(doc.slice(j+1,k))
-        catch
+        catch e
             conf = {}
 
         return conf
@@ -3500,7 +3609,7 @@ class LatexEditor extends FileEditor
         @_right_pane_position =
             start : editor_width + left + 7
             end   : width
-            top   : top + button_bar_height
+            top   : top + button_bar_height + 1
 
         if not @_show_before?
             @show_page('png-preview')
@@ -3801,6 +3910,196 @@ class LatexEditor extends FileEditor
                         highlight_line : true
                 opts.cb?(err)
 
+
+
+
+
+#############################################
+# Viewer/editor (?) for history of changes to a document
+#############################################
+
+class HistoryEditor extends FileEditor
+    constructor: (@editor, @filename, content, opts) ->
+        opts.mode = ''
+
+        @_parse_logstring_cache = {}
+        @_parse_logstring_inverse_cache = {}
+
+        # create history editor
+        @element = templates.find(".salvus-editor-history").clone()
+        @history_editor = codemirror_session_editor(@editor, @filename, opts)
+        fname = misc.path_split(@filename).tail
+        @ext = misc.filename_extension(fname[1..-14])
+
+        @element.find(".salvus-editor-history-history_editor").append(@history_editor.element)
+        @history_editor.codemirror.setOption("readOnly", true)
+        @history_editor.show()
+
+        if @ext == "sagews"
+            opts0 =
+                allow_javascript_eval : false
+                static_viewer         : true
+                read_only             : true
+            @worksheet = new (syncdoc.SynchronizedWorksheet)(@history_editor, opts0)
+
+        @slider = @element.find(".salvus-editor-history-slider")
+        @forward_button = @element.find("a[href=#forward]")
+        @back_button = @element.find("a[href=#back]")
+
+        @init_history()
+
+        @diffsync = new syncdoc.DiffSyncDoc
+            cm          : @history_editor.codemirror
+            readonly    : true
+
+        @forward_button.click () =>
+            if @forward_button.hasClass("disabled")
+                return false
+            @slider.slider("option", "value", @revision_num + 1)
+            @goto_revision(@revision_num + 1)
+            return false
+
+        @back_button.click () =>
+            if @back_button.hasClass("disabled")
+                return false
+            @slider.slider("option", "value", @revision_num - 1)
+            @goto_revision(@revision_num - 1)
+            return false
+
+    init_history: () =>
+        @element.find(".editor-btn-group").children().not(".btn-history").hide()
+        @element.find(".salvus-editor-save-group").hide()
+        @element.find(".salvus-editor-chat-title").hide()
+        @element.find(".salvus-editor-history-controls").show()
+        @slider.show()
+        async.series([
+            (cb) =>
+                require('syncdoc').synchronized_string
+                    project_id : @editor.project_id
+                    filename   : @filename
+                    cb         : (err, doc) =>
+                        @file_history = doc
+                        cb(err)
+            (cb) =>
+                @file_history.on 'sync', () =>
+                    @render_history(false)
+                @render_history(true)
+        ])
+
+    @revision_num = -1
+
+    parse_logstring: (s) =>
+        ##return JSON.parse(s)
+        # In goto_revision below it looks like parse_logstring can get frequently called,
+        # often on the same log entry repeatedly.  So we cache the parsing.
+        obj = @_parse_logstring_cache[s]
+        if obj?
+            return obj
+        try
+            obj = JSON.parse(s)
+            obj.patch = diffsync.decompress_patch_compat(obj.patch)
+        catch e
+            # It's better to do this than have the entire history become completely unusable.
+            # Also, we should always *assume* any file can get corrupted.
+            console.log("ERROR -- corrupt line in history -- '#{s}'")
+            obj = {time:0, patch:[]}
+        @_parse_logstring_cache[s] = obj
+        return obj
+
+    # same as parse_logstring above, but patch is replaced by its inverse
+    parse_logstring_inverse: (s) =>
+        ##obj = JSON.parse(s); diffsync.invert_patch_in_place(obj.patch)
+        ##return obj
+        # In goto_revision below it looks like parse_logstring can get frequently called,
+        # often on the same log entry repeatedly.  So we cache the parsing.
+        obj = @_parse_logstring_inverse_cache[s]
+        if obj?
+            return obj
+        obj = misc.deep_copy(@parse_logstring(s))
+        diffsync.invert_patch_in_place(obj.patch)
+        @_parse_logstring_inverse_cache[s] = obj
+        return obj
+
+    goto_revision: (num) ->
+        #t = misc.mswalltime()
+        @element.find(".salvus-editor-history-revision-number").text("Revision " + num)
+        if num == 0
+            @element.find(".salvus-editor-history-revision-time").text("")
+        else
+            @element.find(".salvus-editor-history-revision-time").text(new Date(@parse_logstring(@log[@nlines-num+1]).time).toLocaleString())
+        if @revision_num - num > 2
+            #console.log("goto_revision #{num} from #{@revision_num}"); t = misc.mswalltime()
+            text = @history_editor.codemirror.getValue()
+            text_old = text
+            #console.log("got value", misc.mswalltime(t)); t = misc.mswalltime()
+            for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
+                text = diffsync.dmp.patch_apply(@parse_logstring(patch).patch, text)[0]
+            #console.log("patched text", misc.mswalltime(t)); t = misc.mswalltime()
+            @history_editor.codemirror.setValueNoJump(text)
+            #console.log("changed editor", misc.mswalltime(t)); t = misc.mswalltime()
+        else if @revision_num > num
+            for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
+                @diffsync.patch_in_place(@parse_logstring(patch).patch)
+        else if num - @revision_num > 2
+            text = @history_editor.codemirror.getValue()
+            text_old = text
+            for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
+                text = diffsync.dmp.patch_apply(@parse_logstring_inverse(patch).patch, text)[0]
+            @history_editor.codemirror.setValueNoJump(text)
+        else
+            for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
+                @diffsync.patch_in_place(@parse_logstring_inverse(patch).patch)
+        @revision_num = num
+        if @revision_num == 0
+            @back_button.addClass("disabled")
+        else
+            @back_button.removeClass("disabled")
+        if @revision_num == @nlines
+            @forward_button.addClass("disabled")
+        else
+            @forward_button.removeClass("disabled")
+        if @ext == 'sagews'
+            @worksheet.process_sage_updates()
+        #console.log("going to revision #{num} took #{misc.mswalltime(t)}ms")
+
+    render_history: (first) =>
+        @log = @file_history.live().split("\n")
+        @nlines = @log.length - 1
+        if first
+            @element.find(".salvus-editor-history-revision-number").text("Revision " + @nlines)
+            if @nlines == 0
+                @element.find(".salvus-editor-history-revision-time").text("")
+                @back_button.addClass("disabled")
+            else
+                @element.find(".salvus-editor-history-revision-time").text(new Date(@parse_logstring(@log[1]).time).toLocaleString())
+            @history_editor.codemirror.setValue(JSON.parse(@log[0]))
+            @revision_num = @nlines
+            if @ext != "" and require('editor').file_associations[@ext].opts.mode?
+                @history_editor.codemirror.setOption("mode", require('editor').file_associations[@ext].opts.mode)
+            @slider.slider
+                animate : false
+                min     : 0
+                max     : @nlines
+                step    : 1
+                value   : @revision_num
+                slide  : (event, ui) =>
+                    @goto_revision(ui.value)
+
+        else
+            @slider.slider
+                max : @nlines
+            @forward_button.removeClass("disabled")
+        if @ext == 'sagews'
+            @worksheet.process_sage_updates()
+
+    show: () =>
+        if not @is_active()
+            return
+        @element?.show()
+        @history_editor?.show()
+        if @ext == 'sagews'
+            @worksheet.process_sage_updates()
+
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         @element = $("<div>").hide()
@@ -3930,6 +4229,70 @@ class Image extends FileEditor
         @element.show()
         @element.css(top:@editor.editor_top_position())
         @element.maxheight()
+
+
+
+class StaticHTML extends FileEditor
+    constructor: (@editor, @filename, @content, opts) ->
+        @element = templates.find(".salvus-editor-static-html").clone()
+        @init_buttons()
+
+    show: () =>
+        if not @is_active()
+            return
+        if not @iframe?
+            @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
+            # We do this, since otherwise just loading the iframe using
+            #      @iframe.contents().find('html').html(@content)
+            # messes up the parent html page...
+            @iframe.contents().find('body')[0].innerHTML = @content
+            @iframe.contents().find('body').find("a").attr('target','_blank')
+        @element.show()
+        @element.css(top:@editor.editor_top_position())
+        @element.maxheight(offset:18)
+        @iframe.maxheight()
+
+    init_buttons: () =>
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
+
+class IPythonNBViewer extends FileEditor
+    constructor: (@editor, @filename, @content, opts) ->
+        @element = templates.find(".salvus-editor-ipython-nbviewer").clone()
+        @init_buttons()
+
+    show: () =>
+        if not @is_active()
+            return
+        @element.show()
+        if not @iframe?
+            @iframe = @element.find(".salvus-editor-ipython-nbviewer-content").find('iframe')
+            # We do this, since otherwise just loading the iframe using
+            #      @iframe.contents().find('html').html(@content)
+            # messes up the parent html page, e.g., foo.modal() is gone.
+            @iframe.contents().find('body')[0].innerHTML = @content
+
+        @element.css(top:@editor.editor_top_position())
+        @element.maxheight(offset:18)
+        @element.find(".salvus-editor-ipython-nbviewer-content").maxheight(offset:18)
+        @iframe.maxheight(offset:18)
+
+    init_buttons: () =>
+        @element.find("a[href=#copy]").click () =>
+            ipynb_filename = @filename.slice(0,@filename.length-4) + 'ipynb'
+            @editor.project_page.copy_to_another_project_dialog ipynb_filename, false, (err, x) =>
+                console.log("x=#{misc.to_json(x)}")
+                if not err
+                    require('projects').open_project
+                        project   : x.project_id
+                        target    : "files/" + x.path
+                        switch_to : true
+            return false
+
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
 
 
 #**************************************************
@@ -4089,8 +4452,8 @@ class IPythonNotebook extends FileEditor
                 salvus_client.exec
                     project_id : @editor.project_id
                     path       : @path
-                    command    : "stat"
-                    args       : ['--printf', '%Y ', @file, @syncdoc_filename]
+                    command    : "stat"   # %Z below = time of last change, seconds since Epoch; use this not %Y since often users put file in place, but with old time
+                    args       : ['--printf', '%Z ', @file, @syncdoc_filename]
                     timeout    : 15
                     err_on_exit: false
                     cb         : (err, output) =>
@@ -4292,7 +4655,7 @@ class IPythonNotebook extends FileEditor
     initialize: (cb) =>
         async.series([
             (cb) =>
-                @status("Connecting to the IPython Notebook server")
+                @status("Connecting to your IPython Notebook server")
                 ipython_notebook_server
                     project_id : @editor.project_id
                     cb         : (err, server) =>
@@ -4395,7 +4758,7 @@ class IPythonNotebook extends FileEditor
                             # stuff in SMC, not sync!
                             websocket_reconnect = () =>
                                 @nb?.kernel?.start_channels()
-                            @_reconnect_interval = setInterval(websocket_reconnect, 15000)
+                            @_reconnect_interval = setInterval(websocket_reconnect, 60000)
 
                             @status()
                             cb()
@@ -4462,14 +4825,14 @@ class IPythonNotebook extends FileEditor
         t = "<h3>The IPython Notebook</h3>"
         t += "<h4>Enhanced with SageMathCloud Sync</h4>"
         t += "You are editing this document using the IPython Notebook enhanced with realtime synchronization."
-        t += "<h4>Sage mode by pasting this into a cell</h4>"
+        t += "<h4>Use Sage by pasting this into a cell</h4>"
         t += "<pre>%load_ext sage</pre>"
         #t += "<h4>Connect to this IPython kernel in a terminal</h4>"
         #t += "<pre>ipython console --existing #{@kernel_id}</pre>"
         t += "<h4>Pure IPython notebooks</h4>"
         if @server?.url?
-            t += "You can also directly use an <a target='_blank' href='#{@server.url}'>unmodified version of the IPython Notebook server</a> (this link works for all project collaborators).  "
-        t += "<br><br>To start your own unmodified IPython Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
+            t += "You can <a target='_blank' href='#{@server.url}notebooks/#{@filename}'>open this notebook in a vanilla IPython Notebook server without sync</a> (this link works only for project collaborators).  "
+        #t += "<br><br>To start your own unmodified IPython Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
         t += "<h4>Known Issues</h4>"
         t += "If two people edit the same <i>cell</i> simultaneously, the cursor will jump to the start of the cell."
         bootbox.alert(t)
@@ -4488,13 +4851,17 @@ class IPythonNotebook extends FileEditor
                 @reload_button.find("i").removeClass('fa-spin')
 
     init_buttons: () =>
-        @element.find("a").tooltip()
+        @element.find("a").tooltip(delay:{show: 500, hide: 100})
         @save_button = @element.find("a[href=#save]").click () =>
             @save()
             return false
 
         @reload_button = @element.find("a[href=#reload]").click () =>
             @reload()
+            return false
+
+        @publish_button = @element.find("a[href=#publish]").click () =>
+            @publish_ui()
             return false
 
         #@element.find("a[href=#json]").click () =>
@@ -4517,6 +4884,79 @@ class IPythonNotebook extends FileEditor
         @element.find("a[href=#tab]").click () =>
             @nb?.get_cell(@nb?.get_selected_index()).completer.startCompletion()
             return false
+
+    publish_ui: () =>
+        url = document.URL
+        url = url.slice(0,url.length-5) + 'html'
+        dialog = templates.find(".salvus-ipython-publish-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            return false
+        status = (mesg, percent) =>
+            dialog.find(".salvus-ipython-publish-status").text(mesg)
+            p = "#{percent}%"
+            dialog.find(".progress-bar").css('width',p).text(p)
+
+        @publish status, (err) =>
+            dialog.find(".salvus-ipython-publish-dialog-publishing")
+            if err
+                dialog.find(".salvus-ipython-publish-dialog-fail").show().find('span').text(err)
+            else
+                dialog.find(".salvus-ipython-publish-dialog-success").show()
+                url_box = dialog.find(".salvus-ipython-publish-url")
+                url_box.val(url)
+                url_box.click () ->
+                    $(this).select()
+
+    publish: (status, cb) =>
+        #d = (m) => console.log("ipython.publish('#{@filename}'): #{misc.to_json(m)}")
+        #d()
+        @publish_button.find("fa-refresh").show()
+        async.series([
+            (cb) =>
+                status?("saving",0)
+                @save(cb)
+            (cb) =>
+                status?("running nbconvert",30)
+                @nbconvert
+                    format : 'html'
+                    cb     : (err) =>
+                        cb(err)
+            (cb) =>
+                status?("making '#{@filename}' public", 70)
+                @editor.project_page.publish_path
+                    path        : @filename
+                    description : "IPython notebook #{@filename}"
+                    cb          : cb
+            (cb) =>
+                html = @filename.slice(0,@filename.length-5)+'html'
+                status?("making '#{html}' public", 90)
+                @editor.project_page.publish_path
+                    path        : html
+                    description : "IPython html version of #{@filename}"
+                    cb          : cb
+        ], (err) =>
+            status?("done", 100)
+            @publish_button.find("fa-refresh").hide()
+            cb?(err)
+        )
+
+    nbconvert: (opts) =>
+        opts = defaults opts,
+            format : required
+            cb     : undefined
+        salvus_client.exec
+            path        : @path
+            project_id  : @editor.project_id
+            command     : 'ipython'
+            args        : ['nbconvert', @file, "--to=#{opts.format}"]
+            bash        : false
+            err_on_exit : true
+            timeout     : 30
+            cb          : (err, output) =>
+                console.log("nbconvert finished with err='#{err}, ouptut='#{misc.to_json(output)}'")
+                opts.cb?(err)
 
     # WARNING: Do not call this before @nb is defined!
     to_obj: () =>
@@ -4817,5 +5257,623 @@ class Course extends FileEditorWrapper
     init_wrapped: () ->
         @element = course.course(@editor, @filename)
         @wrapped = @element.data('course')
+
+
+#############################################
+# Editor for HTML/Markdown/ReST documents
+#############################################
+
+class HTML_MD_Editor extends FileEditor
+    constructor: (@editor, @filename, content, @opts) ->
+        # The are two components, side by side
+        #     * source editor -- a CodeMirror editor
+        #     * preview/contenteditable -- rendered view
+        @ext = filename_extension(@filename)   #'html' or 'md'
+
+        if @ext == 'html'
+            @opts.mode = 'htmlmixed'
+        else if @ext == 'md'
+            @opts.mode = 'gfm'
+        else if @ext == 'rst'
+            @opts.mode = 'rst'
+        else if @ext == 'wiki' or @ext == "mediawiki"
+            # canonicalize .wiki and .mediawiki (as used on github!) to "mediawiki"
+            @ext = "mediawiki"
+            @opts.mode = 'mediawiki'
+        else if @ext == 'tex'  # for testing/experimentation
+            @opts.mode = 'stex2'
+        else
+            throw "file must have extension md or html or rst or wiki or tex"
+
+        @disable_preview = @local_storage("disable_preview")
+
+        @element = templates.find(".salvus-editor-html-md").clone()
+
+        # create the textedit button bar.
+        @edit_buttons = templates.find(".salvus-editor-textedit-buttonbar").clone()
+        @element.find(".salvus-editor-html-md-textedit-buttonbar").append(@edit_buttons)
+
+        @preview = @element.find(".salvus-editor-html-md-preview")
+        @preview_content = @preview.find(".salvus-editor-html-md-preview-content")
+
+        # initialize the codemirror editor
+        @source_editor = codemirror_session_editor(@editor, @filename, @opts)
+        @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
+        @source_editor.action_key = @action_key
+
+        @spell_check()
+
+        cm = @cm()
+        cm.on('change', @update_preview)
+        #cm.on 'cursorActivity', @update_preview
+
+        @init_buttons()
+        @init_draggable_split()
+
+        @init_preview_select()
+
+        @init_keybindings()
+
+        # this is entirely because of the chat
+        # currently being part of @source_editor, and
+        # only calling the show for that; once chat
+        # is refactored out, delete this.
+        @source_editor.on 'show-chat', () =>
+            @show()
+        @source_editor.on 'hide-chat', () =>
+            @show()
+
+    cm: () =>
+        return @source_editor.syncdoc.focused_codemirror()
+
+    init_keybindings: () =>
+        keybindings =  # inspired by http://www.door2windows.com/list-of-all-keyboard-shortcuts-for-sticky-notes-in-windows-7/
+            bold      : 'Cmd-B Ctrl-B'
+            italic    : 'Cmd-I Ctrl-I'
+            underline : 'Cmd-U Ctrl-U'
+            comment   : 'Shift-Ctrl-3'
+            strikethrough : 'Shift-Cmd-X Shift-Ctrl-X'
+            justifycenter : "Cmd-E Ctrl-E"
+            #justifyright  : "Cmd-R Ctrl-R"  # messes up page reload
+            subscript     : "Cmd-= Ctrl-="
+            superscript   : "Shift-Cmd-= Shift-Ctrl-="
+
+        extra_keys = @cm().getOption("extraKeys") # current keybindings
+        for cmd, keys of keybindings
+            for k in keys.split(' ')
+                ( (cmd) => extra_keys[k] = (cm) => @command(cm, cmd) )(cmd)
+
+        for cm in @source_editor.codemirrors()
+            cm.setOption("extraKeys", extra_keys)
+
+    init_draggable_split: () =>
+        @_split_pos = @local_storage("split_pos")
+        @_dragbar = dragbar = @element.find(".salvus-editor-html-md-resize-bar")
+        dragbar.css(position:'absolute')
+        dragbar.draggable
+            axis : 'x'
+            containment : @element
+            zIndex      : 100
+            stop        : (event, ui) =>
+                # compute the position of bar as a number from 0 to 1
+                left  = @element.offset().left
+                chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
+                if chat_pos.left
+                    width = chat_pos.left - left
+                else
+                    width = @element.width()
+                p     = dragbar.offset().left
+                @_split_pos = (p - left) / width
+                @local_storage('split_pos', @_split_pos)
+                @show()
+
+    inverse_search: (cb) =>
+
+    forward_search: (cb) =>
+
+    action_key: () =>
+
+    remove: () =>
+        @element.remove()
+
+    init_buttons: () =>
+        @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
+        @element.find("a[href=#save]").click(@click_save_button)
+        @print_button = @element.find("a[href=#print]").show().click(@print)
+        @init_edit_buttons()
+        @init_preview_buttons()
+
+    command: (cm, cmd, args) =>
+        switch cmd
+            when "link"
+                cm.insert_link()
+            when "image"
+                cm.insert_image()
+            when "SpecialChar"
+                cm.insert_special_char()
+            else
+                cm.edit_selection
+                    cmd  : cmd
+                    args : args
+                    mode : @opts.mode
+                @sync()
+
+    init_preview_buttons: () =>
+        disable = @element.find("a[href=#disable-preview]").click () =>
+            disable.hide()
+            enable.show()
+            @disable_preview = true
+            @local_storage("disable_preview", true)
+            @preview_content.html('')
+
+        enable = @element.find("a[href=#enable-preview]").click () =>
+            disable.show()
+            enable.hide()
+            @disable_preview = false
+            @local_storage("disable_preview", false)
+            @update_preview()
+
+        if @disable_preview
+            enable.show()
+            disable.hide()
+
+    init_edit_buttons: () =>
+        that = @
+        @edit_buttons.find("a").click () ->
+            args = $(this).data('args')
+            cmd  = $(this).attr('href').slice(1)
+            if args? and typeof(args) != 'object'
+                args = "#{args}"
+                if args.indexOf(',') != -1
+                    args = args.split(',')
+            that.command(that.cm(), cmd, args)
+            return false
+
+        if true #  @ext != 'html'
+            # hide some buttons, since these are not markdown friendly operations:
+            for t in ['clean'] # I don't like this!
+                @edit_buttons.find("a[href=##{t}]").hide()
+
+        # initialize the color controls
+        button_bar = @edit_buttons
+        init_color_control = () =>
+            elt   = button_bar.find(".sagews-output-editor-foreground-color-selector")
+            if IS_MOBILE
+                elt.hide()
+                return
+            button_bar_input = elt.find("input").colorpicker()
+            sample = elt.find("i")
+            set = (hex, init) =>
+                sample.css("color", hex)
+                button_bar_input.css("background-color", hex)
+                if not init
+                    @command(@cm(), "color", hex)
+
+            button_bar_input.change (ev) =>
+                hex = button_bar_input.val()
+                set(hex)
+
+            button_bar_input.on "changeColor", (ev) =>
+                hex = ev.color.toHex()
+                set(hex)
+
+            sample.click (ev) =>
+                button_bar_input.colorpicker('show')
+
+            set("#000000", true)
+
+        init_color_control()
+        # initialize the color control
+        init_background_color_control = () =>
+            elt   = button_bar.find(".sagews-output-editor-background-color-selector")
+            if IS_MOBILE
+                elt.hide()
+                return
+            button_bar_input = elt.find("input").colorpicker()
+            sample = elt.find("i")
+            set = (hex, init) =>
+                button_bar_input.css("background-color", hex)
+                elt.find(".input-group-addon").css("background-color", hex)
+                if not init
+                    @command(@cm(), "background-color", hex)
+
+            button_bar_input.change (ev) =>
+                hex = button_bar_input.val()
+                set(hex)
+
+            button_bar_input.on "changeColor", (ev) =>
+                hex = ev.color.toHex()
+                set(hex)
+
+            sample.click (ev) =>
+                button_bar_input.colorpicker('show')
+
+            set("#fff8bd", true)
+
+        init_background_color_control()
+
+    print: () =>
+        if @_printing
+            return
+        @_printing = true
+        @print_button.icon_spin(start:true, delay:0).addClass("disabled")
+        @convert_to_pdf (err, output) =>
+            @_printing = false
+            @print_button.removeClass('disabled')
+            @print_button.icon_spin(false)
+            if err
+                alert_message(type:"error", message:"Printing error -- #{err}")
+            else
+                salvus_client.read_file_from_project
+                    project_id : @editor.project_id
+                    path       : output.filename
+                    cb         : (err, mesg) =>
+                        if err
+                            cb(err)
+                        else
+                            url = mesg.url + "?nocache=#{Math.random()}"
+                            window.open(url,'_blank')
+
+    convert_to_pdf: (cb) =>  # cb(err, {stdout:?, stderr:?, filename:?})
+        s = path_split(@filename)
+        target = s.tail + '.pdf'
+        if @ext in ['md', 'html', 'rst', 'mediawiki']
+            # pandoc --latex-engine=xelatex a.wiki -o a.pdf
+            command = 'pandoc'
+            args    = ['--latex-engine=xelatex', s.tail, '-o', target]
+            bash = false
+        else if @ext == 'tex'
+            t = "." + misc.uuid()
+            command = "mkdir -p #{t}; xelatex -output-directory=#{t} '#{s.tail}'; mv '#{t}/*.pdf' '#{target}'; rm -rf #{t}"
+            bash = true
+
+        target = @filename + ".pdf"
+        output = undefined
+        async.series([
+            (cb) =>
+                @save(cb)
+            (cb) =>
+                salvus_client.exec
+                    project_id  : @editor.project_id
+                    command     : command
+                    args        : args
+                    err_on_exit : true
+                    bash        : bash
+                    path        : s.head
+                    cb          : (err, o) =>
+                        console.log("convert_to_pdf output ", err, output)
+                        if err
+                            cb(err)
+                        else
+                            output = o
+                            cb()
+        ], (err) =>
+            if err
+                cb?(err)
+            else
+                output.filename = @filename + ".pdf"
+                cb?(undefined, output)
+        )
+
+    misspelled_words: (opts) =>
+        opts = defaults opts,
+            lang : undefined
+            cb   : required
+        if not opts.lang?
+            opts.lang = misc_page.language()
+        if opts.lang == 'disable'
+            opts.cb(undefined,[])
+            return
+        if @ext == "html"
+            mode = "html"
+        else if @ext == "tex"
+            mode = 'tex'
+        else
+            mode = 'none'
+        #t0 = misc.mswalltime()
+        salvus_client.exec
+            project_id  : @editor.project_id
+            command     : "cat '#{@filename}'|aspell --mode=#{mode} --lang=#{opts.lang} list|sort|uniq"
+            bash        : true
+            err_on_exit : true
+            cb          : (err, output) =>
+                #console.log("spell_check time: #{misc.mswalltime(t0)}ms")
+                if err
+                    opts.cb(err); return
+                if output.stderr
+                    opts.cb(output.stderr); return
+                opts.cb(undefined, output.stdout.slice(0,output.stdout.length-1).split('\n'))  # have to slice final \n
+
+    spell_check: () =>
+        @misspelled_words
+            cb : (err, words) =>
+                if err
+                    return
+                else
+                    for cm in @source_editor.codemirrors()
+                        cm.spellcheck_highlight(words)
+
+    has_unsaved_changes: () =>
+        return @source_editor.has_unsaved_changes()
+
+    save: (cb) =>
+        @source_editor.syncdoc.save (err) =>
+            if not err
+                @spell_check()
+            cb?(err)
+
+    sync: (cb) =>
+        @source_editor.syncdoc.sync(cb)
+
+    outside_tag: (line, i) ->
+        left = line.slice(0,i)
+        j = left.lastIndexOf('>')
+        k = left.lastIndexOf('<')
+        if k > j
+            return k
+        else
+            return i
+
+    file_path: () =>
+        if not @_file_path?
+            @_file_path = misc.path_split(@filename).head
+        return @_file_path
+
+    to_html: (cb) =>
+        f = @["#{@ext}_to_html"]
+        if f?
+            f(cb)
+        else
+            @to_html_via_pandoc(cb:cb)
+
+    html_to_html: (cb) =>   # cb(error, {source:?, mathjax:?})  where mathjax is true/false
+        # add in cursor(s)
+        source = @source_editor._get()
+        cm = @source_editor.syncdoc.focused_codemirror()
+        # figure out where pos is in the source and put HTML cursor there
+        lines = source.split('\n')
+        markers =
+            cursor : "\uFE22"
+            from   : "\uFE23"
+            to     : "\uFE24"
+
+        if @ext == 'html'
+            for s in cm.listSelections()
+                if s.empty()
+                    # a single cursor
+                    pos = s.head
+                    line = lines[pos.line]
+                    # TODO: for now, tags have to start/end on a single line
+                    i = @outside_tag(line, pos.ch)
+                    lines[pos.line] = line.slice(0,i)+markers.cursor+line.slice(i)
+                else if false  # disable
+                    # a selection range
+                    to = s.to()
+                    line = lines[to.line]
+                    to.ch = @outside_tag(line, to.ch)
+                    i = to.ch
+                    lines[to.line] = line.slice(0,i) + markers.to + line.slice(i)
+
+                    from = s.from()
+                    line = lines[from.line]
+                    from.ch = @outside_tag(line, from.ch)
+                    i = from.ch
+                    lines[from.line] = line.slice(0,i) + markers.from + line.slice(i)
+
+        if @ext == 'html'
+            # embed position data by putting invisible spans before each element.
+            for i in [0...lines.length]
+                line = lines[i]
+                line2 = ''
+                for j in [0...line.length]
+                    if line[j] == "<"  # TODO: worry about < in mathjax...
+                        s = line.slice(0,j)
+                        c = s.split(markers.cursor).length + s.split(markers.from).length + s.split(markers.to).length - 3  # TODO: ridiculously inefficient
+                        line2 = "<span data-line=#{i} data-ch=#{j-c} class='smc-pos'></span>" + line.slice(j) + line2
+                        line = line.slice(0,j)
+                lines[i] = "<span data-line=#{i} data-ch=0 class='smc-pos'></span>"+line + line2
+
+        source = lines.join('\n')
+
+        source = misc.replace_all(source, markers.cursor, "<span class='smc-html-cursor'></span>")
+
+        # add smc-html-selection class to everything that is selected
+        # TODO: this will *only* work when there is one range selection!!
+        i = source.indexOf(markers.from)
+        j = source.indexOf(markers.to)
+        if i != -1 and j != -1
+            elt = $("<span>")
+            elt.html(source.slice(i+1,j))
+            elt.find('*').addClass('smc-html-selection')
+            source = source.slice(0,i) + "<span class='smc-html-selection'>" + elt.html() + "</span>" + source.slice(j+1)
+
+        cb(undefined, {html:source, mathjax:true}) # TODO: mathjax
+
+    md_to_html: (cb) =>
+        source = @source_editor._get()
+        m = misc_page.markdown_to_html(source)
+        cb(undefined, {html:m.s, mathjax:m.has_mathjax})
+
+    rst_to_html: (cb) =>
+        @to_html_via_exec
+            command     : "rst2html"
+            args        : [@filename]
+            cb          : cb
+
+    to_html_via_pandoc: (opts) =>
+        opts.command = "pandoc"
+        opts.args = ["--toc", "-t", "html", '--highlight-style', 'pygments', @filename]
+        @to_html_via_exec(opts)
+
+    to_html_via_exec: (opts) =>
+        opts = defaults opts,
+            command     : required
+            args        : required
+            postprocess : undefined
+            cb          : required   # cb(error, {html:?, mathjax:?})
+        html = undefined
+        warnings = undefined
+        async.series([
+            (cb) =>
+                @save(cb)
+            (cb) =>
+                salvus_client.exec
+                    project_id  : @editor.project_id
+                    command     : opts.command
+                    args        : opts.args
+                    err_on_exit : false
+                    cb          : (err, output) =>
+                        #console.log("salvus_client.exec ", err, output)
+                        if err
+                            cb(err)
+                        else
+                            html = output.stdout
+                            warnings = output.stderr
+                            cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                if opts.postprocess?
+                    html = opts.postprocess(html)
+                opts.cb(undefined, {html:html, mathjax:true, warnings:warnings})
+        )
+
+    update_preview: () =>
+        if @disable_preview
+            return
+
+        if @_update_preview_lock
+            @_update_preview_redo = true
+            return
+
+        t0 = misc.mswalltime()
+        @_update_preview_lock = true
+        #console.log("update_preview")
+        @to_html (err, r) =>
+            @_update_preview_lock = false
+            if err
+                console.log("failed to render preview: #{err}")
+                return
+            source = r.html
+
+            # remove any javascript and make html more sane
+            elt = $("<span>").html(source)
+            elt.find('script').remove()
+            elt.find('link').remove()
+            source = elt.html()
+
+            # finally set html in the live DOM
+            @preview_content.html(source)
+
+            @localize_image_links(@preview_content)
+
+            ## this would disable clickable links...
+            #@preview.find("a").click () =>
+            #    return false
+            # Make it so preview links can be clicked, don't close SMC page.
+            @preview_content.find("a").attr("target","_blank")
+            @preview_content.find("table").addClass('table')  # bootstrap table
+
+            if r.mathjax
+                @preview_content.mathjax()
+
+            #@preview_content.find(".smc-html-cursor").scrollintoview()
+            #@preview_content.find(".smc-html-cursor").remove()
+
+            #console.log("update_preview time=#{misc.mswalltime(t0)}ms")
+            if @_update_preview_redo
+                @_update_preview_redo = false
+                @update_preview()
+
+    localize_image_links: (e) =>
+        # make relative links to images use the raw server
+        for x in e.find("img")
+            y = $(x)
+            src = y.attr('src')
+            if not src? or src[0] == '/' or src.indexOf('://') != -1
+                continue
+            new_src = "/#{@editor.project_id}/raw/#{@file_path()}/#{src}"
+            y.attr('src', new_src)
+        # make relative links to objects use the raw server
+        for x in e.find("object")
+            y = $(x)
+            src = y.attr('data')
+            if not src? or src[0] == '/' or src.indexOf('://') != -1
+                continue
+            new_src = "/#{@editor.project_id}/raw/#{@file_path()}/#{src}"
+            y.attr('data', new_src)
+
+    init_preview_select: () =>
+        @preview_content.click (evt) =>
+            sel = window.getSelection()
+            if @ext=='html'
+                p = $(evt.target).prevAll(".smc-pos:first")
+            else
+                p = $(evt.target).nextAll(".smc-pos:first")
+
+            #console.log("evt.target after ", p)
+            if p.length == 0
+                if @ext=='html'
+                    p = $(sel.anchorNode).prevAll(".smc-pos:first")
+                else
+                    p = $(sel.anchorNode).nextAll(".smc-pos:first")
+                #console.log("anchorNode after ", p)
+            if p.length == 0
+                console.log("clicked but not able to determine position")
+                return
+            pos = p.data()
+            #console.log("p.data=#{misc.to_json(pos)}, focusOffset=#{sel.focusOffset}")
+            if not pos?
+                pos = {ch:0, line:0}
+            pos = {ch:pos.ch + sel.focusOffset, line:pos.line}
+            #console.log("clicked on ", pos)
+            @cm().setCursor(pos)
+            @cm().scrollIntoView(pos.line)
+            @cm().focus()
+
+    _get: () =>
+        return @source_editor._get()
+
+    _set: (content) =>
+        @source_editor._set(content)
+
+    _show: (opts={}) =>
+        if not @_split_pos?
+            @_split_pos = .5
+        @_split_pos = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, @_split_pos))
+        @element.css(top:@editor.editor_top_position(), position:'fixed')
+        @element.width($(window).width())
+
+        width = @element.width()
+        chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
+        if chat_pos.left
+            width = chat_pos.left
+
+        {top, left} = @element.offset()
+        editor_width = (width - left)*@_split_pos
+
+        @_dragbar.css('left',editor_width+left)
+
+        @source_editor.show
+            width : editor_width
+            top   : top + @edit_buttons.height()
+
+        button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
+        @element.maxheight(offset:button_bar_height)
+        @preview.maxheight(offset:button_bar_height)
+
+        @_dragbar.height(@source_editor.element.height())
+        @_dragbar.css('top',top-9)  # -9 = ugly hack
+
+        # position the preview
+        @preview.css
+            left  : editor_width + left + 7
+            width : width - (editor_width + left + 7)
+            top   : top
+
+
+    focus: () =>
+        @source_editor?.focus()
 
 

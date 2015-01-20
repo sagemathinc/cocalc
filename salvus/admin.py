@@ -1,4 +1,26 @@
 #!/usr/bin/env python
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 
 """
 Administration and Launch control of salvus components
@@ -59,6 +81,8 @@ NGINX_PORT   = 8080
 
 HUB_PORT       = 5000
 HUB_PROXY_PORT = 5001
+
+SYNCSTRING_PORT = 6001
 
 # These are used by the firewall.
 CASSANDRA_CLIENT_PORT = 9160
@@ -633,67 +657,32 @@ class Hub(Process):
         return "Hub server %s on port %s"%(self.id(), self._port)
 
 
-####################
-# Snap -- snapshot/backup servers
-# TODO: this is deprecated
-####################
-class Snap(Process):
-    def __init__(self, id=0, host='', monitor_database=None, keyspace='salvus',
-                 snap_dir=None, logfile=None, pidfile=None, resend_all_commits=False,
-                 snap_interval=None):
-        if pidfile is None:
-            pidfile = os.path.join(PIDS, 'snap-%s.pid'%id)
-        if logfile is None:
-            logfile = os.path.join(LOGS, 'snap-%s.log'%id)
-
-        if snap_dir is None:
-            snap_dir = os.path.join(DATA, 'snap-%s'%id)
-
-        start_cmd = [os.path.join(PWD, 'snap'),
-                                      'start',
-                                      '--host', host,
-                                      '--database_nodes', monitor_database,
-                                      #'--resend_all_commits', resend_all_commits,
-                                      '--keyspace', keyspace,
-                                      '--snap_dir', snap_dir,
-                                      '--pidfile', pidfile,
-                                      '--logfile', logfile]
-        if snap_interval is not None:
-            start_cmd += ["--snap_interval", str(snap_interval)]
-
-        Process.__init__(self, id, name='snap', port=0,
-                         pidfile = pidfile,
-                         logfile = logfile,
-                         start_cmd = start_cmd,
-                         stop_cmd   = [os.path.join(PWD, 'snap'), 'stop'],
-                         reload_cmd = [os.path.join(PWD, 'snap'), 'restart'])
-
-    def __repr__(self):
-        return "Snap server (id=%s)"%(self.id(),)
-
-
-
 
 ####################
-# Compute Server
+# Syncstring
 ####################
+#class Syncstring(Process):
+#    def __init__(self,
+#                 host             = '',
+#                 monitor_database = None,
+#                 keyspace         = 'salvus',
+#                 debug            = False,
+#                 id               = '0'):   # id is ignored
+#        Process.__init__(self, id,
+#                         name        ='syncstring',
+#                         port       =  SYNCSTRING_PORT,
+#                         pidfile    = os.path.join(PIDS, 'syncstring.pid'),
+#                         logfile    = os.path.join(PIDS, 'syncstring.log'),
+#                         monitor_database = monitor_database,
+#                         start_cmd  = [os.path.join(PWD, 'syncstring'), 'start',
+#                                      '--keyspace', keyspace,
+#                                      '--host', host,
+#                                      '--database_nodes', monitor_database],
+#                         stop_cmd   = [os.path.join(PWD, 'syncstring'), 'stop'])
+#
+#    def __repr__(self):
+#        return "Syncstring server"
 
-class Compute(Process):
-    def __init__(self, id=0, host=''):
-        self._port = 22
-        Process.__init__(self, id,
-                         name        = 'compute',
-                         port        = port,
-                         pidfile     = os.path.join(PIDS, 'compute_server.pid'),
-                         logfile     = os.path.join(LOGS, 'compute_server.log'),
-                         start_cmd   = ['compute_server', 'start'],
-                         stop_cmd    = ['compute_server', 'stop'],
-                         reload_cmd  = ['compute_server', 'restart'],
-                         service     = ('compute', port)
-        )
-
-    def port(self):
-        return self._port
 
 ########################################
 # Cassandra database server
@@ -1831,11 +1820,11 @@ class Services(object):
                 # very important: set to listen only on our VPN.
                 o['host'] = host
 
-        # SNAP options
-        if 'snap' in self._options:
-            for host, o in self._options['snap']:
-                # very important: set to listen only on our VPN.
-                o['host'] = host
+        # Syncstring options
+        #if 'syncstring' in self._options:
+        #    for host, o in self._options['syncstring']:
+        #        # set to listen only on our VPN -- slight extra security
+        #        o['host'] = host
 
         # COMPUTE options
         if 'compute' in self._options:

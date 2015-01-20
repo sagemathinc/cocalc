@@ -1,3 +1,25 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 #################################################################
 #
 # bup_server -- a node.js program that provides a TCP server
@@ -1201,8 +1223,8 @@ class GlobalProject
                     path : misc.path_split(opts.target_path).head
                     cb   : cb
             (cb) =>
-                dbg("get coordinates (server_id, datacenter, addr) for source and target projects (in parallel)")
-                async.parallel([
+                dbg("get coordinates (server_id, datacenter, addr) for source and target projects")
+                async.series([
                     (cb) =>
                         dbg("get coords of source project")
                         @get_running_location_and_dc
@@ -2480,7 +2502,7 @@ class GlobalClient
     	x.c.repair(dryrun:true, cb:(e,projects)->console.log("DONE",e);x.projects=projects)
         x.projects.length
 
-        status=[];x.c.repair(limit:1, status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
+        status=[];x.c.repair(limit:3, status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
 
     ###
     repair: (opts) =>
@@ -3299,7 +3321,7 @@ if not program.address
 main = () ->
     if program.debug
         winston.remove(winston.transports.Console)
-        winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+        winston.add(winston.transports.Console, {level: program.debug, timestamp:true, colorize:true})
 
     winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)

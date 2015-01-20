@@ -1,3 +1,25 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 #########################################################################
 #  top_navbar -- the top level navbar
 #########################################################################
@@ -42,7 +64,8 @@ class TopNavbar  extends EventEmitter
             onshow        : undefined  # called if defined right after page is shown
             onblur        : undefined  # called if defined right after page is blured
             onfullscreen  : undefined  # called with onfullscreen(true or false) when switching to fullscreen (true) or out (false).
-            icon          : undefined      # something like 'fa-globe'
+            icon          : undefined  # something like 'fa-globe'
+            icon_img      : undefined  # alternatively (if icon is not set), a path for an <img src=""> icon
 
         button  = @button_template.clone()
         divider = @divider_template.clone()
@@ -63,13 +86,14 @@ class TopNavbar  extends EventEmitter
             onfullscreen : opts.onfullscreen
             divider      : divider
             icon         : opts.icon
+            icon_img     : opts.icon_img
 
         a = button.find("a")
         a.data("id", opts.id)
         that = @
         a.click((event) -> that.switch_to_page($(this).data("id")); return false)
 
-        @set_button_label(opts.id, opts.label, opts.class, opts.icon, opts.close)
+        @set_button_label(opts.id, opts.label, opts.class, opts.icon, opts.icon_img, opts.close)
 
     number_of_pages_left: () =>
         return @buttons.children().length / 2   # /2 because of dividers
@@ -77,7 +101,7 @@ class TopNavbar  extends EventEmitter
     number_of_pages_right: () =>
         return @buttons_right.children().length  # /2 because of dividers
 
-    set_button_label: (id, label, klass, icon, close=true) ->
+    set_button_label: (id, label, klass, icon, icon_img, close=true) ->
         if not icon? and @pages[id].icon?
             icon = @pages[id].icon
         button = @pages[id].button
@@ -85,6 +109,8 @@ class TopNavbar  extends EventEmitter
         a.find(".button-label").text(label)
         if icon?
             a.find(".button-label").prepend($("<i class='fa #{icon}' style='font-size:20px;padding-right: 2px;'> </i>"))
+        else if icon_img?
+            a.find(".button-label").prepend($("<img>").attr("src", icon_img))
         close_button = a.find(".close-button")
         if close
             close_button.data("id", id)
@@ -230,7 +256,7 @@ class TopNavbar  extends EventEmitter
             return
 
         if misc_page.is_responsive_mode()
-           # responsive mode
+            # responsive mode
             @destroy_sortable_project_list()
             width = "100%"
         else
@@ -260,6 +286,7 @@ $("#salvus-help").top_navbar
     id      : "salvus-help"
     label   : "Help"
     icon    : 'fa-question-circle'
+    pull_right : true
     close   : false
     onshow: () -> misc_page.set_window_title("Help")
 
@@ -287,7 +314,8 @@ $("#projects").top_navbar
     id      : "projects"
     #'class' : 'navbar-big'
     label   : "Projects"
-    icon : 'fa-tasks'
+    #icon : 'fa-tasks'
+    icon_img: '/favicon-195.png'
     close   : false
     onshow: () -> misc_page.set_window_title("Projects")
 

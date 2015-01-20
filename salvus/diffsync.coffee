@@ -1,3 +1,25 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 ###################################################################
 #
 # Code to support simultaneous multiple editing
@@ -31,14 +53,24 @@ SIMULATE_LOSS = false
 async = require('async')
 {EventEmitter} = require('events')
 
-diff_match_patch = require('googlediff')  # TODO: this greatly increases the size of browserify output (unless we compress it) -- watch out.
+{diff_match_patch} = require('dmp')
 
 # maximum time in seconds that diff_main will BLOCK optimizing the diff -- see https://code.google.com/p/google-diff-match-patch/wiki/API
 
 dmp = new diff_match_patch()
-dmp.Diff_Timeout = 0.25
-#dmp.Match_Threshold = 0.3   # make matching more conservative
-#dmp.Patch_DeleteThreshold = 0.3  # make deleting more conservative
+
+# We set a short maximum time to try to make a patch; if exceeds this, patch may
+# be very non-optimal, but still valid.  This is important to maintain user
+# interactivity in a single-threaded context (which Javascript provides).
+# NOTE: I had to significantly modify the code at
+#    https://code.google.com/p/google-diff-match-patch/wiki/API
+# to make Diff_Timeout actually work!  Hence the file node_modules/dmp.coffee, in
+# the git repo.
+dmp.Diff_Timeout = 0.2
+
+
+dmp.Match_Threshold = 0.3   # make matching more conservative
+dmp.Patch_DeleteThreshold = 0.3  # make deleting more conservative
 
 
 exports.dmp = dmp
@@ -664,7 +696,7 @@ class exports.SynchronizedDB_DiffSyncWrapper extends EventEmitter
 
 
 class exports.SynchronizedDB extends EventEmitter
-    constructor: (@_doc, @to_json, @from_json) ->
+    constructor: (@_doc, @to_json, @from_json, @max_len) ->
         if not @to_json?
             @to_json = misc.to_json
         if not @from_json?
@@ -677,6 +709,8 @@ class exports.SynchronizedDB extends EventEmitter
         @_doc.on('sync', @_on_sync)
 
     _on_sync: () =>
+        if not @_doc?
+            return
         @emit('sync')
         #console.log("syncdb -- syncing")
         if not @_set_data_from_doc() and @_live_before_sync?
@@ -693,8 +727,9 @@ class exports.SynchronizedDB extends EventEmitter
         delete @_data
 
     # set the data object to equal what is defined in the syncdoc
-    #
     _set_data_from_doc: () =>
+        if not @_doc?
+            return
         # change/add anything that has changed or been added
         i = 0
         hashes = {}
@@ -705,9 +740,10 @@ class exports.SynchronizedDB extends EventEmitter
                 h = hash_string(x)
                 hashes[h] = true
                 if not @_data[h]?
+                    # insert a new record
                     try
                         data = @from_json(x)
-                    catch
+                    catch e
                         # invalid/corrupted json -- still, we try out best
                         # WE will revert this, unless it is on the initial load.
                         data = {'corrupt':x}
@@ -715,9 +751,9 @@ class exports.SynchronizedDB extends EventEmitter
                     @_data[h] = {data:data, line:i}
                     changes.push({insert:misc.deep_copy(data)})
             i += 1
-        # delete anything that was deleted
         for h,v of @_data
             if not hashes[h]?
+                # delete this record
                 changes.push({remove:v.data})
                 delete @_data[h]
         if changes.length > 0
@@ -725,13 +761,19 @@ class exports.SynchronizedDB extends EventEmitter
         return is_valid
 
     _set_doc_from_data: (hash) =>
-        if hash?
-            # only one line changed
+        if not @_doc?
+            return
+        if hash? and @_data[hash]?  # second condition due to potential of @_data changing before _set_doc_from_data called
+            # one line changed
             d = @_data[hash]
             v = @_doc.live().split('\n')
             v[d.line] = @to_json(d.data)
+            new_hash = hash_string(v[d.line])
+            if new_hash != hash
+                @_data[new_hash] = d
+                delete @_data[hash]
         else
-            # major change to doc (e.g., deleting or adding records)
+            # possible major change to doc (e.g., deleting or adding records)
             m = []
             for hash, x of @_data
                 m[x.line] = {hash:hash, x:x}
@@ -749,22 +791,35 @@ class exports.SynchronizedDB extends EventEmitter
         @_doc.sync()
 
     save: (cb) =>
+        if not @_doc?
+            cb?("@_doc not defined")
+            return
         @sync (err) =>
             if err
                 setTimeout((()=>@save(cb)), 3000)
             else
+                if not @_doc?
+                    cb?("@_doc not defined")
+                    return
                 @_doc.save(cb)
 
     sync: (cb) =>
-        @_doc.sync(cb)
+        if not @_doc?
+            cb?("@_doc not defined")
+        else
+            @_doc.sync(cb)
 
-    # change (or create) exactly *one* database entry that matches the given where criterion.
+    # change (or create) exactly *one* database entry that matches
+    # the given where criterion.
     update: (opts) =>
         opts = defaults opts,
             set   : required
             where : required
-        set = opts.set
+        if not @_doc?
+            return
+        set   = opts.set
         where = opts.where
+        #console.log("update(set='#{misc.to_json(set)}',where='#{misc.to_json(where)}')")
         i = 0
         for hash, val of @_data
             match = true
@@ -774,24 +829,55 @@ class exports.SynchronizedDB extends EventEmitter
                     match = false
                     break
             if match
+                # modify exactly one existing database entry
+                #console.log("update: change '#{misc.to_json(x)}'?")
+                changed = false
+                before = misc.deep_copy(x)
                 for k, v of set
+                    if not changed and misc.to_json(x[k]) != misc.to_json(v)
+                        changes = [{remove:before}]
+                        changed = true
                     x[k] = v
-                @_set_doc_from_data(hash)
+                if changed
+                    #console.log("update: yes, to '#{misc.to_json(x)}'")
+                    if @max_len?
+                        cur_len = @_doc.live().length
+                        new_len = misc.to_json(x).length - misc.to_json(before).length + cur_len
+                        if new_len > @max_len
+                            @_data[hash].data = before
+                            throw {error:"max_len", new_len:new_len, cur_len:cur_len, max_len:@max_len}
+                    # actually changed something
+                    changes.push({insert:misc.deep_copy(x)})
+                    @emit("change", changes)
+                    #console.log("update: from '#{@_doc.live()}'")
+                    @_set_doc_from_data(hash)
+                    #console.log("update: to   '#{@_doc.live()}'")
                 return
             i += 1
+
+        # add a new entry
         new_obj = {}
         for k, v of set
             new_obj[k] = v
         for k, v of where
             new_obj[k] = v
-        hash = hash_string(@to_json(new_obj))
+        j = @to_json(new_obj)
+        if @max_len?
+            cur_len = @_doc.live().length
+            new_len = j.length + 1 + @_doc.live().length
+            if new_len > @max_len
+                throw {error:"max_len", new_len:new_len, cur_len:cur_len, max_len:@max_len}
+        hash = hash_string(j)
         @_data[hash] = {data:new_obj, line:len(@_data)}
         @_set_doc_from_data(hash)
+        @emit("change", [{insert:misc.deep_copy(new_obj)}])
 
     # return list of all database objects that match given condition.
     select: (opts={}) =>
         {where} = defaults opts,
             where : {}
+        if not @_data?
+            return []
         result = []
         for hash, val of @_data
             x = val.data
@@ -808,6 +894,8 @@ class exports.SynchronizedDB extends EventEmitter
     select_one: (opts={}) =>
         {where} = defaults opts,
             where : {}
+        if not @_data?
+            return
         for hash, val of @_data
             x = val.data
             match = true
@@ -823,8 +911,11 @@ class exports.SynchronizedDB extends EventEmitter
         {where, one} = defaults opts,
             where : required  # give {} to delete everything ?!
             one   : false
+        if not @_data?
+            return 0
         result = []
         i = 0
+        changes = []
         for hash, val of @_data
             x = val.data
             match = true
@@ -834,10 +925,13 @@ class exports.SynchronizedDB extends EventEmitter
                     break
             if match
                 i += 1
+                changes.push({remove:x})
                 delete @_data[hash]
                 if one
                     break
-        @_set_doc_from_data()
+        if i > 0
+            @_set_doc_from_data()
+            @emit("change", changes)
         return i
 
     # delete first thing in db that matches the given criterion
@@ -847,6 +941,8 @@ class exports.SynchronizedDB extends EventEmitter
 
     # anything that couldn't be parsed from JSON as a map gets converted to {key:thing}.
     ensure_objects: (key) =>
+        if not @_data?
+            return
         changes = {}
         for h,v of @_data
             if typeof(v.data) != 'object'
@@ -863,6 +959,8 @@ class exports.SynchronizedDB extends EventEmitter
 
     # ensure that every db entry has a distinct uuid value for the given key
     ensure_uuid_primary_key: (key) =>
+        if not @_data?
+            return
         uuids   = {}
         changes = {}
         for h,v of @_data
@@ -873,6 +971,12 @@ class exports.SynchronizedDB extends EventEmitter
                 changes[h2] = v
             uuids[v.data[key]] = true
         if misc.len(changes) > 0
+            w = []
+            for h, v of changes
+                w.push({remove:@_data[h]})
+                w.push({insert:v})
+            @emit("change", w)
+
             for h, v of changes
                 @_data[h] = v
             @_set_doc_from_data()
