@@ -2835,24 +2835,24 @@ class Client extends EventEmitter
 # User activity tracking
 ##############################
 
-RECENT_ACTIVITY_POLL_INTERVAL_MIN_S = 8
-RECENT_ACTIVITY_POLL_INTERVAL_MAX_S = 60
-RECENT_ACTIVITY_POLL_DECAY_RATIO    = 1.3
+RECENT_ACTIVITY_POLL_INTERVAL_MIN_S = 30
+RECENT_ACTIVITY_POLL_INTERVAL_MAX_S = 90
+RECENT_ACTIVITY_POLL_DECAY_RATIO    = 1.4
 RECENT_ACTIVITY_TTL_S = 30 + RECENT_ACTIVITY_POLL_INTERVAL_MAX_S
 
-ACTIVITY_LOG_DEFAULT_LENGTH_HOURS = 24*3  # 3 days
-ACTIVITY_LOG_DEFAULT_MAX_LENGTH = 2000    # at most this many events
+ACTIVITY_LOG_DEFAULT_LENGTH_HOURS = 24*2  # 2 days
+ACTIVITY_LOG_DEFAULT_MAX_LENGTH = 1500    # at most this many events
 
 
 # update notifications about non-comment activity on a file with at most this frequency.
 
-MIN_ACTIVITY_INTERVAL_S = 60*5  # 5 minutes
+MIN_ACTIVITY_INTERVAL_S = 60*10  # 10 minutes
 #MIN_ACTIVITY_INTERVAL_S = 10   # short for testing
 
 # prioritize notify when somebody edits a file that you edited within this many days
 RECENT_NOTIFICATION_D = 14
 
-MAX_ACTIVITY_NAME_LENGTH = 50
+MAX_ACTIVITY_NAME_LENGTH  = 50
 MAX_ACTIVITY_TITLE_LENGTH = 60
 
 normalize_path = (path) ->
