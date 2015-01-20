@@ -20,6 +20,7 @@
 ###############################################################################
 
 _ = require("underscore")
+misc_page = require('misc_page')
 
 wizard_template = $(".smc-wizard")
 
@@ -49,7 +50,6 @@ class Wizard
 
     init: () =>
         cb = () =>
-            console.log "cb called"
             @init_nav()
             @init_buttons()
 
@@ -124,7 +124,8 @@ class Wizard
             # console.log("document: #{doc}")
             @doc = data[@lang][@cat1][@cat2][@title]
             @code.text(@doc[0])
-            @descr.text(@doc[1])
+            @descr.html(misc_page.markdown_to_html(@doc[1]).s)
+            @descr.mathjax()
             return false
 
     set_active: (list, which) ->
