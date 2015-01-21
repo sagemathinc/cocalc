@@ -518,35 +518,63 @@ class SalvusThreeJS
             face4 = myobj.face_geometry[objects].face4
             face5 = myobj.face_geometry[objects].face5
 
-            geometry = new THREE.Geometry()
+            faces = myobj.face_geometry[objects].faces
+            if not faces?
+                faces = []
 
+            # backwards compatibility with old scenes
+            if face3?
+                for k in [0...face3.length] by 3
+                    faces.push(face3.slice(k,k+3))
+            if face4?
+                for k in [0...face4.length] by 4
+                    faces.push(face4.slice(k,k+4))
+            if face5?
+                for k in [0...face5.length] by 6   # yep, 6 :-()
+                    faces.push(face5.slice(k,k+6))
+
+
+            geometry = new THREE.Geometry()
 
             for k in [0...vertices.length] by 3
                 geometry.vertices.push(@vector(vertices.slice(k, k+3)))
 
-            push_face3 = (a,b,c) =>
-                geometry.faces.push(new THREE.Face3(a-1,b-1,c-1))
-                #geometry.faces.push(new THREE.Face3(b-1,a-1,c-1))   # both sides of faces, so material is visible from inside -- but makes some things like look really crappy; disable.
+            push_face3 = (a, b, c) =>
+                geometry.faces.push(new THREE.Face3(a-1, b-1, c-1))
+                #geometry.faces.push(new THREE.Face3(b-1, a-1, c-1))   # both sides of faces, so material is visible from inside -- but makes some things like look really crappy; disable.  Better to just set a property of the material/light, which fixes the same problem.
 
-            # include all faces defined by 3 vertices (triangles)
-            for k in [0...face3.length] by 3
-                push_face3(face3[k], face3[k+1], face3[k+2])
-
-            # include all  *polyogonal* faces defined by 4 vertices (squares), which for THREE.js we must define using two triangles
-            push_face4 = (a,b,c,d) =>
+            # *polyogonal* faces defined by 4 vertices (squares), which for THREE.js we must define using two triangles
+            push_face4 = (a, b, c, d) =>
                 push_face3(a,b,c)
                 push_face3(a,c,d)
 
-            for k in [0...face4.length] by 4
-                push_face4(face4[k], face4[k+1], face4[k+2], face4[k+3])
+            # *polyogonal* faces defined by 5 vertices
+            push_face5 = (a, b, c, d, e) =>
+                push_face3(a, b, c)
+                push_face3(a, c, d)
+                push_face3(a, d, e)
 
-            # include all *polyogonal* faces defined by 6 vertices (see http://people.cs.clemson.edu/~dhouse/courses/405/docs/brief-obj-file-format.html)
-            for k in [0...face5.length] by 6
-                [a,b,c,d,e,f] = face5.slice(k, k+6)
+            # *polyogonal* faces defined by 6 vertices (see http://people.cs.clemson.edu/~dhouse/courses/405/docs/brief-obj-file-format.html)
+            push_face6 = (a, b, c, d, e, f) =>
                 push_face3(a, b, c)
                 push_face3(a, c, d)
                 push_face3(a, d, e)
                 push_face3(a, e, f)
+
+            # include all faces
+            for v in faces
+                switch v.length
+                    when 3
+                        push_face3(v...)
+                    when 4
+                        push_face4(v...)
+                    when 5
+                        push_face5(v...)
+                    when 6
+                        push_face6(v...)
+                    else
+                        console.log("WARNING: rendering face with #{v.length} vertices not implemented")
+                        push_face6(v...)   # might as well render most of the face...
 
             geometry.mergeVertices()
             #geometry.computeCentroids()
