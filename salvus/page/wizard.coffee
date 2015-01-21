@@ -20,6 +20,7 @@
 ###############################################################################
 
 _ = require("underscore")
+{defaults, required} = require('misc')
 misc_page = require('misc_page')
 
 wizard_template = $(".smc-wizard")
@@ -27,7 +28,10 @@ wizard_template = $(".smc-wizard")
 data = null
 
 class Wizard
-    constructor: () ->
+    constructor: (opts) ->
+        @opts = defaults opts,
+            lang  : 'sage'
+
         @dialog = wizard_template.clone()
 
         # the elements
@@ -39,7 +43,7 @@ class Wizard
         @descr    = @dialog.find(".smc-wizard-descr > div.panel-body")
 
         # the state
-        @lang     = undefined
+        @lang     = @opts.lang
         @cat1     = undefined
         @cat2     = undefined
         @title    = undefined
@@ -52,6 +56,7 @@ class Wizard
         cb = () =>
             @init_nav()
             @init_buttons()
+            @init_lvl1()
 
         if data?
             # console.log "data exists"
@@ -70,12 +75,20 @@ class Wizard
 
     init_nav: () ->
         # <li role="presentation"><a href="#sage">Sage</a></li>
-        N = {"sage": "Sage", "python": "Python", "r": "R", "gap" :"GAP", "cython" : "Cython"}
-        for key in _.keys(data)
-            name = key
-            if N[key]?
-                name = N[key]
-            @nav.append($("<li role='presentation'><a href='##{key}'>#{name}</a></li>"))
+        nav_entries = [
+            ["sage", "Sage"],
+            ["python", "Python"],
+            ["r", "R"],
+            ["gap", "GAP"],
+            ["cython", "Cython"]]
+        for entry, idx in nav_entries when data[entry[0]]?
+            @nav.append($("<li role='presentation'><a href='##{entry[0]}'>#{entry[1]}</a></li>"))
+            if @opts.lang == entry[0]
+                @set_active(@nav, @nav.children(idx))
+
+    init_lvl1: () ->
+        if @opts.lang?
+            @fill_list(@lvl1, data[@opts.lang])
 
     init_buttons: () ->
         @dialog.find(".btn-close").on "click", =>
@@ -88,36 +101,36 @@ class Wizard
             return false
 
         @nav.on "click", "li", (evt) =>
-            evt.preventDefault()
+            #evt.preventDefault()
             pill = $(evt.target)
             @set_active(@nav, pill.parent())
             @lang = pill.attr("href").substring(1)
-            @fill_list(@lvl1, _.keys(data[@lang]))
+            @fill_list(@lvl1, data[@lang])
             @lvl2.empty()
             @document.empty()
             return false
 
         @lvl1.on "click", "li", (evt) =>
-            evt.preventDefault()
+            #evt.preventDefault()
             t = $(evt.target)
             @set_active(@lvl1, t)
             @cat1 = t.attr("data")
             # console.log("lvl1: #{select1}")
-            @fill_list(@lvl2, _.keys(data[@lang][@cat1]))
+            @fill_list(@lvl2, data[@lang][@cat1])
             @document.empty()
             return false
 
         @lvl2.on "click", "li", (evt) =>
-            evt.preventDefault()
+            #evt.preventDefault()
             t = $(evt.target)
             @set_active(@lvl2, t)
             @cat2 = t.attr("data")
             # console.log("lvl2: #{select2}")
-            @fill_list(@document, _.keys(data[@lang][@cat1][@cat2]))
+            @fill_list(@document, data[@lang][@cat1][@cat2])
             return false
 
         @document.on "click", "li", (evt) =>
-            evt.preventDefault()
+            #evt.preventDefault()
             t = $(evt.target)
             @set_active(@document, t)
             @title = t.attr("data")
@@ -128,6 +141,12 @@ class Wizard
             @descr.mathjax()
             return false
 
+        @dialog.on "keydown", (evt) =>
+            # 38: up, 40: down
+            key = evt.which
+            if key == 38 or key == 40
+                evt.preventDefault()
+
     set_active: (list, which) ->
         for pill in list.find("li")
             # console.log(pill, which.get(0))
@@ -135,8 +154,13 @@ class Wizard
 
     fill_list: (list, entries) ->
         list.empty()
-        for entry in entries
-            # <li class="list-group-item active"><span class="badge">3</span>...</li>
-            list.append($("<li class='list-group-item' data='#{entry}'>#{entry}</li>"))
+        if entries?
+            for entry, subdocs of entries
+                # <li class="list-group-item active"><span class="badge">3</span>...</li>
+                if list == @document
+                    list.append($("<li class='list-group-item' data='#{entry}'>#{entry}</li>"))
+                else
+                    nb = _.keys(subdocs).length
+                    list.append($("<li class='list-group-item' data='#{entry}'><span class='badge'>#{nb}</span>#{entry}</li>"))
 
 exports.show = () -> new Wizard()

@@ -1,0 +1,64 @@
+# SMC Wizard Documentation File
+# Copyright: SageMathCloud Authors, 2015
+# License:   Creative Commons: Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+
+language: python
+category: Language / Tutorial
+---
+title: 01. Print
+descr: The "Hello World" program
+code: print "Hello World"
+---
+title: 02. Variables
+descr: >
+    A variable is a name for an object.
+    It is done via this syntax:
+
+    ```
+    variablename = object
+    ```
+code: |
+    x = 1
+    y = x + 1
+    print x
+    print y
+---
+title: 03. Print Data
+descr: The "Hello World" program printing some values.
+code: |
+    x = "Hello"
+    y = 2.123456789
+    print "%s World, y = %f" %(x, y)
+    print "x={x}, y={y:.3f}".format(**locals())
+---
+title: 04. Expressions
+descr: Expressions are evaluated, they can consist of operators and function calls.
+code: |
+    print (5 + 6) * 11
+    z = 3
+    print (1 + z)**2
+    from math import sqrt
+    print sqrt(z)
+---
+title: 05. Functions
+descr: >
+    A function call is one of the most basic levels of abstraction.
+    A common subroutine of evaluations is run with varying initial arguments.
+    The `return` statement is very important: data flows back to where the functions has been called.
+code: |
+    def function1(x, y):
+        z = 10 * x + y
+        return z
+
+    print function1(4, 5)
+    print function1(1,-1)
+---
+title: "06. Data Structure: List"
+descr: >
+    To organize the information in a program, data structures come to help.
+    A very basic one is an ordered collection of arbitrary objects.
+code: |
+    x = [42, "Hello", [1,2,3]]
+    print x
+    x.append("World")
+    print x
