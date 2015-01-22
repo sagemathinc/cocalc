@@ -5339,6 +5339,8 @@ class HTML_MD_Editor extends FileEditor
             superscript   : "Shift-Cmd-= Shift-Ctrl-="
 
         extra_keys = @cm().getOption("extraKeys") # current keybindings
+        if not extra_keys?
+            extra_keys = {}
         for cmd, keys of keybindings
             for k in keys.split(' ')
                 ( (cmd) => extra_keys[k] = (cm) => @command(cm, cmd) )(cmd)
