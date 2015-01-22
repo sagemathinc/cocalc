@@ -4,37 +4,36 @@
     // min-width: 75vw
     width: 900px
 
-    > div.modal-content
+  div.modal-header
+    h2
+      margin-top: 10px
+    .nav-pills
+      margin-top: 10px
+    .btn-close
+      margin-top: 10px
+      > span
+        font-size: 30px
 
-      > div.modal-header
-        h2
-          margin-top: 10px
-        .nav-pills
-          margin-top: 10px
-        .btn-close
-          margin-top: 10px
-          > span
-            font-size: 30px
+  div.modal-body
+    > div.row:first-child
+      // margin-bottom: 1em
+      ul
+        height:175px
+        overflow:auto
+        padding: 1px
+        > li
+          cursor: pointer
+          &:not(.active):hover
+            background-color: #eee
 
-      > div.modal-body
-        > div.row:first-child
-          // margin-bottom: 1em
-          ul
-            height:175px
-            overflow:auto
-            > li
-              cursor: pointer
-              &:not(.active):hover
-                background-color: #eee
+    div.smc-wizard-descr,
+    pre.code
+      height:200px
+      overflow:auto
+      +enable-user-select
 
-        div.smc-wizard-descr,
-        pre.code
-          height:200px
-          overflow:auto
-          +enable-user-select
-
-      > div.modal-footer
-        padding: 10px
+  div.modal-footer
+    padding: 10px
 
   span.badge
     background-color: #eee
