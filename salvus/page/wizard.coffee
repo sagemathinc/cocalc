@@ -19,9 +19,22 @@
 #
 ###############################################################################
 
+# Wizard
+# This is a modal dialog, which downloads a hierarchical collection of code snippets
+# with descriptions. It returns an object, containing the code and the language:
+# {"code": "...", "lang" : "..."} via a given callback.
+#
+# Usage:
+# w = new Wizard({"cb" : callback, ["lang" : "initial language"]})
+# w.hide()                     -- temporarily hide dialog (also via close/X button)
+# w.show({<like constructor>}) -- show dialog again (same state!) and if
+#                                language given, a selection of it is triggered
+# w.destroy()                 -- invokes the dialog destruction, should be called when
+#                                the originating object is destroyed.
+
 "use strict"
 _ = require("underscore")
-{defaults, required} = require('misc')
+{defaults, required, optional} = require('misc')
 misc_page = require('misc_page')
 
 wizard_template = $(".smc-wizard")
@@ -32,6 +45,7 @@ class Wizard
     constructor: (opts) ->
         @opts = defaults opts,
             lang  : 'sage'
+            cb    : required # this callback will be called to return the selected code
 
         @dialog = wizard_template.clone()
 
@@ -44,26 +58,25 @@ class Wizard
         @descr    = @dialog.find(".smc-wizard-descr > div.panel-body")
 
         # the state
-        @lang     = @opts.lang
+        @lang     = undefined
         @cat1     = undefined
         @cat2     = undefined
         @title    = undefined
         @doc      = undefined
 
         @init()
-        @dialog.modal('show')
 
     init: () =>
+        @dialog.modal('show')
         cb = () =>
             @init_nav()
             @init_buttons()
-            @init_lvl1()
+            @show(lang: opts.lang)
 
         if data?
-            # console.log "data exists"
             cb()
         else
-            # console.log "data null"
+            @nav.append($("<li><a href='#'>Loading Data ...</a></li>"))
             $.ajax # TODO use some of those clever retry-functions
                 url: window.salvus_base_url + "/static/wizard/wizard.js"
                 dataType: "json"
@@ -76,24 +89,20 @@ class Wizard
 
     init_nav: () ->
         # <li role="presentation"><a href="#sage">Sage</a></li>
+        @nav.empty()
         nav_entries = [
             ["sage", "Sage"],
             ["python", "Python"],
             ["r", "R"],
             ["gap", "GAP"],
             ["cython", "Cython"]]
-        for entry, idx in nav_entries when data[entry[0]]?
-            @nav.append($("<li role='presentation'><a href='##{entry[0]}'>#{entry[1]}</a></li>"))
-            if @opts.lang == entry[0]
-                @set_active(@nav, @nav.children(idx))
-
-    init_lvl1: () ->
-        if @opts.lang?
-            @fill_list(@lvl1, data[@opts.lang])
+        for entry, idx in nav_entries when data[entry[0]]? && _.keys(data[entry[0]]).length > 0
+            nav_pill = $("<li role='presentation'><a href='##{entry[0]}'>#{entry[1]}</a></li>")
+            @nav.append(nav_pill)
 
     init_buttons: () ->
         @dialog.find(".btn-close").on "click", =>
-            @dialog.modal('hide')
+            @hide()
             return false
 
         @dialog.find(".btn-submit").on "click", =>
@@ -101,26 +110,22 @@ class Wizard
             return false
 
         @nav.on "click", "li", (evt) =>
-            #evt.preventDefault()
             pill = $(evt.target)
             @select_nav(pill)
             return false
 
         @lvl1.on "click", "li", (evt) =>
-            #evt.preventDefault()
             # .closest("li") because of the badge
             t = $(evt.target).closest("li")
             @select_lvl1(t)
             return false
 
         @lvl2.on "click", "li", (evt) =>
-            #evt.preventDefault()
             t = $(evt.target).closest("li")
             @select_lvl2(t)
             return false
 
         @document.on "click", "li", (evt) =>
-            #evt.preventDefault()
             t = $(evt.target)
             @select_doc(t)
             return false
@@ -137,6 +142,10 @@ class Wizard
             evt.preventDefault()
             if key == 13 # return
                 @submit()
+
+            # this handles the up/down operations. The idea is, to be able to iterate throug all docs
+            # for a given language. That's why there is this nested if. It handles the carry-overs at
+            # the start or end of the list by advancing the next higher level. Most of the code is for corner cases.
             else if key in [38, 40, 74, 75] # up or down
                 if key in [38, 75] # up
                     dirop = "prev"
@@ -148,12 +157,12 @@ class Wizard
 
                 new_doc = active[dirop]()
                 if new_doc.length == 0
-                    # we have to switch back one step in the lvl2 category
+                    # we have to switch one step #{dirop} in the lvl2 category
                     lvl2_active = @lvl2.find(".active")
                     new_lvl2 = lvl2_active[dirop]()
                     if new_lvl2.length == 0
                         lvl1_active = @lvl1.find(".active")
-                        # now, we also have to step back in the highest lvl1 category
+                        # now, we also have to step #{dirop} in the highest lvl1 category
                         new_lvl1 = lvl1_active[dirop]()
                         if new_lvl1.length == 0
                             new_lvl1 = @lvl1.children()[carryop]()
@@ -174,15 +183,40 @@ class Wizard
                         new_pill = @nav.children().first()
                 @select_nav(new_pill.children(0))
 
+    show: (opts) ->
+        # the opposite of @hide, used to resurrect the dialog in its current state
+        # the @init invokes the initial @dialog.modal("show"), don't get confused!
+        old_lang = @opts.lang
+        @opts = defaults opts,
+            lang  : @opts.lang
+            cb    : @opts.cb
+        @dialog.show()
+        if not @lang? || old_lang != @opts.lang
+            @select_lang(@opts.lang)
+
+    hide: () ->
+        # this is deliberately not destroying the instance
+        @dialog.hide()
+
+    destroy: () ->
+        # this is the destructive operation, which unbinds all the event handling etc.
+        @dialog.modal("hide")
+
     submit: () ->
-        @dialog.modal('hide')
-        window.alert("INSERT CODE:\n" + @doc[0])
+        @hide()
+        if @doc?
+            @opts.cb(code: @doc[0], lang: @lang, descr: @doc[1])
 
     set_active: (list, which) ->
         list.find("li").removeClass("active")
         which.addClass("active")
 
+    select_lang: (lang) ->
+        # crude way to go from a lang-string to the <a> element
+        @select_nav(@nav.find("a[href=##{@opts.lang}]"))
+
     select_nav: (pill) ->
+        # pill is the clicked <a> in the @nav
         @set_active(@nav, pill.parent())
         @lang = pill.attr("href").substring(1)
         @lvl2.empty()
@@ -190,6 +224,7 @@ class Wizard
         @fill_list(@lvl1, data[@lang])
 
     select_lvl1: (t) ->
+        # the major category has been clicked
         @set_active(@lvl1, t)
         @cat1 = t.attr("data")
         # console.log("lvl1: #{select1}")
@@ -198,6 +233,7 @@ class Wizard
         @scroll_visible(@lvl1, t)
 
     select_lvl2: (t) ->
+        # the minor category has been clicked
         @set_active(@lvl2, t)
         @cat2 = t.attr("data")
         # console.log("lvl2: #{select2}")
@@ -205,6 +241,7 @@ class Wizard
         @scroll_visible(@lvl2, t)
 
     select_doc: (t) ->
+        # the document title on the right has been clicked
         @set_active(@document, t)
         @title = t.attr("data")
         @doc = data[@lang][@cat1][@cat2][@title]
@@ -215,6 +252,9 @@ class Wizard
 
     scroll_visible: (list, entry) ->
         # if the selected entry is not visible, we have to make it visible
+        # this checks, if the element in the list is either to far up
+        # (negative relative top position) -> then it moves only a bit up!
+        # or too far at the bttom, then scroll up (maybe too much?)
         relOffset = entry.position().top
         if relOffset > list.height()
             list.scrollTop(relOffset)
@@ -229,12 +269,16 @@ class Wizard
     _list_sort: (a, b) ->
         # ordering operator, such that some entries are in front
         ord = (el) -> switch el
-            when "Tutorial" then -1
-            when "Intro"    then -2
+            when "Intro"    then -3
+            when "Tutorial" then -2
+            when "Help"     then -1
             else 0
         return ord(a) - ord(b) || a > b
 
     fill_list: (list, entries) ->
+        # the three lists are the levels in the tree of documents. they change dynamically.
+        # there is also a mutually recursive logic, to expand sublevels iff there is just one entry (saves stupid clicks)
+        # fill_list call -> calls select_lvl1/2 -> which in turn calls fill_list again.
         list.empty()
         if entries?
             keys = _.keys(entries).sort(@_list_sort)
@@ -251,12 +295,8 @@ class Wizard
                 key = keys[0]
                 entries2 = entries[key]
                 if list == @lvl1
-                    #@cat1 = key
-                    #@fill_list(@lvl2, entries2)
                     @select_lvl1(@lvl1.find("[data=#{key}]"))
                 else if list == @lvl2
-                    #@cat2 = key
-                    #@fill_list(@document, entries2)
                     @select_lvl2(@lvl2.find("[data=#{key}]"))
 
-exports.show = () -> new Wizard()
+exports.Wizard = Wizard
