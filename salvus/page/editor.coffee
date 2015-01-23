@@ -40,6 +40,8 @@ async = require('async')
 
 message = require('message')
 
+_ = require('underscore')
+
 {salvus_client} = require('salvus_client')
 {EventEmitter}  = require('events')
 {alert_message} = require('alerts')
@@ -2259,11 +2261,12 @@ class CodeMirrorEditor extends FileEditor
         # The code below changes the bar at the top depending on where the cursor
         # is located.  We only change the edit bar if the cursor hasn't moved for
         # a while, to be more efficient, avoid noise, and be less annoying to the user.
-        bar_timeout = undefined
-        f = () =>
-            if bar_timeout?
-                clearTimeout(bar_timeout)
-            bar_timeout = setTimeout(update_context_sensitive_bar, 250)
+        # Replaced by http://underscorejs.org/#debounce
+        #bar_timeout = undefined
+        #f = () =>
+        #    if bar_timeout?
+        #        clearTimeout(bar_timeout)
+        #    bar_timeout = setTimeout(update_context_sensitive_bar, 250)
 
         update_context_sensitive_bar = () =>
             cm = @focused_codemirror()
@@ -2284,7 +2287,7 @@ class CodeMirrorEditor extends FileEditor
                 show_edit_buttons(@fallback_buttons, name)
 
         for cm in [@codemirror, @codemirror1]
-            cm.on('cursorActivity', f)
+            cm.on('cursorActivity', _.debounce(update_context_sensitive_bar, 250))
 
         update_context_sensitive_bar()
         @element.find(".salvus-editor-codemirror-textedit-buttons").mathjax()
