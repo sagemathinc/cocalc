@@ -2060,7 +2060,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     else
                         output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
 
-        if mesg.javascript? and @editor.opts.allow_javascript_eval
+        if mesg.javascript? and @allow_javascript_eval()
             (() =>
              cell      = new Cell(output : opts.element)
              worksheet = new Worksheet(@)
@@ -2094,10 +2094,26 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         @refresh_soon()
 
+    allow_javascript_eval: () =>
+        if not @editor.opts.allow_javascript_eval
+            @javascript_block_mesg()
+            return false
+        else
+            return true
+
+    javascript_block_mesg: () =>
+        if @_javascript_block_mesg
+            return
+        @_javascript_block_mesg = true
+        alert_message
+            type    : "info"
+            message : "Evaluation of arbitrary javascript is blocked in public worksheets, since it is potentially very dangerous (you may open a copy of this worksheet in your own project)."
+            timeout : 10
+
     _receive_broadcast: (mesg) =>
         switch mesg.mesg.event
             when 'execute_javascript'
-                if @editor.opts.allow_javascript_eval
+                if @allow_javascript_eval()
                     mesg = mesg.mesg
                     (() =>
                          worksheet = new Worksheet(@)

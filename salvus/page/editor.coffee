@@ -677,6 +677,9 @@ class exports.Editor
                                 content = data
                                 extra_opts.read_only = true
                                 extra_opts.public_access = true
+                                # allowing arbitrary eval's is too dangerous
+                                # for public documents
+                                extra_opts.allow_javascript_eval = false
                                 c()
                 else
                     c()
