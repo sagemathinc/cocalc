@@ -64,7 +64,7 @@ CACHE_PROJECT_PUBLIC_MS = 1000*60*15    # 15 minutes
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
-BLOB_TTL = 60*60     # 1 hour
+BLOB_TTL = 60*60*24*90     # 3 months
 
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
