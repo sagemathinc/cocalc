@@ -1286,6 +1286,8 @@ exports.markdown_to_html = markdown_to_html = (s) ->
     if has_mathjax
         for i in [0...w.length]
             s = s.replace("@@@@#{i}@@@@", misc.mathjax_escape(w[i].replace(/\$/g, "$$$$")))
+    else if '\$' in s
+        has_mathjax = true # still need to parse it to turn \$'s to $'s.
 
     return {s:s, has_mathjax:has_mathjax}
 
