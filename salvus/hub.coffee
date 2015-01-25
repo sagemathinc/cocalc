@@ -2544,7 +2544,7 @@ class Client extends EventEmitter
                             @error_to_client(id:mesg.id, error:err)
                         else
                             # since this is get_text_file
-                            data = data.toString('ascii')
+                            data = data.toString('utf-8')
                             @push_to_client(message.public_text_file_contents(id:mesg.id, data:data))
 
 
