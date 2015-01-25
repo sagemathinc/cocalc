@@ -677,8 +677,8 @@ class exports.Editor
                                 content = data
                                 extra_opts.read_only = true
                                 extra_opts.public_access = true
-                                # allowing arbitrary eval's is too dangerous
-                                # for public documents
+                                # allowing arbitrary javascript eval is too dangerous
+                                # for public documents, so we disable it.
                                 extra_opts.allow_javascript_eval = false
                                 c()
                 else
@@ -839,7 +839,7 @@ class exports.Editor
                     editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
                     if filename_extension(filename) == 'sagews'
                         editor.syncdoc = new (syncdoc.SynchronizedWorksheet)(editor, {static_viewer:true})
-                        editor.on 'show', () =>
+                        editor.once 'show', () =>
                             editor.syncdoc.process_sage_updates()
                 else
                     # realtime synchronized editing session

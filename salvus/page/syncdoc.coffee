@@ -1938,7 +1938,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 x.text(mesg.code.source)
 
         if mesg.html?
-            e = $("<span class='sagews-output-html'>").html(mesg.html).mathjax()
+            e = $("<span class='sagews-output-html'>")
+            if @editor.opts.allow_javascript_eval
+                e.html(mesg.html)
+            else
+                e.html_noscript(mesg.html)
+            e.mathjax()
             output.append(e)
             @process_html_output(e)
 
@@ -1955,7 +1960,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if mesg.md?
             # markdown
             x = misc_page.markdown_to_html(mesg.md)
-            t = $('<span class="sagews-output-md">').html(x.s)
+            t = $('<span class="sagews-output-md">')
+            if @editor.opts.allow_javascript_eval
+                t.html(x.s)
+            else
+                t.html_noscript(x.s)
             if x.has_mathjax
                 t.mathjax()
             output.append(t)
@@ -2095,6 +2104,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @refresh_soon()
 
     allow_javascript_eval: () =>
+        # TODO: Maybe better would be a button to click that re-renders
+        # with javascript enabled...?
         if not @editor.opts.allow_javascript_eval
             @javascript_block_mesg()
             return false
@@ -2107,7 +2118,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @_javascript_block_mesg = true
         alert_message
             type    : "info"
-            message : "Evaluation of arbitrary javascript is blocked in public worksheets, since it is potentially very dangerous (you may open a copy of this worksheet in your own project)."
+            message : "Evaluation of arbitrary javascript is blocked in public worksheets, since it is dangerous; instead, open a copy of this worksheet in your own project."
             timeout : 10
 
     _receive_broadcast: (mesg) =>
