@@ -690,7 +690,7 @@ init_http_proxy_server = () =>
                     project = bup_server.get_project(project_id)
                     project.read_file
                         path    : path
-                        maxsize : 10000000   # 10MB for now
+                        maxsize : 20000000   # 20MB for now
                         cb      : (err, data) ->
                             if err
                                 cb(err)
