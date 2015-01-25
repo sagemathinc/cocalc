@@ -588,7 +588,7 @@ init_http_proxy_server = () =>
 
             # before giving an error, check on possibility that file is public
             public_raw req_url, res, (err, is_public) ->
-                if not is_public
+                if err or not is_public
                     res.writeHead(500, {'Content-Type':'text/html'})
                     res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> with cookies enabled, then refresh this page.")
 
@@ -597,9 +597,11 @@ init_http_proxy_server = () =>
         target remember_me, req_url, (err, location) ->
             #dbg("got target: #{misc.walltime(tm)}")
             if err
-                winston.debug("proxy denied -- #{err}")
-                res.writeHead(500, {'Content-Type':'text/html'})
-                res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
+                public_raw req_url, res, (err, is_public) ->
+                    if err or not is_public
+                        winston.debug("proxy denied -- #{err}")
+                        res.writeHead(500, {'Content-Type':'text/html'})
+                        res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
             else
                 t = "http://#{location.host}:#{location.port}"
                 if proxy_cache[t]?
@@ -647,6 +649,8 @@ init_http_proxy_server = () =>
                     dbg("websocket upgrade -- using cache")
                 proxy.ws(req, socket, head)
 
+    public_raw_paths_cache = {}
+
     public_raw = (req_url, res, cb) ->
         # Determine if the requested path is public (and not too big).
         # If so, send content to the client and cb(undefined, true)
@@ -662,19 +666,43 @@ init_http_proxy_server = () =>
             return
         path = v.slice(3).join('/')
         winston.debug("public_raw: project_id=#{project_id}, path=#{path}")
-        project = bup_server.get_project(project_id)
-        project.read_file
-            path    : path
-            maxsize : 10000000
-            cb      : (err, data) ->
-                winston.debug("read_file; err='#{err}', data='#{data}'")
-                if err
-                    cb(err)
+        public_paths = undefined
+        is_public = false
+        async.series([
+            (cb) ->
+                public_paths = public_raw_paths_cache[project_id]
+                if public_paths?
+                    cb()
                 else
-                    res.writeHead(200, "text/html")
-                    res.write(data)
-                    res.end()
-                    cb(undefined, true)
+                    database.get_public_paths
+                        project_id : project_id
+                        cb         : (err, paths) ->
+                            if err
+                                cb(err)
+                            else
+                                public_paths = public_raw_paths_cache[project_id] = paths
+                                setTimeout((()=>delete public_raw_paths_cache[project_id]), 15000)  # cache for 15s
+                                cb()
+            (cb) ->
+                if not misc.path_is_in_public_paths(path, public_paths)
+                    cb()
+                else
+                    project = bup_server.get_project(project_id)
+                    project.read_file
+                        path    : path
+                        maxsize : 10000000   # 10MB for now
+                        cb      : (err, data) ->
+                            if err
+                                cb(err)
+                            else
+                                res.write(data)
+                                res.end()
+                                is_public = true
+                                cb()
+            ], (err) ->
+                cb(err, is_public)
+        )
+
 
 #############################################################
 # Client = a client that is connected via a persistent connection to the hub
@@ -2510,11 +2538,13 @@ class Client extends EventEmitter
                     return
                 project.read_file
                     path    : mesg.path
-                    maxsize : 5000000  # restrict to 5MB -- for now
+                    maxsize : 10000000  # restrict to 10MB -- for now
                     cb      : (err, data) =>
                         if err
                             @error_to_client(id:mesg.id, error:err)
                         else
+                            # since this is get_text_file
+                            data = data.toString('ascii')
                             @push_to_client(message.public_text_file_contents(id:mesg.id, data:data))
 
 

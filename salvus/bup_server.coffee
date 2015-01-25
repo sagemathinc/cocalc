@@ -2898,7 +2898,7 @@ class Client
                     id      : opts.mesg.id
                     timeout : opts.timeout
                     cb      : (mesg) =>
-                        @dbg("call",opts,"got response -- #{misc.to_json(mesg)}")
+                        @dbg("call",opts,"got response -- #{misc.trunc(misc.to_json(mesg),200)}")
                         mesg.project_id = opts.mesg.project_id
                         if mesg.event == 'error'
                             opts.cb?(mesg.error)
@@ -3192,7 +3192,7 @@ class ClientProject
             path    : required
             maxsize : 3000000
             timeout : TIMEOUT
-            cb      : required
+            cb      : required   # cb(err, Buffer)
         param =  ["--path", opts.path, "--maxsize", opts.maxsize]
         @action
             action  : 'read_file'
@@ -3205,7 +3205,7 @@ class ClientProject
                     if resp.result?.error
                         opts.cb(resp.result.error)
                     else
-                        opts.cb(undefined, new Buffer(resp.result.base64, 'base64').toString('ascii'))
+                        opts.cb(undefined, new Buffer(resp.result.base64, 'base64'))
 
     copy_path: (opts) =>
         opts = defaults opts,
