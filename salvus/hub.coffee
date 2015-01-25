@@ -449,7 +449,7 @@ init_http_proxy_server = () =>
                 f = () ->
                     delete _remember_me_cache[key]
                 if has_access
-                    setTimeout(f, 1000*60*6)    # access lasts 6 minutes (i.e., if you revoke privs to a user they could still hit the port for 5 minutes)
+                    setTimeout(f, 1000*60*6)    # access lasts 6 minutes (i.e., if you revoke privs to a user they could still hit the port for this long)
                 else
                     setTimeout(f, 1000*60*2)    # not having access lasts 2 minute
                 opts.cb(err, has_access)
@@ -579,13 +579,19 @@ init_http_proxy_server = () =>
         #buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
 
         dbg = (m) -> winston.debug("http_proxy_server(#{req_url}): #{m}")
+        dbg()
 
         cookies = new Cookies(req, res)
         remember_me = cookies.get(program.base_url + 'remember_me')
 
         if not remember_me?
-            res.writeHead(500, {'Content-Type':'text/html'})
-            res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> with cookies enabled, then refresh this page.")
+
+            # before giving an error, check on possibility that file is public
+            public_raw req_url, res, (err, is_public) ->
+                if not is_public
+                    res.writeHead(500, {'Content-Type':'text/html'})
+                    res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> with cookies enabled, then refresh this page.")
+
             return
 
         target remember_me, req_url, (err, location) ->
@@ -641,6 +647,34 @@ init_http_proxy_server = () =>
                     dbg("websocket upgrade -- using cache")
                 proxy.ws(req, socket, head)
 
+    public_raw = (req_url, res, cb) ->
+        # Determine if the requested path is public (and not too big).
+        # If so, send content to the client and cb(undefined, true)
+        # If not, cb(undefined, false)
+        # req_url = /9627b34f-fefd-44d3-88ba-5b1fc1affef1/raw/a.html
+        v = req_url.split('/')
+        if v[2] != 'raw'
+            cb(undefined, false)
+            return
+        project_id = v[1]
+        if not misc.is_valid_uuid_string(project_id)
+            cb(undefined, false)
+            return
+        path = v.slice(3).join('/')
+        winston.debug("public_raw: project_id=#{project_id}, path=#{path}")
+        project = bup_server.get_project(project_id)
+        project.read_file
+            path    : path
+            maxsize : 10000000
+            cb      : (err, data) ->
+                winston.debug("read_file; err='#{err}', data='#{data}'")
+                if err
+                    cb(err)
+                else
+                    res.writeHead(200, "text/html")
+                    res.write(data)
+                    res.end()
+                    cb(undefined, true)
 
 #############################################################
 # Client = a client that is connected via a persistent connection to the hub
