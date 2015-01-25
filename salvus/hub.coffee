@@ -670,6 +670,11 @@ init_http_proxy_server = () =>
         is_public = false
         async.series([
             (cb) ->
+                # Get a list of public paths in the project, or use the cached list
+                # The cached list is cached for a few seconds, since a typical access
+                # pattern is that the client downloads a bunch of files from the same
+                # project in parallel.  On the other hand, we don't want to cache for
+                # too long, since the project user may add/remove public paths at any time.
                 public_paths = public_raw_paths_cache[project_id]
                 if public_paths?
                     cb()
@@ -685,8 +690,14 @@ init_http_proxy_server = () =>
                                 cb()
             (cb) ->
                 if not misc.path_is_in_public_paths(path, public_paths)
+                    # The requested path is not public, so nothing to do.
                     cb()
                 else
+                    # The requested path *is* public, so we get the file
+                    # from one (of the potentially many) compute servers
+                    # that has the file -- (right now this is implemented
+                    # via sending/receiving JSON messages and using base64
+                    # encoding, but that could change).
                     project = bup_server.get_project(project_id)
                     project.read_file
                         path    : path
