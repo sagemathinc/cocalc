@@ -656,7 +656,7 @@ init_http_proxy_server = () =>
         # If so, send content to the client and cb(undefined, true)
         # If not, cb(undefined, false)
         # req_url = /9627b34f-fefd-44d3-88ba-5b1fc1affef1/raw/a.html
-        v = req_url.split('/')
+        v = req_url.split('?')[0].split('/')
         if v[2] != 'raw'
             cb(undefined, false)
             return
