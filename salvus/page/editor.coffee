@@ -5640,7 +5640,7 @@ class HTML_MD_Editor extends FileEditor
         else
             @to_html_via_pandoc(cb:cb)
 
-    html_to_html: (cb) =>   # cb(error, {source:?, mathjax:?})  where mathjax is true/false
+    html_to_html: (cb) =>   # cb(error, source)
         # add in cursor(s)
         source = @source_editor._get()
         cm = @source_editor.syncdoc.focused_codemirror()
@@ -5701,12 +5701,12 @@ class HTML_MD_Editor extends FileEditor
             elt.find('*').addClass('smc-html-selection')
             source = source.slice(0,i) + "<span class='smc-html-selection'>" + elt.html() + "</span>" + source.slice(j+1)
 
-        cb(undefined, {html:source, mathjax:true}) # TODO: mathjax
+        cb(undefined, source)
 
     md_to_html: (cb) =>
         source = @source_editor._get()
         m = misc_page.markdown_to_html(source)
-        cb(undefined, {html:m.s, mathjax:m.has_mathjax})
+        cb(undefined, m.s)
 
     rst_to_html: (cb) =>
         @to_html_via_exec
@@ -5724,7 +5724,7 @@ class HTML_MD_Editor extends FileEditor
             command     : required
             args        : required
             postprocess : undefined
-            cb          : required   # cb(error, {html:?, mathjax:?})
+            cb          : required   # cb(error, html, warnings)
         html = undefined
         warnings = undefined
         async.series([
@@ -5750,7 +5750,7 @@ class HTML_MD_Editor extends FileEditor
             else
                 if opts.postprocess?
                     html = opts.postprocess(html)
-                opts.cb(undefined, {html:html, mathjax:true, warnings:warnings})
+                opts.cb(undefined, html, warnings)
         )
 
     update_preview: () =>
@@ -5764,12 +5764,11 @@ class HTML_MD_Editor extends FileEditor
         t0 = misc.mswalltime()
         @_update_preview_lock = true
         #console.log("update_preview")
-        @to_html (err, r) =>
+        @to_html (err, source) =>
             @_update_preview_lock = false
             if err
                 console.log("failed to render preview: #{err}")
                 return
-            source = r.html
 
             # remove any javascript and make html more sane
             elt = $("<span>").html(source)
@@ -5789,8 +5788,7 @@ class HTML_MD_Editor extends FileEditor
             @preview_content.find("a").attr("target","_blank")
             @preview_content.find("table").addClass('table')  # bootstrap table
 
-            if r.mathjax
-                @preview_content.mathjax()
+            @preview_content.mathjax()
 
             #@preview_content.find(".smc-html-cursor").scrollintoview()
             #@preview_content.find(".smc-html-cursor").remove()

@@ -1965,8 +1965,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 t.html(x.s)
             else
                 t.html_noscript(x.s)
-            if x.has_mathjax
-                t.mathjax()
+            t.mathjax()
             output.append(t)
             @process_html_output(t)
 
