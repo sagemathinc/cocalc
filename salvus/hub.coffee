@@ -3611,16 +3611,14 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             project_id   : required
             timeout      : 10
             cb           : required  # cb(err, socket)
-        socket = @_sockets[opts.session_uuid]
-        if socket?
-            opts.cb(false, socket)
-            return
 
         # We do not currently have an active open socket connection to this session.
         # We make a new socket connection to the local_hub, then
         # send a connect_to_session message, which will either
         # plug this socket into an existing session with the given session_uuid, or
         # create a new session with that uuid and plug this socket into it.
+
+        socket = undefined
         async.series([
             (cb) =>
                 @dbg("getting new socket connection to a local_hub")
@@ -3646,28 +3644,16 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     if resp.event == 'error'
                         cb(resp.error)
                     else
-                        # We will now only use this socket for binary communications.
-                        misc_node.disable_mesg(socket)
-                        socket.history = resp.history
-
-                        # Keep our own copy of the console history (in this global hub), so when clients (re-)connect
-                        # we do not have to get the whole history from the local hub.
-                        socket.on 'data', (data) =>
-                            # DO NOT Record in database that there was activity in this project, since
-                            # this is *way* too frequent -- a tmux session make it always on...
-                            # database.touch_project(project_id:opts.project_id)
-                            socket.history += data
-                            n = socket.history.length
-                            if n > 200000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
-                                # take last 100000 characters
-                                socket.history = socket.history.slice(socket.history.length-100000)
-
-                        socket.on 'end', () =>
-                            @dbg("console session #{opts.session_uuid} -- socket connection to local_hub closed")
-                            delete @_sockets[opts.session_uuid]
-
+                        if opts.type == 'console'
+                            # record the history, truncating in case the local_hub sent something really long (?)
+                            if resp.history?
+                                socket.history = resp.history.slice(resp.history.length - 100000)
+                            else
+                                socket.history = ''
+                            # Console -- we will now only use this socket for binary communications.
+                            misc_node.disable_mesg(socket)
                         cb()
-                socket.once 'mesg', f
+                socket.once('mesg', f)
                 timed_out = () =>
                     socket.removeListener('mesg', f)
                     socket.end()
@@ -3683,7 +3669,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 @_socket?.destroy()
                 delete @_status; delete @_socket
             else if socket?
-                @_sockets[opts.session_uuid] = socket
                 opts.cb(false, socket)
         )
 
@@ -3737,7 +3722,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 mesg = message.session_connected
                     session_uuid : opts.session_uuid
                     data_channel : channel
-                    history      : console_socket.history.slice(console_socket.history.length - 100000)   # only last 100,000
+                    history      : console_socket.history
+
+                delete console_socket.history  # free memory occupied by history, which we won't need again.
                 opts.cb(false, mesg)
 
                 # console --> client:
@@ -3746,7 +3733,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 console_socket.on 'data', (data) ->
                     # Never push more than 20000 characters at once to client, since display is slow, etc.
                     if data.length > 20000
-                        data = "[...]" + data.slice(data.length-20000)
+                        data = "[...]" + data.slice(data.length - 20000)
                     opts.client.push_data_to_client(channel, data)
 
 
