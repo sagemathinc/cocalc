@@ -495,7 +495,8 @@ SAGE_PIP_PACKAGES = [
     'folium',   # requested by Serge Rey of ASU for a course on Geographic Information Analysis
     'pint',     # units package: http://pint.readthedocs.org/en/0.6/
     'seaborn',
-    'ipythonblocks'
+    'ipythonblocks',
+    'line_profiler'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
