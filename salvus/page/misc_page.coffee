@@ -101,7 +101,14 @@ $.fn.spin = (opts) ->
             data.spinner = new Spinner($.extend({color: $this.css("color")}, opts)).spin(this)
     this
 
-
+# jQuery plugin that sets the innerHTML of an element and doesn't do anything with script tags;
+# in particular, doesn't explicitly remove and run them like jQuery does.
+$.fn.html_noscript = (html) ->
+    @each ->
+        this.innerHTML = html
+        t = $(this)
+        t.find('script').remove()
+        return t
 
 # MathJax some code -- jQuery plugin
 $.fn.extend
@@ -1279,6 +1286,8 @@ exports.markdown_to_html = markdown_to_html = (s) ->
     if has_mathjax
         for i in [0...w.length]
             s = s.replace("@@@@#{i}@@@@", misc.mathjax_escape(w[i].replace(/\$/g, "$$$$")))
+    else if '\$' in s
+        has_mathjax = true # still need to parse it to turn \$'s to $'s.
 
     return {s:s, has_mathjax:has_mathjax}
 

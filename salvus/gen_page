@@ -114,3 +114,10 @@ with open(OUT_CSS, "w") as out:
 os.chdir(cur_path)
 
 ############# END of SASS -> CSS #########################
+
+### Calling wizard's makefile
+if all:
+    os.system("cd wizard && make -B")
+else:
+    os.system("cd wizard && make")
+

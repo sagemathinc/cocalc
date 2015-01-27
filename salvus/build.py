@@ -422,7 +422,8 @@ NODE_MODULES = [
     'net-ping',
     'marked',
     'node-sass',    # transspiller for *.sass to *.css (rootfile is page/index.sass)
-    'http-proxy'    # https://github.com/nodejitsu/node-http-proxy
+    'http-proxy',   # https://github.com/nodejitsu/node-http-proxy
+    'stripe'        # for billing -- https://github.com/stripe/stripe-node
     ]
 
 PYTHON_PACKAGES = [

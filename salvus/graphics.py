@@ -19,34 +19,6 @@
 #
 ###############################################################################
 
-
-###############################################################################
-# Copyright (c) 2013, 2014 by William Stein
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# 1. Redistributions of source code must retain the above copyright notice, this
-#    list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright notice,
-#    this list of conditions and the following disclaimer in the documentation
-#    and/or other materials provided with the distribution.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
-
-
 import json, math
 import sage_salvus
 
@@ -202,9 +174,7 @@ def graphics3d_to_jsonable(p):
 
     def parse_obj(obj):
         material_name  = ''
-        face3 = []
-        face4 = []
-        face5 = []
+        faces = []
         for item in obj.split("\n"):
             tmp = str(item.strip())
             if not tmp:
@@ -214,17 +184,10 @@ def graphics3d_to_jsonable(p):
                 material_name = k[1]
             elif k[0] == 'f': # face
                 v = [int(a) for a in k[1:]]
-                if len(v) == 3:
-                    face3.extend(v)
-                elif len(v) == 4:
-                    face4.extend(v)
-                elif len(v) == 6:  # actually 6 vertices (not 5!) -- used by polytopes.permutahedron(4).plot()
-                    face5.extend(v)
-                else:
-                    raise NotImplementedError("unable to parse %s"%tmp)
+                faces.append(v)
             # other types are parse elsewhere in a different pass.
 
-        return [{"material_name":material_name,"face3":face3,"face4":face4,"face5":face5}]
+        return [{"material_name":material_name, "faces":faces}]
 
     def parse_texture(p):
         texture_dict = []

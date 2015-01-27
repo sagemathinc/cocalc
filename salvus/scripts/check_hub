@@ -1,2 +1,7 @@
-cat /proc/loadavg
+echo "load: `cat /proc/loadavg | awk '{ print $1, $2, $3 }'`"
+
+export P=`pidof node`
+echo "hub etime: `ps -o etime --pid=$P | tail -1`"
+
 check_hub_logs  5000
+
