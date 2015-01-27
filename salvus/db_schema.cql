@@ -349,6 +349,13 @@ CREATE TABLE admin_log (
     PRIMARY KEY(service, time)
 );
 
+CREATE TABLE client_error_log (
+    type        varchar,
+    timestamp   timestamp,
+    account_id  uuid,
+    error       varchar,
+    PRIMARY KEY(type, timestamp)
+);
 
 ////////////////////
 // Record of and notifications about activity on specific paths

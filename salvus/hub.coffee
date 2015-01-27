@@ -1488,6 +1488,21 @@ class Client extends EventEmitter
     mesg_get_all_feedback_from_user: (mesg) =>
         get_all_feedback_from_user(mesg, @push_to_client, @account_id)
 
+    mesg_log_client_error: (mesg) =>
+        winston.debug("log_client_error: #{misc.to_json(mesg.error)}")
+        now = cass.now()
+        if not mesg.type?
+            mesg.type = "error"
+        database.update
+            table : 'client_error_log'
+            where :
+                type       : mesg.type
+                timestamp  : now
+            set   :
+                error      : mesg.error
+                account_id : @account_id
+            json : ['error']
+
     ######################################################
     # Messages: Project Management
     ######################################################
