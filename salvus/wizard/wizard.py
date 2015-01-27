@@ -47,7 +47,10 @@ def process_doc(doc, input_fn):
     title       = doc["title"].title()
     code        = doc["code"]
     description = doc["descr"] # hashtag_re.sub(process_hashtags, doc["descr"])
-    return title, [code, description]
+    body        = [code, description]
+    if "attr" in doc:
+        body.append(doc["attr"])
+    return title, body
 
 def wizard_data(input_dir, output_fn):
     input_dir = abspath(normpath(input_dir))
@@ -83,11 +86,11 @@ def wizard_data(input_dir, output_fn):
                 if "category" in doc:
                     lvl1, lvl2 = process_category(doc)
                 else:
-                    title, entry = process_doc(doc, input_fn)
+                    title, body = process_doc(doc, input_fn)
                     grp = wizard[language][lvl1][lvl2]
                     if title in grp:
                         raise Exception("Duplicate title '{title}' in {language}::{lvl1}/{lvl2} of {input_fn}".format(**locals()))
-                    grp[title] = entry
+                    grp[title] = body
 
     with open(wizard_js, "w", "utf8") as f_out:
         # sorted keys to de-randomize output (to keep it in Git)

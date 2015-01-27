@@ -109,6 +109,12 @@ class Wizard
             @submit()
             return false
 
+        # open all anchor links starting with "http" in a new window
+        @dialog.on "click", "a[href^=http]", (evt) =>
+            evt.preventDefault()
+            window.open(evt.target.href)
+            return false
+
         @nav.on "click", "li", (evt) =>
             pill = $(evt.target)
             @select_nav(pill)
@@ -116,18 +122,18 @@ class Wizard
 
         @lvl1.on "click", "li", (evt) =>
             # .closest("li") because of the badge
-            t = $(evt.target).closest("li")
-            @select_lvl1(t)
+            el = $(evt.target).closest("li")
+            @select_lvl1(el)
             return false
 
         @lvl2.on "click", "li", (evt) =>
-            t = $(evt.target).closest("li")
-            @select_lvl2(t)
+            el = $(evt.target).closest("li")
+            @select_lvl2(el)
             return false
 
         @document.on "click", "li", (evt) =>
-            t = $(evt.target)
-            @select_doc(t)
+            el = $(evt.target)
+            @select_doc(el)
             return false
 
         @dialog.on "keydown", (evt) =>
@@ -218,7 +224,10 @@ class Wizard
     select_nav: (pill) ->
         # pill is the clicked <a> in the @nav
         @set_active(@nav, pill.parent())
-        @lang = pill.attr("href").substring(1)
+        lang = pill.attr("href").substring(1)
+        if not lang? || lang.length == 0
+            return
+        @lang = lang
         @lvl2.empty()
         @document.empty()
         @fill_list(@lvl1, data[@lang])
@@ -230,7 +239,7 @@ class Wizard
         # console.log("lvl1: #{select1}")
         @document.empty()
         @fill_list(@lvl2, data[@lang][@cat1])
-        @scroll_visible(@lvl1, t)
+        t.scrollintoview()
 
     select_lvl2: (t) ->
         # the minor category has been clicked
@@ -238,7 +247,7 @@ class Wizard
         @cat2 = t.attr("data")
         # console.log("lvl2: #{select2}")
         @fill_list(@document, data[@lang][@cat1][@cat2])
-        @scroll_visible(@lvl2, t)
+        t.scrollintoview()
 
     select_doc: (t) ->
         # the document title on the right has been clicked
@@ -246,25 +255,13 @@ class Wizard
         @title = t.attr("data")
         @doc = data[@lang][@cat1][@cat2][@title]
         @code.text(@doc[0])
-        @descr.html(misc_page.markdown_to_html(@doc[1]).s)
+        content = misc_page.markdown_to_html(@doc[1]).s
+        if @doc[2] # by-attribution
+            attr = misc_page.markdown_to_html("&copy; " + @doc[2]).s
+            content += "<div class='attr'>#{attr}</div>"
+        @descr.html(content)
         @descr.mathjax()
-        @scroll_visible(@document, t)
-
-    scroll_visible: (list, entry) ->
-        # if the selected entry is not visible, we have to make it visible
-        # this checks, if the element in the list is either to far up
-        # (negative relative top position) -> then it moves only a bit up!
-        # or too far at the bttom, then scroll up (maybe too much?)
-        relOffset = entry.position().top
-        if relOffset > list.height()
-            list.scrollTop(relOffset)
-        else if relOffset < 0
-            prev_height = 0
-            entry.prevAll().each(() ->
-                prev_height += $(this).outerHeight()
-            )
-            offset = relOffset + prev_height
-            list.scrollTop(offset)
+        t.scrollintoview()
 
     _list_sort: (a, b) ->
         # ordering operator, such that some entries are in front
