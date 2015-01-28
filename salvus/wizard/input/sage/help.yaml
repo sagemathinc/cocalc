@@ -1,0 +1,19 @@
+# SMC Wizard Documentation File
+# Copyright: SageMathCloud Authors, 2015
+# License:   Creative Commons: Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+
+language: sage
+category: Tutorial  / Help
+---
+title: Getting Help
+descr: >
+    Sage has extensive built-in documentation, accessible by typing the name of a function or a constant
+    (for example), followed by a question mark:
+
+    ```
+    log2?
+    ```
+
+    It's also possible to use the `help(...)` function.
+code: log2?
+attr: "[Sage Documentation](http://www.sagemath.org/doc/tutorial/)"

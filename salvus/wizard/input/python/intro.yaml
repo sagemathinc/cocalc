@@ -5,11 +5,11 @@
 language: python
 category: Language / Tutorial
 ---
-title: 01. Print
+title: Hello World
 descr: The "Hello World" program
 code: print "Hello World"
 ---
-title: 02. Variables
+title: Variables
 descr: >
     A variable is a name for an object.
     It is done via this syntax:
@@ -23,7 +23,7 @@ code: |
     print x
     print y
 ---
-title: 03. Print Data
+title: Print Data
 descr: The "Hello World" program printing some values.
 code: |
     x = "Hello"
@@ -31,7 +31,7 @@ code: |
     print "%s World, y = %f" %(x, y)
     print "x={x}, y={y:.3f}".format(**locals())
 ---
-title: 04. Expressions
+title: Expressions
 descr: Expressions are evaluated, they can consist of operators and function calls.
 code: |
     print (5 + 6) * 11
@@ -40,7 +40,7 @@ code: |
     from math import sqrt
     print sqrt(z)
 ---
-title: 05. Functions
+title: Functions
 descr: >
     A function call is one of the most basic levels of abstraction.
     A common subroutine of evaluations is run with varying initial arguments.
@@ -53,7 +53,7 @@ code: |
     print function1(4, 5)
     print function1(1,-1)
 ---
-title: "06. Data Structure: List"
+title: "Data Structure: List"
 descr: >
     To organize the information in a program, data structures come to help.
     A very basic one is an ordered collection of arbitrary objects.
@@ -62,3 +62,16 @@ code: |
     print x
     x.append("World")
     print x
+---
+title: "Data Structure: Dict(ionary)"
+descr: >
+    A dictionary is an mapping of (immutable) objects to arbitrary objects.
+    The immutable objects are called "keys" and are most commonly numbers, strings or tuples.
+code: |
+    d = dict()
+    d[42] = "The Answer"
+    d["what"] = ["this", "and", "that"]
+    d[(4,2)] = 99
+    print d[(4,2)]
+    print d.keys()
+    print 42 in d

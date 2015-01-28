@@ -3,24 +3,10 @@
 # License:   Creative Commons: Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
 
 language: sage
-category: Tutorial  / Help
----
-title: 01. Getting Help
-descr: >
-    Sage has extensive built-in documentation, accessible by typing the name of a function or a constant
-    (for example), followed by a question mark:
-
-    ```
-    log2?
-    ```
-
-    It's also possible to use the `help(...)` function.
-code: log2?
-attr: "[Sage Documentation](http://www.sagemath.org/doc/tutorial/)"
 ---
 category: Tutorial / Tour
 ---
-title: 01. Expressions and Assignments
+title: Expressions and Assignments
 descr: >
     The language of Sage is built on top of Python.
     There are only some minor differences and hence you can apply almost all Python knowledge for working with Sage.
@@ -36,7 +22,7 @@ code: |
     2 < 4
     a == 5  # not an assignment, but a test if a is still 5
 ---
-title: 02. Mathematical Operations
+title: Mathematical Operations
 descr: >
     Sage uses standard operators to express mathematical operations.
     In contrast to Python, the `^` is for exponentiation!
@@ -47,7 +33,7 @@ code: |
     8 / 7   # this gives a fraction
     9//2    # integer quotient
 ---
-title: 03. Mathematical Functions
+title: Mathematical Functions
 descr: >
     Many standard functions are directly available.
     They produce either numerical approximations or give a symbolic expression.
@@ -57,16 +43,7 @@ code: |
     cos(pi)
     tan(pi/4)
 ---
-title: 04. Symbolic Expressions
-descr: >
-    To approximate a symbolic expression (without a free variable), use `n(...)`
-code: |
-    exp(2)
-    n(exp(2))
-    sin(31.41592).n(digits=50)
-    numerical_approx(pi, prec=200)
----
-title: 05. Types
+title: Types
 descr: >
     A great deal of programming is about organizing data and information.
     A "type" is a specific pattern, how data is organized with descriptive names.
@@ -80,7 +57,7 @@ code: |
     a = "I am a string in quotes"
     type(a)
 ---
-title: 06. Classes
+title: Classes
 descr: >
     A common way to create types are classes.
     Understanding their construction is not necessary at this point,
@@ -94,7 +71,7 @@ code: |
     f1.nominator
     f1.denominator
 ---
-title: 07. Functions
+title: Functions
 descr: >
     In Sage, there are (at least) two types of functions.
     A Python-function is defined via the `def` keyword and maps optional arguments to a returned value.
@@ -110,7 +87,7 @@ code: |
     f2(x) = 2 * x
     f2(21)
 ---
-title: 09. Symbolic Expressions
+title: Symbolic Expressions
 descr: >
     A great deal of mathematics concerns symbolic expressions.
     The fundamental building block is a single variable, `x`, `y`, etc..
@@ -126,14 +103,23 @@ code: |
     ex2 = x - y == 1
     ex2
 ---
-title: 10. LaTeX Formulas
+title: Approximate Symbolic Expressions
+descr: >
+    To approximate a symbolic expression (without a free variable), use `n(...)`
+code: |
+    exp(2)
+    n(exp(2))
+    sin(31.41592).n(digits=50)
+    numerical_approx(pi, prec=200)
+---
+title: LaTeX Formulas
 descr: "To see a LaTeX rendering of such a symbolic expression, use Sage's `show(...)` function."
 code: |
     %var x, y
     ex1 = (x + y)^2 == 1
     show(ex1)
 ---
-title: 11. Solving Symbolic Equations
+title: Solving Symbolic Equations
 descr: >
     Sage's `solve(...)` function allows you to solve symbolic equations exactly.
     Expressons are automatically assumed to be equal to zero.
@@ -144,7 +130,7 @@ code: |
     ex2 = x - y == 1
     solve([ex1, ex2], [x, y])
 ---
-title: 12. Numerical Solutions
+title: Numerical Solutions
 descr: >
     Sage's `find_root(...)` solves equations numerically.
     The optional second and third argument constrain the variable to this interval.
@@ -152,7 +138,7 @@ code: |
     %var phi
     find_root(cos(phi)==sin(phi), 0, pi/2)
 ---
-title: 13. Symbolic Differentiation
+title: Symbolic Differentiation
 descr: >
     Symbolic expressions can be differentiated.
     This works either with Sage's `diff(...)` function or the expression's `.diff(...)` method.
@@ -163,14 +149,14 @@ code: |
     diff(f, x)
     f.diff(y, 3)
 ---
-title: 14. Symbolic Integration
+title: Symbolic Integration
 descr: >
     If possible, the `integral(...)` function computes a symbolic integral.
 code: |
     %var x
     integral(x*sin(x^2), x)
 ---
-title: 15. Tab-Completion
+title: Tab-Completion
 descr: >
     To learn more about possible operations on an object,
     first type in the variable, then a dot, and then press the `[TAB]` key.

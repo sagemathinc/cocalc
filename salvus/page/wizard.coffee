@@ -39,6 +39,7 @@ misc_page = require('misc_page')
 
 wizard_template = $(".smc-wizard")
 
+# the json from the server, where the entries for the documents are [[title, body], ...]
 data = null
 
 class Wizard
@@ -82,9 +83,9 @@ class Wizard
                 dataType: "json"
                 error: (jqXHR, textStatus, errorThrown) =>
                     console.log "AJAX Error: #{textStatus}"
-                success: (data2, textStatus, jqXHR) =>
+                success: (payload, textStatus, jqXHR) =>
                     # console.log "Successful AJAX call: #{data}"
-                    data = data2
+                    data = payload
                     cb()
 
     init_nav: () ->
@@ -219,7 +220,9 @@ class Wizard
 
     select_lang: (lang) ->
         # crude way to go from a lang-string to the <a> element
-        @select_nav(@nav.find("a[href=##{@opts.lang}]"))
+        pill = @nav.find("a[href=##{lang}]")
+        if pill?
+            @select_nav(pill)
 
     select_nav: (pill) ->
         # pill is the clicked <a> in the @nav
@@ -252,8 +255,8 @@ class Wizard
     select_doc: (t) ->
         # the document title on the right has been clicked
         @set_active(@document, t)
-        @title = t.attr("data")
-        @doc = data[@lang][@cat1][@cat2][@title]
+        @title = title = t.attr("data")
+        @doc = _.find(data[@lang][@cat1][@cat2], (doc) -> doc[0] == title)[1]
         @code.text(@doc[0])
         content = misc_page.markdown_to_html(@doc[1]).s
         if @doc[2] # by-attribution
@@ -276,24 +279,27 @@ class Wizard
         # the three lists are the levels in the tree of documents. they change dynamically.
         # there is also a mutually recursive logic, to expand sublevels iff there is just one entry (saves stupid clicks)
         # fill_list call -> calls select_lvl1/2 -> which in turn calls fill_list again.
+        # <li class="list-group-item active"><span class="badge">3</span>...</li>
         list.empty()
         if entries?
-            keys = _.keys(entries).sort(@_list_sort)
-            for key in keys
-                # <li class="list-group-item active"><span class="badge">3</span>...</li>
-                if list == @document
+            if list == @document
+                for entry in entries
+                    key = entry[0]
                     list.append($("<li class='list-group-item' data='#{key}'>#{key}</li>"))
-                else
+
+            else
+                keys = _.keys(entries).sort(@_list_sort)
+                for key in keys
                     subdocs = entries[key]
                     nb = _.keys(subdocs).length
                     list.append($("<li class='list-group-item' data='#{key}'><span class='badge'>#{nb}</span>#{key}</li>"))
 
-            if keys.length == 1
-                key = keys[0]
-                entries2 = entries[key]
-                if list == @lvl1
-                    @select_lvl1(@lvl1.find("[data=#{key}]"))
-                else if list == @lvl2
-                    @select_lvl2(@lvl2.find("[data=#{key}]"))
+                if keys.length == 1
+                    key = keys[0]
+                    entries2 = entries[key]
+                    if list == @lvl1
+                        @select_lvl1(@lvl1.find("[data=#{key}]"))
+                    else if list == @lvl2
+                        @select_lvl2(@lvl2.find("[data=#{key}]"))
 
 exports.Wizard = Wizard
