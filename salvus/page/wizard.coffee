@@ -52,6 +52,7 @@ class Wizard
 
         # the elements
         @nav      = @dialog.find(".smc-wizard-nav")
+        @search   = @dialog.find(".smc-wizard-search")
         @lvl1     = @dialog.find(".smc-wizard-lvl1")
         @lvl2     = @dialog.find(".smc-wizard-lvl2")
         @document = @dialog.find(".smc-wizard-doc")
@@ -121,6 +122,10 @@ class Wizard
             @select_nav(pill)
             return false
 
+        @search.on "keyup", (evt) =>
+            evt.stopPropagation()
+            @do_search(@search.val())
+
         @lvl1.on "click", "li", (evt) =>
             # .closest("li") because of the badge
             el = $(evt.target).closest("li")
@@ -144,21 +149,22 @@ class Wizard
             # necessary, since it is an unevaluated jquery object?
             key = evt.which
             active = @document.find(".active")
-            if not active? || key not in [13, 38, 40, 74, 75, 37, 39, 72, 76]
+            if not active? || key not in [13, 38, 40, 37, 39]
                 return
             evt.preventDefault()
+            evt.stopPropagation()
             if key == 13 # return
                 @submit()
 
             # this handles the up/down operations. The idea is, to be able to iterate throug all docs
             # for a given language. That's why there is this nested if. It handles the carry-overs at
             # the start or end of the list by advancing the next higher level. Most of the code is for corner cases.
-            else if key in [38, 40, 74, 75] # up or down
-                if key in [38, 75] # up
+            else if key in [38, 40] # up or down
+                if key in [38] # up
                     dirop = "prev"
                     carryop = "last"
 
-                else if key in [40, 74] # down
+                else if key in [40] # down
                     dirop = "next"
                     carryop = "first"
 
@@ -180,11 +186,11 @@ class Wizard
                 @select_doc(new_doc)
 
             else # left or right
-                if key in [37, 72] # left
+                if key in [37] # left
                     new_pill = @nav.find(".active").prev()
                     if new_pill.length == 0
                         new_pill = @nav.children().last()
-                else if key in [39, 76] # right
+                else if key in [39] # right
                     new_pill = @nav.find(".active").next()
                     if new_pill.length == 0
                         new_pill = @nav.children().first()
@@ -256,6 +262,8 @@ class Wizard
         # the document title on the right has been clicked
         @set_active(@document, t)
         @title = title = t.attr("data")
+        @cat1 = t.attr("lvl1") || @cat1
+        @cat2 = t.attr("lvl2") || @cat2
         @doc = _.find(data[@lang][@cat1][@cat2], (doc) -> doc[0] == title)[1]
         @code.text(@doc[0])
         content = misc_page.markdown_to_html(@doc[1]).s
@@ -301,5 +309,31 @@ class Wizard
                         @select_lvl1(@lvl1.find("[data=#{key}]"))
                     else if list == @lvl2
                         @select_lvl2(@lvl2.find("[data=#{key}]"))
+
+    do_search: (str) ->
+        if not str? || str.length < 3
+            @lvl1.show()
+            @lvl2.show()
+            @document.empty()
+            return
+
+        @lvl1.hide()
+        @lvl2.hide()
+        @document.empty()
+
+        str = str.toLowerCase()
+        hits = 0
+        for lvl1, data1 of data[@lang]
+            for lvl2, data2 of data1
+                for entry in data2
+                    title = entry[0]
+                    descr = entry[1][1]
+                    console.log(title, descr)
+                    if title.toLowerCase().indexOf(str) != -1 || descr.toLowerCase().indexOf(str) != -1
+                        @document.append($("<li class='list-group-item' lvl1='#{lvl1}' lvl2='#{lvl2}' data='#{title}'>#{title}</li>"))
+                        hits += 1
+                        if hits > 10
+                            return
+
 
 exports.Wizard = Wizard
