@@ -2136,9 +2136,15 @@ project_exec = (socket, mesg) ->
         bash        : mesg.bash
         cb          : (err, out) ->
             if err
+
+                error = "Error executing command '#{mesg.command}' with args '#{mesg.args}' -- #{err}, #{out?.stdout}, #{out?.stderr}"
+                if error.indexOf("Connection refused") != -1
+                    error += "-- Email help@sagemath.com if you need external network access, which is disabled by default."
+                if error.indexOf("=") != -1
+                    error += "-- This is a BASH terminal, not a Sage worksheet.  For Sage, use +New and create a Sage worksheet."
                 err_mesg = message.error
                     id    : mesg.id
-                    error : "Error executing code command:#{mesg.command}, args:#{mesg.args}, bash:#{mesg.bash}' -- #{err}, #{out?.stdout}, #{out?.stderr}"
+                    error : error
                 socket.write_mesg('json', err_mesg)
             else
                 #winston.debug(json(out))

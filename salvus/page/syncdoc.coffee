@@ -1119,7 +1119,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 cb : (err) =>
                     interrupt_button.find("i").removeClass('fa-spin')
                     if err
-                        alert_message(type:"error", message:"Unable to interrupt Sage worksheet; you might try restarting the worksheet instead.")
+                        alert_message(type:"error", message:"Unable to interrupt worksheet; try restarting the worksheet instead.")
             return false
         kill_button = buttons.find("a[href=#kill]").click () =>
             kill_button.find("i").addClass('fa-spin')
@@ -1128,7 +1128,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 cb      : (err) =>
                     kill_button.find("i").removeClass('fa-spin')
                     if err
-                        alert_message(type:"error", message:"Unable to restart Sage worksheet (maybe system is heavily loaded so Sage is taking a while to start up -- try again in a minute)")
+                        alert_message(type:"error", message:"Unable to restart worksheet (the system might be heavily loaded causing Sage to take a while to restart -- try again in a minute)")
             return false
 
     html_editor_save_selection: () =>
@@ -1488,10 +1488,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @introspect_line
             line : line
             cb   : (err, mesg) =>
-                if err
-                    alert_message(type:"error", message:"Unable to introspect -- #{err}")
-                else if mesg.event == "error"
-                    alert_message(type:"error", message:"Unable to introspect -- #{mesg.error}")
+                if err or mesg.event == "error"
+                    # showing user an alert_message at this point isn't usable; but do want to know
+                    # about this.
+                    salvus_client.log_error("Unable to instrospect -- #{err}, #{mesg?.error}")
                 else
                     from = {line:pos.line, ch:pos.ch - mesg.target.length}
                     elt = undefined

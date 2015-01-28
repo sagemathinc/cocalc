@@ -696,7 +696,7 @@ class ProjectPage
                 @container.find(".project-command-line-spinner").hide()
                 @container.find(".project-command-line-submit").show()
                 if err
-                    alert_message(type:'error', message:"#{command0} -- #{err}")
+                    alert_message(type:'error', message:"Terminal command '#{command0}' error -- #{err}\n (Hint: Click +New, then Terminal for full terminal.)")
                 else
                     # All this code below is to find the current path
                     # after the command is executed, and also strip
@@ -1615,7 +1615,7 @@ class ProjectPage
 
                 if err
                     if not @public_access
-                        alert_message(type:"error", message:"Error getting listing for '#{path}' -- #{misc.trunc(err,100)}")
+                        alert_message(type:"error", message:"Problem reading the directory listing for '#{path}' -- #{misc.trunc(err,100)}; email help@sagemath.com if this persists.")
                         @current_path = []
                     cb?(err)
                 else
@@ -2343,14 +2343,14 @@ class ProjectPage
             project_id : @project.project_id
             command    : 'mv'
             args       : args
-            timeout    : 5  # move should be fast..., unless across file systems.
-            network_timeout : 10
+            timeout    : 15  # move should be fast..., unless across file systems.
+            network_timeout : 20
             err_on_exit : false
             path       : opts.path
             cb         : (err, output) =>
                 if opts.alert
                     if err
-                        alert_message(type:"error", message:"Communication error while moving '#{opts.src}' to '#{opts.dest}' -- #{err}")
+                        alert_message(type:"error", message:"Error while moving '#{opts.src}' to '#{opts.dest}' -- #{err}")
                     else if output.event == 'error'
                         alert_message(type:"error", message:"Error moving '#{opts.src}' to '#{opts.dest}' -- #{output.error}")
                     else
