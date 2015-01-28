@@ -225,6 +225,8 @@ file_associations['sage-history'] =
     name   : 'sage history'
     exclude_from_menu : true
 
+file_associations['sage'].name = "sage code"
+
 file_associations['sagews'].name = "sage worksheet"
 file_associations['sagews'].exclude_from_menu = true
 
