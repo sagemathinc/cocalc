@@ -27,14 +27,14 @@ compute_cpu   = 12   # DO *NOT* change compute_cpu willy-nilly; if you change it
 ## us-central1-a
 #####################
 # compute/storage nodes:
-localhost    {'hostname':'compute1dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute2dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute3dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute4dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute5dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute6dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute7dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute1dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute2dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute3dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute4dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute5dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute6dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute7dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
+localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
 
 # backup
 localhost    {'hostname':'backup1dc2', 'disk':'backup1:4000', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
@@ -46,8 +46,8 @@ localhost    {'hostname':'cassandra3dc2', 'disk':'cassandra-ssd:100,cassandra-ss
 localhost    {'hostname':'cassandra4dc2', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
 
 # web servers/hubs
-localhost    {'hostname':'web1dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
-localhost    {'hostname':'web2dc2', 'instance_type':'g1-small', 'zone':'us-central1-a'}
+localhost    {'hostname':'web1dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
+localhost    {'hostname':'web2dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
 
 #localhost    {'hostname':'devel1dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
 #localhost    {'hostname':'devel2dc2', 'instance_type':'n1-standard-1', 'zone':'us-central1-a'}
@@ -73,8 +73,8 @@ localhost    {'hostname':'cassandra3dc3', 'disk':'cassandra-ssd:100,cassandra-ss
 localhost    {'hostname':'cassandra4dc3', 'disk':'cassandra-ssd:100,cassandra-ssd-2:100', 'instance_type':'n1-standard-1', 'zone':'europe-west1-b'}
 
 # web servers/hubs
-localhost    {'hostname':'web1dc3', 'instance_type':'g1-small', 'zone':'europe-west1-c'}
-localhost    {'hostname':'web2dc3', 'instance_type':'g1-small', 'zone':'europe-west1-c'}
+localhost    {'hostname':'web1dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
+localhost    {'hostname':'web2dc3', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
 
 
 #####################
@@ -224,6 +224,6 @@ nginx
 
 [hub]
 hub {'id':'0', 'port':'5000', 'proxy_port':'5001'}
-hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
-hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
-hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
+#hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
+#hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
+#hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}

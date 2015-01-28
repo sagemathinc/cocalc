@@ -466,6 +466,8 @@ class ProjectPage
     init_file_search: () =>
         @_file_search_box = @container.find(".salvus-project-search-for-file-input")
         @_file_search_box.keyup (event) =>
+            if event.keyCode == 27
+                @_file_search_box.val('')
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79
                 #console.log("keyup: init_file_search")
                 @display_tab("project-new-file")
@@ -696,7 +698,7 @@ class ProjectPage
                 @container.find(".project-command-line-spinner").hide()
                 @container.find(".project-command-line-submit").show()
                 if err
-                    alert_message(type:'error', message:"#{command0} -- #{err}")
+                    alert_message(type:'error', message:"Terminal command '#{command0}' error -- #{err}\n (Hint: Click +New, then Terminal for full terminal.)")
                 else
                     # All this code below is to find the current path
                     # after the command is executed, and also strip
@@ -1191,8 +1193,8 @@ class ProjectPage
             url: window.salvus_base_url + "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
             maxFilesize: 128 # in megabytes
 
-    init_new_file_tab: () =>
 
+    init_new_file_tab: () =>
         # Make it so clicking on each of the new file tab buttons does the right thing.
         @new_file_tab = @container.find(".project-new-file")
         @new_file_tab_input = @new_file_tab.find(".project-new-file-path-input")
@@ -1243,6 +1245,31 @@ class ProjectPage
         @new_file_tab.find("a[href=#new-course]").click () =>
             create_file('course')
             return false
+
+
+        # the search/mini file creation box
+        mini_set_input = () =>
+            search_box = @container.find(".salvus-project-search-for-file-input")
+            name = search_box.val().trim()
+            if name == ""
+                name = @default_filename()
+            @update_new_file_tab_path()
+            @new_file_tab_input.val(name)
+            search_box.val('')
+
+        @container.find("a[href=#smc-mini-new]").click () =>
+            mini_set_input()
+            create_file('sagews')
+
+        @container.find(".smc-mini-new-file-type-list").find("a[href=#new-file]").click (evt) ->
+            mini_set_input()
+            click_new_file_button(evt)
+            return true
+
+        @container.find(".smc-mini-new-file-type-list").find("a[href=#new-folder]").click (evt) ->
+            mini_set_input()
+            create_folder()
+            return true
 
         BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws']
 
@@ -1355,12 +1382,19 @@ class ProjectPage
                     cb?(err)
             return false
 
-    show_new_file_tab: () =>
+    update_new_file_tab_path: () =>
         # Update the path
         path = @current_pathname()
         if path != ""
             path += "/"
         @new_file_tab.find(".project-new-file-path").text(path)
+        return path
+
+    default_filename: () =>
+        return misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
+
+    show_new_file_tab: () =>
+        path = @update_new_file_tab_path()
         @init_dropzone_upload()
 
         elt = @new_file_tab.find(".project-new-file-if-root")
@@ -1370,8 +1404,7 @@ class ProjectPage
             elt.show()
 
         # Clear the filename and focus on it
-        now = misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
-        @new_file_tab_input.val(now)
+        @new_file_tab_input.val(@default_filename())
         if not IS_MOBILE
             @new_file_tab_input.focus().select()
 
@@ -1615,7 +1648,7 @@ class ProjectPage
 
                 if err
                     if not @public_access
-                        alert_message(type:"error", message:"Error getting listing for '#{path}' -- #{misc.trunc(err,100)}")
+                        alert_message(type:"error", message:"Problem reading the directory listing for '#{path}' -- #{misc.trunc(err,100)}; email help@sagemath.com if this persists.")
                         @current_path = []
                     cb?(err)
                 else
@@ -2343,14 +2376,14 @@ class ProjectPage
             project_id : @project.project_id
             command    : 'mv'
             args       : args
-            timeout    : 5  # move should be fast..., unless across file systems.
-            network_timeout : 10
+            timeout    : 15  # move should be fast..., unless across file systems.
+            network_timeout : 20
             err_on_exit : false
             path       : opts.path
             cb         : (err, output) =>
                 if opts.alert
                     if err
-                        alert_message(type:"error", message:"Communication error while moving '#{opts.src}' to '#{opts.dest}' -- #{err}")
+                        alert_message(type:"error", message:"Error while moving '#{opts.src}' to '#{opts.dest}' -- #{err}")
                     else if output.event == 'error'
                         alert_message(type:"error", message:"Error moving '#{opts.src}' to '#{opts.dest}' -- #{output.error}")
                     else

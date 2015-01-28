@@ -124,6 +124,7 @@ for ext, mode of codemirror_associations
     name = name.replace('src','')
     file_associations[ext] =
         editor : 'codemirror'
+        binary : false
         icon   : 'fa-file-code-o'
         opts   : {mode:mode}
         name   : name
@@ -193,6 +194,7 @@ for ext in ['png', 'jpg', 'gif', 'svg']
         icon   : 'fa-file-image-o'
         opts   : {}
         name   : ext
+        binary : true
         exclude_from_menu : true
 
 file_associations['pdf'] =
@@ -200,6 +202,7 @@ file_associations['pdf'] =
     icon   : 'fa-file-pdf-o'
     opts   : {}
     name   : 'pdf'
+    binary : true
     exclude_from_menu : true
 
 file_associations['tasks'] =
@@ -222,29 +225,43 @@ file_associations['sage-history'] =
     name   : 'sage history'
     exclude_from_menu : true
 
+file_associations['sage'].name = "sage code"
+
+file_associations['sagews'].name = "sage worksheet"
+file_associations['sagews'].exclude_from_menu = true
+
 initialize_new_file_type_list = () ->
-    file_type_list = $(".smc-new-file-type-list")
     file_types_so_far = {}
     v = misc.keys(file_associations)
     v.sort()
-
-    for ext in v
+    f = (elt, ext, exclude) ->
         if not ext
-            continue
+            return
         data = file_associations[ext]
-        if data.exclude_from_menu
-            continue
+        if exclude and data.exclude_from_menu
+            return
         if data.name? and not file_types_so_far[data.name]
             file_types_so_far[data.name] = true
-            e = $("<li><a href='#new-file' data-ext='#{ext}'><i class='fa #{data.icon}'></i> <span style='text-transform:capitalize'>#{data.name} </span> <span class='lighten'>(.#{ext})</span></a></li>")
-            file_type_list.append(e)
+            e = $("<li><a href='#new-file' data-ext='#{ext}'><i style='width: 18px;' class='fa #{data.icon}'></i> <span style='text-transform:capitalize'>#{data.name} </span> <span class='lighten'>(.#{ext})</span></a></li>")
+            elt.append(e)
+
+    elt = $(".smc-new-file-type-list")
+    for ext in v
+        f(elt, ext, true)
+
+    elt = $(".smc-mini-new-file-type-list")
+    file_types_so_far = {}
+    for ext in ['sagews', 'term', 'ipynb', 'tex', 'md', 'tasks', 'course', 'sage', 'py']
+        f(elt, ext)
+    elt.append($("<li class='divider'></li><li><a href='#new-folder'><i style='width: 18px;' class='fa fa-folder'></i> <span>Folder </span></a></li>"))
 
 initialize_new_file_type_list()
 
 exports.file_icon_class = file_icon_class = (ext) ->
     if (file_associations[ext]? and file_associations[ext].icon?) then file_associations[ext].icon else 'fa-file-o'
 
-PUBLIC_ACCESS_UNSUPPORTED = ['terminal','image','latex','history','pdf','tasks','course','ipynb']
+PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipynb']
+
 # public access file types *NOT* yet supported
 # (this should quickly shrink to zero)
 exports.public_access_supported = (filename) ->
@@ -636,14 +653,17 @@ class exports.Editor
             cb?(false, filename)
             return
 
-        if not @public_access
+        if @public_access
+            binary = @file_options(filename).binary
+        else
             # following only makes sense for read-write project access
+            ext = filename_extension(filename).toLowerCase()
 
             if filename == ".sagemathcloud.log"
                 cb?("You can only edit '.sagemathcloud.log' via the terminal.")
                 return
 
-            if filename_extension(filename).toLowerCase() == "sws"   # sagenb worksheet
+            if ext == "sws"   # sagenb worksheet
                 alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{filename}...")
                 @convert_sagenb_worksheet filename, (err, sagews_filename) =>
                     if not err
@@ -652,20 +672,20 @@ class exports.Editor
                         cb?("Error converting Sage Notebook sws file -- #{err}")
                 return
 
-            if filename_extension(filename).toLowerCase() == "docx"   # Microsoft Word Document
-                alert_message(type:"info", message:"Opening converted plane text file instead of '#{filename}...")
+            if ext == "docx"   # Microsoft Word Document
+                alert_message(type:"info", message:"Opening converted plain text file instead of '#{filename}...")
                 @convert_docx_file filename, (err, new_filename) =>
                     if not err
                         @open(new_filename, cb)
                     else
-                        cb?("Error converting Microsoft Docx file -- #{err}")
+                        cb?("Error converting Microsoft docx file -- #{err}")
                 return
 
         content = undefined
         extra_opts = {}
         async.series([
             (c) =>
-                if @public_access
+                if @public_access and not binary
                     salvus_client.public_get_text_file
                         project_id : @project_id
                         path       : filename
@@ -677,6 +697,10 @@ class exports.Editor
                                 content = data
                                 extra_opts.read_only = true
                                 extra_opts.public_access = true
+                                # TODO: Allowing arbitrary javascript eval is dangerous
+                                # for public documents, so we disable it, at least
+                                # until we implement an option for loading in an iframe.
+                                extra_opts.allow_javascript_eval = false
                                 c()
                 else
                     c()
@@ -833,10 +857,12 @@ class exports.Editor
             when 'codemirror', undefined
                 if extra_opts.public_access
                     # This is used only for public access to files
+                    console.log("opts.content='#{opts.content}'")
                     editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
                     if filename_extension(filename) == 'sagews'
                         editor.syncdoc = new (syncdoc.SynchronizedWorksheet)(editor, {static_viewer:true})
-                        editor.on 'show', () =>
+                        editor.once 'show', () =>
+                            console.log("process_sage_updates")
                             editor.syncdoc.process_sage_updates()
                 else
                     # realtime synchronized editing session
@@ -3176,7 +3202,7 @@ class PDF_PreviewEmbed extends FileEditor
                 if err or not result.url?
                     alert_message(type:"error", message:"unable to get pdf -- #{err}")
                 else
-                    @output.html("<object data=\"#{result.url}\" type='application/pdf' width='#{width}' height='#{output_height-10}'><br><br>Your browser doesn't support embedded PDF's, but you can <a href='#{result.url}'>download #{@filename}</a></p></object>")
+                    @output.html("<object data=\"#{result.url}\" type='application/pdf' width='#{width}' height='#{output_height-10}'><br><br>Your browser doesn't support embedded PDF's, but you can <a href='#{result.url}&random=#{Math.random()}'>download #{@filename}</a></p></object>")
 
     show: (geometry={}) =>
         geometry = defaults geometry,
@@ -4182,8 +4208,7 @@ class Terminal extends FileEditor
             @console.focus(true)
 
 class Image extends FileEditor
-    constructor: (@editor, @filename, url, opts) ->
-        opts = @opts = defaults opts,{}
+    constructor: (@editor, @filename, url, @opts) ->
         @element = templates.find(".salvus-editor-image").clone()
         @element.find(".salvus-editor-image-title").text(@filename)
 
@@ -4220,7 +4245,7 @@ class Image extends FileEditor
                     alert_message(type:"error", message:"Error getting #{@filename} -- #{to_json(mesg.error)}")
                     cb?(mesg.event)
                 else
-                    @element.find("img").attr('src', mesg.url)
+                    @element.find("img").attr('src', mesg.url + "?random=#{Math.random()}")
                     cb?()
 
     show: () =>
@@ -5339,6 +5364,8 @@ class HTML_MD_Editor extends FileEditor
             superscript   : "Shift-Cmd-= Shift-Ctrl-="
 
         extra_keys = @cm().getOption("extraKeys") # current keybindings
+        if not extra_keys?
+            extra_keys = {}
         for cmd, keys of keybindings
             for k in keys.split(' ')
                 ( (cmd) => extra_keys[k] = (cm) => @command(cm, cmd) )(cmd)
@@ -5626,7 +5653,7 @@ class HTML_MD_Editor extends FileEditor
         else
             @to_html_via_pandoc(cb:cb)
 
-    html_to_html: (cb) =>   # cb(error, {source:?, mathjax:?})  where mathjax is true/false
+    html_to_html: (cb) =>   # cb(error, source)
         # add in cursor(s)
         source = @source_editor._get()
         cm = @source_editor.syncdoc.focused_codemirror()
@@ -5687,12 +5714,12 @@ class HTML_MD_Editor extends FileEditor
             elt.find('*').addClass('smc-html-selection')
             source = source.slice(0,i) + "<span class='smc-html-selection'>" + elt.html() + "</span>" + source.slice(j+1)
 
-        cb(undefined, {html:source, mathjax:true}) # TODO: mathjax
+        cb(undefined, source)
 
     md_to_html: (cb) =>
         source = @source_editor._get()
         m = misc_page.markdown_to_html(source)
-        cb(undefined, {html:m.s, mathjax:m.has_mathjax})
+        cb(undefined, m.s)
 
     rst_to_html: (cb) =>
         @to_html_via_exec
@@ -5710,7 +5737,7 @@ class HTML_MD_Editor extends FileEditor
             command     : required
             args        : required
             postprocess : undefined
-            cb          : required   # cb(error, {html:?, mathjax:?})
+            cb          : required   # cb(error, html, warnings)
         html = undefined
         warnings = undefined
         async.series([
@@ -5736,7 +5763,7 @@ class HTML_MD_Editor extends FileEditor
             else
                 if opts.postprocess?
                     html = opts.postprocess(html)
-                opts.cb(undefined, {html:html, mathjax:true, warnings:warnings})
+                opts.cb(undefined, html, warnings)
         )
 
     update_preview: () =>
@@ -5750,12 +5777,11 @@ class HTML_MD_Editor extends FileEditor
         t0 = misc.mswalltime()
         @_update_preview_lock = true
         #console.log("update_preview")
-        @to_html (err, r) =>
+        @to_html (err, source) =>
             @_update_preview_lock = false
             if err
                 console.log("failed to render preview: #{err}")
                 return
-            source = r.html
 
             # remove any javascript and make html more sane
             elt = $("<span>").html(source)
@@ -5775,8 +5801,7 @@ class HTML_MD_Editor extends FileEditor
             @preview_content.find("a").attr("target","_blank")
             @preview_content.find("table").addClass('table')  # bootstrap table
 
-            if r.mathjax
-                @preview_content.mathjax()
+            @preview_content.mathjax()
 
             #@preview_content.find(".smc-html-cursor").scrollintoview()
             #@preview_content.find(".smc-html-cursor").remove()

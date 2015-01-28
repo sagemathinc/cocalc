@@ -1393,7 +1393,7 @@ class exports.Salvus extends exports.Cassandra
                             if err
                                 cb(err)
                             else if results.length == 0
-                                cb("There is no account with email address #{opts.email_address}.")
+                                cb("There is no SageMathCloud account with email address #{opts.email_address}; if you are sure you have such an account (or a similar one), email help@sagemath.com, and we will help you sort this out.")
                             else
                                 # success!
                                 opts.account_id = results[0][0]
@@ -1410,7 +1410,7 @@ class exports.Salvus extends exports.Cassandra
                         if error
                             cb(error)
                         else if results.length == 0
-                            cb("There is no account with account_id #{opts.account_id}.")
+                            cb("There is no SageMathCloud account with account_id #{opts.account_id}.")
                         else
                             account = results[0]
                             if not account.groups?
@@ -1763,7 +1763,7 @@ class exports.Salvus extends exports.Cassandra
                 if err
                     opts.cb(err)
                 else if results.length == 0
-                    opts.cb("There is no account with id #{opts.account_id}.")
+                    opts.cb("There is no SageMathCloud account with id #{opts.account_id}.")
                 else
                     r = results[0]
                     if r.gitconfig? and r.gitconfig.length > 0

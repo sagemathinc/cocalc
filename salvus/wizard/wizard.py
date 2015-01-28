@@ -62,7 +62,8 @@ def wizard_data(input_dir, output_fn):
                  "sage":   recursive_dict(),
                  "python": recursive_dict(),
                  "r":      recursive_dict(),
-                 "cython": recursive_dict()
+                 "cython": recursive_dict(),
+                 "gap":    recursive_dict()
               }
 
     for root, _, files in walk(input_dir):
@@ -77,6 +78,8 @@ def wizard_data(input_dir, output_fn):
                 raise Exception("Language %s not known. Fix first document in %s.yaml" % (language, input_fn))
 
             for doc in data:
+                if doc is None:
+                    continue
                 if "category" in doc:
                     lvl1, lvl2 = process_category(doc)
                 else:

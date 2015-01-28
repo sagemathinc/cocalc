@@ -19,14 +19,20 @@
 #
 ###############################################################################
 
+"use strict"
 _ = require("underscore")
+{defaults, required} = require('misc')
+misc_page = require('misc_page')
 
 wizard_template = $(".smc-wizard")
 
 data = null
 
 class Wizard
-    constructor: () ->
+    constructor: (opts) ->
+        @opts = defaults opts,
+            lang  : 'sage'
+
         @dialog = wizard_template.clone()
 
         # the elements
@@ -38,7 +44,7 @@ class Wizard
         @descr    = @dialog.find(".smc-wizard-descr > div.panel-body")
 
         # the state
-        @lang     = undefined
+        @lang     = @opts.lang
         @cat1     = undefined
         @cat2     = undefined
         @title    = undefined
@@ -49,9 +55,9 @@ class Wizard
 
     init: () =>
         cb = () =>
-            console.log "cb called"
             @init_nav()
             @init_buttons()
+            @init_lvl1()
 
         if data?
             # console.log "data exists"
@@ -70,12 +76,20 @@ class Wizard
 
     init_nav: () ->
         # <li role="presentation"><a href="#sage">Sage</a></li>
-        N = {"sage": "Sage", "python": "Python", "r": "R", "gap" :"GAP", "cython" : "Cython"}
-        for key in _.keys(data)
-            name = key
-            if N[key]?
-                name = N[key]
-            @nav.append($("<li role='presentation'><a href='##{key}'>#{name}</a></li>"))
+        nav_entries = [
+            ["sage", "Sage"],
+            ["python", "Python"],
+            ["r", "R"],
+            ["gap", "GAP"],
+            ["cython", "Cython"]]
+        for entry, idx in nav_entries when data[entry[0]]?
+            @nav.append($("<li role='presentation'><a href='##{entry[0]}'>#{entry[1]}</a></li>"))
+            if @opts.lang == entry[0]
+                @set_active(@nav, @nav.children(idx))
+
+    init_lvl1: () ->
+        if @opts.lang?
+            @fill_list(@lvl1, data[@opts.lang])
 
     init_buttons: () ->
         @dialog.find(".btn-close").on "click", =>
@@ -83,59 +97,166 @@ class Wizard
             return false
 
         @dialog.find(".btn-submit").on "click", =>
-            @dialog.modal('hide')
-            window.alert("INSERT CODE:\n" + @doc[0])
+            @submit()
             return false
 
         @nav.on "click", "li", (evt) =>
-            evt.preventDefault()
+            #evt.preventDefault()
             pill = $(evt.target)
-            @set_active(@nav, pill.parent())
-            @lang = pill.attr("href").substring(1)
-            @fill_list(@lvl1, _.keys(data[@lang]))
-            @lvl2.empty()
-            @document.empty()
+            @select_nav(pill)
             return false
 
         @lvl1.on "click", "li", (evt) =>
-            evt.preventDefault()
-            t = $(evt.target)
-            @set_active(@lvl1, t)
-            @cat1 = t.attr("data")
-            # console.log("lvl1: #{select1}")
-            @fill_list(@lvl2, _.keys(data[@lang][@cat1]))
-            @document.empty()
+            #evt.preventDefault()
+            # .closest("li") because of the badge
+            t = $(evt.target).closest("li")
+            @select_lvl1(t)
             return false
 
         @lvl2.on "click", "li", (evt) =>
-            evt.preventDefault()
-            t = $(evt.target)
-            @set_active(@lvl2, t)
-            @cat2 = t.attr("data")
-            # console.log("lvl2: #{select2}")
-            @fill_list(@document, _.keys(data[@lang][@cat1][@cat2]))
+            #evt.preventDefault()
+            t = $(evt.target).closest("li")
+            @select_lvl2(t)
             return false
 
         @document.on "click", "li", (evt) =>
-            evt.preventDefault()
+            #evt.preventDefault()
             t = $(evt.target)
-            @set_active(@document, t)
-            @title = t.attr("data")
-            # console.log("document: #{doc}")
-            @doc = data[@lang][@cat1][@cat2][@title]
-            @code.text(@doc[0])
-            @descr.text(@doc[1])
+            @select_doc(t)
             return false
 
+        @dialog.on "keydown", (evt) =>
+            # 38: up,   40: down  /  74: j-key, 75: k-key
+            # 37: left, 39: right /  72: h-key, 76: l-key
+            # jQuery's prev/next need a check for length to see, if there is an element
+            # necessary, since it is an unevaluated jquery object?
+            key = evt.which
+            active = @document.find(".active")
+            if not active? || key not in [13, 38, 40, 74, 75, 37, 39, 72, 76]
+                return
+            evt.preventDefault()
+            if key == 13 # return
+                @submit()
+            else if key in [38, 40, 74, 75] # up or down
+                if key in [38, 75] # up
+                    dirop = "prev"
+                    carryop = "last"
+
+                else if key in [40, 74] # down
+                    dirop = "next"
+                    carryop = "first"
+
+                new_doc = active[dirop]()
+                if new_doc.length == 0
+                    # we have to switch back one step in the lvl2 category
+                    lvl2_active = @lvl2.find(".active")
+                    new_lvl2 = lvl2_active[dirop]()
+                    if new_lvl2.length == 0
+                        lvl1_active = @lvl1.find(".active")
+                        # now, we also have to step back in the highest lvl1 category
+                        new_lvl1 = lvl1_active[dirop]()
+                        if new_lvl1.length == 0
+                            new_lvl1 = @lvl1.children()[carryop]()
+                        @select_lvl1(new_lvl1)
+                        new_lvl2 = @lvl2.children()[carryop]()
+                    @select_lvl2(new_lvl2)
+                    new_doc = @document.children()[carryop]()
+                @select_doc(new_doc)
+
+            else # left or right
+                if key in [37, 72] # left
+                    new_pill = @nav.find(".active").prev()
+                    if new_pill.length == 0
+                        new_pill = @nav.children().last()
+                else if key in [39, 76] # right
+                    new_pill = @nav.find(".active").next()
+                    if new_pill.length == 0
+                        new_pill = @nav.children().first()
+                @select_nav(new_pill.children(0))
+
+    submit: () ->
+        @dialog.modal('hide')
+        window.alert("INSERT CODE:\n" + @doc[0])
+
     set_active: (list, which) ->
-        for pill in list.find("li")
-            # console.log(pill, which.get(0))
-            $(pill).toggleClass "active", pill == which.get(0)
+        list.find("li").removeClass("active")
+        which.addClass("active")
+
+    select_nav: (pill) ->
+        @set_active(@nav, pill.parent())
+        @lang = pill.attr("href").substring(1)
+        @lvl2.empty()
+        @document.empty()
+        @fill_list(@lvl1, data[@lang])
+
+    select_lvl1: (t) ->
+        @set_active(@lvl1, t)
+        @cat1 = t.attr("data")
+        # console.log("lvl1: #{select1}")
+        @document.empty()
+        @fill_list(@lvl2, data[@lang][@cat1])
+        @scroll_visible(@lvl1, t)
+
+    select_lvl2: (t) ->
+        @set_active(@lvl2, t)
+        @cat2 = t.attr("data")
+        # console.log("lvl2: #{select2}")
+        @fill_list(@document, data[@lang][@cat1][@cat2])
+        @scroll_visible(@lvl2, t)
+
+    select_doc: (t) ->
+        @set_active(@document, t)
+        @title = t.attr("data")
+        @doc = data[@lang][@cat1][@cat2][@title]
+        @code.text(@doc[0])
+        @descr.html(misc_page.markdown_to_html(@doc[1]).s)
+        @descr.mathjax()
+        @scroll_visible(@document, t)
+
+    scroll_visible: (list, entry) ->
+        # if the selected entry is not visible, we have to make it visible
+        relOffset = entry.position().top
+        if relOffset > list.height()
+            list.scrollTop(relOffset)
+        else if relOffset < 0
+            prev_height = 0
+            entry.prevAll().each(() ->
+                prev_height += $(this).outerHeight()
+            )
+            offset = relOffset + prev_height
+            list.scrollTop(offset)
+
+    _list_sort: (a, b) ->
+        # ordering operator, such that some entries are in front
+        ord = (el) -> switch el
+            when "Tutorial" then -1
+            when "Intro"    then -2
+            else 0
+        return ord(a) - ord(b) || a > b
 
     fill_list: (list, entries) ->
         list.empty()
-        for entry in entries
-            # <li class="list-group-item active"><span class="badge">3</span>...</li>
-            list.append($("<li class='list-group-item' data='#{entry}'>#{entry}</li>"))
+        if entries?
+            keys = _.keys(entries).sort(@_list_sort)
+            for key in keys
+                # <li class="list-group-item active"><span class="badge">3</span>...</li>
+                if list == @document
+                    list.append($("<li class='list-group-item' data='#{key}'>#{key}</li>"))
+                else
+                    subdocs = entries[key]
+                    nb = _.keys(subdocs).length
+                    list.append($("<li class='list-group-item' data='#{key}'><span class='badge'>#{nb}</span>#{key}</li>"))
+
+            if keys.length == 1
+                key = keys[0]
+                entries2 = entries[key]
+                if list == @lvl1
+                    #@cat1 = key
+                    #@fill_list(@lvl2, entries2)
+                    @select_lvl1(@lvl1.find("[data=#{key}]"))
+                else if list == @lvl2
+                    #@cat2 = key
+                    #@fill_list(@document, entries2)
+                    @select_lvl2(@lvl2.find("[data=#{key}]"))
 
 exports.show = () -> new Wizard()

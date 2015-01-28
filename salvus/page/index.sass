@@ -4,6 +4,17 @@
   font-weight: normal
   src: local("Droid Sans Mono"), local("DroidSansMono"), url('fonts/droid/DroidSansMono.ttf') format("truetype")
 
+=user-select($val:"none")
+  -webkit-user-select: #{$val};
+  -moz-user-select: #{$val};
+  -ms-user-select: #{$val};
+  user-select: #{$val};
+
+=disable-user-select
+  +user-select(none)
+
+=enable-user-select
+  +user-select(initial)
 
 @import help
 @import misc_page
