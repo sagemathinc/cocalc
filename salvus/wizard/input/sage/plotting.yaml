@@ -5,7 +5,7 @@
 language: sage
 category: plotting/Intro
 ---
-title: 01. Into
+title: Into
 descr: This is a very simple example how to plot a function.
 code:  plot(x * sin(x), (x, -10, 10))
 ---
@@ -25,4 +25,4 @@ title: Simple 3D Plot
 code:  |
     %var x, y
     plot3d(sin(x) * cos(y), (x, -10, 10), (y, -10, 10))
-descr: Plot of $\sin$-function.
+descr: 3D plot of the $\sin(x)\cos(y)$-function.
