@@ -44,7 +44,7 @@ def process_doc(doc, input_fn):
     """
     #if not all(_ in doc.keys() for _ in ["title", "code", "descr"]):
     #    raise Exception("keyword missing in %s in %s" % (doc, input_fn))
-    title       = doc["title"].title()
+    title       = doc["title"]
     code        = doc["code"]
     description = doc["descr"] # hashtag_re.sub(process_hashtags, doc["descr"])
     body        = [code, description]
