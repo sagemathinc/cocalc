@@ -162,7 +162,9 @@ class ProjectPage
 
     init_billing: () =>
         @container.find("a[href=#upgrade-project]").click () =>
-            console.log("foo!")
+            @container.find(".smc-upgrade-via-email-message").show()
+            return false
+        @container.find("a[href=#upgrade-features]").click () =>
             @container.find(".smc-upgrade-via-email-message").show()
             return false
 
