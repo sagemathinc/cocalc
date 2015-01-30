@@ -282,6 +282,18 @@ to be:
    /usr/bin/pip install -U clawpack
 
 
+# Add to /etc/security/limits.conf
+
+Add these two lines two `/etc/security/limits.conf` so that bup works with large number of commits.
+
+        root     soft    nofile          20000
+        root     hard    nofile          20000
+
+These to avoid fork-bombs:
+
+
+        * soft nproc 2000
+        * hard nproc 3000
 
 
 # Setup /usr/local/bin/skel
