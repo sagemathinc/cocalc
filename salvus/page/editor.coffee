@@ -3202,7 +3202,9 @@ class PDF_PreviewEmbed extends FileEditor
                 if err or not result.url?
                     alert_message(type:"error", message:"unable to get pdf -- #{err}")
                 else
-                    @output.html("<object data=\"#{result.url}\" type='application/pdf' width='#{width}' height='#{output_height-10}'><br><br>Your browser doesn't support embedded PDF's, but you can <a href='#{result.url}&random=#{Math.random()}'>download #{@filename}</a></p></object>")
+                    @output.find("object").attr('data', result.url).width(width).height(output_height-10)
+                    @output.find("a").attr('href',"#{result.url}?random=#{Math.random()}")
+                    @output.find("span").text(@filename)
 
     show: (geometry={}) =>
         geometry = defaults geometry,
