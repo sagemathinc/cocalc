@@ -1232,7 +1232,12 @@ class CodeMirrorSession
         winston.debug("sage_update")#: opts=#{misc.to_json(opts)}")
         i = 0
         prev_ids = {}
+        z = 0
         while true
+            z += 1
+            if z > 5000
+                winston.debug("sage_update: ERROR -- hit a possible infinite loop; opts=#{misc.to_json(opts)}")
+                break
             i = @content.indexOf(diffsync.MARKERS.cell, i)
             if i == -1
                 break

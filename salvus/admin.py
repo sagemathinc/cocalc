@@ -1410,6 +1410,37 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
+    def hub(self):
+        ans = []
+        cmd = 'cd salvus/salvus&& . salvus-env && check_hub'
+        for k, v in self._hosts('hub', cmd, wait=True, parallel=True, timeout=60).iteritems():
+            d = {'host':k[0], 'service':'hub'}
+            if v['exit_status'] != 0 or v['stderr']:
+                d['status'] = 'down'
+                continue
+            for x in v['stdout'].splitlines()[:3]:
+                i = x.find(' ')
+                if i != -1:
+                    d[x[:i]] = x[i:].strip()
+            if 'sign_in_timeouts' in d:
+                d['sign_in_timeouts'] = int(d['sign_in_timeouts'])
+            d['status'] = 'up'
+            if d['etime'] == 'ELAPSED':
+                d['status'] = 'down'
+            if d['sign_in_timeouts'] > 0:
+                d['status'] = 'down'  # demands attention!
+            ans.append(d)
+        def f(x,y):
+            if x['status'] == 'down':
+                return -1
+            if y['status'] == 'down':
+                return 1
+            if 'loadavg' in x and 'loadavg' in y:
+                return -cmp(float(x['loadavg'].split()[0]), float(y['loadavg'].split()[0]))
+            return -1
+        ans.sort(f)
+        return ans
+
     def compute_ssh(self):
         this = int(socket.gethostname()[5:]) # 'cloud[m]'
         v = []
@@ -1581,6 +1612,7 @@ class Monitor(object):
             #'zfs'       : self.zfs(),
             'load'        : self.load(),
             'cassandra'   : self.cassandra(),
+            'hub'         : self.hub(),
             'stats'       : self.stats(),
             'compute'     : self.compute(),
             'compute-ssh' : self.compute_ssh()
@@ -1604,6 +1636,10 @@ class Monitor(object):
 
         print "DNS"
         for x in all['dns'][:n]:
+            print x
+
+        print "HUB"
+        for x in all['hub'][:n]:
             print x
 
         #print "ZFS"
