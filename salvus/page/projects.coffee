@@ -108,7 +108,7 @@ update_project_list = exports.update_project_list = (cb) ->
             else
                 if not error and mesg?.event == 'error'
                     error = mesg.error
-                alert_message(type:"error", message:"Problem getting updated list of projects -- #{error}")
+                alert_message(type:"error", message:"Unable to update project list (#{error})")
 
                 #if salvus_client.account_id?
                 #    x = localStorage[salvus_client.account_id + 'project_list']
@@ -449,7 +449,7 @@ exports.open_project = open_project = (opts) ->
                             project_id : project
                             cb         : (err, p) ->
                                 if err
-                                    opts.cb?("Unknown project with id '#{project}'")
+                                    opts.cb?("You do not have access to the project with id '#{project}'")
                                 else
                                     open_project
                                         project   : p

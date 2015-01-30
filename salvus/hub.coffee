@@ -4312,13 +4312,17 @@ sign_in_check = (opts) ->
         ip    : required
     s = sign_in_fails
     if s.email_m[email] > 3
-        return "A given email address is allowed at most 3 failed login attempts per minute."
+        # A given email address is allowed at most 3 failed login attempts per minute
+        return "Wait a minute, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
     if s.email_h[email] > 30
-        return "A given email address is allowed at most 30 failed login attempts per hour."
+        # A given email address is allowed at most 30 failed login attempts per hour.
+        return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
     if s.ip_m[ip] > 10
-        return "A given ip address is allowed at most 10 failed login attempts per minute."
+        # A given ip address is allowed at most 10 failed login attempts per minute.
+        return "Wait a minute, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
     if s.ip_h[ip] > 50
-        return "A given ip address is allowed at most 50 failed login attempts per hour."
+        # A given ip address is allowed at most 50 failed login attempts per hour.
+        return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
     return false
 
 sign_in = (client, mesg) =>
@@ -4377,7 +4381,7 @@ sign_in = (client, mesg) =>
                             ip_address    : client.ip_address
                             successful    : false
                             email_address : mesg.email_address
-                        sign_in_error("There is no account with email address #{mesg.email_address}.")
+                        sign_in_error("There is no SageMathCloud account with email address #{mesg.email_address}; if you are sure you have such an account (or a similar one), email help@sagemath.com, and we will help you sort this out.")
                         cb(true); return
                     if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
                         record_sign_in
@@ -4385,7 +4389,7 @@ sign_in = (client, mesg) =>
                             successful    : false
                             email_address : mesg.email_address
                             account_id    : account.account_id
-                        sign_in_error("Incorrect password.")
+                        sign_in_error("Incorrect password; please try resetting your password, and if that doesn't work email help@sagemath.com and we will help you sort this out.")
                         cb(true); return
                     else
                         signed_in_mesg = message.signed_in
