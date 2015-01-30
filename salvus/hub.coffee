@@ -64,7 +64,7 @@ CACHE_PROJECT_PUBLIC_MS = 1000*60*15    # 15 minutes
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
-BLOB_TTL = 60*60     # 1 hour
+BLOB_TTL = 60*60*24*90     # 3 months
 
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
@@ -449,7 +449,7 @@ init_http_proxy_server = () =>
                 f = () ->
                     delete _remember_me_cache[key]
                 if has_access
-                    setTimeout(f, 1000*60*6)    # access lasts 6 minutes (i.e., if you revoke privs to a user they could still hit the port for 5 minutes)
+                    setTimeout(f, 1000*60*6)    # access lasts 6 minutes (i.e., if you revoke privs to a user they could still hit the port for this long)
                 else
                     setTimeout(f, 1000*60*2)    # not having access lasts 2 minute
                 opts.cb(err, has_access)
@@ -579,21 +579,29 @@ init_http_proxy_server = () =>
         #buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
 
         dbg = (m) -> winston.debug("http_proxy_server(#{req_url}): #{m}")
+        dbg()
 
         cookies = new Cookies(req, res)
         remember_me = cookies.get(program.base_url + 'remember_me')
 
         if not remember_me?
-            res.writeHead(500, {'Content-Type':'text/html'})
-            res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> with cookies enabled, then refresh this page.")
+
+            # before giving an error, check on possibility that file is public
+            public_raw req_url, res, (err, is_public) ->
+                if err or not is_public
+                    res.writeHead(500, {'Content-Type':'text/html'})
+                    res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> with cookies enabled, then refresh this page.")
+
             return
 
         target remember_me, req_url, (err, location) ->
             #dbg("got target: #{misc.walltime(tm)}")
             if err
-                winston.debug("proxy denied -- #{err}")
-                res.writeHead(500, {'Content-Type':'text/html'})
-                res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
+                public_raw req_url, res, (err, is_public) ->
+                    if err or not is_public
+                        winston.debug("proxy denied -- #{err}")
+                        res.writeHead(500, {'Content-Type':'text/html'})
+                        res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
             else
                 t = "http://#{location.host}:#{location.port}"
                 if proxy_cache[t]?
@@ -640,6 +648,71 @@ init_http_proxy_server = () =>
                 else
                     dbg("websocket upgrade -- using cache")
                 proxy.ws(req, socket, head)
+
+    public_raw_paths_cache = {}
+
+    public_raw = (req_url, res, cb) ->
+        # Determine if the requested path is public (and not too big).
+        # If so, send content to the client and cb(undefined, true)
+        # If not, cb(undefined, false)
+        # req_url = /9627b34f-fefd-44d3-88ba-5b1fc1affef1/raw/a.html
+        v = req_url.split('?')[0].split('/')
+        if v[2] != 'raw'
+            cb(undefined, false)
+            return
+        project_id = v[1]
+        if not misc.is_valid_uuid_string(project_id)
+            cb(undefined, false)
+            return
+        path = v.slice(3).join('/')
+        winston.debug("public_raw: project_id=#{project_id}, path=#{path}")
+        public_paths = undefined
+        is_public = false
+        async.series([
+            (cb) ->
+                # Get a list of public paths in the project, or use the cached list
+                # The cached list is cached for a few seconds, since a typical access
+                # pattern is that the client downloads a bunch of files from the same
+                # project in parallel.  On the other hand, we don't want to cache for
+                # too long, since the project user may add/remove public paths at any time.
+                public_paths = public_raw_paths_cache[project_id]
+                if public_paths?
+                    cb()
+                else
+                    database.get_public_paths
+                        project_id : project_id
+                        cb         : (err, paths) ->
+                            if err
+                                cb(err)
+                            else
+                                public_paths = public_raw_paths_cache[project_id] = paths
+                                setTimeout((()=>delete public_raw_paths_cache[project_id]), 15000)  # cache for 15s
+                                cb()
+            (cb) ->
+                if not misc.path_is_in_public_paths(path, public_paths)
+                    # The requested path is not public, so nothing to do.
+                    cb()
+                else
+                    # The requested path *is* public, so we get the file
+                    # from one (of the potentially many) compute servers
+                    # that has the file -- (right now this is implemented
+                    # via sending/receiving JSON messages and using base64
+                    # encoding, but that could change).
+                    project = bup_server.get_project(project_id)
+                    project.read_file
+                        path    : path
+                        maxsize : 20000000   # 20MB for now
+                        cb      : (err, data) ->
+                            if err
+                                cb(err)
+                            else
+                                res.write(data)
+                                res.end()
+                                is_public = true
+                                cb()
+            ], (err) ->
+                cb(err, is_public)
+        )
 
 
 #############################################################
@@ -1414,6 +1487,21 @@ class Client extends EventEmitter
 
     mesg_get_all_feedback_from_user: (mesg) =>
         get_all_feedback_from_user(mesg, @push_to_client, @account_id)
+
+    mesg_log_client_error: (mesg) =>
+        winston.debug("log_client_error: #{misc.to_json(mesg.error)}")
+        now = cass.now()
+        if not mesg.type?
+            mesg.type = "error"
+        database.update
+            table : 'client_error_log'
+            where :
+                type       : mesg.type
+                timestamp  : now
+            set   :
+                error      : mesg.error
+                account_id : @account_id
+            json : ['error']
 
     ######################################################
     # Messages: Project Management
@@ -2476,11 +2564,13 @@ class Client extends EventEmitter
                     return
                 project.read_file
                     path    : mesg.path
-                    maxsize : 5000000  # restrict to 5MB -- for now
+                    maxsize : 10000000  # restrict to 10MB -- for now
                     cb      : (err, data) =>
                         if err
                             @error_to_client(id:mesg.id, error:err)
                         else
+                            # since this is get_text_file
+                            data = data.toString('utf-8')
                             @push_to_client(message.public_text_file_contents(id:mesg.id, data:data))
 
 
@@ -3536,16 +3626,14 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             project_id   : required
             timeout      : 10
             cb           : required  # cb(err, socket)
-        socket = @_sockets[opts.session_uuid]
-        if socket?
-            opts.cb(false, socket)
-            return
 
         # We do not currently have an active open socket connection to this session.
         # We make a new socket connection to the local_hub, then
         # send a connect_to_session message, which will either
         # plug this socket into an existing session with the given session_uuid, or
         # create a new session with that uuid and plug this socket into it.
+
+        socket = undefined
         async.series([
             (cb) =>
                 @dbg("getting new socket connection to a local_hub")
@@ -3571,28 +3659,16 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     if resp.event == 'error'
                         cb(resp.error)
                     else
-                        # We will now only use this socket for binary communications.
-                        misc_node.disable_mesg(socket)
-                        socket.history = resp.history
-
-                        # Keep our own copy of the console history (in this global hub), so when clients (re-)connect
-                        # we do not have to get the whole history from the local hub.
-                        socket.on 'data', (data) =>
-                            # DO NOT Record in database that there was activity in this project, since
-                            # this is *way* too frequent -- a tmux session make it always on...
-                            # database.touch_project(project_id:opts.project_id)
-                            socket.history += data
-                            n = socket.history.length
-                            if n > 200000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
-                                # take last 100000 characters
-                                socket.history = socket.history.slice(socket.history.length-100000)
-
-                        socket.on 'end', () =>
-                            @dbg("console session #{opts.session_uuid} -- socket connection to local_hub closed")
-                            delete @_sockets[opts.session_uuid]
-
+                        if opts.type == 'console'
+                            # record the history, truncating in case the local_hub sent something really long (?)
+                            if resp.history?
+                                socket.history = resp.history.slice(resp.history.length - 100000)
+                            else
+                                socket.history = ''
+                            # Console -- we will now only use this socket for binary communications.
+                            misc_node.disable_mesg(socket)
                         cb()
-                socket.once 'mesg', f
+                socket.once('mesg', f)
                 timed_out = () =>
                     socket.removeListener('mesg', f)
                     socket.end()
@@ -3608,7 +3684,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 @_socket?.destroy()
                 delete @_status; delete @_socket
             else if socket?
-                @_sockets[opts.session_uuid] = socket
                 opts.cb(false, socket)
         )
 
@@ -3662,7 +3737,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 mesg = message.session_connected
                     session_uuid : opts.session_uuid
                     data_channel : channel
-                    history      : console_socket.history.slice(console_socket.history.length - 100000)   # only last 100,000
+                    history      : console_socket.history
+
+                delete console_socket.history  # free memory occupied by history, which we won't need again.
                 opts.cb(false, mesg)
 
                 # console --> client:
@@ -3671,7 +3748,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 console_socket.on 'data', (data) ->
                     # Never push more than 20000 characters at once to client, since display is slow, etc.
                     if data.length > 20000
-                        data = "[...]" + data.slice(data.length-20000)
+                        data = "[...]" + data.slice(data.length - 20000)
                     opts.client.push_data_to_client(channel, data)
 
 
@@ -4235,13 +4312,17 @@ sign_in_check = (opts) ->
         ip    : required
     s = sign_in_fails
     if s.email_m[email] > 3
-        return "A given email address is allowed at most 3 failed login attempts per minute."
+        # A given email address is allowed at most 3 failed login attempts per minute
+        return "Wait a minute, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
     if s.email_h[email] > 30
-        return "A given email address is allowed at most 30 failed login attempts per hour."
+        # A given email address is allowed at most 30 failed login attempts per hour.
+        return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
     if s.ip_m[ip] > 10
-        return "A given ip address is allowed at most 10 failed login attempts per minute."
+        # A given ip address is allowed at most 10 failed login attempts per minute.
+        return "Wait a minute, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
     if s.ip_h[ip] > 50
-        return "A given ip address is allowed at most 50 failed login attempts per hour."
+        # A given ip address is allowed at most 50 failed login attempts per hour.
+        return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
     return false
 
 sign_in = (client, mesg) =>
@@ -4300,7 +4381,7 @@ sign_in = (client, mesg) =>
                             ip_address    : client.ip_address
                             successful    : false
                             email_address : mesg.email_address
-                        sign_in_error("There is no account with email address #{mesg.email_address}.")
+                        sign_in_error("There is no SageMathCloud account with email address #{mesg.email_address}; if you are sure you have such an account (or a similar one), email help@sagemath.com, and we will help you sort this out.")
                         cb(true); return
                     if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
                         record_sign_in
@@ -4308,7 +4389,7 @@ sign_in = (client, mesg) =>
                             successful    : false
                             email_address : mesg.email_address
                             account_id    : account.account_id
-                        sign_in_error("Incorrect password.")
+                        sign_in_error("Incorrect password; please try resetting your password, and if that doesn't work email help@sagemath.com and we will help you sort this out.")
                         cb(true); return
                     else
                         signed_in_mesg = message.signed_in

@@ -435,11 +435,17 @@ margin-right: 2em;
 
                     <div class="col-sm-3">
                         <div class="input-group salvus-project-search-for-file-input-container">
-                            <input class="salvus-project-search-for-file-input search-query form-control" type="search" placeholder="Choose files...">
+                            <input class="salvus-project-search-for-file-input search-query form-control" type="search" placeholder="Filename">
                             <span class="input-group-btn">
-                                <button class="btn btn-default salvus-project-search-for-file-input-clear" type="button">
-                                    <i class="fa fa-times-circle"></i>
+                                <button class="btn btn-default salvus-project-search-for-file-input-clear" type="button"><i class="fa fa-times-circle"></i></button>
+                                <a class="btn btn-default" style="=" href="#smc-mini-new"><i class="fa fa-plus-circle"></i> New</a>
+                                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                                    <span class="caret"></span>
+                                    <span class="sr-only">Toggle Dropdown</span>
                                 </button>
+                                <ul class="dropdown-menu smc-mini-new-file-type-list" role="menu" style="max-height: 400px; overflow-y: auto;">
+                                </ul>
+
                             </span>
                         </div>
                         <div class="hide lighten salvus-project-search-describe">Showing <b><i>only</i></b> files that contain '<span></span>'.</div>
@@ -794,7 +800,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                 <br>
                                 <div class="row">
                                     <div class="lighten col-sm-12">
-                                        Not working?  <b><i>Immediately email me</i></b> (William Stein) at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>, and include the following URL:
+                                        Not working?  <b><i>Immediately email us</i></b>  at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a>, and include the following URL:
                                         <input class="form-control salvus-settings-url" style="margin-bottom: 5px;">
                                         Also, consider <a href="https://www.washington.edu/giving/make-a-gift/?page=make&code=SGEMCS" target="_blank">donating to the SageMathCloud Support Fund.</a>
                                     </div>
@@ -850,11 +856,12 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                         </li>
 
                                     </ul>
-                                </span>
-                                <span class="lighten"> Email <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a> if you need me to raise a quota (which is currently <b><i>free</i></b>).
+                                    <span class="lighten"> Email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> if you need me to raise a quota (which is currently <b><i>free</i></b>).
                                         Include the following URL in your email:
-                                        <input class="form-control salvus-settings-url" ></span>
+                                        <input class="form-control salvus-settings-url" >
                                     and consider <a href="https://www.washington.edu/giving/make-a-gift/?page=make&code=SGEMCS" target="_blank">donating to the SageMathCloud Support Fund.</a>
+                                    </span>
+                                </span>
                             </div>
                         </div>
 

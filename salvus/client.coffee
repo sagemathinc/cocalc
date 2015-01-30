@@ -2179,6 +2179,11 @@ class exports.Connection extends EventEmitter
                     opts.cb?(undefined, resp.path)
 
 
+    #################################################
+    # Bad situation error loging
+    #################################################
+    log_error: (error) =>
+        @call(message : message.log_client_error(error:error))
 
 #################################################
 # Other account Management functionality shared between client and server

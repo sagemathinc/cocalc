@@ -68,6 +68,12 @@ focus =
 
 current_account_page = null
 show_page = exports.show_page  = (p) ->
+    if p == "account-create_account"
+        $.get "/registration", (val, status) ->
+            if status == 'success'
+                obj = misc.from_json(val)
+                if obj.token  # registration token is required, so show the field
+                    $(".salvus-create_account-token").show()
     current_account_page = p
     for page, elt of focus
         if page == p
@@ -85,13 +91,6 @@ top_navbar.on "show_page_account", () ->
     $("##{focus[current_account_page]}").focus()
 
 $("a[href='#account-create_account']").click (event) ->
-    $.get "/registration", (val, status) ->
-        if status == 'success'
-            obj = misc.from_json(val)
-            if obj.token  # registration token is required, so show the field
-                $(".salvus-create_account-token").show()
-
-
     show_page("account-create_account")
     return false
 
@@ -256,12 +255,12 @@ $("#create_account-button").click (event) ->
         if elt[0].type == "checkbox"
             v = elt.is(":checked")
         else
-            v = elt.val()
+            v = elt.val().trim()
         opts[field] = v
 
     opts.cb = (error, mesg) ->
         if error
-            alert_message(type:"error", message: "There was an unexpected error trying to create a new account.  Please try again later.")
+            alert_message(type:"error", message: "There may have been an error creating your account (#{error}).  Please try again, and if that doesn't work, email help@sagemath.com.")
             return
         switch mesg.event
             when "account_creation_failed"
@@ -305,7 +304,7 @@ password_strength_meter = (input) ->
                     else
                         $.getScript("/static/zxcvbn/zxcvbn.js", cb)
                 (cb) ->
-                    result = zxcvbn(input.val(), ['sagemath','salvus','sage','sagemathcloud','smc','mathematica','pari'])  # explicitly ban some words.
+                    result = zxcvbn(input.val().trim(), ['sagemath','salvus','sage','sagemathcloud','smc','mathematica','pari'])  # explicitly ban some words.
                     display.find(".progress-bar").show().css("width", "#{13*(result.score+1)}%")
                     display.find("font").html(score[result.score])
                     cb()
@@ -334,13 +333,13 @@ sign_in = () ->
     $("#sign_in-email").focus()
 
     salvus_client.sign_in
-        email_address : $("#sign_in-email").val()
-        password      : $("#sign_in-password").val()
+        email_address : $("#sign_in-email").val().trim()
+        password      : $("#sign_in-password").val().trim()
         remember_me   : true
         cb            : (error, mesg) ->
             $("#sign_in-button").icon_spin()
             if error
-                alert_message(type:"error", message: "There was an unexpected error during sign in.  Please try again later. #{error}")
+                alert_message(type:"error", message: "There was an error signing you in (#{error}).  Please refresh your browser and try again; if that doesn't work, email help@sagemath.com.")
                 return
             switch mesg.event
                 when 'sign_in_failed'
@@ -754,7 +753,7 @@ $("a[href=#account-change_email_address]").click (event) ->
     return false
 
 close_change_email_address = () ->
-    change_email_address.modal('hide').find('input').val('')
+    change_email_address.modal('hide').find('input').val('').trim()
     change_email_address.find(".account-error-text").hide()
 
 # When click in the cancel button on the change email address
@@ -768,8 +767,8 @@ change_email_address.on("shown", () -> $("#account-change_email_new_address").fo
 # User clicked button to change the email address, so try to
 # change it.
 $("#account-change_email_address_button").click (event) ->
-    new_email_address = $("#account-change_email_new_address").val()
-    password = $("#account-change_email_password").val()
+    new_email_address = $("#account-change_email_new_address").val().trim()
+    password = $("#account-change_email_password").val().trim()
 
     $("#account-change_email_address_button").icon_spin(start:true)
     salvus_client.change_email
@@ -840,8 +839,8 @@ $("#account-change_password-button-submit").click (event) ->
         return
     salvus_client.change_password
         email_address : account_settings.settings.email_address
-        old_password  : $("#account-change_password-old_password").val()
-        new_password  : $("#account-change_password-new_password").val()
+        old_password  : $("#account-change_password-old_password").val().trim()
+        new_password  : $("#account-change_password-new_password").val().trim()
         cb : (error, mesg) ->
             if error
                 $("#account-change_password-error").html("Error communicating with server: #{error}")
@@ -885,11 +884,11 @@ $("#account-forgot_password-button-submit").click (event) ->
         email_address : email_address
         cb : (error, mesg) ->
             if error
-                alert_message(type:"error", message:"Error sending password reset message to #{email_address} -- #{mesg.error}")
+                alert_message(type:"error", message:"Error sending password reset message to #{email_address} (#{mesg.error}); write to help@sagemath.com for help.")
             else if mesg.error
-                alert_message(type:"error", message:"Error sending password reset message to #{email_address} -- #{mesg.error}")
+                alert_message(type:"error", message:"Error sending password reset message to #{email_address} (#{mesg.error}); write to help@sagemath.com for help.")
             else
-                alert_message(type:"info", message:"Password reset message sent to #{email_address}.")
+                alert_message(type:"info", message:"Password reset message sent to #{email_address}; if you don't receive it or have further trouble, write to help@sagemath.com.")
 
 
 #################################################################

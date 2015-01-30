@@ -1601,7 +1601,9 @@ message
 
 
 
-
+message
+    event : 'log_client_error'
+    error : required
 
 
 
