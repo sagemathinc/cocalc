@@ -666,7 +666,12 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                 <div class="well col-sm-12">
                     <div class="row">
                         <div class="col-sm-6">
-                            <div class="well salvus-project-settings-heading-well">
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <div class="panel-title">
+                                        Title and Description
+                                    </div>
+                                </div>
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <h5 style="margin-top:14px">
@@ -800,6 +805,18 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                     <div class="row">
                         <div class="col-sm-6">
                             <div class="well project-settings-static salvus-project-settings-heading-well">
+                                <div class="smc-upgrade-project">
+                                    <a href="#upgrade-project" class="btn btn-success pull-right" data-toggle="tooltip" data-placement="top" title="Upgrade this project ">
+                                        <i class="fa fa-star"> </i> Upgrade Project
+                                    </a>
+                                    <span class="smc-upgrade-project-free">This project is a free project. Upgrade it to get <a href="#upgrade-features">extra features</a>, including full network access. <span class="smc-upgrade-project-premium-quota hide">You are using <span class="smc-upgrade-project-used">...</span> out of <span class="smc-upgrade-project-available">...</span> premium projects. <span class="smc-upgrade-project-upgrade-plan">Upgrade your plan for more premium projects.</span></span></span>
+                                    <span class="smc-upgrade-project-premium hide">This is a premium project. <span class="smc-upgrade-project-downgrade hide">You can downgrade it if you want.
+                                        <a href="#downgrade-project" class="btn btn-danger pull-right" data-toggle="tooltip" data-placement="top" title="Upgrade this project ">
+                                            <i class="fa fa-star-o"> </i> Downgrade Project
+                                        </a>
+                                        </span>
+                                    </span>
+                                </div>
                                 <a class="btn btn-default btn-sm project-quota-edit hide pull-right"> <i class="fa fa-pencil"> </i> Edit</a>
                                 <h4><i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Quota</h4>
                                 <span class="project-disk_usage">
@@ -833,11 +850,11 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                         </li>
 
                                     </ul>
-                                    <span class="lighten"> Email <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a> if you need me to raise a quota (which is currently <b><i>free</i></b>).
+                                </span>
+                                <span class="lighten"> Email <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a> if you need me to raise a quota (which is currently <b><i>free</i></b>).
                                         Include the following URL in your email:
                                         <input class="form-control salvus-settings-url" ></span>
                                     and consider <a href="https://www.washington.edu/giving/make-a-gift/?page=make&code=SGEMCS" target="_blank">donating to the SageMathCloud Support Fund.</a>
-                                </span>
                             </div>
                         </div>
 
@@ -1110,4 +1127,40 @@ Recent Files (<span class="project-editor-file-count">0</span>)
 
 </div>
 
+<!-- Network access payment -->
+<div class="modal" id="projects-network-access-payment" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header hidden-xs">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h2><i class="fa fa-sitemap"> </i> Purchase Network Access</h2>
+                <div class="lighten">
+                    Get access to the rest of the internet for a month.
+                </div>
+            </div>
+            <div class="modal-body">
+                <!-- title -->
+                <div>
+                    <h4 class="hidden-xs">Title</h4>
+                    <input type="text" style="width:95%" placeholder="Title (you can easily change this later)" id="projects-create_project-title" class="form-control">
+                </div>
 
+                <!-- description -->
+                <div>
+                    <h4 class="hidden-xs">Description</h4>
+                    <input type="text" style="width:95%" placeholder="No description" id="projects-create_project-description" class="form-control">
+                </div>
+
+                <div>
+                    <span class="hidden-xs lighten">You can change the title and description at any time later.</span>
+                </div>
+
+            </div>
+            <!-- do it -->
+            <div class="modal-footer">
+                <button class="btn btn-default btn-md" id="projects-create_project-button-cancel">Cancel</button>
+                <button class="btn btn-primary btn-md" type="submit" id="projects-create_project-button-create_project">Create Project</button>
+            </div>
+        </div>
+    </div>
+</div>
