@@ -509,7 +509,8 @@ SAGE_PIP_PACKAGES = [
     'pint',     # units package: http://pint.readthedocs.org/en/0.6/
     'seaborn',
     'ipythonblocks',
-    'line_profiler'
+    'line_profiler',
+    'astropy'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -585,7 +586,8 @@ SAGE_OPTIONAL_PACKAGES = [
     'pyzmq',
     'qhull',
     'topcom',
-    'zeromq'
+    'zeromq',
+    '4ti2'
 ]
 
 ENTHOUGHT_PACKAGES = [
@@ -694,7 +696,7 @@ class BuildSage(object):
         self.install_quantlib()
         self.install_neuron()
         self.install_basemap()
-        self.install_4ti2()
+        #self.install_4ti2()   # no longer needed since 4ti2 sage optional package finally works again...
         self.install_pydelay()
         self.install_gdal()
         self.install_stein_watkins()
