@@ -153,11 +153,20 @@ class ProjectPage
             @init_current_path_info_button()
             @init_settings_url()
             @init_ssh_url_click()
+            @init_billing()
 
         # Show a warning if using SMC in devel mode. (no longer supported)
         if window.salvus_base_url != ""
             # TODO -- should use a better way to decide dev mode.
             @container.find(".salvus-project-id-warning").show()
+
+    init_billing: () =>
+        @container.find("a[href=#upgrade-project]").click () =>
+            @container.find(".smc-upgrade-via-email-message").show()
+            return false
+        @container.find("a[href=#upgrade-features]").click () =>
+            @container.find(".smc-upgrade-via-email-message").show()
+            return false
 
     activity_indicator: () =>
         top_navbar.activity_indicator(@project.project_id)

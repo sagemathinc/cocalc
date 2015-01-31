@@ -136,15 +136,16 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
         </div>
     </div>
 
-    <div class="row hide  salvus-mathjax-on-startup" id="account-create_account">
+    <div class="row hide" id="account-create_account">
         <div class="col-sm-6 ">
+            <!-- NOTE: not using mathjax on purpose here, since don't want landing page to update after load, which looks lame. -->
             <img src="favicon-128.png" width="64" height="64" class="img img-rounded">
-            <h2>Welcome to SageMathCloud™!</h2>
+            <h3>SageMathCloud™ is an open source web-based environment for using  Sage, IPython, R, LaTeX, a terminal, and much more  for mathematical research and teaching.</h3>
             <br class="hidden-xs">
 
             <ul class="hidden-xs">
                 <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-line-chart"></i>  <b>Mathematics software:</b> Use Sage, R, Octave, Python, Cython, GAP, Pari, Macaulay2, Singular, and more</li>
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-list-alt"></i>  <b>Interactive editing:</b> Collaboratively edit $\LaTeX$ documents, IPython notebooks and Sage worksheets</li>
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-list-alt"></i>  <b>Interactive editing:</b> Collaboratively edit LaTeX documents, IPython notebooks and Sage worksheets</li>
                 <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-file-code-o"></i>  <b>Programming:</b> Write, compile, and run code in most languages</li>
                 <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-tasks"></i>  <b>Organize:</b> Manage todo list with hashtags</li>
                 <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-graduation-cap"></i>  <b>Teach:</b> Organize teaching a course</li>
@@ -198,12 +199,6 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
     <div class="row indent1 hide col-sm-12 " id="account-settings">
 
 
-        <div class="pull-right" style="margin-bottom: 1em;">
-            <button class="btn btn-success btn-sm" type="submit" id="account-settings-change-settings-button"><i class="fa fa-save"> </i> Save</button>
-            <!--<button class="btn" id="account-settings-cancel-changes-button" style="margin-right:3em;">Cancel</button>-->
-            <a href="#sign-out" class="btn btn-primary btn-sm"><i class="fa fa-sign-out"> </i> Sign out</a>
-        </div>
-
         <div class="alert alert-d alert-warning alert-dismissable" id="account-settings-error">
             <button type="button" class="close" data-dismiss="alert">×</button>
             <i class="fa fa-info-circle"></i>
@@ -212,12 +207,80 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
         </div>
 
         <ul class="nav nav-tabs">
-            <li class="active"><a href="#account-settings-tab" data-toggle="tab">Settings</a></li>
+            <li class="active"><a href="#account-settings-tab" data-toggle="tab"><i class="fa fa-cog"></i> Settings</a></li>
+            <li class="hide"><a href="#billing-tab" id="billing-tab-button" data-toggle="tab" aria-controls="billing-tab"><i class="fa fa-credit-card"></i>   Billing</a></li>
             <!-- <li><a href="#account-info-tab" data-toggle="tab">Account info</a></li>-->
         </ul>
 
         <div class="tab-content">
+            <div class="tab-pane" id="billing-tab" aria-labelledBy="billing-tab-button">
+                <div class="row" style="height: 1000px;">  <!-- style is a stupid hack to ensure there is a scrollbar -->
+                    <div class=" panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Overview</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="row smc-billing-panel-row">
+                                <div class="col-sm-4 lighten">
+                                    Plan
+                                </div>
+                                <div class="col-sm-6">
+                                    <b>Free</b>
+                                </div>
+                                <div class="col-sm-2">
+                                    <b><a class="btn btn-default" href="#change-plan"><i class="fa fa-cog"></i> Change</a></b>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-4 lighten">
+                                    Payment Method
+                                </div>
+                                <div class="col-sm-6">
+                                    <b>None</b>
+                                </div>
+                                <div class="col-sm-2">
+                                    <b><a class="btn btn-default" href="#change-plan"><i class="fa fa-credit-card"></i> Change</a></b>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class=" panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Payment History</h3>
+                        </div>
+                        <div class="panel-body smc-billing-history-rows">
+                            <div class="row" style="font-weight:bold">
+                                <div class="col-sm-2">
+                                    Date
+                                </div>
+                                <div class="col-sm-2">
+                                    Plan
+                                </div>
+                                <div class="col-sm-2">
+                                    Method
+                                </div>
+                                <div class="col-sm-2">
+                                    Receipt
+                                </div>
+                                <div class="col-sm-2">
+                                    Amount
+                                </div>
+                                <div class="col-sm-2">
+                                    Status
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="tab-pane active" id="account-settings-tab">
+                <div class="pull-right" style="margin-bottom: 1em;">
+                    <button class="btn btn-success btn-sm" type="submit" id="account-settings-change-settings-button"><i class="fa fa-save"> </i> Save</button>
+                    <!--<button class="btn" id="account-settings-cancel-changes-button" style="margin-right:3em;">Cancel</button>-->
+                    <a href="#sign-out" class="btn btn-primary btn-sm"><i class="fa fa-sign-out"> </i> Sign out</a>
+                </div>
+
                 <div class="row">
                     <!-- TODO: this is a temporary warning/note -- settings *should* take effect immediately, and there should be no save/cancel button. -->
                     <span class="lighten">
@@ -225,550 +288,571 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                     </span>
                 </div>
                 <div class="row">
-                    <div class="well col-sm-6 " id="account-settings-account">
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <h3>Account</h3>
+                    <div class="col-sm-6">
+                        <div class="panel panel-default" id="account-settings-account">
+                            <div class="panel-heading">
+                                <div class="panel-title">
+                                    Account
+                                </div>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-4 ">First name</div>
-                            <div class="col-sm-8 "><input class="form-control" type="text" value="" id="account-settings-first_name"></div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-4 ">Last name</div>
-                            <div class="col-sm-8 "><input class="form-control" type="text" value="" id="account-settings-last_name"></div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-sm-4 ">Password</div>
-                            <div class="col-sm-8 ">
-                                <a href="#account-change_password">Change password</a><br>
-                                <a href="#account-forgot_password">Forgot password</a>
+                            <div class="panel-body">
+                                <div class="row">
+                                    <div class="col-sm-4 ">First name</div>
+                                    <div class="col-sm-8 "><input class="form-control" type="text" value="" id="account-settings-first_name"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-4 ">Last name</div>
+                                    <div class="col-sm-8 "><input class="form-control" type="text" value="" id="account-settings-last_name"></div>
+                                </div>
+                                <br>
+                                <div class="row">
+                                    <div class="col-sm-4 ">Password</div>
+                                    <div class="col-sm-8 ">
+                                        <a href="#account-change_password">Change password</a><br>
+                                        <a href="#account-forgot_password">Forgot password</a>
+                                    </div>
+                                </div>
+                                <br>
+                                <div class="row">
+                                    <div class="col-sm-4 ">Email</div>
+                                    <div class="col-sm-8 "><span id="account-settings-email_address"></span> (<a href="#account-change_email_address">change</a>)</div>
+                                </div>
                             </div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-sm-4 ">Email</div>
-                            <div class="col-sm-8 "><span id="account-settings-email_address"></span> (<a href="#account-change_email_address">change</a>)</div>
-                        </div>
+                         </div>
                     </div>
 
 
+                    <div class="col-sm-6">
+                        <div class="panel panel-default" id="account-settings-terminal">
+                            <div class="panel-heading">
+                                <div class="panel-title ">
+                                    Terminal
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="row">
+                                    <div class="col-sm-3 " rel="tooltip" title="The default font size for terminals.">
+                                        Font size (px)
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        <input class="account-settings-terminal-font_size form-control" type="text">
+                                    </div>
+                                    <div class="col-sm-6 ">
+                                        <div class="account-settings-terminal-font_size-slider"></div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-3 " rel="tooltip" title="The font for terminals.">
+                                        Font family
+                                    </div>
+                                    <div class="col-sm-9 ">
+                                        <select class="account-settings-terminal-font form-control">
+                                            <option value="droid-sans-mono">Droid Sans Mono</option>
+                                            <option value="Courier New">Courier New</option>
+                                            <option value="monospace">Monospace (browser default)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-3 " rel="tooltip" title="The color scheme for terminals.">
+                                        Color scheme
+                                    </div>
+                                    <div class="col-sm-9 ">
+                                        <select class="account-settings-terminal-color_scheme form-control">
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
 
-                    <div class="well col-sm-6 " id="account-settings-terminal">
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <h3>Terminal</h3>
-                            </div>
                         </div>
-                        <div class="row">
-                            <div class="col-sm-3 " rel="tooltip" title="The default font size for terminals.">
-                                Font size (px)
-                            </div>
-                            <div class="col-sm-3 ">
-                                <input class="account-settings-terminal-font_size form-control" type="text">
-                            </div>
-                            <div class="col-sm-6 ">
-                                <div class="account-settings-terminal-font_size-slider"></div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-3 " rel="tooltip" title="The font for terminals.">
-                                Font family
-                            </div>
-                            <div class="col-sm-9 ">
-                                <select class="account-settings-terminal-font form-control">
-                                    <option value="droid-sans-mono">Droid Sans Mono</option>
-                                    <option value="Courier New">Courier New</option>
-                                    <option value="monospace">Monospace (browser default)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-3 " rel="tooltip" title="The color scheme for terminals.">
-                                Color scheme
-                            </div>
-                            <div class="col-sm-9 ">
-                                <select class="account-settings-terminal-color_scheme form-control">
-                                </select>
-                            </div>
-                        </div>
-
                     </div>
 
                 </div>
                 <div class="row">
 
-                    <div class="well col-sm-6 " id="account-settings-editor_settings">
-                        <div class="row">
-                            <div class="col-sm-6 ">
-                                <h3>Editor</h3>
+                    <div class="col-sm-6">
+                        <div class="panel panel-default" id="account-settings-editor_settings">
+                            <div class="panel-heading">
+                                <div class="panel-title">
+                                    Editor
+                                </div>
                             </div>
-                        </div>
+                            <div class="panel-body">
+
+                                <div class="hide col-sm-2 " rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
+                                <div class="hide col-sm-4 ">
+                                    <select id="account-settings-default_system">
+                                        <option value="sage">Sage</option>
+                                        <option value="python">Python</option>
+                                        <option value="gp">Pari/GP</option>
+                                        <option value="maxima">Maxima</option>
+                                        <option value="gap">GAP</option>
+                                    </select>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-4 " rel="tooltip" title="Your files will be automatically saved to disk every autosave seconds.  Past versions of files are retained, so you can undo a save. Set autosave to 0 to disable.">
+                                        Autosave seconds
+                                    </div>
+                                    <div class="col-sm-2 ">
+                                        <input id="account-settings-autosave" type="text" class="form-control">
+                                    </div>
+                                    <div class="col-sm-6 ">
+                                        <div class="account-settings-autosave-slider"></div>
+                                    </div>
+                                </div>
+
+                                <div class="row hide">
+                                    <div class="col-sm-4 " rel="tooltip" title="The default font size for editor.">
+                                        Font size (px)
+                                    </div>
+                                    <div class="col-sm-1 ">
+                                        <input class="account-settings-editor-font_size form-control" type="text">
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        <div class="account-settings-editor-font_size-slider"></div>
+                                    </div>
+                                </div>
+
+                                <div class="row hide">
+                                    <div class="col-sm-2 " rel="tooltip" title="How many spaces a block (whatever that means in the edited language) should be indented.">
+                                        Indent spaces
+                                    </div>
+                                    <div class="col-sm-1 ">
+                                        <input class="account-settings-editor-indent_unit  form-control" type="text">
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        <div class="account-settings-editor-indent_unit-slider"></div>
+                                    </div>
+                                </div>
+
+                                <div class="row hide">
+                                    <div class="col-sm-2 " rel="tooltip" title="The default font for text editors.">
+                                        Font family
+                                    </div>
+                                    <div class="col-sm-4 ">
+                                        <select class="account-settings-editor-font">
+                                            <option value="droid-sans-mono">Droid Sans Mono</option>
+                                            <option value="Courier New">Courier New</option>
+                                            <option value="monospace">Monospace (browser default)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-4 " rel="tooltip" title="The default theme for newly opened text editors and worksheets.">
+                                        Theme (<a href="http://codemirror.net/demo/theme.html" target="_blank">previews</a>)
+                                    </div>
+                                    <div class="col-sm-6 ">
+                                        <select class="account-settings-editor-color_scheme form-control">
+                                            <option value="default">Default</option>
+                                            <option value="3024-day">3024 day</option>
+                                            <option value="3024-night">3024 night</option>
+                                            <option value="ambiance-mobile">Ambiance mobile</option>
+                                            <option value="ambiance">Ambiance</option>
+                                            <option value="base16-dark">Base 16 dark</option>
+                                            <option value="base16-light">Base 16 light</option>
+                                            <option value="blackboard">Blackboard</option>
+                                            <option value="cobalt">Cobalt</option>
+                                            <option value="eclipse">Eclipse</option>
+                                            <option value="elegant">Elegant</option>
+                                            <option value="erlang-dark">Erlang dark</option>
+                                            <option value="lesser-dark">Lesser dark</option>
+                                            <option value="the-matrix">The Matrix</option>
+                                            <option value="midnight">Midnight</option>
+                                            <option value="monokai">Monokai</option>
+                                            <option value="neat">Neat</option>
+                                            <option value="night">Night</option>
+                                            <option value="paraiso-dark">Paraiso dark</option>
+                                            <option value="paraiso-light">Paraiso light</option>
+                                            <!--<option value="pastel-on-dark">Pastel on dark</option>-->
+                                            <option value="rubyblue">Rubyblue</option>
+                                            <option value="solarized dark">Solarized dark</option>
+                                            <option value="solarized light">Solarized light</option>
+                                            <option value="tomorrow-night-eighties">Tomorrow Night - Eighties</option>
+                                            <option value="twilight">Twilight</option>
+                                            <option value="vibrant-ink">Vibrant ink</option>
+                                            <option value="xq-dark">Xq dark</option>
+                                            <option value="xq-light">Xq light</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-4 " rel="tooltip" title="Set the keyboard bindings">Bindings</div>
+                                    <div class="col-sm-6 ">
+                                        <select class="account-settings-editor-bindings form-control">
+                                            <option value="standard">Standard</option>
+                                            <option value="sublime">Sublime</option>
+                                            <option value="vim">Vim</option>
+                                            <option value="emacs">Emacs</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="Whether to scroll or wrap for long lines.">
+                                            <input type="checkbox" checked="checked" class="account-settings-line_wrapping" rel="tooltip">Line wrapping: <span class="lighten">scroll or wrap long lines</span>
+                                        </label></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="Show line numbers to the left of the editor">
+                                            <input type="checkbox" checked="checked" class="account-settings-line_numbers" rel="tooltip">Line numbers:
+                                            <span class="lighten">show line numbers</span>
+                                        </label></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="Fold/unfold selected blocks of code">
+                                            <input type="checkbox" checked="checked" class="account-settings-code_folding" rel="tooltip">Code folding:
+                                            <span class="lighten">fold code using ⌃Q</span>
+                                        </label></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="Whether to use the context sensitive indentation that the mode provides (or just indent the same as the line before).">
+                                            <input type="checkbox" checked="checked" class="account-settings-smart_indent">Smart indent:
+                                            <span class="lighten">context sensitive indentation</span>
+                                        </label></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should reindent the current line when a character is typed that might change its proper indentation (only works if the mode supports indentation).">
+                                            <input type="checkbox" checked="checked" class="account-settings-electric_chars">Electric characters:
+                                            <span class="lighten">sometimes reindent current line</span>
+                                        </label></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should visually indicate matching brackets.">
+                                            <input type="checkbox" checked="checked" class="account-settings-match_brackets">Match brackets:
+                                            <span class="lighten">highlight matching brackets near cursor</span>
+                                        </label></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically add the closing bracket.">
+                                            <input type="checkbox" checked="checked" class="account-settings-auto_close_brackets">Auto brackets:
+                                            <span class="lighten">automatically close brackets</span>
+                                        </label></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically highlight and match tags in xml modes.">
+                                            <input type="checkbox" checked="checked" class="account-settings-match_xml_tags">Match XML tags:
+                                            <span class="lighten">automatically match XML tags</span>
+                                        </label></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically add the closing tags in xml modes.">
+                                            <input type="checkbox" checked="checked" class="account-settings-auto_close_xml_tags">Auto XML tags:
+                                            <span class="lighten">automatically close XML tags</span>
+                                        </label></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="If checked, trailing whitespace will be stripped from files when they are saved.">
+                                            <input type="checkbox" checked="checked" class="account-settings-strip_trailing_whitespace">Delete trailing whitespace:
+                                            <span class="lighten">remove whenever file is saved</span>
+                                        </label></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="Show trailing whitespace at the ends of lines.">
+                                            <input type="checkbox" checked="checked" class="account-settings-show_trailing_whitespace">Show trailing whitespace:
+                                            <span class="lighten">show spaces at ends of lines</span>
+                                        </label></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="If checked, pressing tab inserts four spaces instead of a tab character.">
+                                            <input type="checkbox" checked="checked" class="account-settings-spaces_instead_of_tabs">Spaces instead of tabs:
+                                            <span class="lighten">send 4 spaces when the tab key is pressed</span>
+                                        </label></div>
+                                    </div>
+                                </div>
+
+                               <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="If checked, the revision history of your files will be tracked from now on.">
+                                            <input type="checkbox" checked="checked" class="account-settings-track_revisions">Track revisions:
+                                            <span class="lighten">record the changes you make on a file</span>
+                                            </label></div>
+                                    </div>
+                                </div>
+
+                               <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="If checked, some editors will provide an extra button bar.">
+                                            <input type="checkbox" checked="checked" class="account-settings-extra_button_bar">Extra button bar:
+                                            <span class="lighten">more editing functions (mainly in Sage worksheets)</span>
+                                            </label></div>
+                                    </div>
+                                </div>
 
 
-                        <div class="hide col-sm-2 " rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
-                        <div class="hide col-sm-4 ">
-                            <select id="account-settings-default_system">
-                                <option value="sage">Sage</option>
-                                <option value="python">Python</option>
-                                <option value="gp">Pari/GP</option>
-                                <option value="maxima">Maxima</option>
-                                <option value="gap">GAP</option>
-                            </select>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-4 " rel="tooltip" title="Your files will be automatically saved to disk every autosave seconds.  Past versions of files are retained, so you can undo a save. Set autosave to 0 to disable.">
-                                Autosave seconds
-                            </div>
-                            <div class="col-sm-2 ">
-                                <input id="account-settings-autosave" type="text" class="form-control">
-                            </div>
-                            <div class="col-sm-6 ">
-                                <div class="account-settings-autosave-slider"></div>
-                            </div>
-                        </div>
-
-                        <div class="row hide">
-                            <div class="col-sm-4 " rel="tooltip" title="The default font size for editor.">
-                                Font size (px)
-                            </div>
-                            <div class="col-sm-1 ">
-                                <input class="account-settings-editor-font_size form-control" type="text">
-                            </div>
-                            <div class="col-sm-3 ">
-                                <div class="account-settings-editor-font_size-slider"></div>
-                            </div>
-                        </div>
-
-                        <div class="row hide">
-                            <div class="col-sm-2 " rel="tooltip" title="How many spaces a block (whatever that means in the edited language) should be indented.">
-                                Indent spaces
-                            </div>
-                            <div class="col-sm-1 ">
-                                <input class="account-settings-editor-indent_unit  form-control" type="text">
-                            </div>
-                            <div class="col-sm-3 ">
-                                <div class="account-settings-editor-indent_unit-slider"></div>
-                            </div>
-                        </div>
-
-                        <div class="row hide">
-                            <div class="col-sm-2 " rel="tooltip" title="The default font for text editors.">
-                                Font family
-                            </div>
-                            <div class="col-sm-4 ">
-                                <select class="account-settings-editor-font">
-                                    <option value="droid-sans-mono">Droid Sans Mono</option>
-                                    <option value="Courier New">Courier New</option>
-                                    <option value="monospace">Monospace (browser default)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-4 " rel="tooltip" title="The default theme for newly opened text editors and worksheets.">
-                                Theme (<a href="http://codemirror.net/demo/theme.html" target="_blank">previews</a>)
-                            </div>
-                            <div class="col-sm-6 ">
-                                <select class="account-settings-editor-color_scheme form-control">
-                                    <option value="default">Default</option>
-                                    <option value="3024-day">3024 day</option>
-                                    <option value="3024-night">3024 night</option>
-                                    <option value="ambiance-mobile">Ambiance mobile</option>
-                                    <option value="ambiance">Ambiance</option>
-                                    <option value="base16-dark">Base 16 dark</option>
-                                    <option value="base16-light">Base 16 light</option>
-                                    <option value="blackboard">Blackboard</option>
-                                    <option value="cobalt">Cobalt</option>
-                                    <option value="eclipse">Eclipse</option>
-                                    <option value="elegant">Elegant</option>
-                                    <option value="erlang-dark">Erlang dark</option>
-                                    <option value="lesser-dark">Lesser dark</option>
-                                    <option value="the-matrix">The Matrix</option>
-                                    <option value="midnight">Midnight</option>
-                                    <option value="monokai">Monokai</option>
-                                    <option value="neat">Neat</option>
-                                    <option value="night">Night</option>
-                                    <option value="paraiso-dark">Paraiso dark</option>
-                                    <option value="paraiso-light">Paraiso light</option>
-                                    <!--<option value="pastel-on-dark">Pastel on dark</option>-->
-                                    <option value="rubyblue">Rubyblue</option>
-                                    <option value="solarized dark">Solarized dark</option>
-                                    <option value="solarized light">Solarized light</option>
-                                    <option value="tomorrow-night-eighties">Tomorrow Night - Eighties</option>
-                                    <option value="twilight">Twilight</option>
-                                    <option value="vibrant-ink">Vibrant ink</option>
-                                    <option value="xq-dark">Xq dark</option>
-                                    <option value="xq-light">Xq light</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-4 " rel="tooltip" title="Set the keyboard bindings">Bindings</div>
-                            <div class="col-sm-6 ">
-                                <select class="account-settings-editor-bindings form-control">
-                                    <option value="standard">Standard</option>
-                                    <option value="sublime">Sublime</option>
-                                    <option value="vim">Vim</option>
-                                    <option value="emacs">Emacs</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="Whether to scroll or wrap for long lines.">
-                                    <input type="checkbox" checked="checked" class="account-settings-line_wrapping" rel="tooltip">Line wrapping: <span class="lighten">scroll or wrap long lines</span>
-                                </label></div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="Show line numbers to the left of the editor">
-                                    <input type="checkbox" checked="checked" class="account-settings-line_numbers" rel="tooltip">Line numbers:
-                                    <span class="lighten">show line numbers</span>
-                                </label></div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="Fold/unfold selected blocks of code">
-                                    <input type="checkbox" checked="checked" class="account-settings-code_folding" rel="tooltip">Code folding:
-                                    <span class="lighten">fold code using ⌃Q</span>
-                                </label></div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="Whether to use the context sensitive indentation that the mode provides (or just indent the same as the line before).">
-                                    <input type="checkbox" checked="checked" class="account-settings-smart_indent">Smart indent:
-                                    <span class="lighten">context sensitive indentation</span>
-                                </label></div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should reindent the current line when a character is typed that might change its proper indentation (only works if the mode supports indentation).">
-                                    <input type="checkbox" checked="checked" class="account-settings-electric_chars">Electric characters:
-                                    <span class="lighten">sometimes reindent current line</span>
-                                </label></div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should visually indicate matching brackets.">
-                                    <input type="checkbox" checked="checked" class="account-settings-match_brackets">Match brackets:
-                                    <span class="lighten">highlight matching brackets near cursor</span>
-                                </label></div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically add the closing bracket.">
-                                    <input type="checkbox" checked="checked" class="account-settings-auto_close_brackets">Auto brackets:
-                                    <span class="lighten">automatically close brackets</span>
-                                </label></div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically highlight and match tags in xml modes.">
-                                    <input type="checkbox" checked="checked" class="account-settings-match_xml_tags">Match XML tags:
-                                    <span class="lighten">automatically match XML tags</span>
-                                </label></div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically add the closing tags in xml modes.">
-                                    <input type="checkbox" checked="checked" class="account-settings-auto_close_xml_tags">Auto XML tags:
-                                    <span class="lighten">automatically close XML tags</span>
-                                </label></div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="If checked, trailing whitespace will be stripped from files when they are saved.">
-                                    <input type="checkbox" checked="checked" class="account-settings-strip_trailing_whitespace">Delete trailing whitespace:
-                                    <span class="lighten">remove whenever file is saved</span>
-                                </label></div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="Show trailing whitespace at the ends of lines.">
-                                    <input type="checkbox" checked="checked" class="account-settings-show_trailing_whitespace">Show trailing whitespace:
-                                    <span class="lighten">show spaces at ends of lines</span>
-                                </label></div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="If checked, pressing tab inserts four spaces instead of a tab character.">
-                                    <input type="checkbox" checked="checked" class="account-settings-spaces_instead_of_tabs">Spaces instead of tabs:
-                                    <span class="lighten">send 4 spaces when the tab key is pressed</span>
-                                </label></div>
-                            </div>
-                        </div>
-
-                       <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="If checked, the revision history of your files will be tracked from now on.">
-                                    <input type="checkbox" checked="checked" class="account-settings-track_revisions">Track revisions:
-                                    <span class="lighten">record the changes you make on a file</span>
-                                    </label></div>
-                            </div>
-                        </div>
-
-                       <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="If checked, some editors will provide an extra button bar.">
-                                    <input type="checkbox" checked="checked" class="account-settings-extra_button_bar">Extra button bar:
-                                    <span class="lighten">more editing functions (mainly in Sage worksheets)</span>
-                                    </label></div>
-                            </div>
-                        </div>
-
-
-                        <hr>
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <!-- move this to a help dialog accessible from the editor -->
-                                <h4 class="lighten">Hints</h4>
-                                <ul>
-                                    <li> Multiple cursors:
-                                        <span class="lighten">control+click in several places to create multiple cursors (command+click on Mac)</span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-
-
-                    <div class="well col-sm-6 " id="account-settings-keyboard">
-                        <div class="row">
-                            <div class="col-sm-6 ">
-                                <h3>Keyboard</h3>
-                            </div>
-                        </div>
-
-
-                        <div class="row">
-                            <div class="col-sm-6 ">Next file tab</div>
-                            <div class="col-sm-3 ">
-                                ⌃]
-                            </div>
-                            <div class="col-sm-3 ">
-                                control+]
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-6 ">Previous file tab</div>
-                            <div class="col-sm-3 ">
-                                ⌃[
-                            </div>
-                            <div class="col-sm-3 ">
-                                control+[
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-6 ">Smaller text</div>
-                            <div class="col-sm-3 ">
-                                ⌃&lt;
-                            </div>
-                            <div class="col-sm-3 ">
-                                control+&lt;
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-6 ">Bigger text</div>
-                            <div class="col-sm-3 ">
-                                ⌃&gt;
-                            </div>
-                            <div class="col-sm-3 ">
-                                control+&gt;
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-6 ">Go to line</div>
-                            <div class="col-sm-3 ">
-                                ⌃L <span class="salvus-apple hide">or ⌘l</span>
-                            </div>
-                            <div class="col-sm-3 ">
-                                control+L <span class="salvus-apple hide">or command+L</span>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-6 ">Fold/unfold selected code</div>
-                            <div class="col-sm-3 ">
-                                ⌃Q
-                            </div>
-                            <div class="col-sm-3 ">
-                                control+Q
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-6 ">Shift selected text right</div>
-                            <div class="col-sm-3 ">
-                                ⇥
-                            </div>
-                            <div class="col-sm-3 ">
-                                tab
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-6 ">Shift selected text left</div>
-                            <div class="col-sm-3 ">
-                               ⇧⇥
-                            </div>
-                            <div class="col-sm-3 ">
-                                shift+tab
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-6 ">Split view in any editor</div>
-                            <div class="col-sm-3 ">
-                               ⌃I <span class="salvus-apple hide">or ⌘I</span>
-                            </div>
-                            <div class="col-sm-3 ">
-                                control+I <span class="salvus-apple hide">or command+I</span>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-6 ">Autoindent selection</div>
-                            <div class="col-sm-3 ">
-                                ⌃'
-                            </div>
-                            <div class="col-sm-3 ">
-                               control+'
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-6 ">Simple autocomplete (any language)</div>
-                            <div class="col-sm-3 ">
-                               ⌃␣
-                            </div>
-                            <div class="col-sm-3 ">
-                                control+space
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-6 ">Sage worksheet autocomplete</div>
-                            <div class="col-sm-3 ">
-                               ⇥
-                            </div>
-                            <div class="col-sm-3 ">
-                                tab
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-6 ">Split cell in Sage worksheet</div>
-                            <div class="col-sm-3 ">
-                               ⌃; <span class="salvus-apple hide">or ⌘;</span>
-                            </div>
-                            <div class="col-sm-3 ">
-                                control+; <span class="salvus-apple hide">or command+;</span>
-                            </div>
-                        </div>
-
-
-                        <div class="row">
-                            <div class="col-sm-6 " rel="tooltip" title="Set which key combination causes code to be evaluated (only applies to newly opened worksheets).">Sage Worksheet evaluate key</div>
-                            <div class="col-sm-6 ">
-                                <select id="account-settings-evaluate_key" class="form-control">
-                                    <option value="Shift-Enter">shift+enter</option>
-                                    <option value="Enter">enter (shift+enter for newline)</option>
-                                </select>
-                                <br><span class="lighten"></span>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <div class="well col-sm-6 " id="account-settings-other_settings">
-                        <div class="row">
-                            <div class="col-sm-6 ">
-                                <h3>Other</h3>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-6 " style="padding-top: 1ex;" rel="tooltip" title="Set how files are sorted by default">Sort files by default by</div>
-                            <div class="col-sm-6 ">
-                                <select class="form-control account-settings-other_settings-default_file_sort">
-                                    <option value="filename">Filename (alphabetical)</option>
-                                    <option value="time">Time (most recent first)</option>
-                                </select>
-                                <br><span class="lighten"></span>
-                            </div>
-                        </div>
-
-
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="Ask for confirmation before closing the SageMathCloud window.">
-                                    <input type="checkbox" class="account-settings-other_settings-confirm_close">Confirm:
-                                    <span class="lighten">always ask for confirmation before closing the browser window (except on mobile)</span>
-                                </label></div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <div class="checkbox"><label class="" rel="tooltip" title="Grey-out compiled and hidden files in the files tab.">
-                                    <input type="checkbox" class="account-settings-other_settings-mask_files">Mask Files:
-                                    <span class="lighten">grey-out files in the files viewer that you probably don't want to open.</span>
-                                </label></div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <!-- move this to a help dialog accessible from the editor -->
+                                        <h4 class="lighten">Hints</h4>
+                                        <ul>
+                                            <li> Multiple cursors:
+                                                <span class="lighten">control+click in several places to create multiple cursors (command+click on Mac)</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="well col-sm-6 hide" id="account-settings-admin-settings">
-                        <div class="row">
-                            <div class="col-sm-12 ">
-                                <h3>Administrative/Server Settings</h3>
+
+
+                    <div class="col-sm-6">
+                        <div class="panel panel-default" id="account-settings-keyboard">
+                            <div class="panel-heading">
+                                <div class="panel-title">
+                                    Keyboard
+                                </div>
+                            </div>
+
+
+                            <div class="panel-body">
+                                <div class="row">
+                                    <div class="col-sm-6 ">Next file tab</div>
+                                    <div class="col-sm-3 ">
+                                        ⌃]
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        control+]
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-6 ">Previous file tab</div>
+                                    <div class="col-sm-3 ">
+                                        ⌃[
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        control+[
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-6 ">Smaller text</div>
+                                    <div class="col-sm-3 ">
+                                        ⌃&lt;
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        control+&lt;
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-6 ">Bigger text</div>
+                                    <div class="col-sm-3 ">
+                                        ⌃&gt;
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        control+&gt;
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-6 ">Go to line</div>
+                                    <div class="col-sm-3 ">
+                                        ⌃L <span class="salvus-apple hide">or ⌘l</span>
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        control+L <span class="salvus-apple hide">or command+L</span>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-6 ">Fold/unfold selected code</div>
+                                    <div class="col-sm-3 ">
+                                        ⌃Q
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        control+Q
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-6 ">Shift selected text right</div>
+                                    <div class="col-sm-3 ">
+                                        ⇥
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        tab
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-6 ">Shift selected text left</div>
+                                    <div class="col-sm-3 ">
+                                       ⇧⇥
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        shift+tab
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-6 ">Split view in any editor</div>
+                                    <div class="col-sm-3 ">
+                                       ⌃I <span class="salvus-apple hide">or ⌘I</span>
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        control+I <span class="salvus-apple hide">or command+I</span>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-6 ">Autoindent selection</div>
+                                    <div class="col-sm-3 ">
+                                        ⌃'
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                       control+'
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-6 ">Simple autocomplete (any language)</div>
+                                    <div class="col-sm-3 ">
+                                       ⌃␣
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        control+space
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-6 ">Sage worksheet autocomplete</div>
+                                    <div class="col-sm-3 ">
+                                       ⇥
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        tab
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-6 ">Split cell in Sage worksheet</div>
+                                    <div class="col-sm-3 ">
+                                       ⌃; <span class="salvus-apple hide">or ⌘;</span>
+                                    </div>
+                                    <div class="col-sm-3 ">
+                                        control+; <span class="salvus-apple hide">or command+;</span>
+                                    </div>
+                                </div>
+
+
+                                <div class="row">
+                                    <div class="col-sm-6 " rel="tooltip" title="Set which key combination causes code to be evaluated (only applies to newly opened worksheets).">Sage Worksheet evaluate key</div>
+                                    <div class="col-sm-6 ">
+                                        <select id="account-settings-evaluate_key" class="form-control">
+                                            <option value="Shift-Enter">shift+enter</option>
+                                            <option value="Enter">enter (shift+enter for newline)</option>
+                                        </select>
+                                        <br><span class="lighten"></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
+                    </div>
 
-                        <div class="row">
-                            <div class="col-sm-12">Secret Account Creation Token: <span class="lighten">users must know this to create an account</span></div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-3">
-                                <a class="btn btn-default" href="#edit-account_creation-token">Edit Token</a>
-                                <a class="btn btn-success hide" href="#save-account_creation-token">Save Token</a>
+                    <div class="col-sm-6">
+                        <div class="panel panel-default" id="account-settings-other_settings">
+                            <div class="panel-heading">
+                                <div class="panel-title">
+                                    Other
+                                </div>
                             </div>
-                            <div class="col-sm-9">
-                                <input class="form-control hide" type="text" value="" id="admin-settings-account_creation-token">
+
+                            <div class="panel-body">
+                                <div class="row">
+                                    <div class="col-sm-6 " style="padding-top: 1ex;" rel="tooltip" title="Set how files are sorted by default">Sort files by default by</div>
+                                    <div class="col-sm-6 ">
+                                        <select class="form-control account-settings-other_settings-default_file_sort">
+                                            <option value="filename">Filename (alphabetical)</option>
+                                            <option value="time">Time (most recent first)</option>
+                                        </select>
+                                        <br><span class="lighten"></span>
+                                    </div>
+                                </div>
+
+
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="Ask for confirmation before closing the SageMathCloud window.">
+                                            <input type="checkbox" class="account-settings-other_settings-confirm_close">Confirm:
+                                            <span class="lighten">always ask for confirmation before closing the browser window (except on mobile)</span>
+                                        </label></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <div class="checkbox"><label class="" rel="tooltip" title="Grey-out compiled and hidden files in the files tab.">
+                                            <input type="checkbox" class="account-settings-other_settings-mask_files">Mask Files:
+                                            <span class="lighten">grey-out files in the files viewer that you probably don't want to open.</span>
+                                        </label></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
+                    <div class="col-sm-6">
+                        <div class="panel panel-default hide" id="account-settings-admin-settings">
+                            <div class="panel-heading">
+                                <div class="panel-title">
+                                    Administrative/Server Settings
+                                </div>
+                            </div>
+
+                            <div class="panel-body">
+                                <div class="row">
+                                    <div class="col-sm-12">Secret Account Creation Token: <span class="lighten">users must know this to create an account</span></div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <a class="btn btn-default" href="#edit-account_creation-token">Edit Token</a>
+                                        <a class="btn btn-success hide" href="#save-account_creation-token">Save Token</a>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        <input class="form-control hide" type="text" value="" id="admin-settings-account_creation-token">
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
                 </div>
 
 
@@ -953,6 +1037,23 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                 <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password_reset-button-submit">Change password</button>
                 <button class="btn btn-default" data-dismiss="modal" id="account-forgot_password_reset-button-cancel">Cancel</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="smc-templates hide">
+    <div class="row smc-billing-history-row">
+        <div class="col-sm-2 smc-billing-history-entry-date">
+        </div>
+        <div class="col-sm-2 smc-billing-history-entry-plan">
+        </div>
+        <div class="col-sm-2 smc-billing-history-entry-method">
+        </div>
+        <div class="col-sm-2 smc-billing-history-entry-receipt">
+        </div>
+        <div class="col-sm-2 smc-billing-history-entry-amount">
+        </div>
+        <div class="col-sm-2 smc-billing-history-entry-status">
         </div>
     </div>
 </div>
