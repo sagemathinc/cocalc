@@ -5313,6 +5313,12 @@ class HTML_MD_Editor extends FileEditor
             throw "file must have extension md or html or rst or wiki or tex"
 
         @disable_preview = @local_storage("disable_preview")
+        if not @disable_preview? and @opts.mode == 'htmlmixed'
+            # Default the preview to be disabled for html, but enabled for everything else.
+            # This is mainly because when editing the SMC source itself, the previews break
+            # everything by emding SMC's own code in the DOM.  However, it is probably a
+            # reasonable default more generally.
+            @disable_preview = true
 
         @element = templates.find(".salvus-editor-html-md").clone()
 
