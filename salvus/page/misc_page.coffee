@@ -447,7 +447,7 @@ exports.define_codemirror_extensions = () ->
                 # find environment close
                 environ = get_latex_environ(line.slice(BEGIN.length))
                 if not environ?
-                    return
+                    return [undefined, undefined]
                 # find environment close
                 END   = "\\end"
                 level = 0
