@@ -48,8 +48,8 @@ conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
 # kvm -- via libvirt
 ###########################################
 
-qemu="system" 
-# qemu="session" 
+qemu="system"
+# qemu="session"
 
 def virsh(command, name):
     return run(['virsh', '--connect', 'qemu:///%s'%qemu, command, name], verbose=False, maxtime=600).strip()
@@ -108,9 +108,19 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
             log.info("virsh shutdown '%s'"%hostname)
             log.info(virsh('shutdown', hostname))
         except: pass
+        time.sleep(30) # give it at least 30 seconds to actually shut down.
         try:
             log.info("virsh destroy '%s'"%hostname)
-            log.info(virsh('destroy', hostname))
+            a = virsh('destroy', hostname)
+            log.info(a)
+        except:
+            pass
+        try:
+            i = a.index('Failed to terminate process')
+            if i != -1:
+                log.info("couldn't destroy -- trying to kill directly")
+                pid = a[i+len('Failed to terminate process'):].strip().split()[0]
+                run(['kill', '-9', pid])
         except: pass
         try:
             log.info("virsh undefine '%s'"%hostname)
@@ -125,7 +135,6 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
             log.info("remove ephemeral image '%s'"%new_img)
             os.unlink(new_img)
         except: pass
-        return
 
     if os.path.exists(new_img):
         raise RuntimeError("the image '%s' already exists; maybe the virtual machine is already running?"%new_img)

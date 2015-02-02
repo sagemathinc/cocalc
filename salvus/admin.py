@@ -142,6 +142,8 @@ def run(args, maxtime=MAXTIME_S, verbose=True):
 
     If args is a list of lists, run all the commands separately in the
     list.
+
+    if ignore_errors is true, completely ignores any error codes!
     """
     if args and isinstance(args[0], list):
         return '\n'.join([str(run(a, maxtime=maxtime,verbose=verbose)) for a in args])
@@ -156,8 +158,10 @@ def run(args, maxtime=MAXTIME_S, verbose=True):
     if verbose:
         log.info("running '%s'", ' '.join(args))
     try:
-        out = subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
-                                stderr=subprocess.PIPE).stdout.read()
+        a = subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        out = a.stderr.read()
+        out += a.stdout.read()
         if verbose:
             log.info("output '%s'", out[:256])
         return out
