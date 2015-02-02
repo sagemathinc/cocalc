@@ -3202,7 +3202,9 @@ class PDF_PreviewEmbed extends FileEditor
                 if err or not result.url?
                     alert_message(type:"error", message:"unable to get pdf -- #{err}")
                 else
-                    @output.html("<object data=\"#{result.url}\" type='application/pdf' width='#{width}' height='#{output_height-10}'><br><br>Your browser doesn't support embedded PDF's, but you can <a href='#{result.url}&random=#{Math.random()}'>download #{@filename}</a></p></object>")
+                    @output.find("object").attr('data', result.url).width(width).height(output_height-10)
+                    @output.find("a").attr('href',"#{result.url}?random=#{Math.random()}")
+                    @output.find("span").text(@filename)
 
     show: (geometry={}) =>
         geometry = defaults geometry,
@@ -5311,6 +5313,12 @@ class HTML_MD_Editor extends FileEditor
             throw "file must have extension md or html or rst or wiki or tex"
 
         @disable_preview = @local_storage("disable_preview")
+        if not @disable_preview? and @opts.mode == 'htmlmixed'
+            # Default the preview to be disabled for html, but enabled for everything else.
+            # This is mainly because when editing the SMC source itself, the previews break
+            # everything by emding SMC's own code in the DOM.  However, it is probably a
+            # reasonable default more generally.
+            @disable_preview = true
 
         @element = templates.find(".salvus-editor-html-md").clone()
 

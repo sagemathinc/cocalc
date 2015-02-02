@@ -1007,3 +1007,31 @@ salvus_client.on "remember_me_failed", () ->
 salvus_client.on "signed_in", () ->
     $(".salvus-remember_me-message").hide()
     require('projects').update_project_list()
+
+
+
+
+
+################################################
+# Billing code
+################################################
+
+# TESTS:
+
+billing_history_row = $(".smc-billing-history-row")
+billing_history_append = (entry) ->
+    e = billing_history_row.clone().show()
+    for k, v of entry
+        e.find(".smc-billing-history-entry-#{k}").text(v)
+    $(".smc-billing-history-rows").append(e)
+
+exports.test_billing = () ->
+    billing_history_append
+        date    : '2014-01-29'
+        plan    : 'Small'
+        method  : 'Visa 4*** **** **** 1199'
+        receipt : '...'
+        amount  : 'USD $7.00'
+        status  : 'Succeeded'
+
+
