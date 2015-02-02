@@ -8,7 +8,9 @@
 
 feature.coffee
 
+buttonbar.coffee
 misc_page.coffee
+wizard.coffee
 
 salvus_client.coffee
 
@@ -17,12 +19,14 @@ top_navbar.coffee
 alerts.coffee
 
 3d.coffee
+d3.coffee
 
 console.coffee
 
 account.coffee
 
-syncstring.coffee
+# syncstring.coffee  # DEPRECATED
+
 syncdoc.coffee
 syncdb.coffee
 

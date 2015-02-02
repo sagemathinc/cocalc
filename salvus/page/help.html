@@ -1,65 +1,89 @@
+<!--
+SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and the Terminal.
+
+Copyright (C) 2014, William Stein
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+
 <div class="container-fluid constrained hide" id="salvus-help">
     <div class="row">
         <div class="well col-sm-12">
-            <h1><!--<i class="fa fa-cloud"> </i>-->
-                <img src="favicon-128.png" width="64" height="64" style="margin-right:1ex;" class="img img-rounded">SageMathCloud&trade;
-            </h1>
+            <h3 class="salvus-mathjax-on-startup"><img src="favicon-128.png" style="margin-right:1ex;" class="img img-rounded pull-right"> SageMathCloud™ is an open source web-based environment for using  Sage, IPython, R, $\LaTeX$, a terminal, and much more for mathematical research and teaching.</h3>
 
             <h3><i class="fa fa-support"> </i> Support</h3>
 
             <ul>
-                <li class="salvus-help-list"> In case of problems, <b><i>do not hesitate</i></b> to immediately email me (William Stein) at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>.  I want to know if anything isn't working! </li>
+                <li class="salvus-help-list"> In case of problems, <b><i>do not hesitate</i></b> to immediately email us at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a>.  We want to know if anything isn't working! </li>
 
-                <li class="salvus-help-list"> <a href="https://www.washington.edu/giving/make-a-gift/?page=make&Code=MATSAG" target="_blank">Tax-deductable donations to support the Sage project</a></li>
+                <li class="salvus-help-list"> <a href="https://www.washington.edu/giving/make-a-gift/?page=make&code=SGEMCS" target="_blank">Donate to the SageMathCloud Support Fund</a></li>
                 <li class="salvus-help-list"> <a href="#how-do-i">Getting started with SageMathCloud</a></li>
+                <li class="salvus-help-list"> <a href="http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html" target="_blank">Teaching a course with SageMathCloud</a></li>
                 <li class="salvus-help-list"> <a target="_blank" href="https://gitter.im/sagemath/cloud">Realtime chat and help</a></li>
 
                 <li class="salvus-help-list"> <a target="_blank" href="http://ask.sagemath.org/questions/">Ask a quick question</a></li>
-                <li class="salvus-help-list">  <a target="_blank" href="https://groups.google.com/forum/?fromgroups#!forum/sage-cloud">Sage-cloud mailing list</a>
+                <li class="salvus-help-list">  <a target="_blank" href="https://groups.google.com/forum/?fromgroups#!forum/sage-cloud">Sage-cloud support mailing list</a> and <a target="_blank" href="https://groups.google.com/forum/?fromgroups#!forum/sage-cloud-devel">developer mailing list</a>.
                 </li>
                 <!--<li class="salvus-help-list">  To receive occassional announcements, subscribe to <a href="https://groups.google.com/forum/#!forum/sage-cloud-announce" target="_blank">the newsletter</a> by
-    sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegroups.com">sage-cloud-announce+subscribe@googlegroups.com</a></li>-->
+sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegroups.com">sage-cloud-announce+subscribe@googlegroups.com</a></li>-->
                 <li class="salvus-help-list"> <a target="_blank" href="https://github.com/sagemath/cloud/wiki/FAQ">Frequently Asked Questions</a></li>
-                <li class="salvus-help-list"> <a target="_blank" href="https://github.com/sagemath/cloud/issues">Issue tracker</a> <span class="lighten-2">(you may also just <a target="_blank" href="mailto:wstein@uw.edu">email me</a>)</span></li>
+                <li class="salvus-help-list"> <a target="_blank" href="https://github.com/sagemath/cloud/issues">Issue tracker</a> <span class="lighten-2">(you may also just <a target="_blank" href="mailto:help@sagemath.com">email bug reports to me</a>)</span></li>
                 <li class="salvus-help-list"> <a target="_blank" href="http://sagemath.blogspot.com/">SageMath Blog</a></li>
                 <li class="salvus-help-list"> Regular development updates on <a target="_blank" href="https://plus.google.com/115360165819500279592/posts">Google+</a> and <a target="_blank" href="https://twitter.com/wstein389">Twitter</a> feeds</li>
                 <li class="salvus-help-list"> <a target="_blank" href="https://plus.google.com/117696122667171964473/posts">SageMathCloud on Google+</a></li>
                 <li class="salvus-help-list"> <a target="_blank" href="http://www.sagemath.org/help.html">General Sage help and support pages</a> </li>
                 <li class="salvus-help-list hide salvus-chrome-only"> <a href="https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb" target="_blank">Install the Chrome App</a><br></li>
+                <li class="salvus-help-list"> <a target="_blank" href="https://github.com/sagemath/cloud">SageMathCloud's source code</a></li>
             </ul>
 
             <div class="salvus-stats">
-                <h3><i class="fa fa-dashboard"> </i> Status <a href="#refresh-status"><i class="fa fa-refresh"> </i></a></h3>
+                <h3><i class="fa fa-dashboard"> </i> Usage <a href="#refresh-status"><i class="fa fa-refresh"> </i></a></h3>
                 <ul>
-                    <li class="salvus-help-list">
-                        There are <b><span class="salvus-stats-number-of-clients"></span> people</b> connected right now who are actively
-                        modifying <b><span class="salvus-stats-active_projects"></span> projects</b>.   They
-                        modified <span class="salvus-stats-last_day_projects"></span> projects in the last day and <span class="salvus-stats-last_week_projects"></span> projects in the last week.
+                    <li class="salvus-help-list salvus-stats-live">
+                        <strong><span class="salvus-stats-number-of-clients"></span> people</strong> are connected right now actively
+                        modifying <strong><span class="salvus-stats-active_projects"></span> projects</strong>.  Users
+                        modified <strong><span class="salvus-stats-last_day_projects"></span> projects</strong> in the last day and <strong><span class="salvus-stats-last_week_projects"></span> projects</strong> in the last week.
                     </li>
-                    <li class="salvus-help-list"> There are <b><span class="salvus-stats-accounts"></span> accounts</b> and
+                    <li class="salvus-help-list hide"> <b><span class="salvus-stats-accounts"></span> accounts</b> and
                         <b><span class="salvus-stats-projects"></span> projects</b>.
                     </li>
                     <li class="salvus-help-list">
-                        <a target="_blank" href="http://boxen.math.washington.edu/home/schilly/salvus/stats/stats.html">Usage statistics</a>
+                        SMC is running on <strong>57 virtual machines</strong> at University of Washington and <strong>22 virtual machines</strong> at Google.
+                    </li>
+                    <li class="salvus-help-list">
+                        <a target="_blank" href="https://github.com/sagemath/cloud/wiki/Teaching">Used by at least <strong>32 courses</strong> during Winter/Spring 2015...</a>
+                    </li>
+                    <li class="salvus-help-list">
+                        <a target="_blank" href="https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html">Usage data...</a>
                     </li>
                 </ul>
             </div>
 
             <h3><i class="fa fa-info-circle"> </i> About</h3>
             <ul>
-                <li class="salvus-help-list">
-                    We own 19 high-end Dell computers at University of Washington dedicated to SageMathCoud hosting,
-                    and also run dozens of virtual machines on
-                    Google Compute Engine.
-                </li>
 
                 <li class="salvus-help-list"> <a href="http://wstein.org" target="_blank">William Stein</a> is
-                    the main architect of SageMathCloud.
+                    the founder and main architect of SageMathCloud.
                     In addition, <a href="http://harald.schil.ly/" target="_blank">Harald Schilly</a> does marketing and QA testing,
                     Keith Clawson does hardware, and Jon Lee, Andy Huchala, and
-                    Nicholas Ruhland do web development.  SageMathCloud
-                    is supported by Google, UW and the National Science
-                    Foundation <a target="_blank" href="http://sagemath.org/development-ack.html">under various grants</a>.
+                    Nicholas Ruhland do web development.  SageMathCloud is
+                    supported by the National Science Foundation (awards
+                    <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1161226" target="_blank">1161226</a>,
+                    <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1147802" target="_blank">1147802</a>,
+                    <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1020378" target="_blank">1020378</a>
+                    and <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1015114" target="_blank">1015114</a>) and <a href="https://research.google.com/university/relations/appengine/index.html" target="_blank">Google's Education Grant program.</a>
                 </li>
 
                 <li class="salvus-help-list">Read the <a href="#link-terms">Terms of Usage</a></li>
@@ -67,88 +91,92 @@
             </ul>
 
             <div id="how-do-i"></div>
-            <h3><i class="fa fa-question-circle"> </i> Getting started with SageMathCloud</h3>
 
-            <ul>
-                <li class="salvus-help-list"> <a href="#help-create-an-account">Create an account</a></li>
-                <li class="salvus-help-list"> <a href="#help-change-my-username">Change your username, email address, or password</a></li>
-                <li class="salvus-help-list"> <a href="#help-examples">Get a bunch of examples</a></li>
-                <li class="salvus-help-list"> <a href="#help-latex">Using LaTeX</a></li>
-                <li class="salvus-help-list"> <a href="#help-r">Using R Worksheets</a></li>
-                <li class="salvus-help-list"> <a href="#help-ipython">Using IPython Notebooks</a></li>
-                <li class="salvus-help-list"> <a target="_blank" href="https://github.com/sagemath/cloud/wiki/FAQ">More documentation...</a>  </li>
-
-
-                    <!--
-    <li  class="salvus-help-list"> <a href="#help-use-sage-command-prompt">Use Python, Sage, Octave, Macaulay2, etc., on the command line?</a></li>
-    <li  class="salvus-help-list"> <a href="#help-cpp-program">Create and run a C++ program?</a></li>
-    - Draw 2d graphics and save them to a file on my computer?
-    - Compute a symbolic integral?
-    - Compute the rank of a matrix?
-    - Collaborate on a project with somebody else?
-    - Recover a file or directory that I deleted?
-    - Do Sage development and make worksheets that use my own custom copy of Sage?
-    - Upload files into a project?
-    - Download files from a project?
-    - Copy a repository from github into a SageMathCloud project?
-    - Leave something running in a worksheet or terminal, and come back to it later?
-    - Move or rename a file or directory?
-    - See how much disk space my project is using?
-    - Change the color scheme of my terminal?
-    - Change the title and description of a project?
-    - Support this project financially?
-    - Report bugs or suggest features?
-    - Create interactive wdigets that run code?
-    -->
-            </ul>
-
-            <div id="help-create-an-account">
-                <br><br>
-                <div class="salvus-help-answer">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <h3><i class="fa fa-user"> </i> Create an account (<a href="https://www.youtube.com/embed/eadnL5hDg9M" target="_blank">video</a>)</h3>
-                            Navigate to <a href="https://cloud.sagemath.com" target="_blank">https://cloud.sagemath.com</a>.
-                            If you're already signed in, first sign out
-                            by clicking on your email address by the  <i class="fa fa-cog"> </i> icon
-                            in the upper right, and clicking "Sign out".
-                            Click on "create an account", then enter the first name, last name, email address, and password for
-                            the new account you would like to create, and read and agree to the terms of usage.
-                            You may <a href="#help-change-my-username">change your email address, password, etc.</a>
-                            at any time later, and also reset your password in case you forget it.
+            <!--
+<li  class="salvus-help-list"> <a href="#help-use-sage-command-prompt">Use Python, Sage, Octave, Macaulay2, etc., on the command line?</a></li>
+<li  class="salvus-help-list"> <a href="#help-cpp-program">Create and run a C++ program?</a></li>
+- Draw 2d graphics and save them to a file on my computer?
+- Compute a symbolic integral?
+- Compute the rank of a matrix?
+- Collaborate on a project with somebody else?
+- Recover a file or directory that I deleted?
+- Do Sage development and make worksheets that use my own custom copy of Sage?
+- Upload files into a project?
+- Download files from a project?
+- Copy a repository from github into a SageMathCloud project?
+- Leave something running in a worksheet or terminal, and come back to it later?
+- Move or rename a file or directory?
+- See how much disk space my project is using?
+- Change the color scheme of my terminal?
+- Change the title and description of a project?
+- Support this project financially?
+- Report bugs or suggest features?
+- Create interactive wdigets that run code?
+-->
+            <h3><i class="fa fa-cubes"> </i> Getting Started With SageMathCloud</h3>
+            <div class="panel-group salvus-mathjax-on-startup" id="help-accordion">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title" data-toggle="collapse" data-parent="#help-accordion" href="#help-accordion-account">
+                            <a>
+                                <i class="fa fa-user"> </i> Create an account
+                            </a>
+                        </h3>
+                    </div>
+                    <div id="help-accordion-account" class="panel-collapse collapse"><!-- note: add class "in" to show the contents -->
+                        <div class="panel-body">
+                            <p>
+                                <iframe width="420" height="315" src="//www.youtube.com/embed/eadnL5hDg9M" frameborder="0" allowfullscreen></iframe>
+                            </p>
+                            <p>
+                                Navigate to <a href="https://cloud.sagemath.com" target="_blank">https://cloud.sagemath.com</a>.
+                                If you're already signed in, first sign out
+                                by clicking on your email address by the  <i class="fa fa-cog"> </i> icon
+                                in the upper right, and clicking "Sign out".
+                                Click on "create an account", then enter the first name, last name, email address, and password for
+                                the new account you would like to create, and read and agree to the terms of usage.
+                                You may <a href="#help-change-my-username">change your email address, password, etc.</a>
+                                at any time later, and also reset your password in case you forget it.
+                            </p>
+                            <div class="lighten">
+                                <h4>
+                                    Technical Notes
+                                </h4>
+                                <ul>
+                                    <li> If you want to associate multiple accounts to the same email address, e.g.,
+                                        to sagemath@gmail.com, instead
+                                        use sagemath+1@gmail.com, sagemath+2@gmail.com, etc.  These accounts will be treated differently, but all email
+                                        notifications, password resets, etc., will go to sagemath@gmail.com.   There's no reason you should
+                                        need to do this.
+                                    </li>
+                                    <li> You may create as many accounts as you want for free, but there is no reason you should need
+                                        to.</li>
+                                    <li> The only requirement on your password is that it not be "Very weak" according
+                                        to the password strength checker.  However, please
+                                        use a strong password, especially when you start using the SageMathCloud frequently.</li>
+                                    <li> Only the hash of your password is stored by the server, which uses 1000 iterations
+                                        of the sha-512 hash function, with a salt length of 32.  This makes it much more
+                                        difficult for a hacker to brute-force your password, even if they have the database of
+                                        password hashes, since every guess takes much more work to make.
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                    <div class="lighten">
-                        <h4>Technical Notes</h4>
-                        <ul>
-                            <li> If you want to associate multiple accounts to the same email address, e.g.,
-                                to sagemath@gmail.com, instead
-                                use sagemath+1@gmail.com, sagemath+2@gmail.com, etc.  These accounts will be treated differently, but all email
-                                notifications, password resets, etc., will go to sagemath@gmail.com.   There's no reason you should
-                                need to do this.
-                            </li>
-                            <li> You may create as many accounts as you want for free, but there is no reason you should need
-                                to.</li>
-                            <li> The only requirement on your password is that it not be "Very weak" according
-                                to the password strength checker.  However, please
-                                use a strong password, especially when you start using the SageMathCloud frequently.</li>
-                            <li> Only the hash of your password is stored by the server, which uses 1000 iterations
-                                of the sha-512 hash function, with a salt length of 32.  This makes it much more
-                                difficult for a hacker to brute-force your password, even if they have the database of
-                                password hashes, since every guess takes much more work to make.
-                            </li>
-
-                        </ul>
-                    </div>
                 </div>
-            </div>
-
-            <div id="help-change-my-username">
-                <br><br>
-                <div class="salvus-help-answer">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <h3><i class="fa fa-user"> </i>  Change your name, email address, or password (<a href="https://www.youtube.com/embed/A9zltIsU2cM" target="_blank">video</a>)</h3>
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title" data-toggle="collapse" data-parent="#help-accordion" href="#help-accordion-email">
+                            <a>
+                                <i class="fa fa-user"> </i>  Change your name, email address, or password
+                            </a>
+                        </h3>
+                    </div>
+                    <div id="help-accordion-email" class="panel-collapse collapse">
+                        <div class="panel-body">
+                            <p>
+                                <iframe width="420" height="315" src="//www.youtube.com/embed/A9zltIsU2cM" frameborder="0" allowfullscreen></iframe>
+                            </p>
                             <p>
                                 Log into <a href="https://cloud.sagemath.com" target="_blank">https://cloud.sagemath.com</a>,
                                 then click in the upper right corner on your email address by
@@ -166,66 +194,76 @@
                                 account), then enter a new email address.
                             </p>
 
+                            <div class="lighten">
+                                <h4>Technical Notes</h4>
+                                <ul class="lighten">
+                                    <li>Changing your first or last name at any time is pretty harmless, since it
+                                        only changes the name other people see when collaborating with
+                                        you on projects.
+                                    </li>
+                                    <li>The primary purpose of providing an email address is that you
+                                        can use it to reset your password when you forget it.
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="lighten">
-                        <h4>Technical Notes</h4>
-                        <ul class="lighten">
-                            <li>Changing your first or last name at any time is pretty harmless, since it
-                                only changes the name other people see when collaborating with
-                                you on projects.
-                            </li>
-                            <li>The primary purpose of providing an email address is that you
-                                can use it to reset your password when you forget it.
-                            </li>
-                        </ul>
                     </div>
                 </div>
-            </div>
-
-            <div id="help-examples">
-                <br><br>
-                <div class="salvus-help-answer">
-                    <div class="row">
-                        <div class="col-sm-8">
-                            <h3><i class="fa fa-line-chart"> </i> Get a bunch of examples</h3>
-
-                            To easily copy our collection of examples into a project, just click "+New", paste in this link<pre>https://github.com/sagemath/cloud-examples.git</pre> and click "From Web".  In a few seconds you'll find a directory <pre>sage-cloud-templates</pre> in your project, full of examples.
-                        </div>
-                        <div class="col-sm-4">
-                            <!-- This significantly slows the page load! -->
-                            <!--<img class="pull-right" width="252" src="/art/templates.png" alt="templates"> -->
-                        </div>
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title" data-toggle="collapse" data-parent="#help-accordion" href="#help-accordion-examples">
+                            <a>
+                                <i class="fa fa-line-chart"> </i> Get a bunch of examples
+                            </a>
+                        </h3>
                     </div>
-                    <div class="lighten">
-                        <h4>Technical Notes</h4>
-                        <ul class="lighten">
-                            <li>The collection of examples is a <a target="_blank" href="https://github.com/haraldschilly/sage-cloud-templates">Github repository</a>, which we regularly update.
-                                In a terminal in the sage-cloud-templates directory, you can type
-                                <pre>git pull</pre>
-                                to get the latest changes and
-                                examples (you may have to type <span class="tt">"git commit -a"</span> first, if you have made changes).
-                                You can also <a href="https://github.com/haraldschilly/sage-cloud-templates/commits/master" target="_blank">see what's new in the Github repository</a>.
+                    <div id="help-accordion-examples" class="panel-collapse collapse">
+                        <div class="panel-body">
+                            <div>
+                                To easily copy our collection of examples into a project, just click "+New", paste in this link<pre>https://github.com/sagemath/cloud-examples.git</pre> and click "From Web".  In a few seconds you'll find a directory <pre>sage-cloud-templates</pre> in your project, full of examples.
+                            </div>
+                            <div class="col-sm-4">
+                                <!-- This significantly slows the page load! -->
+                                <!--<img class="pull-right" width="252" src="/art/templates.png" alt="templates"> -->
+                            </div>
 
-                            </li>
-                        </ul>
+                            <div class="lighten">
+                                <h4>Technical Notes</h4>
+                                <ul class="lighten">
+                                    <li>The collection of examples is a <a target="_blank" href="https://github.com/haraldschilly/sage-cloud-templates">Github repository</a>, which we regularly update.
+                                        In a terminal in the sage-cloud-templates directory, you can type
+                                        <pre>git pull</pre>
+                                        to get the latest changes and
+                                        examples (you may have to type <span class="tt">"git commit -a"</span> first, if you have made changes).
+                                        You can also <a href="https://github.com/haraldschilly/sage-cloud-templates/commits/master" target="_blank">see what's new in the Github repository</a>.
+
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title" data-toggle="collapse" data-parent="#help-accordion" href="#help-accordion-latex">
+                            <a>
+                                <i class="fa salvus-mathjax-on-startup"> $x^2$ </i> Using $\LaTeX$
+                            </a>
+                        </h3>
+                    </div>
+                    <div id="help-accordion-latex" class="panel-collapse collapse">
+                        <div class="panel-body">
+                            <ul>
+                                <li><a href="https://www.youtube.com/embed/IaachWg4IEQ" target="_blank">video1</a></li>
+                                <li><a href="https://www.youtube.com/embed/cXhnX3UtizI" target="_blank">video2</a></li>
+                                <li>and <a target="_blank" href="https://www.youtube.com/playlist?list=PLnC5h3PY-znxc090kGv7W4FpbotlWsrm0">Vincent Knight's 21 videos introducing $\LaTeX$</a></li>
+                            </ul>
+                            <p>
+                                <a href="http://www.latex-project.org/" target="_blank">$\LaTeX$</a> is a system for creating
 
-            <div id="help-latex">
-                <br><br>
-                <div class="salvus-help-answer">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <h3>Using $\LaTeX$ (<a href="https://www.youtube.com/embed/IaachWg4IEQ" target="_blank">video1</a>, <a href="https://www.youtube.com/embed/cXhnX3UtizI" target="_blank">video2</a>, and <a target="_blank" href="https://www.youtube.com/playlist?list=PLnC5h3PY-znxc090kGv7W4FpbotlWsrm0">Vincent Knight's 21 videos introducing LaTeX</a>)</h3>
-
-                            <a href="http://www.latex-project.org/" target="_blank">$LaTeX$</a> is a system for creating
-
-                            professional quality documents, with excellent support for typesetting mathematical formulas like
-                            $J_\alpha(x) = \sum\limits_{m=0}^\infty \frac{(-1)^m}{m! \, \Gamma(m + \alpha + 1)}{\left({\frac{x}{2}}\right)}^{2 m + \alpha}$.
-                            There are two main ways to use latex in the SageMathCloud:<br><br>
+                                professional quality documents, with excellent support for typesetting mathematical formulas like
+                                $J_\alpha(x) = \sum\limits_{m=0}^\infty \frac{(-1)^m}{m! \, \Gamma(m + \alpha + 1)}{\left({\frac{x}{2}}\right)}^{2 m + \alpha}$.
+                                There are two main ways to use latex in the SageMathCloud:<br><br>
                             <ol>
                                 <li> In chats or in worksheet cells that start with %html or %md,
                                     enclose mathematical formulas in single or double
@@ -262,17 +300,21 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-
-            <div id="help-r">
-                <br><br>
-                <div class="salvus-help-answer">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <h3><i class="fa fa-area-chart"> </i> Use R in Worksheets (<a href="https://www.youtube.com/embed/JtVuX4yb70A" target="_blank">video</a>)</h3>
-                            In a project, click <span class="salvus-a"><i class="fa fa-plus-circle"></i> New</span> then the
-                            "Sage" button.  In the worksheet that appears, type <pre>%default_mode r</pre>
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title" data-toggle="collapse" data-parent="#help-accordion" href="#help-accordion-r">
+                            <a>
+                                <i class="fa fa-area-chart"> </i> Use R in Worksheets
+                            </a>
+                        </h3>
+                    </div>
+                    <div id="help-accordion-r" class="panel-collapse collapse">
+                        <div class="panel-body">
+                            <p>
+                                <iframe width="420" height="315" src="//www.youtube.com/embed/JtVuX4yb70A" frameborder="0" allowfullscreen></iframe>
+                            </p>
+                            <p>In a project, click <span class="salvus-a"><i class="fa fa-plus-circle"></i> New</span> then the
+                                "Sage" button.  In the worksheet that appears, type <pre>%default_mode r</pre>
                             then press shift+enter.
                             For the reset of the worksheet, type normal R commands, followed by shift+enter.
                             Plotting should just work as usual in R.
@@ -280,42 +322,46 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-
-            <div id="help-ipython">
-                <br><br>
-                <div class="salvus-help-answer">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <h3><i class="fa fa-bar-chart"> </i> Use IPython Notebooks (<a href="https://www.youtube.com/embed/sDBbt8U4aJw" target="_blank">video</a>)</h3>
-                            In a project, click <span class="salvus-a"><i class="fa fa-plus-circle"></i> New</span> then the
-                            "IPython" button, or just open an ipynb file.
-                            The notebook will be opened using IPython's html-based client,
-                            with support for embedded graphics.
-                            To support the collaborative nature of the SageMathCloud,
-                            we've enhanced the IPython notebook with realtime sync,
-                            so if you open the same notebook on multiple computers (or if multiple
-                            people open the same notebook), they will stay in sync.
-                            Also, if you want to use the Sage preparser, type
-                            <span class="tt">%load_ext sage</span> into a notebook cell.
-                        </div>
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title" data-toggle="collapse" data-parent="#help-accordion" href="#help-accordion-ipython">
+                            <a>
+                                <i class="fa fa-bar-chart"> </i> Use IPython Notebooks
+                            </a>
+                        </h3>
                     </div>
-
-                    <div class="lighten">
-                        <h4>Technical Notes</h4>
-                        <ul class="lighten">
-                            <li>You can also run a normal version of the IPython notebook server (no sync, not integrated into cloud)
-                                using the <span class="tt">ipython-notebook</span> command in a terminal.  You'll get a url that looks like
-                                <span class="tt" style="word-wrap: break-word">https://cloud.sagemath.com/1234601d-9fbc-4e4e-b7ab-c10a79e34d3b/port/11769/</span>; any collaborator
-                                on your project can securly use the IPython notebook server by visiting this link, but nobody else
-                                can (not even other users on localhost on the same virtual machine!).
-                            </li>
-                        </ul>
+                    <div id="help-accordion-ipython" class="panel-collapse collapse">
+                        <div class="panel-body">
+                            <p>
+                                <iframe width="420" height="315" src="//www.youtube.com/embed/sDBbt8U4aJw" frameborder="0" allowfullscreen></iframe>
+                            </p>
+                            <p>
+                                In a project, click <span class="salvus-a"><i class="fa fa-plus-circle"></i> New</span> then the
+                                "IPython" button, or just open an ipynb file.
+                                The notebook will be opened using IPython's html-based client,
+                                with support for embedded graphics.
+                                To support the collaborative nature of the SageMathCloud,
+                                we've enhanced the IPython notebook with realtime sync,
+                                so if you open the same notebook on multiple computers (or if multiple
+                                people open the same notebook), they will stay in sync.
+                                Also, if you want to use the Sage preparser, type
+                                <span class="tt">%load_ext sage</span> into a notebook cell.
+                            </p>
+                            <div class="lighten">
+                                <h4>Technical Notes</h4>
+                                <ul class="lighten">
+                                    <li>You can also run a normal version of the IPython notebook server (no sync, not integrated into cloud)
+                                        using the <span class="tt">ipython-notebook</span> command in a terminal.  You'll get a url that looks like
+                                        <span class="tt" style="word-wrap: break-word">https://cloud.sagemath.com/1234601d-9fbc-4e4e-b7ab-c10a79e34d3b/port/11769/</span>; any collaborator
+                                        on your project can securly use the IPython notebook server by visiting this link, but nobody else
+                                        can (not even other users on localhost on the same virtual machine!).
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 </div>

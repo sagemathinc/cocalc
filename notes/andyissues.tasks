@@ -1,0 +1,5 @@
+{"desc":"#html opening multiple files at once in a terminal that contains at least one .html file fails to render all but one of the files","position":-1,"last_edited":1422575516804,"task_id":"da833570-b77f-496e-8002-bbf312338b58"}
+{"desc":"#file_tabs multiple rows of file tabs occasionally appear (on slower machines?) while active file is rendering, and fail to collapse later until another file is clicked/project.show() is called again","position":0,"last_edited":1422575846387,"task_id":"7c22a4ed-a55d-415a-9684-f6fe44b779bf"}
+{"desc":"","position":-0.5,"last_edited":1422580017540,"task_id":"c4b3218d-392f-4ac2-af53-9fb3300e5913","done":1422580013604,"deleted":true}
+{"desc":"","position":-0.25,"last_edited":1422580015043,"task_id":"c08439e1-9825-4681-8b3b-345d5b525e76","done":1422580005410,"deleted":true}
+{"desc":"#yallcomebackhereyahear when signing out, first thing to display on screen should not be \"welcome back to SMC!\"","position":-0.125,"last_edited":1422578458035,"task_id":"b4e5d3f4-6716-437b-b7f5-fa090b5921a1"}

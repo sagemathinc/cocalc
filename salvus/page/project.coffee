@@ -1,5 +1,27 @@
 ###############################################################################
 #
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
+###############################################################################
+#
 # Project page -- browse the files in a project, etc.
 #
 ###############################################################################
@@ -131,11 +153,20 @@ class ProjectPage
             @init_current_path_info_button()
             @init_settings_url()
             @init_ssh_url_click()
+            @init_billing()
 
         # Show a warning if using SMC in devel mode. (no longer supported)
         if window.salvus_base_url != ""
             # TODO -- should use a better way to decide dev mode.
             @container.find(".salvus-project-id-warning").show()
+
+    init_billing: () =>
+        @container.find("a[href=#upgrade-project]").click () =>
+            @container.find(".smc-upgrade-via-email-message").show()
+            return false
+        @container.find("a[href=#upgrade-features]").click () =>
+            @container.find(".smc-upgrade-via-email-message").show()
+            return false
 
     activity_indicator: () =>
         top_navbar.activity_indicator(@project.project_id)
@@ -181,7 +212,7 @@ class ProjectPage
         # sends a message to the hub.
         that = @
         @container.find(".project-project_title").blur () ->
-            new_title = $(@).html().trim()
+            new_title = $(@).text().trim()
             if new_title != that.project.title
                 if new_title == ""
                     new_title = "No title"
@@ -202,7 +233,7 @@ class ProjectPage
                             that.update_topbar()
 
         @container.find(".project-project_description").blur () ->
-            new_desc = $(@).html().trim()
+            new_desc = $(@).text().trim()
             if new_desc != that.project.description
                 if new_desc == ""
                     new_desc = "No description"
@@ -444,6 +475,8 @@ class ProjectPage
     init_file_search: () =>
         @_file_search_box = @container.find(".salvus-project-search-for-file-input")
         @_file_search_box.keyup (event) =>
+            if event.keyCode == 27
+                @_file_search_box.val('')
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79
                 #console.log("keyup: init_file_search")
                 @display_tab("project-new-file")
@@ -674,7 +707,7 @@ class ProjectPage
                 @container.find(".project-command-line-spinner").hide()
                 @container.find(".project-command-line-submit").show()
                 if err
-                    alert_message(type:'error', message:"#{command0} -- #{err}")
+                    alert_message(type:'error', message:"Terminal command '#{command0}' error -- #{err}\n (Hint: Click +New, then Terminal for full terminal.)")
                 else
                     # All this code below is to find the current path
                     # after the command is executed, and also strip
@@ -1169,8 +1202,8 @@ class ProjectPage
             url: window.salvus_base_url + "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
             maxFilesize: 128 # in megabytes
 
-    init_new_file_tab: () =>
 
+    init_new_file_tab: () =>
         # Make it so clicking on each of the new file tab buttons does the right thing.
         @new_file_tab = @container.find(".project-new-file")
         @new_file_tab_input = @new_file_tab.find(".project-new-file-path-input")
@@ -1221,6 +1254,31 @@ class ProjectPage
         @new_file_tab.find("a[href=#new-course]").click () =>
             create_file('course')
             return false
+
+
+        # the search/mini file creation box
+        mini_set_input = () =>
+            search_box = @container.find(".salvus-project-search-for-file-input")
+            name = search_box.val().trim()
+            if name == ""
+                name = @default_filename()
+            @update_new_file_tab_path()
+            @new_file_tab_input.val(name)
+            search_box.val('')
+
+        @container.find("a[href=#smc-mini-new]").click () =>
+            mini_set_input()
+            create_file('sagews')
+
+        @container.find(".smc-mini-new-file-type-list").find("a[href=#new-file]").click (evt) ->
+            mini_set_input()
+            click_new_file_button(evt)
+            return true
+
+        @container.find(".smc-mini-new-file-type-list").find("a[href=#new-folder]").click (evt) ->
+            mini_set_input()
+            create_folder()
+            return true
 
         BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws']
 
@@ -1281,15 +1339,18 @@ class ProjectPage
                         @display_tab("project-file-listing")
             return false
 
-        click_new_file_button = () =>
+        click_new_file_button = (evt) =>
+            if evt?
+                ext = $(evt.target).closest('a').data('ext')
+            else
+                ext = undefined
             target = @new_file_tab_input.val()
             if target.indexOf("://") != -1 or misc.startswith(target, "git@github.com:")
                 download_button.icon_spin(start:true, delay:500)
                 new_file_from_web target, () =>
                     download_button.icon_spin(false)
-
             else
-                create_file()
+                create_file(ext)
             return false
 
         @new_file_tab.find("a[href=#new-file]").click(click_new_file_button)
@@ -1330,12 +1391,19 @@ class ProjectPage
                     cb?(err)
             return false
 
-    show_new_file_tab: () =>
+    update_new_file_tab_path: () =>
         # Update the path
         path = @current_pathname()
         if path != ""
             path += "/"
         @new_file_tab.find(".project-new-file-path").text(path)
+        return path
+
+    default_filename: () =>
+        return misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
+
+    show_new_file_tab: () =>
+        path = @update_new_file_tab_path()
         @init_dropzone_upload()
 
         elt = @new_file_tab.find(".project-new-file-if-root")
@@ -1345,8 +1413,7 @@ class ProjectPage
             elt.show()
 
         # Clear the filename and focus on it
-        now = misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
-        @new_file_tab_input.val(now)
+        @new_file_tab_input.val(@default_filename())
         if not IS_MOBILE
             @new_file_tab_input.focus().select()
 
@@ -1590,7 +1657,7 @@ class ProjectPage
 
                 if err
                     if not @public_access
-                        alert_message(type:"error", message:"Error getting listing for '#{path}' -- #{misc.trunc(err,100)}")
+                        alert_message(type:"error", message:"Problem reading the directory listing for '#{path}' -- #{misc.trunc(err,100)}; email help@sagemath.com if this persists.")
                         @current_path = []
                     cb?(err)
                 else
@@ -1599,7 +1666,6 @@ class ProjectPage
                         listing  : listing
                         no_focus : no_focus
                         cb       : cb
-                    @update_snapshot_link()
 
     invalidate_render_file_listing_cache: () =>
         delete @_update_file_list_tab_last_path
@@ -2110,9 +2176,10 @@ class ProjectPage
                 return false
         dialog.modal()
 
-    copy_to_another_project_dialog: (path, isdir) =>
+    copy_to_another_project_dialog: (path, isdir, cb) =>
         if not require('account').account_settings.is_signed_in()
             @copy_to_another_not_ready_dialog()
+            cb?("not signed in")
             return
 
         dialog = $(".salvus-project-copy-to-another-project-dialog").clone()
@@ -2210,7 +2277,12 @@ class ProjectPage
                         else
                             alert_message(type:"success", message:"Successfully copied #{src_path} to #{target_path} in #{target_project}")
                         cb(err)
-        ], (err) => cb?(err))
+        ], (err) =>
+            if err
+                cb?(err)
+            else
+                cb?(undefined, {project_id:target_project_id, path: target_path})
+        )
 
     move_file_dialog:  (path, cb) =>
         dialog = $(".project-move-file-dialog").clone()
@@ -2248,7 +2320,7 @@ class ProjectPage
                     path       : '.'
                     cb         : (err, output) =>
                         if err
-                            alert_message(type:"error", message:"Error moving #{new_src} to #{new_dest} -- #{output.stderr}")
+                            alert_message(type:"error", message:"Error moving #{new_src} to #{new_dest} -- #{err}")
                         else
                             alert_message(type:"success", message:"Successfully moved #{new_src} to #{new_dest}")
                             if path == @current_pathname()
@@ -2313,14 +2385,14 @@ class ProjectPage
             project_id : @project.project_id
             command    : 'mv'
             args       : args
-            timeout    : 5  # move should be fast..., unless across file systems.
-            network_timeout : 10
+            timeout    : 15  # move should be fast..., unless across file systems.
+            network_timeout : 20
             err_on_exit : false
             path       : opts.path
             cb         : (err, output) =>
                 if opts.alert
                     if err
-                        alert_message(type:"error", message:"Communication error while moving '#{opts.src}' to '#{opts.dest}' -- #{err}")
+                        alert_message(type:"error", message:"Error while moving '#{opts.src}' to '#{opts.dest}' -- #{err}")
                     else if output.event == 'error'
                         alert_message(type:"error", message:"Error moving '#{opts.src}' to '#{opts.dest}' -- #{output.error}")
                     else
@@ -2638,7 +2710,7 @@ class ProjectPage
                 continue
             try
                 entry = JSON.parse(e)
-            catch
+            catch e
                 entry = {event:'other'}
 
             elt = undefined
@@ -3318,7 +3390,6 @@ class ProjectPage
             ])
             return false
 
-
     # Completely move the project, possibly moving it if it is on a broken host.
     ###
     init_project_move: () =>
@@ -3357,27 +3428,6 @@ class ProjectPage
         @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
             @visit_snapshot()
             return false
-        @update_snapshot_link()
-
-    update_snapshot_link: () =>
-        salvus_client.exec
-            project_id  : @project.project_id
-            command     : "ls ~/.snapshots/master/|tail -2"
-            err_on_exit : true
-            cb          : (err, output) =>
-                if not err
-                    try
-                        time = output.stdout.split('\n')[0].trim()
-                        if time  # could be empty, e.g., if no snapshots
-                            time = misc.parse_bup_timestamp(time)
-                            @_last_snapshot_time = time
-                            # critical to use replaceWith!
-                            c = @container.find(".project-snapshot-last-timeago span")
-                            d = $("<span>").attr('title', time.toISOString()).timeago()
-                            c.replaceWith(d)
-                    catch e
-                        console.log("error parsing last snapshot time (stdout='#{output.stdout}'): ", e)
-                        return
 
     update_local_status_link: () =>
         if @_update_local_status_link_lock

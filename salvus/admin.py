@@ -1,4 +1,26 @@
 #!/usr/bin/env python
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 
 """
 Administration and Launch control of salvus components
@@ -60,6 +82,8 @@ NGINX_PORT   = 8080
 HUB_PORT       = 5000
 HUB_PROXY_PORT = 5001
 
+SYNCSTRING_PORT = 6001
+
 # These are used by the firewall.
 CASSANDRA_CLIENT_PORT = 9160
 CASSANDRA_NATIVE_PORT = 9042
@@ -118,6 +142,8 @@ def run(args, maxtime=MAXTIME_S, verbose=True):
 
     If args is a list of lists, run all the commands separately in the
     list.
+
+    if ignore_errors is true, completely ignores any error codes!
     """
     if args and isinstance(args[0], list):
         return '\n'.join([str(run(a, maxtime=maxtime,verbose=verbose)) for a in args])
@@ -132,8 +158,10 @@ def run(args, maxtime=MAXTIME_S, verbose=True):
     if verbose:
         log.info("running '%s'", ' '.join(args))
     try:
-        out = subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
-                                stderr=subprocess.PIPE).stdout.read()
+        a = subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        out = a.stderr.read()
+        out += a.stdout.read()
         if verbose:
             log.info("output '%s'", out[:256])
         return out
@@ -633,67 +661,32 @@ class Hub(Process):
         return "Hub server %s on port %s"%(self.id(), self._port)
 
 
-####################
-# Snap -- snapshot/backup servers
-# TODO: this is deprecated
-####################
-class Snap(Process):
-    def __init__(self, id=0, host='', monitor_database=None, keyspace='salvus',
-                 snap_dir=None, logfile=None, pidfile=None, resend_all_commits=False,
-                 snap_interval=None):
-        if pidfile is None:
-            pidfile = os.path.join(PIDS, 'snap-%s.pid'%id)
-        if logfile is None:
-            logfile = os.path.join(LOGS, 'snap-%s.log'%id)
-
-        if snap_dir is None:
-            snap_dir = os.path.join(DATA, 'snap-%s'%id)
-
-        start_cmd = [os.path.join(PWD, 'snap'),
-                                      'start',
-                                      '--host', host,
-                                      '--database_nodes', monitor_database,
-                                      #'--resend_all_commits', resend_all_commits,
-                                      '--keyspace', keyspace,
-                                      '--snap_dir', snap_dir,
-                                      '--pidfile', pidfile,
-                                      '--logfile', logfile]
-        if snap_interval is not None:
-            start_cmd += ["--snap_interval", str(snap_interval)]
-
-        Process.__init__(self, id, name='snap', port=0,
-                         pidfile = pidfile,
-                         logfile = logfile,
-                         start_cmd = start_cmd,
-                         stop_cmd   = [os.path.join(PWD, 'snap'), 'stop'],
-                         reload_cmd = [os.path.join(PWD, 'snap'), 'restart'])
-
-    def __repr__(self):
-        return "Snap server (id=%s)"%(self.id(),)
-
-
-
 
 ####################
-# Compute Server
+# Syncstring
 ####################
+#class Syncstring(Process):
+#    def __init__(self,
+#                 host             = '',
+#                 monitor_database = None,
+#                 keyspace         = 'salvus',
+#                 debug            = False,
+#                 id               = '0'):   # id is ignored
+#        Process.__init__(self, id,
+#                         name        ='syncstring',
+#                         port       =  SYNCSTRING_PORT,
+#                         pidfile    = os.path.join(PIDS, 'syncstring.pid'),
+#                         logfile    = os.path.join(PIDS, 'syncstring.log'),
+#                         monitor_database = monitor_database,
+#                         start_cmd  = [os.path.join(PWD, 'syncstring'), 'start',
+#                                      '--keyspace', keyspace,
+#                                      '--host', host,
+#                                      '--database_nodes', monitor_database],
+#                         stop_cmd   = [os.path.join(PWD, 'syncstring'), 'stop'])
+#
+#    def __repr__(self):
+#        return "Syncstring server"
 
-class Compute(Process):
-    def __init__(self, id=0, host=''):
-        self._port = 22
-        Process.__init__(self, id,
-                         name        = 'compute',
-                         port        = port,
-                         pidfile     = os.path.join(PIDS, 'compute_server.pid'),
-                         logfile     = os.path.join(LOGS, 'compute_server.log'),
-                         start_cmd   = ['compute_server', 'start'],
-                         stop_cmd    = ['compute_server', 'stop'],
-                         reload_cmd  = ['compute_server', 'restart'],
-                         service     = ('compute', port)
-        )
-
-    def port(self):
-        return self._port
 
 ########################################
 # Cassandra database server
@@ -1421,6 +1414,37 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
+    def hub(self):
+        ans = []
+        cmd = 'cd salvus/salvus&& . salvus-env && check_hub'
+        for k, v in self._hosts('hub', cmd, wait=True, parallel=True, timeout=60).iteritems():
+            d = {'host':k[0], 'service':'hub'}
+            if v['exit_status'] != 0 or v['stderr']:
+                d['status'] = 'down'
+                continue
+            for x in v['stdout'].splitlines()[:3]:
+                i = x.find(' ')
+                if i != -1:
+                    d[x[:i]] = x[i:].strip()
+            if 'sign_in_timeouts' in d:
+                d['sign_in_timeouts'] = int(d['sign_in_timeouts'])
+            d['status'] = 'up'
+            if d['etime'] == 'ELAPSED':
+                d['status'] = 'down'
+            if d['sign_in_timeouts'] > 0:
+                d['status'] = 'down'  # demands attention!
+            ans.append(d)
+        def f(x,y):
+            if x['status'] == 'down':
+                return -1
+            if y['status'] == 'down':
+                return 1
+            if 'loadavg' in x and 'loadavg' in y:
+                return -cmp(float(x['loadavg'].split()[0]), float(y['loadavg'].split()[0]))
+            return -1
+        ans.sort(f)
+        return ans
+
     def compute_ssh(self):
         this = int(socket.gethostname()[5:]) # 'cloud[m]'
         v = []
@@ -1592,6 +1616,7 @@ class Monitor(object):
             #'zfs'       : self.zfs(),
             'load'        : self.load(),
             'cassandra'   : self.cassandra(),
+            'hub'         : self.hub(),
             'stats'       : self.stats(),
             'compute'     : self.compute(),
             'compute-ssh' : self.compute_ssh()
@@ -1615,6 +1640,10 @@ class Monitor(object):
 
         print "DNS"
         for x in all['dns'][:n]:
+            print x
+
+        print "HUB"
+        for x in all['hub'][:n]:
             print x
 
         #print "ZFS"
@@ -1831,11 +1860,11 @@ class Services(object):
                 # very important: set to listen only on our VPN.
                 o['host'] = host
 
-        # SNAP options
-        if 'snap' in self._options:
-            for host, o in self._options['snap']:
-                # very important: set to listen only on our VPN.
-                o['host'] = host
+        # Syncstring options
+        #if 'syncstring' in self._options:
+        #    for host, o in self._options['syncstring']:
+        #        # set to listen only on our VPN -- slight extra security
+        #        o['host'] = host
 
         # COMPUTE options
         if 'compute' in self._options:

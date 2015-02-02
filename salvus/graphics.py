@@ -1,29 +1,23 @@
 ###############################################################################
-# Copyright (c) 2013, 2014 by William Stein
-# All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-# 1. Redistributions of source code must retain the above copyright notice, this
-#    list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright notice,
-#    this list of conditions and the following disclaimer in the documentation
-#    and/or other materials provided with the distribution.
+#    Copyright (C) 2014, William Stein
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 ###############################################################################
-
-
 
 import json, math
 import sage_salvus
@@ -180,9 +174,7 @@ def graphics3d_to_jsonable(p):
 
     def parse_obj(obj):
         material_name  = ''
-        face3 = []
-        face4 = []
-        face5 = []
+        faces = []
         for item in obj.split("\n"):
             tmp = str(item.strip())
             if not tmp:
@@ -192,17 +184,10 @@ def graphics3d_to_jsonable(p):
                 material_name = k[1]
             elif k[0] == 'f': # face
                 v = [int(a) for a in k[1:]]
-                if len(v) == 3:
-                    face3.extend(v)
-                elif len(v) == 4:
-                    face4.extend(v)
-                elif len(v) == 6:  # actually 6 vertices (not 5!) -- used by polytopes.permutahedron(4).plot()
-                    face5.extend(v)
-                else:
-                    raise NotImplementedError("unable to parse %s"%tmp)
+                faces.append(v)
             # other types are parse elsewhere in a different pass.
 
-        return [{"material_name":material_name,"face3":face3,"face4":face4,"face5":face5}]
+        return [{"material_name":material_name, "faces":faces}]
 
     def parse_texture(p):
         texture_dict = []
@@ -509,6 +494,205 @@ class InteractiveGraphics(object):
 
 
 
+
+
+
+
+
+
+###
+# D3-based interactive 2d Graphics
+###
+
+###
+# The following is a modified version of graph_plot_js.py from the Sage library, which was
+# written by Nathann Cohen in 2013.
+###
+def graph_to_d3_jsonable(G,
+      vertex_labels       = True,
+      edge_labels         = False,
+      vertex_partition    = [],
+      edge_partition      = [],
+      force_spring_layout = False,
+      charge              = -120,
+      link_distance       = 50,
+      link_strength       = 1,
+      gravity             = .04,
+      vertex_size         = 7,
+      edge_thickness      = 2,
+      width               = None,
+      height              = None,
+      **ignored):
+    r"""
+    Display a graph in SageMathCloud using the D3 visualization library.
+
+    INPUT:
+
+    - ``G`` -- the graph
+
+    - ``vertex_labels`` (boolean) -- Whether to display vertex labels (set to
+      ``True`` by default).
+
+    - ``edge_labels`` (boolean) -- Whether to display edge labels (set to
+      ``False`` by default).
+
+    - ``vertex_partition`` -- a list of lists representing a partition of the
+      vertex set. Vertices are then colored in the graph according to the
+      partition. Set to ``[]`` by default.
+
+    - ``edge_partition`` -- same as ``vertex_partition``, with edges
+      instead. Set to ``[]`` by default.
+
+    - ``force_spring_layout`` -- whether to take sage's position into account if
+      there is one (see :meth:`~sage.graphs.generic_graph.GenericGraph.` and
+      :meth:`~sage.graphs.generic_graph.GenericGraph.`), or to compute a spring
+      layout. Set to ``False`` by default.
+
+    - ``vertex_size`` -- The size of a vertex' circle. Set to `7` by default.
+
+    - ``edge_thickness`` -- Thickness of an edge. Set to ``2`` by default.
+
+    - ``charge`` -- the vertices' charge. Defines how they repulse each
+      other. See `<https://github.com/mbostock/d3/wiki/Force-Layout>`_ for more
+      information. Set to ``-120`` by default.
+
+    - ``link_distance`` -- See
+      `<https://github.com/mbostock/d3/wiki/Force-Layout>`_ for more
+      information. Set to ``30`` by default.
+
+    - ``link_strength`` -- See
+      `<https://github.com/mbostock/d3/wiki/Force-Layout>`_ for more
+      information. Set to ``1.5`` by default.
+
+    - ``gravity`` -- See
+      `<https://github.com/mbostock/d3/wiki/Force-Layout>`_ for more
+      information. Set to ``0.04`` by default.
+
+
+    EXAMPLES::
+
+        show(graphs.RandomTree(50), d3=True)
+
+        show(graphs.PetersenGraph(), d3=True, vertex_partition=g.coloring())
+
+        show(graphs.DodecahedralGraph(), d3=True, force_spring_layout=True)
+
+        show(graphs.DodecahedralGraph(), d3=True)
+
+        g = digraphs.DeBruijn(2,2)
+        g.allow_multiple_edges(True)
+        g.add_edge("10","10","a")
+        g.add_edge("10","10","b")
+        g.add_edge("10","10","c")
+        g.add_edge("10","10","d")
+        g.add_edge("01","11","1")
+        show(g, d3=True, vertex_labels=True,edge_labels=True,
+               link_distance=200,gravity=.05,charge=-500,
+               edge_partition=[[("11","12","2"),("21","21","a")]],
+               edge_thickness=4)
+
+    """
+    directed = G.is_directed()
+    multiple_edges = G.has_multiple_edges()
+
+    # Associated an integer to each vertex
+    v_to_id = {v: i for i, v in enumerate(G.vertices())}
+
+    # Vertex colors
+    color = {i: len(vertex_partition) for i in range(G.order())}
+    for i, l in enumerate(vertex_partition):
+        for v in l:
+            color[v_to_id[v]] = i
+
+    # Vertex list
+    nodes = []
+    for v in G.vertices():
+        nodes.append({"name": str(v), "group": str(color[v_to_id[v]])})
+
+    # Edge colors.
+    edge_color_default = "#aaa"
+    from sage.plot.colors import rainbow
+    color_list = rainbow(len(edge_partition))
+    edge_color = {}
+    for i, l in enumerate(edge_partition):
+        for e in l:
+            u, v, label = e if len(e) == 3 else e+(None,)
+            edge_color[u, v, label] = color_list[i]
+            if not directed:
+                edge_color[v, u, label] = color_list[i]
+
+    # Edge list
+    edges = []
+    seen = {}  # How many times has this edge been seen ?
+
+    for u, v, l in G.edges():
+
+        # Edge color
+        color = edge_color.get((u, v, l), edge_color_default)
+
+        # Computes the curve of the edge
+        curve = 0
+
+        # Loop ?
+        if u == v:
+            seen[u, v] = seen.get((u, v), 0)+1
+            curve = seen[u, v]*10+10
+
+        # For directed graphs, one also has to take into accounts
+        # edges in the opposite direction
+        elif directed:
+            if G.has_edge(v, u):
+                seen[u, v] = seen.get((u, v), 0)+1
+                curve = seen[u, v]*15
+            else:
+                if multiple_edges and len(G.edge_label(u, v)) != 1:
+                    # Multiple edges. The first one has curve 15, then
+                    # -15, then 30, then -30, ...
+                    seen[u, v] = seen.get((u, v), 0) + 1
+                    curve = (1 if seen[u, v] % 2 else -1)*(seen[u, v]//2)*15
+
+        elif not directed and multiple_edges:
+            # Same formula as above for multiple edges
+            if len(G.edge_label(u, v)) != 1:
+                seen[u, v] = seen.get((u, v), 0) + 1
+                curve = (1 if seen[u, v] % 2 else -1)*(seen[u, v]//2)*15
+
+        # Adding the edge to the list
+        edges.append({"source": v_to_id[u],
+                      "target": v_to_id[v],
+                      "strength": 0,
+                      "color": color,
+                      "curve": curve,
+                      "name": str(l) if edge_labels else ""})
+
+    loops = [e for e in edges if e["source"] == e["target"]]
+    edges = [e for e in edges if e["source"] != e["target"]]
+
+    # Defines the vertices' layout if possible
+    Gpos = G.get_pos()
+    pos = []
+    if Gpos is not None and force_spring_layout is False:
+        charge = 0
+        link_strength = 0
+        gravity = 0
+
+        for v in G.vertices():
+            x, y = Gpos[v]
+            pos.append([x, -y])
+
+    return {"nodes"          : nodes,
+            "links"          : edges, "loops": loops, "pos": pos,
+            "directed"       : G.is_directed(),
+            "charge"         : int(charge),
+            "link_distance"  : int(link_distance),
+            "link_strength"  : int(link_strength),
+            "gravity"        : float(gravity),
+            "vertex_labels"  : bool(vertex_labels),
+            "edge_labels"    : bool(edge_labels),
+            "vertex_size"    : int(vertex_size),
+            "edge_thickness" : int(edge_thickness),
+            "width"          : json_float(width),
+            "height"         : json_float(height) }
 
 
 

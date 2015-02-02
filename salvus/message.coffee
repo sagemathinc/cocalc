@@ -1,3 +1,25 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 ###
 #
 # Library for working with JSON messages for Salvus.
@@ -171,6 +193,7 @@ message
     html         : undefined   # arbitrary html stream
     md           : undefined   # github flavored markdown
     tex          : undefined   # tex/latex stream -- is an object {tex:..., display:...}
+    d3           : undefined   # d3 data document, e.g,. {d3:{viewer:'graph', data:{...}}}
     hide         : undefined   # 'input' or 'output'; hide display of given component of cell
     show         : undefined   # 'input' or 'output'; show display of given component of cell
     auto         : undefined   # true or false; sets whether or not cell auto-executess on process restart
@@ -240,65 +263,29 @@ message
     source_code : required
 
 
-
-##################################################
-# Synchronized strings, which are not affiliated
-# with any project.
-##################################################
-
-# client --> hub
-message
-    event      : 'syncstring_get_session'
-    string_id  : required     # new connection to session with this string_id
-    id         : undefined
-
-# hub --> client
-message
-    event      : 'syncstring_session'
-    id         : undefined
-    session_id : required
-    string     : required
-    readonly   : false       # if true, string is read only -- though it can get changed by server
-
-# Client initiated sync.
-# A list of edits that should be applied, along with the
-# last version of edits received before.
-# client <--> hub
-message
-    event            : 'syncstring_diffsync'
-    id               : undefined
-    session_id       : undefined
-    edit_stack       : required
-    last_version_ack : required
-
-# Hub-initiated sync
-# hub <--> client
-message
-    event            : 'syncstring_diffsync2'
-    id               : undefined
-    session_id       : undefined
-    edit_stack       : required
-    last_version_ack : required
-
-# Tell other that there is data ready to be synced:
-# client <--> hub
-message
-    event       : 'syncstring_diffsync_ready'
-    session_id  : undefined
-
-# Hub uses this message to tell client that client should try to
-# sync later, since hub is busy now with some other locking
-# sync operation.
-# hub --> client
-message
-    event      : 'syncstring_diffsync_retry_later'
-    id         : undefined
+############################################
+# Information about several projects or accounts
+#############################################
 
 message
-    event      : 'syncstring_disconnect'
-    id         : undefined
-    session_id : undefined  # gets filled in
+    event       : 'get_project_titles'
+    id          : undefined
+    project_ids : required
 
+message
+    event       : 'project_titles'
+    id          : undefined
+    titles      : required
+
+message
+    event       : 'get_user_names'
+    id          : undefined
+    account_ids : required
+
+message
+    event       : 'user_names'
+    id          : undefined
+    user_names  : required
 
 ############################################
 # CodeMirror editor sessions
@@ -641,6 +628,7 @@ exports.account_settings_defaults =
         spaces_instead_of_tabs    : true
         multiple_cursors          : true
         track_revisions           : true
+        extra_button_bar          : true
         first_line_number         : 1
         indent_unit               : 4
         tab_size                  : 4
@@ -756,6 +744,27 @@ message
 #
 # client --> hub to indicate that there was some activity by this user on the given path
 #
+
+message
+    event       : 'get_all_activity'   # get activity, by default for all projects that this user collaborates on; will be limited in time/number
+    id          : undefined
+
+message
+    event        : 'all_activity'
+    id           : undefined
+    activity_log : required            # input to misc.activity_log function.
+
+message
+    event        : 'recent_activity'
+    updates      : required             # list of specific records that just got added to recent_activity_by_project2
+
+message
+    event        : 'mark_activity'
+    mark         : required   # 'read', 'seen'
+    events       : required   # list of {path:'project_id/filesystem_path', timestamp:number}
+
+# older stuff below
+
 message
     event       : 'path_activity'
     id          : undefined
@@ -776,6 +785,11 @@ message
     notifications : required
     update        : false   # if specified then only giving update since the given time
 
+message
+    event         : 'mark_notifications'
+    mark          : required   # 'read', 'seen'
+    id            : undefined
+    id_list       : required
 
 # client --> hub
 message
@@ -1587,7 +1601,9 @@ message
 
 
 
-
+message
+    event : 'log_client_error'
+    error : required
 
 
 

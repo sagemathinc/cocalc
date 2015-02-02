@@ -1,3 +1,25 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 #################################################################
 #
 # local_hub -- a node.js program that runs as a regular user, and
@@ -164,9 +186,32 @@ forget_port = (type) ->
         delete ports[type]
 
 # try to restart the console server and get port where it is listening
+CONSOLE_SERVER_MAX_STARTUP_TIME_S = 10   # 10 seconds
+
+_restarting_console_server = false
+_restarted_console_server  = 0   # time when we last restarted it
 restart_console_server = (cb) ->   # cb(err)
+    dbg = (m) -> winston.debug("restart_console_server: #{misc.to_json(m)}")
+
+    if _restarting_console_server
+        dbg("hit lock -- already restarting console server")
+        cb("already restarting console server")
+        return
+
+    t = new Date() - _restarted_console_server
+    if t <= CONSOLE_SERVER_MAX_STARTUP_TIME_S*1000
+        err = "restarted console server #{t}ms ago -- still waiting for it to start"
+        dbg(err)
+        cb(err)
+        return
+
+    _restarting_console_server = true
+    dbg("restarting the daemon")
+
+    dbg("killing all existing console sockets")
+    console_sessions.terminate_all_sessions()
+
     port_file = abspath("#{DATA}/console_server.port")
-    dbg = (m) -> winston.debug("restart_console_server: #{m}")
     port = undefined
     async.series([
         (cb) ->
@@ -183,10 +228,7 @@ restart_console_server = (cb) ->   # cb(err)
                 cb          : cb
         (cb) ->
             dbg("wait a little to see if #{port_file} appears, and if so read it and return port")
-            t = misc.walltime()
             f = (cb) ->
-                if misc.walltime() - t > 5  # give up
-                    cb(); return
                 fs.exists port_file, (exists) ->
                     if not exists
                         cb(true)
@@ -201,9 +243,15 @@ restart_console_server = (cb) ->   # cb(err)
                                 catch error
                                     cb('reading port corrupt')
             misc.retry_until_success
-                f  : f
-                cb : cb
+                f        : f
+                max_time : 7000
+                cb       : cb
     ], (err) =>
+        _restarting_console_server = false
+        _restarted_console_server = new Date()
+        dbg("finished trying to restart console_server")
+        if err
+            dbg("ERROR: #{err}")
         cb(err, port)
     )
 
@@ -211,6 +259,7 @@ restart_console_server = (cb) ->   # cb(err)
 class ConsoleSessions
     constructor: () ->
         @_sessions = {}
+        @_get_session_cbs = {}
 
     session_exists: (session_uuid) =>
         return @_sessions[session_uuid]?
@@ -218,132 +267,208 @@ class ConsoleSessions
     terminate_session: (session_uuid, cb) =>
         session = @_sessions[session_uuid]
         if not session?
-            cb()
+            cb?()
         else
             winston.debug("terminate console session '#{session_uuid}'")
             if session.status == 'running'
                 session.socket.end()
-                cb()
+                session.status = 'done'
+                cb?()
             else
-                cb()
+                cb?()
+
+    terminate_all_sessions: () =>
+        for session_uuid, session of @_sessions[session_uuid]
+            try
+                session.socket.end()
+            catch e
+                session.status = 'done'
 
     # Connect to (if 'running'), restart (if 'dead'), or create (if
     # non-existing) the console session with mesg.session_uuid.
-    connect: (client_socket, mesg) =>
-        winston.debug("connect to console session #{mesg.session_uuid}")
+    connect: (client_socket, mesg, cb) =>
+        if not mesg.session_uuid?
+            mesg.session_uuid = misc.uuid()
+        @get_session mesg, (err, session) =>
+            if err
+                client_socket.write_mesg('json', message.error(id:mesg.id, error:err))
+                cb?(err)
+            else
+                client_socket.write_mesg('json', {desc:session.desc, history:session.history.toString()})
+                plug(client_socket, session.socket, 20000)  # 20000 = max burst to client every few ms.
+                session.clients.push(client_socket)
+                cb?()
+
+    # Get or create session with given uuid.
+    # Can be safely called several times at once without creating multiple sessions...
+    get_session: (mesg, cb) =>
+        # TODO: must be robust against multiple clients opening same session_id at once, which
+        # would be likely to happen on network reconnect.
+        winston.debug("get_session: console session #{mesg.session_uuid}")
         session = @_sessions[mesg.session_uuid]
         if session? and session.status == 'running'
-            winston.debug("console session exists and is running")
-            client_socket.write_mesg('json', {desc:session.desc, history:session.history.toString()})
-            plug(client_socket, session.socket)
-            session.clients.push(client_socket)
-        else
-            winston.debug("console session does not exist or is not running, so we make a new session")
-            get_port 'console', (err, port) =>
-                winston.debug("got console server port = #{port}")
-                if err
-                    winston.debug("can't determine console server port; probably console server not running -- try restarting it")
-                    restart_console_server (err, port) =>
-                        if err
-                            client_socket.write_mesg('json', message.error(id:mesg.id, error:"problem determining port of console server."))
-                        else
-                            @_new_session(client_socket, mesg, port, session?.history)
-                else
-                    @_new_session(client_socket, mesg, port, session?.history)
+            winston.debug("console session: done -- it's already there and working")
+            cb(undefined, session)
+            return
 
-    _new_session: (client_socket, mesg, port, history, cnt) =>
-        if not cnt?
-            cnt = 0
+        if not @_get_session_cbs[mesg.session_uuid]?
+            winston.debug("console session not yet created -- put on stack")
+            @_get_session_cbs[mesg.session_uuid] = [cb]
+        else
+            winston.debug("console session already being created -- just push cb onto stack and return")
+            @_get_session_cbs[mesg.session_uuid].push(cb)
+            return
+
+        port    = undefined
+        history = undefined
+        async.series([
+            (cb) =>
+                if session?
+                    history = session.history # maintain history
+                winston.debug("console session does not exist or is not running, so we make a new session")
+                session = undefined
+                get_port 'console', (err, _port) =>
+                    if err
+                        cb() # will try to restart console server in next step
+                    else
+                        port = _port
+                        winston.debug("got console server port = #{port}")
+                        cb()
+            (cb) =>
+                if port?
+                    cb()
+                else
+                    winston.debug("couldn't determine console server port; probably console server not running -- try restarting it")
+                    restart_console_server (err, _port) =>
+                        if err
+                            cb(err)
+                        else
+                            port = _port
+                            winston.debug("restarted console server, then got port = #{port}")
+                            cb()
+            (cb) =>
+                # Got port -- now create the new session
+                @_new_session mesg, port, (err, _session) =>
+                    if err
+                        cb(err)
+                    else
+                        session = _session
+                        if history?  # we restarted session; maintain history
+                            session.history = history
+                        cb()
+        ], (err) =>
+            # call all the callbacks that were waiting on this session.
+            for cb in @_get_session_cbs[mesg.session_uuid]
+                cb(err, session)
+            delete @_get_session_cbs[mesg.session_uuid]
+        )
+
+
+    _get_console_server_socket: (port, cb) =>
+        socket = undefined
+        f = (cb) =>
+            misc_node.connect_to_locked_socket
+                port  : port
+                token : secret_token
+                cb    : (err, _socket) =>
+                    if err
+                        cb(err)
+                    else
+                        socket = _socket
+                        cb()
+        async.series([
+            (cb) =>
+                misc.retry_until_success
+                    f        : f
+                    max_time : 5000
+                    cb       : (err) =>
+                        cb()  # ignore err on purpose -- no err sets socket
+            (cb) =>
+                if socket?
+                    cb(); return
+                forget_port('console')
+                restart_console_server (err, _port) =>
+                    if err
+                        cb(err)
+                    else
+                        port = _port
+                        cb()
+            (cb) =>
+                if socket?
+                    cb(); return
+                misc.retry_until_success
+                    f        : f
+                    max_time : 5000
+                    cb       : cb
+        ], (err) =>
+            if err
+                cb(err)
+            else
+                cb(undefined, socket)
+        )
+
+    _new_session: (mesg, port, cb) =>  # cb(err, session)
         winston.debug("_new_session: defined by #{json(mesg)}")
         # Connect to port CONSOLE_PORT, send mesg, then hook sockets together.
-        misc_node.connect_to_locked_socket
-            port  : port
-            token : secret_token
-            cb : (err, console_socket) =>
-                if err
-                    winston.debug("_new_session - error connecting to locked console socket -- #{err}")
-                    forget_port('console')
-                    if cnt >= 3
-                        # too many tries -- give up
-                        client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- TOO MANY problems connecting to console server."))
-                        winston.debug("_new_session: console server denied connection too many times")
-                        return
-                    winston.debug("_new_session -- not too many (=#{cnt}) tries -- try to restart console server and try again.")
-                    restart_console_server (err, port) =>
-                        if err or not port?
-                            # even restarting console server failed
-                            client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to console server."))
-                            winston.debug("_new_session: console server denied connection")
-                        else
-                            @_new_session(client_socket, mesg, port, history, cnt+1)
-                        return
-                # Request a Console session from console_server
-                misc_node.enable_mesg(console_socket)
-                console_socket.write_mesg('json', mesg)
-                # Read one JSON message back, which describes the session
-                console_socket.once 'mesg', (type, desc) =>
-                    if not history?
-                        history = new Buffer(0)
-                    client_socket.write_mesg('json', {desc:desc, history:history.toString()})  # in future, history could be read from a file
-                    # Disable JSON mesg protocol, since it isn't used further
-                    misc_node.disable_mesg(console_socket)
-                    misc_node.disable_mesg(client_socket)
+        @_get_console_server_socket port, (err, console_socket) =>
+            if err
+                cb("_new_session: console server failed to connect -- #{err}")
+                return
+            # Request a Console session from console_server
+            misc_node.enable_mesg(console_socket)
+            console_socket.write_mesg('json', mesg)
+            # Read one JSON message back, which describes the session
+            console_socket.once 'mesg', (type, desc) =>
+                if not history?
+                    history = new Buffer(0)
+                # in future, history could be read from a file
+                # Disable JSON mesg protocol, since it isn't used further
+                misc_node.disable_mesg(console_socket)
 
-                    session =
-                        socket  : console_socket
-                        desc    : desc,
-                        status  : 'running',
-                        clients : [client_socket],
-                        history : history
-                        session_uuid : mesg.session_uuid
-                        project_id   : mesg.project_id
+                session =
+                    socket       : console_socket
+                    desc         : desc
+                    status       : 'running'
+                    clients      : []
+                    history      : ''    # TODO: this could come from something stored in a file
+                    session_uuid : mesg.session_uuid
+                    project_id   : mesg.project_id
 
-                    # Connect the sockets together.
+                session.amount_of_data = 0
+                session.last_data = misc.mswalltime()
 
-                    # receive data from the user (typing at their keyboard)
-                    client_socket.on 'data', (data) ->
-                        activity()
-                        console_socket.write(data)
+                console_socket.on 'data', (data) ->
+                    #winston.debug("receive #{data.length} of data from the pty: data='#{data.toString()}'")
+                    # every 2 ms we reset the burst data watcher.
+                    tm = misc.mswalltime()
+                    if tm - session.last_data >= 2
+                        session.amount_of_data = 0
+                    session.last_data = tm
 
-                    session.amount_of_data = 0
-                    session.last_data = misc.mswalltime()
+                    if session.amount_of_data > 50000
+                        # We just got more than 50000 characters of output in <= 2 ms, so truncate it.
+                        # I had a control-c here, but it was EVIL (and useless), so do *not* enable this.
+                        #      console_socket.write(String.fromCharCode(3))
+                        data = '[...]'
 
-                    # receive data from the pty, which we push out to the user (via global hub)
-                    console_socket.on 'data', (data) ->
+                    session.history += data
+                    session.amount_of_data += data.length
+                    n = session.history.length
+                    if n > 200000
+                        session.history = session.history.slice(session.history.length - 100000)
 
-                        # every 2 ms we reset the burst data watcher.
-                        tm = misc.mswalltime()
-                        if tm - session.last_data >= 2
-                            session.amount_of_data = 0
-                        session.last_data = tm
 
-                        if session.amount_of_data > 200000
-                            # We just got more than 200000 characters of output in <= 2 ms, so truncate it.
-                            # I had a control-c here, but it was EVIL (and useless), so do *not* enable this.
-                            #      console_socket.write(String.fromCharCode(3))
-                            # client_socket.write('[...]')
-                            data = '[...]'
+                @_sessions[mesg.session_uuid] = session
+                cb(undefined, session)
 
-                        session.history += data
-                        session.amount_of_data += data.length
-                        n = session.history.length
-                        if n > 200000
-                            session.history = session.history.slice(session.history.length - 100000)
-
-                        # Never push more than 20000 characters at once to client hub, since that could overwhelm...
-                        if data.length > 20000
-                            data = "[...]"+data.slice(data.length-20000)
-
-                        client_socket.write(data)
-
-                    @_sessions[mesg.session_uuid] = session
-
-                console_socket.on 'end', () =>
-                    winston.debug("console session #{mesg.session_uuid} ended")
-                    session = @_sessions[mesg.session_uuid]
-                    if session?
-                        session.status = 'done'
-                    client_socket.end()
+            console_socket.on 'end', () =>
+                winston.debug("console session #{mesg.session_uuid} ended")
+                session = @_sessions[mesg.session_uuid]
+                if session?
+                    session.status = 'done'
+                    for client in session.clients
+                        # close all of these connections
+                        client.end()
 
     # Return object that describes status of all Console sessions
     info: (project_id) =>
@@ -363,12 +488,29 @@ console_sessions = new ConsoleSessions()
 # Direct Sage socket session -- used internally in local hub, e.g., to assist CodeMirror editors...
 ###############################################
 
+# Wait up to this long for the Sage server to start responding
+# connection requests, after we restart it.  It can
+# take a while, since it pre-imports the sage library
+# at startup, before forking.
+SAGE_SERVER_MAX_STARTUP_TIME_S = 30   # 30 seconds
+
 _restarting_sage_server = false
-restart_sage_server = (cb) ->
+_restarted_sage_server  = 0   # time when we last restarted it
+exports.restart_sage_server = restart_sage_server = (cb) ->
+    dbg = (m) -> winston.debug("restart_sage_server: #{misc.to_json(m)}")
     if _restarting_sage_server
+        dbg("hit lock")
         cb("already restarting sage server")
         return
+    t = new Date() - _restarted_sage_server
+    if t <= SAGE_SERVER_MAX_STARTUP_TIME_S*1000
+        err = "restarted sage server #{t}ms ago -- still waiting for it to start"
+        dbg(err)
+        cb(err)
+        return
+
     _restarting_sage_server = true
+    dbg("restarting the daemon")
     misc_node.execute_code
         command     : "sage_server stop; sage_server start"
         timeout     : 30
@@ -376,25 +518,39 @@ restart_sage_server = (cb) ->
         bash        : true
         cb          : (err) ->
             _restarting_sage_server = false
+            _restarted_sage_server = new Date()
             cb(err)
 
+# Get a new connection to the Sage server.  If the server
+# isn't running, e.g., it was killed due to running out of memory,
+# then attempt to restart it and try to connect.
 get_sage_socket = (cb) ->
-    _get_sage_socket (err, socket) ->
-        if not err
-            cb(undefined, socket)
-        else
-            # Failed for some reason: try to restart one time, then try again.
-            # We do this because the Sage server can easily get killed due to out of memory conditions.
-            # But we don't constantly try to restart the server, since it can easily fail to start if
-            # there is something wrong with a local Sage install.
-            # Note that restarting the sage server doesn't impact currently running worksheets (they
-            # have their own process that isn't killed).
-            restart_sage_server (err) ->
-                if err
-                    cb(err)
-                else
-                    _get_sage_socket(cb)
+    socket = undefined
+    try_to_connect = (cb) ->
+        _get_sage_socket (err, _socket) ->
+            if not err
+                socket = _socket
+                cb()
+            else
+                # Failed for some reason: try to restart one time, then try again.
+                # We do this because the Sage server can easily get killed due to out of memory conditions.
+                # But we don't constantly try to restart the server, since it can easily fail to start if
+                # there is something wrong with a local Sage install.
+                # Note that restarting the sage server doesn't impact currently running worksheets (they
+                # have their own process that isn't killed).
+                restart_sage_server (err) ->  # won't actually try to restart if called recently.
+                    # we ignore the returned err -- error does not matter, since we didn't connect
+                    cb(true)
 
+    misc.retry_until_success
+        f           : try_to_connect
+        start_delay : 2000
+        max_delay   : 6000
+        factor      : 1.5
+        max_time    : SAGE_SERVER_MAX_STARTUP_TIME_S*1000
+        log         : (m) -> winston.debug("get_sage_socket: #{m}")
+        cb          : (err) ->
+            cb(err, socket)
 
 _get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
     sage_socket = undefined
@@ -436,17 +592,52 @@ _get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
 
     ], (err) -> cb(err, sage_socket))
 
+# Connect to sockets together.  This is used mainly
+# for the console server.
+plug = (s1, s2, max_burst) ->   # s1 = hub; s2 = console server
+    last_tm = misc.mswalltime()
+    last_data = ''
+    amount  = 0
+    # Connect the sockets together.
+    s1_data = (data) ->
+        activity()
+        # record incoming activity  (don't do this in other direction, since that shouldn't keep session alive)
+        if not s2.writable
+            s1.removeListener('data', s1_data)
+        else
+            s2.write(data)
+    s2_data = (data) ->
+        if not s1.writable
+            s2.removeListener('data', s2_data)
+        else
+            if max_burst?
+                tm = misc.mswalltime()
+                if tm - last_tm >= 20
+                    if amount < 0 # was truncating
+                        data = "]" + last_data.slice(Math.max(0, last_data.length - Math.floor(max_burst/4))) + data
+                    console.log("max_burst: reset")
+                    amount = 0
+                last_tm = tm
+                console.log("max_burst: amount=#{amount}")
+                if amount >= max_burst
+                    last_data = data
+                    data = data.slice(0,Math.floor(max_burst/4)) + "[..."
+                    amount = -1 # so do only once every 20ms.
+                    setTimeout((()=>s2_data('')), 25)  # write nothing in 25ms just to make sure ...] appears.
+                else if amount < 0
+                    last_data += data
+                    setTimeout((()=>s2_data('')), 25)  # write nothing in 25ms just to make sure ...] appears.
+                else
+                    amount += data.length
+                # Never push more than max_burst characters at once to hub, since that could overwhelm
+            s1.write(data)
+    s1.on('data', s1_data)
+    s2.on('data', s2_data)
+
+
 ###############################################
 # Sage sessions
 ###############################################
-
-plug = (s1, s2) ->
-    # Connect the sockets together.
-    s1.on 'data', (data) ->
-        activity()   # record incoming activity  (don't do this in other direction, since that shouldn't keep session alive)
-        s2.write(data)
-    s2.on 'data', (data) ->
-        s1.write(data)
 
 ## WARNING!  I think this is no longer used!  It was used for my first (few)
 ## approaches to worksheets.
@@ -588,20 +779,9 @@ sage_sessions = new SageSessions()
 class DiffSyncFile_server extends diffsync.DiffSync
     constructor:(@cm_session, cb)  ->
         @path = @cm_session.path
-        @_backup_file = misc.meta_file(@path, 'backup')
-        # check for need to save a backup every this many milliseconds
-        @_autosave = setInterval(@write_backup, 10000)
-
-        # We prefer the backup file only if it both (1) exists, and
-        # (2) is *newer* than the master file.  This is because some
-        # other editing program could have edited the master, not
-        # knowing about the backup, in which case it makes more sense
-        # to just go with the master.
 
         no_master    = undefined
         stats_path   = undefined
-        no_backup    = undefined
-        stats_backup = undefined
         stats        = undefined
         file         = undefined
 
@@ -612,13 +792,8 @@ class DiffSyncFile_server extends diffsync.DiffSync
                     stats_path = _stats_path
                     cb()
             (cb) =>
-                fs.stat @_backup_file, (_no_backup, _stats_backup) =>
-                    no_backup = _no_backup
-                    stats_backup = _stats_backup
-                    cb()
-            (cb) =>
-                if no_backup and no_master
-                    # neither exist -- create
+                if no_master
+                    # create
                     file = @path
                     misc_node.ensure_containing_directory_exists @path, (err) =>
                         if err
@@ -629,24 +804,10 @@ class DiffSyncFile_server extends diffsync.DiffSync
                                     cb(err)
                                 else
                                     fs.close fd, cb
-                else if no_backup # no backup file -- always use master
+                else
+                    # master exists
                     file = @path
                     stats = stats_path
-                    cb()
-                else if no_master # no master file but there is a backup file -- use backup
-                    file = @_backup_file
-                    stats = stats_backup
-                    cb()
-                else
-                    # both master and backup exist
-                    if stats_path.mtime.getTime() >= stats_backup.mtime.getTime()
-                        # master is newer
-                        file = @path
-                        stats = stats_path
-                    else
-                        # backup is newer
-                        file = @_backup_file
-                        stats = stats_backup
                     cb()
             (cb) =>
                 e = check_file_size(stats?.size)
@@ -753,17 +914,6 @@ class DiffSyncFile_server extends diffsync.DiffSync
                 cb?(err); return
             fs.writeFile @path, @live, (err) =>
                 @_start_watching_file()
-                if not err
-                    fs.exists @_backup_file, (exists) =>
-                        fs.unlink(@_backup_file)
-                cb?(err)
-
-    write_backup: (cb) =>
-        if @cm_session.content != @_last_backup
-            x = @cm_session.content
-            fs.writeFile @_backup_file, x, (err) =>
-                if not err
-                    @_last_backup = x
                 cb?(err)
 
 
@@ -1082,7 +1232,12 @@ class CodeMirrorSession
         winston.debug("sage_update")#: opts=#{misc.to_json(opts)}")
         i = 0
         prev_ids = {}
+        z = 0
         while true
+            z += 1
+            if z > 5000
+                winston.debug("sage_update: ERROR -- hit a possible infinite loop; opts=#{misc.to_json(opts)}")
+                break
             i = @content.indexOf(diffsync.MARKERS.cell, i)
             if i == -1
                 break
@@ -1900,6 +2055,7 @@ print_sagews = (opts) ->
         date       : required
         contents   : required
         extra_data : undefined   # extra data that is useful for displaying certain things in the worksheet.
+        timeout    : 90
         cb         : required
 
     extra_data_file = undefined
@@ -1920,6 +2076,7 @@ print_sagews = (opts) ->
                 args        : args
                 err_on_exit : false
                 bash        : false
+                timeout     : opts.timeout
                 cb          : cb
 
         ], (err) =>
@@ -1947,6 +2104,7 @@ print_to_pdf = (socket, mesg) ->
                         date       : mesg.options.date
                         contents   : mesg.options.contents
                         extra_data : mesg.options.extra_data
+                        timeout    : mesg.options.timeout
                         cb         : cb
                 else
                     cb("unable to print file of type '#{ext}'")
@@ -1983,9 +2141,15 @@ project_exec = (socket, mesg) ->
         bash        : mesg.bash
         cb          : (err, out) ->
             if err
+
+                error = "Error executing command '#{mesg.command}' with args '#{mesg.args}' -- #{err}, #{out?.stdout}, #{out?.stderr}"
+                if error.indexOf("Connection refused") != -1
+                    error += "-- Email help@sagemath.com if you need external network access, which is disabled by default."
+                if error.indexOf("=") != -1
+                    error += "-- This is a BASH terminal, not a Sage worksheet.  For Sage, use +New and create a Sage worksheet."
                 err_mesg = message.error
                     id    : mesg.id
-                    error : "Error executing code command:#{mesg.command}, args:#{mesg.args}, bash:#{mesg.bash}' -- #{err}, #{out?.stdout}, #{out?.stderr}"
+                    error : error
                 socket.write_mesg('json', err_mesg)
             else
                 #winston.debug(json(out))
@@ -2264,7 +2428,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, abspath("#{DATA}/local_hub.pid"))
     .option('--logfile [string]', 'write log to this file', String, abspath("#{DATA}/local_hub.log"))
     .option('--forever_logfile [string]', 'write forever log to this file', String, abspath("#{DATA}/forever_local_hub.log"))
-    .option('--debug [string]', 'logging debug level (default: "" -- no debugging output)', String, 'debug')
+    .option('--debug [string]', 'logging debug level (default: "debug"); "" for no debugging output)', String, 'debug')
     .option('--timeout [number]', 'kill all processes if there is no activity for this many *seconds* (use 0 to disable, which is the default)', Number, 0)
     .parse(process.argv)
 

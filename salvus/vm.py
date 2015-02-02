@@ -1,4 +1,26 @@
 #!/usr/bin/env python
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 """
 vm.py -- create and run a virtual machine based on the standard
          salvus_base template with the given memory and vcpus, and add
@@ -26,8 +48,8 @@ conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
 # kvm -- via libvirt
 ###########################################
 
-qemu="system" 
-# qemu="session" 
+qemu="system"
+# qemu="session"
 
 def virsh(command, name):
     return run(['virsh', '--connect', 'qemu:///%s'%qemu, command, name], verbose=False, maxtime=600).strip()
@@ -86,9 +108,19 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
             log.info("virsh shutdown '%s'"%hostname)
             log.info(virsh('shutdown', hostname))
         except: pass
+        time.sleep(30) # give it at least 30 seconds to actually shut down.
         try:
             log.info("virsh destroy '%s'"%hostname)
-            log.info(virsh('destroy', hostname))
+            a = virsh('destroy', hostname)
+            log.info(a)
+        except:
+            pass
+        try:
+            i = a.index('Failed to terminate process')
+            if i != -1:
+                log.info("couldn't destroy -- trying to kill directly")
+                pid = a[i+len('Failed to terminate process'):].strip().split()[0]
+                run(['kill', '-9', pid])
         except: pass
         try:
             log.info("virsh undefine '%s'"%hostname)
@@ -103,7 +135,6 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
             log.info("remove ephemeral image '%s'"%new_img)
             os.unlink(new_img)
         except: pass
-        return
 
     if os.path.exists(new_img):
         raise RuntimeError("the image '%s' already exists; maybe the virtual machine is already running?"%new_img)

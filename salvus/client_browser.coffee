@@ -1,3 +1,25 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 client = require('client')
 exports.connect = (url) ->
     new Connection(url)
@@ -23,13 +45,25 @@ class Connection extends client.Connection
         conn = new Primus(url, opts)
         @_conn = conn
         conn.on 'open', () =>
+            if @_conn_id?
+                conn.write(@_conn_id)
+            else
+                conn.write("XXXXXXXXXXXXXXXXXXXX")
             @_connected = true
             if window.WebSocket?
                 protocol = 'websocket'
             else
                 protocol = 'polling'
             console.log("#{protocol} -- connected in #{walltime(t)} seconds")
+
             @emit("connected", protocol)
+
+            f = (data) =>
+                @_conn_id = data.toString()
+                conn.removeListener('data',f)
+                conn.on('data', ondata)
+            conn.on("data",f)
+
 
         conn.on 'message', (evt) =>
             #console.log("websocket -- message: ", evt)
@@ -43,11 +77,8 @@ class Connection extends client.Connection
             console.log("websocket -- closed")
             @_connected = false
             t = walltime()
+            conn.removeListener('data', ondata)
             @emit("connecting")
-
-        conn.on 'data', (data) =>
-            # console.log("websocket --data='#{data}'")
-            ondata(data)
 
         conn.on 'reconnecting', (opts) =>
             console.log('websocket --reconnecting in %d ms', opts.timeout)

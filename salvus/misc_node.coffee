@@ -1,3 +1,25 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 ####################################################################
 #
 # misc JS functionality that only makes sense on the node side (not on
@@ -61,7 +83,7 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
                         try
                             obj = JSON.parse(s)
                         catch e
-                            winston.debug("Error parsing JSON message='#{misc.truncate(s,512)}' on socket #{desc}")
+                            winston.debug("Error parsing JSON message='#{misc.trunc(s,512)}' on socket #{desc}")
                             # TODO -- this throw can seriously mess up the server; handle this
                             # in a better way in production.  This could happen if there is
                             # corruption of the connection.
@@ -177,8 +199,6 @@ exports.connect_to_locked_socket = (opts) ->
         token   : required
         timeout : 5
         cb      : required
-
-    winston.debug("#{misc.to_json(opts)}")
 
     winston.debug("misc_node: connecting to a locked socket on port #{port}...")
     timer = undefined
@@ -334,7 +354,7 @@ exports.execute_code = execute_code = (opts) ->
 
         (c) ->
             if opts.verbose
-                winston.debug("Spawn the command #{opts.command} with given args #{opts.args}")
+                winston.debug("Spawning the command #{opts.command} with given args #{opts.args} and timeout of #{opts.timeout}s...")
             o = {cwd:opts.path}
             if env?
                 o.env = env
@@ -432,7 +452,7 @@ exports.execute_code = execute_code = (opts) ->
             exit_code = 1  # don't have one due to SIGKILL
 
         # TODO:  This is dangerous, e.g., it could print out a secret_token to a log file.
-        # winston.debug("(time: #{walltime() - start_time}): Done running '#{opts.command} #{opts.args.join(' ')}'; resulted in stdout='#{stdout}', stderr='#{stderr}', exit_code=#{exit_code}, err=#{err}")
+        # winston.debug("(time: #{walltime() - start_time}): Done running '#{opts.command} #{opts.args.join(' ')}'; resulted in stdout='#{misc.trunc(stdout,512)}', stderr='#{misc.trunc(stderr,512)}', exit_code=#{exit_code}, err=#{err}")
         # Do not litter:
         if tmpfilename?
             try
@@ -442,8 +462,8 @@ exports.execute_code = execute_code = (opts) ->
 
 
         if opts.verbose
-            winston.debug("finished exec of #{opts.command}")
-            winston.debug("stdout=#{stdout},stderr=#{stderr},exit_code=#{exit_code}")
+            winston.debug("finished exec of #{opts.command} (took #{walltime(start_time)}s)")
+            winston.debug("stdout='#{misc.trunc(stdout,512)}', stderr='#{misc.trunc(stderr,512)}', exit_code=#{exit_code}")
         if not opts.err_on_exit and ran_code
             # as long as we made it to running some code, we consider this a success (that is what err_on_exit means).
             opts.cb?(false, {stdout:stdout, stderr:stderr, exit_code:exit_code})

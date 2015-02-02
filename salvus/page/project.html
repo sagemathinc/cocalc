@@ -1,3 +1,23 @@
+<!--
+SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and the Terminal.
+
+    Copyright (C) 2014, William Stein
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+
 <!-- Modal dialogs for manipulating paths -->
 
 <div id="project-delete-path-dialog" class="modal" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
@@ -415,11 +435,17 @@ margin-right: 2em;
 
                     <div class="col-sm-3">
                         <div class="input-group salvus-project-search-for-file-input-container">
-                            <input class="salvus-project-search-for-file-input search-query form-control" type="search" placeholder="Choose files...">
+                            <input class="salvus-project-search-for-file-input search-query form-control" type="search" placeholder="Filename">
                             <span class="input-group-btn">
-                                <button class="btn btn-default salvus-project-search-for-file-input-clear" type="button">
-                                    <i class="fa fa-times-circle"></i>
+                                <button class="btn btn-default salvus-project-search-for-file-input-clear" type="button"><i class="fa fa-times-circle"></i></button>
+                                <a class="btn btn-default" style="=" href="#smc-mini-new"><i class="fa fa-plus-circle"></i> New</a>
+                                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                                    <span class="caret"></span>
+                                    <span class="sr-only">Toggle Dropdown</span>
                                 </button>
+                                <ul class="dropdown-menu smc-mini-new-file-type-list" role="menu" style="max-height: 400px; overflow-y: auto;">
+                                </ul>
+
                             </span>
                         </div>
                         <div class="hide lighten salvus-project-search-describe">Showing <b><i>only</i></b> files that contain '<span></span>'.</div>
@@ -438,7 +464,7 @@ margin-right: 2em;
                     <div class="project-file-listing-buttons">
                         <!-- Snapshots link -->
                         <div class="project-snapshot pull-right salvus-project-write-access" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
-                            <a href="#snapshot" data-toggle="tooltip" data-placement="bottom" title="Recover  past versions of your files." style="margin-left: 1ex;"><i class="fa fa-camera-retro"> </i> <span style="font-size:14px">&nbsp;Snapshots</span><div class="project-snapshot-last-timeago"><span></span></div></a>
+                            <a href="#snapshot" data-toggle="tooltip" data-placement="bottom" title="Recover  past versions of your files." style="margin-left: 1ex;"><i class="fa fa-camera-retro"> </i> <span style="font-size:14px">&nbsp;Snapshots</span><br></a>
                         </div>
 
                         <!-- Trash can link -->
@@ -466,7 +492,7 @@ margin-right: 2em;
                     </div>
 
                     <!-- command line prompt -->
-                    <div class="project-command-line pull-right col-sm-3">
+                    <div class="project-command-line salvus-project-write-access pull-right col-sm-3">
                         <div class="input-group" style="width:100%">
                             <input class="project-command-line-input form-control salvus-project-write-access" type="text"
                                    placeholder="Terminal command..." data-toggle="tooltip" data-placement="top"
@@ -538,7 +564,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                 <h4>Name your file or paste in a web link</h4>
                                 <input class="project-new-file-path-input form-control" type="text" placeholder="Name your new file, worksheet, terminal or directory..." style="width:100%">
                                 <br>
-                                <h4>Select the type</h4>
+                                <h4>Select the type of file, directory or link</h4>
                                 <span style="width:100%">
                                     <div class="row">
                                         <div class="col-sm-6">
@@ -546,7 +572,15 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                             <a class="btn btn-default" style="margin-top:1ex" href="#new-ipython" data-toggle="tooltip" data-placement="top" title="An IPython notebook"><i class="fa fa-file-code-o"></i> IPython Notebook</a>
                                         </div>
                                         <div class="col-sm-6">
-                                            <a class="btn btn-default" style="margin-top:1ex" href="#new-file" data-toggle="tooltip" data-placement="bottom" title="New file of any type"><i class="fa fa-file"></i> File</a>
+                                            <div class="btn-group" style="margin-top:1ex" >
+                                                <a href="#new-file" class="btn btn-default"><i class="fa fa-file"></i> File</a>
+                                                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                                                    <span class="caret"></span>
+                                                    <span class="sr-only">Toggle Dropdown</span>
+                                                </button>
+                                                <ul class="dropdown-menu smc-new-file-type-list" role="menu" style="max-height: 400px; overflow-y: auto;">
+                                                </ul>
+                                            </div>
                                             <a class="btn btn-default" style="margin-top:1ex" href="#new-folder" data-toggle="tooltip" data-placement="bottom" title="New folder"><i class="fa fa-folder-open-o"></i> Folder</a>
                                             <a class="btn btn-default" style="margin-top:1ex" href="#new-download" data-toggle="tooltip" data-placement="bottom" title="Copy file or directory from the web"><i class="fa fa-cloud"></i> From Internet <span class="salvus-network-blocked">(most sites blocked)</span></a>
                                         </div>
@@ -556,7 +590,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                             <a class="btn btn-default" style="margin-top:1ex" href="#new-latex" data-toggle="tooltip" data-placement="top" title="Full LaTeX document"><i class="fa fa-file-excel-o"></i> LaTeX Document</a>
                                             <a class="btn btn-default" style="margin-top:1ex" href="#new-terminal" data-toggle="tooltip" data-placement="top" title="Command line terminal session"><i class="fa fa-terminal"></i> Terminal</a>
                                             <a class="btn btn-default" style="margin-top:1ex" href="#new-tasks" data-toggle="tooltip" data-placement="top" title="List of tasks to complete"><i class="fa fa-tasks"></i> Task List</a>
-                                            <a class="btn btn-default"  style="margin-top:1ex"  href="#new-course" data-toggle="tooltip" data-placement="top" title="A course with many students"><i class="fa fa-graduation-cap"></i> Course</a>
+                                            <a class="btn btn-default"  style="margin-top:1ex"  href="#new-course" data-toggle="tooltip" data-placement="top" title="A course with many students"><i class="fa fa-graduation-cap"></i> Manage a Course</a>
                                         </div>
                                         <div class="col-sm-6">
                                         </div>
@@ -635,37 +669,49 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                     <h1 class="project-pages-header">Project Settings and Controls</h1>
                     <span class="hide salvus-project-id-warning pull-right" title="When doing development of SMC inside an SMC project, the security of the raw http server and ipython server is via the project id; other users on the same VM that know the project id of your devel project both from the POV of SMC and of your local server, could get readonly access to your files (or read/write if you start an ipython server).">DANGER (hover with mouse)</span>
                 </div>
-                <div class="well col-sm-12">
+                <div class="col-sm-12" style="margin-left: 1em;">
                     <div class="row">
                         <div class="col-sm-6">
-                            <div class="well salvus-project-settings-heading-well">
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <h5 style="margin-top:14px">
-                                            Title
-                                        </h5>
-                                    </div>
-                                    <div class="col-sm-9">
-                                        <h4 class="project-project_title" contenteditable="true"></h4>
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <div class="panel-title">
+                                        <i class="fa fa-header"> </i>&nbsp;&nbsp; Title and Description
                                     </div>
                                 </div>
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <h5 style="margin-top:12px">
-                                            Description
-                                        </h5>
+                                <div class="panel-body">
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <h5 style="margin-top:14px">
+                                                Title
+                                            </h5>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <h4 class="project-project_title" contenteditable="true"></h4>
+                                        </div>
                                     </div>
-                                    <div class="col-sm-9">
-                                        <div class="project-project_description" contenteditable="true">
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <h5 style="margin-top:12px">
+                                                Description
+                                            </h5>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <div class="project-project_description" contenteditable="true">
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="well salvus-project-settings-heading-well project-collaborators-box">
+                            <div class="panel panel-default salvus-project-settings-heading-well project-collaborators-box">
+                                <div class="panel-heading">
+                                    <div class="panel-title">
+                                        <i class="fa fa-user"> </i>&nbsp;&nbsp; Collaborators
+                                    </div>
+                                </div>
+                                <div class="panel-body">
                                 <div class="row">
                                     <div class="col-sm-4">
-                                        <h4 class="pull-left"><i class="fa fa-user"> </i>&nbsp;&nbsp; Collaborators</h4>
                                     </div>
                                     <div class="col-sm-8">
                                         <div class="input-group">
@@ -709,60 +755,67 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                     <div class="col-sm-12 well well-sm project-collaborators project-connections lighten">
                                     </div>
                                 </div>
+                                </div>
                             </div>
                         </div>
 
                         <div class="col-sm-6">
-                            <div class="well salvus-project-settings-heading-well">
-
-                                <!-- The project id -->
-                                <h4><i class="fa fa-gears"> </i>&nbsp;&nbsp; Project Server</h4>
-                                <div class="project-settings-move row">
-                                    <div class="col-sm-4">
-                                        <h5>Project id</h5>
-                                    </div>
-                                    <div class="col-sm-8">
-                                        <pre class="project-id">loading…</pre>
+                            <div class="panel panel-default salvus-project-settings-heading-well">
+                                <div class="panel-heading">
+                                    <div class="panel-title">
+                                        <i class="fa fa-gears"> </i>&nbsp;&nbsp; Project Server
                                     </div>
                                 </div>
+                                <div class="panel-body">
 
-                                <div class="project-settings-move row">
-                                    <!-- Current location of the project -->
-                                    <div class="col-sm-4">
-                                        <h5>Location</h5>
+                                    <div class="project-settings-move row">
+                                        <div class="col-sm-4">
+                                            <h5>Project id</h5>
+                                        </div>
+                                        <div class="col-sm-8">
+                                            <pre class="project-id">loading…</pre>
+                                        </div>
                                     </div>
-                                    <div class="col-sm-8">
-                                        <!--<pre><a class="project-location project-move-button"></a></pre>-->
-                                        <pre><span class="project-location project-move-button"></span></pre>
-                                    </div>
-                                </div>
 
-                                <div class="project-settings-move row">
-                                    <div class="col-sm-4">
-                                        <h5>Project Server</h5>
+                                    <div class="project-settings-move row">
+                                        <!-- Current location of the project -->
+                                        <div class="col-sm-4">
+                                            <h5>Location</h5>
+                                        </div>
+                                        <div class="col-sm-8">
+                                            <!--<pre><a class="project-location project-move-button"></a></pre>-->
+                                            <pre><span class="project-location project-move-button"></span></pre>
+                                        </div>
                                     </div>
-                                    <div class="col-sm-4">
-                                        <pre><span class="salvus-project-status-indicator"></span></pre>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <a href="#restart-project" class="btn  btn-warning" data-toggle="tooltip" data-placement="left" title="Restart this project server">
-                                            <i class="fa fa-refresh"> </i> Restart Project Server
-                                        </a>
-                                    </div>
-                                </div>
 
-                                <div class="project-settings-ssh row hide">
-                                    <div class="col-sm-12">
-                                        <h5>SSH into your project <span class="lighten">(you must add a public key to <a href="#ssh">~/.ssh/authorized_keys</a>)</span></h5>
-                                        <input class="form-control salvus-project-ssh">
+                                    <div class="project-settings-move row">
+                                        <div class="col-sm-4">
+                                            <h5>Project Server</h5>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <pre><span class="salvus-project-status-indicator"></span></pre>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <a href="#restart-project" class="btn  btn-warning" data-toggle="tooltip" data-placement="left" title="Restart this project server">
+                                                <i class="fa fa-refresh"> </i> Restart Project Server
+                                            </a>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <br>
-                                <div class="row">
-                                    <div class="lighten col-sm-12">
-                                        Not working?  <b><i>Immediately email me</i></b> (William Stein) at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>, and include the following URL:
-                                        <input class="form-control salvus-settings-url" >
+                                    <div class="project-settings-ssh row hide">
+                                        <div class="col-sm-12">
+                                            <h5>SSH into your project <span class="lighten">(you must add a public key to <a href="#ssh">~/.ssh/authorized_keys</a>)</span></h5>
+                                            <input class="form-control salvus-project-ssh">
+                                        </div>
+                                    </div>
+
+                                    <br>
+                                    <div class="row">
+                                        <div class="lighten col-sm-12">
+                                            Not working?  <b><i>Immediately email us</i></b>  at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a>, and include the following URL:
+                                            <input class="form-control salvus-settings-url" style="margin-bottom: 5px;">
+                                            Also, consider <a href="https://www.washington.edu/giving/make-a-gift/?page=make&code=SGEMCS" target="_blank">donating to the SageMathCloud Support Fund.</a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -770,123 +823,159 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                     </div>
                     <div class="row">
                         <div class="col-sm-6">
-                            <div class="well project-settings-static salvus-project-settings-heading-well">
-                                <a class="btn btn-default btn-sm project-quota-edit hide pull-right"> <i class="fa fa-pencil"> </i> Edit</a>
-                                <h4><i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Quota</h4>
-                                <span class="project-disk_usage">
-                                    <ul>
-                                        <li class="salvus-zfs-quotas"> Disk usage:
-                                            <b><span class="salvus-userused-projects">(loading...)</span> MB</b> of <b><div class="salvus-userquota-projects"></div> MB</b>
-                                        </li>
+                            <div class="panel panel-default project-settings-static salvus-project-settings-heading-well">
+                                <div class="panel-heading">
+                                    <div class="panel-title">
+                                        <i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Usage
+                                    </div>
+                                </div>
+                                <div class="panel-body">
+                                    <div class="smc-upgrade-project">
+                                        <a href="#upgrade-project" class="btn btn-success pull-right" data-toggle="tooltip" data-placement="top" title="Upgrade this project ">
+                                            <i class="fa fa-star"> </i> Upgrade Project
+                                        </a>
+                                        <span class="smc-upgrade-project-free">Upgrade this project to get <a href="#upgrade-features">extra features</a>, including full network access. <span class="smc-upgrade-project-premium-quota hide">You are using <span class="smc-upgrade-project-used">...</span> out of <span class="smc-upgrade-project-available">...</span> premium projects. <span class="smc-upgrade-project-upgrade-plan">Upgrade your plan for more premium projects.</span></span></span>
+                                        <span class="smc-upgrade-project-premium hide">This is a premium project. <span class="smc-upgrade-project-downgrade hide">You can downgrade it if you want.
+                                            <a href="#downgrade-project" class="btn btn-danger pull-right" data-toggle="tooltip" data-placement="top" title="Upgrade this project ">
+                                                <i class="fa fa-star-o"> </i> Downgrade Project
+                                            </a>
+                                            </span>
+                                        </span>
 
-                                        <li class="salvus-zfs-quotas"> <tt>/scratch</tt> disk usage:
+                                        <div class="smc-upgrade-via-email-message hide">
+                                            Billing is not yet implemented.  In the meantime,
+                                            <span class="lighten"> email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> if you need us to raise a quota for <b><i>free</i></b>.
+                                                Include the following URL in your email:
+                                                <input class="form-control salvus-settings-url" >
+                                                and consider <a href="https://www.washington.edu/giving/make-a-gift/?page=make&code=SGEMCS" target="_blank">donating to the SageMathCloud Support Fund.</a>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <a class="btn btn-default btn-sm project-quota-edit hide pull-right"> <i class="fa fa-pencil"> </i> Edit</a>
+                                    <span class="project-disk_usage">
+                                        <ul>
+                                            <li class="salvus-zfs-quotas"> Disk usage:
+                                                <b><span class="salvus-userused-projects">(loading...)</span> MB</b> of <b><div class="salvus-userquota-projects"></div> MB</b>
+                                            </li>
 
-                                            <b><span class="salvus-userused-scratch">(loading...)</span> MB</b> of <b><div class="salvus-userquota-scratch"></div> MB</b>
-                                        </li>
-                                        <li>
-                                            CPU cores: <b><div class="salvus-project-settings-cores">(loading...)</div></b> (shared)
-                                        </li>
+                                            <li class="salvus-zfs-quotas"> <tt>/scratch</tt> disk usage:
 
-                                        <li>
-                                            RAM: <b><div class="salvus-project-settings-memory">(loading...)</div> GB</b> (shared)
-                                        </li>
+                                                <b><span class="salvus-userused-scratch">(loading...)</span> MB</b> of <b><div class="salvus-userquota-scratch"></div> MB</b>
+                                            </li>
+                                            <li>
+                                                CPU cores: <b><div class="salvus-project-settings-cores">(loading...)</div></b> (shared)
+                                            </li>
 
-                                        <li>
-                                            Timeout: <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <div class="salvus-project-settings-mintime">(loading...)</div> hours</b> of inactivity
-                                        </li>
+                                            <li>
+                                                RAM: <b><div class="salvus-project-settings-memory">(loading...)</div> GB</b> (shared)
+                                            </li>
 
-                                        <li>
-                                            CPU share: <b><div class="salvus-project-settings-cpu_shares">(loading...)</div></b>
-                                        </li>
+                                            <li>
+                                                Timeout: <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <div class="salvus-project-settings-mintime">(loading...)</div> hours</b> of inactivity
+                                            </li>
 
-                                        <li>
-                                            Network access: <b><input type="checkbox" class="project-settings-network-access-checkbox hide"> <div class="salvus-project-settings-network">(loading...)</div></b>
-                                        </li>
+                                            <li>
+                                                CPU share: <b><div class="salvus-project-settings-cpu_shares">(loading...)</div></b>
+                                            </li>
 
-                                    </ul>
-                                    <span class="lighten"> Email <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a> if you need me to raise a quota (which is currently <b><i>free</i></b>).
-                                        Include the following URL in your email:
-                                        <input class="form-control salvus-settings-url" ></span>
-                                </span>
+                                            <li>
+                                                Network access: <b><input type="checkbox" class="project-settings-network-access-checkbox hide"> <div class="salvus-project-settings-network">(loading...)</div></b>
+                                            </li>
+
+                                        </ul>
+                                    </span>
+                                </div>
                             </div>
+
                         </div>
 
                         <div class="col-sm-6">
-                            <div class="well salvus-project-settings-heading-well">
-                                <h4><i class="fa fa-refresh"> </i>&nbsp;&nbsp;  Sage Worksheet Server</h4>
-
-                                <div class="row">
-                                    <div class="col-sm-8">
-                                        Restart this Sage Worksheet server.<br>
-                                        <span class="lighten">Existing worksheet sessions are unaffected; restart this
-                                            server if you customize $HOME/bin/sage, so that restarted worksheets
-                                            will use the new version of Sage.
-                                        </span>
+                            <div class="panel panel-default salvus-project-settings-heading-well">
+                                <div class="panel-heading">
+                                    <div class="panel-title">
+                                        <i class="fa fa-refresh"> </i>&nbsp;&nbsp;  Sage Worksheet Server
                                     </div>
-                                    <div class="col-sm-4">
-                                        <a href="#restart-worksheet-server" class="btn btn-warning" data-toggle="tooltip" data-placement="top" title="Restart your Sage Worksheet server.">
-                                            <i class="fa fa-refresh"> </i> Restart Sage Worksheet Server
-                                        </a>
+                                </div>
+                                <div class="panel-body">
+                                    <div class="row">
+                                        <div class="col-sm-8">
+                                            Restart this Sage Worksheet server.<br>
+                                            <span class="lighten">Existing worksheet sessions are unaffected; restart this
+                                                server if you customize $HOME/bin/sage, so that restarted worksheets
+                                                will use the new version of Sage.
+                                            </span>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <a href="#restart-worksheet-server" class="btn btn-warning" data-toggle="tooltip" data-placement="top" title="Restart your Sage Worksheet server.">
+                                                <i class="fa fa-refresh"> </i> Restart Sage Worksheet Server
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="well salvus-project-settings-heading-well">
-                                <h4><i class="fa fa-warning"> </i>&nbsp;&nbsp; Hide or Delete Project</h4>
+                            <div class="panel panel-default salvus-project-settings-heading-well">
+                                <div class="panel-heading">
+                                    <div class="panel-title">
+                                        <i class="fa fa-warning"> </i>&nbsp;&nbsp; Hide or Delete Project
+                                    </div>
+                                </div>
+                                <div class="panel-body">
+                                    <div class="row project-settings-hide">
+                                        <div class="col-sm-8">
+                                            Hide this project, so it does not show up in your default project listing.
+                                            This only impacts you, not your collaborators, and you can easily unhide it.
+                                        </div>
+                                        <div class="col-sm-4 pull-right">
+                                            <a href="#hide-project" class="btn  btn-warning  pull-right"
+                                               data-toggle="tooltip" data-placement="right" title="Hide this project.">
+                                                <i class="fa fa-eye-slash"> </i> Hide Project
+                                                <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
+                                            </a>
+                                        </div>
+                                        <br>
+                                    </div>
+                                    <div class="row project-settings-unhide hide">
+                                        <div class="col-sm-8">
+                                            Unhide this project, so it shows up in your default project listing.
+                                        </div>
+                                        <div class="col-sm-4 pull-right">
+                                            <a href="#unhide-project" class="btn btn-warning  pull-right"
+                                               data-toggle="tooltip" data-placement="right" title="Unhide this project.">
+                                                <i class="fa fa-eye"> </i> Unhide Project
+                                                <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
+                                            </a>
+                                        </div>
+                                        <br>
+                                    </div>
 
-                                <div class="row project-settings-hide">
-                                    <div class="col-sm-8">
-                                        Hide this project, so it does not show up in your default project listing.
-                                        This only impacts you, not your collaborators, and you can easily unhide it.
+                                    <div class="project-settings-delete hide row" style="margin-top:1ex">
+                                        <!-- Delete the project -->
+                                        <div class="col-sm-8">
+                                            Delete this project for everyone. You can undo this.
+                                        </div>
+                                        <div class="pull-right col-sm-4">
+                                            <a href="#delete-project" class="btn  btn-danger  pull-right" data-toggle="tooltip" data-placement="right" title="Delete this project.">
+                                                <i class="fa fa-trash-o"> </i> Delete Project...
+                                                <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
+                                            </a>
+                                        </div>
                                     </div>
-                                    <div class="col-sm-4 pull-right">
-                                        <a href="#hide-project" class="btn  btn-warning  pull-right"
-                                           data-toggle="tooltip" data-placement="right" title="Hide this project.">
-                                            <i class="fa fa-eye-slash"> </i> Hide Project
-                                            <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
-                                        </a>
-                                    </div>
-                                    <br>
-                                </div>
-                                <div class="row project-settings-unhide hide">
-                                    <div class="col-sm-8">
-                                        Unhide this project, so it shows up in your default project listing.
-                                    </div>
-                                    <div class="col-sm-4 pull-right">
-                                        <a href="#unhide-project" class="btn btn-warning  pull-right"
-                                           data-toggle="tooltip" data-placement="right" title="Unhide this project.">
-                                            <i class="fa fa-eye"> </i> Unhide Project
-                                            <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
-                                        </a>
-                                    </div>
-                                    <br>
-                                </div>
-
-                                <div class="project-settings-delete hide row" style="margin-top:1ex">
-                                    <!-- Delete the project -->
-                                    <div class="col-sm-8">
-                                        Delete this project for everyone. You can undo this.
-                                    </div>
-                                    <div class="pull-right col-sm-4">
-                                        <a href="#delete-project" class="btn  btn-danger  pull-right" data-toggle="tooltip" data-placement="right" title="Delete this project.">
-                                            <i class="fa fa-trash-o"> </i> Delete Project...
-                                            <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="project-settings-undelete hide row" style="margin-top:1ex">
-                                    <!-- Undelete the project -->
-                                    <div class="col-sm-8">
-                                        Undelete this project for everyone.
-                                    </div>
-                                    <div class="pull-right col-sm-4">
-                                        <a href="#undelete-project" class="btn btn-danger pull-right" data-toggle="tooltip" data-placement="right" title="Undelete this project.">
-                                            <i class="fa fa-trash-o"> </i> Undelete Project
-                                            <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
-                                        </a>
+                                    <div class="project-settings-undelete hide row" style="margin-top:1ex">
+                                        <!-- Undelete the project -->
+                                        <div class="col-sm-8">
+                                            Undelete this project for everyone.
+                                        </div>
+                                        <div class="pull-right col-sm-4">
+                                            <a href="#undelete-project" class="btn btn-danger pull-right" data-toggle="tooltip" data-placement="right" title="Undelete this project.">
+                                                <i class="fa fa-trash-o"> </i> Undelete Project
+                                                <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -1080,4 +1169,40 @@ Recent Files (<span class="project-editor-file-count">0</span>)
 
 </div>
 
+<!-- Network access payment -->
+<div class="modal" id="projects-network-access-payment" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header hidden-xs">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h2><i class="fa fa-sitemap"> </i> Purchase Network Access</h2>
+                <div class="lighten">
+                    Get access to the rest of the internet for a month.
+                </div>
+            </div>
+            <div class="modal-body">
+                <!-- title -->
+                <div>
+                    <h4 class="hidden-xs">Title</h4>
+                    <input type="text" style="width:95%" placeholder="Title (you can easily change this later)" id="projects-create_project-title" class="form-control">
+                </div>
 
+                <!-- description -->
+                <div>
+                    <h4 class="hidden-xs">Description</h4>
+                    <input type="text" style="width:95%" placeholder="No description" id="projects-create_project-description" class="form-control">
+                </div>
+
+                <div>
+                    <span class="hidden-xs lighten">You can change the title and description at any time later.</span>
+                </div>
+
+            </div>
+            <!-- do it -->
+            <div class="modal-footer">
+                <button class="btn btn-default btn-md" id="projects-create_project-button-cancel">Cancel</button>
+                <button class="btn btn-primary btn-md" type="submit" id="projects-create_project-button-create_project">Create Project</button>
+            </div>
+        </div>
+    </div>
+</div>

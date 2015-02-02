@@ -1,3 +1,25 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 #########################################################################
 #
 # Interface to the Cassandra Database.
@@ -8,8 +30,6 @@
 # here that does the CQL query.
 # Well, calling "select" is ok, but don't ever directly write
 # CQL statements.
-#
-# (c) 2013 William Stein, University of Washington
 #
 # fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.1.1.2:9160'], username:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
 # fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.1.1.2:9160'], username:'hub', password:fs.readFileSync('data/secrets/cassandra/hub').toString().trim(), cb:console.log)
@@ -982,6 +1002,39 @@ class exports.Salvus extends exports.Cassandra
                         v[r.account_id] = {first_name:r.first_name, last_name:r.last_name}
                     opts.cb(err, v)
 
+    get_user_names: (opts) =>
+        opts = defaults opts,
+            account_ids  : required
+            use_cache    : true
+            cache_time_s : 60*60        # one hour
+            cb           : required     # cb(err, map from account_id to object (user name))
+        user_names = {}
+        for account_id in opts.account_ids
+            user_names[account_id] = false
+        if opts.use_cache
+            if not @_account_user_name_cache?
+                @_account_user_name_cache = {}
+            for account_id, done of user_names
+                if not done and @_account_user_name_cache[account_id]?
+                    user_names[account_id] = @_account_user_name_cache[account_id]
+
+        @account_ids_to_usernames
+            account_ids : (account_id for account_id,done of user_names when not done)
+            cb          : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    # use a closure so that the cache clear timeout below works
+                    # with the correct account_id!
+                    f = (account_id, user_name) =>
+                        user_names[account_id] = user_name
+                        @_account_user_name_cache[account_id] = user_name
+                        setTimeout((()=>delete @_account_user_name_cache[account_id]),
+                                   1000*opts.cache_time_s)
+                    for account_id, user_name of results
+                        f(account_id, user_name)
+                    opts.cb(undefined, user_names)
+
     #####################################
     # Managing compute servers
     #####################################
@@ -1340,7 +1393,7 @@ class exports.Salvus extends exports.Cassandra
                             if err
                                 cb(err)
                             else if results.length == 0
-                                cb("There is no account with email address #{opts.email_address}.")
+                                cb("There is no SageMathCloud account with email address #{opts.email_address}; if you are sure you have such an account (or a similar one), email help@sagemath.com, and we will help you sort this out.")
                             else
                                 # success!
                                 opts.account_id = results[0][0]
@@ -1357,7 +1410,7 @@ class exports.Salvus extends exports.Cassandra
                         if error
                             cb(error)
                         else if results.length == 0
-                            cb("There is no account with account_id #{opts.account_id}.")
+                            cb("There is no SageMathCloud account with account_id #{opts.account_id}.")
                         else
                             account = results[0]
                             if not account.groups?
@@ -1710,7 +1763,7 @@ class exports.Salvus extends exports.Cassandra
                 if err
                     opts.cb(err)
                 else if results.length == 0
-                    opts.cb("There is no account with id #{opts.account_id}.")
+                    opts.cb("There is no SageMathCloud account with id #{opts.account_id}.")
                 else
                     r = results[0]
                     if r.gitconfig? and r.gitconfig.length > 0
@@ -2124,14 +2177,19 @@ class exports.Salvus extends exports.Cassandra
                 else
                     opts.cb(undefined, opts.account_id in _.flatten(result))
 
-    # all id's of projects having anything to do with the given account
+    # all id's of projects having anything to do with the given account (ignores
+    # hidden projects unless opts.hidden is true).
     get_project_ids_with_user: (opts) =>
         opts = defaults opts,
             account_id : required
+            hidden     : false
             cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
+        columns = PROJECT_GROUPS
+        if opts.hidden
+            columns = columns.concat(['hidden_projects'])
         @select_one
             table     : 'accounts'
-            columns   : PROJECT_GROUPS
+            columns   : columns
             where     : {account_id : opts.account_id}
             objectify : false
             cb        : (err, result) ->
@@ -2225,10 +2283,11 @@ class exports.Salvus extends exports.Cassandra
                 opts.cb(err, projects)
         )
 
-    get_projects_with_ids: (opts) ->
+    get_projects_with_ids: (opts) =>
         opts = defaults opts,
-            ids : required   # an array of id's
-            cb  : required
+            ids     : required   # an array of id's
+            columns : PROJECT_COLUMNS
+            cb      : required
 
         if opts.ids.length == 0  # easy special case -- don't bother to query db!
             opts.cb(false, [])
@@ -2236,10 +2295,10 @@ class exports.Salvus extends exports.Cassandra
 
         @select
             table     : 'projects'
-            columns   : PROJECT_COLUMNS
+            columns   : opts.columns
             objectify : true
             where     : { project_id:{'in':opts.ids} }
-            cb        : (error, results) ->
+            cb        : (error, results) =>
                 if error
                     opts.cb(error)
                 else
@@ -2248,6 +2307,40 @@ class exports.Salvus extends exports.Cassandra
                         if not r.name and r.title?
                             r.name = misc.make_valid_name(r.title)
                     opts.cb(false, results)
+
+    get_project_titles: (opts) =>
+        opts = defaults opts,
+            project_ids  : required
+            use_cache    : true
+            cache_time_s : 60*60        # one hour
+            cb           : required     # cb(err, map from project_id to string (project title))
+        titles = {}
+        for project_id in opts.project_ids
+            titles[project_id] = false
+        if opts.use_cache
+            if not @_project_title_cache?
+                @_project_title_cache = {}
+            for project_id, done of titles
+                if not done and @_project_title_cache[project_id]?
+                    titles[project_id] = @_project_title_cache[project_id]
+
+        @get_projects_with_ids
+            ids     : (project_id for project_id,done of titles when not done)
+            columns : ['project_id', 'title']
+            cb      : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    # use a closure so that the cache clear timeout below works
+                    # with the correct project_id!
+                    f = (project_id, title) =>
+                        titles[project_id] = title
+                        @_project_title_cache[project_id] = title
+                        setTimeout((()=>delete @_project_title_cache[project_id]),
+                                   1000*opts.cache_time_s)
+                    for x in results
+                        f(x.project_id, x.title)
+                    opts.cb(undefined, titles)
 
     # cb(err, array of account_id's of accounts in non-invited-only groups)
     get_account_ids_using_project: (opts) ->
@@ -2768,6 +2861,67 @@ class exports.Salvus extends exports.Cassandra
                         cb    : cb
                 async.mapLimit(x, 10, f, (err) => cb(err))
         ], (err) => opts.cb?(err))
+
+
+
+
+    ###########################
+    # Temporary one-off code for misc tasks (comment out after use)
+    ###########################
+
+    ###  migrate_activity_table -- migrate a MASSIVE table.
+    # This is python (not javascript which doesn't have big numbers)
+    # code to compute the partition ranges...
+    # This partitioner uses a maximum possible range of hash values from -2^63 to 2^63 -1
+    i = -2^63
+    b = 2^61
+    v = []
+    while i < 2^63-1:
+        j = min(i+b,2^63-1)
+        v.append([str(i),str(j)])
+        #print [i, j]
+        print "select project_id, timestamp, path, account_id from activity_by_project where token(project_id)>=%s and token(project_id)<=%s limit 500000;"%(i,j)
+        print "select count(*) from activity_by_project where token(project_id)>=%s and token(project_id)<=%s limit 500000;"%(i,j)
+        i += b
+    print v
+    # It gives these ranges (for v):
+
+    [['-9223372036854775808', '-6917529027641081856'], ['-6917529027641081856', '-4611686018427387904'], ['-4611686018427387904', '-2305843009213693952'], ['-2305843009213693952', '0'], ['0', '2305843009213693952'], ['2305843009213693952', '4611686018427387904'], ['4611686018427387904', '6917529027641081856'], ['6917529027641081856', '9223372036854775807']]
+
+    Use like this (with db the database):
+
+        coffee> v = [['-9223372036854775808', '-6917529027641081856'], ['-6917529027641081856', '-4611686018427387904'], ['-4611686018427387904', '-2305843009213693952'], ['-2305843009213693952', '0'], ['0', '2305843009213693952'], ['2305843009213693952', '4611686018427387904'], ['4611686018427387904', '6917529027641081856'], ['6917529027641081856', '9223372036854775807']]
+        coffee> db.migrate_activity_table(token_ranges:v, cb:(e)->console.log("END",e))
+    ###
+
+    migrate_activity_table: (opts) =>
+        opts = defaults opts,
+            token_ranges : required
+            cb           : required
+        f = (range, cb) =>
+            query = "select project_id, timestamp, path, account_id from activity_by_project where token(project_id)>=#{range[0]} and token(project_id)<=#{range[1]} limit 500000"
+            console.log(query)
+            @cql query, [], undefined, (err, results) =>
+                if err
+                    console.log("ERROR: #{err}")
+                    cb(err)
+                else
+                    console.log("got #{results.length} results")
+                    results = ((from_cassandra(r.get(col), false) for col in ['project_id','timestamp','path','account_id']) for r in results)
+                    g = (result, cb) =>
+                        #  project_id    | timestamp  | path        | account_id      | action
+                        @update
+                            table : 'activity_by_project2'
+                            set   :
+                                action     : 'edit'
+                                account_id : result[3]
+                            where :
+                                project_id : result[0]
+                                timestamp  : result[1]
+                                path       : result[2]
+                            cb    : cb
+                    async.mapLimit(results, 10, g, (err) => cb(err))
+        async.mapSeries(opts.token_ranges, f, opts.cb)
 
 
 ############################################################################

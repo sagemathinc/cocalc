@@ -1,3 +1,25 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 ##########################################################################
 #
 # Misc. functions that are needed elsewhere.
@@ -30,9 +52,15 @@
 ###############################################################################
 
 
-# true if s.startswith(c)
-exports.startswith = (s, c) ->
-    return s.indexOf(c) == 0
+# startswith(s, x) is true if s starts with the string x or any of the strings in x.
+exports.startswith = (s, x) ->
+    if typeof(x) == "string"
+        return s.indexOf(x) == 0
+    else
+        for v in x
+            if s.indexOf(v) == 0
+                return true
+        return false
 
 exports.merge = (dest, objs ...) ->
     for obj in objs
@@ -333,6 +361,7 @@ exports.meta_file = (path, ext) ->
         path += '/'
     return path + "." + p.tail + ".sage-" + ext
 
+# "foobar" --> "foo..."
 exports.trunc = (s, max_length) ->
     if not s?
         return s
@@ -340,6 +369,17 @@ exports.trunc = (s, max_length) ->
         max_length = 1024
     if s.length > max_length
         return s.slice(0,max_length-3) + "..."
+    else
+        return s
+
+# "foobar" --> "...bar"
+exports.trunc_left = (s, max_length) ->
+    if not s?
+        return s
+    if not max_length?
+        max_length = 1024
+    if s.length > max_length
+        return "..." + s.slice(s.length-max_length+3)
     else
         return s
 
@@ -395,20 +435,37 @@ exports.retry_until_success = (opts) ->
         start_delay : 100             # milliseconds
         max_delay   : 20000           # milliseconds -- stop increasing time at this point
         factor      : 1.4             # multiply delay by this each time
-        max_tries   : undefined
+        max_tries   : undefined       # maximum number of times to call f
+        max_time    : undefined       # milliseconds -- don't call f again if the call would start after this much time from first call
+        log         : undefined
+        name        : ''
         cb          : undefined       # called with cb() on *success*; cb(error) if max_tries is exceeded
 
     delta = opts.start_delay
     tries = 0
+    if opts.max_time?
+        start_time = new Date()
     g = () ->
         tries += 1
+        if opts.log?
+            if opts.max_tries?
+                opts.log("retry_until_success(#{opts.name}) -- try #{tries}/#{opts.max_tries}")
+            if opts.max_time?
+                opts.log("retry_until_success(#{opts.name}) -- try #{tries} (started #{new Date() - start_time}ms ago; will stop before #{opts.max_time}ms max time)")
+            if not opts.max_tries? and not opts.max_time?
+                opts.log("retry_until_success(#{opts.name}) -- try #{tries}")
         opts.f (err)->
             if err
+                if opts.log?
+                    opts.log("retry_until_success(#{opts.name}) -- err=#{err}")
                 if opts.max_tries? and opts.max_tries <= tries
-                    opts.cb?("maximum tries exceeded - last error #{err}")
-                else
-                    delta = Math.min(opts.max_delay, opts.factor * delta)
-                    setTimeout(g, delta)
+                    opts.cb?("maximum tries (=#{opts.max_tries}) exceeded - last error #{err}")
+                    return
+                delta = Math.min(opts.max_delay, opts.factor * delta)
+                if opts.max_time? and (new Date() - start_time) + delta > opts.max_time
+                    opts.cb?("maximum time (=#{opts.max_time}ms) exceeded - last error #{err}")
+                    return
+                setTimeout(g, delta)
             else
                 opts.cb?()
     g()
@@ -784,4 +841,106 @@ exports.call_lock = (opts) ->
             cb?(args...)
 
 
+exports.timestamp_cmp = (a,b) ->
+    a = a.timestamp
+    b = b.timestamp
+    if not a?
+        return 1
+    if not b?
+        return -1
+    if a > b
+        return -1
+    else if a < b
+        return +1
+    return 0
 
+
+timestamp_cmp0 = (a,b) ->
+    a = a.timestamp
+    b = b.timestamp
+    if not a?
+        return -1
+    if not b?
+        return 1
+    if a < b
+        return -1
+    else if a > b
+        return +1
+    return 0
+
+
+
+#####################
+# temporary location for activity_log code, shared by front and backend.
+#####################
+
+class ActivityLog
+    constructor: (opts) ->
+        opts = exports.defaults opts,
+            events        : undefined
+            account_id    : exports.required   # user
+            notifications : {}
+        @notifications = opts.notifications
+        @account_id = opts.account_id
+        if opts.events?
+            @process(opts.events)
+
+    obj: () =>
+        return {notifications:@notifications, account_id:@account_id}
+
+    path: (e) => "#{e.project_id}/#{e.path}"
+
+    process: (events) =>
+        #t0 = exports.mswalltime()
+        by_path = {}
+        for e in events
+            ##if e.account_id == @account_id  # ignore our own events
+            ##    continue
+            key = @path(e)
+            events_with_path = by_path[key]
+            if not events_with_path?
+                events_with_path = by_path[key] = [e]
+            else
+                events_with_path.push(e)
+        for path, events_with_path of by_path
+            events_with_path.sort(timestamp_cmp0)   # oldest to newest
+            for event in events_with_path
+                @_process_event(event, path)
+        #winston.debug("ActivityLog: processed #{events.length} in #{exports.mswalltime(t0)}ms")
+
+    _process_event: (event, path) =>
+        # process the given event, assuming all older events have been
+        # processed already; this updates the notifications object.
+        if not path?
+            path = @path(event)
+        a = @notifications[path]
+        if not a?
+            @notifications[path] = a = {}
+        a.timestamp = event.timestamp
+        #console.log("process_event", event, path)
+        #console.log(event.seen_by?.indexOf(@account_id))
+        #console.log(event.read_by?.indexOf(@account_id))
+        if event.seen_by? and event.seen_by.indexOf(@account_id) != -1
+            a.seen = event.timestamp
+        if event.read_by? and event.read_by.indexOf(@account_id) != -1
+            a.read = event.timestamp
+
+        if event.action?
+            who = a[event.action]
+            if not who?
+                who = a[event.action] = {}
+            who[event.account_id] = event.timestamp
+            # The code below (instead of the line above) would include *all* times.
+            # I'm not sure whether or not I want to use that information, since it
+            # could get really big.
+            #times = who[event.account_id]
+            #if not times?
+            #    times = who[event.account_id] = []
+            #times.push(event.timestamp)
+
+
+exports.activity_log = (opts) -> new ActivityLog(opts)
+
+# see http://stackoverflow.com/questions/1144783/replacing-all-occurrences-of-a-string-in-javascript
+exports.replace_all = (string, search, replace) ->
+    string.split(search).join(replace)

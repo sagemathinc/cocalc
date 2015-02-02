@@ -2186,11 +2186,16 @@ from sage.misc.all import tmp_filename
 from sage.plot.animate import Animation
 import matplotlib.figure
 
-def show_animation(obj, **kwds):
-    t = tmp_filename(ext='.gif')
-    obj.gif(savefile=t, **kwds)
-    salvus.file(t)
-    os.unlink(t)
+def show_animation(obj, delay=20, gif=False, **kwds):
+    if gif:
+        t = tmp_filename(ext='.gif')
+        obj.gif(delay, t, **kwds)
+        salvus.file(t, raw=False)
+        os.unlink(t)
+    else:
+        t = tmp_filename(ext='.webm')
+        obj.ffmpeg(t, delay=delay, **kwds)
+        salvus.file(t, raw=True)   # and let delete when worksheet ends - need this so can replay video.
 
 def show_2d_plot_using_matplotlib(obj, svg, **kwds):
     if isinstance(obj, matplotlib.image.AxesImage):
@@ -2231,17 +2236,24 @@ def show_3d_plot_using_tachyon(obj, **kwds):
     salvus.file(t)
     os.unlink(t)
 
+def show_graph_using_d3(obj, **kwds):
+    salvus.d3_graph(obj, **kwds)
+
 from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
 
-def show(obj, svg=True, **kwds):
+def show(obj, svg=True, d3=True, **kwds):
     """
     Show a 2d or 3d graphics object, animation, or matplotlib figure, or show an
     expression typeset nicely using LaTeX.
 
        - display: (default: True); if True, use display math for expression (big and centered).
 
-       - svg: (default: True); if True, render graphics using svg (otherwise use png)
+       - svg: (default: True); if True, show 2d plots using svg (otherwise use png)
+
+       - d3: (default: True); if True, show graphs (vertices and edges) using an interactive D3 viewer
+           for the many options for this viewer, type 'import graphics; graphics.graph_to_d3_jsonable?'
+         If false, graphs are converted to plots and displayed as usual.
 
        - renderer: (default: 'webgl'); for 3d graphics
            - 'webgl' (fastest) using hardware accelerated 3d;
@@ -2254,11 +2266,21 @@ def show(obj, svg=True, **kwds):
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
          for mousemove.  This works for Sage 2d graphics and matplotlib figures.
 
-    For animations, there are two options::
+    ANIMATIONS:
 
-       - ``delay`` - (default: 20) delay in hundredths of a second between frames
+       - animations are by default encoded and displayed using an efficiently web-friendly
+         format (currently webm, which is **not supported** by Safari or IE).
 
-       - ``iterations`` - integer (default: 0); number of iterations of animation. If 0, loop forever.
+            - ``delay`` - integer (default: 20); delay in hundredths of a
+              second between frames.
+
+            - gif=False -- if you set gif=True, instead use an animated gif,
+              which is much less efficient, but works on all browsers.
+
+         You can also use options directly to the animate command, e.g., the figsize option below:
+
+              a = animate([plot(sin(x + a), (x, 0, 2*pi)) for a in [0, pi/4, .., 2*pi]], figsize=6)
+              show(a, delay=30)
 
 
     EXAMPLES:
@@ -2290,6 +2312,11 @@ def show(obj, svg=True, **kwds):
         else:
             salvus.threed(obj, **kwds)
             # graphics.show_3d_plot_using_threejs(obj, **kwds)
+    elif isinstance(obj, (sage.graphs.graph.Graph, sage.graphs.digraph.DiGraph)):
+        if d3:
+            show_graph_using_d3(obj, **kwds)
+        else:
+            show(obj.plot(), **kwds)
     else:
         if 'display' not in kwds:
             kwds['display'] = True
@@ -2917,6 +2944,8 @@ def wiki(doc=None, hide=True):
     html(pandoc('mediawiki', doc=doc), hide=hide)
 
 
+mediawiki = wiki
+
 ######
 
 def load_html_resource(filename):
@@ -3337,3 +3366,27 @@ import sage.interfaces
 sage.interfaces.julia = julia # the module
 julia = julia.julia # specific instance
 sage.interfaces.all.julia = julia
+
+
+
+
+# Help command
+import sage.misc.sagedoc
+import sage.version
+def help(*args, **kwds):
+    if len(args) > 0 or len(kwds) > 0:
+        sage.misc.sagedoc.help(*args, **kwds)
+    else:
+        s = """
+## Welcome to Sage %s!
+
+- **Online documentation:** [View the Sage documentation online](http://www.sagemath.org/doc/).
+
+- **Help:** For help on any object or function, for example `matrix_plot`, enter `matrix_plot?` followed by tab or shift+enter.  For help on any module (or object or function), for example, `sage.matrix`, enter `help(sage.matrix)`.
+
+- **Tab completion:** Type `obj` followed by tab to see all completions of obj.  To see all methods you may call on `obj`, type `obj.` followed by tab.
+
+- **Source code:** Enter `matrix_plot??` followed by tab or shift+enter to look at the source code of `matrix_plot`.
+
+- **License information:** For license information about Sage and its components, enter `license()`."""%sage.version.version
+        salvus.md(s)

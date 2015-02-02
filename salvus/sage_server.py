@@ -138,7 +138,10 @@ class ConnectionJSON(object):
 
     def send_file(self, filename):
         log("sending file '%s'"%filename)
-        return self.send_blob(open(filename, 'rb').read())
+        f = open(filename, 'rb')
+        data = f.read()
+        f.close()
+        return self.send_blob(data)
 
     def _recv(self, n):
         #print "_recv(%s)"%n
@@ -211,19 +214,25 @@ class Message(object):
         return self._new('execute_javascript', locals())
 
     def output(self, id,
-               stdout=None,
-               stderr=None,
-               code=None,
-               html=None,
-               javascript=None,
-               coffeescript=None,
-               interact=None,
-               md=None,
-               tex=None,
-               file=None,
-               obj=None,
-               done=None, once=None, hide=None,
-               show=None, auto=None, events=None, clear=None):
+               stdout       = None,
+               stderr       = None,
+               code         = None,
+               html         = None,
+               javascript   = None,
+               coffeescript = None,
+               interact     = None,
+               md           = None,
+               tex          = None,
+               d3           = None,
+               file         = None,
+               obj          = None,
+               done         = None,
+               once         = None,
+               hide         = None,
+               show         = None,
+               auto         = None,
+               events       = None,
+               clear        = None):
         m = self._new('output')
         m['id'] = id
         t = truncate_text
@@ -245,6 +254,7 @@ class Message(object):
         if javascript is not None: m['javascript'] = javascript
         if coffeescript is not None: m['coffeescript'] = coffeescript
         if interact is not None: m['interact'] = interact
+        if d3 is not None: m['d3'] = d3
         if obj is not None: m['obj'] = json.dumps(obj)
         if file is not None: m['file'] = file    # = {'filename':..., 'uuid':...}
         if done is not None: m['done'] = done
@@ -582,7 +592,6 @@ class Salvus(object):
         """
         self.javascript("worksheet.editor.close(obj)", obj = filename, once=True)
 
-
     def threed(self,
                g,                   # sage Graphic3d object.
                width        = None,
@@ -672,6 +681,11 @@ class Salvus(object):
         # send message pointing to the 3d 'file', which will get downloaded from database
         self._send_output(id=self._id, file={'filename':unicode8("%s.sage3d"%uuid), 'uuid':uuid}, done=done)
 
+
+    def d3_graph(self, g, **kwds):
+        from graphics import graph_to_d3_jsonable
+        self._send_output(id=self._id, d3={"viewer":"graph", "data":graph_to_d3_jsonable(g, **kwds)})
+
     def file(self, filename, show=True, done=False, download=False, once=False, events=None, raw=False):
         """
         Display or provide a link to the given file.  Raises a RuntimeError if this
@@ -704,9 +718,6 @@ class Salvus(object):
             This will only work if the file is not deleted; however, arbitrarily
             large files can be streamed this way.
 
-        NOTE: If the filename ends in webm, raw=True is always used, since raw=False
-        doesn't work properly with some browsers.
-
         This function creates an output message {file:...}; if the user saves
         a worksheet containing this message, then any referenced blobs are made
         permanent in the database.
@@ -716,9 +727,6 @@ class Salvus(object):
         same Sha1 hash.
         """
         filename = unicode8(filename)
-        if os.path.splitext(filename)[1] == u'.webm':
-            raw = True
-
         if raw:
             info = self.project_info()
             path = os.path.abspath(filename)
@@ -1505,6 +1513,11 @@ def serve(port, host):
         tm = time.time()
         log("pre-importing the sage library...")
 
+        # FOR testing purposes.
+        ##log("fake 40 second pause to slow things down for testing....")
+        ##time.sleep(40)
+        ##log("done with pause")
+
         # Monkey patching interact using the new and improved Salvus
         # implementation of interact.
         import sagenb.notebook.interact
@@ -1552,7 +1565,8 @@ def serve(port, host):
                      'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
                      'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
                      'reset', 'restore', 'md', 'load', 'runfile', 'typeset_mode', 'default_mode',
-                     'sage_chat', 'fortran', 'magics', 'go', 'julia', 'pandoc', 'wiki']:
+                     'sage_chat', 'fortran', 'magics', 'go', 'julia', 'pandoc', 'wiki',
+                     'mediawiki', 'help']:
             namespace[name] = getattr(sage_salvus, name)
 
         # alias pretty_print_default to typeset_mode, since sagenb has/uses that.

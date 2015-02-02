@@ -1,4 +1,26 @@
 #!/usr/bin/env python
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 
 """
 
@@ -70,7 +92,7 @@ USE_BUP_WATCH = False
 # on the system with arbitrary content.
 UNSAFE_MODE=False
 
-import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd, codecs, re
+import argparse, base64, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd, codecs, re
 from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
 
@@ -98,7 +120,7 @@ DEFAULT_SETTINGS = {
     'cpu_shares' : 256,
     'cores'      : 1,
     'login_shell': '/bin/bash',
-    'mintime'    : 60*60*3,  # default = 3 hours idle (no save) time before kill
+    'mintime'    : int(60*60*1.5),  # default = 1.5 hours idle (no save) time before kill
     'inode'      : 200000,  # not used with ZFS
     'network'    : False
 }
@@ -1371,7 +1393,7 @@ if __name__ == "__main__":
 
     def do_read_file(*args, **kwds):
         try:
-            print json.dumps(project.read_file(*args, **kwds))
+            print json.dumps({'base64':base64.b64encode(project.read_file(*args, **kwds))})
         except Exception, mesg:
             print json.dumps({"error":str(mesg)})
     parser_read_file = subparsers.add_parser('read_file', help='read a file from disk')
