@@ -52,9 +52,15 @@
 ###############################################################################
 
 
-# true if s.startswith(c)
-exports.startswith = (s, c) ->
-    return s.indexOf(c) == 0
+# startswith(s, x) is true if s starts with the string x or any of the strings in x.
+exports.startswith = (s, x) ->
+    if typeof(x) == "string"
+        return s.indexOf(x) == 0
+    else
+        for v in x
+            if s.indexOf(v) == 0
+                return true
+        return false
 
 exports.merge = (dest, objs ...) ->
     for obj in objs

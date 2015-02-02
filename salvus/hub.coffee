@@ -664,7 +664,7 @@ init_http_proxy_server = () =>
         if not misc.is_valid_uuid_string(project_id)
             cb(undefined, false)
             return
-        path = v.slice(3).join('/')
+        path = decodeURI(v.slice(3).join('/'))
         winston.debug("public_raw: project_id=#{project_id}, path=#{path}")
         public_paths = undefined
         is_public = false
@@ -689,6 +689,7 @@ init_http_proxy_server = () =>
                                 setTimeout((()=>delete public_raw_paths_cache[project_id]), 15000)  # cache for 15s
                                 cb()
             (cb) ->
+                #winston.debug("public_raw -- path_is_in_public_paths(#{path}, #{misc.to_json(public_paths)})")
                 if not misc.path_is_in_public_paths(path, public_paths)
                     # The requested path is not public, so nothing to do.
                     cb()
