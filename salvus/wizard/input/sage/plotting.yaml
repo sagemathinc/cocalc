@@ -5,7 +5,7 @@
 language: sage
 category: plotting/Intro
 ---
-title: Into
+title: Intro
 descr: This is a very simple example how to plot a function.
 code:  plot(x * sin(x), (x, -10, 10))
 ---
