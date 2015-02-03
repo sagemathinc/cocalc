@@ -4287,6 +4287,7 @@ class StaticHTML extends FileEditor
 class IPythonNBViewer extends FileEditor
     constructor: (@editor, @filename, @content, opts) ->
         @element = templates.find(".salvus-editor-ipython-nbviewer").clone()
+        @ipynb_filename = @filename.slice(0,@filename.length-4) + 'ipynb'
         @init_buttons()
 
     show: () =>
@@ -4307,8 +4308,8 @@ class IPythonNBViewer extends FileEditor
 
     init_buttons: () =>
         @element.find("a[href=#copy]").click () =>
-            ipynb_filename = @filename.slice(0,@filename.length-4) + 'ipynb'
-            @editor.project_page.copy_to_another_project_dialog ipynb_filename, false, (err, x) =>
+
+            @editor.project_page.copy_to_another_project_dialog @ipynb_filename, false, (err, x) =>
                 console.log("x=#{misc.to_json(x)}")
                 if not err
                     require('projects').open_project
@@ -4321,6 +4322,10 @@ class IPythonNBViewer extends FileEditor
             @editor.project_page.display_tab("project-file-listing")
             return false
 
+        @element.find("a[href=#download]").click () =>
+            @editor.project_page.download_file
+                path : @ipynb_filename
+            return false
 
 #**************************************************
 # IPython Support

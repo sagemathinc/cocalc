@@ -1360,6 +1360,28 @@ if __name__ == "__main__":
                                                        delete            = args.delete,
                                                        ))
 
+    def do_remote_is_ready(remote):
+        ans = {}
+        try:
+            for x in remote.split(','):
+                v = x.split(':')
+                remote = v[0]
+                if len(v) == 2:
+                    port = v[1]
+                else:
+                    port = '22'
+                ans[x] = project.remote_is_ready(remote=remote, port=port)
+        except Exception, mesg:
+            print json.dumps({"error":str(mesg)})
+        else:
+            print json.dumps(ans)
+
+    parser_remote_is_ready = subparsers.add_parser('remote_is_ready', help='check that remote servers are working; ip_address:port,ip_address:port,...;  the project_id is ignored!')
+    parser_remote_is_ready.add_argument("--remote", help="REQUIRED: hostnames:ports of remote machine",
+                       dest="remote", default='', type=str)
+    parser_remote_is_ready.set_defaults(func=lambda args: do_remote_is_ready(args.remote))
+
+
     def do_mkdir(*args, **kwds):
         try:
             project.mkdir(*args, **kwds)
