@@ -56,6 +56,8 @@ misc_page = require('misc_page')
 
 syncdoc = require('syncdoc')
 
+{Wizard} = require('wizard')
+
 top_navbar =  $(".salvus-top_navbar")
 
 codemirror_associations =
@@ -1569,6 +1571,8 @@ class CodeMirrorEditor extends FileEditor
         if @filename.slice(@filename.length-7) == '.sagews'
             @init_sagews_edit_buttons()
 
+        @wizard = null
+
 
     init_draggable_splits: () =>
         @_layout1_split_pos = @local_storage("layout1_split_pos")
@@ -2161,6 +2165,22 @@ class CodeMirrorEditor extends FileEditor
                 # needed so that dropdown menu closes when clicked.
                 return true
 
+    wizard_handler: () =>
+        if not @wizard?
+            @wizard = new Wizard(cb : @wizard_insert_handler, lang : @_current_mode)
+        else
+            @wizard.show(lang : @_current_mode)
+
+    wizard_insert_handler: (insert) =>
+        code = insert.code
+        lang = insert.lang
+        console.log "wizard insert:", lang, code
+        cm = @focused_codemirror()
+        line = cm.getCursor().line
+        @syncdoc.insert_new_cell(line)
+        cm.replaceRange("%#{lang}\n#{code}", {line : line+1, ch:0})
+        @syncdoc?.sync()
+
     # add a textedit toolbar to the editor
     init_sagews_edit_buttons: () =>
         if @opts.readonly  # no editing button bar needed for read-only files
@@ -2173,21 +2193,21 @@ class CodeMirrorEditor extends FileEditor
             # explicitly disabled by user
             return
 
-        NAME_TO_MODE = {xml:'%html', markdown:'%md', mediawiki:'%wiki'}
+        NAME_TO_MODE = {xml:'html', markdown:'md', mediawiki:'wiki'}
         for x in sagews_decorator_modes
             mode = x[0]
             name = x[1]
             v = name.split('-')
             if v.length > 1
                 name = v[1]
-            NAME_TO_MODE[name] = "%#{mode}"
+            NAME_TO_MODE[name] = "#{mode}"
 
         name_to_mode = (name) ->
             n = NAME_TO_MODE[name]
             if n?
                 return n
             else
-                return "%#{name}"
+                return "#{name}"
 
         # add the text editing button bar
         e = @element.find(".salvus-editor-codemirror-textedit-buttons")
@@ -2228,11 +2248,9 @@ class CodeMirrorEditor extends FileEditor
                     args = args.split(',')
             return that.textedit_command(that.focused_codemirror(), cmd, args)
 
-
         # TODO: activate color editing buttons -- for now just hide them
         @element.find(".sagews-output-editor-foreground-color-selector").hide()
         @element.find(".sagews-output-editor-background-color-selector").hide()
-
 
         @fallback_buttons.find("a[href=#todo]").click () =>
             bootbox.alert("<i class='fa fa-wrench' style='font-size: 18pt;margin-right: 1em;'></i> Button bar not yet implemented in <code>#{mode_display.text()}</code> cells.")
@@ -2242,21 +2260,24 @@ class CodeMirrorEditor extends FileEditor
             edit_buttons.find("a").click(edit_button_click)
             edit_buttons.find("*[title]").tooltip(TOOLTIP_DELAY)
 
-        mode_display = @element.find(".salvus-editor-codeedit-buttonbar-mode")
-        set_mode_display = (name) ->
+        @mode_display = mode_display = @element.find(".salvus-editor-codeedit-buttonbar-mode")
+        @_current_mode = "sage"
+
+        set_mode_display = (name) =>
             #console.log("set_mode_display: #{name}")
             if name?
-                mode_display.text(name_to_mode(name))
+                mode = name_to_mode(name)
             else
-                mode_display.text("")
+                mode = ""
+            mode_display.text("%" + mode)
+            @_current_mode = mode
 
         show_edit_buttons = (which_one, name) ->
             for edit_buttons in all_edit_buttons
-                if edit_buttons == which_one
-                    edit_buttons.show()
-                else
-                    edit_buttons.hide()
+                edit_buttons.toggle(edit_buttons == which_one)
             set_mode_display(name)
+
+        mode_display.click(@wizard_handler)
 
         # The code below changes the bar at the top depending on where the cursor
         # is located.  We only change the edit bar if the cursor hasn't moved for

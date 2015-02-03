@@ -28,9 +28,9 @@
 # w = new Wizard({"cb" : callback, ["lang" : "initial language"]})
 # w.hide()                     -- temporarily hide dialog (also via close/X button)
 # w.show({<like constructor>}) -- show dialog again (same state!) and if
-#                                language given, a selection of it is triggered
-# w.destroy()                 -- invokes the dialog destruction, should be called when
-#                                the originating object is destroyed.
+#                                 language given, a selection of it is triggered
+# w.destroy()                  -- invokes the dialog destruction, should be called when
+#                                 the originating object is destroyed.
 
 "use strict"
 _ = require("underscore")
@@ -46,18 +46,18 @@ class Wizard
     constructor: (opts) ->
         @opts = defaults opts,
             lang  : 'sage'
-            cb    : required # this callback will be called to return the selected code
+            cb    : optional # this callback will be called to return the selected code
 
         @dialog = wizard_template.clone()
 
         # the elements
-        @nav      = @dialog.find(".smc-wizard-nav")
-        @search   = @dialog.find(".smc-wizard-search")
-        @lvl1     = @dialog.find(".smc-wizard-lvl1")
-        @lvl2     = @dialog.find(".smc-wizard-lvl2")
-        @document = @dialog.find(".smc-wizard-doc")
-        @code     = @dialog.find(".smc-wizard-code")
-        @descr    = @dialog.find(".smc-wizard-descr > div.panel-body")
+        @nav      = @dialog.find ".smc-wizard-nav"
+        @search   = @dialog.find ".smc-wizard-search"
+        @lvl1     = @dialog.find ".smc-wizard-lvl1"
+        @lvl2     = @dialog.find ".smc-wizard-lvl2"
+        @docs     = @dialog.find ".smc-wizard-doc"
+        @code     = @dialog.find ".smc-wizard-code"
+        @descr    = @dialog.find ".smc-wizard-descr > div.panel-body"
 
         # the state
         @lang     = undefined
@@ -66,6 +66,12 @@ class Wizard
         @title    = undefined
         @doc      = undefined
 
+        # took me 2 hours to figure out how to properly set an instance method as _.debounce
+        # but it works perfectly now! keep the arrow down key pressed and see the difference.
+        @scrollintoview_lvl1 = _.debounce ((t) -> t.scrollintoview()), 50
+        @scrollintoview_lvl2 = _.debounce ((t) -> t.scrollintoview()), 50
+        @scrollintoview_docs = _.debounce ((t) -> t.scrollintoview()), 50
+
         @init()
 
     init: () =>
@@ -73,7 +79,7 @@ class Wizard
         cb = () =>
             @init_nav()
             @init_buttons()
-            @show(lang: opts.lang)
+            @show(@opts)
 
         if data?
             cb()
@@ -120,11 +126,12 @@ class Wizard
         @nav.on "click", "li", (evt) =>
             pill = $(evt.target)
             @select_nav(pill)
+            @do_search()
             return false
 
         @search.on "keyup", (evt) =>
             evt.stopPropagation()
-            @do_search(@search.val())
+            @do_search()
 
         @lvl1.on "click", "li", (evt) =>
             # .closest("li") because of the badge
@@ -137,7 +144,7 @@ class Wizard
             @select_lvl2(el)
             return false
 
-        @document.on "click", "li", (evt) =>
+        @docs.on "click", "li", (evt) =>
             el = $(evt.target)
             @select_doc(el)
             return false
@@ -148,7 +155,7 @@ class Wizard
             # jQuery's prev/next need a check for length to see, if there is an element
             # necessary, since it is an unevaluated jquery object?
             key = evt.which
-            active = @document.find(".active")
+            active = @docs.find(".active")
             if not active? || key not in [13, 38, 40, 37, 39]
                 return
             evt.preventDefault()
@@ -182,7 +189,7 @@ class Wizard
                         @select_lvl1(new_lvl1)
                         new_lvl2 = @lvl2.children()[carryop]()
                     @select_lvl2(new_lvl2)
-                    new_doc = @document.children()[carryop]()
+                    new_doc = @docs.children()[carryop]()
                 @select_doc(new_doc)
 
             else # left or right
@@ -199,10 +206,12 @@ class Wizard
     show: (opts) ->
         # the opposite of @hide, used to resurrect the dialog in its current state
         # the @init invokes the initial @dialog.modal("show"), don't get confused!
+        console.log "wizard.show opts=", opts
         old_lang = @opts.lang
         @opts = defaults opts,
             lang  : @opts.lang
             cb    : @opts.cb
+        console.log "wizard @opts =", @opts
         @dialog.show()
         if not @lang? || old_lang != @opts.lang
             @select_lang(@opts.lang)
@@ -217,7 +226,7 @@ class Wizard
 
     submit: () ->
         @hide()
-        if @doc?
+        if @opts.cb? && @doc?
             @opts.cb(code: @doc[0], lang: @lang, descr: @doc[1])
 
     set_active: (list, which) ->
@@ -238,7 +247,7 @@ class Wizard
             return
         @lang = lang
         @lvl2.empty()
-        @document.empty()
+        @docs.empty()
         @fill_list(@lvl1, data[@lang])
 
     select_lvl1: (t) ->
@@ -246,21 +255,21 @@ class Wizard
         @set_active(@lvl1, t)
         @cat1 = t.attr("data")
         # console.log("lvl1: #{select1}")
-        @document.empty()
+        @docs.empty()
         @fill_list(@lvl2, data[@lang][@cat1])
-        t.scrollintoview()
+        @scrollintoview_lvl1(t)
 
     select_lvl2: (t) ->
         # the minor category has been clicked
         @set_active(@lvl2, t)
         @cat2 = t.attr("data")
         # console.log("lvl2: #{select2}")
-        @fill_list(@document, data[@lang][@cat1][@cat2])
-        t.scrollintoview()
+        @fill_list(@docs, data[@lang][@cat1][@cat2])
+        @scrollintoview_lvl2(t)
 
     select_doc: (t) ->
         # the document title on the right has been clicked
-        @set_active(@document, t)
+        @set_active(@docs, t)
         @title = title = t.attr("data")
         @cat1 = t.attr("lvl1") || @cat1
         @cat2 = t.attr("lvl2") || @cat2
@@ -272,7 +281,7 @@ class Wizard
             content += "<div class='attr'>#{attr}</div>"
         @descr.html(content)
         @descr.mathjax()
-        t.scrollintoview()
+        @scrollintoview_docs(t)
 
     _list_sort: (a, b) ->
         # ordering operator, such that some entries are in front
@@ -290,7 +299,7 @@ class Wizard
         # <li class="list-group-item active"><span class="badge">3</span>...</li>
         list.empty()
         if entries?
-            if list == @document
+            if list == @docs
                 for entry in entries
                     key = entry[0]
                     list.append($("<li class='list-group-item' data='#{key}'>#{key}</li>"))
@@ -307,30 +316,31 @@ class Wizard
                     entries2 = entries[key]
                     if list == @lvl1
                         @select_lvl1(@lvl1.find("[data=#{key}]"))
-                    else if list == @lvl2
+                    if list == @lvl2
                         @select_lvl2(@lvl2.find("[data=#{key}]"))
 
-    do_search: (str) ->
-        if not str? || str.length < 3
+    do_search: () ->
+        search_str = @search.val()
+        if not search_str? || search_str.length == 0
             @lvl1.show()
             @lvl2.show()
-            @document.empty()
+            @docs.empty()
             return
 
         @lvl1.hide()
         @lvl2.hide()
-        @document.empty()
+        @docs.empty()
 
-        str = str.toLowerCase()
+        str = search_str.toLowerCase()
         hits = 0
         for lvl1, data1 of data[@lang]
             for lvl2, data2 of data1
                 for entry in data2
                     title = entry[0]
                     descr = entry[1][1]
-                    console.log(title, descr)
                     if title.toLowerCase().indexOf(str) != -1 || descr.toLowerCase().indexOf(str) != -1
-                        @document.append($("<li class='list-group-item' lvl1='#{lvl1}' lvl2='#{lvl2}' data='#{title}'>#{title}</li>"))
+                        title_hl = title.replace(new RegExp(str, "gi"), "<span class='hl'>#{search_str}</span>")
+                        @docs.append($("<li class='list-group-item' lvl1='#{lvl1}' lvl2='#{lvl2}' data='#{title}'>#{title_hl}</li>"))
                         hits += 1
                         if hits > 10
                             return
