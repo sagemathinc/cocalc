@@ -1193,6 +1193,129 @@ class GlobalProject
         )
 
 
+    ###
+    verify that it's possible to copy files between server_id from/to the given remote servers
+
+        x={};s=require('bup_server').global_client(cb:(err,c)->x.c=c;x.p=x.c.get_project('3702601d-9fbc-4e4e-b7ab-c10a79e34d3b'))
+
+        x.p.all_remotes_are_ready(cb:(e,a)->console.log("DONE!",e,a);x.a=a)
+
+        x.p.remote_is_ready(server_id:'eec826ad-f395-4a1d-bfb1-20f5a19d4bb0',cb:(e,a)->console.log("DONE!",e,a);x.a=a)
+
+    ###
+    all_remotes_are_ready: (opts) =>
+        opts = defaults opts,
+            cb        : required # cb(err, {server_id:[bad servers]})
+        ans = {}
+        f = (server_id, cb) =>
+            @remote_is_ready
+                server_id : server_id
+                cb        : (err, bad_servers) =>
+                    if err
+                        cb(err)
+                    else
+                        if bad_servers.length > 0
+                            ans[server_id] = bad_servers
+                        cb()
+        @database.select
+            table   : "storage_servers"
+            where   : {dummy:true}
+            columns : ['server_id']
+            cb      : (err, remotes) =>
+                if err
+                    opts.cb(err)
+                else
+                    async.map (x[0] for x in remotes), f, (err) =>
+                        if err
+                            opts.cb(err)
+                        else
+                            opts.cb(undefined, ans)
+
+    remote_is_ready: (opts) =>
+        opts = defaults opts,
+            remotes   : undefined  # array of strings 'server_id's, ...; if not given uses *all* servers
+            server_id : required # source -- doesn't actually have to be where this project is.
+            cb        : required # cb(err, [bad servers])
+        dbg = (m) => winston.debug("GlobalProject.remote_is_ready(): #{m}")
+        dbg()
+
+        source_server_id = opts.server_id
+        source_dc        = undefined
+        targets          = []
+        project          = undefined
+        bad_servers      = []
+
+        async.series([
+            (cb) =>
+                if opts.remotes?
+                    cb()
+                else
+                    dbg("get list of all servers")
+                    @database.select
+                        table   : "storage_servers"
+                        where   : {dummy:true}
+                        columns : ['server_id']
+                        cb      : (err, remotes) =>
+                            if err
+                                cb(err)
+                            else
+                                opts.remotes = (x[0] for x in remotes)
+                                cb()
+            (cb) =>
+                dbg("get dc of source project")
+                @global_client.get_data_center
+                    server_id : source_server_id
+                    cb        : (err, dc) =>
+                        if err
+                            cb(err)
+                        else
+                            source_dc = dc
+                            cb()
+            (cb) =>
+                dbg("get ip:port of target projects")
+                f = (target_server_id, cb) =>
+                    if source_server_id == target_server_id
+                        # special case when source and target are on the same machine.
+                        # NOTE: we *must* use localhost since the firewall doesn't allow
+                        # ssh'ing from localhost to host to localhost.  It will work.
+                        cb()
+                        return
+                    @global_client.get_external_ssh
+                        server_id : target_server_id
+                        dc        : source_dc
+                        cb        : (err, addr) =>
+                            if err
+                                cb(err)
+                            else
+                                targets.push(addr)
+                                cb()
+                async.map(opts.remotes, f, cb)
+            (cb) =>
+                dbg("get the project itself")
+                @project
+                    server_id : source_server_id
+                    cb        : (err, p) =>
+                        if err
+                            cb(err)
+                        else
+                            project = p
+                            cb()
+            (cb) =>
+                dbg("do the remote_is_ready action")
+                project.remote_is_ready
+                    targets : targets
+                    cb      : (err, ans) =>
+                        if err
+                            cb(err)
+                        else
+                            for addr, is_good of ans
+                                if not is_good
+                                    bad_servers.push(addr)
+                            cb()
+        ], (err) =>
+            opts.cb?(err, bad_servers)
+        )
+
     # copy a path from this project to another project
     copy_path: (opts) =>
         opts = defaults opts,
@@ -2502,7 +2625,7 @@ class GlobalClient
     	x.c.repair(dryrun:true, cb:(e,projects)->console.log("DONE",e);x.projects=projects)
         x.projects.length
 
-        status=[];x.c.repair(limit:3, status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
+        status=[];x.c.repair(limit:10, status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
 
     ###
     repair: (opts) =>
@@ -3206,6 +3329,18 @@ class ClientProject
                         opts.cb(resp.result.error)
                     else
                         opts.cb(undefined, new Buffer(resp.result.base64, 'base64'))
+
+    remote_is_ready: (opts) =>
+        opts = defaults opts,
+            targets : required    # ['id_addr:port', 'ip_addr:port', ...]
+            cb      : required
+        @action
+            action  : 'remote_is_ready'
+            param   : ["--remote=#{opts.targets.join(',')}"]
+            timeout : opts.timeout
+            cb      : (err, r) =>
+                opts.cb(err, r?.result)
+
 
     copy_path: (opts) =>
         opts = defaults opts,
