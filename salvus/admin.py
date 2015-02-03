@@ -2278,6 +2278,8 @@ class Services(object):
           - for uw machines: get the address from our conf script showing who hosts each vm
           - for the google machines: get both addresses by querying gcutil
         """
+        # TODO: temporarily disabled due to problem with google firewall -- will fix.
+        return
         import cassandra
         password = open(os.path.join(SECRETS, 'cassandra/monitor')).read().strip()
         print cassandra.KEYSPACE
