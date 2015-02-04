@@ -3442,9 +3442,24 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
     restart: (cb) =>
         @dbg("restart")
+        @free_resources()
+        @project = bup_server.get_project(@project_id)
         @project.restart(cb:cb)
+
+    free_resources: () =>
+        winston.debug("free_resources: #{@project_id}")
         delete @_status
+        try
+            @_socket?.end()
+        catch e
+            winston.debug("free_resources: exception closing main _socket: #{e}")
         delete @_socket
+        for k, s in @_sockets
+            try
+                s.end()
+            catch e
+                winston.debug("free_resources: exception closing a socket: #{e}")
+        @_sockets = {}
 
     # Send a JSON message to a session.
     # NOTE -- This makes no sense for console sessions, since they use a binary protocol,
