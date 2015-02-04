@@ -707,6 +707,7 @@ init_http_proxy_server = () =>
                             if err
                                 cb(err)
                             else
+                                res.setHeader('Content-disposition', 'attachment')
                                 res.write(data)
                                 res.end()
                                 is_public = true
