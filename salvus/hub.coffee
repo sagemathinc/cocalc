@@ -4374,7 +4374,6 @@ sign_in = (client, mesg) =>
             # There is no security in not doing this, since the same information can be determined via the invite collaborators feature.
             database.get_account
                 email_address : mesg.email_address
-                consistency   : cql.types.consistencies.one
                 columns       : ['password_hash', 'account_id']
                 cb            : (error, account) ->
                     if error
@@ -4382,7 +4381,7 @@ sign_in = (client, mesg) =>
                             ip_address    : client.ip_address
                             successful    : false
                             email_address : mesg.email_address
-                        sign_in_error("There is no SageMathCloud account with email address #{mesg.email_address}; if you are sure you have such an account (or a similar one), email help@sagemath.com, and we will help you sort this out.")
+                        sign_in_error("Sign in error -- #{error}")
                         cb(true); return
                     if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
                         record_sign_in
