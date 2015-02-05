@@ -2621,11 +2621,10 @@ class GlobalClient
 
     CODE in console to use this:
 
-        x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
-    	x.c.repair(dryrun:true, cb:(e,projects)->console.log("DONE",e);x.projects=projects)
+        x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.c.repair(dryrun:true, cb:(e,projects)->console.log("DONE",e,"NUM=",projects?.length);x.projects=projects))
         x.projects.length
 
-        status=[];x.c.repair(limit:10, status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
+        status=[];x.c.repair(limit:3, status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
 
     ###
     repair: (opts) =>

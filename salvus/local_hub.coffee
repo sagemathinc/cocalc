@@ -614,11 +614,17 @@ plug = (s1, s2, max_burst) ->   # s1 = hub; s2 = console server
                 tm = misc.mswalltime()
                 if tm - last_tm >= 20
                     if amount < 0 # was truncating
-                        data = "]" + last_data.slice(Math.max(0, last_data.length - Math.floor(max_burst/4))) + data
-                    console.log("max_burst: reset")
+                        try
+                            x = last_data.slice(Math.max(0, last_data.length - Math.floor(max_burst/4)))
+                        catch e
+                            # I don't know why the above sometimes causes an exception, but it *does* in
+                            # Buffer.slice, which is a serious problem.   Best to ignore that data.
+                            x = ''
+                        data = "]" + x + data
+                    #console.log("max_burst: reset")
                     amount = 0
                 last_tm = tm
-                console.log("max_burst: amount=#{amount}")
+                #console.log("max_burst: amount=#{amount}")
                 if amount >= max_burst
                     last_data = data
                     data = data.slice(0,Math.floor(max_burst/4)) + "[..."
