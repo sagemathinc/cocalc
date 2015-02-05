@@ -1578,11 +1578,14 @@ class ProjectPage
             return false
 
         if obj.isdir
-            dialog.find("a[href=#download-file]").click () =>
-                dialog.modal('hide')
-                @download_file
-                    path : obj.fullname + ".zip"   # creates the zip in memory on the fly
-                return false
+            if @public_access # only done for public access right now.
+                dialog.find("a[href=#download-file]").click () =>
+                    dialog.modal('hide')
+                    @download_file
+                        path : obj.fullname + ".zip"   # creates the zip in memory on the fly
+                    return false
+            else
+                dialog.find("a[href=#download-file]").hide()
         else
             dialog.find("a[href=#download-file]").click () =>
                 dialog.modal('hide')
