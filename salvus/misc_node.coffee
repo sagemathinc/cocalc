@@ -103,25 +103,28 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
 
     socket.on('data', socket._listen_for_mesg)
 
-    socket.write_mesg = (type, data, cb) ->
+    socket.write_mesg = (type, data, cb) ->  # cb(err)
         send = (s) ->
             buf = new Buffer(4)
             # This line was 4 hours of work.  It is absolutely
             # *critical* to change the (possibly a string) s into a
             # buffer before computing its length and sending it!!
             # Otherwise unicode characters will cause trouble.
-            if typeof s == "string"
+            if typeof(s) == "string"
                 s = Buffer(s)
             buf.writeInt32BE(s.length, 0)
             if not socket.writable
                 cb?("socket not writable")
+                return
             else
                 socket.write(buf)
 
             if not socket.writable
                 cb?("socket not writable")
+                return
             else
                 socket.write(s, cb)
+
         switch type
             when 'json'
                 send('j' + JSON.stringify(data))
@@ -130,7 +133,7 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
                 assert(data.blob?, "data object *must* have a blob attribute")
                 send(Buffer.concat([new Buffer('b'), new Buffer(data.uuid), new Buffer(data.blob)]))
             else
-                throw("unknown message type '#{type}'")
+                cb("unknown message type '#{type}'")
 
     # Wait until we receive exactly *one* message of the given type
     # with the given id, then call the callback with that message.
