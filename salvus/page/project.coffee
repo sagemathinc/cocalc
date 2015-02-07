@@ -117,6 +117,8 @@ class ProjectPage
         @init_hidden_files_icon()
         @init_listing_show_all()
         @init_sortable_editor_tabs()
+        @init_current_path_info_button()
+
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
 
@@ -150,7 +152,6 @@ class ProjectPage
             @set_location()
             @init_title_desc_edit()
             @init_mini_command_line()
-            @init_current_path_info_button()
             @init_settings_url()
             @init_ssh_url_click()
             @init_billing()
@@ -1577,8 +1578,14 @@ class ProjectPage
             return false
 
         if obj.isdir
-            # until we implement an archive process
-            dialog.find("a[href=#download-file]").hide()
+            if @public_access # only done for public access right now.
+                dialog.find("a[href=#download-file]").click () =>
+                    dialog.modal('hide')
+                    @download_file
+                        path : obj.fullname + ".zip"   # creates the zip in memory on the fly
+                    return false
+            else
+                dialog.find("a[href=#download-file]").hide()
         else
             dialog.find("a[href=#download-file]").click () =>
                 dialog.modal('hide')
@@ -3622,7 +3629,7 @@ class ProjectPage
         url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{misc.encode_path(opts.path)}"
         if opts.auto
             download_file(url)
-            bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3><hr> If <b>#{opts.path}</b> isn't downloading <a target='_blank' href='#{url}'>open it in another tab</a>.")
+            bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3><hr> If <b>#{opts.path}</b> isn't downloading try <a target='_blank' href='#{url}'>#{url}</a>.")
         else
             window.open(url)
             #bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3> <hr><a target='_blank' href='#{url}'> Open #{opts.path} in another tab</a>.")

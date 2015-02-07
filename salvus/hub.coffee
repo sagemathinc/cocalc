@@ -702,11 +702,12 @@ init_http_proxy_server = () =>
                     project = bup_server.get_project(project_id)
                     project.read_file
                         path    : path
-                        maxsize : 20000000   # 20MB for now
+                        maxsize : 25000000   # 25MB for now
                         cb      : (err, data) ->
                             if err
                                 cb(err)
                             else
+                                res.setHeader('Content-disposition', 'attachment')
                                 res.write(data)
                                 res.end()
                                 is_public = true
@@ -3427,24 +3428,38 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         cb(undefined, @)
 
     dbg: (m) =>
-        winston.debug("local_hub(#{@project_id}): #{m}")
+        winston.debug("local_hub(#{@project_id}): #{misc.to_json(m)}")
 
     close: (cb) =>
-        winston.debug("local_hub.close(#{@project_id}): #{m}")
+        @dbg("close")
         @project.close(cb:cb)
 
     move: (opts) =>
         opts = defaults opts,
             target : undefined
             cb     : undefined          # cb(err, {host:hostname})
-        winston.debug("local_hub.close(#{@project_id}): #{m}")
+        @dbg("move")
         @project.move(opts)
 
     restart: (cb) =>
         @dbg("restart")
+        @free_resources()
         @project.restart(cb:cb)
+
+    free_resources: () =>
+        @dbg("free_resources")
         delete @_status
+        try
+            @_socket?.end()
+        catch e
+            winston.debug("free_resources: exception closing main _socket: #{e}")
         delete @_socket
+        for k, s in @_sockets
+            try
+                s.end()
+            catch e
+                winston.debug("free_resources: exception closing a socket: #{e}")
+        @_sockets = {}
 
     # Send a JSON message to a session.
     # NOTE -- This makes no sense for console sessions, since they use a binary protocol,
@@ -3508,19 +3523,19 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb(false, @_socket)
             return
 
-        if @_local_hub_socket_connecting? and @_local_hub_socket_connecting
+        if @_local_hub_socket_connecting
             @_local_hub_socket_queue.push(cb)
             return
         @_local_hub_socket_connecting = true
         @_local_hub_socket_queue = [cb]
+        @dbg("local_hub_socket: getting new socket")
         @new_socket (err, socket) =>
+            @dbg("local_hub_socket: new_socket returned #{err}")
             @_local_hub_socket_connecting = false
             if err
                 for c in @_local_hub_socket_queue
                     c(err)
             else
-                @_socket = socket
-
                 socket.on 'mesg', (type, mesg) =>
                     switch type
                         when 'blob'
@@ -3528,23 +3543,20 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         when 'json'
                             @handle_mesg(mesg)
 
-                socket.on 'end', () =>
-                    delete @_status
-                    delete @_socket
-                socket.on 'close', () =>
-                    delete @_status
-                    delete @_socket
-                socket.on 'error', () =>
-                    delete @_status
-                    delete @_socket
+                socket.on('end', @free_resources)
+                socket.on('close', @free_resources)
+                socket.on('error', @free_resources)
 
                 for c in @_local_hub_socket_queue
-                    c(false, @_socket)
+                    c(undefined, socket)
+
+                @_socket = socket
 
     # Get a new connection to the local_hub,
     # authenticated via the secret_token, and enhanced
     # to be able to send/receive json and blob messages.
     new_socket: (cb) =>     # cb(err, socket)
+        @dbg("new_socket")
         f = (cb) =>
             connect_to_a_local_hub
                 port         : @address.port
@@ -3555,14 +3567,14 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         async.series([
             (cb) =>
                 if not @address?
-                    # get address of a working local hub
+                    @dbg("get address of a working local hub")
                     @project.local_hub_address
                         cb : (err, address) =>
                             @address = address; cb(err)
                 else
                     cb()
             (cb) =>
-                # try to connect to local hub socket using last known address
+                @dbg("try to connect to local hub socket using last known address")
                 f (err, _socket) =>
                     if not err
                         socket = _socket
@@ -3574,7 +3586,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                                 @address = address; cb(err)
             (cb) =>
                 if not socket?
-                    # still don't have our connection -- try again
+                    @dbg("still don't have our connection -- try again")
                     f (err, _socket) =>
                        socket = _socket; cb(err)
                 else
@@ -3592,7 +3604,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             timeout        : undefined  # NOTE: a nonzero timeout MUST be specified, or we will not even listen for a response from the local hub!  (Ensures leaking listeners won't happen.)
             multi_response : false   # if true, timeout ignored; call @remove_multi_response_listener(mesg.id) to remove
             cb             : undefined
-
+        @dbg("call")
         if not opts.mesg.id?
             if opts.timeout or opts.multi_response   # opts.timeout being undefined or 0 both mean "don't do it"
                 opts.mesg.id = uuid.v4()
@@ -3601,19 +3613,25 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             if err
                 opts.cb?(err)
                 return
-            socket.write_mesg('json', opts.mesg)
-            if opts.multi_response
-                @_multi_response[opts.mesg.id] = opts.cb
-            else if opts.timeout
-                socket.recv_mesg
-                    type    : 'json'
-                    id      : opts.mesg.id
-                    timeout : opts.timeout
-                    cb      : (mesg) =>
-                        if mesg.event == 'error'
-                            opts.cb(mesg.error)
-                        else
-                            opts.cb(false, mesg)
+            @dbg("call: get socket -- now writing message to the socket")
+            socket.write_mesg 'json', opts.mesg, (err) =>
+                if err
+                    @free_resources()   # at least next time it will get a new socket
+                    opts.cb?(err)
+                    return
+                if opts.multi_response
+                    @_multi_response[opts.mesg.id] = opts.cb
+                else if opts.timeout
+                    socket.recv_mesg
+                        type    : 'json'
+                        id      : opts.mesg.id
+                        timeout : opts.timeout
+                        cb      : (mesg) =>
+                            @dbg("call: received message back")
+                            if mesg.event == 'error'
+                                opts.cb(mesg.error)
+                            else
+                                opts.cb(false, mesg)
 
     ####################################################
     # Session management
@@ -3627,7 +3645,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             project_id   : required
             timeout      : 10
             cb           : required  # cb(err, socket)
-
+        @dbg("_open_session_socket")
         # We do not currently have an active open socket connection to this session.
         # We make a new socket connection to the local_hub, then
         # send a connect_to_session message, which will either
@@ -3637,7 +3655,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         socket = undefined
         async.series([
             (cb) =>
-                @dbg("getting new socket connection to a local_hub")
+                @dbg("_open_session_socket: getting new socket connection to a local_hub")
                 @new_socket (err, _socket) =>
                     if err
                         cb(err)
@@ -3651,7 +3669,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     project_id   : opts.project_id
                     session_uuid : opts.session_uuid
                     params       : opts.params
-                @dbg("Send the message asking to be connected with a #{opts.type} session.")
+                @dbg("_open_session_socket: send the message asking to be connected with a #{opts.type} session.")
                 socket.write_mesg('json', mesg)
                 # Now we wait for a response for opt.timeout seconds
                 f = (type, resp) =>
@@ -3678,7 +3696,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
         ], (err) =>
             if err
-                @dbg("Error getting a socket -- (declaring total disaster) -- #{err}")
+                @dbg("_open_session_socket: error getting a socket -- (declaring total disaster) -- #{err}")
                 # This @_socket.destroy() below is VERY important, since just deleting the socket might not send this,
                 # and the local_hub -- if the connection were still good -- would have two connections
                 # with the global hub, thus doubling sync and broadcast messages.  NOT GOOD.
@@ -3696,7 +3714,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             params       : {command: 'bash'}
             session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
             cb           : required    # cb(err, [session_connected message])
-
+        @dbg("connect client to a console session")
         # Connect to the console server
         if not opts.session_uuid?
             # Create a new session
@@ -3758,6 +3776,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             session_uuid : required
             project_id   : required
             cb           : undefined
+        @dbg("terminate_session")
         @call
             mesg :
                 message.terminate_session
@@ -3767,7 +3786,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb      : opts.cb
 
     killall: (cb) =>
-        @dbg("kill all processes running on a local hub (including the local hub itself)")
+        @dbg("killall: kill processes running on a local hub (including the local hub itself)")
         @project.stop(cb:cb)
 
 
@@ -3781,7 +3800,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             project_id : required
             archive    : 'tar.bz2'   # for directories; if directory, then the output object "data" has data.archive=actual extension used.
             cb         : required
-
+        @dbg("read_file '#{path}'")
         socket    = undefined
         id        = uuid.v4()
         data      = undefined
@@ -3830,7 +3849,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             project_id : required
             data       : required   # what to write
             cb         : required
-
+        @dbg("write_file '#{path}'")
         socket    = undefined
         id        = uuid.v4()
         data_uuid = uuid.v4()
@@ -3961,6 +3980,7 @@ class Project
             multi_response : false
             timeout : 15
             cb      : undefined
+        @dbg("call")
         @_fixpath(opts.mesg)
         opts.mesg.project_id = @project_id
         @local_hub.call(opts)
@@ -3969,6 +3989,7 @@ class Project
     delete_project: (opts) =>
         opts = defaults opts,
             cb : undefined
+        @dbg("delete_project")
         database.delete_project
             project_id : @project_id
             cb         : opts.cb
@@ -3984,6 +4005,7 @@ class Project
     undelete_project: (opts) =>
         opts = defaults opts,
             cb : undefined
+        @dbg("undelete_project")
         database.undelete_project
             project_id : @project_id
             cb         : opts.cb
@@ -3992,6 +4014,7 @@ class Project
         opts = defaults opts,
             account_id : required
             cb         : undefined
+        @dbg("hide_project_from_user")
         database.hide_project_from_user
             account_id : opts.account_id
             project_id : @project_id
@@ -4001,6 +4024,7 @@ class Project
         opts = defaults opts,
             account_id : required
             cb         : undefined
+        @dbg("unhide_project_from_user")
         database.unhide_project_from_user
             account_id : opts.account_id
             project_id : @project_id
@@ -4008,21 +4032,25 @@ class Project
 
     # Get current session information about this project.
     session_info: (cb) =>
+        @dbg("session_info")
         @call
             message : message.project_session_info(project_id:@project_id)
             cb : cb
 
     read_file: (opts) =>
+        @dbg("read_file")
         @_fixpath(opts)
         opts.project_id = @project_id
         @local_hub.read_file(opts)
 
     write_file: (opts) =>
+        @dbg("write_file")
         @_fixpath(opts)
         opts.project_id = @project_id
         @local_hub.write_file(opts)
 
     console_session: (opts) =>
+        @dbg("console_session")
         @_fixpath(opts.params)
         opts.project_id = @project_id
         @local_hub.console_session(opts)
@@ -4031,6 +4059,7 @@ class Project
         opts = defaults opts,
             session_uuid : required
             cb           : undefined
+        @dbg("terminate_session")
         opts.project_id = @project_id
         @local_hub.terminate_session(opts)
 
@@ -4374,7 +4403,6 @@ sign_in = (client, mesg) =>
             # There is no security in not doing this, since the same information can be determined via the invite collaborators feature.
             database.get_account
                 email_address : mesg.email_address
-                consistency   : cql.types.consistencies.one
                 columns       : ['password_hash', 'account_id']
                 cb            : (error, account) ->
                     if error
@@ -4382,7 +4410,7 @@ sign_in = (client, mesg) =>
                             ip_address    : client.ip_address
                             successful    : false
                             email_address : mesg.email_address
-                        sign_in_error("There is no SageMathCloud account with email address #{mesg.email_address}; if you are sure you have such an account (or a similar one), email help@sagemath.com, and we will help you sort this out.")
+                        sign_in_error("Sign in error -- #{error}")
                         cb(true); return
                     if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
                         record_sign_in
