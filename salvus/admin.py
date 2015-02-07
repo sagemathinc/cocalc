@@ -1520,7 +1520,7 @@ class Monitor(object):
         h = ' '.join([host for host in self._hosts[hosts] if host not in exclude])
         if not h:
             return []
-        for k, v in self._hosts(h, cmd, parallel=True, wait=True, timeout=80).iteritems():
+        for k, v in self._hosts(h, cmd, parallel=True, wait=True, timeout=30).iteritems():
             d = {'host':k[0], 'service':'dns'}
             exit_code = v.get('stdout','').strip()
             if exit_code == '':
