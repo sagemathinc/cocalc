@@ -29,32 +29,33 @@ def process_hashtags(match):
 """
 
 def process_category(doc):
-    cat = doc["category"]
-    if isinstance(cat, (list, tuple)):
-        assert len(cat) == 2
-    elif isinstance(cat, basestring):
-        cat = cat.split("/", 1)
+    cats = doc["category"]
+    if isinstance(cats, (list, tuple)):
+        assert len(cats) == 2
+    elif isinstance(cats, basestring):
+        cats = cats.split("/", 1)
     else:
-        raise Exception("What is id '%s' supposed to be?" % cat)
-    return [c.strip().title() for c in cat]
+        raise Exception("What is id '%s' supposed to be?" % cats)
+    return [c.strip().title() for c in cats]
 
 def process_doc(doc, input_fn):
     """
     This processes one document entry and returns the suitable datastructure for later conversion to JSON
     """
-    if not all(_ in doc.keys() for _ in ["title", "code", "descr"]):
-        raise Exception("keyword missing in %s in %s" % (doc, input_fn))
-    title       = doc["title"].title()
+    #if not all(_ in doc.keys() for _ in ["title", "code", "descr"]):
+    #    raise Exception("keyword missing in %s in %s" % (doc, input_fn))
+    title       = doc["title"]
     code        = doc["code"]
     description = doc["descr"] # hashtag_re.sub(process_hashtags, doc["descr"])
-    return title, [code, description]
+    body        = [code, description]
+    if "attr" in doc:
+        body.append(doc["attr"])
+    return title, body
 
 def wizard_data(input_dir, output_fn):
     input_dir = abspath(normpath(input_dir))
     wizard_js = abspath(normpath(output_fn))
     #print(input_dir, output_dir)
-
-    #print(data)
 
     # this implicitly defines all known languages
     recursive_dict = lambda : defaultdict(recursive_dict)
@@ -71,24 +72,42 @@ def wizard_data(input_dir, output_fn):
             input_fn = join(root, fn)
             data = yaml.load_all(open(input_fn, "r", "utf8").read())
 
-            header   = data.next()
-            language = header["language"]
-            lvl1, lvl2 = process_category(header)
-            if language not in wizard.keys():
-                raise Exception("Language %s not known. Fix first document in %s.yaml" % (language, input_fn))
+            language = entries = lvl1 = lvl2 = titles = None # must be set first in the "category" case
 
             for doc in data:
                 if doc is None:
                     continue
-                if "category" in doc:
-                    lvl1, lvl2 = process_category(doc)
-                else:
-                    title, entry = process_doc(doc, input_fn)
-                    grp = wizard[language][lvl1][lvl2]
-                    if title in grp:
-                        raise Exception("Duplicate title '{title}' in {language}::{lvl1}/{lvl2} of {input_fn}".format(**locals()))
-                    grp[title] = entry
 
+                processed = False
+
+                if "language" in doc:
+                    language = doc["language"]
+                    if language not in wizard.keys():
+                        raise Exception("Language %s not known. Fix first document in %s" % (language, input_fn))
+                    processed = True
+
+                if "category" in doc: # setting both levels of the category and re-setting entries and titles
+                    lvl1, lvl2 = process_category(doc)
+                    if lvl2 in wizard[language][lvl1]:
+                        raise Exception("Category level2 '%s' already exists (error in %s)" % (lvl2, input_fn))
+                    entries = wizard[language][lvl1][lvl2] = []
+                    titles = set()
+                    processed = True
+
+                if all(_ in doc.keys() for _ in ["title", "code", "descr"]):
+                    # we have an actual document entry, append it in the original ordering as a tuple.
+                    title, body = process_doc(doc, input_fn)
+                    if title in titles:
+                        raise Exception("Duplicate title '{title}' in {language}::{lvl1}/{lvl2} of {input_fn}".format(**locals()))
+                    entries.append([title, body])
+                    titles.add(title)
+                    processed = True
+
+                if not processed: # bad document
+                    raise Exception("This document is not well formatted (wrong keys, etc.)\n%s" % doc)
+
+    #from datetime import datetime
+    #wizard["timestamp"] = str(datetime.utcnow())
     with open(wizard_js, "w", "utf8") as f_out:
         # sorted keys to de-randomize output (to keep it in Git)
         json.dump(wizard, f_out, ensure_ascii=True, sort_keys=True)
