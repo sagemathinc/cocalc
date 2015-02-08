@@ -97,7 +97,7 @@ CASSANDRA_PORTS = CASSANDRA_INTERNODE_PORTS + [CASSANDRA_CLIENT_PORT, CASSANDRA_
 # See http://www.nixtutor.com/linux/send-mail-through-gmail-with-python/
 ####################
 
-def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@uw.edu', fromaddr='salvusmath@gmail.com'):
+def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@sagemath.com', fromaddr='salvusmath@gmail.com'):
     log.info("sending email to %s", toaddrs)
     username = 'salvusmath'
     password = open(os.path.join(os.environ['HOME'],'salvus/salvus/data/secrets/salvusmath_email_password')
