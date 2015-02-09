@@ -2241,10 +2241,11 @@ def show_graph_using_d3(obj, **kwds):
 
 from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
+import cgi
 
-def show(obj, svg=True, d3=True, **kwds):
+def show(*objs, **kwds):
     """
-    Show a 2d or 3d graphics object, animation, or matplotlib figure, or show an
+    Show a 2d or 3d graphics object (or objects), animation, or matplotlib figure, or show an
     expression typeset nicely using LaTeX.
 
        - display: (default: True); if True, use display math for expression (big and centered).
@@ -2285,6 +2286,13 @@ def show(obj, svg=True, d3=True, **kwds):
 
     EXAMPLES:
 
+    Some examples:
+
+        show(2/3)
+        show([1, 4/5, pi^2 + e], 1+pi)
+        show(x^2, display=False)
+        show(e, plot(sin))
+
     Here's an example that illustrates creating a clickable image with events::
 
         @interact
@@ -2301,26 +2309,58 @@ def show(obj, svg=True, d3=True, **kwds):
                 f0(click=p)
             show(g, events={'click':c, 'mousemove':h}, svg=True, gridlines='major', ymin=ymin, ymax=ymax)
     """
+    # svg=True, d3=True,
+    svg = kwds.get('svg',True)
+    d3 = kwds.get('d3',True)
+    display = kwds.get('display', True)
+    for t in ['svg', 'd3', 'display']:
+        if t in kwds:
+            del kwds[t]
     import graphics
-    if isinstance(obj, (Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes, matplotlib.image.AxesImage)):
-        show_2d_plot_using_matplotlib(obj, svg=svg, **kwds)
-    elif isinstance(obj, Animation):
-        show_animation(obj, **kwds)
-    elif isinstance(obj, Graphics3d):
-        if kwds.get('viewer') == 'tachyon':
-            show_3d_plot_using_tachyon(obj, **kwds)
+    def show0(obj, combine_all=False):
+        # Either show the object and return None or
+        # return a string of html to represent obj.
+        if isinstance(obj, (Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes, matplotlib.image.AxesImage)):
+            show_2d_plot_using_matplotlib(obj, svg=svg, **kwds)
+        elif isinstance(obj, Animation):
+            show_animation(obj, **kwds)
+        elif isinstance(obj, Graphics3d):
+            if kwds.get('viewer') == 'tachyon':
+                show_3d_plot_using_tachyon(obj, **kwds)
+            else:
+                salvus.threed(obj, **kwds)
+                # graphics.show_3d_plot_using_threejs(obj, **kwds)
+        elif isinstance(obj, (sage.graphs.graph.Graph, sage.graphs.digraph.DiGraph)):
+            if d3:
+                show_graph_using_d3(obj, **kwds)
+            else:
+                show(obj.plot(), **kwds)
+        elif isinstance(obj, str):
+            return obj
+        elif isinstance(obj, (list, tuple)):
+            v = []
+            for a in obj:
+                b = show0(a)
+                if b is not None:
+                    v.append(b)
+            if combine_all:
+                return ' '.join(v)
+            s = ', '.join(v)
+            if isinstance(obj, list):
+                return '[%s]'%s
+            else:
+                return '(%s)'%s
         else:
-            salvus.threed(obj, **kwds)
-            # graphics.show_3d_plot_using_threejs(obj, **kwds)
-    elif isinstance(obj, (sage.graphs.graph.Graph, sage.graphs.digraph.DiGraph)):
-        if d3:
-            show_graph_using_d3(obj, **kwds)
+            if display:
+                return "$\\displaystyle %s$"%sage.misc.latex.latex(obj)
+            else:
+                return "$%s$"%sage.misc.latex.latex(obj)
+    s = show0(objs, combine_all=True)
+    if s is not None:
+        if display:
+            salvus.html("<div align='center'>%s</div>"%cgi.escape(s))
         else:
-            show(obj.plot(), **kwds)
-    else:
-        if 'display' not in kwds:
-            kwds['display'] = True
-        salvus.tex(obj, **kwds)
+            salvus.html("<div>%s</div>"%cgi.escape(s))
 
 # Make it so plots plot themselves correctly when they call their repr.
 Graphics.show = show
