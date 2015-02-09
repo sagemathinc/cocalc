@@ -5,9 +5,9 @@
     width: 900px
 
   div.modal-header
-    h2
-      margin-top: 10px
-    .nav-pills
+    h2,
+    .nav-pills,
+    .smc-wizard-search
       margin-top: 10px
     .btn-close
       margin-top: 10px
@@ -31,6 +31,12 @@
       height:200px
       overflow:auto
       +enable-user-select
+      .attr,
+      .attr a
+        font-size: 9px
+        color: grey
+        margin-top: 30px
+        text-align: right
 
   div.modal-footer
     padding: 10px
@@ -38,3 +44,6 @@
   span.badge
     background-color: #eee
     color: #428bca
+
+  span.hl
+    background-color: yellow

@@ -2522,7 +2522,74 @@ class exports.Salvus extends exports.Cassandra
                     opts.cb(undefined, r[0])
 
     #####################################
+    # Dumping big tables to disk for analysis.
+    #
+    #   x={};s=require('bup_server').global_client(cb:(err,c)->x.c=c;x.c.database.dump_successful_sign_ins(cb:(e) -> console.log("DONE",e)))
+    #
+    #####################################
+    dump_successful_sign_ins: (opts) =>
+        opts = defaults opts,
+            filename : 'successful_sign_ins'
+            limit    : undefined  # for testing.
+            cb       : undefined
+        outfile = undefined
+        async.series([
+            (cb) =>
+                fs.open opts.filename, 'w', (err, _file) =>
+                    if err
+                        cb(err)
+                    else
+                        outfile = _file
+                        cb()
+            (cb) =>
+                query = "SELECT account_id, time FROM successful_sign_ins"
+                if opts.limit?
+                    query += " LIMIT #{opts.limit}"
+                options = {fetchSize:100, autoPage:true}
+                c = @conn.stream(query, [], options)
+                that = @
+                cur_account_id = undefined
+                times = undefined
+                n = 0
+                write = () =>
+                    if cur_account_id?
+                        # sync so we don't write multiple rows simultaneously.
+                        n += 1
+                        if n % 1000 == 0
+                            console.log("dumped #{n} accounts")
+                        times.sort()
+                        fs.writeSync(outfile, misc.to_json(times)+'\n')
+                        #fs.writeSync(outfile, "#{cur_account_id},#{misc.to_json(times)}\n")
+                c.on 'readable', () ->
+                    while true
+                        row = this.read()
+                        if not row
+                            write()
+                            break
+                        account_id = row.account_id
+                        time = row.time - 0
+                        if account_id != cur_account_id
+                            write()
+                            cur_account_id = account_id
+                            times = [time]
+                        else
+                            times.push(time)
+
+                c.on 'end', () =>
+                    cb()
+
+                c.on 'error', (err) =>
+                    cb(err)
+            (cb) =>
+                fs.close(outfile, cb)
+        ], (err) =>
+            opts.cb?(err)
+        )
+
+
+    #####################################
     # Tasks
+    # TODO: delete -- this never got used!
     #####################################
     create_task_list: (opts) =>
         opts = defaults opts,

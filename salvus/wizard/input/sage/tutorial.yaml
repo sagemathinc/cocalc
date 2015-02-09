@@ -3,17 +3,168 @@
 # License:   Creative Commons: Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
 
 language: sage
-category: Algebra / Tutorial
 ---
-title: 01. How to do X
+category: Tutorial / Tour
+---
+title: Expressions and Assignments
 descr: >
-    This is some
-    **markdown** enabled text
-    with #hashtags.
+    The language of Sage is built on top of Python.
+    There are only some minor differences and hence you can apply almost all Python knowledge for working with Sage.
+    Assignments are one of the most basic concepts of programming.
+    An object is born -- as a result of a creation or as an evaluation of an expression --
+    and assigned to (variable)name for later use.
+    This assignment happens with the `=` sign on the left -- do not get confused with a mathematical equation!
 code: |
-    def f(x):
-        return "I want code"
+    a = 5   # giving "5" the name "a"
+    a
+    2 == 2  # testing if 2 equals 2
+    2 == 3
+    2 < 4
+    a == 5  # not an assignment, but a test if a is still 5
 ---
-title: 02. How to do Y
-descr: Some other _text_.
-code: var("Y")
+title: Mathematical Operations
+descr: >
+    Sage uses standard operators to express mathematical operations.
+    In contrast to Python, the `^` is for exponentiation!
+code: |
+    2 ** 3
+    2^3
+    10 % 3
+    8 / 7   # this gives a fraction
+    9//2    # integer quotient
+---
+title: Mathematical Functions
+descr: >
+    Many standard functions are directly available.
+    They produce either numerical approximations or give a symbolic expression.
+code: |
+    sqrt(9.81)
+    sin(6.28)
+    cos(pi)
+    tan(pi/4)
+---
+title: Types
+descr: >
+    A great deal of programming is about organizing data and information.
+    A "type" is a specific pattern, how data is organized with descriptive names.
+    Use Pythons `type(...)` function any time,
+    to learn more about what you are currently dealing with.
+code: |
+    a = 5
+    type(a)
+    a = 9/82
+    type(a)
+    a = "I am a string in quotes"
+    type(a)
+---
+title: Classes
+descr: >
+    A common way to create types are classes.
+    Understanding their construction is not necessary at this point,
+    but mentioned for completeness.
+code: |
+    class Fraction(object):
+        def __init__(self, nom, denom):
+            self.nominator = nom
+            self.denominator = denom
+    f1 = Fraction(1, 2)
+    f1.nominator
+    f1.denominator
+---
+title: Functions
+descr: >
+    In Sage, there are (at least) two types of functions.
+    A Python-function is defined via the `def` keyword and maps optional arguments to a returned value.
+    For more information, [consult the Sage Tour](http://www.sagemath.org/doc/tutorial/tour_help.html#functions-indentation-and-counting).
+
+    Symbolic-functions are defined via `f(x) = ...` and hence fulfull a special purpose for symbolic computations.
+code: |
+    def f1(x):
+        return 2*x
+    f1(11)
+
+    %var x
+    f2(x) = 2 * x
+    f2(21)
+---
+title: Symbolic Expressions
+descr: >
+    A great deal of mathematics concerns symbolic expressions.
+    The fundamental building block is a single variable, `x`, `y`, etc..
+    It can be defined via `var('x')` or the magic command `%var y`.
+    Then, symbolic expressions are built using them.
+    It is important to define the variables as being symblic.
+    Otherwise, the constructed expression is something completely different!
+code: |
+    %var x, y
+    type(y)
+    ex1 = (x + y)^2 == 1
+    ex1
+    ex2 = x - y == 1
+    ex2
+---
+title: Approximate Symbolic Expressions
+descr: >
+    To approximate a symbolic expression (without a free variable), use `n(...)`
+code: |
+    exp(2)
+    n(exp(2))
+    sin(31.41592).n(digits=50)
+    numerical_approx(pi, prec=200)
+---
+title: LaTeX Formulas
+descr: "To see a LaTeX rendering of such a symbolic expression, use Sage's `show(...)` function."
+code: |
+    %var x, y
+    ex1 = (x + y)^2 == 1
+    show(ex1)
+---
+title: Solving Symbolic Equations
+descr: >
+    Sage's `solve(...)` function allows you to solve symbolic equations exactly.
+    Expressons are automatically assumed to be equal to zero.
+code: |
+    %var x, y
+    solve(2*x^2 + 1, x)
+    ex1 = (x + y)^2 - 1
+    ex2 = x - y == 1
+    solve([ex1, ex2], [x, y])
+---
+title: Numerical Solutions
+descr: >
+    Sage's `find_root(...)` solves equations numerically.
+    The optional second and third argument constrain the variable to this interval.
+code: |
+    %var phi
+    find_root(cos(phi)==sin(phi), 0, pi/2)
+---
+title: Symbolic Differentiation
+descr: >
+    Symbolic expressions can be differentiated.
+    This works either with Sage's `diff(...)` function or the expression's `.diff(...)` method.
+    You can also compute the n-th derivative directly.
+code: |
+    %var x, y
+    f = sin(x^2) + 17*y^2
+    diff(f, x)
+    f.diff(y, 3)
+---
+title: Symbolic Integration
+descr: >
+    If possible, the `integral(...)` function computes a symbolic integral.
+code: |
+    %var x
+    integral(x*sin(x^2), x)
+---
+title: Tab-Completion
+descr: >
+    To learn more about possible operations on an object,
+    first type in the variable, then a dot, and then press the `[TAB]` key.
+    The tab key can either autocomplete you current input at the position of the cursor,
+    or give you a list of possible completions.
+
+    In the given example here, position the cursor after the dot and press the `[TAB]` key.
+code: |
+    %var x
+    ex = 2*x/sin(x)
+    ex.
