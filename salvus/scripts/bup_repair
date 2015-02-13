@@ -8,5 +8,5 @@ cd $HOME/salvus/salvus
 
 # Huge limit to do all in parallel until the issue involving a potential location race condition (see source code) is resolved.
 # Usually there are at most a handful of these.
-time echo "x={};require('bup_server').global_client(cb:(e,c)->x.c=c; status=[];x.c.repair(limit:150, status:status,dryrun:false,cb:(e,projects)->console.log('DONE',e);x.projects=projects;console.log(status);console.log(projects); process.exit() ))" | coffee
+time echo "x={};require('bup_server').global_client(cb:(e,c)->x.c=c; status=[];x.c.repair(limit:150, status:status,dryrun:false,cb:(e,projects)->console.log('DONE',e);x.projects=projects;console.log((a.project for a in status));console.log(projects); process.exit() ))" | coffee
 
