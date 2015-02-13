@@ -1258,18 +1258,27 @@ class ProjectPage
 
 
         # the search/mini file creation box
-        mini_set_input = () =>
-            search_box = @container.find(".salvus-project-search-for-file-input")
-            name = search_box.val().trim()
+        mini_search_box = @container.find(".salvus-project-search-for-file-input")
+        mini_set_input = (name) =>
+            if not name?
+                name = mini_search_box.val().trim()
             if name == ""
                 name = @default_filename()
             @update_new_file_tab_path()
             @new_file_tab_input.val(name)
-            search_box.val('')
+            mini_search_box.val('')
 
         @container.find("a[href=#smc-mini-new]").click () =>
-            mini_set_input()
-            create_file('sagews')
+            name = mini_search_box.val().trim()
+            if name
+                mini_set_input()
+                ext = misc.filename_extension(name)
+                if ext
+                    create_file(ext)
+                else
+                    create_file('sagews')
+            else
+                @load_target('new')
 
         @container.find(".smc-mini-new-file-type-list").find("a[href=#new-file]").click (evt) ->
             mini_set_input()
