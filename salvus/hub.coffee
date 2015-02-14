@@ -87,7 +87,7 @@ misc    = require("misc")
 {defaults, required} = require('misc')
 message = require("message")     # salvus message protocol
 cass    = require("cassandra")
-cql     = require("node-cassandra-cql")
+cql     = require("cassandra-driver")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 
