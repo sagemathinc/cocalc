@@ -435,7 +435,8 @@ PYTHON_PACKAGES = [
     'ipython',            # a usable command line  (ipython uses readline)
     'python-daemon',      # daemonization of python modules
     'paramiko',           # ssh2 implementation in python
-    'cql'                 # interface to Cassandra
+    'cql',                # interface to Cassandra
+    'pyyaml'              # used by wizard build script
     ]
 
 SAGE_PIP_PACKAGES = [
@@ -1125,12 +1126,10 @@ def build_haproxy():
         target = "haproxy-%s.tar.gz"%HAPROXY_VERSION
         if not os.path.exists(os.path.join(SRC, target)):
             cmd('rm -f haproxy*', SRC)  # remove any source tarballs that might have got left around
-            download("http://haproxy.1wt.eu/download/1.5/src/devel/haproxy-%s.tar.gz"%HAPROXY_VERSION)
+            download("http://haproxy.1wt.eu/download/1.5/src/haproxy-%s.tar.gz"%HAPROXY_VERSION)
 
         path = extract_package('haproxy')
 
-        # patch log.c so it can write the log to a file instead of syslog
-        cmd('patch -p0 < %s/haproxy.patch'%PATCHES, path)  # diff -Naur src/log.c  ~/log.c > ../patches/haproxy.patch
         cmd('make -j %s TARGET=%s'%(NCPU, 'linux2628' if OS=="Linux" else 'generic'), path)
         cmd('cp haproxy "%s"/bin/'%PREFIX, path)
     finally:

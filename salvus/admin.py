@@ -554,6 +554,8 @@ class Haproxy(Process):
                  base_url=''):
 
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
+
+        # WARNING: this is now ignored since I don't want to patch haproxy; instead logging goes to syslog...
         logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
 
         # randomize the order of the servers to get better distribution between them by all the different
