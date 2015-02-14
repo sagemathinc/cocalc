@@ -26,12 +26,18 @@
 
 import json, os, socket, sys
 
-sys.path.append(os.environ['SALVUS_ROOT'])
+salvus_root = os.environ['SALVUS_ROOT']
+sys.path.append(salvus_root)
 import misc
 
+tinc_conf_hosts = os.path.join(salvus_root, 'conf/tinc_hosts')
 tinc_path = '/home/salvus/salvus/salvus/data/local/etc/tinc/'
 tinc_conf = os.path.join(tinc_path, 'tinc.conf')
-
+hosts_path = os.path.join(tinc_path, 'hosts')
+if not os.path.exists(hosts_path):
+    # symbolic link from tinc_conf_hosts to hosts_path
+    os.symlink(tinc_conf_hosts, hosts_path)
+        
 
 def init():
     external_address = sys.argv[2]
@@ -63,7 +69,7 @@ def init():
 
     os.popen("tincd --config %s -K"%tinc_path).read()
 
-    host_file  = os.path.join(tinc_path, 'hosts', tincname)
+    host_file  = os.path.join(hosts_path, tincname)
     public_key = open(rsa_key_pub).read().strip()
 
     # We give the internal address for Address= since only other GCE nodes will connect to these nodes, and
