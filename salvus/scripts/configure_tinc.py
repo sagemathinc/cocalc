@@ -32,6 +32,10 @@ import misc
 
 tinc_conf_hosts = os.path.join(salvus_root, 'conf/tinc_hosts')
 tinc_path = '/home/salvus/salvus/salvus/data/local/etc/tinc/'
+
+if not os.path.exists(tinc_path):
+    os.makedirs(tinc_path)
+
 tinc_conf = os.path.join(tinc_path, 'tinc.conf')
 hosts_path = os.path.join(tinc_path, 'hosts')
 if not os.path.exists(hosts_path):
