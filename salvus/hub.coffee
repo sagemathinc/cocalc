@@ -5024,7 +5024,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
 
                 If you don't want to change your password, ignore this message.
 
-                In case of problems, email wstein@uw.edu.
+                In case of problems, email help@sagemath.com immediately.
                 """
 
             send_email
@@ -5149,6 +5149,7 @@ get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
 #########################################
 
 nodemailer   = require("nodemailer")
+sgTransport  = require('nodemailer-sendgrid-transport')
 email_server = undefined
 
 # here's how I test this function:
@@ -5157,7 +5158,7 @@ exports.send_email = send_email = (opts={}) ->
     opts = defaults opts,
         subject : required
         body    : required
-        from    : 'SageMathCloud <wstein@uw.edu>'  # obviously change this at some point.  But it is the best "reply to right now"
+        from    : 'SageMath Help <help@sagemath.com>'
         to      : required
         cc      : ''
         cb      : undefined
@@ -5185,12 +5186,8 @@ exports.send_email = send_email = (opts={}) ->
                         email_server = {disabled:true}
                         cb()
                         return
-                    email_server = nodemailer.createTransport "SMTP",
-                        service : "SendGrid"
-                        port    : 2525
-                        auth    :
-                            user: "wstein",
-                            pass: pass
+
+                    email_server = nodemailer.createTransport(sgTransport(auth:{api_user:'wstein', api_key:pass}))
                     dbg("started email server")
                     cb()
         (cb) ->
@@ -5198,16 +5195,18 @@ exports.send_email = send_email = (opts={}) ->
                 cb(undefined, 'email disabled -- no actual message sent')
                 return
             winston.debug("sendMail to #{opts.to} starting...")
-            email_server.sendMail
+            email =
                 from    : opts.from
                 to      : opts.to
                 text    : opts.body
                 subject : opts.subject
-                cc      : opts.cc,
-                cb      : (err) =>
-                    winston.debug("sendMail to #{opts.to} done... (err=#{misc.to_json(err)})")
+                cc      : opts.cc
+            email_server.sendMail email, (err, res) =>
+                    winston.debug("sendMail to #{opts.to} done...")
                     if err
                         dbg("sendMail -- error = #{misc.to_json(err)}")
+                    else
+                        dbg("sendMail -- success = #{misc.to_json(res)}")
                     cb(err)
 
     ], (err, message) ->

@@ -409,6 +409,7 @@ NODE_MODULES = [
     'async',
     'password-hash',
     'nodemailer',
+    'nodemailer-sendgrid-transport',
     'cookies',
     'htmlparser',
     'mime',
