@@ -1815,28 +1815,28 @@ class Services(object):
         if 'cassandra' in self._options:
             v = self._options['cassandra']
             # determine the seeds
-            seeds = ','.join([h for h, o in v if o.get('seed',False)])
+            seeds = ','.join([self._hosts.hostname(h) for h, o in v if o.get('seed',False)])
             # determine global topology file; ip_address=data_center:rack
-            topology = '\n'.join(['%s=%s'%(h, o.get('topology', 'DC0:RAC0'))
+            topology = '\n'.join(['%s=%s'%(self._hosts.hostname(h), o.get('topology', 'DC0:RAC0'))
                                                                   for h, o in v] + ['default=DC0:RAC0'])
 
             for address, o in v:
                 dc = o.get('topology','DC0:RAC0').split(':')[0].lower()  # this must be before o['topology'] line below!
                 if dc not in self._cassandras_in_dc:
-                    self._cassandras_in_dc[dc] = [address]
+                    self._cassandras_in_dc[dc] = [self._hosts.hostname(address)]
                 else:
-                    self._cassandras_in_dc[dc].append(address)
+                    self._cassandras_in_dc[dc].append(self._hosts.hostname(address))
                 o['seeds']          = seeds
                 o['topology']       = topology
-                o['listen_address'] = address
-                o['rpc_address']    = address
+                o['listen_address'] = self._hosts.hostname(address)
+                o['rpc_address']    = self._hosts.hostname(address)
                 if 'seed' in o: del o['seed']
 
             native_transport_port = v[0][1].get('native_transport_port', 9042)
             if native_transport_port != 9042:
                 print "Serving cassandra on non-standard port %s"%native_transport_port
             try:
-                self._cassandra = ['%s:%s'%(h, native_transport_port) for h in self._hosts['cassandra']]
+                self._cassandra = ['%s:%s'%(self._hosts.hostname(h), native_transport_port) for h in self._hosts['cassandra']]
                 import cassandra
                 cassandra.KEYSPACE = self._keyspace
                 cassandra.set_nodes(self._hosts['cassandra'])
@@ -2042,8 +2042,8 @@ class Services(object):
         elif action == "start":
             # hub hosts can connect to CASSANDRA_CLIENT_PORT and CASSANDRA_NATIVE_PORT
             # cassandra hosts can connect to CASSANDRA_INTERNODE_PORTS
-            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin cassandra cellserver']] +
-                        ['allow proto tcp from %s to any port %s'%(host, CASSANDRA_NATIVE_PORT) for host in self._hosts['hub admin cassandra cellserver']] +
+            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin cassandra']] +
+                        ['allow proto tcp from %s to any port %s'%(host, CASSANDRA_NATIVE_PORT) for host in self._hosts['hub admin cassandra']] +
                         ['allow proto tcp from %s to any port %s'%(host, port) for host in self._hosts['cassandra'] for port in CASSANDRA_INTERNODE_PORTS] +
                         ['deny proto tcp from any to any port %s'%(','.join([str(x) for x in CASSANDRA_PORTS]))])
         elif action == 'status':
