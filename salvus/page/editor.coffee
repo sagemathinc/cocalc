@@ -4157,7 +4157,7 @@ class Terminal extends FileEditor
         @element = $("<div>").hide()
         elt = @element.salvus_console
             title     : "Terminal"
-            filename  : filename
+            filename  : @filename
             resizable : false
             close     : () => @editor.project_page.display_tab("project-file-listing")
             editor    : @
