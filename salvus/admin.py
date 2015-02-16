@@ -1622,11 +1622,11 @@ class Monitor(object):
             #'dns'         : self.dns(),
             #'zfs'       : self.zfs(),
             'load'        : self.load(),
-            'cassandra'   : self.cassandra(),
+            #'cassandra'   : self.cassandra(),
             'hub'         : self.hub(),
             'stats'       : self.stats(),
             'compute'     : self.compute(),
-            'compute-ssh' : self.compute_ssh()
+            #'compute-ssh' : self.compute_ssh()
         }
 
     def down(self, all):
@@ -1645,9 +1645,9 @@ class Monitor(object):
 
         print "TIME: " + time.strftime("%Y-%m-%d  %H:%M:%S")
 
-        print "DNS"
-        for x in all['dns'][:n]:
-            print x
+        #print "DNS"
+        #for x in all['dns'][:n]:
+        #    print x
 
         print "HUB"
         for x in all['hub'][:n]:
@@ -1661,9 +1661,9 @@ class Monitor(object):
         for x in all['load'][:n]:
             print x
 
-        print "CASSANDRA"
-        for x in all['cassandra'][:n]:
-            print x
+        #print "CASSANDRA"
+        #for x in all['cassandra'][:n]:
+        #    print x
 
         print "STATS"
         for x in all['stats'][:n]:
@@ -1675,10 +1675,10 @@ class Monitor(object):
         for x in all['compute'][:n]:
             print x
 
-        print "COMPUTE-SSH"
-        vcompute = all['compute-ssh']
-        for x in all['compute-ssh'][:n]:
-            print x
+        #print "COMPUTE-SSH"
+        #vcompute = all['compute-ssh']
+        #for x in all['compute-ssh'][:n]:
+        #    print x
 
     def update_db(self, all=None):
         if all is None:
