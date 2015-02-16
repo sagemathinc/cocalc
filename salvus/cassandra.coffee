@@ -1365,7 +1365,7 @@ class exports.Salvus extends exports.Cassandra
             cb            : required
             email_address : undefined     # provide either email or account_id (not both)
             account_id    : undefined
-            consistency   : 1
+            consistency   : cql.types.consistencies.localQuorum
             columns       : ['account_id', 'password_hash',
                              'first_name', 'last_name', 'email_address',
                              'default_system', 'evaluate_key',
