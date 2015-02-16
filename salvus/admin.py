@@ -1865,7 +1865,9 @@ class Services(object):
         if 'hub' in self._options:
             for host, o in self._options['hub']:
                 # very important: set to listen only on our VPN.
-                o['host'] = host
+                #o['host'] = host
+                # FOR GCE: since everything is on a vpn anyways fastest to listen on everything
+                o['host'] = self._hosts.hostname(host)
 
         # Syncstring options
         #if 'syncstring' in self._options:
@@ -1929,7 +1931,10 @@ class Services(object):
             if s in options:
                 # restrict to the subset of servers in the same data center
                 dc = self.ip_address_to_dc(address)
-                options[s] = [x for x in options[s] if self.ip_address_to_dc(x['ip']) == dc]
+                options[s] = [dict(x) for x in options[s] if self.ip_address_to_dc(x['ip']) == dc]
+                # turn the ip's into hostnames
+                for x in options[s]:
+                    x['ip'] = self._hosts.hostname(x['ip'])
 
         if 'id' not in options:
             options['id'] = 0

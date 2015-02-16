@@ -193,6 +193,7 @@
 # New commercial stuff
 ###############################################################
 
+# Important -- last name is the "canonical" one -- don't make it not last!!
 
 ###
 ## GCE dc5 -- commercial data center (in US)
