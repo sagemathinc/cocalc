@@ -3280,7 +3280,7 @@ class LatexEditor extends FileEditor
         @_pages = {}
 
         # initialize the latex_editor
-        @latex_editor = codemirror_session_editor(@editor, filename, opts)
+        @latex_editor = codemirror_session_editor(@editor, @filename, opts)
         @_pages['latex_editor'] = @latex_editor
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
         @latex_editor.action_key = @action_key
