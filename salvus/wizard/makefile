@@ -1,4 +1,4 @@
-PYTHON ?= sage -python
+PYTHON ?= python
 
 INDIR  := input
 OUTDIR := ../static/wizard

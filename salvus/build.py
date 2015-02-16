@@ -43,7 +43,7 @@ The components are:
     * sage -- we do *not* build or include Sage; it must be available system-wide or for
       user in order for worksheets to work (everything but worksheets should work without Sage).
 
-Supported Platform:  Ubuntu 14.04
+Supported Platform:  Ubuntu 14.10
 
 Steps:
 
@@ -62,29 +62,27 @@ Add this to /etc/apt/sources.list then "apt-get update; apt-get install ubuntu-z
 
 Setup a ZFS pool with compress and dedup.
 
-    root@salvus-base:/etc/apt# zpool create pool /dev/vda3
-    root@salvus-base:/etc/apt# zpool list pool
-    NAME   SIZE  ALLOC   FREE    CAP  DEDUP  HEALTH  ALTROOT
-    pool    60G   133K  60.0G     0%  1.00x  ONLINE  -
-    root@salvus-base:/etc/apt# zpool set dedup=on pool
-    cannot set property for 'pool': 'dedup' is readonly
-    root@salvus-base:/etc/apt# zfs set dedup=on pool
-    root@salvus-base:/etc/apt# zfs set compression=lz4 pool
-    root@salvus-base:/etc/apt# zfs create pool/local
-    root@salvus-base:/etc/apt# zfs set mountpoint=/usr/local pool/local
-    cannot mount '/usr/local': directory is not empty
-    property may be set but unable to remount filesystem
-    root@salvus-base:/etc/apt# mv /usr/local /usr/local.orig
-    root@salvus-base:/etc/apt# zfs mount pool/local
-    root@salvus-base:/etc/apt# rsync -axvH /usr/local.orig/ /usr/local/
+    zpool create pool /dev/vda3
+    zpool list pool
+    zfs set dedup=on pool
+    zfs set compression=lz4 pool
+    zfs create pool/local
+    cd /
+    mv /usr/local /usr/local.orig
+    zfs set mountpoint=/usr/local pool/local
+    rsync -axvH /usr/local.orig/ /usr/local/
 
-    root@salvus-base:/# mv home home.orig
-    root@salvus-base:/# zfs create pool/home
-    root@salvus-base:/# zfs set mountpoint=/home pool/home
-    root@salvus-base:/# zfs set compression=lz4 pool/home
-    root@salvus-base:/# zfs set dedup=on pool/home
-    root@salvus-base:/# rsync -axvH /home.orig/ /home/
+    mv home home.orig
+    zfs create pool/home
+    zfs set mountpoint=/home pool/home
+    zfs set compression=lz4 pool/home
+    zfs set dedup=on pool/home
+    rsync -axvH /home.orig/ /home/
 
+    zfs create pool/logs
+    zfs set mountpoint=/home/salvus/salvus/salvus/data/logs pool/logs
+    zfs create pool/ext
+    zfs set quota=1G pool/ext
 
 Before building, do:
 
@@ -92,7 +90,7 @@ Before building, do:
 
 Up the number of watches (mainly for bup watch):
 
-    echo fs.inotify.max_user_watches=100000 | sudo tee -a /etc/sysctl.conf; sudo sysctl -p
+    echo fs.inotify.max_user_watches=100000 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
 
 Install https://github.com/williamstein/python-inotify and https://github.com/williamstein/bup-1 systemwide.
 
@@ -132,12 +130,12 @@ Add this to /etc/apt/sources.list then "apt-get update; apt-get install python-o
 
 # ZFSNAP:
 
-  git clone https://github.com/zfsnap/zfsnap.git
-  cd zfsnap
+  git clone https://github.com/zfsnap/zfsnap.git && cd zfsnap && cp sbin/zfsnap.sh /usr/local/bin/ && cp -rv share/zfsnap/ /usr/local/share/
+
   #git fetch origin legacy
   #git branch legacy
   #git checkout legacy
-  cp sbin/zfsnap.sh /usr/local/bin/; cp -rv share/zfsnap/ /usr/local/share/
+
 
 
 # For VM hardware hosts only (?):  chmod a+rw /dev/fuse
@@ -151,9 +149,9 @@ MaxStartups 128
 # Additional packages (mainly for users, not building).
 
 
-   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html quantlib-ruby r-cran-rquantlib  libf2c2-dev libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps mesa-utils libpangox-1.0-dev octave-signal octave-audio octave-benchmark octave-bim octave-biosig octave-communications octave-communications-common octave-data-smoothing octave-dataframe octave-dbg octave-doc octave-econometrics octave-epstk octave-financial octave-fpl octave-ga octave-gdf octave-geometry  octave-gmt octave-gsl octave-htmldoc octave-image octave-info octave-io octave-lhapdf octave-linear-algebra octave-mapping octave-miscellaneous octave-missing-functions octave-mpi octave-msh octave-nan octave-nlopt octave-nnet octave-nurbs octave-ocs octave-octcdf octave-octgpr octave-odepkg octave-openmpi-ext octave-optim octave-optiminterp  octave-parallel octave-pfstools octave-pkg-dev octave-plot octave-psychtoolbox-3 octave-quaternion octave-secs1d octave-secs2d octave-sockets octave-splines octave-statistics octave-strings octave-struct octave-sundials octave-tsa octave-vlfeat octave-vrml octave-zenity gnugo libapr1-dev  libcap2-bin npm coffeescript lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34 gmsh libmed1 libhdf5-openmpi-7 csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev libfaac-dev libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev yi php5 python-docutils pdftk
+   sudo apt-get install dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom
+   yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc  python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libf2c2-dev libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps mesa-utils libpangox-1.0-dev octave-* gnugo libapr1-dev  libcap2-bin npm coffeescript lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34 gmsh libmed1 libhdf5-openmpi-7 csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev yi php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a
 
-    sudo apt-get install smlnj  ml-lex ml-yacc p7zip-full check  unison-all
 
 # NOTE: as of April 27 the quantlib python indings that get installed above don't work in Ubuntu 14.04 (e.g., 'import QuantLib' fails)
 
@@ -162,13 +160,12 @@ MaxStartups 128
    echo "session optional pam_cgroup.so" >> /etc/pam.d/common-session
    pam-auth-update  # select defaults -- this probably isn't needed.
 
-# Aldor, have to modify /etc/apt/sources.list.d/pippijn-ppa-*.list and replace version with "precise"
+# Aldor,
 
-   sudo add-apt-repository ppa:pippijn/ppa
-   sudo apt-get update; sudo apt-get install aldor open-axiom*
+   add-apt-repository ppa:pippijn/ppa
+   apt-get update; sudo apt-get install open-axiom*
 
 # OpenCV Computer Vision:
-
 
     # See http://stackoverflow.com/questions/26592577/installing-opencv-in-ubuntu-14-10
 
@@ -177,9 +174,45 @@ MaxStartups 128
 
 # KWANT
 
-  sudo apt-add-repository ppa:kwant-project/ppa
-  sudo apt-get update
-  sudo apt-get install python-kwant python-kwant-doc
+  apt-add-repository ppa:kwant-project/ppa
+  apt-get update && apt-get install python-kwant python-kwant-doc
+
+
+
+# Octave: needed by octave for plotting:
+
+      cd /usr/share/fonts/truetype && ln -s liberation ttf-liberation
+
+
+# Dropbox --
+  so it's possible to setup dropbox to run in projects... at some point (users could easily do this anyways, but making it systemwide is best).
+
+      Get it here: https://www.dropbox.com/install?os=lnx
+
+
+# POLYMAKE system-wide:
+
+  # From http://www.polymake.org/doku.php/howto/install
+
+     sudo apt-get install ant default-jdk g++ libboost-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libperl-dev libsvn-perl libterm-readline-gnu-perl libxml-libxml-perl libxml-libxslt-perl libxml-perl libxml-writer-perl libxml2-dev w3c-dtd-xhtml xsltproc
+
+  # Then... get latest from http://www.polymake.org/doku.php/download/start and build:
+
+      sudo su
+      cd /tmp/&& wget http://www.polymake.org/lib/exe/fetch.php/download/polymake-2.13.tar.bz2&& tar xvf polymake-2.13.tar.bz2 && cd polymake-2.13 && ./configure && make && make install
+      rm -rf /tmp/polymake*
+
+# Neovim system-wide:
+
+    cd /tmp && rm -rf neovim && unset MAKE && git clone https://github.com/neovim/neovim && cd neovim && make && umask 022 && sudo make install
+
+# MACAULAY2:
+
+   Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
+
+    sudo su
+    apt-get install libntl-dev libntl0  libpari-gmp-tls4 libpari-dev pari-gp2c
+    cd /tmp/ && wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.7-common.deb && wget  http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.7-amd64-Linux-Ubuntu-14.10.deb && sudo dpkg -i *.deb  && rm *.deb
 
 
 # ROOT data analysis ipython notebook support systemwide:
@@ -200,67 +233,12 @@ to be:
 
 
 
-# Octave: needed by octave for plotting:
-
-      cd /usr/share/fonts/truetype; ln -s liberation ttf-liberation
-
-
-# Dropbox --
-  so it's possible to setup dropbox to run in projects... at some point (users could easily do this anyways, but making it systemwide is best).
-
-      Get it here: https://www.dropbox.com/install?os=lnx
-
-# Build Sage (as usual)
-
-    Get Sage and pull my patches from this repo!
-
-           https://github.com/sagemath/sagesmc/commits/develop
-
-    umask 022
-    #export SAGE_ATLAS_LIB=/usr/lib/   #<--- too slow!
-    export MAKE="make -j20"
-    make
-
-# SAGE SCRIPTS -- once only, ever.  Not needed when sage is upgraded.
-
-  Do from within Sage (as root):
-
-      install_scripts('/usr/local/bin/',ignore_existing=True)
-
-# POLYMAKE system-wide:
-
-  # From http://www.polymake.org/doku.php/howto/install
-
-     sudo apt-get install ant default-jdk g++ libboost-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libperl-dev libsvn-perl libterm-readline-gnu-perl libxml-libxml-perl libxml-libxslt-perl libxml-perl libxml-writer-perl libxml2-dev w3c-dtd-xhtml xsltproc
-
-  # Then... get latest from http://www.polymake.org/doku.php/download/start and build:
-
-      sudo su
-      cd /tmp/&& wget http://www.polymake.org/lib/exe/fetch.php/download/polymake-2.13.tar.bz2&& tar xvf polymake-2.13.tar.bz2; cd polymake-2.13 && ./configure && make -j8 && make install
-      rm -rf /tmp/polymake*
-
-# Neovim system-wide:
-
-    cd /tmp; rm -rf neovim; unset MAKE; git clone https://github.com/neovim/neovim; cd neovim; make
-    umask 022
-    sudo make install
-
-# MACAULAY2:
-
-   Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
-
-    sudo su
-    apt-get install libntl-dev libntl0  libpari-gmp3
-    cd /tmp/ && wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb && wget  http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.6-amd64-Linux-Ubuntu-13.04.deb && sudo dpkg -i Macaulay2-1.6-amd64-Linux-Ubuntu-13.04.deb && rm *.deb
-
-
-
 # Install Julia stable (from http://julialang.org/downloads/)
 
-    sudo add-apt-repository ppa:staticfloat/juliareleases
-    sudo add-apt-repository ppa:staticfloat/julia-deps
-    sudo apt-get update
-    sudo apt-get install julia julia-doc
+    add-apt-repository ppa:staticfloat/juliareleases
+    add-apt-repository ppa:staticfloat/julia-deps
+    apt-get update
+    apt-get install julia julia-doc
 
 # FEnICS -- automated solution of differential equations by finite element methods
   (Test with "import dolfin".)
@@ -272,6 +250,7 @@ to be:
 # System-wide Python packages not through apt:
 
    sudo su
+   apt-get install python-pip python3-pip
    umask 022;
    /usr/bin/pip install -U theano
    /usr/bin/pip install -U clawpack
@@ -284,11 +263,12 @@ Add these two lines two `/etc/security/limits.conf` so that bup works with large
         root     soft    nofile          20000
         root     hard    nofile          20000
 
-These to avoid fork-bombs:
+# These to avoid fork-bombs:
 
-
-        * soft nproc 2000
-        * hard nproc 3000
+        * soft nproc 1000
+        * hard nproc 2000
+        root soft nproc 20000
+        root hard nproc 20000
 
 
 # Setup /usr/local/bin/skel
@@ -328,6 +308,7 @@ In /etc/sysctl.conf, put:
     vm.swappiness=1
 
 # Install 4ti2 system-wide...
+
     sudo su
     umask 022
     export V=1.6.2
@@ -337,6 +318,22 @@ In /etc/sysctl.conf, put:
 
 
 
+# Build Sage (as usual)
+
+    Get Sage and pull my patches from this repo!
+
+           https://github.com/sagemath/sagesmc/commits/develop
+
+    umask 022
+    #export SAGE_ATLAS_LIB=/usr/lib/   #<--- too slow!
+    export MAKE="make -j20"
+    make
+
+# SAGE SCRIPTS -- once only, ever.  Not needed when sage is upgraded.
+
+  Do from within Sage (as root):
+
+      install_scripts('/usr/local/bin/',ignore_existing=True)
 
 
 # Delete cached packages
@@ -359,15 +356,15 @@ In /etc/sysctl.conf, put:
 
 """
 
-TINC_VERSION       = '1.0.23'    # options here -- http://tinc-vpn.org/packages/
+TINC_VERSION       = '1.0.25'    # options here -- http://tinc-vpn.org/packages/
 CASSANDRA_VERSION  = '2.1.2'     # options here -- http://downloads.datastax.com/community/
-NODE_VERSION       = '0.10.32'   # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
-PYTHON_VERSION     = '2.7.6'     # options here -- https://www.python.org/ftp/python/
-SETUPTOOLS_VERSION = '3.4.4'     # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
-NGINX_VERSION      = '1.7.0'     # options here -- http://nginx.org/download/
-HAPROXY_VERSION    = '1.5-dev24' # options here -- http://haproxy.1wt.eu/download/1.5/src/devel/
-STUNNEL_VERSION    = '5.01'      # options here -- https://www.stunnel.org/downloads.html
-GDAL_VERSION       = '1.11.1'    # options here -- http://download.osgeo.org/gdal/?C=M;O=D
+NODE_VERSION       = '0.12.0'    # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
+PYTHON_VERSION     = '2.7.9'     # options here -- https://www.python.org/ftp/python/
+SETUPTOOLS_VERSION = '12.1'      # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
+NGINX_VERSION      = '1.7.10'    # options here -- http://nginx.org/download/
+HAPROXY_VERSION    = '1.5.11'    # options here -- http://www.haproxy.org/download/
+STUNNEL_VERSION    = '5.10'      # options here -- https://www.stunnel.org/downloads.html
+GDAL_VERSION       = '1.11.2'    # options here -- http://download.osgeo.org/gdal/?C=M;O=D
 
 import logging, os, shutil, subprocess, sys, time, urllib2
 
@@ -412,6 +409,7 @@ NODE_MODULES = [
     'async',
     'password-hash',
     'nodemailer',
+    'nodemailer-sendgrid-transport',
     'cookies',
     'htmlparser',
     'mime',
@@ -438,7 +436,8 @@ PYTHON_PACKAGES = [
     'ipython',            # a usable command line  (ipython uses readline)
     'python-daemon',      # daemonization of python modules
     'paramiko',           # ssh2 implementation in python
-    'cql'                 # interface to Cassandra
+    'cql',                # interface to Cassandra
+    'pyyaml'              # used by wizard build script
     ]
 
 SAGE_PIP_PACKAGES = [
@@ -1128,12 +1127,10 @@ def build_haproxy():
         target = "haproxy-%s.tar.gz"%HAPROXY_VERSION
         if not os.path.exists(os.path.join(SRC, target)):
             cmd('rm -f haproxy*', SRC)  # remove any source tarballs that might have got left around
-            download("http://haproxy.1wt.eu/download/1.5/src/devel/haproxy-%s.tar.gz"%HAPROXY_VERSION)
+            download("http://haproxy.1wt.eu/download/1.5/src/haproxy-%s.tar.gz"%HAPROXY_VERSION)
 
         path = extract_package('haproxy')
 
-        # patch log.c so it can write the log to a file instead of syslog
-        cmd('patch -p0 < %s/haproxy.patch'%PATCHES, path)  # diff -Naur src/log.c  ~/log.c > ../patches/haproxy.patch
         cmd('make -j %s TARGET=%s'%(NCPU, 'linux2628' if OS=="Linux" else 'generic'), path)
         cmd('cp haproxy "%s"/bin/'%PREFIX, path)
     finally:
