@@ -176,24 +176,10 @@
 
 
 
-###
-## GCE dc4 -- asia
-###
 
-#10.5.1.5 dc4 compute-2 gce compute1dc4
-#10.5.2.5 dc4 compute-2 gce compute1dc4
-#10.5.3.5 dc4 compute-2 gce compute1dc4
-#10.5.4.5 dc4 compute-2 gce compute1dc4
 
-#10.5.1.2 dc4 gce cassandra1dc4
-#10.5.2.2 dc4 gce cassandra2dc4
-#10.5.3.2 dc4 gce cassandra3dc4
-#10.5.4.2 dc4 gce cassandra4dc4
 
-#10.5.1.3 dc4 gce web1dc4
-#10.5.2.3 dc4 gce web2dc4
-#10.5.3.3 dc4 gce web3dc4
-#10.5.4.3 dc4 gce web4dc4
+
 
 
 
@@ -203,12 +189,42 @@
 10.10.1.1 cellserver1 cellserver
 
 
+###############################################################
+# New commercial stuff
+###############################################################
 
 
 ###
-## New GCE web
+## GCE dc5 -- commercial data center (in US)
 ###
 
-10.6.1.3 dc6 hub gce nginx edge web1dc6
+10.5.1.1 dc5 cassandra hub gce nginx edge smc1dc5
+10.5.1.2 dc5 cassandra hub gce nginx edge smc2dc5
+10.5.1.3 dc5 cassandra hub gce nginx edge smc3dc5
+10.5.1.4 dc5 cassandra hub gce nginx edge smc4dc5
+10.5.1.5 dc5 cassandra hub gce nginx edge smc5dc5
 
+
+###
+## GCE dc6 -- commercial data center (in Europe)
+###
+
+10.6.1.1 dc6 cassandra hub gce nginx edge smc1dc6
+10.6.1.2 dc6 cassandra hub gce nginx edge smc2dc6
+10.6.1.3 dc6 cassandra hub gce nginx edge smc3dc6
+10.6.1.4 dc6 cassandra hub gce nginx edge smc4dc6
+10.6.1.5 dc6 cassandra hub gce nginx edge smc5dc6
+
+#10.6.1.3 dc6 hub gce nginx edge web1dc6
+
+
+###
+## GCE dc7 -- commercial data center (in Asia)
+###
+
+10.7.1.1 dc7 cassandra hub gce nginx edge smc1dc7
+10.7.1.2 dc7 cassandra hub gce nginx edge smc2dc7
+10.7.1.3 dc7 cassandra hub gce nginx edge smc3dc7
+10.7.1.4 dc7 cassandra hub gce nginx edge smc4dc7
+10.7.1.5 dc7 cassandra hub gce nginx edge smc5dc7
 
