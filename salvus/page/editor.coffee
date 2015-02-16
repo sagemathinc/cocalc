@@ -3280,7 +3280,7 @@ class LatexEditor extends FileEditor
         @_pages = {}
 
         # initialize the latex_editor
-        @latex_editor = codemirror_session_editor(@editor, filename, opts)
+        @latex_editor = codemirror_session_editor(@editor, @filename, opts)
         @_pages['latex_editor'] = @latex_editor
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
         @latex_editor.action_key = @action_key
@@ -4157,7 +4157,7 @@ class Terminal extends FileEditor
         @element = $("<div>").hide()
         elt = @element.salvus_console
             title     : "Terminal"
-            filename  : filename
+            filename  : @filename
             resizable : false
             close     : () => @editor.project_page.display_tab("project-file-listing")
             editor    : @

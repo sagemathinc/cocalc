@@ -1,1 +1,1 @@
-echo "select email_address, account_id, last_name, first_name from accounts limit 1000000;" | cqlsh_connect 10.1.1.2
+echo "select email_address, account_id, last_name, first_name from accounts limit 1000000;" | cqlsh_connect smc1dc5
