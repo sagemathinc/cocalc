@@ -554,6 +554,8 @@ class Haproxy(Process):
                  base_url=''):
 
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
+
+        # WARNING: this is now ignored since I don't want to patch haproxy; instead logging goes to syslog...
         logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
 
         # randomize the order of the servers to get better distribution between them by all the different
@@ -1078,14 +1080,14 @@ class Hosts(object):
     Defines a set of hosts on a network and provides convenient tools
     for running commands on them using ssh.
     """
-    def __init__(self, hosts_file, username=whoami, passwd=True):
+    def __init__(self, hosts_file, username=whoami, passwd=True, password=None):
         """
         - passwd -- if False, don't ask for a password; in this case nothing must require sudo to
           run, and all logins must work using ssh with keys
         """
         self._ssh = {}
         self._username = username
-        self._password = None
+        self._password = password
         self._passwd = passwd
         self._ip_addresses, self._canonical_hostnames = parse_hosts_file(hosts_file)
 
@@ -1770,7 +1772,7 @@ class Monitor(object):
             time.sleep(20)
 
 class Services(object):
-    def __init__(self, path, username=whoami, keyspace='salvus', passwd=True):
+    def __init__(self, path, username=whoami, keyspace='salvus', passwd=True, password=None):
         """
         - passwd -- if False, don't ask for a password; in this case nothing must require sudo to
           run, and all logins must work using ssh with keys
@@ -1778,7 +1780,7 @@ class Services(object):
         self._keyspace = keyspace
         self._path = path
         self._username = username
-        self._hosts = Hosts(os.path.join(path, 'hosts'), username=username, passwd=passwd)
+        self._hosts = Hosts(os.path.join(path, 'hosts'), username=username, passwd=passwd, password=password)
 
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]
@@ -2013,7 +2015,7 @@ class Services(object):
         """
         if not isinstance(dc, str):
             dc = "dc%s"%dc
-        return self._cassandras_in_dc[dc]
+        return self._cassandras_in_dc.get(dc,[])
 
     def stunnel_key_files(self, hostname, action):
         target = os.path.join(BASE, SECRETS)

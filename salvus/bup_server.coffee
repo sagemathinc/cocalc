@@ -46,7 +46,7 @@ misc      = require('misc')
 misc_node = require('misc_node')
 uuid      = require('node-uuid')
 cassandra = require('cassandra')
-cql       = require("node-cassandra-cql")
+cql       = require("cassandra-driver")
 
 # Set the log level
 winston.remove(winston.transports.Console)
