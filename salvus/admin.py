@@ -1518,7 +1518,7 @@ class Monitor(object):
         """
         cmd = '&&'.join(["host -v google.com > /dev/null"]*rounds) + "; echo $?"
         ans = []
-        exclude = set(self._hosts['cellserver'])  # + self._hosts['webdev'])
+        exclude = set([])  # set(self._hosts['cellserver'])  # + self._hosts['webdev'])
         h = ' '.join([host for host in self._hosts[hosts] if host not in exclude])
         if not h:
             return []
@@ -1619,7 +1619,7 @@ class Monitor(object):
     def all(self):
         return {
             'timestamp'   : time.time(),
-            'dns'         : self.dns(),
+            #'dns'         : self.dns(),
             #'zfs'       : self.zfs(),
             'load'        : self.load(),
             'cassandra'   : self.cassandra(),
