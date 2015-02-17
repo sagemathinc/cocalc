@@ -2036,6 +2036,8 @@ class GlobalClient
                                     hosts = ("10.1.#{i}.2" for i in [10..21])
                                 else if a == 3 or a == 4
                                     hosts = ("10.#{a}.#{i}.2" for i in [1..4])
+                                else if a == 5 or a == 6 or a == 7
+                                    hosts = ("smc#{i}dc#{a}" for i in [1..5])
                             winston.debug("database hosts=#{misc.to_json(hosts)}")
                             @database = new cassandra.Salvus
                                 hosts       : hosts
