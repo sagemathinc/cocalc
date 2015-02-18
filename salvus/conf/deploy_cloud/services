@@ -212,6 +212,29 @@ cassandra4dc3  {'seed':True,   'topology':'DC3:RAC0', 'num_tokens':256}
 
 
 
+
+# DC5: Commercial google us-central1-f
+smc1dc5  {'seed':True,   'topology':'DC5:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+smc2dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+smc3dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+smc4dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+smc5dc5  {'seed':True,   'topology':'DC5:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+
+# DC6: Commercial google: europe-west1-c
+smc1dc6  {'seed':True,   'topology':'DC6:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+smc2dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+smc3dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+smc4dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+smc5dc6  {'seed':True,   'topology':'DC6:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+
+# DC7: Commercial google: asia-east1-c
+smc1dc7  {'seed':True,   'topology':'DC7:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+smc2dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+smc3dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+smc4dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+smc5dc7  {'seed':True,   'topology':'DC7:RAC0', 'num_tokens':256, 'auto_bootstrap':False}
+
+
 [stunnel] {'sudo':True}
 edge
 
@@ -227,3 +250,5 @@ hub {'id':'0', 'port':'5000', 'proxy_port':'5001'}
 hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
 #hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
 #hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
+
+
