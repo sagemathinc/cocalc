@@ -764,12 +764,12 @@ class Client extends EventEmitter
             @handle_data_from_client(data)
 
         @conn.on "end", () =>
-            # Actually destroy Client in 15s, unless user reconnects
+            # Actually destroy Client in a few minutes, unless user reconnects
             # to this session.  Often the user may have a temporary network drop,
             # and we keep everything waiting for them for short time
             # in case this happens.
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
-            @_destroy_timer = setTimeout(@destroy, 1000*15)
+            @_destroy_timer = setTimeout(@destroy, 1000*60*10)
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
