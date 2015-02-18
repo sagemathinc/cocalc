@@ -120,16 +120,16 @@ descr:  >
 ---
 title: Polar Plot
 code:  |
-print "Polar Plot"
+    print "Polar Plot"
 
-# Plot using polar coordinates: note that many of the options for plot() work here.
+    # Plot using polar coordinates: note that many of the options for plot() work here.
 
-var( "theta" )
+    var( "theta" )
 
-f =  1-2*sin(2*theta); show( f )
+    f =  1-2*sin(2*theta); show( f )
 
-pp = polar_plot( f, theta, 0, 2*pi, rgbcolor="red", linestyle = "--" )
-show( pp )
+    pp = polar_plot( f, theta, 0, 2*pi, rgbcolor="red", linestyle = "--" )
+    show( pp )
 descr:  >
     Polar plots are used where the relationship between x and y, in Cartesian
     coordinates, is expressed in terms of r an theta, in polar coordinates.
@@ -219,7 +219,7 @@ descr:  >
     This plot indicates the contour of a function using
     50 shades of gray.
 ---
-category: Plotting basic graphic elements with Plot()
+category: plotting / Plotting basic graphic elements with Plot()
 ---
 title: Plotting points as points ( plain and fancy )
 code:  |
@@ -297,7 +297,7 @@ code:  |
     anGraphic = circle((0,0), .5, rgbcolor=(1,0,0),  fill=False )    # fill controls filling of circle with color
 
     show( anGraphic, aspect_ratio=1, figsize = 4 ,xmax = 1, ymax = 1)
-descr:  >Plot a circle.  Center, radius, color are parameters.
+descr:  Plot a circle.  Center, radius, color are parameters.
 ---
 title: Plot an Arrow
 code:  |
@@ -306,12 +306,13 @@ code:  |
     anGraphic = arrow((0,1), (2,3) ) # start cord, end cord as tuples
     
     show( anGraphic,  figsize = 2  )
-descr:  > Plot an Arrow, describe by starting and ending coordinates.
+descr:  Plot an Arrow, describe by starting and ending coordinates.
 ---
 title: Plot Text
-code:  
+code:  |
     print "Plot Text"
-    
-    aGraphic     = text("Sample Text", (5,4), rgbcolor=(1,0,0))  # text is followed by tuple for position
+    # text is followed by tuple for position
+    aGraphic     = text("Sample Text", (5,4), rgbcolor=(1,0,0))  
     show( aGraphic, aspect_ratio=1, figsize = 3 )
-descr:  >Plot Text, arguments for text, position, and color.
+descr:  >
+    Plot Text, arguments for text, position, and color.
