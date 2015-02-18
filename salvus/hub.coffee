@@ -764,12 +764,12 @@ class Client extends EventEmitter
             @handle_data_from_client(data)
 
         @conn.on "end", () =>
-            # Actually destroy Client in 10 minutes, unless user reconnects
+            # Actually destroy Client in 15s, unless user reconnects
             # to this session.  Often the user may have a temporary network drop,
-            # and we keep everything waiting for them for up to 10 minutes,
+            # and we keep everything waiting for them for short time
             # in case this happens.
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
-            @_destroy_timer = setTimeout(@destroy, 1000*10*60)
+            @_destroy_timer = setTimeout(@destroy, 1000*15)
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
@@ -2566,7 +2566,7 @@ class Client extends EventEmitter
                     return
                 project.read_file
                     path    : mesg.path
-                    maxsize : 10000000  # restrict to 10MB -- for now
+                    maxsize : 20000000  # restrict to 20MB limit
                     cb      : (err, data) =>
                         if err
                             @error_to_client(id:mesg.id, error:err)
