@@ -12,7 +12,7 @@ def cmd2(s):
 
 def backup_cassandra(dc, hosts):
 
-    BUP_DIR = "%s/vm/images/bup/cassandra-dc%s"%(os.environ["HOME"], dc)
+    BUP_DIR = "/backups/cassandra-dc%s"%(dc,)
     os.environ['BUP_DIR'] = BUP_DIR
     if not os.path.exists(BUP_DIR):
         os.makedirs(BUP_DIR)
