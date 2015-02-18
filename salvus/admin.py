@@ -2035,6 +2035,7 @@ class Services(object):
         time.sleep(.5)
 
     def cassandra_firewall(self, hostname, action):
+        return  # don't bother now that we're using GCE, which has it's own firewall.
         if action == "restart":
             action = 'start'
         if action == "stop":
