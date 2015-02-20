@@ -1205,7 +1205,7 @@ class exports.Salvus extends exports.Cassandra
                          set   : {account_id: r[1]}
                          where : {email_address: r[0]}
                          cb    : cb
-                async.map results, f, (err) =>
+                async.mapLimit results, 5, f, (err) =>
                     console.log("#{misc.len(t)} distinct email addresses")
                     if err
                         console.log("error updating...",err)

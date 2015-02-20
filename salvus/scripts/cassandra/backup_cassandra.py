@@ -12,7 +12,7 @@ def cmd2(s):
 
 def backup_cassandra(dc, hosts):
 
-    BUP_DIR = "%s/vm/images/bup/cassandra-dc%s"%(os.environ["HOME"], dc)
+    BUP_DIR = "/backups/cassandra-dc%s"%(dc,)
     os.environ['BUP_DIR'] = BUP_DIR
     if not os.path.exists(BUP_DIR):
         os.makedirs(BUP_DIR)
@@ -39,4 +39,8 @@ def backup_cassandra(dc, hosts):
         paths = ' '.join(b)
 
         cmd2("time bup on %s index %s"%(host, paths))
-        cmd2("time bup on %s save --bwlimit=2000k -n %s %s"%(host, host, paths))
+        try:
+            cmd2("time bup on %s save -n %s %s"%(host, host, paths))
+        except Exception, msg:
+            # This is expected to happen sometimes due to  files vanishing, changing, etc.
+            print msg

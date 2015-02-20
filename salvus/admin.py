@@ -1395,7 +1395,7 @@ class Monitor(object):
     def compute(self):
         ans = []
         c = 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l && cd salvus/salvus; . salvus-env; ./bup_server status 2>/dev/null'
-        for k, v in self._hosts('compute-2', c, wait=True, parallel=True, timeout=80).iteritems():
+        for k, v in self._hosts('compute-2', c, wait=True, parallel=True, timeout=120).iteritems():
             d = {'host':k[0], 'service':'compute'}
             stdout = v.get('stdout','')
             m = stdout.splitlines()
@@ -2035,6 +2035,7 @@ class Services(object):
         time.sleep(.5)
 
     def cassandra_firewall(self, hostname, action):
+        return  # don't bother now that we're using GCE, which has it's own firewall.
         if action == "restart":
             action = 'start'
         if action == "stop":

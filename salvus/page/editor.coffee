@@ -259,6 +259,8 @@ initialize_new_file_type_list = () ->
         f(elt, ext)
     elt.append($("<li class='divider'></li><li><a href='#new-folder'><i style='width: 18px;' class='fa fa-folder'></i> <span>Folder </span></a></li>"))
 
+    elt.append($("<li class='divider'></li><li><a href='#projects-add-collaborators'><i style='width: 18px;' class='fa fa-user'></i> <span>Collaborators... </span></a></li>"))
+
 initialize_new_file_type_list()
 
 exports.file_icon_class = file_icon_class = (ext) ->

@@ -2030,7 +2030,9 @@ class GlobalClient
                             else
                                 v = program.address.split('.')
                                 a = parseInt(v[1]); b = parseInt(v[3])
-                                if a == 1 and b>=1 and b<=7
+                                if program.address == '10.1.1.10' 
+                                    hosts = ("smc#{i}dc5" for i in [1..5])
+                                else if a == 1 and b>=1 and b<=7
                                     hosts = ("10.1.#{i}.2" for i in [1..7])
                                 else if a == 1 and b>=10 and b<=21
                                     hosts = ("10.1.#{i}.2" for i in [10..21])
