@@ -63,7 +63,7 @@ top_navbar.on "switch_to_page-account", () ->
 
 focus =
     'account-sign_in'         : 'sign_in-email'
-    'account-create_account'  : 'create_account-first_name'
+    'account-create_account'  : 'create_account-name'
     'account-settings'        : ''
 
 current_account_page = null
@@ -217,7 +217,7 @@ disable_tooltips = () ->
 # Account creation
 ################################################
 
-create_account_fields = ['token', 'first_name', 'last_name', 'email_address', 'password', 'agreed_to_terms']
+create_account_fields = ['token', 'name', 'email_address', 'password', 'agreed_to_terms']
 
 destroy_create_account_tooltips = () ->
     for field in create_account_fields
@@ -229,23 +229,23 @@ $("a[href=#link-terms]").click (event) ->
     $("#link-terms").modal('show')
     return false
 
-passwd_keyup = (elt) ->
-    elt = $("#create_account-retype_password")
-    if elt.val() != $("#create_account-password").val()
-        elt.css('background-color':'rgb(255, 220, 218);')
-    else
-        elt.css('background-color':'#ffffff')
-
-$("#create_account-retype_password").keyup(passwd_keyup)
-$("#create_account-password").keyup(passwd_keyup)
+#passwd_keyup = (elt) ->
+#    elt = $("#create_account-retype_password")
+#    if elt.val() != $("#create_account-password").val()
+#        elt.css('background-color':'rgb(255, 220, 218);')
+#    else
+#        elt.css('background-color':'#ffffff')
+#
+#$("#create_account-retype_password").keyup(passwd_keyup)
+#$("#create_account-password").keyup(passwd_keyup)
 
 
 
 $("#create_account-button").click (event) ->
 
-    if $("#create_account-retype_password").val() != $("#create_account-password").val()
-        bootbox.alert("Passwords don't match.")
-        return false
+    #if $("#create_account-retype_password").val() != $("#create_account-password").val()
+    #    bootbox.alert("Passwords don't match.")
+    #    return false
 
     destroy_create_account_tooltips()
 
@@ -256,7 +256,18 @@ $("#create_account-button").click (event) ->
             v = elt.is(":checked")
         else
             v = elt.val().trim()
-        opts[field] = v
+        if field == 'name'
+            i = v.lastIndexOf(' ')
+            if i == -1
+                last_name = ''
+                first_name = v
+            else
+                first_name = v.slice(0,i).trim()
+                last_name = v.slice(i).trim()
+            opts.first_name = first_name
+            opts.last_name  = last_name
+        else
+            opts[field] = v
 
     opts.cb = (error, mesg) ->
         if error
@@ -265,11 +276,13 @@ $("#create_account-button").click (event) ->
         switch mesg.event
             when "account_creation_failed"
                 for key, val of mesg.reason
+                    if key == "first_name" or key == "last_name"
+                        key = "name"
                     $("#create_account-#{key}").popover(
                         title     : val
                         animation : false
                         trigger   : "manual"
-                        placement : if $(window).width() <= 800 then "top" else "left"
+                        placement : if $(window).width() <= 800 then "top" else "right"
                         template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
                     ).popover("show").focus( () -> $(@).popover("destroy"))
             when "signed_in"
@@ -358,6 +371,8 @@ first_login = true
 hub = undefined
 signed_in = (mesg) ->
     #console.log("signed_in: ", mesg)
+
+    top_navbar.show_page_button("salvus-help")
 
     ga('send', 'event', 'account', 'signed_in')    # custom google analytic event -- user signed in
     # Record which hub we're connected to.
@@ -814,15 +829,15 @@ close_change_password = () ->
     change_password.modal('hide').find('input').val('')
     change_password.find(".account-error-text").hide()
 
-change_passwd_keyup = (elt) ->
-    elt = $("#account-change_password-new_password-retype")
-    if elt.val() != $("#account-change_password-new_password").val()
-        elt.css('background-color':'rgb(255, 220, 218);')
-    else
-        elt.css('background-color':'#ffffff')
+#change_passwd_keyup = (elt) ->
+#    elt = $("#account-change_password-new_password-retype")
+#    if elt.val() != $("#account-change_password-new_password").val()
+#        elt.css('background-color':'rgb(255, 220, 218);')
+#    else
+#        elt.css('background-color':'#ffffff')
 
-$("#account-change_password-new_password-retype").keyup(change_passwd_keyup)
-$("#account-change_password-new_password").keyup(change_passwd_keyup)
+#$("#account-change_password-new_password-retype").keyup(change_passwd_keyup)
+#$("#account-change_password-new_password").keyup(change_passwd_keyup)
 
 
 change_password.find(".close").click((event) -> close_change_password())
@@ -834,9 +849,9 @@ $("a[href=#account-change_password]").click (event) ->
     return false
 
 $("#account-change_password-button-submit").click (event) ->
-    if $("#account-change_password-new_password-retype").val() != $("#account-change_password-new_password").val()
-        bootbox.alert("New passwords don't match.")
-        return
+    #if $("#account-change_password-new_password-retype").val() != $("#account-change_password-new_password").val()
+    #    bootbox.alert("New passwords don't match.")
+    #    return
     salvus_client.change_password
         email_address : account_settings.settings.email_address
         old_password  : $("#account-change_password-old_password").val().trim()
