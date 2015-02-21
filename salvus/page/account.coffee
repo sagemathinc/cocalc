@@ -393,6 +393,8 @@ signed_in = (mesg) ->
             show_page("account-settings")
             # change the navbar title from "Sign in" to their email address -- don't use the one from mesg, which may be out of date
             set_account_tab_label(true, account_settings.settings.email_address)
+            $("#account-forgot_password-email_address").val(account_settings.settings.email_address)
+
 
             top_navbar.show_page_button("projects")
 
@@ -882,6 +884,7 @@ $("#account-change_password-button-submit").click (event) ->
 forgot_password = $("#account-forgot_password")
 $("a[href=#account-forgot_password]").click (event) ->
     forgot_password.modal()
+    $("#account-forgot_password-email_address").focus()
     return false
 
 close_forgot_password = () ->
