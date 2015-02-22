@@ -49,7 +49,7 @@ localhost     {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'n1-h
 
 # dc5: Commercial google us-central1-f
 
-localhost    {'hostname':'smc1dc5', 'disk':'cassandra:200,log:10', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
+localhost    {'hostname':'smc1dc5', 'disk':'cassandra-ext4:100', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 localhost    {'hostname':'smc2dc5', 'disk':'cassandra:200,log:10', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 localhost    {'hostname':'smc3dc5', 'disk':'cassandra:200,log:10', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 localhost    {'hostname':'smc4dc5', 'disk':'cassandra:200,log:10', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
