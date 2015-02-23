@@ -4378,7 +4378,7 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             command    : "ipython-notebook"
             args       : ['start']
             bash       : false
-            timeout    : 30
+            timeout    : 40
             err_on_exit: false
             cb         : (err, output) =>
                 if err
