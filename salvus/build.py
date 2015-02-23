@@ -57,8 +57,8 @@ Install with 100GB disk with 32GB /, 10GB /tmp, and /usr/local a ZFS dedup,compr
 
 Add this to /etc/apt/sources.list then "apt-get update; apt-get install ubuntu-zfs":
 
-    deb http://ppa.launchpad.net/zfs-native/stable/ubuntu trusty main
-    deb-src http://ppa.launchpad.net/zfs-native/stable/ubuntu trusty main
+    deb http://ppa.launchpad.net/zfs-native/stable/ubuntu utopic  main
+    deb-src http://ppa.launchpad.net/zfs-native/stable/ubuntu utopic  main
 
 
 # Install critical packages needed for building SMC source code:
