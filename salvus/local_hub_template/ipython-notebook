@@ -17,6 +17,9 @@
 
 import json, os, random, signal, sys, time
 
+# start from home directory, since we want daemon to serve all files in that directory tree.
+os.chdir(os.environ['HOME'])
+
 # When run in Daemon mode, it stores info (e.g., pid, port) in this file, in addition to printing
 # to standard out.  This avoids starting a redundant copy of the daemon, if one is already running.
 DAEMON_FILE = os.path.join(os.environ['SAGEMATHCLOUD'],"ipython-daemon.json")
@@ -90,6 +93,11 @@ def action():
         return
 
     if mode == 'start':
+        if os.path.exists(DAEMON_FILE) and time.time() - os.path.getmtime(DAEMON_FILE) < 15:
+            # avoid calling repeatedly -- some clients go nuts
+            print json.dumps({"status":"starting"})
+            return
+
         info = is_daemon_running()
         if info:
             # already running -- nothing to do
