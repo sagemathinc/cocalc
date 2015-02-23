@@ -4390,12 +4390,16 @@ class IPythonNotebookServer  # call ipython_notebook_server above
                             cb?(info.error)
                         else
                             @url = info.base; @pid = info.pid; @port = info.port
+                            if not @url? or not @pid? or not @port?
+                                # probably starting up -- try again in 3 seconds
+                                setTimeout((()=>@start_server(cb)), 3000)
+                                return
                             get_with_retry
                                 url : @url
                                 cb  : (err, data) =>
                                     cb?(err)
                     catch e
-                        cb?(true)
+                        cb?("error parsing ipython server output -- #{output.stdout}, #{e}")
 
     stop_server: (cb) =>
         if not @pid?

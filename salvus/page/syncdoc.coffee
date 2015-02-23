@@ -281,6 +281,8 @@ class AbstractSynchronizedDoc extends EventEmitter
         if before? and before.string?
             before = before.string()
         #console.log("_sync, live='#{before}'")
+        if not @dsync_client?
+            cb("must be connected before syncing"); return
         @dsync_client.push_edits (err) =>
             if err
                 if typeof(err)=='string' and err.indexOf('retry') != -1
