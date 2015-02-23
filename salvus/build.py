@@ -521,7 +521,11 @@ SAGE_PIP_PACKAGES = [
     'seaborn',
     'ipythonblocks',
     'line_profiler',
-    'astropy'
+    'astropy',
+    'mrjob',
+    'boto',
+    'pattern',
+    'seaborn'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
