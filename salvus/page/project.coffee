@@ -156,6 +156,8 @@ class ProjectPage
             @init_ssh_url_click()
             @init_billing()
 
+            @init_add_collaborators_button()
+
         # Show a warning if using SMC in devel mode. (no longer supported)
         if window.salvus_base_url != ""
             # TODO -- should use a better way to decide dev mode.
@@ -3678,6 +3680,21 @@ class ProjectPage
                 @editor.display_tab
                     path       : opened_path
                     foreground : opts.foreground
+
+
+    init_add_collaborators_button: () =>
+        @container.find("a[href=#projects-add-collaborators]").click () =>
+            @show_add_collaborators_box()
+            return false
+
+    show_add_collaborators_box: () =>
+        @display_tab('project-settings')
+        @container.find(".project-add-collaborator-input").focus()
+        collab = @container.find(".project-collaborators-box")
+        collab.css(border:'2px solid red')
+        setTimeout((()->collab.css(border:'')), 5000)
+        collab.css('box-shadow':'8px 8px 4px #888')
+        setTimeout((()->collab.css('box-shadow':'')), 5000)
 
 
 project_pages = {}

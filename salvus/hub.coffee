@@ -5000,15 +5000,16 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                         cb()
 
         # We now know that there is an account with this email address.
-        # put entry in the password_reset uuid:value table with ttl of 1 hour, and send an email
+        # put entry in the password_reset uuid:value table with ttl of
+        # 1 hour, and send an email
         (cb) ->
             id = database.uuid_value_store(name:"password_reset").set(
                 value : mesg.email_address
                 ttl   : 60*60,
-                cb    : (error, results) ->
-                    if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error generating password reset for #{mesg.email_address}."))
-                        cb(true); return
+                cb    : (err, results) ->
+                    if err
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error generating password reset for #{mesg.email_address} -- #{err}"))
+                        cb(err); return
                     else
                         cb()
             )
@@ -5018,7 +5019,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
             body = """
                 Somebody just requested to change the password on your SageMathCloud account.
                 If you requested this password change, please change your password by
-                following the link below within 15 minutes:
+                following the link below within an hour:
 
                      https://cloud.sagemath.com#forgot-#{id}
 
@@ -5031,9 +5032,9 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                 subject : 'SageMathCloud password reset confirmation'
                 body    : body
                 to      : mesg.email_address
-                cb      : (error) ->
-                    if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error sending password reset email to #{mesg.email_address} -- #{error}."))
+                cb      : (err) ->
+                    if err
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error sending password reset email to #{mesg.email_address} -- #{err}."))
                         cb(true)
                     else
                         push_to_client(message.forgot_password_response(id:mesg.id))
@@ -5202,12 +5203,12 @@ exports.send_email = send_email = (opts={}) ->
                 subject : opts.subject
                 cc      : opts.cc
             email_server.sendMail email, (err, res) =>
-                    winston.debug("sendMail to #{opts.to} done...")
-                    if err
-                        dbg("sendMail -- error = #{misc.to_json(err)}")
-                    else
-                        dbg("sendMail -- success = #{misc.to_json(res)}")
-                    cb(err)
+                winston.debug("sendMail to #{opts.to} done...; got err=#{misc.to_json(err)} and res=#{misc.to_json(res)}")
+                if err
+                    dbg("sendMail -- error = #{misc.to_json(err)}")
+                else
+                    dbg("sendMail -- success = #{misc.to_json(res)}")
+                cb(err)
 
     ], (err, message) ->
         if err
