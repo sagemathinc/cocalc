@@ -58,6 +58,10 @@ localhost    {'hostname':'smc6dc5', 'disk':'cassandra-ext4:50', 'instance_type':
 localhost    {'hostname':'smc7dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 localhost    {'hostname':'smc8dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 
+localhost    {'hostname':'compute1dc5', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'us-central1-f'}
+localhost    {'hostname':'compute2dc5', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'us-central1-f'}
+
+
 # dc6: Commercial google europe-west1-c
 
 localhost    {'hostname':'smc1dc6', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
@@ -68,6 +72,10 @@ localhost    {'hostname':'smc5dc6', 'disk':'cassandra-ext4:50', 'instance_type':
 localhost    {'hostname':'smc6dc6', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
 localhost    {'hostname':'smc7dc6', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
 localhost    {'hostname':'smc8dc6', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
+
+#localhost    {'hostname':'compute1dc6', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-c'}
+#localhost    {'hostname':'compute2dc6', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-c'}
+
 
 # dc7: Commercial google asia-east1-c
 
@@ -80,6 +88,8 @@ localhost    {'hostname':'smc6dc7', 'disk':'cassandra-ext4:50', 'instance_type':
 localhost    {'hostname':'smc7dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
 localhost    {'hostname':'smc8dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
 
+#localhost    {'hostname':'compute1dc7', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'asia-east1-c'}
+#localhost    {'hostname':'compute2dc7', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'asia-east1-c'}
 
 
 
