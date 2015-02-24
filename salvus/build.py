@@ -292,15 +292,9 @@ Add these two lines two `/etc/security/limits.conf` so that bup works with large
 # Setup /usr/local/bin/skel
 
    rsync -axvHL ~/salvus/salvus/local_hub_template/ ~/.sagemathcloud/
-   cd ~/.sagemathcloud
-   . sagemathcloud-env
-   ./build
-
-   cd /usr/local/bin/
-   sudo ln -s /home/salvus/salvus/salvus/scripts/skel/ .
-
-   cd ~/salvus/salvus/scripts/skel/
-   mv ~/.sagemathcloud .
+   cd ~/.sagemathcloud && . sagemathcloud-env && ./build
+   
+   cd /usr/local/bin/ && sudo ln -s /home/salvus/salvus/salvus/scripts/skel/ . && cd ~/salvus/salvus/scripts/skel/ && rm -rf .sagemathcloud && mv ~/.sagemathcloud .
 
 
 # Salvus (needs more!)
@@ -717,7 +711,7 @@ class BuildSage(object):
         # drepecated
         #self.install_enthought_packages()  # doesn't work anymore; they don't really want this.
         #self.install_4ti2()   # no longer needed since 4ti2 sage optional package finally works again...
-        
+
         # FAILED:
         self.install_pymc()     # FAIL -- also "pip install pymc" fails.
         self.install_rstan()    # FAIL -- ERROR: dependency ‘StanHeaders’ is not available for package ‘rstan’
