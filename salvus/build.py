@@ -697,25 +697,30 @@ class BuildSage(object):
         self.install_projlib()
         self.install_pip()
         self.install_pip_packages()
-        self.install_pymc()
         self.install_R_packages()
-        self.install_rstan()
         self.install_pystan()
         self.install_optional_packages()
         self.install_snappy()
-        #self.install_enthought_packages()
         self.install_quantlib()
         self.install_neuron()
         self.install_basemap()
-        #self.install_4ti2()   # no longer needed since 4ti2 sage optional package finally works again...
         self.install_pydelay()
         self.install_gdal()
         self.install_stein_watkins()
         self.install_ipython_patch()
         self.install_jsanimation()
+
         self.clean_up()
         self.extend_sys_path()
         self.fix_permissions()
+
+        # drepecated
+        #self.install_enthought_packages()  # doesn't work anymore; they don't really want this.
+        #self.install_4ti2()   # no longer needed since 4ti2 sage optional package finally works again...
+        
+        # FAILED:
+        self.install_pymc()     # FAIL -- also "pip install pymc" fails.
+        self.install_rstan()    # FAIL -- ERROR: dependency ‘StanHeaders’ is not available for package ‘rstan’
 
     def install_ipython_patch(self):
         """
