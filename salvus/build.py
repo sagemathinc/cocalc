@@ -636,7 +636,6 @@ class BuildSage(object):
         self.patch_sage_location()
         self.patch_banner()
         self.patch_sage_env()
-        self.octave_ext()
         self.install_sloane()
         self.install_projlib()
         self.install_pip()
@@ -651,12 +650,14 @@ class BuildSage(object):
         self.install_pydelay()
         self.install_gdal()
         self.install_stein_watkins()
-        self.install_ipython_patch()
         self.install_jsanimation()
 
         self.clean_up()
         self.extend_sys_path()
         self.fix_permissions()
+
+        self.octave_ext()  # requires ZFS
+        self.install_ipython_patch()  # must be done manually still
 
         # drepecated
         #self.install_enthought_packages()  # doesn't work anymore; they don't really want this.
@@ -664,7 +665,7 @@ class BuildSage(object):
         
         # FAILED:
         self.install_pymc()     # FAIL -- also "pip install pymc" fails.
-        self.install_rstan()    # FAIL -- ERROR: dependency ‘StanHeaders’ is not available for package ‘rstan’
+        self.install_rstan()    # FAIL -- ERROR: dependency StanHeaders is not available for package rstan
 
     def install_ipython_patch(self):
         """
