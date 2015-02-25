@@ -471,7 +471,7 @@ class exports.Cassandra extends EventEmitter
             queryOptions          :
                 consistency : @consistency
                 prepare     : true
-                fetchSize   : 150000  # TODO: this temporary - we need to rewrite various code in here to use paging, etc., which is now easy with new driver.
+                fetchSize   : 150000  # make huge so we get everything if possible.  If result will be big, use the stream:true option to cql/select.
             socketOptions         :
                 connectTimeout    : opts.conn_timeout_ms
         if opts.username? and opts.password?
@@ -586,7 +586,10 @@ class exports.Cassandra extends EventEmitter
             delta : 1
             cb    : required
         query = "UPDATE counts SET count=count+? where table_name=?"
-        @cql query, [new cql.types.Long(opts.delta), opts.table], opts.cb
+        @cql
+            query : query
+            vals  : [new cql.types.Long(opts.delta), opts.table]
+            cb    : opts.cb
 
     # Get count of entries in a table for which we manually maintain the count.
     get_table_counter: (opts) =>
@@ -622,11 +625,15 @@ class exports.Cassandra extends EventEmitter
             where = @_where(opts.where, vals)
             query += " WHERE #{where}"
 
-        @cql query, vals, opts.consistency, (err, results) =>
-            if err
-                opts.cb(err)
-            else
-                opts.cb(undefined, from_cassandra(results[0].get('count')))
+        @cql
+            query       : query
+            vals        : vals
+            consistency : opts.consistency
+            cb          : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, from_cassandra(results[0].get('count')))
 
     update: (opts={}) ->
         opts = defaults opts,
@@ -637,10 +644,14 @@ class exports.Cassandra extends EventEmitter
             cb        : undefined
             consistency : undefined  # default...
             json      : []          # list of columns to convert to JSON
-        vals = []
-        set = @_set(opts.set, vals, opts.json)
+        vals  = []
+        set   = @_set(opts.set, vals, opts.json)
         where = @_where(opts.where, vals, opts.json)
-        @cql("UPDATE #{opts.table} USING ttl #{opts.ttl} SET #{set} WHERE #{where}", vals, opts.consistency, opts.cb)
+        @cql
+            query       : "UPDATE #{opts.table} USING ttl #{opts.ttl} SET #{set} WHERE #{where}"
+            vals        : vals
+            consistency : opts.consistency
+            cb          : opts.cb
 
     delete: (opts={}) ->
         opts = defaults opts,
@@ -651,7 +662,11 @@ class exports.Cassandra extends EventEmitter
             cb    : undefined
         vals = []
         where = @_where(opts.where, vals)
-        @cql("DELETE #{opts.thing} FROM #{opts.table} WHERE #{where}", vals, opts.consistency, opts.cb)
+        @cql
+            query       : "DELETE #{opts.thing} FROM #{opts.table} WHERE #{where}"
+            vals        : vals
+            consistency : opts.consistency
+            cb          : opts.cb
 
     select: (opts={}) =>
         opts = defaults opts,
@@ -664,6 +679,7 @@ class exports.Cassandra extends EventEmitter
             json            : []          # list of columns that should be converted from JSON format
             order_by        : undefined    # if given, adds an "ORDER BY opts.order_by"
             consistency     : undefined  # default...
+            stream          : false
             allow_filtering : false
 
         vals = []
@@ -678,14 +694,19 @@ class exports.Cassandra extends EventEmitter
 
         if opts.allow_filtering
             query += " ALLOW FILTERING"
-        @cql query, vals, opts.consistency, (error, results) =>
-            if error
-                opts.cb(error); return
-            if opts.objectify
-                x = (misc.pairs_to_obj([col,from_cassandra(r.get(col), col in opts.json)] for col in opts.columns) for r in results)
-            else
-                x = ((from_cassandra(r.get(col), col in opts.json) for col in opts.columns) for r in results)
-            opts.cb(undefined, x)
+        @cql
+            query       : query
+            vals        : vals
+            consistency : opts.consistency
+            stream      : opts.stream
+            cb          : (error, results) =>
+                if error
+                    opts.cb(error); return
+                if opts.objectify
+                    x = (misc.pairs_to_obj([col,from_cassandra(r.get(col), col in opts.json)] for col in opts.columns) for r in results)
+                else
+                    x = ((from_cassandra(r.get(col), col in opts.json) for col in opts.columns) for r in results)
+                opts.cb(undefined, x)
 
     # Exactly like select (above), but gives an error if there is not exactly one
     # row in the table that matches the condition.  Also, this returns the one
@@ -703,24 +724,45 @@ class exports.Cassandra extends EventEmitter
                 cb(false, results[0])
         @select(opts)
 
-    cql: (query, vals, consistency, cb) =>
-        if typeof vals == 'function'
-            cb = vals
-            vals = []
-            consistency = undefined
-        if typeof consistency == 'function'
-            cb = consistency
-            consistency = undefined
-        if not consistency?
-            consistency = @consistency
-
-        winston.debug("cql: '#{misc.trunc(query,100)}', consistency=#{consistency}")
-        @conn.execute query, vals, { consistency: consistency }, (err, results) =>
+    cql: (opts) =>
+        opts = defaults opts,
+            query       : required
+            vals        : []
+            consistency : @consistency
+            stream      : false
+            fetch_size  : 100   # only used for streaming
+            cb          : undefined
+        winston.debug("cql: '#{misc.trunc(opts.query,100)}', consistency=#{opts.consistency}, stream=#{opts.stream}")
+        cb = (err, results) =>
             if err?
-                winston.error("cql ERROR: ('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) error = #{err}")
-            else
-                results = results.rows
-            cb?(err, results)
+                winston.error("cql ERROR: ('#{opts.query}',params=#{misc.to_json(opts.vals).slice(0,512)}) error = #{err}")
+            opts.cb?(err, results)
+        if opts.stream
+            stream_opts = {fetchSize: opts.fetch_size, autoPage:true, consistency: opts.consistency}
+            stream = @conn.stream(opts.query, opts.vals, stream_opts)
+            results = []
+            last_time = misc.walltime()
+            stream.on 'readable', () ->
+                while true
+                    row = this.read()
+                    if row
+                        results.push(row)
+                        if results.length % 250 == 0
+                            t = misc.walltime()
+                            if t - last_time > 1 # at most once per second
+                                last_time = t
+                                winston.debug("cql: '#{misc.trunc(opts.query,256)}' received #{results.length} results...")
+                    else
+                        break
+            stream.on 'end', () =>
+                cb(undefined, results)
+            stream.on 'error', (err) =>
+                cb(err)
+        else
+            @conn.execute opts.query, opts.vals, { consistency: opts.consistency }, (err, results) =>
+                if not err and results?
+                    results = results.rows
+                cb(err, results)
 
     cql0: (query, vals, consistency, cb) =>
         winston.debug("cql: '#{query}'")
@@ -895,8 +937,8 @@ class exports.Salvus extends exports.Cassandra
             table     : 'accounts'
             columns   : ['first_name', 'last_name', 'account_id']
             objectify : true
-            consistency : 1     # since we really want optimal speed, and missing something temporarily is ok.
-            limit     : 1000000  # TODO: probably start failing due to timeouts around 100K users (?) -- will have to cursor or query multiple times then?
+            stream    : true # since result set may be huge
+            #consistency : 1     # NO LONGER NEEDED due to streaming support (was: since we really want optimal speed, and missing something temporarily is ok.)
             cb        : (err, results) =>
                 if err and not @_all_users?
                     cb(err); return
@@ -981,8 +1023,7 @@ class exports.Salvus extends exports.Cassandra
                     # SCALABILITY WARNING: In the worst case, this is a non-indexed linear search through all
                     # names which completely locks the server.  That said, it would take about
                     # 500,000 users before this blocks the server for *1 second*... at which point the
-                    # database query to load all users into memory above (in @all_users) would take
-                    # several hours.
+                    # database query to load all users into memory above (in @all_users) would take a long time.
                     # TODO: we should limit the number of search requests per user per minute, since this
                     # is a DOS vector.
                     for x in users
@@ -1535,7 +1576,10 @@ class exports.Salvus extends exports.Cassandra
             else
                 ttl = ""
             query = "UPDATE account_creation_actions #{ttl} SET actions=actions+{'#{misc.to_json(opts.action)}'} WHERE email_address=?"
-            @cql(query, [opts.email_address], opts.cb)
+            @cql
+                query : query
+                vals  : [opts.email_address]
+                cb    : opts.cb
         else
             @select
                 table     : 'account_creation_actions'
@@ -1906,7 +1950,10 @@ class exports.Salvus extends exports.Cassandra
                 #TODO: I don't know how to put variable number of params into a @cql call
                 query = "UPDATE projects SET linked_projects=linked_projects+{#{opts.add.join(',')}} where project_id=?"
                 #dbg("add query: #{query}")
-                @cql(query, [opts.project_id], cb)
+                @cql
+                    query : query
+                    vals  : [opts.project_id]
+                    cb    : cb
             (cb) =>
                 if not opts.remove?
                     cb(); return
@@ -1916,7 +1963,10 @@ class exports.Salvus extends exports.Cassandra
                         return
                 query = "UPDATE projects SET linked_projects=linked_projects-{#{opts.remove.join(',')}} where project_id=?"
                 #dbg("remove query: #{query}")
-                @cql(query, [opts.project_id], cb)
+                @cql
+                    query : query
+                    vals  : [opts.project_id]
+                    cb    : cb
             (cb) =>
                 if opts.add? or opts.remove?
                     cb(); return
@@ -2048,10 +2098,16 @@ class exports.Salvus extends exports.Cassandra
         async.parallel([
             (cb) =>
                 query = "UPDATE projects SET hide_from_accounts=hide_from_accounts+{#{opts.account_id}} WHERE project_id=?"
-                @cql(query, [opts.project_id], cb)
+                @cql
+                    query : query
+                    vals  : [opts.project_id]
+                    cb    : cb
             (cb) =>
                 query = "UPDATE accounts SET hidden_projects=hidden_projects+{#{opts.project_id}} WHERE account_id=?"
-                @cql(query, [opts.account_id], cb)
+                @cql
+                    query : query
+                    vals  : [opts.account_id]
+                    cb    : cb
         ], (err) => opts.cb?(err))
 
     unhide_project_from_user: (opts) =>
@@ -2062,10 +2118,16 @@ class exports.Salvus extends exports.Cassandra
         async.parallel([
             (cb) =>
                 query = "UPDATE projects SET hide_from_accounts=hide_from_accounts-{#{opts.account_id}} WHERE project_id=?"
-                @cql(query, [opts.project_id], cb)
+                @cql
+                    query : query
+                    vals  : [opts.project_id]
+                    cb    : cb
             (cb) =>
                 query = "UPDATE accounts SET hidden_projects=hidden_projects-{#{opts.project_id}} WHERE account_id=?"
-                @cql(query, [opts.account_id], cb)
+                @cql
+                    query : query
+                    vals  : [opts.account_id]
+                    cb    : cb
         ], (err) => opts.cb?(err))
 
     # Make it so the user with given account id is listed as a(n invited) collaborator or viewer
@@ -2095,11 +2157,17 @@ class exports.Salvus extends exports.Cassandra
             # add account_id to the project's set of users (for the given group)
             (cb) =>
                 query = "UPDATE projects SET #{opts.group}=#{opts.group}+{#{opts.account_id}} WHERE project_id=?"
-                @cql(query, [opts.project_id], cb)
+                @cql
+                    query : query
+                    vals  : [opts.project_id]
+                    cb    : cb
             # add project_id to the set of projects (for the given group) for the user's account
             (cb) =>
                 query = "UPDATE accounts SET #{opts.group}=#{opts.group}+{#{opts.project_id}} WHERE account_id=?"
-                @cql(query, [opts.account_id], cb)
+                @cql
+                    query : query
+                    vals  : [opts.account_id]
+                    cb    : cb
         ], opts.cb)
 
     remove_user_from_project: (opts) =>
@@ -2115,11 +2183,17 @@ class exports.Salvus extends exports.Cassandra
             # remove account_id from the project's set of users (for the given group)
             (cb) =>
                 query = "UPDATE projects SET #{opts.group}=#{opts.group}-{#{opts.account_id}} WHERE project_id=?"
-                @cql(query, [opts.project_id], cb)
+                @cql
+                    query : query
+                    vals  : [opts.project_id]
+                    cb    : cb
             # remove project_id from the set of projects (for the given group) for the user's account
             (cb) =>
                 query = "UPDATE accounts SET #{opts.group}=#{opts.group}-{#{opts.project_id}} WHERE account_id=?"
-                @cql(query, [opts.account_id], cb)
+                @cql
+                    query : query
+                    vals  : [opts.account_id]
+                    cb    : cb
         ], opts.cb)
 
     # SINGLE USE ONLY:
@@ -2601,351 +2675,6 @@ class exports.Salvus extends exports.Cassandra
         )
 
 
-    #####################################
-    # Tasks
-    # TODO: delete -- this never got used!
-    #####################################
-    create_task_list: (opts) =>
-        opts = defaults opts,
-            owners      : required
-            cb          : required
-        task_list_id = uuid.v4()
-
-        q = ('?' for i in [0...opts.owners.length]).join(',')
-        query = "UPDATE task_lists SET owners={#{q}}, last_edited=? WHERE task_list_id=?"
-        args = (x for x in opts.owners)
-        args.push(now())
-        args.push(task_list_id)
-        @cql(query, args, (err) => opts.cb(err, task_list_id))
-
-    create_task: (opts) =>
-        opts = defaults opts,
-            task_list_id : required
-            title        : required
-            position     : 0
-            cb           : required
-
-        task_id = uuid.v4()
-        last_edited = now()
-        async.parallel([
-            (cb) =>
-                @update
-                    table : 'tasks'
-                    where :
-                        task_list_id : opts.task_list_id
-                        task_id      : task_id
-                    set   :
-                        title       : opts.title
-                        position    : opts.position
-                        done        : false   # tasks start out not done
-                        last_edited : last_edited
-                    cb    : cb
-            (cb) =>
-                # record that something about the task list itself changed
-                @update
-                    table : 'task_lists'
-                    where : {task_list_id : opts.task_list_id}
-                    set   : {last_edited  : last_edited}
-                    cb    : cb
-        ], (err) =>
-            if err
-                opts.cb(err)
-            else
-                opts.cb(undefined, task_id)
-        )
-
-    get_task_list : (opts) =>
-        opts = defaults opts,
-            task_list_id    : required
-            include_deleted : false
-            columns         : undefined
-            cb              : required
-
-        if opts.columns?
-            columns = opts.columns
-        else
-            columns = ['task_id', 'position', 'last_edited', 'done', 'title', 'data', 'deleted', 'sub_task_list_id']
-
-        t = {}
-        async.parallel([
-            (cb) =>
-                @select
-                    table     : 'tasks'
-                    where     : {task_list_id : opts.task_list_id}
-                    columns   : columns
-                    objectify : true
-                    cb        : (err, resp) =>
-                        if err
-                            cb(err)
-                        else
-                            if not opts.include_deleted and 'deleted' in columns
-                                resp = (x for x in resp when not x.deleted)
-                            for x in resp
-                                if x.data?
-                                    for k, v of x.data
-                                        x.data[k] = from_json(v)
-                            t.tasks = resp
-                            cb()
-            (cb) =>
-                @select_one
-                    table   : 'task_lists'
-                    where   : {task_list_id : opts.task_list_id}
-                    columns : ['data']
-                    cb      : (err, resp) =>
-                        if err
-                            cb(err)
-                        else
-                            data = resp[0]
-                            if data?
-                                for k, v of data
-                                    t[k] = from_json(v)
-                            cb()
-        ], (err) =>
-            if err
-                opts.cb(err)
-            else
-                opts.cb(undefined, t)
-        )
-
-    get_task_list_last_edited : (opts) =>
-        opts = defaults opts,
-            task_list_id    : required
-            cb              : required
-        @select_one
-            table   : 'task_lists'
-            columns : ['last_edited']
-            cb      : (err, r) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, r[0])
-
-    set_project_task_list: (opts) =>
-        opts = defaults opts,
-            task_list_id    : required
-            project_id      : required
-            cb              : required
-        @update
-            table : 'projects'
-            set   : {task_list_id : opts.task_list_id, last_edited : now()}
-            where : {project_id : opts.project_id}
-            cb    : opts.cb
-
-
-    edit_task_list : (opts) =>
-        opts = defaults opts,
-            task_list_id : required
-            data         : undefined
-            deleted      : undefined
-            cb           : required
-        #dbg = (m) -> winston.debug("edit_task_list: #{m}")
-        if opts.deleted
-            #dbg("delete the entire task list and all the tasks in it")
-            tasks = undefined
-            already_deleted = false
-            async.series([
-                (cb) =>
-                    #dbg("is task list already deleted?  if so, do nothing to avoid potential recursion due to nested sub-tasks.")
-                    @select_one
-                        table   : 'task_lists'
-                        columns : ['deleted']
-                        where   : {task_list_id : opts.task_list_id}
-                        cb      : (err, resp) =>
-                            if err
-                                cb(err)
-                            else
-                                already_deleted = resp[0]
-                                cb(already_deleted)
-                (cb) =>
-                    #dbg("get list of tasks")
-                    @get_task_list
-                        task_list_id    : opts.task_list_id
-                        columns         : ['task_id', 'deleted']
-                        include_deleted : false
-                        cb              : (err, _tasks) =>
-                            if err
-                                cb(err)
-                            else
-                                tasks = (x.task_id for x in _tasks)
-                                cb()
-                (cb) =>
-                    #dbg("delete them all")
-                    f = (task_id, cb) =>
-                        @edit_task
-                            task_list_id : opts.task_list_id
-                            task_id      : task_id
-                            deleted      : true
-                            cb           : cb
-                    async.map(tasks, f, (err) => cb(err))
-                (cb) =>
-                    #dbg("delete the task list itself")
-                    @update
-                        table : 'task_lists'
-                        set   : {'deleted': true, 'last_edited':now()}
-                        where : {task_list_id : opts.task_list_id}
-                        cb    : cb
-            ], (err) =>
-                if already_deleted
-                    opts.cb()
-                else
-                    opts.cb(err)
-            )
-        else
-            #dbg("other case -- just edit data properties of the task_list")
-            if not opts.data?
-                opts.cb(); return
-            f = (key, cb) =>
-                if key == 'tasks'
-                    cb("you may not use 'tasks' as a custom task_lists field")
-                    return
-                query = "UPDATE task_lists SET data[?]=?, last_edited=? WHERE task_list_id=?"
-                if opts.data[key] != null
-                    val = to_json(opts.data[key])
-                else
-                    val = undefined
-                @cql(query, [key, val, now(), opts.task_list_id], (err) => cb(err))
-            async.map(misc.keys(opts.data), f, (err) => opts.cb(err))
-
-    edit_task : (opts) =>
-        opts = defaults opts,
-            task_list_id : required
-            task_id      : required
-            title        : undefined
-            position     : undefined
-            done         : undefined
-            data         : undefined
-            deleted      : undefined
-            sub_task_list_id : undefined
-            cb           : undefined
-
-        winston.debug("cass edit_task: opts=#{misc.to_json(opts)}")
-
-        where =
-            task_list_id : opts.task_list_id
-            task_id      : opts.task_id
-
-        last_edited = now()
-
-        async.series([
-            (cb) =>
-                if not opts.deleted
-                    cb(); return
-                # deleting -- so delete the subtask list if there is one
-                @select_one
-                    table   : 'tasks'
-                    columns : ['sub_task_list_id']
-                    where   : where
-                    cb      : (err, r) =>
-                        if err
-                            cb(err)
-                        else
-                            if r[0]
-                                @edit_task_list
-                                    task_list_id : r[0]
-                                    deleted      : true
-                                    cb           : cb
-                            else
-                                cb()
-            (cb) =>
-                # set the easy properties
-                set = {last_edited: now()}
-                if opts.title?
-                    set.title = opts.title
-                if opts.position?
-                    set.position = opts.position
-                if opts.done?
-                    set.done = opts.done
-                if opts.deleted?
-                    set.deleted = opts.deleted
-                set.last_edited = last_edited
-                @update
-                    table : 'tasks'
-                    where : where
-                    set   : set
-                    cb    : cb
-            (cb) =>
-                # set any data properties
-                f = (key, cb) =>
-                    query = "UPDATE tasks SET data[?]=? WHERE task_list_id=? AND task_id=?"
-                    if opts.data[key] != null
-                        val = to_json(opts.data[key])
-                    else
-                        val = undefined
-                    @cql(query, [key, val, opts.task_list_id, opts.task_id], (err) => cb(err))
-                async.map(misc.keys(opts.data), f, (err) => cb(err))
-            (cb) =>
-                # record that something about the task list itself changed
-                @update
-                    table : 'task_lists'
-                    where : {task_list_id : opts.task_list_id}
-                    set   : {last_edited  : last_edited}
-                    cb    : cb
-        ], (err) => opts.cb?(err))
-
-
-
-    # Remove all deleted tasks and task lists from the database, so long as their
-    # last edit time is at least min_age_s seconds ago.
-    purge_deleted_tasks : (opts) =>
-        opts = defaults opts,
-            min_age_s : 3600*24*30  # one month  -- min age in seconds
-            cb        : undefined
-        results = undefined
-        async.series([
-            (cb) =>
-                # TODO: implement paging through list of tasks -- this will only work for a few months, then die.
-                console.log("dumping tasks table...")
-                @select
-                    table   : 'tasks'
-                    columns : ['deleted', 'task_list_id', 'task_id', 'last_edited']
-                    cb      : (err, r) =>
-                        if err
-                            cb(err)
-                        else
-                            console.log("got #{r.length} tasks")
-                            results = r
-                            cb()
-            (cb) =>
-                n = (new Date()) - 0
-                x = ([r[1],r[2]] for r in results when r[0] and (n - r[3]) >= opts.min_age_s)
-                console.log("deleting #{x.length} deleted tasks")
-                f = (z, cb) =>
-                    console.log("deleting #{misc.to_json(z)}")
-                    @delete
-                        table : 'tasks'
-                        where : {task_list_id:z[0], task_id:z[1]}
-                        cb    : cb
-                async.mapLimit(x, 10, f, (err) => cb(err))
-            (cb) =>
-                # TODO: implement paging through list of tasks -- this will only work for a few months, then die.
-                console.log("dumping task_lists table...")
-                @select
-                    table   : 'task_lists'
-                    columns : ['deleted', 'task_list_id', 'last_edited']
-                    cb      : (err, r) =>
-                        if err
-                            cb(err)
-                        else
-                            console.log("got #{r.length} task_lists")
-                            results = r
-                            cb()
-            (cb) =>
-                n = (new Date()) - 0
-                console.log("results=", results)
-                x = (r[1] for r in results when r[0] and (n - r[2]) >= opts.min_age_s)
-                console.log("deleting #{x.length} deleted task_lists")
-                f = (z, cb) =>
-                    console.log("deleting task_list #{z}")
-                    @delete
-                        table : 'task_lists'
-                        where : {task_list_id:z}
-                        cb    : cb
-                async.mapLimit(x, 10, f, (err) => cb(err))
-        ], (err) => opts.cb?(err))
-
-
-
-
     ###########################
     # Temporary one-off code for misc tasks (comment out after use)
     ###########################
@@ -2982,26 +2711,29 @@ class exports.Salvus extends exports.Cassandra
         f = (range, cb) =>
             query = "select project_id, timestamp, path, account_id from activity_by_project where token(project_id)>=#{range[0]} and token(project_id)<=#{range[1]} limit 500000"
             console.log(query)
-            @cql query, [], undefined, (err, results) =>
-                if err
-                    console.log("ERROR: #{err}")
-                    cb(err)
-                else
-                    console.log("got #{results.length} results")
-                    results = ((from_cassandra(r.get(col), false) for col in ['project_id','timestamp','path','account_id']) for r in results)
-                    g = (result, cb) =>
-                        #  project_id    | timestamp  | path        | account_id      | action
-                        @update
-                            table : 'activity_by_project2'
-                            set   :
-                                action     : 'edit'
-                                account_id : result[3]
-                            where :
-                                project_id : result[0]
-                                timestamp  : result[1]
-                                path       : result[2]
-                            cb    : cb
-                    async.mapLimit(results, 10, g, (err) => cb(err))
+            @cql
+                query  : query
+                stream : true
+                cb     : (err, results) =>
+                    if err
+                        console.log("ERROR: #{err}")
+                        cb(err)
+                    else
+                        console.log("got #{results.length} results")
+                        results = ((from_cassandra(r.get(col), false) for col in ['project_id','timestamp','path','account_id']) for r in results)
+                        g = (result, cb) =>
+                            #  project_id    | timestamp  | path        | account_id      | action
+                            @update
+                                table : 'activity_by_project2'
+                                set   :
+                                    action     : 'edit'
+                                    account_id : result[3]
+                                where :
+                                    project_id : result[0]
+                                    timestamp  : result[1]
+                                    path       : result[2]
+                                cb    : cb
+                        async.mapLimit(results, 10, g, (err) => cb(err))
         async.mapSeries(opts.token_ranges, f, opts.cb)
 
 

@@ -2816,10 +2816,16 @@ class Client extends EventEmitter
             async.parallel([
                 (cb) =>
                     query = "UPDATE activity_by_project2 SET #{mark}_by=#{mark}_by+{#{@account_id}}"
-                    database.cql(query+where, param, cb)
+                    database.cql
+                        query : query+where
+                        vals  : param
+                        cb    : cb
                 (cb) =>
                     query = "UPDATE recent_activity_by_project2 USING TTL #{RECENT_ACTIVITY_TTL_S} SET #{mark}_by=#{mark}_by+{#{@account_id}}"
-                    database.cql(query+where, param, cb)
+                    database.cql
+                        query : query+where
+                        vals  : param
+                        cb    : cb
             ], (err) =>
                 if not err
                    @push_recent_activity()
