@@ -243,7 +243,7 @@ Add these two lines two `/etc/security/limits.conf` so that bup works with large
 
    rsync -axvHL ~/salvus/salvus/local_hub_template/ ~/.sagemathcloud/
    cd ~/.sagemathcloud && . sagemathcloud-env && ./build
-   
+
    cd /usr/local/bin/ && sudo ln -s /home/salvus/salvus/salvus/scripts/skel/ . && cd ~/salvus/salvus/scripts/skel/ && rm -rf .sagemathcloud && mv ~/.sagemathcloud .
 
 
@@ -459,7 +459,9 @@ SAGE_PIP_PACKAGES = [
     'mrjob',
     'boto',
     'pattern',
-    'seaborn'
+    'seaborn',
+    'brewer2mpl',
+    'ggplot' 
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
