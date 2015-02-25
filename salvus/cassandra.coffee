@@ -406,6 +406,12 @@ exports.from_cassandra = from_cassandra = (value, json) ->
         value = value.toInt()     # long type
     else if value instanceof cql.types.BigDecimal
         value = value.toNumber()
+    else if value instanceof Array # a set/list collection -- http://www.datastax.com/documentation/developer/nodejs-driver/2.0/nodejs-driver/reference/collections.html
+        value = (from_cassandra(x) for x in value)
+    else if value.constructor == Object # a map collection
+        x = {}
+        for k, v of value
+            x[k] = from_cassandra(v)
     else
         value = value.valueOf()
         if json
