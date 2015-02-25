@@ -309,16 +309,13 @@ init_http_server = () ->
                             # actually send the file to the project
                             (cb) ->
                                 winston.debug("getting project...")
-                                new_project project_id, (err, project) ->
-                                    if err
-                                        cb(err)
-                                    else
-                                        path = dest_dir + '/' + files.file.name
-                                        winston.debug("writing file '#{path}' to project...")
-                                        project.write_file
-                                            path : path
-                                            data : data
-                                            cb   : cb
+                                project = new_project(project_id)
+                                path = dest_dir + '/' + files.file.name
+                                winston.debug("writing file '#{path}' to project...")
+                                project.write_file
+                                    path : path
+                                    data : data
+                                    cb   : cb
 
                         ], (err) ->
                             if err
@@ -1544,7 +1541,6 @@ class Client extends EventEmitter
             return
 
         dbg()
-        project = undefined
         async.series([
             (cb) =>
                 switch permission
@@ -1576,14 +1572,6 @@ class Client extends EventEmitter
                                     cb()
                     else
                         cb("Internal error -- unknown permission type '#{permission}'")
-            (cb) =>
-                new_project mesg.project_id, (err, _project) =>
-                    if err
-                        cb(err)
-                    else
-                        project = _project
-                        database.touch_project(project_id:mesg.project_id)
-                        cb()
         ], (err) =>
             if err
                 if mesg.id?
@@ -1591,6 +1579,8 @@ class Client extends EventEmitter
                 dbg("error -- #{err}")
                 cb(err)
             else
+                project = new_project(mesg.project_id)
+                database.touch_project(project_id:mesg.project_id)
                 if not @_project_cache?
                     @_project_cache = {}
                 @_project_cache[key] = project
@@ -1738,14 +1728,13 @@ class Client extends EventEmitter
                     cb          : cb
             (cb) =>
                 dbg("start project opening so that when user tries to open it in a moment it opens more quickly")
-                new_local_hub
-                    project_id : project_id
-                    cb         : (err, hub) =>
-                        if not err
-                            dbg("got local hub/project, now calling a function so that it opens")
-                            hub.local_hub_socket (err, socket) =>
-                                dbg("opened project")
-                cb() # but don't wait!
+                hub = new_local_hub(project_id)
+                hub.local_hub_socket (err, socket) =>
+                    if err
+                        dbg("failed to open socket -- #{err}")
+                    else
+                        dbg("opened socket")
+                cb() # don't wait for socket to open!
         ], (err) =>
             if err
                 dbg("error; project #{project_id} -- #{err}")
@@ -3398,34 +3387,25 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
         misc_node.keep_portforward_alive(opts.port)
 
 _local_hub_cache = {}
-new_local_hub = (opts) ->    # cb(err, hub)
-    opts = defaults opts,
-        project_id : required
-        cb         : required
-
-    hash = opts.project_id
-    H    = _local_hub_cache[hash]
+new_local_hub = (project_id) ->    # cb(err, hub)
+    H    = _local_hub_cache[project_id]
 
     if H?
-        winston.debug("new_local_hub (#{opts.project_id}) -- using cached version")
-        opts.cb(false, H)
+        winston.debug("new_local_hub (#{project_id}) -- using cached version")
     else
-        start_time = misc.walltime()
-        new LocalHub opts.project_id, (err, H) ->
-            if err
-                opts.cb(err)
-            else
-                _local_hub_cache[hash] = H
-                opts.cb(undefined, H)
+        winston.debug("new_local_hub (#{project_id}) -- creating new one")
+        H = new LocalHub(project_id)
+        _local_hub_cache[project_id] = H
+    return H
 
 class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
-    constructor: (@project_id, cb) ->
+    constructor: (@project_id) ->
+        @_local_hub_socket_connecting = false
         @_sockets = {}
         @_multi_response = {}
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
         @project = bup_server.get_project(@project_id)
-        cb(undefined, @)
 
     dbg: (m) =>
         winston.debug("local_hub(#{@project_id}): #{misc.to_json(m)}")
@@ -3520,18 +3500,29 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # Connection to the remote local_hub daemon that we use for control.
     local_hub_socket: (cb) =>
         if @_socket?
-            cb(false, @_socket)
+            @dbg("local_hub_socket: re-using existing socket")
+            cb(undefined, @_socket)
             return
 
         if @_local_hub_socket_connecting
             @_local_hub_socket_queue.push(cb)
+            @dbg("local_hub_socket: added socket request to existing queue, which now has length #{@_local_hub_socket_queue.length}")
             return
         @_local_hub_socket_connecting = true
         @_local_hub_socket_queue = [cb]
+        connecting_timer = undefined
+        cancel_connecting = () =>
+            @_local_hub_socket_connecting = false
+            @_local_hub_socket_queue = []
+            clearTimeout(connecting_timer)
+
+        # If below fails for 60s for some reason, allow for future attempt.
+        connecting_timer = setTimeout(cancel_connecting, 60000)
+
         @dbg("local_hub_socket: getting new socket")
         @new_socket (err, socket) =>
-            @dbg("local_hub_socket: new_socket returned #{err}")
             @_local_hub_socket_connecting = false
+            @dbg("local_hub_socket: new_socket returned #{err}")
             if err
                 for c in @_local_hub_socket_queue
                     c(err)
@@ -3551,6 +3542,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     c(undefined, socket)
 
                 @_socket = socket
+            cancel_connecting()
 
     # Get a new connection to the local_hub,
     # authenticated via the secret_token, and enhanced
@@ -3611,6 +3603,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
         @local_hub_socket (err, socket) =>
             if err
+                @dbg("call: failed to get socket -- #{err}")
                 opts.cb?(err)
                 return
             @dbg("call: get socket -- now writing message to the socket")
@@ -3659,7 +3652,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             catch e
                 @dbg("_open_session_socket: exception ending existing socket: #{e}")
             delete @_sockets[opts.session_uuid]
-            
+
         socket = undefined
         async.series([
             (cb) =>
@@ -3902,49 +3895,17 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 # with our message protocol.
 
 _project_cache = {}
-new_project = (project_id, cb, delay) ->   # cb(err, project)
-    #winston.debug("project request (project_id=#{project_id})")
+new_project = (project_id) ->
     P = _project_cache[project_id]
-    if P?
-        if P == "instantiating"
-            if not delay?
-                delay = 500
-            else
-                delay = Math.min(15000, 1.2*delay)
-            # Try again; We must believe that the code
-            # doing the instantiation will terminate and correctly set P.
-            setTimeout((() -> new_project(project_id, cb, delay)), delay)
-        else
-            cb(undefined, P)
-    else
-        _project_cache[project_id] = "instantiating"
-        start_time = misc.walltime()
-        new Project project_id, (err, P) ->
-            winston.debug("new Project(#{project_id}): time= #{misc.walltime() - start_time}")
-            if err
-                delete _project_cache[project_id]
-                cb(err)
-            else
-                _project_cache[project_id] = P
-                cb(undefined, P)
-
+    if not P?
+        P = new Project(project_id)
+        _project_cache[project_id] = P
+    return P
 
 class Project
-    constructor: (@project_id, cb) ->
-        if not @project_id
-            cb("when creating Project, the project_id must be defined")
-            return
+    constructor: (@project_id) ->
         @dbg("instantiating Project class")
-
-        new_local_hub
-            project_id : @project_id
-            cb         : (err, hub) =>
-                if err
-                    cb(err)
-                else
-                    @local_hub = hub
-                    cb(undefined, @)
-
+        @local_hub = new_local_hub(@project_id)
         # we always look this up and cache it; it can be useful, e.g., in
         # the activity table.
         @get_info()
