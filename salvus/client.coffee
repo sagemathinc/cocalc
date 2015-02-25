@@ -121,10 +121,11 @@ class Session extends EventEmitter
                             cb(reply.error)
                         when 'session_connected'
                             #console.log("reconnect: #{@type()} session with id #{@session_uuid} -- SUCCESS")
-                            @conn.change_data_channel
-                                prev_channel : @data_channel
-                                new_channel  : reply.data_channel
-                                session      : @
+                            if @data_channel != reply.data_channel
+                                @conn.change_data_channel
+                                    prev_channel : @data_channel
+                                    new_channel  : reply.data_channel
+                                    session      : @
                             @data_channel = reply.data_channel
                             @init_history = reply.history
                             @emit("reconnect")

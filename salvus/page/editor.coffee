@@ -4170,13 +4170,13 @@ class Terminal extends FileEditor
             path       : @filename
             cb         : (err, result) =>
                 if err
-                    alert_message(type:"error", message: "Error connecting to console server.")
+                    alert_message(type:"error", message: "Error connecting to console server -- #{err}")
                 else
                     # New session or connect to session
                     if result.content? and result.content.length < 36
                         # empty/corrupted -- messed up by bug in early version of SMC...
                         delete result.content
-                    opts = @opts = defaults opts,
+                    @opts = defaults opts,
                         session_uuid : result.content
                     @connect_to_server()
 

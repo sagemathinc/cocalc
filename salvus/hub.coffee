@@ -3652,6 +3652,14 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         # plug this socket into an existing session with the given session_uuid, or
         # create a new session with that uuid and plug this socket into it.
 
+        socket = @_sockets[opts.session_uuid]
+        if socket?
+            try
+                socket.end()
+            catch e
+                @dbg("_open_session_socket: exception ending existing socket: #{e}")
+            delete @_sockets[opts.session_uuid]
+            
         socket = undefined
         async.series([
             (cb) =>
@@ -3661,6 +3669,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         cb(err)
                     else
                         socket = _socket
+                        @_sockets[opts.session_uuid] = socket
                         cb()
             (cb) =>
                 mesg = message.connect_to_session

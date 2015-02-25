@@ -245,6 +245,11 @@ class Console extends EventEmitter
                 console.log("issue parsing message -- ", e)
 
     set_session: (session) =>
+        if @session?
+            # Don't allow set_session to be called multiple times, since both sessions could
+            # display data at the same time.
+            console.log("BUG: set_session called after session already set -- ignoring")
+            return
         # Store the remote session, which is a connection to a HUB
         # that is in turn connected to a console_server:
         @session = session
