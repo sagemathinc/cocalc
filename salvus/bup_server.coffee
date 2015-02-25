@@ -2140,7 +2140,7 @@ class GlobalClient
                 max_dc = 0
                 for r in results
                     max_dc = Math.max(max_dc, r.dc)
-                    r.host = cassandra.inet_to_str(r.host)  # parse inet datatype
+                    r.host = r.host
                     @servers.by_id[r.server_id] = r
                     if not @servers.by_dc[r.dc]?
                         @servers.by_dc[r.dc] = {}

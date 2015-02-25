@@ -106,8 +106,11 @@ exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 
 # inet type: see https://github.com/jorgebay/node-cassandra-cql/issues/61
 
-exports.inet_to_str = (r) -> [r[0], r[1], r[2], r[3]].join('.')
-
+exports.inet_to_str = (r) ->
+    if r instanceof cql.types.InetAddress
+        return r.toString()
+    else
+        return r
 
 #########################################################################
 
@@ -389,15 +392,26 @@ class KeyValueStore
                     opts.cb?(undefined, [from_json(r[0]), from_json(r[1])] for r in results)
 
 # Convert individual entries in columns from cassandra formats to what we
-# want to use everywhere in Salvus. For example, uuids ficare converted to
+# want to use everywhere in Salvus. For example, uuid's are converted to
 # strings instead of their own special object type, since otherwise they
 # convert to JSON incorrectly.
 
 exports.from_cassandra = from_cassandra = (value, json) ->
     if not value?
         return undefined
-    if value.toInt?
-        value = value.toInt()   # newer version of node-cassandra-cql uses the Javascript long type
+    # see https://github.com/datastax/nodejs-driver/blob/master/doc/upgrade-guide-2.0.md
+    if value instanceof cql.types.Uuid or value instanceof cql.types.TimeUuid or value instanceof cql.types.InetAddress
+        value = value.toString()
+    else if value instanceof cql.types.Integer or  value instanceof cql.types.Long
+        value = value.toInt()     # long type
+    else if value instanceof cql.types.BigDecimal
+        value = value.toNumber()
+    else if value instanceof Array # a set/list collection -- http://www.datastax.com/documentation/developer/nodejs-driver/2.0/nodejs-driver/reference/collections.html
+        value = (from_cassandra(x) for x in value)
+    else if value.constructor == Object # a map collection
+        x = {}
+        for k, v of value
+            x[k] = from_cassandra(v)
     else
         value = value.valueOf()
         if json
