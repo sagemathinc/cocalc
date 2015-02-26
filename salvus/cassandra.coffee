@@ -2732,6 +2732,56 @@ class exports.Salvus extends exports.Cassandra
     ###########################
     # Temporary one-off code for misc tasks (comment out after use)
     ###########################
+    copy_remember_me_cookies_to_accounts: (opts) =>
+        opts = defaults opts,
+            cb : required
+        #
+        # Go through the entire remember me key:value store and add entries to the accounts remember_me set.
+        #
+        # The values are strings like this:
+        #     '{"event":"signed_in","remember_me":true,"hub":"127.0.0.1","account_id":"03c9a77c-9a34-4f6d-8377-7b05f9dca584","email_address":"wstein@uw.edu"}'
+        #
+        dbg = (m) -> console.log("copy_remember_me_cookies_to_accounts: #{m}")
+        dbg()
+        z = {}
+        async.series([
+            (cb) =>
+                dbg("loading all remember_me cookies from the database...")
+                @select
+                    table   : "key_value"
+                    columns : ['key', 'value']
+                    where   : {name:'remember_me'}
+                    stream  : true
+                    cb      : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("got #{r.length} cookies")
+                            for x in r
+                                account_id = from_json(x[1]).account_id
+                                key = from_json(x[0])
+                                if not z[account_id]?
+                                    z[account_id] = [key]
+                                else
+                                    z[account_id].push(key)
+                            dbg("parsed json data for all of them.")
+                            cb()
+            (cb) =>
+                dbg("now setting the accounts remember_me sets")
+                accounts = misc.keys(z)
+                i = 0
+                f = (account_id, c) =>
+                    i += 1
+                    if i % 1000 == 0
+                        dbg("handled #{i}/#{accounts.length}")
+                    keys = '{' + ("'#{x}'" for x in z[account_id]).join(',') + '}'
+                    @cql
+                        query : "UPDATE accounts SET remember_me=#{keys} WHERE account_id=?"
+                        vals  : [account_id]
+                        cb    : c
+                async.mapLimit(accounts, 10, f, cb)
+        ], opts.cb)
+
 
     ###  migrate_activity_table -- migrate a MASSIVE table.
     # This is python (not javascript which doesn't have big numbers)
