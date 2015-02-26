@@ -2355,25 +2355,25 @@ tmp_dir = (opts) ->
         path       : required
         ttl        : 120            # self destruct in this many seconds
         cb         : required       # cb(err, directory_name)
-    name = "." + uuid()   # hidden
+    path_name = "." + uuid()   # hidden
     if "'" in opts.path
         opts.cb("there is a disturbing ' in the path: '#{opts.path}'")
         return
     remove_tmp_dir
         project_id : opts.project_id
         path       : opts.path
-        tmp_dir    : name
+        tmp_dir    : path_name
         ttl        : opts.ttl
     salvus_client.exec
         project_id : opts.project_id
         path       : opts.path
         command    : "mkdir"
-        args       : [name]
+        args       : [path_name]
         cb         : (err, output) =>
             if err
                 opts.cb("Problem creating temporary directory in '#{opts.path}'")
             else
-                opts.cb(false, name)
+                opts.cb(false, path_name)
 
 remove_tmp_dir = (opts) ->
     opts = defaults opts,
@@ -2412,6 +2412,9 @@ class PDFLatexDocument
         @filename_tex  = s.tail
         @base_filename = @filename_tex.slice(0, @filename_tex.length-4)
         @filename_pdf  =  @base_filename + '.pdf'
+
+    dbg: (mesg) =>
+        #console.log("PDFLatexDocument: #{mesg}")
 
     page: (n) =>
         if not @_pages[n]?
@@ -2722,7 +2725,7 @@ class PDFLatexDocument
     # This computes images on backend, and fills in the sha1 hashes of @pages.
     # If any sha1 hash changes from what was already there, it gets temporary
     # url for that file.
-    # It assumes the pdf files is there already, and doesn't run pdflatex.
+    # It assumes the pdf files are there already, and doesn't run pdflatex.
     update_images: (opts={}) =>
         opts = defaults opts,
             first_page : 1
@@ -2732,6 +2735,7 @@ class PDFLatexDocument
             device     : '16m'      # one of '16', '16m', '256', '48', 'alpha', 'gray', 'mono'  (ignored if image_type='jpg')
             png_downscale : 2       # ignored if image type is jpg
             jpeg_quality  : 75      # jpg only -- scale of 1 to 100
+
 
         res = opts.resolution
         if @image_type == 'png'
@@ -2746,11 +2750,15 @@ class PDFLatexDocument
 
         if opts.first_page <= 0
             opts.first_page = 1
+        if opts.last_page > @num_pages
+            opts.last_page = @num_pages
 
         if opts.last_page < opts.first_page
-            # easy peasy
+            # easy special case
             opts.cb?(false,[])
             return
+
+        @dbg("update_images: #{opts.first_page} to #{opts.last_page} with res=#{opts.resolution}")
 
         tmp = undefined
         sha1_changed = []
@@ -2835,7 +2843,7 @@ class PDFLatexDocument
                     salvus_client.read_file_from_project
                         project_id : @project_id
                         path       : "#{tmp}/#{obj.filename}"
-                        timeout    : 5  # a single page shouldn't take long
+                        timeout    : 10  # a single page shouldn't take long
                         cb         : (err, result) =>
                             if err
                                 cb(err)
@@ -2876,6 +2884,8 @@ class PDF_Preview extends FileEditor
         @_first_output = true
         @_needs_update = true
 
+    dbg: (mesg) =>
+        #console.log("PDF_Preview: #{mesg}")
 
     zoom: (opts) =>
         opts = defaults opts,
@@ -2981,6 +2991,7 @@ class PDF_Preview extends FileEditor
             opts.cb?("already updating")  # don't change string
             return
 
+        @dbg("update")
         #@spinner.show().spin(true)
         @_updating = true
 
@@ -2988,15 +2999,18 @@ class PDF_Preview extends FileEditor
         if @element.width()
             @output.width(@element.width())
 
-        # Remove trailing pages from DOM.
+        # Hide trailing pages.
         if @pdflatex.num_pages?
+            @dbg("update: num_pages = #{@pdflatex.num_pages}")
             # This is O(N), but behaves better given the async nature...
             for p in @output.children()
                 page = $(p)
                 if page.data('number') > @pdflatex.num_pages
+                    @dbg("update: removing page number #{page.data('number')}")
                     page.remove()
 
         n = @current_page().number
+        @dbg("update: current_page=#{n}")
 
         f = (opts, cb) =>
             opts.cb = (err, changed_pages) =>
@@ -3005,8 +3019,8 @@ class PDF_Preview extends FileEditor
                 else if changed_pages.length == 0
                     cb()
                 else
-                    g = (n, cb) =>
-                        @_update_page(n, cb)
+                    g = (m, cb) =>
+                        @_update_page(m, cb)
                     async.map(changed_pages, g, cb)
             @pdflatex.update_images(opts)
 
@@ -3014,7 +3028,7 @@ class PDF_Preview extends FileEditor
         if n == 1
             hq_window *= 2
 
-        f {first_page : n, last_page  : n+1, resolution:@opts.resolution*3, device:'16m', png_downscale:3}, (err) =>
+        f {first_page: n, last_page: n+1, resolution:@opts.resolution*3, device:'16m', png_downscale:3}, (err) =>
             if err
                 #@spinner.spin(false).hide()
                 @_updating = false
@@ -3064,6 +3078,7 @@ class PDF_Preview extends FileEditor
             if @last_page >= n
                 @last_page = n-1
         else
+            @dbg("_update_page(#{n}) using #{url}")
             # update page
             recenter = (@last_page == 0)
             that = @
@@ -3071,7 +3086,7 @@ class PDF_Preview extends FileEditor
             if page.length == 0
                 # create
                 for m in [@last_page+1 .. n]
-                    page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'><br></div>")
+                    page = $("<div style='text-align:center;min-height:3em;border:1px solid grey;' class='salvus-editor-pdf-preview-page-#{m}'><span class='lighten'>Page #{m}</span><br><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'><br></div>")
                     page.data("number", m)
 
                     f = (e) ->
