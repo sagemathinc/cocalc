@@ -2726,7 +2726,7 @@ class GlobalClient
                             # that the project moved between when we did the above database query
                             # and when we actually sync out the project.
                             @project_location
-                                project_id : opts.project_id
+                                project_id : project.project_id
                                 cb         : (err, result) =>
                                     if err
                                         cb(err)
