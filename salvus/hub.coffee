@@ -356,7 +356,7 @@ init_http_proxy_server = () =>
                 dbg("get remember_me message")
                 x    = opts.remember_me.split('$')
                 hash = generate_hash(x[0], x[1], x[2], x[3])
-                @remember_me_db.get
+                database.key_value_store(name: 'remember_me').get
                     key         : hash
                     consistency : cql.types.consistencies.one
                     cb          : (err, signed_in_mesg) =>
