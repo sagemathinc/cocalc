@@ -3404,20 +3404,20 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
         timeout      : 10
         cb           : required
 
-    socket = misc_node.connect_to_locked_socket
+    misc_node.connect_to_locked_socket
         port    : opts.port
         host    : opts.host
         token   : opts.secret_token
         timeout : opts.timeout
-        cb      : (err) =>
+        cb      : (err, socket) =>
             if err
                 opts.cb(err)
             else
                 misc_node.enable_mesg(socket, 'connection_to_a_local_hub')
-                opts.cb(false, socket)
+                socket.on 'data', (data) ->
+                    misc_node.keep_portforward_alive(opts.port)
+                opts.cb(undefined, socket)
 
-    socket.on 'data', (data) ->
-        misc_node.keep_portforward_alive(opts.port)
 
 _local_hub_cache = {}
 new_local_hub = (project_id) ->    # cb(err, hub)
@@ -3639,7 +3639,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 @dbg("call: failed to get socket -- #{err}")
                 opts.cb?(err)
                 return
-            @dbg("call: get socket -- now writing message to the socket")
+            @dbg("call: get socket -- now writing message to the socket -- #{misc.trunc(misc.to_json(opts.mesg),200)}")
             socket.write_mesg 'json', opts.mesg, (err) =>
                 if err
                     @free_resources()   # at least next time it will get a new socket
