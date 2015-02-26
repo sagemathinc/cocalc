@@ -356,7 +356,7 @@ init_http_proxy_server = () =>
                 dbg("get remember_me message")
                 x    = opts.remember_me.split('$')
                 hash = generate_hash(x[0], x[1], x[2], x[3])
-                database.key_value_store(name: 'remember_me').get
+                @remember_me_db.get
                     key         : hash
                     consistency : cql.types.consistencies.one
                     cb          : (err, signed_in_mesg) =>
@@ -736,7 +736,6 @@ class Client extends EventEmitter
         # The persistent sessions that this client started.
         @compute_session_uuids = []
 
-        @cookies = {}
         @remember_me_db = database.key_value_store(name: 'remember_me')
 
         # check every few seconds
@@ -745,10 +744,18 @@ class Client extends EventEmitter
 
         @install_conn_handlers()
 
-        cookies = new Cookies(@conn.request)
-        @_remember_me_value = cookies.get(program.base_url + 'remember_me')
-        @_validate_remember_me(@_remember_me_value)
+        # Setup remember-me related cookie handling
+        @cookies = {}
 
+        c = new Cookies(@conn.request)
+        @_remember_me_value = c.get(program.base_url + 'remember_me')
+
+        @check_for_remember_me()
+
+        # Security measure: check every 5 minutes that remember_me
+        # cookie used for login is still valid.  If the cookie is gone
+        # and this fails, user gets a message, and see that they must sign in.
+        @_remember_me_interval = setInterval(@check_for_remember_me, 1000*60*5)
 
     install_conn_handlers: () =>
         #winston.debug("install_conn_handlers")
@@ -772,6 +779,7 @@ class Client extends EventEmitter
 
     destroy: () =>
         winston.debug("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
+        clearInterval(@_remember_me_interval)
         @_next_recent_activity_interval_s = 0
         @closed = true
         @emit 'close'
@@ -784,17 +792,12 @@ class Client extends EventEmitter
             delete c.call_callbacks
 
     remember_me_failed: (reason) =>
+        #winston.debug("client(id=#{@id}): remember_me_failed(#{reason})")
+        @signed_out()  # so can't do anything with projects, etc.
         @push_to_client(message.remember_me_failed(reason:reason))
 
     check_for_remember_me: () =>
-        winston.debug("client(id=#{@id}): check for remember me")
-        @get_cookie
-            name : program.base_url + 'remember_me'
-            cb   : (value) =>
-                @_validate_remember_me(value)
-
-    _validate_remember_me: (value) =>
-        #winston.debug("_validate_remember_me: #{value}")
+        value = @_remember_me_value
         if not value?
             @remember_me_failed("no remember_me cookie")
             return
@@ -824,11 +827,12 @@ class Client extends EventEmitter
                             @remember_me_failed("user is banned")
                             @remember_me_db.delete(key : hash)
                         else
-                            # good -- sign them in
-                            signed_in_mesg.hub = program.host + ':' + program.port
-                            @hash_session_id = hash
-                            @signed_in(signed_in_mesg)
-                            @push_to_client(signed_in_mesg)
+                            # good -- sign them in if not already
+                            if @account_id != signed_in_mesg.account_id
+                                signed_in_mesg.hub = program.host + ':' + program.port
+                                @hash_session_id = hash
+                                @signed_in(signed_in_mesg)
+                                @push_to_client(signed_in_mesg)
 
     #######################################################
     # Capping resource limits; client can request anything.
@@ -940,9 +944,9 @@ class Client extends EventEmitter
             return
 
         options = {}
-        if opts.ttl?  # Todo: ignored
+        if opts.ttl?
             options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
-        @cookies[opts.name] = {value:opts.value, options:options}  # TODO: this can't work
+        @cookies[opts.name] = {value:opts.value, options:options}
         @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:program.base_url+"/cookies", value:opts.value))
 
     remember_me: (opts) ->
@@ -986,29 +990,52 @@ class Client extends EventEmitter
         @hash_session_id = password_hash(session_id)
         ttl              = 24*3600 * 365     # 365 days
 
-        # write it -- quick and loose, then more replicas
-        @remember_me_db.set
-            key         : @hash_session_id
-            value       : signed_in_mesg
-            ttl         : ttl
-            consistency : cql.types.consistencies.one
-            cb          : (err) =>
-                # write to more replicas, just for good measure
-                @remember_me_db.set
-                    key         : @hash_session_id
-                    value       : signed_in_mesg
-                    ttl         : ttl
-                    consistency : cql.types.consistencies.localQuorum
-                    cb          : (err) =>
-                        if err
-                            winston.debug("WARNING: issue writing remember me cookie: #{err}")
-
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
         @set_cookie
             name  : program.base_url + 'remember_me'
             value : @_remember_me_value
             ttl   : ttl
+
+        # Remember cookie info in the database
+        async.series([
+            (cb) =>
+                # Write key to accounts table so we can invalidate
+                # this cookie if the users changes their password.  Must do this first, since
+                # important to security that this is recorded no matter what.
+                database.cql
+                    query : "UPDATE accounts SET remember_me=remember_me+{'#{@hash_session_id}'} WHERE account_id=?"
+                    vals  : [opts.account_id]
+                    cb    : (err) =>
+                        if err
+                            # important not to record anything in the database.
+                            winston.debug("ERROR: unable to record remember_me cookie for account -- #{err}")
+                            cb(err)
+                        else
+                            cb()
+            (cb) =>
+                # Write cookie to databse quickly so it is likely
+                # to be available if there are queries for it here
+                # or on another node in same DC.
+                @remember_me_db.set
+                    key         : @hash_session_id
+                    value       : signed_in_mesg
+                    ttl         : ttl
+                    consistency : cql.types.consistencies.one
+                    cb          : (err) =>
+                        if err
+                            winston.debug("WARNING: issue writing remember me cookie consistency=1 (#{misc.to_json(signed_in_mesg)}): #{err}")
+                        cb() # ignore errors since we will try again no matter what
+            (cb) =>
+                # write to more replicas, just for good measure
+                @remember_me_db.set
+                    key         : @hash_session_id
+                    value       : signed_in_mesg
+                    ttl         : ttl
+                    cb          : (err) =>
+                        if err
+                            winston.debug("ERROR: issue writing remember me cookie (#{misc.to_json(signed_in_mesg)}): #{err}")
+        ])
 
     invalidate_remember_me: (opts) ->
         opts = defaults opts,
@@ -1755,7 +1782,7 @@ class Client extends EventEmitter
 
     mesg_get_projects: (mesg) =>
         if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to get a list of projects.")
+            @error_to_client(id: mesg.id, error: "You must sign in.")
             return
 
         database.get_projects_with_user
@@ -4198,11 +4225,11 @@ reset_password = (email_address, cb) ->
                     else
                         cb()
         (cb) ->
+            # change the user's password in the database.
             database.change_password
                 account_id    : account_id
                 password_hash : password_hash(passwd0)
                 cb            : cb
-
     ], (err) ->
         if err
             winston.debug("Error -- #{err}")
@@ -4698,19 +4725,17 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                         return
                     if value?  # is defined, so problem -- it's over
                         push_to_client(message.changed_password(id:mesg.id, error:{'too_frequent':'Please wait at least 5 seconds before trying to change your password again.'}))
-                        database.log(
+                        database.log
                             event : 'change_password'
                             value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:"attack?"}
-                        )
                         cb(true)
                         return
                     else
                         # record change in tracker with ttl (don't care about confirming that this succeeded)
-                        tracker.set(
+                        tracker.set
                             key   : mesg.email_address
                             value : client_ip_address
                             ttl   : 5
-                        )
                         cb()
             )
 
@@ -4727,10 +4752,9 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                 account = result
                 if not is_password_correct(password:mesg.old_password, password_hash:account.password_hash)
                     push_to_client(message.changed_password(id:mesg.id, error:{old_password:"Invalid old password."}))
-                    database.log(
+                    database.log
                         event : 'change_password'
                         value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:"Invalid old password."}
-                    )
                     cb(true)
                     return
                 cb()
@@ -4746,27 +4770,23 @@ change_password = (mesg, client_ip_address, push_to_client) ->
 
         # record current password hash (just in case?) and that we are changing password and set new password
         (cb) ->
-
-            database.log(
+            database.log
                 event : "change_password"
                 value :
                     account_id : account.account_id
                     client_ip_address : client_ip_address
                     previous_password_hash : account.password_hash
-            )
 
-            database.change_password(
-                account_id:    account.account_id
-                password_hash: password_hash(mesg.new_password),
+            database.change_password
+                account_id    : account.account_id
+                password_hash : password_hash(mesg.new_password),
                 cb : (error, result) ->
                     if error
                         push_to_client(message.changed_password(id:mesg.id, error:{misc:error}))
                     else
                         push_to_client(message.changed_password(id:mesg.id, error:false)) # finally, success!
                     cb()
-            )
     ])
-
 
 change_email_address = (mesg, client_ip_address, push_to_client) ->
 
@@ -4804,19 +4824,17 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                     if value?  # is defined, so problem -- it's over
                         dbg("limited!")
                         push_to_client(message.changed_email_address(id:mesg.id, error:'too_frequent', ttl:WAIT))
-                        database.log(
+                        database.log
                             event : 'change_email_address'
                             value : {email_address:mesg.old_email_address, client_ip_address:client_ip_address, message:"attack?"}
-                        )
                         cb(true)
                         return
                     else
                         # record change in tracker with ttl (don't care about confirming that this succeeded)
-                        tracker.set(
+                        tracker.set
                             key   : mesg.old_email_address
                             value : client_ip_address
                             ttl   : WAIT    # seconds
-                        )
                         cb()
             )
 

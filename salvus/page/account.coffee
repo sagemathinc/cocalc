@@ -873,8 +873,12 @@ $("#account-change_password-button-submit").click (event) ->
                         x.show()
                 else
                     # success
-                    alert_message(type:"info", message:"You have changed your password.")
+                    alert_message
+                        type    : "info"
+                        message : "You have changed your password.    Please log back in using your new password."
+                        timeout : 10
                     close_change_password()
+                    setTimeout(sign_out, 5000)
     return false
 
 ################################################
@@ -1021,6 +1025,10 @@ if localStorage.remember_me
 salvus_client.on "remember_me_failed", () ->
     $(".salvus-remember_me-message").hide()
     $(".salvus-sign_in-form").show()
+    if current_account_page == 'account-settings'  # user was logged in but now isn't due to cookie failure
+        show_page("account-sign_in")
+        set_account_tab_label(true, "Account")
+        alert_message(type:"info", message:"You must sign in again.", timeout:1000000)
 
 salvus_client.on "signed_in", () ->
     $(".salvus-remember_me-message").hide()

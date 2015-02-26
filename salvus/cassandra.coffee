@@ -1631,19 +1631,73 @@ class exports.Salvus extends exports.Cassandra
                         cb()
         ])
 
-
-    change_password: (opts={}) ->
-        opts = defaults(opts,
+    # Invalidate all outstanding remember me cookies for the given account by
+    # deleting them from the remember_me key:value store.
+    invalidate_all_remember_me: (opts) =>
+        opts = defaults opts,
             account_id    : required
-            password_hash : required
             cb            : undefined
-        )
-        @update(
-            table   : 'accounts'
-            where   : {account_id:opts.account_id}
-            set     : {password_hash: opts.password_hash}
-            cb      : opts.cb
-        )
+        keys = undefined
+        async.series([
+            (cb) =>
+                # Get list of keys of remember_me cookies for this account.
+                @select_one
+                    table   : 'accounts'
+                    columns : ['remember_me']
+                    where   : {account_id:opts.account_id}
+                    cb      : (err, result) =>
+                        if err
+                            cb(err)
+                        else
+                            keys = result[0]
+                            cb()
+            (cb) =>
+                # Delete each key, if there are any
+                if not keys?
+                    # No keys -- no remember_me tokens
+                    cb(); return
+                d = @key_value_store(name: 'remember_me')
+                f = (key, c) =>
+                    async.series([
+                        (c1) =>
+                            # delete from the key:value store.
+                            d.delete
+                                key : key
+                                cb  : c1
+                        (c1) =>
+                            # success: now delete from accounts so we won't have to remove from key:value store again.
+                            @cql
+                                query : "UPDATE accounts SET remember_me=remember_me-{'#{key}'} WHERE account_id=?"
+                                vals  : [opts.account_id]
+                                cb    : c1
+                    ], c)
+
+                async.map(keys, f, cb)
+        ], (err) => opts.cb?(err))
+
+    # Change the password for the given account.
+    change_password: (opts={}) =>
+        opts = defaults opts,
+            account_id             : required
+            password_hash          : required
+            invalidate_remember_me : true
+            cb                     : undefined
+
+        async.series([
+            (cb) =>
+                @update
+                    table : 'accounts'
+                    where : {account_id:    opts.account_id}
+                    set   : {password_hash: opts.password_hash}
+                    cb    : cb
+            (cb) =>
+                if not opts.invalidate_remember_me
+                    cb()
+                else
+                    @invalidate_all_remember_me
+                        account_id : opts.account_id
+                        cb         : cb
+        ], (err) => opts.cb?(err))
 
     # Change the email address, unless the email_address we're changing to is already taken.
     change_email_address: (opts={}) =>

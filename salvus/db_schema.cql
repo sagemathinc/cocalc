@@ -115,6 +115,10 @@ CREATE TABLE accounts (
 
     notifications_syncdb uuid,
     /* syncdbs              map<varchar:uuid>, */ /* synchronized databases that user has access to */
+
+    /* current remember_me cookies for this users: we use this to  
+       delete=revoke all of them when the user changes their password. */
+    remember_me          set<varchar>,
 );
 
 CREATE TABLE email_address_to_account_id (
