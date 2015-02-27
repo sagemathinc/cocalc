@@ -1,20 +1,20 @@
 <!--
 SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and the Terminal.
 
-    Copyright (C) 2014, William Stein
+Copyright (C) 2014, William Stein
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 
@@ -151,16 +151,16 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
             <span class="hidden-xs lighten-2">Password</span>
             <input class="salvus-password-meter form-control" type="password" placeholder="Password" id="create_account-password">
             <!-- <span class="hidden-xs lighten-2">Retype password</span>
-            <input class="form-control" type="password" placeholder="Retype password" id="create_account-retype_password">
-            -->
+<input class="form-control" type="password" placeholder="Retype password" id="create_account-retype_password">
+-->
 
             <div class="checkbox"><label style="margin-top: 1ex;margin-bottom: 1ex;">
                 <input type="checkbox" id="create_account-agreed_to_terms">
                 Agree to the <a href="#link-terms">SageMathCloud Terms</a>
-            </label></div>
+                </label></div>
             <button class="btn btn-success btn-lg" style="width: 100%;" type="submit" id="create_account-button">Create account for free</button>
-                <hr>
-                <span class="lighten" style="font-size:10pt">Not working?  Email us at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> immediately!</span>
+            <hr>
+            <span class="lighten" style="font-size:10pt">Not working?  Email us at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> immediately!</span>
 
 
 
@@ -188,9 +188,9 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                 <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1147802" target="_blank">1147802</a>,
                 <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1020378" target="_blank">1020378</a>
                 <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1015114" target="_blank">1015114</a>) and <a href="https://research.google.com/university/relations/appengine/index.html" target="_blank">Google</a>.
-                  <!-- There are currently <b>288 cores</b>, <b>1.2TB RAM</b> and
-                    <b>50TB disk</b> space dedicated to the SageMathCloud cluster at University of Washington, and
-                    around <b>20 cores</b>, <b>128GB RAM</b>, and <b>2.5TB disk space</b> on Google Compute Engine. -->
+                <!-- There are currently <b>288 cores</b>, <b>1.2TB RAM</b> and
+<b>50TB disk</b> space dedicated to the SageMathCloud cluster at University of Washington, and
+around <b>20 cores</b>, <b>128GB RAM</b>, and <b>2.5TB disk space</b> on Google Compute Engine. -->
             </span>
 
 
@@ -225,77 +225,77 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                     <div class="col-sm-12">
                         <div class=" panel panel-default">
                             <div class="panel-heading">
-                                <h3 class="panel-title">Your Payment Method</h3>
+                                <h3 class="panel-title">Payment Method</h3>
                             </div>
                             <div class="panel-body">
                                 <div class="row">
-                                    <div class="col-sm-3 lighten">
-                                        Payment Method
-                                    </div>
-                                    <div class="col-sm-6 ">
+                                    <div class="col-sm-9">
                                         <b class="smc-payment-method">None</b>
-                                    </div>
-                                    <div class="col-sm-3">
-                                        <b><a class="btn btn-success" href="#change-payment-method"><i class="fa fa-cc-stripe"></i> Change Payment Method</a></b>
-                                    </div>
-                                </div>
-                                <div class="row smc-payment-info hide">
-                                    <div class="col-sm-6 col-sm-offset-3 well" style="font-size: 12pt;padding: 1em;margin-top: 1em;box-shadow: 3px 3px 8px lightgray;">
-                                        <form  class="form-horizontal">
-                                            <div class="form-group">
-                                                <span class="payment-errors"></span>
-                                            </div>
-                                            <div class="form-group smc-credit-card-number">
-                                                <label class="col-sm-4">
-                                                    <span>Card Number&nbsp;&nbsp;</span>
-                                                </label>
-                                                <div class="col-sm-8">
-                                                    <div class="input-group">
-                                                        <div class="input-group-addon" style="background:white;min-width:4em">
-                                                            <i class="fa fa-cc-discover hide" style="color: darkorange;font-size: 15pt;"></i>
-                                                            <i class="fa fa-cc-mastercard hide" style="color: darkred;font-size: 15pt;"></i>
-                                                            <i class="fa fa-cc-visa hide" style="color: darkorange;font-size: 15pt;"></i>
-                                                            <i class="fa fa-credit-card hide" style="color: darkblue; font-size: 15pt;"></i>
-                                                            <i class="fa fa-credit-card smc-credit-card-invalid" style="color: lightgrey; font-size: 15pt;"></i>
-                                                        </div>
-                                                        <input class="form-control" id="smc-credit-card-number" type="text" size="20" data-stripe="number" placeholder="1234 5678 9012 3456"/>
-                                                        <div class="input-group-addon"  style="background:white;min-width:4em">
-                                                            <i class="fa fa-check hide" style="color: darkgreen; font-size: 15pt;"></i>
-                                                            <i class="fa fa-check smc-credit-card-invalid" style="color: lightgrey; font-size: 15pt;"></i>
+                                        <div class="smc-payment-info hide">
+                                            <div class="well" style="font-size: 12pt; box-shadow: 3px 3px 8px lightgray;">
+                                                <form  class="form-horizontal">
+                                                    <div class="form-group smc-payment-error-row hide">
+                                                        <div class="col-sm-12" style="background: white;color: darkred;padding: 1em;">
+                                                            <span class="smc-payment-errors"></span>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
+                                                    <div class="form-group smc-credit-card-number">
+                                                        <label class="col-sm-4">
+                                                            <span>Card Number&nbsp;&nbsp;</span>
+                                                        </label>
+                                                        <div class="col-sm-8">
+                                                            <div class="input-group">
+                                                                <div class="input-group-addon" style="background:white;min-width:4em">
+                                                                    <i class="fa fa-cc-discover hide" style="color: darkorange;font-size: 15pt;"></i>
+                                                                    <i class="fa fa-cc-mastercard hide" style="color: darkred;font-size: 15pt;"></i>
+                                                                    <i class="fa fa-cc-visa hide" style="color: darkorange;font-size: 15pt;"></i>
+                                                                    <i class="fa fa-credit-card hide" style="color: darkblue; font-size: 15pt;"></i>
+                                                                    <i class="fa fa-credit-card smc-credit-card-invalid" style="color: lightgrey; font-size: 15pt;"></i>
+                                                                </div>
+                                                                <input class="form-control" id="smc-credit-card-number" type="text" size="20" data-stripe="number" placeholder="1234 5678 9012 3456"/>
+                                                                <div class="input-group-addon"  style="background:white;min-width:4em">
+                                                                    <i class="fa fa-check hide" style="color: darkgreen; font-size: 15pt;"></i>
+                                                                    <i class="fa fa-check smc-credit-card-invalid" style="color: lightgrey; font-size: 15pt;"></i>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
 
-                                            <div class="form-group">
-                                                <label class="col-sm-4">
-                                                    <span>CVC</span>
-                                                </label>
-                                                <div class="col-sm-8">
-                                                    <input style="width:5em" class="form-control" type="text" size="4" data-stripe="cvc" placeholder="123" />
-                                                </div>
-                                            </div>
+                                                    <div class="form-group">
+                                                        <label class="col-sm-4">
+                                                            <span>CVC</span>
+                                                        </label>
+                                                        <div class="col-sm-8">
+                                                            <input style="width:5em" class="form-control" type="text" size="4" data-stripe="cvc" placeholder="123" />
+                                                        </div>
+                                                    </div>
 
-                                            <div class="form-group">
-                                                <label class="col-sm-4">
-                                                    <span>Expiration (MM/YYYY)</span>
-                                                </label>
-                                                <div class="col-sm-8">
-                                                    <input class="form-control" style="display:inline;width:5em" placeholder="MM" type="text" size="2" data-stripe="exp-month" />
-                                                    <span> / </span>
-                                                    <input class="form-control" style="display:inline;width:7em"  placeholder="YYYY" type="text" size="4" data-stripe="exp-year"/>
-                                                </div>
-                                            </div>
+                                                    <div class="form-group">
+                                                        <label class="col-sm-4">
+                                                            <span>Expiration (MM/YYYY)</span>
+                                                        </label>
+                                                        <div class="col-sm-8">
+                                                            <input class="form-control" style="display:inline;width:5em" placeholder="MM" type="text" size="2" data-stripe="exp-month" />
+                                                            <span> / </span>
+                                                            <input class="form-control" style="display:inline;width:7em"  placeholder="YYYY" type="text" size="4" data-stripe="exp-year"/>
+                                                        </div>
+                                                    </div>
 
-                                            <div class="form-group">
-                                                <div class="col-sm-8">
-                                                    <a class="btn btn-primary form-control" href="#submit-payment-info">Submit Payment Information</a>
-                                                </div>
-                                                <div class="col-sm-4">
-                                                    <a class="btn btn-default pull-right form-control" href="#cancel-payment-info">Cancel</a>
-                                                </div>
+                                                    <div class="form-group">
+                                                        <div class="col-sm-8">
+                                                            <a class="btn btn-primary form-control" href="#submit-payment-info">Submit Payment Information</a>
+                                                        </div>
+                                                        <div class="col-sm-4">
+                                                            <a class="btn btn-default pull-right form-control" href="#cancel-payment-info">Cancel</a>
+                                                        </div>
+                                                    </div>
+                                                </form>
                                             </div>
-                                        </form>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <b><a class="btn btn-success" href="#change-payment-method"><i class="fa fa-credit-card"></i> Change  Payment Method</a></b>
                                     </div>
                                 </div>
                             </div>
@@ -372,7 +372,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                     <div class="col-sm-8 "><span id="account-settings-email_address"></span> (<a href="#account-change_email_address">change</a>)</div>
                                 </div>
                             </div>
-                         </div>
+                        </div>
                     </div>
 
 
@@ -548,7 +548,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                     <div class="col-sm-12 ">
                                         <div class="checkbox"><label class="" rel="tooltip" title="Whether to scroll or wrap for long lines.">
                                             <input type="checkbox" checked="checked" class="account-settings-line_wrapping" rel="tooltip">Line wrapping: <span class="lighten">scroll or wrap long lines</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -557,7 +557,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Show line numbers to the left of the editor">
                                             <input type="checkbox" checked="checked" class="account-settings-line_numbers" rel="tooltip">Line numbers:
                                             <span class="lighten">show line numbers</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -566,7 +566,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Fold/unfold selected blocks of code">
                                             <input type="checkbox" checked="checked" class="account-settings-code_folding" rel="tooltip">Code folding:
                                             <span class="lighten">fold code using ⌃Q</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -575,7 +575,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Whether to use the context sensitive indentation that the mode provides (or just indent the same as the line before).">
                                             <input type="checkbox" checked="checked" class="account-settings-smart_indent">Smart indent:
                                             <span class="lighten">context sensitive indentation</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -584,7 +584,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should reindent the current line when a character is typed that might change its proper indentation (only works if the mode supports indentation).">
                                             <input type="checkbox" checked="checked" class="account-settings-electric_chars">Electric characters:
                                             <span class="lighten">sometimes reindent current line</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -593,7 +593,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should visually indicate matching brackets.">
                                             <input type="checkbox" checked="checked" class="account-settings-match_brackets">Match brackets:
                                             <span class="lighten">highlight matching brackets near cursor</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -602,7 +602,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically add the closing bracket.">
                                             <input type="checkbox" checked="checked" class="account-settings-auto_close_brackets">Auto brackets:
                                             <span class="lighten">automatically close brackets</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -611,7 +611,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically highlight and match tags in xml modes.">
                                             <input type="checkbox" checked="checked" class="account-settings-match_xml_tags">Match XML tags:
                                             <span class="lighten">automatically match XML tags</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -620,7 +620,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically add the closing tags in xml modes.">
                                             <input type="checkbox" checked="checked" class="account-settings-auto_close_xml_tags">Auto XML tags:
                                             <span class="lighten">automatically close XML tags</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -629,7 +629,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="If checked, trailing whitespace will be stripped from files when they are saved.">
                                             <input type="checkbox" checked="checked" class="account-settings-strip_trailing_whitespace">Delete trailing whitespace:
                                             <span class="lighten">remove whenever file is saved</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -638,7 +638,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Show trailing whitespace at the ends of lines.">
                                             <input type="checkbox" checked="checked" class="account-settings-show_trailing_whitespace">Show trailing whitespace:
                                             <span class="lighten">show spaces at ends of lines</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -647,11 +647,11 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="If checked, pressing tab inserts four spaces instead of a tab character.">
                                             <input type="checkbox" checked="checked" class="account-settings-spaces_instead_of_tabs">Spaces instead of tabs:
                                             <span class="lighten">send 4 spaces when the tab key is pressed</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
-                               <div class="row">
+                                <div class="row">
                                     <div class="col-sm-12 ">
                                         <div class="checkbox"><label class="" rel="tooltip" title="If checked, the revision history of your files will be tracked from now on.">
                                             <input type="checkbox" checked="checked" class="account-settings-track_revisions">Track revisions:
@@ -660,7 +660,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                     </div>
                                 </div>
 
-                               <div class="row">
+                                <div class="row">
                                     <div class="col-sm-12 ">
                                         <div class="checkbox"><label class="" rel="tooltip" title="If checked, some editors will provide an extra button bar.">
                                             <input type="checkbox" checked="checked" class="account-settings-extra_button_bar">Extra button bar:
@@ -769,7 +769,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                 <div class="row">
                                     <div class="col-sm-6 ">Shift selected text left</div>
                                     <div class="col-sm-3 ">
-                                       ⇧⇥
+                                        ⇧⇥
                                     </div>
                                     <div class="col-sm-3 ">
                                         shift+tab
@@ -778,7 +778,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                 <div class="row">
                                     <div class="col-sm-6 ">Split view in any editor</div>
                                     <div class="col-sm-3 ">
-                                       ⌃I <span class="salvus-apple hide">or ⌘I</span>
+                                        ⌃I <span class="salvus-apple hide">or ⌘I</span>
                                     </div>
                                     <div class="col-sm-3 ">
                                         control+I <span class="salvus-apple hide">or command+I</span>
@@ -790,14 +790,14 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         ⌃'
                                     </div>
                                     <div class="col-sm-3 ">
-                                       control+'
+                                        control+'
                                     </div>
                                 </div>
 
                                 <div class="row">
                                     <div class="col-sm-6 ">Simple autocomplete (any language)</div>
                                     <div class="col-sm-3 ">
-                                       ⌃␣
+                                        ⌃␣
                                     </div>
                                     <div class="col-sm-3 ">
                                         control+space
@@ -807,7 +807,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                 <div class="row">
                                     <div class="col-sm-6 ">Sage worksheet autocomplete</div>
                                     <div class="col-sm-3 ">
-                                       ⇥
+                                        ⇥
                                     </div>
                                     <div class="col-sm-3 ">
                                         tab
@@ -817,7 +817,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                 <div class="row">
                                     <div class="col-sm-6 ">Split cell in Sage worksheet</div>
                                     <div class="col-sm-3 ">
-                                       ⌃; <span class="salvus-apple hide">or ⌘;</span>
+                                        ⌃; <span class="salvus-apple hide">or ⌘;</span>
                                     </div>
                                     <div class="col-sm-3 ">
                                         control+; <span class="salvus-apple hide">or command+;</span>
@@ -866,7 +866,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Ask for confirmation before closing the SageMathCloud window.">
                                             <input type="checkbox" class="account-settings-other_settings-confirm_close">Confirm:
                                             <span class="lighten">always ask for confirmation before closing the browser window (except on mobile)</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -875,7 +875,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Grey-out compiled and hidden files in the files tab.">
                                             <input type="checkbox" class="account-settings-other_settings-mask_files">Mask Files:
                                             <span class="lighten">grey-out files in the files viewer that you probably don't want to open.</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
                             </div>
@@ -916,13 +916,13 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                         <div class="col-sm-6 ">
                             <div class="checkbox"><label class="">
                                 <input type="checkbox" checked="checked" id="account-settings-enable_tooltips" rel="tooltip" title="Show tooltips like this one?">Show tooltips
-                            </label></div>
+                                </label></div>
                             <div class="checkbox"><label class="">
                                 <input type="checkbox" checked="checked" id="account-settings-email_new_features" rel="tooltip" title="Salvus sends email when we add new features.">Email us about new features
-                            </label></div>
+                                </label></div>
                             <div class="checkbox"><label class="">
                                 <input type="checkbox" checked="checked" id="account-settings-email_maintenance" rel="tooltip" title="Salvus sends an email when it might be slow or down due to scheduled maintenance.">Email us about scheduled maintenance
-                            </label></div>
+                                </label></div>
                         </div>
                     </div>
 
@@ -1018,10 +1018,10 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                     <input class="salvus-password-meter form-control" type="password" placeholder="New password" id="account-change_password-new_password">
                 </label>
                 <!-- <br>
-                <label>
-                    <b class="hidden-xs">Retype password</b>
-                    <input class="form-control" type="password" placeholder="Retype password" id="account-change_password-new_password-retype">
-                </label> -->
+<label>
+<b class="hidden-xs">Retype password</b>
+<input class="form-control" type="password" placeholder="Retype password" id="account-change_password-new_password-retype">
+</label> -->
             </div>
             <div class="modal-footer">
                 <button class="btn btn-primary" type="submit" data-dismiss="modal" id="account-change_password-button-submit">Change password</button>

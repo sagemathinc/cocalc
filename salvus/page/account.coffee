@@ -1047,6 +1047,8 @@ salvus_client.on "signed_in", () ->
 Stripe.setPublishableKey('pk_test_6pRNASCoBOKtIshFeQd4XMUh')
 
 change_payment_method = () ->
+    clear_payment_info()
+    $(".smc-payment-method").hide()
     $("#smc-credit-card-number").val('')
     $("a[href=#change-payment-method]").addClass('disabled')
     $(".smc-payment-info").show()
@@ -1055,20 +1057,27 @@ change_payment_method = () ->
 close_payment_info = () ->
     $(".smc-payment-info").hide()
     $("a[href=#change-payment-method]").removeClass('disabled')
+    $(".smc-payment-method").show()
     return false
 
 clear_payment_info = () ->
     $(".smc-payment-info").find("input").val('')
+    $(".smc-payment-error-row").hide()
 
 submit_payment_info = () ->
-    close_payment_info()
     form = $(".smc-payment-info").find("form")
+    $("a[href=#submit-payment-info]").icon_spin(start:true)
     Stripe.card.createToken form, (status, response) ->
-        clear_payment_info()
+        $("a[href=#submit-payment-info]").icon_spin(start:false)
         console.log("status=", status)
         console.log("response=", response)
         if status == 200
-            $(".smc-payment-method").text("Credit Card")
+            $(".smc-payment-method").text("#{response.card.brand} card ending in #{response.card.last4} ")
+            clear_payment_info()
+            close_payment_info()
+        else
+            $(".smc-payment-error-row").show()
+            $(".smc-payment-errors").text(response.error.message)
     return false
 
 $("a[href=#change-payment-method]").click(change_payment_method)
@@ -1079,7 +1088,6 @@ $("a[href=#cancel-payment-info]").click () ->
     close_payment_info()
 
 $("#smc-credit-card-number").validateCreditCard (result) ->
-    console.log("validate", result)
     a = $(".smc-credit-card-number")
     a.find("i").hide()
     if result.valid
