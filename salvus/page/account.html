@@ -210,67 +210,65 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
         </div>
 
         <ul class="nav nav-tabs">
-            <li class="active"><a href="#account-settings-tab" data-toggle="tab"><i class="fa fa-cog"></i> Settings</a></li>
-            <li class="hide"><a href="#billing-tab" id="billing-tab-button" data-toggle="tab" aria-controls="billing-tab"><i class="fa fa-credit-card"></i>   Billing</a></li>
-            <!-- <li><a href="#account-info-tab" data-toggle="tab">Account info</a></li>-->
+            <li class="active"><a href="#account-settings-tab" data-toggle="tab">
+                <i class="fa fa-cog"></i> Settings</a>
+            </li>
+            <li ><a href="#smc-billing-tab" id="billing-tab-button" data-toggle="tab" aria-controls="billing-tab">
+                <i class="fa fa-credit-card"></i> Billing</a>
+            </li>
         </ul>
 
         <div class="tab-content">
-            <div class="tab-pane" id="billing-tab" aria-labelledBy="billing-tab-button">
-                <div class="row" style="height: 1000px;">  <!-- style is a stupid hack to ensure there is a scrollbar -->
-                    <div class=" panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">Overview</h3>
-                        </div>
-                        <div class="panel-body">
-                            <div class="row smc-billing-panel-row">
-                                <div class="col-sm-4 lighten">
-                                    Plan
-                                </div>
-                                <div class="col-sm-6">
-                                    <b>Free</b>
-                                </div>
-                                <div class="col-sm-2">
-                                    <b><a class="btn btn-default" href="#change-plan"><i class="fa fa-cog"></i> Change</a></b>
-                                </div>
+            <!-- style is a hack to ensure there is a scrollbar -->
+            <div class="tab-pane" id="smc-billing-tab" aria-labelledBy="billing-tab-button" style="height: 1000px; margin-top: 1em;">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class=" panel panel-default">
+                            <div class="panel-heading">
+                                <h3 class="panel-title">Your Payment Method</h3>
                             </div>
-                            <div class="row">
-                                <div class="col-sm-4 lighten">
-                                    Payment Method
-                                </div>
-                                <div class="col-sm-6">
-                                    <b>None</b>
-                                </div>
-                                <div class="col-sm-2">
-                                    <b><a class="btn btn-default" href="#change-plan"><i class="fa fa-credit-card"></i> Change</a></b>
+                            <div class="panel-body">
+                                <div class="row">
+                                    <div class="col-sm-3 lighten">
+                                        Payment Method
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <b>None</b>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <b><a class="btn btn-success" href="#change-payment-method"><i class="fa fa-credit-card"></i> Change Payment Method</a></b>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class=" panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">Payment History</h3>
-                        </div>
-                        <div class="panel-body smc-billing-history-rows">
-                            <div class="row" style="font-weight:bold">
-                                <div class="col-sm-2">
-                                    Date
-                                </div>
-                                <div class="col-sm-2">
-                                    Plan
-                                </div>
-                                <div class="col-sm-2">
-                                    Method
-                                </div>
-                                <div class="col-sm-2">
-                                    Receipt
-                                </div>
-                                <div class="col-sm-2">
-                                    Amount
-                                </div>
-                                <div class="col-sm-2">
-                                    Status
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class=" panel panel-default">
+                            <div class="panel-heading">
+                                <h3 class="panel-title">Payment History</h3>
+                            </div>
+                            <div class="panel-body smc-billing-history-rows">
+                                <div class="row" style="font-weight:bold">
+                                    <div class="col-sm-2">
+                                        Date
+                                    </div>
+                                    <div class="col-sm-2">
+                                        Description
+                                    </div>
+                                    <div class="col-sm-2">
+                                        Method
+                                    </div>
+                                    <div class="col-sm-2">
+                                        Receipt
+                                    </div>
+                                    <div class="col-sm-2">
+                                        Amount
+                                    </div>
+                                    <div class="col-sm-2">
+                                        Status
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -278,18 +276,12 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                 </div>
             </div>
             <div class="tab-pane active" id="account-settings-tab">
-                <div class="pull-right" style="margin-bottom: 1em;">
-                    <button class="btn btn-success btn-sm" type="submit" id="account-settings-change-settings-button"><i class="fa fa-save"> </i> Save</button>
+                <div style="margin: 1em;">
+                    <button class="btn btn-success" type="submit" id="account-settings-change-settings-button"><i class="fa fa-save"> </i> Save</button>
                     <!--<button class="btn" id="account-settings-cancel-changes-button" style="margin-right:3em;">Cancel</button>-->
-                    <a href="#sign-out" class="btn btn-primary btn-sm"><i class="fa fa-sign-out"> </i> Sign out</a>
+                    <a href="#sign-out" class="btn btn-primary"><i class="fa fa-sign-out"> </i> Sign out</a>
                 </div>
 
-                <div class="row">
-                    <!-- TODO: this is a temporary warning/note -- settings *should* take effect immediately, and there should be no save/cancel button. -->
-                    <span class="lighten">
-                        <h4 style="margin-left: 2em;">NOTE: Editor and terminal settings only apply to newly (re-)opened files after saving settings.</h4>
-                    </span>
-                </div>
                 <div class="row">
                     <div class="col-sm-6">
                         <div class="panel panel-default" id="account-settings-account">
@@ -329,7 +321,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                         <div class="panel panel-default" id="account-settings-terminal">
                             <div class="panel-heading">
                                 <div class="panel-title ">
-                                    Terminal
+                                    Terminal <span class="lighten">(settings applied to newly opened terminals after saving)</span>
                                 </div>
                             </div>
                             <div class="panel-body">
@@ -377,7 +369,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                         <div class="panel panel-default" id="account-settings-editor_settings">
                             <div class="panel-heading">
                                 <div class="panel-title">
-                                    Editor
+                                    Editor <span class="lighten">(settings applied to newly opened files after saving)</span>
                                 </div>
                             </div>
                             <div class="panel-body">
@@ -901,47 +893,8 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                 </div>
 
 
-            </div>
-
-
-            <div class="tab-pane" id="account-info-tab">
-                <div class="row">
-                    <div class="well hide col-sm-12 ">
-                        <div class="row">
-                            <div class="col-sm-3 " rel="tooltip" title="Your account type determines the limits on your Salvus account.  In addition to the free plan, other more powerful plans are available.">Account type</div>
-                            <div class="col-sm-7 "><strong id="account-settings-plan_name"></strong> (<a href="#account-settings-upgrade">upgrade</a>)</div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-sm-4 " rel="tooltip" title="Salvus limits the total space that your documents and data can occupy.">Storage</div>
-                            <div class="col-sm-8 "><span id="account-settings-storage_limit"></span> MB</div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-sm-4 " rel="tooltip" title="Salvus limits the maximum number of simultaneous compute sessions you can run at once, so that more people can use Salvus.">Session limit</div>
-                            <div class="col-sm-8 "><span id="account-settings-session_limit"></span> simultaneous sessions</div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-sm-4 " rel="tooltip" title="Salvus compute sessions are automatically terminated after the maximum session time is reached, so that compute resources can be shared amongst more users.">Maximum session time</div>
-                            <div class="col-sm-8 "><span id="account-settings-max_session_time"></span> minutes</div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-sm-4 " rel="tooltip" title="Salvus limits the amount of RAM you can use in a compute session.">RAM limit</div>
-                            <div class="col-sm-8 "><span id="account-settings-ram_limit"></span> GB</div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-sm-4 " rel="tooltip" title="">Support level</div>
-                            <div class="col-sm-8 "><b><span id="account-settings-support_level"></span></b></div>
-                        </div>
-                    </div>
-                </div>
 
             </div>
-
-
         </div>
     </div>
 

@@ -1042,6 +1042,14 @@ salvus_client.on "signed_in", () ->
 # Billing code
 ################################################
 
+change_payment_method = () ->
+    bootbox.alert("Changing payment method not yet implemented.")
+    return false
+
+$("a[href=#change-payment-method]").click(change_payment_method)
+
+
+
 # TESTS:
 
 billing_history_row = $(".smc-billing-history-row")
