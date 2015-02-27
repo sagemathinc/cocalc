@@ -1042,13 +1042,56 @@ salvus_client.on "signed_in", () ->
 # Billing code
 ################################################
 
+# TODO: This will have to get set based on info from server (from database?)
+# The following is the official test publishable API key.
+Stripe.setPublishableKey('pk_test_6pRNASCoBOKtIshFeQd4XMUh')
+
 change_payment_method = () ->
-    bootbox.alert("Changing payment method not yet implemented.")
+    $("#smc-credit-card-number").val('')
+    $("a[href=#change-payment-method]").addClass('disabled')
+    $(".smc-payment-info").show()
+    return false
+
+close_payment_info = () ->
+    $(".smc-payment-info").hide()
+    $("a[href=#change-payment-method]").removeClass('disabled')
+    return false
+
+clear_payment_info = () ->
+    $(".smc-payment-info").find("input").val('')
+
+submit_payment_info = () ->
+    close_payment_info()
+    form = $(".smc-payment-info").find("form")
+    Stripe.card.createToken form, (status, response) ->
+        clear_payment_info()
+        console.log("status=", status)
+        console.log("response=", response)
+        if status == 200
+            $(".smc-payment-method").text("Credit Card")
     return false
 
 $("a[href=#change-payment-method]").click(change_payment_method)
+$("a[href=#submit-payment-info]").click(submit_payment_info)
 
+$("a[href=#cancel-payment-info]").click () ->
+    clear_payment_info()
+    close_payment_info()
 
+$("#smc-credit-card-number").validateCreditCard (result) ->
+    console.log("validate", result)
+    a = $(".smc-credit-card-number")
+    a.find("i").hide()
+    if result.valid
+        i = a.find(".fa-cc-#{result.card_type.name}")
+        if i.length > 0
+            i.show()
+        else
+            a.find(".fa-credit-card").show()
+        a.find(".fa-check").show()
+        a.find(".smc-credit-card-invalid").hide()
+    else
+        a.find(".smc-credit-card-invalid").show()
 
 # TESTS:
 
