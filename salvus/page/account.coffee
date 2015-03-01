@@ -1058,6 +1058,7 @@ change_payment_method = () ->
     $("#smc-credit-card-number").val('')
     $("a[href=#change-payment-method]").addClass('disabled')
     $(".smc-payment-info").show()
+    $("a[href=#submit-payment-info]").removeClass('disabled')
     return false
 
 close_payment_info = () ->
@@ -1072,7 +1073,7 @@ clear_payment_info = () ->
 
 submit_payment_info = () ->
     form = $(".smc-payment-info").find("form")
-    $("a[href=#submit-payment-info]").icon_spin(start:true)
+    $("a[href=#submit-payment-info]").icon_spin(start:true).addClass('disabled')
     Stripe.card.createToken form, (status, response) ->
         $("a[href=#submit-payment-info]").icon_spin(start:false)
         console.log("status=", status)
