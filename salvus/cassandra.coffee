@@ -1426,8 +1426,7 @@ class exports.Salvus extends exports.Cassandra
                              'default_system', 'evaluate_key',
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
                              'autosave', 'terminal', 'editor_settings', 'other_settings',
-                             'groups',
-                             'billing_accounts']
+                             'groups']
 
         account = undefined
         if opts.email_address?

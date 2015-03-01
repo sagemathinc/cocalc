@@ -120,11 +120,8 @@ CREATE TABLE accounts (
        delete=revoke all of them when the user changes their password. */
     remember_me          set<varchar>,
 
-    /* non-secret (but private to this user, e.g., last 4 digits of card) information */
-    /* The key is the billing provider, e.g., 'stripe', and the value is json information. */
-    billing_accounts     map<varchar, varchar>,
-    /* Points in time when we billed this account, and for what. */
-    billing_history      map<timestamp, varchar>,
+    /* The stripe customer id, if this user has setup a billing account at stripe. */
+    stripe_customer_id   varchar;
 );
 
 CREATE TABLE email_address_to_account_id (

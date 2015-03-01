@@ -463,10 +463,13 @@ class exports.Connection extends EventEmitter
                     return
 
         id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.
-        f = @call_callbacks[id]
-        if f?
-            if f != null
-                f(null, mesg)
+        v = @call_callbacks[id]
+        if v?
+            {cb, error_event} = v
+            if error_event and mesg.event == 'error'
+                cb(mesg.error)
+            else
+                cb(undefined, mesg)
             delete @call_callbacks[id]
 
         # Finally, give other listeners a chance to do something with this message.
@@ -631,9 +634,10 @@ class exports.Connection extends EventEmitter
         #    * If the timeout is reached before any messages come back, delete the callback and stop listening.
         #      However, if the message later arrives it may still be handled by @handle_message.
         opts = defaults opts,
-            message : required
-            timeout : undefined
-            cb      : undefined
+            message     : required
+            timeout     : undefined
+            error_event : false  # if true, turn error events into just a normal err
+            cb          : undefined
         if not opts.cb?
             @send(opts.message)
             return
@@ -642,7 +646,11 @@ class exports.Connection extends EventEmitter
             opts.message.id = id
         else
             id = opts.message.id
-        @call_callbacks[id] = opts.cb
+
+        @call_callbacks[id] =
+            cb          : opts.cb
+            error_event : opts.error_event
+
         @send(opts.message)
         if opts.timeout
             setTimeout(
@@ -650,7 +658,7 @@ class exports.Connection extends EventEmitter
                     if @call_callbacks[id]?
                         error = "Timeout after #{opts.timeout} seconds"
                         opts.cb(error, message.error(id:id, error:error))
-                        @call_callbacks[id] = null
+                        delete @call_callbacks[id]
                 ), opts.timeout*1000
             )
 
@@ -2185,6 +2193,70 @@ class exports.Connection extends EventEmitter
     #################################################
     log_error: (error) =>
         @call(message : message.log_client_error(error:error))
+
+
+    ######################################################################
+    # stripe payments api
+    ######################################################################
+    stripe_create_card: (opts) =>
+        opts = defaults opts,
+            token : required
+            cb    : required
+        @call
+            message     : message.stripe_create_card(token: opts.token)
+            error_event : true
+            cb          : opts.cb
+
+    stripe_delete_card: (opts) =>
+        opts = defaults opts,
+            card_id : required
+            cb    : required
+        @call
+            message     : message.stripe_delete_card(card_id: opts.card_id)
+            error_event : true
+            cb          : opts.cb
+
+    stripe_update_card: (opts) =>
+        opts = defaults opts,
+            card_id : required
+            info    : required    # see https://stripe.com/docs/api/node#update_card
+            cb      : required
+        @call
+            message     : message.stripe_update_card(card_id: opts.card_id, info:opts.info)
+            error_event : true
+            cb          : opts.cb
+
+    # gets custormer info (if any) and stripe public api key
+    # for this user, if they are logged in
+    stripe_get_customer: (opts) =>
+        opts = defaults opts,
+            cb    : required
+        @call
+            message     : message.stripe_get_customer()
+            error_event : true
+            cb          : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else
+                    resp =
+                        stripe_publishable_key : mesg.stripe_publishable_key
+                        customer               : mesg.customer
+                    opts.cb(undefined, resp)
+
+    # gets list of past stripe charges for this account.
+    stripe_get_charges: (opts) =>
+        opts = defaults opts,
+            cb    : required
+        @call
+            message     : message.stripe_get_charges()
+            error_event : true
+            cb          : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, mesg.charges)
+
+
 
 #################################################
 # Other account Management functionality shared between client and server

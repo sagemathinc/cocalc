@@ -550,9 +550,6 @@ class AccountSettings
                 delete @settings['id']
                 delete @settings['event']
 
-                if @settings.billing_accounts?.stripe_publishable_key
-                    $("a[href=#change-payment-method]").removeClass('disabled')
-
                 cb?()
 
     git_author: () =>
@@ -1038,92 +1035,5 @@ salvus_client.on "signed_in", () ->
     require('projects').update_project_list()
 
 
-
-
-
-################################################
-# Billing code
-################################################
-
-change_payment_method = () ->
-
-    stripe_publishable_key = account_settings.settings?.billing_accounts?.stripe_publishable_key
-    if not stripe_publishable_key?
-        bootbox.alert("Billing is not currently available.")
-        return
-    Stripe.setPublishableKey(stripe_publishable_key)
-
-    clear_payment_info()
-    $(".smc-payment-method").hide()
-    $("#smc-credit-card-number").val('')
-    $("a[href=#change-payment-method]").addClass('disabled')
-    $(".smc-payment-info").show()
-    $("a[href=#submit-payment-info]").removeClass('disabled')
-    return false
-
-close_payment_info = () ->
-    $(".smc-payment-info").hide()
-    $("a[href=#change-payment-method]").removeClass('disabled')
-    $(".smc-payment-method").show()
-    return false
-
-clear_payment_info = () ->
-    $(".smc-payment-info").find("input").val('')
-    $(".smc-payment-error-row").hide()
-
-submit_payment_info = () ->
-    form = $(".smc-payment-info").find("form")
-    $("a[href=#submit-payment-info]").icon_spin(start:true).addClass('disabled')
-    Stripe.card.createToken form, (status, response) ->
-        $("a[href=#submit-payment-info]").icon_spin(start:false)
-        console.log("status=", status)
-        console.log("response=", response)
-        if status == 200
-            $(".smc-payment-method").text("#{response.card.brand} card ending in #{response.card.last4} ")
-            clear_payment_info()
-            close_payment_info()
-        else
-            $(".smc-payment-error-row").show()
-            $(".smc-payment-errors").text(response.error.message)
-    return false
-
-$("a[href=#change-payment-method]").click(change_payment_method)
-$("a[href=#submit-payment-info]").click(submit_payment_info)
-
-$("a[href=#cancel-payment-info]").click () ->
-    clear_payment_info()
-    close_payment_info()
-
-$("#smc-credit-card-number").validateCreditCard (result) ->
-    a = $(".smc-credit-card-number")
-    a.find("i").hide()
-    if result.valid
-        i = a.find(".fa-cc-#{result.card_type.name}")
-        if i.length > 0
-            i.show()
-        else
-            a.find(".fa-credit-card").show()
-        a.find(".fa-check").show()
-        a.find(".smc-credit-card-invalid").hide()
-    else
-        a.find(".smc-credit-card-invalid").show()
-
-# TESTS:
-
-billing_history_row = $(".smc-billing-history-row")
-billing_history_append = (entry) ->
-    e = billing_history_row.clone().show()
-    for k, v of entry
-        e.find(".smc-billing-history-entry-#{k}").text(v)
-    $(".smc-billing-history-rows").append(e)
-
-exports.test_billing = () ->
-    billing_history_append
-        date    : '2014-01-29'
-        plan    : 'Small'
-        method  : 'Visa 4*** **** **** 1199'
-        receipt : '...'
-        amount  : 'USD $7.00'
-        status  : 'Succeeded'
 
 

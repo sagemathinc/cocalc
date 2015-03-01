@@ -1439,11 +1439,6 @@ class Client extends EventEmitter
                         @groups = data.groups
                         @account_settings = data
 
-                        # Billing info: will put info about state of billing for this user here.
-                        if not data.billing_accounts?
-                            data.billing_accounts = {}
-                        data.billing_accounts.stripe_publishable_key = billing_settings?.stripe_publishable_key   # not actually a *setting*.
-
                         # Send account settings back to user.
                         data.id = mesg.id
                         @push_to_client(message.account_settings(data))
