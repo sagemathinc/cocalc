@@ -5667,10 +5667,7 @@ billing_settings = undefined
 update_billing_settings = (cb) ->
     winston.debug("update_billing_providers")
 
-    if not billing_settings?
-        billing_settings = {}
-        # query database once every 15 minutes to check for changes in the billing info table.
-        setInterval(update_billing_settings, 1000*60*15)
+    billing_settings = {}
 
     d = database.key_value_store(name:'global_admin_settings')
     f = (key, cb) ->

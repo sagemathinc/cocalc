@@ -550,6 +550,9 @@ class AccountSettings
                 delete @settings['id']
                 delete @settings['event']
 
+                if @settings.billing_accounts?.stripe_publishable_key
+                    $("a[href=#change-payment-method]").removeClass('disabled')
+
                 cb?()
 
     git_author: () =>
