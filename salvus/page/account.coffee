@@ -1042,11 +1042,14 @@ salvus_client.on "signed_in", () ->
 # Billing code
 ################################################
 
-# TODO: This will have to get set based on info from server (from database?)
-# The following is the official test publishable API key.
-Stripe.setPublishableKey('pk_test_6pRNASCoBOKtIshFeQd4XMUh')
-
 change_payment_method = () ->
+
+    stripe_publishable_key = account_settings.settings?.billing_accounts?.stripe_publishable_key
+    if not stripe_publishable_key?
+        bootbox.alert("Billing is not currently available.")
+        return
+    Stripe.setPublishableKey(stripe_publishable_key)
+
     clear_payment_info()
     $(".smc-payment-method").hide()
     $("#smc-credit-card-number").val('')

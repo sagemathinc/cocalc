@@ -580,7 +580,8 @@ exports.restricted_account_settings =
     connect_Github       : undefined
     connect_Google       : undefined
     connect_Dropbox      : undefined
-    groups               : undefined  # only admins can actuall;y change this...
+    groups               : undefined  # only admins can actually change this...
+    billing_accounts     : undefined  # info about billing: only hub changes this...
 
 # these can be changed without additional re-typing of the password
 # (of course, user must have somehow logged in):

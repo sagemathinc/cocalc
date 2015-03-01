@@ -829,7 +829,7 @@ class Client extends EventEmitter
                         else
                             # good -- sign them in if not already
                             if @account_id != signed_in_mesg.account_id
-                                signed_in_mesg.hub = program.host + ':' + program.port
+                                signed_in_mesg.hub     = program.host + ':' + program.port
                                 @hash_session_id = hash
                                 @signed_in(signed_in_mesg)
                                 @push_to_client(signed_in_mesg)
@@ -1421,7 +1421,7 @@ class Client extends EventEmitter
                     if err
                         @error_to_client(id:mesg.id, error:err)
                     else
-                        # delete password hash -- user doesn't want to see/know that.
+                        # delete password hash -- user doesn't want/need to see/know that.
                         delete data['password_hash']
 
                         # Set defaults for unset keys.  We do this so that in the
@@ -1438,6 +1438,11 @@ class Client extends EventEmitter
                         # deleted automatically.
                         @groups = data.groups
                         @account_settings = data
+
+                        # Billing info: will put info about state of billing for this user here.
+                        if not data.billing_accounts?
+                            data.billing_accounts = {}
+                        data.billing_accounts.stripe_publishable_key = billing_settings?.stripe_publishable_key   # not actually a *setting*.
 
                         # Send account settings back to user.
                         data.id = mesg.id
@@ -5652,7 +5657,32 @@ init_bup_server = (cb) ->
             bup_server = x
             cb?(err)
 
+#############################################
+# Billing settings
+# How to set in cqlsh:
+#    update key_value set value='"..."' where key='"stripe_publishable_key"' and name='"global_admin_settings"';
+#    update key_value set value='"..."' where key='"stripe_secret_key"' and name='"global_admin_settings"';
+#############################################
+billing_settings = undefined
+update_billing_settings = (cb) ->
+    winston.debug("update_billing_providers")
 
+    if not billing_settings?
+        billing_settings = {}
+        # query database once every 15 minutes to check for changes in the billing info table.
+        setInterval(update_billing_settings, 1000*60*15)
+
+    d = database.key_value_store(name:'global_admin_settings')
+    f = (key, cb) ->
+        d.get
+            key : key
+            cb  : (err, value) ->
+                if err
+                    cb(err)
+                else
+                    billing_settings[key] = value
+                    cb()
+    async.map(['stripe_publishable_key', 'stripe_secret_key'], f, ((err) -> cb?(err)))
 
 #############################################
 # Start everything running
@@ -5674,6 +5704,8 @@ exports.start_server = start_server = () ->
                     winston.debug("connected to database.")
                     init_salvus_version()
                     cb()
+        (cb) ->
+            update_billing_settings(cb)
         (cb) ->
             init_bup_server(cb)
         (cb) ->
