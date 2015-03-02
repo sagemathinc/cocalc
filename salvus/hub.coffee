@@ -2986,6 +2986,18 @@ class Client extends EventEmitter
                 else
                     cb(undefined, customer)
 
+    stripe_error_to_client: (opts) =>
+        opts = defaults opts,
+            id    : required
+            error : required
+        err = opts.error
+        if typeof(err) != 'string'
+            if err.stack?
+                err = err.stack.split('\n')[0]
+            else
+                err = misc.to_json(err)
+        @error_to_client(id:opts.id, error:err)
+
     # get information from stripe about this customer, e.g., subscriptions, payment methods, etc.
     mesg_stripe_get_customer: (mesg) =>
         @stripe_get_customer mesg.id, (err, customer) =>
@@ -3003,13 +3015,10 @@ class Client extends EventEmitter
             # invalid mesg
             @error_to_client(id:mesg.id, error:"missing token")
             return
-
-        customer_id = undefined
-        @stripe_get_customer_id mesg.id, (err, _customer_id) =>
+        @stripe_get_customer_id mesg.id, (err, customer_id) =>
             if err  # database or other major error (e.g., no stripe conf)
                     # @get_stripe_customer sends error message to user
                 return
-            customer_id = _customer_id
             if not customer_id?
                 # create new stripe customer (from card token)
                 description = undefined
@@ -3049,7 +3058,7 @@ class Client extends EventEmitter
                             cb    : cb
                 ], (err) =>
                     if err
-                        @error_to_client(id:mesg.id, error:err)
+                        @stripe_error_to_client(id:mesg.id, error:err)
                     else
                         @success_to_client(id:mesg.id)
                 )
@@ -3057,12 +3066,28 @@ class Client extends EventEmitter
                 # add card to existing stripe customer
                 stripe.customers.createCard customer_id, {card:mesg.token}, (err, card) =>
                     if err
-                        @error_to_client(id:mesg.id, error:err)
+                        @stripe_error_to_client(id:mesg.id, error:err)
                     else
                         @success_to_client(id:mesg.id)
 
     # delete a payment method for this user
     mesg_stripe_delete_card: (mesg) =>
+        if not mesg.card_id?
+            # invalid mesg
+            @error_to_client(id:mesg.id, error:"missing card_id")
+            return
+        @stripe_get_customer_id mesg.id, (err, customer_id) =>
+            if err  # database or other major error (e.g., no stripe conf)
+                    # @get_stripe_customer sends error message to user
+                return
+            if not customer_id?
+                @stripe_error_to_client(id:mesg.id, error:"customer not defined")
+                return
+            stripe.customers.deleteCard customer_id, mesg.card_id, (err, confirmation) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
 
     # modify a payment method
     mesg_stripe_update_card: (mesg) =>
