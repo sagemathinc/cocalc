@@ -2947,6 +2947,18 @@ class Client extends EventEmitter
     ######################################################
     #Stripe-integration billing code
     ######################################################
+    ensure_fields: (mesg, fields) =>
+        if not mesg.id?
+            return false
+        if typeof(fields) == 'string'
+            fields = fields.split(' ')
+        for f in fields
+            if not mesg[f.trim()]?
+                err = "invalid message; must have #{f} field"
+                @error_to_client(id:mesg.id, error:err)
+                return false
+        return true
+
     stripe_get_customer_id: (id, cb) =>  # id = message id
         # cb(err, customer_id)
         #  - if err, then an error message with id the given id is sent to the
@@ -2970,6 +2982,18 @@ class Client extends EventEmitter
                             cb(err)
                         else
                             cb(undefined, r.stripe_customer_id)
+
+    # like stripe_get_customer_id, except sends an error to the
+    # user if they aren't registered yet, instead of returning undefined.
+    stripe_need_customer_id: (id, cb) =>
+        @stripe_get_customer_id id, (err, customer_id) =>
+            if err
+                cb(err); return
+            if not customer_id?
+                err = "customer not defined"
+                @stripe_error_to_client(id:id, error:err)
+                cb(err); return
+            cb(undefined, customer_id)
 
     stripe_get_customer: (id, cb) =>
         @stripe_get_customer_id id, (err, customer_id) =>
@@ -3011,9 +3035,7 @@ class Client extends EventEmitter
 
     # create a payment method (credit card) in stripe for this user
     mesg_stripe_create_card: (mesg) =>
-        if not mesg.token?
-            # invalid mesg
-            @error_to_client(id:mesg.id, error:"missing token")
+        if not @ensure_fields(mesg, 'token')
             return
         @stripe_get_customer_id mesg.id, (err, customer_id) =>
             if err  # database or other major error (e.g., no stripe conf)
@@ -3072,15 +3094,10 @@ class Client extends EventEmitter
 
     # delete a payment method for this user
     mesg_stripe_delete_card: (mesg) =>
-        if not mesg.card_id?
-            # invalid mesg
-            @error_to_client(id:mesg.id, error:"missing card_id")
+        if not @ensure_fields(mesg, 'card_id')
             return
-        @stripe_get_customer_id mesg.id, (err, customer_id) =>
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
-                return
-            if not customer_id?
-                @stripe_error_to_client(id:mesg.id, error:"customer not defined")
                 return
             stripe.customers.deleteCard customer_id, mesg.card_id, (err, confirmation) =>
                 if err
@@ -3090,21 +3107,13 @@ class Client extends EventEmitter
 
     # modify a payment method
     mesg_stripe_update_card: (mesg) =>
-        if not mesg.card_id?
-            # invalid mesg
-            @error_to_client(id:mesg.id, error:"missing card_id")
-            return
-        if not mesg.info?
-            @error_to_client(id:mesg.id, error:"missing info")
+        if not @ensure_fields(mesg, 'card_id info')
             return
         if mesg.info.metadata?
             @error_to_client(id:mesg.id, error:"you may not change card metadata")
             return
-        @stripe_get_customer_id mesg.id, (err, customer_id) =>
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
-                return
-            if not customer_id?
-                @stripe_error_to_client(id:mesg.id, error:"customer not defined")
                 return
             stripe.customers.updateCard customer_id, mesg.card_id, mesg.info, (err, confirmation) =>
                 if err
@@ -3122,6 +3131,72 @@ class Client extends EventEmitter
 
     # create a subscription for this user, using some billing method
     mesg_stripe_create_subscription: (mesg) =>
+        if not @ensure_fields(mesg, 'plan')
+            return
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            projects = mesg.projects
+            if not mesg.quantity?
+                mesg.quantity = 1
+            # sanity check that each thing in project is a project_id
+            if projects?
+                for project_id in projects
+                    if not misc.is_valid_uuid_string(project_id)
+                        @error_to_client(id:mesg.id, error:"invalid project id #{project_id}")
+                        return
+                # TODO: may need more sophisticated sanity check that number
+                # of projects is within the subscription bound, i.e.,
+                # that mesg.quantity * number of projects for this plan is at most the number
+                # of projects specified.  At least, would need this if allow more than
+                # one project for a plan (not sure yet).
+                if projects.length > mesg.quantity
+                    @error_to_client(id:mesg.id, error:"number of projects must be less than quantity")
+                    return
+
+            options =
+                plan     : mesg.plan
+                quantity : mesg.quantity
+                coupon   : mesg.coupon
+                metadata :
+                    projects : misc.to_json(projects)
+            subscription = undefined
+            async.series([
+                (cb) =>
+                    stripe.customers.createSubscription customer_id, options, (err, s) =>
+                        if err
+                            cb(err)
+                        else
+                            subscription = s
+                            cb()
+                (cb) =>
+                    # Successfully added subscription; now save info in our database about subscriptions.
+                    database.cql
+                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions+{'#{subscription.id}'} WHERE project_id IN (#{projects.join(',')})"
+                        cb : (err) =>
+                            if err
+                                cb(err)
+                                # BAD situation -- adding to our database failed.
+                                # Try to at least cancel the subscription to stripe - likely to work, since
+                                # creating subscription above just worked.
+                                stripe.customers.cancelSubscription customer_id, subscription.id, (err, s) =>
+                                    if err
+                                        # OK, this is really bad.  We made a subscription, but couldn't
+                                        # record that in our database.
+                                        send_email
+                                            to      : 'help@sagemath.com'
+                                            subject : "Stripe billing issue **needing** human inspection"
+                                            body    : "Issue creating subscription.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription.id}"
+                            else
+                                cb()
+            ], (err) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
+            )
+
+
 
     # cancel a subscription for this user
     mesg_stripe_cancel_subscription: (mesg) =>

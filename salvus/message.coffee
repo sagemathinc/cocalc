@@ -1660,7 +1660,9 @@ message
     event    : 'stripe_create_subscription'
     id       : undefined
     plan     : required   # name of plan
-    projects : required   # list of projects to which the plan applies
+    quantity : 1
+    coupon   : undefined
+    projects : undefined  # list of projects to which the plan applies
 
 # Delete a subscription to a plan
 message
