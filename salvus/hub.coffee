@@ -3077,8 +3077,7 @@ class Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"missing card_id")
             return
         @stripe_get_customer_id mesg.id, (err, customer_id) =>
-            if err  # database or other major error (e.g., no stripe conf)
-                    # @get_stripe_customer sends error message to user
+            if err
                 return
             if not customer_id?
                 @stripe_error_to_client(id:mesg.id, error:"customer not defined")
@@ -3091,6 +3090,27 @@ class Client extends EventEmitter
 
     # modify a payment method
     mesg_stripe_update_card: (mesg) =>
+        if not mesg.card_id?
+            # invalid mesg
+            @error_to_client(id:mesg.id, error:"missing card_id")
+            return
+        if not mesg.info?
+            @error_to_client(id:mesg.id, error:"missing info")
+            return
+        if mesg.info.metadata?
+            @error_to_client(id:mesg.id, error:"you may not change card metadata")
+            return
+        @stripe_get_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            if not customer_id?
+                @stripe_error_to_client(id:mesg.id, error:"customer not defined")
+                return
+            stripe.customers.updateCard customer_id, mesg.card_id, mesg.info, (err, confirmation) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
 
     # get descriptions of the available plans that the user might subscribe to
     mesg_stripe_get_plans: (mesg) =>

@@ -1639,7 +1639,7 @@ message
 message
     event   : 'stripe_update_card'
     card_id : required
-    info    : required
+    info    : required                  # see https://stripe.com/docs/api/node#update_card, except we don't allow changing metadata
     id      : undefined
 
 
