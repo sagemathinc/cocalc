@@ -2944,6 +2944,144 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.user_names(user_names:user_names, id:mesg.id))
 
+    ######################################################
+    #Stripe-integration billing code
+    ######################################################
+    stripe_get_customer_id: (id, cb) =>  # id = message id
+        # cb(err, customer_id)
+        #  - if err, then an error message with id the given id is sent to the
+        #    user, so client code doesn't have to
+        #  - if no customer info yet with stripe, then NOT an error; instead,
+        #    customer_id is undefined.
+        if not stripe?
+            err = "stripe billing not configured"
+            @error_to_client(id:id, error:err)
+            cb(err)
+        else
+            if @stripe_customer_id?
+                cb(undefined, @stripe_customer_id)
+            else
+                database.get_account
+                    columns    : ['stripe_customer_id']
+                    account_id : @account_id
+                    cb         : (err, r) =>
+                        if err
+                            @error_to_client(id:id, error:err)
+                            cb(err)
+                        else
+                            cb(undefined, r.stripe_customer_id)
+
+    stripe_get_customer: (id, cb) =>
+        @stripe_get_customer_id id, (err, customer_id) =>
+            if err
+                cb(err)
+                return
+            if not customer_id?
+                cb(undefined, undefined)
+                return
+            stripe.customers.retrieve customer_id, (err, customer) =>
+                if err
+                    @error_to_client(id:id, error:err)
+                    cb(err)
+                else
+                    cb(undefined, customer)
+
+    # get information from stripe about this customer, e.g., subscriptions, payment methods, etc.
+    mesg_stripe_get_customer: (mesg) =>
+        @stripe_get_customer mesg.id, (err, customer) =>
+            if err
+                return
+            resp = message.stripe_customer
+                id                     : mesg.id
+                stripe_publishable_key : if stripe? then stripe.publishable_key
+                customer               : customer
+            @push_to_client(resp)
+
+    # create a payment method (credit card) in stripe for this user
+    mesg_stripe_create_card: (mesg) =>
+        if not mesg.token?
+            # invalid mesg
+            @error_to_client(id:mesg.id, error:"missing token")
+            return
+
+        customer_id = undefined
+        @stripe_get_customer_id mesg.id, (err, _customer_id) =>
+            if err  # database or other major error (e.g., no stripe conf)
+                    # @get_stripe_customer sends error message to user
+                return
+            customer_id = _customer_id
+            if not customer_id?
+                # create new stripe customer (from card token)
+                description = undefined
+                email = undefined
+                async.series([
+                    (cb) =>
+                        database.get_account
+                            columns    : ['email_address', 'first_name', 'last_name']
+                            account_id : @account_id
+                            cb         : (err, r) =>
+                                if err
+                                    cb(err)
+                                else
+                                    email = r.email_address
+                                    description = "#{r.first_name} #{r.last_name}"
+                                    cb()
+                    (cb) =>
+                        stripe.customers.create
+                            source      : mesg.token
+                            description : description
+                            email       : email
+                            metadata    :
+                                account_id : @account_id
+                         ,
+                            (err, customer) =>
+                                if err
+                                    cb(err)
+                                else
+                                    customer_id = customer.id
+                                    cb()
+                    (cb) =>
+                        # success; now save customer id token to database
+                        database.update
+                            table : 'accounts'
+                            set   : {stripe_customer_id : customer_id}
+                            where : {account_id         : @account_id}
+                            cb    : cb
+                ], (err) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @success_to_client(id:mesg.id)
+                )
+            else
+                # add card to existing stripe customer
+                stripe.customers.createCard customer_id, {card:mesg.token}, (err, card) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @success_to_client(id:mesg.id)
+
+    # delete a payment method for this user
+    mesg_stripe_delete_card: (mesg) =>
+
+    # modify a payment method
+    mesg_stripe_update_card: (mesg) =>
+
+    # get descriptions of the available plans that the user might subscribe to
+    mesg_stripe_get_plans: (mesg) =>
+
+    # create a subscription for this user, using some billing method
+    mesg_stripe_create_subscription: (mesg) =>
+
+    # cancel a subscription for this user
+    mesg_stripe_cancel_subscription: (mesg) =>
+
+    # edit a subscription for this user
+    mesg_stripe_update_subscription: (mesg) =>
+
+    # get a list of all the charges this customer has ever had.
+    mesg_stripe_get_charges: (mesg) =>
+
 
 ##############################
 # User activity tracking
@@ -5658,23 +5796,39 @@ init_bup_server = (cb) ->
 #    update key_value set value='"..."' where key='"stripe_publishable_key"' and name='"global_admin_settings"';
 #    update key_value set value='"..."' where key='"stripe_secret_key"' and name='"global_admin_settings"';
 #############################################
-billing_settings = undefined
-update_billing_settings = (cb) ->
-    winston.debug("update_billing_providers")
+stripe  = undefined
+init_stripe = (cb) ->
+    winston.debug("init_stripe")
 
     billing_settings = {}
 
     d = database.key_value_store(name:'global_admin_settings')
-    f = (key, cb) ->
-        d.get
-            key : key
-            cb  : (err, value) ->
-                if err
-                    cb(err)
-                else
-                    billing_settings[key] = value
-                    cb()
-    async.map(['stripe_publishable_key', 'stripe_secret_key'], f, ((err) -> cb?(err)))
+    async.series([
+        (cb) ->
+            d.get
+                key : 'stripe_secret_key'
+                cb  : (err, secret_key) ->
+                    if err
+                        cb(err)
+                    else
+                        stripe = require("stripe")(secret_key)
+                        cb()
+        (cb) ->
+            d.get
+                key : 'stripe_publishable_key'
+                cb  : (err, value) ->
+                    if err
+                        cb(err)
+                    else
+                        stripe.publishable_key = value
+                        cb()
+    ], (err) ->
+        if err
+            winston.debug("error initializing stripe: #{err}")
+        else
+            winston.debug("successfully initialized stripe api")
+        cb?(err)
+    )
 
 #############################################
 # Start everything running
@@ -5697,7 +5851,7 @@ exports.start_server = start_server = () ->
                     init_salvus_version()
                     cb()
         (cb) ->
-            update_billing_settings(cb)
+            init_stripe(cb)
         (cb) ->
             init_bup_server(cb)
         (cb) ->

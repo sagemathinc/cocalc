@@ -1613,6 +1613,18 @@ message
 
 # Set the stripe payment method for this user.
 
+# customer info
+message
+    event   : 'stripe_get_customer'
+    id      : undefined
+
+message
+    event    : 'stripe_customer'
+    id       : undefined
+    customer : undefined                 # if user already has a stripe customer account, info about it.
+    stripe_publishable_key : undefined   # if stripe is configured for this SMC instance, this is the public API key.
+
+
 # card
 message
     event   : 'stripe_create_card'
@@ -1662,17 +1674,6 @@ message
     id      : undefined
     subscription_id : required
     info    : required   # what to change, e.g., plan type, projects, etc.; also cancel subscription.
-
-# customer info
-message
-    event   : 'stripe_get_customer'
-    id      : undefined
-
-message
-    event    : 'stripe_customer'
-    id       : undefined
-    customer : undefined   # if user already has a stripe customer account, info about it.
-    stripe_publishable_key : undefined   # if stripe is configured for this SMC instance, this is the public API key.
 
 # charges
 message

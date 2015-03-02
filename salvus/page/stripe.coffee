@@ -24,39 +24,59 @@
 # Stripe Billing code
 ################################################
 
-misc     = require("misc")
+async           = require('async')
+misc            = require('misc')
+defaults        = misc.defaults
+required        = defaults.required
 
-defaults = misc.defaults
-required = defaults.required
-
+{salvus_client} = require('salvus_client')
 
 exports.stripe_user_interface = (opts) ->
     opts = defaults opts,
         stripe_publishable_key : required
         element                : required
-    return new STRIPE(stripe_publishable_key, element)
+    return new STRIPE(opts.stripe_publishable_key, opts.element)
+
+templates = $(".smc-billing-templates")
 
 class STRIPE
     constructor: (@stripe_publishable_key, elt) ->
-        Stripe.setPublishableKey(stripe_publishable_key)
-        @element = $(".smc-stripe-billing-template").clone().show()
+        Stripe.setPublishableKey(@stripe_publishable_key)
+        @element = templates.find(".smc-stripe-billing-page").clone()
         elt.empty()
         elt.append(@element)
         @init()
 
     init: () =>
+        @elt_payment_methods = @element.find(".smc-stripe-billing-page-payment-methods")
 
-        @billing_history_row = $(".smc-billing-history-row")
 
-        $("a[href=#new-payment-method]").click(new_payment_method)
-        $("a[href=#submit-payment-info]").click(submit_payment_info)
+        @element.find("a[href=#new-payment-method]").click(@new_payment_method)
 
-        $("a[href=#cancel-payment-info]").click () ->
-            clear_payment_info()
-            close_payment_info()
 
-        $("#smc-credit-card-number").validateCreditCard (result) ->
-            a = $(".smc-credit-card-number")
+    set_customer: (customer) =>
+        @customer = customer
+
+    render: () =>
+        console.log 'render (not done) '
+
+    new_payment_method: () =>
+
+        btn = @element.find("a[href=#new-payment-method]")
+        btn.addClass('disabled')  # only re-enable after save/cancel editing one card.
+
+        # clone a copy of the payment method row
+        row = templates.find(".smc-payment-method-row").clone()
+
+        # insert new payment method row into list of payment methods at the top
+        @elt_payment_methods.prepend(row)
+
+        row.find(".smc-payment-method").hide()
+        row.find("a[href=#update-payment-method]").hide()
+        row.find(".smc-payment-edit").show()
+
+        row.find("#smc-credit-card-number").validateCreditCard (result) =>
+            a = row.find(".smc-credit-card-number")
             a.find("i").hide()
             if result.valid
                 i = a.find(".fa-cc-#{result.card_type.name}")
@@ -69,61 +89,53 @@ class STRIPE
             else
                 a.find(".smc-credit-card-invalid").show()
 
+        row.find("a[href=#submit-payment-info]").click () =>
+            form = row.find("form")
+            btn.icon_spin(start:true).addClass('disabled')
+            response = undefined
+            async.series([
+                (cb) =>
+                    Stripe.card.createToken form, (status, _response) =>
+                        console.log("status=", status)
+                        console.log("response=", _response)
+                        if status != 200
+                            cb(_response.error.message)
+                        else
+                            response = _response
+                            cb()
+                (cb) =>
+                    salvus_client.stripe_create_card
+                        token : response.id
+                        cb    : cb
+            ], (err) =>
+                btn.icon_spin(false).removeClass('disabled')
+                if err
+                    row.find(".smc-payment-error-row").show()
+                    row.find(".smc-payment-errors").text(err)
+                else
+                    row.find(".smc-payment-edit").hide()
+                    row.find(".smc-payment-info").find("input").val('')
+                    row.find(".smc-payment-error-row").hide()
+                    row.find(".smc-payment-method").show().text("#{response.card.brand} card ending in #{response.card.last4} ")
+                    row.find("a[href=#update-payment-method]").show()
+            )
+            return false
 
-    new_payment_method: () =>
+        row.find("a[href=#cancel-payment-info]").click () =>
+            btn.removeClass('disabled')
+            row.find(".smc-payment-edit").hide()
+            row.find(".smc-payment-method").show()
 
-        # TODO: change to load this right when billing tab is requested
-        stripe_publishable_key = account_settings.settings?.billing_accounts?.stripe_publishable_key
-        if not stripe_publishable_key?
-            bootbox.alert("Billing is not configured.")
-            return
-        Stripe.setPublishableKey(stripe_publishable_key)
-
-        # clone a copy of the payment method row
-
-        # insert new payment method row into list of payment methods
-
-        # set it to being edited
-
-        clear_payment_info()
-        $(".smc-payment-method").hide()
-        $("#smc-credit-card-number").val('')
-        $("a[href=#new-payment-method]").addClass('disabled')
-        $(".smc-payment-info").show()
-        $("a[href=#submit-payment-info]").removeClass('disabled')
         return false
 
-    close_payment_info: () =>
-        $(".smc-payment-info").hide()
-        $("a[href=#new-payment-method]").removeClass('disabled')
-        $(".smc-payment-method").show()
-        return false
 
-    clear_payment_info: () =>
-        $(".smc-payment-info").find("input").val('')
-        $(".smc-payment-error-row").hide()
 
-    submit_payment_info: () =>
-        form = $(".smc-payment-info").find("form")
-        $("a[href=#submit-payment-info]").icon_spin(start:true).addClass('disabled')
-        Stripe.card.createToken form, (status, response) ->
-            $("a[href=#submit-payment-info]").icon_spin(start:false).removeClass('disabled')
-            console.log("status=", status)
-            console.log("response=", response)
-            if status == 200
-                $(".smc-payment-method").text("#{response.card.brand} card ending in #{response.card.last4} ")
-                clear_payment_info()
-                close_payment_info()
-            else
-                $(".smc-payment-error-row").show()
-                $(".smc-payment-errors").text(response.error.message)
-        return false
 
     billing_history_append: (entry) =>
         e = @billing_history_row.clone().show()
         for k, v of entry
             e.find(".smc-billing-history-entry-#{k}").text(v)
-        $(".smc-billing-history-rows").append(e)
+        @element.find(".smc-billing-history-rows").append(e)
 
     # TESTS:
     test_billing: () =>

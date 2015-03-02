@@ -213,7 +213,7 @@ around <b>20 cores</b>, <b>128GB RAM</b>, and <b>2.5TB disk space</b> on Google 
             <li class="active"><a href="#account-settings-tab" data-toggle="tab">
                 <i class="fa fa-cog"></i> Settings</a>
             </li>
-            <li ><a href="#smc-billing-tab" class="hide" id="billing-tab-button" data-toggle="tab" aria-controls="billing-tab">
+            <li ><a href="#smc-billing-tab" id="billing-tab-button" data-toggle="tab" aria-controls="billing-tab">
                 <i class="fa fa-credit-card"></i> Billing</a>
             </li>
         </ul>
@@ -221,6 +221,7 @@ around <b>20 cores</b>, <b>128GB RAM</b>, and <b>2.5TB disk space</b> on Google 
         <div class="tab-content">
             <!-- style is a hack to ensure there is a scrollbar -->
             <div class="tab-pane" id="smc-billing-tab" aria-labelledBy="billing-tab-button" style="height: 1000px; margin-top: 1em;">
+                <span class="lighten">Loading billing information...</span>
             </div>
             <div class="tab-pane active" id="account-settings-tab">
                 <div style="margin: 1em;">
@@ -960,75 +961,6 @@ around <b>20 cores</b>, <b>128GB RAM</b>, and <b>2.5TB disk space</b> on Google 
         </div>
     </div>
 
-    <div class="row smc-payment-method-row">
-        <div class="col-sm-9">
-            <b class="smc-payment-method">None</b>
-            <div class="smc-payment-info hide">
-                <div class="well" style="font-size: 12pt; box-shadow: 3px 3px 8px lightgray;">
-                    <form  class="form-horizontal">
-                        <div class="form-group smc-payment-error-row hide">
-                            <div class="col-sm-12" style="background: white;color: darkred;padding: 1em;">
-                                <span class="smc-payment-errors"></span>
-                            </div>
-                        </div>
-                        <div class="form-group smc-credit-card-number">
-                            <label class="col-sm-4">
-                                <span>Card Number&nbsp;&nbsp;</span>
-                            </label>
-                            <div class="col-sm-8">
-                                <div class="input-group">
-                                    <div class="input-group-addon" style="background:white;min-width:4em">
-                                        <i class="fa fa-cc-discover hide" style="color: darkorange;font-size: 15pt;"></i>
-                                        <i class="fa fa-cc-mastercard hide" style="color: darkred;font-size: 15pt;"></i>
-                                        <i class="fa fa-cc-visa hide" style="color: darkorange;font-size: 15pt;"></i>
-                                        <i class="fa fa-credit-card hide" style="color: darkblue; font-size: 15pt;"></i>
-                                        <i class="fa fa-credit-card smc-credit-card-invalid" style="color: lightgrey; font-size: 15pt;"></i>
-                                    </div>
-                                    <input class="form-control" id="smc-credit-card-number" type="text" size="20" data-stripe="number" placeholder="1234 5678 9012 3456"/>
-                                    <div class="input-group-addon"  style="background:white;min-width:4em">
-                                        <i class="fa fa-check hide" style="color: darkgreen; font-size: 15pt;"></i>
-                                        <i class="fa fa-check smc-credit-card-invalid" style="color: lightgrey; font-size: 15pt;"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div class="form-group">
-                            <label class="col-sm-4">
-                                <span>CVC</span>
-                            </label>
-                            <div class="col-sm-8">
-                                <input style="width:5em" class="form-control" type="text" size="4" data-stripe="cvc" placeholder="123" />
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="col-sm-4">
-                                <span>Expiration (MM/YYYY)</span>
-                            </label>
-                            <div class="col-sm-8">
-                                <input class="form-control" style="display:inline;width:5em" placeholder="MM" type="text" size="2" data-stripe="exp-month" />
-                                <span> / </span>
-                                <input class="form-control" style="display:inline;width:7em"  placeholder="YYYY" type="text" size="4" data-stripe="exp-year"/>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <div class="col-sm-8">
-                                <a class="btn btn-primary form-control" href="#submit-payment-info">Submit Payment Information</a>
-                            </div>
-                            <div class="col-sm-4">
-                                <a class="btn btn-default pull-right form-control" href="#cancel-payment-info">Cancel</a>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-        </div>
-        <div class="col-sm-3">
-            <a class="btn btn-default disabled" href="#update-payment-method"><i class="fa fa-credit-card"></i> Edit Payment Method</a>
-        </div>
-    </div>
 
 </div>

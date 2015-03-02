@@ -1036,4 +1036,19 @@ salvus_client.on "signed_in", () ->
 
 
 
-
+###
+# Stripe billing integration
+###
+stripe = undefined
+$("a[href=#smc-billing-tab]").click () ->
+    salvus_client.stripe_get_customer
+        cb : (err, resp) ->
+            if err or not resp.stripe_publishable_key
+                $("#smc-billing-tab span").text("Billing is not configured.")
+                return
+            if not stripe?
+                stripe = require('stripe').stripe_user_interface
+                    element                : $("#smc-billing-tab")
+                    stripe_publishable_key : resp.stripe_publishable_key
+            stripe.set_customer(resp.customer)
+            stripe.render()

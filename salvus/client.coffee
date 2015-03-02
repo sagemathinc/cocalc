@@ -2198,6 +2198,23 @@ class exports.Connection extends EventEmitter
     ######################################################################
     # stripe payments api
     ######################################################################
+    # gets custormer info (if any) and stripe public api key
+    # for this user, if they are logged in
+    stripe_get_customer: (opts) =>
+        opts = defaults opts,
+            cb    : required
+        @call
+            message     : message.stripe_get_customer()
+            error_event : true
+            cb          : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else
+                    resp =
+                        stripe_publishable_key : mesg.stripe_publishable_key
+                        customer               : mesg.customer
+                    opts.cb(undefined, resp)
+                    
     stripe_create_card: (opts) =>
         opts = defaults opts,
             token : required
@@ -2226,22 +2243,6 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : opts.cb
 
-    # gets custormer info (if any) and stripe public api key
-    # for this user, if they are logged in
-    stripe_get_customer: (opts) =>
-        opts = defaults opts,
-            cb    : required
-        @call
-            message     : message.stripe_get_customer()
-            error_event : true
-            cb          : (err, mesg) =>
-                if err
-                    opts.cb(err)
-                else
-                    resp =
-                        stripe_publishable_key : mesg.stripe_publishable_key
-                        customer               : mesg.customer
-                    opts.cb(undefined, resp)
 
     # gets list of past stripe charges for this account.
     stripe_get_charges: (opts) =>
