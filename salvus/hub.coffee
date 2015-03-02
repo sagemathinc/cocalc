@@ -3114,6 +3114,11 @@ class Client extends EventEmitter
 
     # get descriptions of the available plans that the user might subscribe to
     mesg_stripe_get_plans: (mesg) =>
+        stripe.plans.list (err, plans) =>
+            if err
+                @stripe_error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.stripe_plans(id: mesg.id, plans: plans))
 
     # create a subscription for this user, using some billing method
     mesg_stripe_create_subscription: (mesg) =>

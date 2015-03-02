@@ -2214,7 +2214,7 @@ class exports.Connection extends EventEmitter
                         stripe_publishable_key : mesg.stripe_publishable_key
                         customer               : mesg.customer
                     opts.cb(undefined, resp)
-                    
+
     stripe_create_card: (opts) =>
         opts = defaults opts,
             token : required
@@ -2257,6 +2257,18 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, mesg.charges)
 
+    # gets stripe plans that could be subscribed to.
+    stripe_get_plans: (opts) =>
+        opts = defaults opts,
+            cb    : required
+        @call
+            message     : message.stripe_get_plans()
+            error_event : true
+            cb          : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, mesg.plans)
 
 
 #################################################
