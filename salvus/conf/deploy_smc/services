@@ -43,7 +43,7 @@ localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-hi
 #####################
 # compute/storage nodes:
 
-localhost     {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
+#localhost     {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
 
 
 
@@ -58,8 +58,8 @@ localhost    {'hostname':'smc6dc5', 'disk':'cassandra-ext4:50', 'instance_type':
 localhost    {'hostname':'smc7dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 localhost    {'hostname':'smc8dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 
-localhost    {'hostname':'compute1dc5', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'us-central1-f'}
-localhost    {'hostname':'compute2dc5', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'us-central1-f'}
+#localhost    {'hostname':'compute1dc5', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'us-central1-f'}
+#localhost    {'hostname':'compute2dc5', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'us-central1-f'}
 
 
 # dc6: Commercial google europe-west1-c
@@ -79,14 +79,14 @@ localhost    {'hostname':'smc8dc6', 'disk':'cassandra-ext4:50', 'instance_type':
 
 # dc7: Commercial google asia-east1-c
 
-localhost    {'hostname':'smc1dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
-localhost    {'hostname':'smc2dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
-localhost    {'hostname':'smc3dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
-localhost    {'hostname':'smc4dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
-localhost    {'hostname':'smc5dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
-localhost    {'hostname':'smc6dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
-localhost    {'hostname':'smc7dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
-localhost    {'hostname':'smc8dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
+#localhost    {'hostname':'smc1dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
+#localhost    {'hostname':'smc2dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
+#localhost    {'hostname':'smc3dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
+#localhost    {'hostname':'smc4dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
+#localhost    {'hostname':'smc5dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
+#localhost    {'hostname':'smc6dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
+#localhost    {'hostname':'smc7dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
+#localhost    {'hostname':'smc8dc7', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'asia-east1-c'}
 
 #localhost    {'hostname':'compute1dc7', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'asia-east1-c'}
 #localhost    {'hostname':'compute2dc7', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'asia-east1-c'}
@@ -145,14 +145,14 @@ smc7dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256, 'auto_bootstra
 smc8dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
 
 # DC7: Commercial google: asia-east1-c
-smc1dc7  {'seed':True,   'topology':'DC7:RAC0', 'num_tokens':256}
-smc2dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
-smc3dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
-smc4dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
-smc5dc7  {'seed':True,   'topology':'DC7:RAC0', 'num_tokens':256}
-smc6dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
-smc7dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
-smc8dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
+#smc1dc7  {'seed':True,   'topology':'DC7:RAC0', 'num_tokens':256}
+#smc2dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
+#smc3dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
+#smc4dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
+#smc5dc7  {'seed':True,   'topology':'DC7:RAC0', 'num_tokens':256}
+#smc6dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
+#smc7dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
+#smc8dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
 
 
 [stunnel] {'sudo':True}
