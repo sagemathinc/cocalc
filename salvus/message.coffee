@@ -1666,9 +1666,10 @@ message
 
 # Delete a subscription to a plan
 message
-    event   : 'stripe_cancel_subscription'
-    id      : undefined
+    event           : 'stripe_cancel_subscription'
+    id              : undefined
     subscription_id : required
+    at_period_end   : false
 
 # Modify a subscription to a plan, e.g., change which projects plan applies to.
 message

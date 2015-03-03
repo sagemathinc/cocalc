@@ -3176,7 +3176,7 @@ class Client extends EventEmitter
                         cb : (err) =>
                             if err
                                 cb(err)
-                                # BAD situation -- adding to our database failed.
+                                # BAD unlikely situation -- adding to our database failed.
                                 # Try to at least cancel the subscription to stripe - likely to work, since
                                 # creating subscription above just worked.
                                 stripe.customers.cancelSubscription customer_id, subscription.id, (err, s) =>
@@ -3186,7 +3186,7 @@ class Client extends EventEmitter
                                         send_email
                                             to      : 'help@sagemath.com'
                                             subject : "Stripe billing issue **needing** human inspection"
-                                            body    : "Issue creating subscription.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription.id}"
+                                            body    : "Issue creating subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription.id}"
                             else
                                 cb()
             ], (err) =>
@@ -3200,6 +3200,53 @@ class Client extends EventEmitter
 
     # cancel a subscription for this user
     mesg_stripe_cancel_subscription: (mesg) =>
+        if not @ensure_fields(mesg, 'subscription_id')
+            return
+        if mesg.at_period_end
+            # don't support this yet, since we first have to make sure
+            # projects don't get unsubscribed immediately.
+            @error_to_client(id:mesg.id, error:"stripe cancel subscription at_period_end option net yet supported")
+            return
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+
+            projects        = undefined
+            subscription_id = mesg.subscription_id
+            async.series([
+                (cb) =>
+                    # Cancel the subscription.  This also returns the subscription, which lets
+                    # us easily get the metadata of all projects associated to this subscription.
+                    stripe.customers.cancelSubscription customer_id, subscription_id, (err, subscription) =>
+                        if err
+                            cb(err)
+                        else
+                            if subscription.metadata?.projects?
+                                projects = misc.from_json(subscription.metadata.projects)
+                            cb()
+                (cb) =>
+                    if not projects?
+                        cb(); return
+                    # remove subscription from projects
+                    database.cql
+                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions-{'#{subscription_id}'} WHERE project_id IN (#{projects.join(',')})"
+                        cb : (err) =>
+                            if err
+                                cb(err)
+                                # BAD unlikely situation -- removing from our database failed.
+                                send_email
+                                    to      : 'help@sagemath.com'
+                                    subject : "Stripe billing issue **needing** human inspection"
+                                    body    : "Issue removing subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription_id}"
+                            else
+                                cb()
+            ], (err) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
+            )
+
 
     # edit a subscription for this user
     mesg_stripe_update_subscription: (mesg) =>

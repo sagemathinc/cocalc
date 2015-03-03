@@ -2286,6 +2286,18 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : opts.cb
 
+    stripe_cancel_subscription: (opts) =>
+        opts = defaults opts,
+            subscription_id : required
+            at_period_end   : false
+            cb              : required
+        @call
+            message : message.stripe_cancel_subscription
+                subscription_id : opts.subscription_id
+                at_period_end   : opts.at_period_end
+            error_event : true
+            cb          : opts.cb
+
 
 
 #################################################
