@@ -43,7 +43,7 @@ localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-hi
 #####################
 # compute/storage nodes:
 
-localhost     {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
+#localhost     {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
 
 
 
