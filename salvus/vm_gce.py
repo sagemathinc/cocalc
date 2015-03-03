@@ -238,7 +238,7 @@ class Instance(object):
 
         self.gcutil("addinstance", *args)
 
-    def ssh(self, c, max_tries=1, timeout=120, sudo=False):
+    def ssh(self, c, max_tries=10, timeout=120, sudo=False):
         if '"' in c:
             raise NotImplementedError("no double quotes in command")
         if sudo:

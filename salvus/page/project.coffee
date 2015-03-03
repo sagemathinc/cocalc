@@ -134,6 +134,7 @@ class ProjectPage
             @init_project_restart()
             @init_ssh()
             @init_worksheet_server_restart()
+            #@init_project_config()
             @init_delete_project()
             @init_undelete_project()
 
@@ -155,6 +156,8 @@ class ProjectPage
             @init_settings_url()
             @init_ssh_url_click()
             @init_billing()
+
+            @init_add_collaborators_button()
 
         # Show a warning if using SMC in devel mode. (no longer supported)
         if window.salvus_base_url != ""
@@ -1053,6 +1056,17 @@ class ProjectPage
             @update_local_status_link()
         return @
 
+    init_project_config: () ->
+        if not @container?
+            return
+        console.log("yay")
+        @container.find(".smc-project-config").show()
+        for option in ['disable_collaborators', 'disable_downloads']
+            if local_storage(@project.project_id, '', option)
+                @container.find(".account-settings-other_settings-" + option).find("input").prop("checked", true)
+            @container.find(".account-settings-other_settings-" + option).click () =>
+                checked = @container.find(".account-settings-other_settings-" + option).find("input").prop("checked")
+                local_storage(@project.project_id, '', option, checked)
 
     init_admin: () ->
         if not @container?
@@ -3678,6 +3692,21 @@ class ProjectPage
                 @editor.display_tab
                     path       : opened_path
                     foreground : opts.foreground
+
+
+    init_add_collaborators_button: () =>
+        @container.find("a[href=#projects-add-collaborators]").click () =>
+            @show_add_collaborators_box()
+            return false
+
+    show_add_collaborators_box: () =>
+        @display_tab('project-settings')
+        @container.find(".project-add-collaborator-input").focus()
+        collab = @container.find(".project-collaborators-box")
+        collab.css(border:'2px solid red')
+        setTimeout((()->collab.css(border:'')), 5000)
+        collab.css('box-shadow':'8px 8px 4px #888')
+        setTimeout((()->collab.css('box-shadow':'')), 5000)
 
 
 project_pages = {}

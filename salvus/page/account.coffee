@@ -63,7 +63,7 @@ top_navbar.on "switch_to_page-account", () ->
 
 focus =
     'account-sign_in'         : 'sign_in-email'
-    'account-create_account'  : 'create_account-first_name'
+    'account-create_account'  : 'create_account-name'
     'account-settings'        : ''
 
 current_account_page = null
@@ -217,7 +217,7 @@ disable_tooltips = () ->
 # Account creation
 ################################################
 
-create_account_fields = ['token', 'first_name', 'last_name', 'email_address', 'password', 'agreed_to_terms']
+create_account_fields = ['token', 'name', 'email_address', 'password', 'agreed_to_terms']
 
 destroy_create_account_tooltips = () ->
     for field in create_account_fields
@@ -229,23 +229,23 @@ $("a[href=#link-terms]").click (event) ->
     $("#link-terms").modal('show')
     return false
 
-passwd_keyup = (elt) ->
-    elt = $("#create_account-retype_password")
-    if elt.val() != $("#create_account-password").val()
-        elt.css('background-color':'rgb(255, 220, 218);')
-    else
-        elt.css('background-color':'#ffffff')
-
-$("#create_account-retype_password").keyup(passwd_keyup)
-$("#create_account-password").keyup(passwd_keyup)
+#passwd_keyup = (elt) ->
+#    elt = $("#create_account-retype_password")
+#    if elt.val() != $("#create_account-password").val()
+#        elt.css('background-color':'rgb(255, 220, 218);')
+#    else
+#        elt.css('background-color':'#ffffff')
+#
+#$("#create_account-retype_password").keyup(passwd_keyup)
+#$("#create_account-password").keyup(passwd_keyup)
 
 
 
 $("#create_account-button").click (event) ->
 
-    if $("#create_account-retype_password").val() != $("#create_account-password").val()
-        bootbox.alert("Passwords don't match.")
-        return false
+    #if $("#create_account-retype_password").val() != $("#create_account-password").val()
+    #    bootbox.alert("Passwords don't match.")
+    #    return false
 
     destroy_create_account_tooltips()
 
@@ -256,7 +256,18 @@ $("#create_account-button").click (event) ->
             v = elt.is(":checked")
         else
             v = elt.val().trim()
-        opts[field] = v
+        if field == 'name'
+            i = v.lastIndexOf(' ')
+            if i == -1
+                last_name = ''
+                first_name = v
+            else
+                first_name = v.slice(0,i).trim()
+                last_name = v.slice(i).trim()
+            opts.first_name = first_name
+            opts.last_name  = last_name
+        else
+            opts[field] = v
 
     opts.cb = (error, mesg) ->
         if error
@@ -265,11 +276,13 @@ $("#create_account-button").click (event) ->
         switch mesg.event
             when "account_creation_failed"
                 for key, val of mesg.reason
+                    if key == "first_name" or key == "last_name"
+                        key = "name"
                     $("#create_account-#{key}").popover(
                         title     : val
                         animation : false
                         trigger   : "manual"
-                        placement : if $(window).width() <= 800 then "top" else "left"
+                        placement : if $(window).width() <= 800 then "top" else "right"
                         template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
                     ).popover("show").focus( () -> $(@).popover("destroy"))
             when "signed_in"
@@ -359,6 +372,8 @@ hub = undefined
 signed_in = (mesg) ->
     #console.log("signed_in: ", mesg)
 
+    top_navbar.show_page_button("salvus-help")
+
     ga('send', 'event', 'account', 'signed_in')    # custom google analytic event -- user signed in
     # Record which hub we're connected to.
     hub = mesg.hub
@@ -378,6 +393,8 @@ signed_in = (mesg) ->
             show_page("account-settings")
             # change the navbar title from "Sign in" to their email address -- don't use the one from mesg, which may be out of date
             set_account_tab_label(true, account_settings.settings.email_address)
+            $("#account-forgot_password-email_address").val(account_settings.settings.email_address)
+
 
             top_navbar.show_page_button("projects")
 
@@ -814,15 +831,15 @@ close_change_password = () ->
     change_password.modal('hide').find('input').val('')
     change_password.find(".account-error-text").hide()
 
-change_passwd_keyup = (elt) ->
-    elt = $("#account-change_password-new_password-retype")
-    if elt.val() != $("#account-change_password-new_password").val()
-        elt.css('background-color':'rgb(255, 220, 218);')
-    else
-        elt.css('background-color':'#ffffff')
+#change_passwd_keyup = (elt) ->
+#    elt = $("#account-change_password-new_password-retype")
+#    if elt.val() != $("#account-change_password-new_password").val()
+#        elt.css('background-color':'rgb(255, 220, 218);')
+#    else
+#        elt.css('background-color':'#ffffff')
 
-$("#account-change_password-new_password-retype").keyup(change_passwd_keyup)
-$("#account-change_password-new_password").keyup(change_passwd_keyup)
+#$("#account-change_password-new_password-retype").keyup(change_passwd_keyup)
+#$("#account-change_password-new_password").keyup(change_passwd_keyup)
 
 
 change_password.find(".close").click((event) -> close_change_password())
@@ -834,9 +851,9 @@ $("a[href=#account-change_password]").click (event) ->
     return false
 
 $("#account-change_password-button-submit").click (event) ->
-    if $("#account-change_password-new_password-retype").val() != $("#account-change_password-new_password").val()
-        bootbox.alert("New passwords don't match.")
-        return
+    #if $("#account-change_password-new_password-retype").val() != $("#account-change_password-new_password").val()
+    #    bootbox.alert("New passwords don't match.")
+    #    return
     salvus_client.change_password
         email_address : account_settings.settings.email_address
         old_password  : $("#account-change_password-old_password").val().trim()
@@ -856,8 +873,12 @@ $("#account-change_password-button-submit").click (event) ->
                         x.show()
                 else
                     # success
-                    alert_message(type:"info", message:"You have changed your password.")
+                    alert_message
+                        type    : "info"
+                        message : "You have changed your password.    Please log back in using your new password."
+                        timeout : 10
                     close_change_password()
+                    setTimeout(sign_out, 5000)
     return false
 
 ################################################
@@ -867,6 +888,7 @@ $("#account-change_password-button-submit").click (event) ->
 forgot_password = $("#account-forgot_password")
 $("a[href=#account-forgot_password]").click (event) ->
     forgot_password.modal()
+    $("#account-forgot_password-email_address").focus()
     return false
 
 close_forgot_password = () ->
@@ -1003,6 +1025,10 @@ if localStorage.remember_me
 salvus_client.on "remember_me_failed", () ->
     $(".salvus-remember_me-message").hide()
     $(".salvus-sign_in-form").show()
+    if current_account_page == 'account-settings'  # user was logged in but now isn't due to cookie failure
+        show_page("account-sign_in")
+        set_account_tab_label(true, "Account")
+        alert_message(type:"info", message:"You must sign in again.", timeout:1000000)
 
 salvus_client.on "signed_in", () ->
     $(".salvus-remember_me-message").hide()
@@ -1010,28 +1036,19 @@ salvus_client.on "signed_in", () ->
 
 
 
-
-
-################################################
-# Billing code
-################################################
-
-# TESTS:
-
-billing_history_row = $(".smc-billing-history-row")
-billing_history_append = (entry) ->
-    e = billing_history_row.clone().show()
-    for k, v of entry
-        e.find(".smc-billing-history-entry-#{k}").text(v)
-    $(".smc-billing-history-rows").append(e)
-
-exports.test_billing = () ->
-    billing_history_append
-        date    : '2014-01-29'
-        plan    : 'Small'
-        method  : 'Visa 4*** **** **** 1199'
-        receipt : '...'
-        amount  : 'USD $7.00'
-        status  : 'Succeeded'
-
-
+###
+# Stripe billing integration
+###
+stripe = undefined
+$("a[href=#smc-billing-tab]").click () ->
+    salvus_client.stripe_get_customer
+        cb : (err, resp) ->
+            if err or not resp.stripe_publishable_key
+                $("#smc-billing-tab span").text("Billing is not configured.")
+                return
+            if not stripe?
+                stripe = require('stripe').stripe_user_interface
+                    element                : $("#smc-billing-tab")
+                    stripe_publishable_key : resp.stripe_publishable_key
+            stripe.set_customer(resp.customer)
+            stripe.render()

@@ -17,9 +17,12 @@
 
 import json, os, random, signal, sys, time
 
+# start from home directory, since we want daemon to serve all files in that directory tree.
+os.chdir(os.environ['HOME'])
+
 # When run in Daemon mode, it stores info (e.g., pid, port) in this file, in addition to printing
 # to standard out.  This avoids starting a redundant copy of the daemon, if one is already running.
-DAEMON_FILE = ".ipython-daemon.json"
+DAEMON_FILE = os.path.join(os.environ['SAGEMATHCLOUD'],"ipython-daemon.json")
 
 if len(sys.argv) == 1:
     print "Usage: %s [start/stop/status/run] normal ipython notebook options..."%sys.argv[0]
@@ -29,7 +32,6 @@ if len(sys.argv) == 1:
 mode = sys.argv[1]
 del sys.argv[1]
 
-
 info = json.loads(open(os.path.join(os.environ['SAGEMATHCLOUD'], 'info.json')).read())
 
 project_id = info['project_id']
@@ -37,7 +39,7 @@ project_id = info['project_id']
 ip = info['location']['host']
 if ip == 'localhost':
     # Listening on localhost for devel purposes -- NOTE: this is a *VERY* significant security risk!
-    ip = '127.0.0.1' 
+    ip = '127.0.0.1'
 
 def random_port():
     # get an available port; a race condition is possible, but very, very unlikely.
@@ -48,7 +50,7 @@ def random_port():
             return port
 
 def command():
-    port = random_port()
+    port = random_port()  # time consuming!
     base = "%s/%s/port/%s/"%(info['base_url'], project_id, port)
     cmd = "ipython notebook --port-retries=0 --pylab=inline --matplotlib=inline --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js  --NotebookApp.base_project_url=%s --NotebookApp.base_kernel_url=%s --ip=%s --port=%s"%(base, base, ip, port)
     cmd += " " + ' '.join(sys.argv[1:])
@@ -78,7 +80,7 @@ def is_daemon_running():
 
 
 def action():
-    cmd, base, port = command()
+    sys.stdout.flush()
 
     if mode == 'status':
         info = is_daemon_running()
@@ -90,42 +92,50 @@ def action():
         print json.dumps(s)
         return
 
-    elif mode == 'start':
+    if mode == 'start':
+        if os.path.exists(DAEMON_FILE) and time.time() - os.path.getmtime(DAEMON_FILE) < 15:
+            # avoid calling repeatedly -- some clients go nuts
+            print json.dumps({"status":"starting"})
+            return
+
         info = is_daemon_running()
         if info:
             # already running -- nothing to do
             print json.dumps(info)
             return
 
-        #### First a version check, which is critical due to base url bug(s).
-
-        if os.popen('ipython --version').read().startswith('0.'):
-            print json.dumps({"error":"You *must* use IPython version at least 1.0.0, due to show stopper bugs in base_url in all previous versions."})
-            sys.exit(1)
-
-        ####
-
         # The below approach to finding the PID is *HIDEOUS* and could in theory break.
         # It is the only way I could come up with to do this without modifying source code of ipython :-(
         # See http://mail.scipy.org/pipermail/ipython-user/2012-May/010043.html
+        cmd, base, port = command()
 
         c = '%s 2>/dev/null >/dev/null &'%cmd
+        sys.stderr.write(c+'\n'); sys.stderr.flush()
         os.system(c)
+
+        s = json.dumps({'base':base, 'port':port})
+        open(DAEMON_FILE,'w').write(s)
 
         tries = 0
         pid = 0
+        #sys.stderr.write("getting pid...\n"); sys.stderr.flush()
         while not pid:
             tries += 1
+            #sys.stderr.write("tries... %s\n"%tries); sys.stderr.flush()
             if tries >= 50:
                 print json.dumps({"error":"Failed to find pid of subprocess."})
                 sys.exit(1)
 
-            c = "ps -u`whoami` -o pid,cmd|grep port=%s"%port
+            c = "ps -u`whoami` -o pid,cmd|grep 'ipython notebook'"
             for s in os.popen(c).read().splitlines():
-                if '/ipython notebook' in s:
-                    pid = int(s.split()[0])
-                    break
-
+                p = int(s.split()[0])
+                if "port=%s"%port not in s:
+                    try:
+                        os.kill(p, 9)  # kill any other ipython notebook servers by this user
+                    except:
+                        pass
+                else:
+                    pid = p
             if not pid:
                 time.sleep(.2)
                 continue
@@ -133,8 +143,9 @@ def action():
         s = json.dumps({'base':base, 'port':port, 'pid':pid})
         print s
         open(DAEMON_FILE,'w').write(s)
+        return
 
-    elif mode == 'stop':
+    if mode == 'stop':
         info = is_daemon_running()
         if not info:
             # not running -- nothing to do
@@ -148,9 +159,9 @@ def action():
             os.unlink(DAEMON_FILE)
         except:
             pass
+        return
 
-
-    elif mode == 'run':
+    if mode == 'run':
         print cmd + '\n\n'
         print "*"*80 + '\n'
         print "  The IPython Notebook server is running at \n"

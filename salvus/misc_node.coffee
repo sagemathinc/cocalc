@@ -203,6 +203,10 @@ exports.connect_to_locked_socket = (opts) ->
         timeout : 5
         cb      : required
 
+    if not (port > 0 and port <  65536)
+        cb("connect_to_locked_socket -- RangeError: port should be > 0 and < 65536: #{port}")
+        return
+
     winston.debug("misc_node: connecting to a locked socket on port #{port}...")
     timer = undefined
 
@@ -211,7 +215,7 @@ exports.connect_to_locked_socket = (opts) ->
         winston.debug(m)
         cb?(m)
         cb = undefined  # NOTE: here and everywhere below we set cb to undefined after calling it, and only call it if defined, since the event and timer callback stuff is very hard to do right here without calling cb more than once (which is VERY bad to do).
-        socket.end()
+        socket?.end()
         timer = undefined
 
     timer = setTimeout(timed_out, timeout*1000)
@@ -223,7 +227,7 @@ exports.connect_to_locked_socket = (opts) ->
             if data.toString() == 'y'
                 if timer?
                     clearTimeout(timer)
-                    cb?(false, socket)
+                    cb?(undefined, socket)
                     cb = undefined
             else
                 socket.destroy()
@@ -241,8 +245,6 @@ exports.connect_to_locked_socket = (opts) ->
             clearTimeout(timer)
         cb?(err)
         cb = undefined
-
-
 
 # Compute a uuid v4 from the Sha-1 hash of data.
 crypto = require('crypto')

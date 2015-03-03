@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 
-# Run sync on all projects that aren't currently in sync across all data centers.  This is mainly to handle the hopefully rare
-# case of a sync failure.
+# Run sync on all projects that aren't currently in sync across all data centers.  This is mainly to handle the 
+# rare case of a sync failure or when a compute server goes down temporarily. 
 
 cd $HOME/salvus/salvus
 . salvus-env
 
-# Huge limit to do all in parallel until the issue involving a potential location race condition (see source code) is resolved.
-# Usually there are at most a handful of these.
-time echo "x={};require('bup_server').global_client(cb:(e,c)->x.c=c; status=[];x.c.repair(limit:150, status:status,dryrun:false,cb:(e,projects)->console.log('DONE',e);x.projects=projects;console.log((a.project for a in status));console.log(projects); process.exit() ))" | coffee
+time echo "x={};require('bup_server').global_client(cb:(e,c)->x.c=c; status=[];x.c.repair(status:status,dryrun:false,cb:(e,projects)->console.log('DONE',e);x.projects=projects;console.log((a.project for a in status));console.log(projects); process.exit() ))" | coffee
 

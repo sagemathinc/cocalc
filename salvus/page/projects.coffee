@@ -254,13 +254,7 @@ create_project_item = (project) ->
                 if err
                     alert_message(type:"error", message:err)
                     return
-                proj.display_tab('project-settings')
-                proj.container.find(".project-add-collaborator-input").focus()
-                collab = proj.container.find(".project-collaborators-box")
-                collab.css(border:'2px solid red')
-                setTimeout((()->collab.css(border:'')), 5000)
-                collab.css('box-shadow':'8px 8px 4px #888')
-                setTimeout((()->collab.css('box-shadow':'')), 5000)
+                proj.show_add_collaborators_box()
         return false
 
     if not project.location  # undefined or empty string

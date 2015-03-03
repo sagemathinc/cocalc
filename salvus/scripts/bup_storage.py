@@ -114,9 +114,9 @@ PROJECTS_PATH  = '/projects'
 # Default account settings
 
 DEFAULT_SETTINGS = {
-    'disk'       : 5000,     # default disk in megabytes
+    'disk'       : 2000,     # default disk in megabytes
     'scratch'    : 15000,    # default disk quota on /scratch
-    'memory'     : 8,        # memory in gigabytes
+    'memory'     : 2,        # memory in gigabytes
     'cpu_shares' : 256,
     'cores'      : 1,
     'login_shell': '/bin/bash',
