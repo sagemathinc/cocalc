@@ -1044,7 +1044,7 @@ $("a[href=#smc-billing-tab]").click () ->
     salvus_client.stripe_get_customer
         cb : (err, resp) ->
             if err or not resp.stripe_publishable_key
-                $("#smc-billing-tab span").text("Billing is not configured.")
+                $("#smc-billing-tab span").text("Billing is not yet available.")
                 return
             if not stripe?
                 stripe = require('stripe').stripe_user_interface
