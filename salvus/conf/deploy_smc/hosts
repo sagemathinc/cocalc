@@ -124,8 +124,8 @@
 10.5.1.7 dc5 cassandra hub gce nginx edge smc7dc5
 10.5.1.8 dc5 cassandra hub gce nginx edge smc8dc5
 
-10.5.2.1 dc5 compute-2 compute1dc5
-10.5.2.2 dc5 compute-2 compute2dc5
+#10.5.2.1 dc5 compute-2 compute1dc5
+#10.5.2.2 dc5 compute-2 compute2dc5
 
 
 ###

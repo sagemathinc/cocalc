@@ -58,8 +58,8 @@ localhost    {'hostname':'smc6dc5', 'disk':'cassandra-ext4:50', 'instance_type':
 localhost    {'hostname':'smc7dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 localhost    {'hostname':'smc8dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 
-localhost    {'hostname':'compute1dc5', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'us-central1-f'}
-localhost    {'hostname':'compute2dc5', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'us-central1-f'}
+#localhost    {'hostname':'compute1dc5', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'us-central1-f'}
+#localhost    {'hostname':'compute2dc5', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'us-central1-f'}
 
 
 # dc6: Commercial google europe-west1-c
