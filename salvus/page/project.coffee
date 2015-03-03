@@ -134,6 +134,7 @@ class ProjectPage
             @init_project_restart()
             @init_ssh()
             @init_worksheet_server_restart()
+            #@init_project_config()
             @init_delete_project()
             @init_undelete_project()
 
@@ -1055,6 +1056,17 @@ class ProjectPage
             @update_local_status_link()
         return @
 
+    init_project_config: () ->
+        if not @container?
+            return
+        console.log("yay")
+        @container.find(".smc-project-config").show()
+        for option in ['disable_collaborators', 'disable_downloads']
+            if local_storage(@project.project_id, '', option)
+                @container.find(".account-settings-other_settings-" + option).find("input").prop("checked", true)
+            @container.find(".account-settings-other_settings-" + option).click () =>
+                checked = @container.find(".account-settings-other_settings-" + option).find("input").prop("checked")
+                local_storage(@project.project_id, '', option, checked)
 
     init_admin: () ->
         if not @container?

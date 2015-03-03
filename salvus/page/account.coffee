@@ -1036,28 +1036,19 @@ salvus_client.on "signed_in", () ->
 
 
 
-
-
-################################################
-# Billing code
-################################################
-
-# TESTS:
-
-billing_history_row = $(".smc-billing-history-row")
-billing_history_append = (entry) ->
-    e = billing_history_row.clone().show()
-    for k, v of entry
-        e.find(".smc-billing-history-entry-#{k}").text(v)
-    $(".smc-billing-history-rows").append(e)
-
-exports.test_billing = () ->
-    billing_history_append
-        date    : '2014-01-29'
-        plan    : 'Small'
-        method  : 'Visa 4*** **** **** 1199'
-        receipt : '...'
-        amount  : 'USD $7.00'
-        status  : 'Succeeded'
-
-
+###
+# Stripe billing integration
+###
+stripe = undefined
+$("a[href=#smc-billing-tab]").click () ->
+    salvus_client.stripe_get_customer
+        cb : (err, resp) ->
+            if err or not resp.stripe_publishable_key
+                $("#smc-billing-tab span").text("Billing is not configured.")
+                return
+            if not stripe?
+                stripe = require('stripe').stripe_user_interface
+                    element                : $("#smc-billing-tab")
+                    stripe_publishable_key : resp.stripe_publishable_key
+            stripe.set_customer(resp.customer)
+            stripe.render()

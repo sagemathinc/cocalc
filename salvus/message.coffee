@@ -580,7 +580,7 @@ exports.restricted_account_settings =
     connect_Github       : undefined
     connect_Google       : undefined
     connect_Dropbox      : undefined
-    groups               : undefined  # only admins can actuall;y change this...
+    groups               : undefined  # only admins can actually change this...
 
 # these can be changed without additional re-typing of the password
 # (of course, user must have somehow logged in):
@@ -670,7 +670,6 @@ message
     event : 'reconnect'
     id    : undefined
     reason : undefined  # optional to make logs more informative
-
 
 
 #############################################
@@ -1604,6 +1603,89 @@ message
 message
     event : 'log_client_error'
     error : required
+
+
+
+
+#############################################
+# stripe integration
+#############################################
+
+# Set the stripe payment method for this user.
+
+# customer info
+message
+    event   : 'stripe_get_customer'
+    id      : undefined
+
+message
+    event    : 'stripe_customer'
+    id       : undefined
+    customer : undefined                 # if user already has a stripe customer account, info about it.
+    stripe_publishable_key : undefined   # if stripe is configured for this SMC instance, this is the public API key.
+
+
+# card
+message
+    event   : 'stripe_create_card'
+    id      : undefined
+    token   : required
+
+message
+    event   : 'stripe_delete_card'
+    card_id : required
+    id      : undefined
+
+message
+    event   : 'stripe_update_card'
+    card_id : required
+    info    : required                  # see https://stripe.com/docs/api/node#update_card, except we don't allow changing metadata
+    id      : undefined
+
+
+# subscriptions to plans
+
+# Get a list of all currently available plans:
+message
+    event    : 'stripe_get_plans'
+    id       : undefined
+
+message
+    event    : 'stripe_plans'
+    id       : undefined
+    plans    : required    # [{name:'Basic', projects:1, description:'...', price:'$10/month', trial_period:'30 days', ...}, ...]
+
+# Create a subscription to a plan
+message
+    event    : 'stripe_create_subscription'
+    id       : undefined
+    plan     : required   # name of plan
+    quantity : 1
+    coupon   : undefined
+    projects : undefined  # list of projects to which the plan applies
+
+# Delete a subscription to a plan
+message
+    event   : 'stripe_cancel_subscription'
+    id      : undefined
+    subscription_id : required
+
+# Modify a subscription to a plan, e.g., change which projects plan applies to.
+message
+    event   : 'stripe_update_subscription'
+    id      : undefined
+    subscription_id : required
+    info    : required   # what to change, e.g., plan type, projects, etc.; also cancel subscription.
+
+# charges
+message
+    event : 'stripe_get_charges'
+    id    : undefined
+
+message
+    event   : 'stripe_charges'
+    id      : undefined
+    charges : undefined
 
 
 

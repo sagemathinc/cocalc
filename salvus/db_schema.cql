@@ -116,9 +116,12 @@ CREATE TABLE accounts (
     notifications_syncdb uuid,
     /* syncdbs              map<varchar:uuid>, */ /* synchronized databases that user has access to */
 
-    /* current remember_me cookies for this users: we use this to  
+    /* current remember_me cookies for this users: we use this to
        delete=revoke all of them when the user changes their password. */
     remember_me          set<varchar>,
+
+    /* The stripe customer id, if this user has setup a billing account at stripe. */
+    stripe_customer_id   varchar;
 );
 
 CREATE TABLE email_address_to_account_id (
@@ -274,8 +277,10 @@ CREATE TABLE projects (
 
      abuser varchar,
 
-     task_list_id     uuid,  /* top-level task list for this project */
+     task_list_id     uuid,            /* TODO-- remove; not used -- top-level task list for this project */
 
+     /* stripe subscriptions that we think should apply to this project -- set of stripe subscription id's */
+     stripe_subscriptions   set<varchar>
 );
 
 /* no real reason to use this -- since all projects owned by a given user isn't really interesting --
@@ -663,51 +668,14 @@ GRANT MODIFY ON table project_new TO storage_server;
 
 
 
-/*
-   Task list functionality:
 
-      - a task list that is account wide for a given user or collection of users
-      - a task list that is project wide
-      - subtask lists of any task
-      - a homework assignment -- this is also a list of tasks, possibly with subtasks (we could have a document with links to the uuid's of tasks... to give it structure).
-*/
+/* Billing */
 
-CREATE TABLE task_lists (
-    task_list_id uuid PRIMARY KEY,       /* uuid of this task list */
-    owners       set<uuid>,              /* account_id, project_id, or task_id that owns this task list */
-    title        varchar,
-    data         map<text,text>,
-    deleted      boolean,    /* whether this task list has been deleted */
-    last_edited  timestamp,  /* last time the task list was changed (i.e., description, title, deleted, owners,  editing tasks) */
+CREATE TABLE billing_providers (
+    vendor varchar PRIMARY KEY,     /* e.g., 'stripe', 'paypal', etc. */
+    data   map<varchar, varchar>      /* vendor-specific information for this vendor, e.g., API keys, etc. */
+       /* live_publishable_key, test_publishable_key, live_secret_key, test_secret_key */
 );
-
-CREATE TABLE tasks (
-    task_list_id uuid,       /* id of a task list -- ensures all tasks for a given list in the same place storage wise for speed */
-    task_id      uuid,       /* id for this task */
-
-    position     float,      /* floating point that determines the *position* of this item in the list when displayed */
-                             /* to the user (without special sort); this makes it possible to asynchronously */
-                             /* locally manually sort tasks. */
-
-    sub_task_list_id uuid,       /* optional task_list of subtasks */
-
-    last_edited  timestamp,  /* last time the task was changed */
-    done         boolean,    /* whether or not the task has been completed */
-    deleted      boolean,    /* whether this task has been deleted */
-    title        varchar,
-    data         map<text,text>,
-
-    PRIMARY KEY (task_list_id, task_id)
-);
-
-
-
-
-
-
-
-
-
 
 
 
