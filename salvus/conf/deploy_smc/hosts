@@ -148,14 +148,14 @@
 ## GCE dc7 -- commercial data center (in Asia)
 ###
 
-10.7.1.1 dc7 cassandra hub gce nginx edge smc1dc7
-10.7.1.2 dc7 cassandra hub gce nginx edge smc2dc7
-10.7.1.3 dc7 cassandra hub gce nginx edge smc3dc7
-10.7.1.4 dc7 cassandra hub gce nginx edge smc4dc7
-10.7.1.5 dc7 cassandra hub gce nginx edge smc5dc7
-10.7.1.6 dc7 cassandra hub gce nginx edge smc6dc7
-10.7.1.7 dc7 cassandra hub gce nginx edge smc7dc7
-10.7.1.8 dc7 cassandra hub gce nginx edge smc8dc7
+#10.7.1.1 dc7 cassandra hub gce nginx edge smc1dc7
+#10.7.1.2 dc7 cassandra hub gce nginx edge smc2dc7
+#10.7.1.3 dc7 cassandra hub gce nginx edge smc3dc7
+#10.7.1.4 dc7 cassandra hub gce nginx edge smc4dc7
+#10.7.1.5 dc7 cassandra hub gce nginx edge smc5dc7
+#10.7.1.6 dc7 cassandra hub gce nginx edge smc6dc7
+#10.7.1.7 dc7 cassandra hub gce nginx edge smc7dc7
+#10.7.1.8 dc7 cassandra hub gce nginx edge smc8dc7
 
 #10.7.2.1 dc7 compute-2 compute1dc7
 #10.7.2.2 dc7 compute-2 compute2dc7
