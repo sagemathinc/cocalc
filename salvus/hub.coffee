@@ -829,7 +829,7 @@ class Client extends EventEmitter
                         else
                             # good -- sign them in if not already
                             if @account_id != signed_in_mesg.account_id
-                                signed_in_mesg.hub = program.host + ':' + program.port
+                                signed_in_mesg.hub     = program.host + ':' + program.port
                                 @hash_session_id = hash
                                 @signed_in(signed_in_mesg)
                                 @push_to_client(signed_in_mesg)
@@ -1421,7 +1421,7 @@ class Client extends EventEmitter
                     if err
                         @error_to_client(id:mesg.id, error:err)
                     else
-                        # delete password hash -- user doesn't want to see/know that.
+                        # delete password hash -- user doesn't want/need to see/know that.
                         delete data['password_hash']
 
                         # Set defaults for unset keys.  We do this so that in the
@@ -2944,6 +2944,269 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.user_names(user_names:user_names, id:mesg.id))
 
+    ######################################################
+    #Stripe-integration billing code
+    ######################################################
+    ensure_fields: (mesg, fields) =>
+        if not mesg.id?
+            return false
+        if typeof(fields) == 'string'
+            fields = fields.split(' ')
+        for f in fields
+            if not mesg[f.trim()]?
+                err = "invalid message; must have #{f} field"
+                @error_to_client(id:mesg.id, error:err)
+                return false
+        return true
+
+    stripe_get_customer_id: (id, cb) =>  # id = message id
+        # cb(err, customer_id)
+        #  - if err, then an error message with id the given id is sent to the
+        #    user, so client code doesn't have to
+        #  - if no customer info yet with stripe, then NOT an error; instead,
+        #    customer_id is undefined.
+        if not stripe?
+            err = "stripe billing not configured"
+            @error_to_client(id:id, error:err)
+            cb(err)
+        else
+            if @stripe_customer_id?
+                cb(undefined, @stripe_customer_id)
+            else
+                database.get_account
+                    columns    : ['stripe_customer_id']
+                    account_id : @account_id
+                    cb         : (err, r) =>
+                        if err
+                            @error_to_client(id:id, error:err)
+                            cb(err)
+                        else
+                            cb(undefined, r.stripe_customer_id)
+
+    # like stripe_get_customer_id, except sends an error to the
+    # user if they aren't registered yet, instead of returning undefined.
+    stripe_need_customer_id: (id, cb) =>
+        @stripe_get_customer_id id, (err, customer_id) =>
+            if err
+                cb(err); return
+            if not customer_id?
+                err = "customer not defined"
+                @stripe_error_to_client(id:id, error:err)
+                cb(err); return
+            cb(undefined, customer_id)
+
+    stripe_get_customer: (id, cb) =>
+        @stripe_get_customer_id id, (err, customer_id) =>
+            if err
+                cb(err)
+                return
+            if not customer_id?
+                cb(undefined, undefined)
+                return
+            stripe.customers.retrieve customer_id, (err, customer) =>
+                if err
+                    @error_to_client(id:id, error:err)
+                    cb(err)
+                else
+                    cb(undefined, customer)
+
+    stripe_error_to_client: (opts) =>
+        opts = defaults opts,
+            id    : required
+            error : required
+        err = opts.error
+        if typeof(err) != 'string'
+            if err.stack?
+                err = err.stack.split('\n')[0]
+            else
+                err = misc.to_json(err)
+        @error_to_client(id:opts.id, error:err)
+
+    # get information from stripe about this customer, e.g., subscriptions, payment methods, etc.
+    mesg_stripe_get_customer: (mesg) =>
+        @stripe_get_customer mesg.id, (err, customer) =>
+            if err
+                return
+            resp = message.stripe_customer
+                id                     : mesg.id
+                stripe_publishable_key : if stripe? then stripe.publishable_key
+                customer               : customer
+            @push_to_client(resp)
+
+    # create a payment method (credit card) in stripe for this user
+    mesg_stripe_create_card: (mesg) =>
+        if not @ensure_fields(mesg, 'token')
+            return
+        @stripe_get_customer_id mesg.id, (err, customer_id) =>
+            if err  # database or other major error (e.g., no stripe conf)
+                    # @get_stripe_customer sends error message to user
+                return
+            if not customer_id?
+                # create new stripe customer (from card token)
+                description = undefined
+                email = undefined
+                async.series([
+                    (cb) =>
+                        database.get_account
+                            columns    : ['email_address', 'first_name', 'last_name']
+                            account_id : @account_id
+                            cb         : (err, r) =>
+                                if err
+                                    cb(err)
+                                else
+                                    email = r.email_address
+                                    description = "#{r.first_name} #{r.last_name}"
+                                    cb()
+                    (cb) =>
+                        stripe.customers.create
+                            source      : mesg.token
+                            description : description
+                            email       : email
+                            metadata    :
+                                account_id : @account_id
+                         ,
+                            (err, customer) =>
+                                if err
+                                    cb(err)
+                                else
+                                    customer_id = customer.id
+                                    cb()
+                    (cb) =>
+                        # success; now save customer id token to database
+                        database.update
+                            table : 'accounts'
+                            set   : {stripe_customer_id : customer_id}
+                            where : {account_id         : @account_id}
+                            cb    : cb
+                ], (err) =>
+                    if err
+                        @stripe_error_to_client(id:mesg.id, error:err)
+                    else
+                        @success_to_client(id:mesg.id)
+                )
+            else
+                # add card to existing stripe customer
+                stripe.customers.createCard customer_id, {card:mesg.token}, (err, card) =>
+                    if err
+                        @stripe_error_to_client(id:mesg.id, error:err)
+                    else
+                        @success_to_client(id:mesg.id)
+
+    # delete a payment method for this user
+    mesg_stripe_delete_card: (mesg) =>
+        if not @ensure_fields(mesg, 'card_id')
+            return
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            stripe.customers.deleteCard customer_id, mesg.card_id, (err, confirmation) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
+
+    # modify a payment method
+    mesg_stripe_update_card: (mesg) =>
+        if not @ensure_fields(mesg, 'card_id info')
+            return
+        if mesg.info.metadata?
+            @error_to_client(id:mesg.id, error:"you may not change card metadata")
+            return
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            stripe.customers.updateCard customer_id, mesg.card_id, mesg.info, (err, confirmation) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
+
+    # get descriptions of the available plans that the user might subscribe to
+    mesg_stripe_get_plans: (mesg) =>
+        stripe.plans.list (err, plans) =>
+            if err
+                @stripe_error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.stripe_plans(id: mesg.id, plans: plans))
+
+    # create a subscription for this user, using some billing method
+    mesg_stripe_create_subscription: (mesg) =>
+        if not @ensure_fields(mesg, 'plan')
+            return
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            projects = mesg.projects
+            if not mesg.quantity?
+                mesg.quantity = 1
+            # sanity check that each thing in project is a project_id
+            if projects?
+                for project_id in projects
+                    if not misc.is_valid_uuid_string(project_id)
+                        @error_to_client(id:mesg.id, error:"invalid project id #{project_id}")
+                        return
+                # TODO: may need more sophisticated sanity check that number
+                # of projects is within the subscription bound, i.e.,
+                # that mesg.quantity * number of projects for this plan is at most the number
+                # of projects specified.  At least, would need this if allow more than
+                # one project for a plan (not sure yet).
+                if projects.length > mesg.quantity
+                    @error_to_client(id:mesg.id, error:"number of projects must be less than quantity")
+                    return
+
+            options =
+                plan     : mesg.plan
+                quantity : mesg.quantity
+                coupon   : mesg.coupon
+                metadata :
+                    projects : misc.to_json(projects)
+            subscription = undefined
+            async.series([
+                (cb) =>
+                    stripe.customers.createSubscription customer_id, options, (err, s) =>
+                        if err
+                            cb(err)
+                        else
+                            subscription = s
+                            cb()
+                (cb) =>
+                    # Successfully added subscription; now save info in our database about subscriptions.
+                    database.cql
+                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions+{'#{subscription.id}'} WHERE project_id IN (#{projects.join(',')})"
+                        cb : (err) =>
+                            if err
+                                cb(err)
+                                # BAD situation -- adding to our database failed.
+                                # Try to at least cancel the subscription to stripe - likely to work, since
+                                # creating subscription above just worked.
+                                stripe.customers.cancelSubscription customer_id, subscription.id, (err, s) =>
+                                    if err
+                                        # OK, this is really bad.  We made a subscription, but couldn't
+                                        # record that in our database.
+                                        send_email
+                                            to      : 'help@sagemath.com'
+                                            subject : "Stripe billing issue **needing** human inspection"
+                                            body    : "Issue creating subscription.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription.id}"
+                            else
+                                cb()
+            ], (err) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
+            )
+
+
+
+    # cancel a subscription for this user
+    mesg_stripe_cancel_subscription: (mesg) =>
+
+    # edit a subscription for this user
+    mesg_stripe_update_subscription: (mesg) =>
+
+    # get a list of all the charges this customer has ever had.
+    mesg_stripe_get_charges: (mesg) =>
+
 
 ##############################
 # User activity tracking
@@ -3404,20 +3667,20 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
         timeout      : 10
         cb           : required
 
-    socket = misc_node.connect_to_locked_socket
+    misc_node.connect_to_locked_socket
         port    : opts.port
         host    : opts.host
         token   : opts.secret_token
         timeout : opts.timeout
-        cb      : (err) =>
+        cb      : (err, socket) =>
             if err
                 opts.cb(err)
             else
                 misc_node.enable_mesg(socket, 'connection_to_a_local_hub')
-                opts.cb(false, socket)
+                socket.on 'data', (data) ->
+                    misc_node.keep_portforward_alive(opts.port)
+                opts.cb(undefined, socket)
 
-    socket.on 'data', (data) ->
-        misc_node.keep_portforward_alive(opts.port)
 
 _local_hub_cache = {}
 new_local_hub = (project_id) ->    # cb(err, hub)
@@ -3639,7 +3902,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 @dbg("call: failed to get socket -- #{err}")
                 opts.cb?(err)
                 return
-            @dbg("call: get socket -- now writing message to the socket")
+            @dbg("call: get socket -- now writing message to the socket -- #{misc.trunc(misc.to_json(opts.mesg),200)}")
             socket.write_mesg 'json', opts.mesg, (err) =>
                 if err
                     @free_resources()   # at least next time it will get a new socket
@@ -5652,7 +5915,45 @@ init_bup_server = (cb) ->
             bup_server = x
             cb?(err)
 
+#############################################
+# Billing settings
+# How to set in cqlsh:
+#    update key_value set value='"..."' where key='"stripe_publishable_key"' and name='"global_admin_settings"';
+#    update key_value set value='"..."' where key='"stripe_secret_key"' and name='"global_admin_settings"';
+#############################################
+stripe  = undefined
+init_stripe = (cb) ->
+    winston.debug("init_stripe")
 
+    billing_settings = {}
+
+    d = database.key_value_store(name:'global_admin_settings')
+    async.series([
+        (cb) ->
+            d.get
+                key : 'stripe_secret_key'
+                cb  : (err, secret_key) ->
+                    if err
+                        cb(err)
+                    else
+                        stripe = require("stripe")(secret_key)
+                        cb()
+        (cb) ->
+            d.get
+                key : 'stripe_publishable_key'
+                cb  : (err, value) ->
+                    if err
+                        cb(err)
+                    else
+                        stripe.publishable_key = value
+                        cb()
+    ], (err) ->
+        if err
+            winston.debug("error initializing stripe: #{err}")
+        else
+            winston.debug("successfully initialized stripe api")
+        cb?(err)
+    )
 
 #############################################
 # Start everything running
@@ -5674,6 +5975,8 @@ exports.start_server = start_server = () ->
                     winston.debug("connected to database.")
                     init_salvus_version()
                     cb()
+        (cb) ->
+            init_stripe(cb)
         (cb) ->
             init_bup_server(cb)
         (cb) ->

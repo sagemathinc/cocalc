@@ -430,7 +430,7 @@ class exports.Cassandra extends EventEmitter
             query_max_retry : 3    # max number of retries
             consistency     : undefined
             verbose         : false # quick hack for debugging...
-            conn_timeout_ms : 15000  # Maximum time in milliseconds to wait for a connection from the pool.
+            conn_timeout_ms : 4000  # Maximum time in milliseconds to wait for a connection from the pool.
 
         @keyspace = opts.keyspace
         @query_timeout_s = opts.query_timeout_s

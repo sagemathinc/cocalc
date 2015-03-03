@@ -51,4 +51,6 @@ history.coffee
 
 activity.coffee
 
+stripe.coffee
+
 last.coffee
