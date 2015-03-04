@@ -2273,7 +2273,7 @@ class exports.Connection extends EventEmitter
     stripe_create_subscription: (opts) =>
         opts = defaults opts,
             plan     : required
-            quantity : 1
+            quantity : 1  # must be >= number of projects
             coupon   : undefined
             projects : undefined  # ids of projects that subscription applies to
             cb       : required
@@ -2298,6 +2298,23 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : opts.cb
 
+    stripe_update_subscription: (opts) =>
+        opts = defaults opts,
+            subscription_id : required
+            quantity : undefined  # if given, must be >= number of projects
+            coupon   : undefined
+            projects : undefined  # ids of projects that subscription applies to
+            plan     : undefined
+            cb       : required
+        @call
+            message : message.stripe_update_subscription
+                subscription_id : opts.subscription_id
+                quantity : opts.quantity
+                coupon   : opts.coupon
+                projects : opts.projects
+                plan     : opts.plan
+            error_event : true
+            cb          : opts.cb
 
 
 #################################################

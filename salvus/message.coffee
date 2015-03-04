@@ -1673,10 +1673,13 @@ message
 
 # Modify a subscription to a plan, e.g., change which projects plan applies to.
 message
-    event   : 'stripe_update_subscription'
-    id      : undefined
+    event           : 'stripe_update_subscription'
+    id              : undefined
     subscription_id : required
-    info    : required   # what to change, e.g., plan type, projects, etc.; also cancel subscription.
+    quantity        : undefined   # only give if changing
+    projects        : undefined   # change associated projects from what they were to new list
+    plan            : undefined   # change plan to this
+    coupon          : undefined   # apply a coupon to this subscription
 
 # charges
 message
