@@ -1059,7 +1059,6 @@ class ProjectPage
     init_project_config: () ->
         if not @container?
             return
-        console.log("yay")
         @container.find(".smc-project-config").show()
         for option in ['disable_collaborators', 'disable_downloads']
             if local_storage(@project.project_id, '', option)
