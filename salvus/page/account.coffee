@@ -873,8 +873,12 @@ $("#account-change_password-button-submit").click (event) ->
                         x.show()
                 else
                     # success
-                    alert_message(type:"info", message:"You have changed your password.")
+                    alert_message
+                        type    : "info"
+                        message : "You have changed your password.    Please log back in using your new password."
+                        timeout : 10
                     close_change_password()
+                    setTimeout(sign_out, 5000)
     return false
 
 ################################################
@@ -1021,6 +1025,10 @@ if localStorage.remember_me
 salvus_client.on "remember_me_failed", () ->
     $(".salvus-remember_me-message").hide()
     $(".salvus-sign_in-form").show()
+    if current_account_page == 'account-settings'  # user was logged in but now isn't due to cookie failure
+        show_page("account-sign_in")
+        set_account_tab_label(true, "Account")
+        alert_message(type:"info", message:"You must sign in again.", timeout:1000000)
 
 salvus_client.on "signed_in", () ->
     $(".salvus-remember_me-message").hide()
@@ -1028,28 +1036,19 @@ salvus_client.on "signed_in", () ->
 
 
 
-
-
-################################################
-# Billing code
-################################################
-
-# TESTS:
-
-billing_history_row = $(".smc-billing-history-row")
-billing_history_append = (entry) ->
-    e = billing_history_row.clone().show()
-    for k, v of entry
-        e.find(".smc-billing-history-entry-#{k}").text(v)
-    $(".smc-billing-history-rows").append(e)
-
-exports.test_billing = () ->
-    billing_history_append
-        date    : '2014-01-29'
-        plan    : 'Small'
-        method  : 'Visa 4*** **** **** 1199'
-        receipt : '...'
-        amount  : 'USD $7.00'
-        status  : 'Succeeded'
-
-
+###
+# Stripe billing integration
+###
+stripe = undefined
+$("a[href=#smc-billing-tab]").click () ->
+    salvus_client.stripe_get_customer
+        cb : (err, resp) ->
+            if err or not resp.stripe_publishable_key
+                $("#smc-billing-tab span").text("Billing is not yet available.")
+                return
+            if not stripe?
+                stripe = require('stripe').stripe_user_interface
+                    element                : $("#smc-billing-tab")
+                    stripe_publishable_key : resp.stripe_publishable_key
+            stripe.set_customer(resp.customer)
+            stripe.render()

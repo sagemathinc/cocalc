@@ -58,7 +58,7 @@ TIMEOUT = 60*60
 
 # never do a save action more frequently than this - more precisely, saves just get
 # ignored until this much time elapses *and* an interesting file changes.
-MIN_SAVE_INTERVAL_S = 90
+MIN_SAVE_INTERVAL_S = 60*10 # 10 minutes
 
 STORAGE_SERVERS_UPDATE_INTERVAL_S = 60*3  # How frequently (in seconds)  to query the database for the list of storage servers
 
@@ -1653,7 +1653,11 @@ class GlobalProject
                     else
                         args = [server_id, opts.last_save[server_id], @project_id]
                         winston.debug("#{s} -- #{misc.to_json(args)}")
-                        @database.cql(s, args, cql.types.consistencies.localQuorum, cb)
+                        @database.cql
+                            query       : s
+                            vals        : args
+                            consistency : cql.types.consistencies.localQuorum
+                            cb          : cb
                 winston.debug("#{misc.keys(opts.last_save)}")
                 async.map(misc.keys(opts.last_save), f, cb)
             (cb) =>
@@ -1944,7 +1948,10 @@ class GlobalProject
                 dbg("change settings in the database")
                 f = (key, c) =>
                     if opts[key]?
-                        @database.cql("UPDATE projects SET settings[?]=? WHERE project_id=?", [key, "#{opts[key]}", @project_id], c)
+                        @database.cql
+                            query : "UPDATE projects SET settings[?]=? WHERE project_id=?"
+                            vals  : [key, "#{opts[key]}", @project_id]
+                            cb    : c
                     else
                         c()
                 async.map(misc.keys(opts), f, (err) => cb(err))
@@ -2261,7 +2268,11 @@ class GlobalClient
             cb        : undefined
         query = "UPDATE storage_servers SET ssh[?]=? WHERE dummy=true and server_id=?"
         args  = [opts.dc, opts.address, opts.server_id]
-        @database.cql(query, args, cql.types.consistencies.one, opts.cb)
+        @database.cql
+            query       : query
+            vals        : args
+            consistency : cql.types.consistencies.one
+            cb          : opts.cb
 
     # get the address:port's that should be used to connect to the server with given
     # id from the given data center.
@@ -2628,7 +2639,6 @@ class GlobalClient
     repair: (opts) =>
         opts = defaults opts,
             limit       : 5           # number to do in parallel
-            qlimit      : 10000000    # limit on number of projects to pull from database
             destructive : false
             timeout     : TIMEOUT
             dryrun      : false       # if true, just return the projects that need sync; don't actually sync
@@ -2647,13 +2657,13 @@ class GlobalClient
                     table     : 'projects'
                     columns   : ['project_id', 'bup_location', 'bup_last_save']
                     objectify : true
-                    limit     : opts.qlimit # TODO: change to use paging...
-                    consistency : 1
+                    stream    : true
                     cb        : (err, r) =>
                         if err
                             cb(err)
                         else
                             dbg("got #{r.length} records")
+                            dbg("sorting them by id")
                             r.sort (a,b) ->
                                 if a.project_id < b.project_id
                                     return -1
@@ -2661,7 +2671,12 @@ class GlobalClient
                                     return 1
                                 else
                                     return 0
+                            dbg("checking through each project to see if any replica is out of sync")
+                            i = 0
                             for project in r
+                                if i%5000 == 0
+                                    dbg("checked #{i}/#{r.length} projects...")
+                                i += 1
                                 if not project.bup_last_save? or misc.len(project.bup_last_save) == 0
                                     continue
                                 times = {}
@@ -2689,6 +2704,7 @@ class GlobalClient
                                             cb("BUG -- project.source_id didn't get set -- #{misc.to_json(project)}")
                                             return
                                     project.targets = (server_id for server_id, tm of project.bup_last_save when "#{tm}" != t)
+                                    dbg("found out of sync project: #{misc.to_json(project)}")
                                     projects.push(project)
                             cb()
             (cb) =>
@@ -2701,11 +2717,29 @@ class GlobalClient
                     dbg("*** syncing project #{i}/#{projects.length} ***: #{project.project_id}")
                     s = {'status':'running...', project:project}
                     opts.status.push(s)
+                    source_id = undefined
                     async.series([
+                        (cb) =>
+                            # Ensure that we open the project where it is currently
+                            # opened, if it is currently opened.   We do not just
+                            # use project.source_id, since it is possible (but very unlikely)
+                            # that the project moved between when we did the above database query
+                            # and when we actually sync out the project.
+                            @project_location
+                                project_id : project.project_id
+                                cb         : (err, result) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        if result?
+                                            source_id = result
+                                        else
+                                            source_id = project.source_id
+                                        cb()
                         (cb) =>
                             @project
                                 project_id : project.project_id
-                                server_id  : project.source_id
+                                server_id  : source_id
                                 cb         : (err, p) =>
                                     if err
                                         cb(err)
@@ -2753,7 +2787,6 @@ class GlobalClient
     delete_old_project_columns: (opts) =>
         opts = defaults opts,
             limit       : 5           # number to do in parallel
-            qlimit      : 10          # limit on number of projects to pull from database -- make this much bigger when serious
             cb          : required    # cb(err, errors)
         dbg = (m) => winston.debug("GlobalClient.delete_old_project_columns(): #{m}")
         dbg()
@@ -2765,8 +2798,7 @@ class GlobalClient
                     table       : 'projects'
                     columns     : ['project_id']
                     objectify   : false
-                    limit       : opts.qlimit # TODO: change to use paging...
-                    consistency : 1
+                    stream      : true
                     cb          : (err, r) =>
                         if err
                             cb(err)
@@ -2784,7 +2816,11 @@ class GlobalClient
                     if i % 100 == 0
                         console.log(i, projects.length)
                     query = "update projects set last_migrate2_error =null, last_migrate3_error=null, last_migrated=null, last_migrated2=null, last_migrated3=null, last_replication_error=null, last_snapshot=null, errors_zfs=null,  locations=null, modified_files=null where project_id=?"
-                    @database.cql(query, [project_id], 1, cb)
+                    @database.cql
+                        query       : query
+                        vals        : [project_id]
+                        consistency : 1
+                        cb          : cb
                 async.mapLimit(projects, opts.limit, f, (err) -> cb(err))
         ], opts.cb)
 
@@ -2792,7 +2828,6 @@ class GlobalClient
     sync_union: (opts) =>
         opts = defaults opts,
             limit       : 5           # number to do in parallel
-            qlimit      : 10000000    # limit on number of projects to pull from database
             timeout     : TIMEOUT
             dryrun      : false       # if true, just return the projects that need sync; don't actually sync
             status      : []
@@ -2813,8 +2848,7 @@ class GlobalClient
                     table     : 'projects'
                     columns   : ['project_id', 'bup_last_save']
                     objectify : true
-                    limit     : opts.qlimit # TODO: change to use paging...
-                    consistency : 1
+                    stream    : true
                     cb        : (err, r) =>
                         if err
                             cb(err)

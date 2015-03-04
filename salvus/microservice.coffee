@@ -122,12 +122,12 @@ class exports.Client extends EventEmitter
     _connect: (cb) =>
         @dbg("_connect")
         @socket = undefined
-        socket = misc_node.connect_to_locked_socket
+        misc_node.connect_to_locked_socket
             port    : @port
             host    : @host
             token   : @secret_token
             timeout : 5
-            cb      : (err) =>
+            cb      : (err, socket) =>
                 if err
                     @dbg("_connect", "error -- #{err}")
                     cb(err)
