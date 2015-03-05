@@ -3944,13 +3944,14 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @_local_hub_socket_connecting = true
         @_local_hub_socket_queue = [cb]
         connecting_timer = undefined
+
         cancel_connecting = () =>
             @_local_hub_socket_connecting = false
             @_local_hub_socket_queue = []
             clearTimeout(connecting_timer)
 
-        # If below fails for 60s for some reason, allow for future attempt.
-        connecting_timer = setTimeout(cancel_connecting, 60000)
+        # If below fails for 20s for some reason, cancel everything to allow for future attempt.
+        connecting_timer = setTimeout(cancel_connecting, 20000)
 
         @dbg("local_hub_socket: getting new socket")
         @new_socket (err, socket) =>
