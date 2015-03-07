@@ -1683,8 +1683,11 @@ message
 
 # charges
 message
-    event : 'stripe_get_charges'
-    id    : undefined
+    event          : 'stripe_get_charges'
+    id             : undefined
+    limit          : undefined    # between 1 and 100 (default: 10)
+    ending_before  : undefined    # see https://stripe.com/docs/api/node#list_charges
+    starting_after : undefined
 
 message
     event   : 'stripe_charges'

@@ -2247,9 +2247,16 @@ class exports.Connection extends EventEmitter
     # gets list of past stripe charges for this account.
     stripe_get_charges: (opts) =>
         opts = defaults opts,
-            cb    : required
+            limit          : undefined    # between 1 and 100 (default: 10)
+            ending_before  : undefined    # see https://stripe.com/docs/api/node#list_charges
+            starting_after : undefined
+            cb             : required
         @call
-            message     : message.stripe_get_charges()
+            message     :
+                message.stripe_get_charges
+                    limit          : opts.limit
+                    ending_before  : opts.ending_before
+                    starting_after : opts.starting_after
             error_event : true
             cb          : (err, mesg) =>
                 if err
