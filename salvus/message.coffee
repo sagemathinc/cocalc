@@ -1681,6 +1681,18 @@ message
     plan            : undefined   # change plan to this
     coupon          : undefined   # apply a coupon to this subscription
 
+message
+    event          : 'stripe_get_subscriptions'
+    id             : undefined
+    limit          : undefined    # between 1 and 100 (default: 10)
+    ending_before  : undefined    # see https://stripe.com/docs/api/node#list_charges
+    starting_after : undefined
+
+message
+    event         : 'stripe_subscriptions'
+    id            : undefined
+    subscriptions : undefined
+
 # charges
 message
     event          : 'stripe_get_charges'
@@ -1693,7 +1705,6 @@ message
     event   : 'stripe_charges'
     id      : undefined
     charges : undefined
-
 
 
 

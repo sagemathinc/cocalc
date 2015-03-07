@@ -3339,6 +3339,21 @@ class Client extends EventEmitter
                     @success_to_client(id:mesg.id)
             )
 
+    # get a list of all the subscriptions that this customer has
+    mesg_stripe_get_subscriptions: (mesg) =>
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            options =
+                limit          : mesg.limit
+                ending_before  : mesg.ending_before
+                starting_after : mesg.starting_after
+            stripe.customers.listSubscriptions customer_id, options, (err, subscriptions) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.stripe_subscriptions(id:mesg.id, subscriptions:subscriptions))
+
     # get a list of all the charges this customer has ever had.
     mesg_stripe_get_charges: (mesg) =>
         @stripe_need_customer_id mesg.id, (err, customer_id) =>

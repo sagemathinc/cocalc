@@ -2323,6 +2323,27 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : opts.cb
 
+    # gets list of past stripe charges for this account.
+    stripe_get_subscriptions: (opts) =>
+        opts = defaults opts,
+            limit          : undefined    # between 1 and 100 (default: 10)
+            ending_before  : undefined    # see https://stripe.com/docs/api/node#list_subscriptions
+            starting_after : undefined
+            cb             : required
+        @call
+            message     :
+                message.stripe_get_subscriptions
+                    limit          : opts.limit
+                    ending_before  : opts.ending_before
+                    starting_after : opts.starting_after
+            error_event : true
+            cb          : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, mesg.subscriptions)
+
+
 
 #################################################
 # Other account Management functionality shared between client and server
