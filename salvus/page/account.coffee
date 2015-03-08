@@ -1040,9 +1040,11 @@ salvus_client.on "signed_in", () ->
 # Stripe billing integration
 ###
 stripe = undefined
-$("a[href=#smc-billing-tab]").click () ->
+update_billing_tab = () ->
+    $(".smc-billing-tab-refresh-spinner").addClass('fa-spin')
     salvus_client.stripe_get_customer
         cb : (err, resp) ->
+            $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin')
             if err or not resp.stripe_publishable_key
                 $("#smc-billing-tab span").text("Billing is not yet available.")
                 return
@@ -1052,3 +1054,6 @@ $("a[href=#smc-billing-tab]").click () ->
                     stripe_publishable_key : resp.stripe_publishable_key
             stripe.set_customer(resp.customer)
             stripe.render()
+
+$("a[href=#smc-billing-tab]").click(update_billing_tab)
+
