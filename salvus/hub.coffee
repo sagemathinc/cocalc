@@ -186,6 +186,7 @@ init_http_server = () ->
             when "alive"
                 if not database_is_working
                     # this will stop haproxy from routing traffic to us until db connection starts working again.
+                    winston.debug("alive: answering *NO*")
                     res.writeHead(404, {'Content-Type':'text/plain'})
                 res.end('')
             when "proxy"
@@ -3176,7 +3177,7 @@ class Client extends EventEmitter
                         cb : (err) =>
                             if err
                                 cb(err)
-                                # BAD situation -- adding to our database failed.
+                                # BAD unlikely situation -- adding to our database failed.
                                 # Try to at least cancel the subscription to stripe - likely to work, since
                                 # creating subscription above just worked.
                                 stripe.customers.cancelSubscription customer_id, subscription.id, (err, s) =>
@@ -3186,7 +3187,7 @@ class Client extends EventEmitter
                                         send_email
                                             to      : 'help@sagemath.com'
                                             subject : "Stripe billing issue **needing** human inspection"
-                                            body    : "Issue creating subscription.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription.id}"
+                                            body    : "Issue creating subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription.id} -- #{err}"
                             else
                                 cb()
             ], (err) =>
@@ -3200,12 +3201,176 @@ class Client extends EventEmitter
 
     # cancel a subscription for this user
     mesg_stripe_cancel_subscription: (mesg) =>
+        if not @ensure_fields(mesg, 'subscription_id')
+            return
+        if mesg.at_period_end
+            # don't support this yet, since we first have to make
+            # sure projects don't get unsubscribed immediately.
+            @error_to_client(id:mesg.id, error:"stripe cancel subscription at_period_end option net yet supported")
+            return
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+
+            projects        = undefined
+            subscription_id = mesg.subscription_id
+            async.series([
+                (cb) =>
+                    # Cancel the subscription.  This also returns the subscription, which lets
+                    # us easily get the metadata of all projects associated to this subscription.
+                    stripe.customers.cancelSubscription customer_id, subscription_id, (err, subscription) =>
+                        if err
+                            cb(err)
+                        else
+                            if subscription.metadata?.projects?
+                                projects = misc.from_json(subscription.metadata.projects)
+                            cb()
+                (cb) =>
+                    if not projects?
+                        cb(); return
+                    # remove subscription from projects
+                    database.cql
+                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions-{'#{subscription_id}'} WHERE project_id IN (#{projects.join(',')})"
+                        cb : (err) =>
+                            if err
+                                cb(err)
+                                # BAD unlikely situation -- removing from our database failed.
+                                send_email
+                                    to      : 'help@sagemath.com'
+                                    subject : "Stripe billing issue **needing** human inspection"
+                                    body    : "Issue removing subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription_id} -- #{err}"
+                            else
+                                cb()
+            ], (err) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
+            )
+
 
     # edit a subscription for this user
     mesg_stripe_update_subscription: (mesg) =>
+        if not @ensure_fields(mesg, 'subscription_id')
+            return
+        subscription_id = mesg.subscription_id
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            # sanity check that each thing in mesg.project is a uuid.
+            if mesg.projects?
+                for project_id in mesg.projects
+                    if not misc.is_valid_uuid_string(project_id)
+                        @error_to_client(id:mesg.id, error:"invalid project id #{project_id}")
+                        return
+            subscription = undefined
+            projects0    = undefined
+            projects     = undefined
+            quantity     = undefined
+
+            async.series([
+                (cb) =>
+                    # If changing the projects or quantity, get the current subscription.
+                    if mesg.projects? or mesg.quantity?
+                        stripe.customers.retrieveSubscription  customer_id, subscription_id, (err, s) =>
+                            if err
+                                cb(err)
+                            else
+                                # Do consistency check
+                                projects0 = if s.metadata.projects? then misc.from_json(s.metadata.projects) else []
+                                projects  = if mesg.projects? then mesg.projects else projects0
+                                quantity  = if mesg.quantity? then mesg.quantity else s.quantity
+                                if projects? and projects.length > quantity
+                                    cb("number of projects (=#{projects.length}) must be less than quantity (=#{quantity})")
+                                else
+                                    subscription = s
+                                    cb()
+                    else
+                        cb()
+                (cb) =>
+                    # Update the subscription.  This also returns the subscription, which lets
+                    # us easily get the metadata of all projects associated to this subscription.
+                    changes =
+                        quantity : mesg.quantity
+                        plan     : mesg.plan
+                        coupon   : mesg.coupon
+                    if mesg.projects?
+                        changes.metadata = {projects:misc.to_json(mesg.projects)}
+                    stripe.customers.updateSubscription customer_id, subscription_id, changes, (err, subscription) =>
+                        if err
+                            cb(err)
+                        else
+                            cb()
+                (cb) =>
+                    to_delete = (project_id for project_id in projects0 when project_id not in projects)
+                    if to_delete.length == 0
+                        cb(); return
+                    # remove subscription from projects
+                    database.cql
+                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions-{'#{subscription_id}'} WHERE project_id IN (#{to_delete.join(',')})"
+                        cb : (err) =>
+                            if err
+                                cb() # still want to try adding
+                                send_email
+                                    to      : 'help@sagemath.com'
+                                    subject : "Stripe billing issue **needing** human inspection"
+                                    body    : "Issue removing subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription_id} -- #{err}"
+                            else
+                                cb()
+                (cb) =>
+                    to_add = (project_id for project_id in projects when project_id not in projects0)
+                    if to_add.length == 0
+                        cb(); return
+                    # add subscriptions to projects
+                    database.cql
+                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions+{'#{subscription_id}'} WHERE project_id IN (#{to_add.join(',')})"
+                        cb : (err) =>
+                            if err
+                                cb(err)
+                                send_email
+                                    to      : 'help@sagemath.com'
+                                    subject : "Stripe billing issue **needing** human inspection"
+                                    body    : "Issue adding subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription_id} -- #{err}"
+                            else
+                                cb()
+            ], (err) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
+            )
+
+    # get a list of all the subscriptions that this customer has
+    mesg_stripe_get_subscriptions: (mesg) =>
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            options =
+                limit          : mesg.limit
+                ending_before  : mesg.ending_before
+                starting_after : mesg.starting_after
+            stripe.customers.listSubscriptions customer_id, options, (err, subscriptions) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.stripe_subscriptions(id:mesg.id, subscriptions:subscriptions))
 
     # get a list of all the charges this customer has ever had.
     mesg_stripe_get_charges: (mesg) =>
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            options =
+                customer       : customer_id
+                limit          : mesg.limit
+                ending_before  : mesg.ending_before
+                starting_after : mesg.starting_after
+            stripe.charges.list options, (err, charges) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.stripe_charges(id:mesg.id, charges:charges))
+
 
 
 ##############################
@@ -3807,13 +3972,14 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @_local_hub_socket_connecting = true
         @_local_hub_socket_queue = [cb]
         connecting_timer = undefined
+
         cancel_connecting = () =>
             @_local_hub_socket_connecting = false
             @_local_hub_socket_queue = []
             clearTimeout(connecting_timer)
 
-        # If below fails for 60s for some reason, allow for future attempt.
-        connecting_timer = setTimeout(cancel_connecting, 60000)
+        # If below fails for 20s for some reason, cancel everything to allow for future attempt.
+        connecting_timer = setTimeout(cancel_connecting, 20000)
 
         @dbg("local_hub_socket: getting new socket")
         @new_socket (err, socket) =>

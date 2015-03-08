@@ -2247,9 +2247,16 @@ class exports.Connection extends EventEmitter
     # gets list of past stripe charges for this account.
     stripe_get_charges: (opts) =>
         opts = defaults opts,
-            cb    : required
+            limit          : undefined    # between 1 and 100 (default: 10)
+            ending_before  : undefined    # see https://stripe.com/docs/api/node#list_charges
+            starting_after : undefined
+            cb             : required
         @call
-            message     : message.stripe_get_charges()
+            message     :
+                message.stripe_get_charges
+                    limit          : opts.limit
+                    ending_before  : opts.ending_before
+                    starting_after : opts.starting_after
             error_event : true
             cb          : (err, mesg) =>
                 if err
@@ -2273,7 +2280,7 @@ class exports.Connection extends EventEmitter
     stripe_create_subscription: (opts) =>
         opts = defaults opts,
             plan     : required
-            quantity : 1
+            quantity : 1  # must be >= number of projects
             coupon   : undefined
             projects : undefined  # ids of projects that subscription applies to
             cb       : required
@@ -2285,6 +2292,56 @@ class exports.Connection extends EventEmitter
                 projects : opts.projects
             error_event : true
             cb          : opts.cb
+
+    stripe_cancel_subscription: (opts) =>
+        opts = defaults opts,
+            subscription_id : required
+            at_period_end   : false
+            cb              : required
+        @call
+            message : message.stripe_cancel_subscription
+                subscription_id : opts.subscription_id
+                at_period_end   : opts.at_period_end
+            error_event : true
+            cb          : opts.cb
+
+    stripe_update_subscription: (opts) =>
+        opts = defaults opts,
+            subscription_id : required
+            quantity : undefined  # if given, must be >= number of projects
+            coupon   : undefined
+            projects : undefined  # ids of projects that subscription applies to
+            plan     : undefined
+            cb       : required
+        @call
+            message : message.stripe_update_subscription
+                subscription_id : opts.subscription_id
+                quantity : opts.quantity
+                coupon   : opts.coupon
+                projects : opts.projects
+                plan     : opts.plan
+            error_event : true
+            cb          : opts.cb
+
+    # gets list of past stripe charges for this account.
+    stripe_get_subscriptions: (opts) =>
+        opts = defaults opts,
+            limit          : undefined    # between 1 and 100 (default: 10)
+            ending_before  : undefined    # see https://stripe.com/docs/api/node#list_subscriptions
+            starting_after : undefined
+            cb             : required
+        @call
+            message     :
+                message.stripe_get_subscriptions
+                    limit          : opts.limit
+                    ending_before  : opts.ending_before
+                    starting_after : opts.starting_after
+            error_event : true
+            cb          : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, mesg.subscriptions)
 
 
 

@@ -1666,27 +1666,45 @@ message
 
 # Delete a subscription to a plan
 message
-    event   : 'stripe_cancel_subscription'
-    id      : undefined
+    event           : 'stripe_cancel_subscription'
+    id              : undefined
     subscription_id : required
+    at_period_end   : false
 
 # Modify a subscription to a plan, e.g., change which projects plan applies to.
 message
-    event   : 'stripe_update_subscription'
-    id      : undefined
+    event           : 'stripe_update_subscription'
+    id              : undefined
     subscription_id : required
-    info    : required   # what to change, e.g., plan type, projects, etc.; also cancel subscription.
+    quantity        : undefined   # only give if changing
+    projects        : undefined   # change associated projects from what they were to new list
+    plan            : undefined   # change plan to this
+    coupon          : undefined   # apply a coupon to this subscription
+
+message
+    event          : 'stripe_get_subscriptions'
+    id             : undefined
+    limit          : undefined    # between 1 and 100 (default: 10)
+    ending_before  : undefined    # see https://stripe.com/docs/api/node#list_charges
+    starting_after : undefined
+
+message
+    event         : 'stripe_subscriptions'
+    id            : undefined
+    subscriptions : undefined
 
 # charges
 message
-    event : 'stripe_get_charges'
-    id    : undefined
+    event          : 'stripe_get_charges'
+    id             : undefined
+    limit          : undefined    # between 1 and 100 (default: 10)
+    ending_before  : undefined    # see https://stripe.com/docs/api/node#list_charges
+    starting_after : undefined
 
 message
     event   : 'stripe_charges'
     id      : undefined
     charges : undefined
-
 
 
 
