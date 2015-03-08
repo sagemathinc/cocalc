@@ -125,14 +125,14 @@ cloud21  {'hostname':'compute21dc0',  'vcpus':compute_cpu,   'ram':compute_ram, 
 [cassandra] {'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer', 'incremental_backups':True, 'memtable_flush_writers':2, 'memtable_allocation_type':'offheap_objects', 'concurrent_compactors':'1'}
 
 # DC5: Commercial google us-central1-f
-smc1dc5  {'seed':True,   'topology':'DC5:RAC0', 'num_tokens':256,}
-smc2dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256,}
-smc3dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256,}
-smc4dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256,}
-smc5dc5  {'seed':True,   'topology':'DC5:RAC0', 'num_tokens':256,}
-smc6dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
-smc7dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
-smc8dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
+smc1dc5  {'seed':True,   'topology':'DC5:RAC0', 'num_tokens':256}
+smc2dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
+smc3dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
+smc4dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
+smc5dc5  {'seed':True,   'topology':'DC5:RAC0', 'num_tokens':256}
+smc6dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
+smc7dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
+smc8dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
 
 # DC6: Commercial google: europe-west1-c
 smc1dc6  {'seed':True,   'topology':'DC6:RAC0', 'num_tokens':256}
@@ -140,9 +140,9 @@ smc2dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
 smc3dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
 smc4dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
 smc5dc6  {'seed':True,   'topology':'DC6:RAC0', 'num_tokens':256}
-smc6dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
-smc7dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
-smc8dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
+smc6dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
+smc7dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
+smc8dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
 
 # DC7: Commercial google: asia-east1-c
 #smc1dc7  {'seed':True,   'topology':'DC7:RAC0', 'num_tokens':256}
@@ -150,9 +150,9 @@ smc8dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256, 'auto_bootstra
 #smc3dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
 #smc4dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
 #smc5dc7  {'seed':True,   'topology':'DC7:RAC0', 'num_tokens':256}
-#smc6dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
-#smc7dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
-#smc8dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256, 'auto_bootstrap':True}
+#smc6dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
+#smc7dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
+#smc8dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
 
 
 [stunnel] {'sudo':True}
