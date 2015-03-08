@@ -186,6 +186,7 @@ init_http_server = () ->
             when "alive"
                 if not database_is_working
                     # this will stop haproxy from routing traffic to us until db connection starts working again.
+                    winston.debug("alive: answering *NO*")
                     res.writeHead(404, {'Content-Type':'text/plain'})
                 res.end('')
             when "proxy"
