@@ -52,7 +52,7 @@ def random_port():
 def command():
     port = random_port()  # time consuming!
     base = "%s/%s/port/%s/"%(info['base_url'], project_id, port)
-    cmd = "ipython notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js  --NotebookApp.base_project_url=%s --NotebookApp.base_kernel_url=%s --ip=%s --port=%s"%(base, base, ip, port)
+    cmd = "ipython notebook --port-retries=0 --matplotlib=inline --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js  --NotebookApp.base_project_url=%s --NotebookApp.base_kernel_url=%s --ip=%s --port=%s"%(base, base, ip, port)
     cmd += " " + ' '.join(sys.argv[1:])
     return cmd, base, port
 
