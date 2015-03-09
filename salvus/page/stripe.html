@@ -66,29 +66,16 @@
         </div>
         <div class="row">
             <div class="col-sm-12">
-                <div class="panel panel-default smc-stripe-history-panel hide">
+                <div class="panel panel-default smc-stripe-charges-panel hide">
                     <div class="panel-heading">
                         <span class="panel-title">Payment History</span>
                     </div>
-                    <div class="panel-body smc-stripe-history-rows">
-                        <div class="row" style="font-weight:bold">
-                            <div class="col-sm-2">
-                                Date
-                            </div>
-                            <div class="col-sm-2">
-                                Description
-                            </div>
-                            <div class="col-sm-2">
-                                Card
-                            </div>
-                            <div class="col-sm-2">
-                                Receipt
-                            </div>
-                            <div class="col-sm-2">
-                                Amount
-                            </div>
-                            <div class="col-sm-2">
-                                Status
+                    <div class="panel-body">
+                        <div class="smc-stripe-page-charges">
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-9">
+                                <a class="btn btn-default hide" href="#show-more">Show More...</a>
                             </div>
                         </div>
                     </div>
@@ -228,6 +215,27 @@
             <div class="col-sm-3">
                 <span class="smc-stripe-subscription-start"></span>
             </div>
+        </div>
+    </div>
+
+    <div class="smc-stripe-charge">
+        <div class="row" style="border-top: 1px solid lightgrey; padding-top: 11px; margin-top: 11px;">
+            <div class="col-sm-1">
+                <i class="fa fa-caret-right smc-stripe-charge-show-details" style="font-size: 15pt; cursor:pointer"></i>
+                <i class="fa fa-caret-down smc-stripe-charge-hide-details hide" style="font-size: 15pt; cursor:pointer"></i>
+            </div>
+            <div class="col-sm-3">
+                <span class="smc-stripe-charge-amount"></span>
+            </div>
+            <div class="col-sm-3">
+                <span class="smc-stripe-charge-created"></span>
+            </div>
+            <div class="col-sm-5">
+                <span class="smc-stripe-charge-description"><span class="lighten">No description</span></span>
+            </div>
+        </div>
+        <div class="row hide smc-stripe-charge-details">
+            (details)
         </div>
     </div>
 </div>

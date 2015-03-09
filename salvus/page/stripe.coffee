@@ -61,14 +61,12 @@ class STRIPE
     set_customer: (customer) =>
         @customer = customer
 
-    render: () =>
+    render_cards_and_subscriptions: () =>
         if not @customer?
             # nothing to do
             return
         @render_cards()
         @render_subscriptions()
-        @render_payment_history()
-
         if @customer.cards.data.length > 0
             @element.find("a[href=#new-subscription]").removeClass("disabled")
         else
@@ -176,8 +174,50 @@ class STRIPE
         else
             panel.find("a[href=#show-more]").hide()
 
-    render_payment_history: () =>
-        log("render_payment_history")
+    set_charges: (charges) =>
+        @charges = charges
+
+    render_one_charge: (charge) =>
+        log('render_one_charge', charge)
+        elt = templates.find(".smc-stripe-charge").clone()
+        elt.attr('id', charge.id)
+
+        elt.find(".smc-stripe-charge-amount").text("$#{charge.amount/100}") # TODO
+        if charge.description
+            elt.find(".smc-stripe-charge-plan-name").text(charge.description)
+
+        elt.find(".smc-stripe-charge-created").text(stripe_date(charge.created))
+
+        elt.smc_toggle_details
+            show   : '.smc-stripe-charge-show-details'
+            hide   : '.smc-stripe-charge-hide-details'
+            target : '.smc-strip-charge-details'
+
+        return elt
+
+    render_charges: () =>
+        log("render_charges")
+        charges = @charges
+        if not charges?
+            return
+        panel = @element.find(".smc-stripe-charges-panel")
+        if charges.data.length == 0
+            # no charges yet -- don't show
+            panel.hide()
+            return
+        else
+            panel.show()
+        elt_charges = panel.find(".smc-stripe-page-charges")
+        elt_charges.empty()
+        for charge in charges.data
+            elt_charges.append(@render_one_charge(charge))
+
+        if charges.has_more
+            panel.find("a[href=#show-more]").show().click () =>
+                @show_all_charges()
+        else
+            panel.find("a[href=#show-more]").hide()
+
 
     new_card: () =>
         btn = @element.find("a[href=#new-card]")

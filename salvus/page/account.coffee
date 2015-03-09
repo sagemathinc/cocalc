@@ -1042,18 +1042,33 @@ salvus_client.on "signed_in", () ->
 stripe = undefined
 update_billing_tab = () ->
     $(".smc-billing-tab-refresh-spinner").show().addClass('fa-spin')
-    salvus_client.stripe_get_customer
-        cb : (err, resp) ->
-            $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin')
-            if err or not resp.stripe_publishable_key
-                $("#smc-billing-tab span").text("Billing is not yet available.")
-                return
-            if not stripe?
-                stripe = require('stripe').stripe_user_interface
-                    element                : $("#smc-billing-tab")
-                    stripe_publishable_key : resp.stripe_publishable_key
-            stripe.set_customer(resp.customer)
-            stripe.render()
+    async.series([
+        (cb) ->
+            salvus_client.stripe_get_customer
+                cb : (err, resp) ->
+                    if err or not resp.stripe_publishable_key
+                        $("#smc-billing-tab span").text("Billing is not yet available.")
+                        cb(true)
+                        return
+                    if not stripe?
+                        stripe = require('stripe').stripe_user_interface
+                            element                : $("#smc-billing-tab")
+                            stripe_publishable_key : resp.stripe_publishable_key
+                    stripe.set_customer(resp.customer)
+                    stripe.render_cards_and_subscriptions()
+                    cb()
+        (cb) ->
+            salvus_client.stripe_get_charges
+                cb: (err, charges) ->
+                    if err
+                        cb(true)
+                        return
+                    stripe.set_charges(charges)
+                    stripe.render_charges()
+                    cb()
+    ], () ->
+        $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin')
+    )
 
 $("a[href=#smc-billing-tab]").click(update_billing_tab)
 
