@@ -10,31 +10,21 @@
                             <div class="col-sm-3">
                                 <span class="panel-title">Subscriptions</span>
                             </div>
-                            <div class="cols-sm-3">
-                                <a class="btn btn-primary disabled" href="#new-subscription">
-                                    <i class="fa fa-plus-circle"></i> New Subscription</a>
+                            <div class="col-sm-offset-4 cols-sm-5">
+                                <span class="pull-right" style="margin-right: 1em;">
+                                    <a class="btn btn-primary disabled" href="#new-subscription">
+                                        <i class="fa fa-plus-circle"></i> New Subscription</a>
+                                </span>
                             </div>
                         </div>
                     </div>
-                    <div class="panel-body smc-stripe-subscriptions-rows">
-                        <div class="row" style="font-weight:bold">
-                            <div class="col-sm-2">
-                                Plan
-                            </div>
-                            <div class="col-sm-2">
-                                Start
-                            </div>
-                            <div class="col-sm-2">
-                                Status
-                            </div>
-                            <div class="col-sm-2">
-                                Quantity
-                            </div>
-                            <div class="col-sm-2">
-                                Cost
-                            </div>
-                            <div class="col-sm-2">
-                                Projects
+                    <div class="panel-body">
+                        <div class="smc-stripe-page-subscriptions">
+
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-9">
+                                <a class="btn btn-default hide" href="#show-more">Show More...</a>
                             </div>
                         </div>
                     </div>
@@ -51,11 +41,11 @@
                             </div>
                             <div class="col-sm-offset-7 cols-sm-5">
                                 <span class="pull-right" style="margin-right: 1em;">
-                                    <a class="btn btn-primary" href="#new-card">
-                                        <i class="fa fa-plus-circle"></i> New Payment Method
-                                    </a>
                                     <a class="btn btn-default" href="#change-default">
                                         <i class="fa fa-check"></i> Change Default Method
+                                    </a>
+                                    <a class="btn btn-primary" href="#new-card">
+                                        <i class="fa fa-plus-circle"></i> New Payment Method
                                     </a>
                                 </span>
                             </div>
@@ -206,6 +196,38 @@
             <div class="col-sm-2">
                 <span class="smc-stripe-card-country"></span>
              </div>
+        </div>
+    </div>
+
+    <div class="smc-stripe-subscription">
+        <div class="row" style="border-top: 1px solid lightgrey; padding-top: 11px; margin-top: 11px;">
+            <div class="col-sm-1">
+                <i class="fa fa-caret-right smc-stripe-subscription-show-details" style="font-size: 15pt; cursor:pointer"></i>
+                <i class="fa fa-caret-down smc-stripe-subscription-hide-details hide" style="font-size: 15pt; cursor:pointer"></i>
+            </div>
+            <div class="col-sm-4">
+                <span class="smc-stripe-subscription-quantity" style="margin-right: 5px;"></span> ×
+                <span class="smc-stripe-subscription-plan-name" style="margin-left: 5px;"></span>
+                (<span class="smc-stripe-subscription-plan-amount"></span>)
+            </div>
+            <div class="col-sm-7">
+                <span class="smc-stripe-subscription-metadata"></span>
+            </div>
+        </div>
+        <div class="row hide smc-strip-subscription-details">
+            <div class="col-sm-offset-1 col-sm-2 lighten">
+                Period:
+            </div>
+            <div class="col-sm-3">
+                <span class="smc-stripe-subscription-current_period_start"></span> to
+                <span class="smc-stripe-subscription-current_period_end"></span>
+            </div>
+            <div class="col-sm-offset-1 col-sm-2 lighten">
+                Started:
+            </div>
+            <div class="col-sm-3">
+                <span class="smc-stripe-subscription-start"></span>
+            </div>
         </div>
     </div>
 </div>

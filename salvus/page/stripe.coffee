@@ -39,7 +39,11 @@ exports.stripe_user_interface = (opts) ->
 
 templates = $(".smc-stripe-templates")
 
+stripe_date = (d) ->
+    return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
+
 log = (x,y,z) -> console.log('stripe: ', x,y,z)
+
 
 class STRIPE
     constructor: (@stripe_publishable_key, elt) ->
@@ -65,6 +69,11 @@ class STRIPE
         @render_subscriptions()
         @render_payment_history()
 
+        if @customer.cards.data.length > 0
+            @element.find("a[href=#new-subscription]").removeClass("disabled")
+        else
+            @element.find("a[href=#new-subscription]").addClass("disabled")
+
     render_one_card: (card) =>
         log('render_one_card', card)
         # card is a map with domain
@@ -82,15 +91,10 @@ class STRIPE
         else
             elt.find(".smc-stripe-card-brand-Other").show()
 
-        elt.find(".smc-stripe-card-show-details").click () =>
-            elt.find(".smc-stripe-card-show-details").hide()
-            elt.find(".smc-stripe-card-hide-details").show()
-            elt.find(".smc-strip-card-details").show()
-
-        elt.find(".smc-stripe-card-hide-details").click () =>
-            elt.find(".smc-stripe-card-hide-details").hide()
-            elt.find(".smc-stripe-card-show-details").show()
-            elt.find(".smc-strip-card-details").hide()
+        elt.smc_toggle_details
+            show   : '.smc-stripe-card-show-details'
+            hide   : '.smc-stripe-card-hide-details'
+            target : '.smc-strip-card-details'
 
         return elt
 
@@ -103,14 +107,74 @@ class STRIPE
         for card in cards.data
             elt_cards.append(@render_one_card(card))
 
+        if cards.data.length > 1
+            panel.find("a[href=#change-default]").show()
+        else
+            panel.find("a[href=#change-default]").hide()
+
         if cards.has_more
             panel.find("a[href=#show-more]").show().click () =>
                 @show_all_cards()
         else
             panel.find("a[href=#show-more]").hide()
 
+    render_one_subscription: (subscription) =>
+        log('render_one_subscription', subscription)
+        ###
+        #
+        # subscription is a map with domain
+        #
+        #    id, plan, object, start, status, customer, cancel_at_period_end, current_period_start, current_period_end,
+        #    ended_at, trial_start, trial_end, canceled_at, quantity, application_fee_percent, discount, tax_percent, metadata
+        #
+        # The plan is another map with domain:
+        #
+        #    interval, name, created, amount, currency, id, object, livemode, interval_count, trial_period_days,
+        #    metadata, statement_descriptor
+        #
+        ###
+        elt = templates.find(".smc-stripe-subscription").clone()
+        elt.attr('id', subscription.id)
+
+        elt.find(".smc-stripe-subscription-quantity").text(subscription.quantity)
+        for k in ['start', 'current_period_start', 'current_period_end']
+            v = subscription[k]
+            if v
+                elt.find(".smc-stripe-subscription-#{k}").text(stripe_date(v))
+
+        plan = subscription.plan
+        elt.find(".smc-stripe-subscription-plan-name").text(plan.name)
+
+        # TODO: make currency more sophisticated
+        elt.find(".smc-stripe-subscription-plan-amount").text("$#{plan.amount/100}/month")  #TODO!
+
+        elt.smc_toggle_details
+            show   : '.smc-stripe-subscription-show-details'
+            hide   : '.smc-stripe-subscription-hide-details'
+            target : '.smc-strip-subscription-details'
+
+        return elt
+
     render_subscriptions: () =>
         log("render_subscriptions")
+        subscriptions = @customer.subscriptions
+        panel = @element.find(".smc-stripe-subscriptions-panel")
+        if subscriptions.data.length == 0 and @customer.cards.data.length == 0
+            # no way to pay and no subscriptions yet -- don't show
+            panel.hide()
+            return
+        else
+            panel.show()
+        elt_subscriptions = panel.find(".smc-stripe-page-subscriptions")
+        elt_subscriptions.empty()
+        for subscription in subscriptions.data
+            elt_subscriptions.append(@render_one_subscription(subscription))
+
+        if subscriptions.has_more
+            panel.find("a[href=#show-more]").show().click () =>
+                @show_all_subscriptions()
+        else
+            panel.find("a[href=#show-more]").hide()
 
     render_payment_history: () =>
         log("render_payment_history")

@@ -1041,7 +1041,7 @@ salvus_client.on "signed_in", () ->
 ###
 stripe = undefined
 update_billing_tab = () ->
-    $(".smc-billing-tab-refresh-spinner").addClass('fa-spin')
+    $(".smc-billing-tab-refresh-spinner").show().addClass('fa-spin')
     salvus_client.stripe_get_customer
         cb : (err, resp) ->
             $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin')
@@ -1057,3 +1057,5 @@ update_billing_tab = () ->
 
 $("a[href=#smc-billing-tab]").click(update_billing_tab)
 
+$("a[href=#account-settings-tab]").click () ->
+    $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin').hide()
