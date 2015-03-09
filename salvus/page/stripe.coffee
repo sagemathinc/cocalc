@@ -26,6 +26,7 @@
 
 async           = require('async')
 misc            = require('misc')
+{alert_message} = require('alerts')
 defaults        = misc.defaults
 required        = defaults.required
 
@@ -33,9 +34,8 @@ required        = defaults.required
 
 exports.stripe_user_interface = (opts) ->
     opts = defaults opts,
-        stripe_publishable_key : required
         element                : required
-    return new STRIPE(opts.stripe_publishable_key, opts.element)
+    return new STRIPE(opts.element)
 
 templates = $(".smc-stripe-templates")
 
@@ -46,8 +46,7 @@ log = (x,y,z) -> console.log('stripe: ', x,y,z)
 
 
 class STRIPE
-    constructor: (@stripe_publishable_key, elt) ->
-        Stripe.setPublishableKey(@stripe_publishable_key)
+    constructor: (elt) ->
         @element = templates.find(".smc-stripe-page").clone()
         elt.empty()
         elt.append(@element)
@@ -57,6 +56,34 @@ class STRIPE
     init: () =>
         @elt_cards = @element.find(".smc-stripe-page-card")
         @element.find("a[href=#new-card]").click(@new_card)
+
+    update: (cb) =>
+        $(".smc-billing-tab-refresh-spinner").show().addClass('fa-spin')
+        async.series([
+            (cb) =>
+                salvus_client.stripe_get_customer
+                    cb : (err, resp) =>
+                        if err or not resp.stripe_publishable_key
+                            $("#smc-billing-tab span").text("Billing is not yet available.")
+                            cb(true)
+                        else
+                            Stripe.setPublishableKey(resp.stripe_publishable_key)
+                            @set_customer(resp.customer)
+                            @render_cards_and_subscriptions()
+                            cb()
+            (cb) =>
+                salvus_client.stripe_get_charges
+                    cb: (err, charges) =>
+                        if err
+                            cb(err)
+                        else
+                            @set_charges(charges)
+                            @render_charges()
+                            cb()
+        ], (err) =>
+            $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin')
+            cb?(err)
+        )
 
     set_customer: (customer) =>
         @customer = customer
@@ -83,7 +110,7 @@ class STRIPE
                 t = elt.find(".smc-stripe-card-#{k}")
                 if t.length > 0
                     t.text(v)
-        x = elt.find(".smc-stripe-card-brand-#{card['brand']}")
+        x = elt.find(".smc-stripe-card-brand-#{card.brand}")
         if x.length > 0
             x.show()
         else
@@ -94,7 +121,31 @@ class STRIPE
             hide   : '.smc-stripe-card-hide-details'
             target : '.smc-strip-card-details'
 
+        elt.find("a[href=#delete-card]").click () =>
+            @delete_card(card)
+
         return elt
+
+    delete_card: (card, cb) =>
+        log("delete_card")
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Delete Payment Method</h4>  Are you sure you want to delete this #{card.brand} card?<br><br>"
+        bootbox.confirm m, (result) =>
+            if result
+                salvus_client.stripe_delete_card
+                    card_id : card.id
+                    cb      : (err) =>
+                        if err
+                            alert_message
+                                type    : "error"
+                                message : "Error trying to delete card."
+                        else
+                            alert_message
+                                type    : "info"
+                                message : "Card deleted."
+                            @update()
+                        cb?(err)
+            else
+                cb?()
 
     render_cards: () =>
         log("render_cards")
@@ -191,7 +242,7 @@ class STRIPE
         elt.smc_toggle_details
             show   : '.smc-stripe-charge-show-details'
             hide   : '.smc-stripe-charge-hide-details'
-            target : '.smc-strip-charge-details'
+            target : '.smc-stripe-charge-details'
 
         return elt
 
