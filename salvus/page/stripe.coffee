@@ -56,6 +56,7 @@ class STRIPE
     init: () =>
         @elt_cards = @element.find(".smc-stripe-page-card")
         @element.find("a[href=#new-card]").click(@new_card)
+        @element.find("a[href=#new-subscription]").click(@new_subscription)
 
     update: (cb) =>
         $(".smc-billing-tab-refresh-spinner").show().addClass('fa-spin')
@@ -104,17 +105,18 @@ class STRIPE
         # card is a map with domain
         #    id, object, last4, brand, funding, exp_month, exp_year, fingerprint, country, name, address_line1, address_line2, address_city, address_state, address_zip, address_country, cvc_check, address_line1_check, address_zip_check, dynamic_last4, metadata, customer
         elt = templates.find(".smc-stripe-card").clone()
-        elt.attr('id', card.id)
-        for k, v of card
-            if v? and v != null
-                t = elt.find(".smc-stripe-card-#{k}")
-                if t.length > 0
-                    t.text(v)
-        x = elt.find(".smc-stripe-card-brand-#{card.brand}")
-        if x.length > 0
-            x.show()
-        else
-            elt.find(".smc-stripe-card-brand-Other").show()
+        if card?
+            elt.attr('id', card.id)
+            for k, v of card
+                if v? and v != null
+                    t = elt.find(".smc-stripe-card-#{k}")
+                    if t.length > 0
+                        t.text(v)
+            x = elt.find(".smc-stripe-card-brand-#{card.brand}")
+            if x.length > 0
+                x.show()
+            else
+                elt.find(".smc-stripe-card-brand-Other").show()
 
         elt.smc_toggle_details
             show   : '.smc-stripe-card-show-details'
@@ -269,37 +271,13 @@ class STRIPE
         else
             panel.find("a[href=#show-more]").hide()
 
-
     new_card: () =>
-        btn = @element.find("a[href=#new-card]")
-        btn.addClass('disabled')  # only re-enable after save/cancel editing one card.
+        log("new_card")
+        dialog = templates.find(".smc-stripe-new-card").clone()
+        btn = dialog.find(".btn-submit")
 
-        # clone a copy of the card row
-        row = templates.find(".smc-stripe-card-row").clone()
-
-        # insert new card row into list of payment cards at the top
-        @elt_cards.prepend(row)
-
-        row.find(".smc-stripe-card").hide()
-        row.find("a[href=#update-card]").hide()
-        row.find(".smc-stripe-card-edit").show()
-
-        row.find("#smc-credit-card-number").validateCreditCard (result) =>
-            a = row.find(".smc-stripe-credit-card-number")
-            a.find("i").hide()
-            if result.valid
-                i = a.find(".fa-cc-#{result.card_type.name}")
-                if i.length > 0
-                    i.show()
-                else
-                    a.find(".fa-credit-card").show()
-                a.find(".fa-check").show()
-                a.find(".smc-stripe-credit-card-invalid").hide()
-            else
-                a.find(".smc-stripe-credit-card-invalid").show()
-
-        row.find("a[href=#submit-card-info]").click () =>
-            form = row.find("form")
+        submit = () =>
+            form = dialog.find("form")
             btn.icon_spin(start:true).addClass('disabled')
             response = undefined
             async.series([
@@ -319,24 +297,39 @@ class STRIPE
             ], (err) =>
                 btn.icon_spin(false).removeClass('disabled')
                 if err
-                    row.find(".smc-stripe-card-error-row").show()
-                    row.find(".smc-stripe-card-errors").text(err)
+                    dialog.find(".smc-stripe-card-error-row").show()
+                    dialog.find(".smc-stripe-card-errors").text(err)
                 else
-                    row.find(".smc-stripe-card-edit").hide()
-                    row.find(".smc-stripe-card-info").find("input").val('')
-                    row.find(".smc-stripe-card-error-row").hide()
-                    row.find(".smc-stripe-card-method").show().text("#{response.card.brand} card ending in #{response.card.last4} ")
-                    row.find("a[href=#update-card]").show()
+                    @update()
+                    dialog.modal('hide')
             )
             return false
 
-        row.find("a[href=#cancel-card]").click () =>
-            btn.removeClass('disabled')
-            row.find(".smc-stripe-card-edit").hide()
-            row.find(".smc-stripe-card-method").show()
+        dialog.find(".smc-stripe-credit-card-number").validateCreditCard (result) =>
+            console.log("validate result=", result)
+            elt = dialog.find(".smc-stripe-credit-card-number-group")
+            elt.find("i").hide()
+            if result.valid
+                i = elt.find(".fa-cc-#{result.card_type.name}")
+                if i.length > 0
+                    i.show()
+                else
+                    elt.find(".fa-credit-card").show()
+                elt.find(".fa-check").show()
+                elt.find(".smc-stripe-credit-card-invalid").hide()
+            else
+                elt.find(".smc-stripe-credit-card-invalid").show()
 
-        return false
+        dialog.submit(submit)
+        dialog.find("form").submit(submit)
+        btn.click(submit)
+        dialog.modal()
 
+    edit_card: (card) =>
+        log("edit_card")
+
+    new_subscription: () =>
+        log("new_subscription")
 
     billing_history_append: (entry) =>
         e = @billing_history_row.clone().show()
