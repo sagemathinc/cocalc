@@ -4471,7 +4471,7 @@ get_with_retry = (opts) ->
 # notebooks between users.
 # In the rare case that we change the format, must increase this and
 # also increase the version number forcing users to refresh their browser.
-IPYTHON_SYNCFILE_EXTENSION = ".syncdoc2"
+IPYTHON_SYNCFILE_EXTENSION = ".syncdoc3"
 
 class IPythonNotebook extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
@@ -5176,32 +5176,36 @@ class IPythonNotebook extends FileEditor
         cell = misc.copy(cell)
         input = misc.to_json(cell.input)
         delete cell['input']
-        return input + diffsync.MARKERS.output + misc.to_json(cell)
+        source = misc.to_json(cell.source)
+        delete cell['source']
+        return input + diffsync.MARKERS.output + source + diffsync.MARKERS.output + misc.to_json(cell)
 
     line_to_cell: (line) =>
         v = line.split(diffsync.MARKERS.output)
-        if v.length > 1
-            try
+        try
+            if v[0] == 'undefined'  # backwards incompatibility...
+                input = undefined
+            else
                 input = JSON.parse(v[0])
-            catch e
-                console.log("line_to_cell('#{line}') -- input ERROR=", e)
-                return
-            try
-                obj = JSON.parse(v[1])
-                #console.log("line_to_cell('#{line}') -- obj=",obj)
-                obj.input = input
-                return obj
-            catch e
-                console.log("line_to_cell('#{line}') -- output ERROR=", e)
-
-        else
-            # fallback for old format
-            try
-                obj = JSON.parse(line)
-                #console.log("line_to_cell('#{line}') fallback -- obj=",obj)
-                return obj
-            catch e
-                console.log("line_to_cell('#{line}') fallback -- ERROR=", e)
+        catch e
+            console.log("line_to_cell('#{line}') -- input ERROR=", e)
+            return
+        try
+            if v[1] == 'undefined'  # backwards incompatibility...
+                source = undefined
+            else
+                source = JSON.parse(v[1])
+        catch e
+            console.log("line_to_cell('#{line}') -- source ERROR=", e)
+            return
+        try
+            obj = JSON.parse(v[2])
+            obj.input = input
+            obj.source = source
+            #console.log("line_to_cell('#{line}') -- obj=",obj)
+            return obj
+        catch e
+            console.log("line_to_cell('#{line}') -- output ERROR=", e)
 
     to_doc: () =>
         #console.log("to_doc: start"); t = misc.mswalltime()
