@@ -29,6 +29,7 @@ misc            = require('misc')
 {alert_message} = require('alerts')
 defaults        = misc.defaults
 required        = defaults.required
+projects        = require('projects')
 
 {salvus_client} = require('salvus_client')
 
@@ -125,6 +126,7 @@ class STRIPE
 
         elt.find("a[href=#delete-card]").click () =>
             @delete_card(card)
+            return false
 
         return elt
 
@@ -151,8 +153,11 @@ class STRIPE
 
     render_cards: () =>
         log("render_cards")
+        if not @customer?.cards?
+            # nothing to do
+            return
         cards = @customer.cards
-        panel = @element.find(".smc-stripe-cards-panel")
+        panel = @element.find(".smc-stripe-cards-panel").show()
         elt_cards = panel.find(".smc-stripe-page-cards")
         elt_cards.empty()
         for card in cards.data
@@ -187,7 +192,24 @@ class STRIPE
         elt = templates.find(".smc-stripe-subscription").clone()
         elt.attr('id', subscription.id)
 
-        elt.find(".smc-stripe-subscription-quantity").text(subscription.quantity)
+        #elt.find(".smc-stripe-subscription-quantity").text(subscription.quantity)
+
+        if subscription.metadata.projects?
+            salvus_client.get_project_titles
+                project_ids : misc.from_json(subscription.metadata.projects)
+                cb          : (err, v) =>
+                    e = elt.find(".smc-stripe-subscription-project-titles")
+                    f = (evt) ->
+                        project_id = $(evt.target).data('id')
+                        projects.open_project
+                            project : project_id
+                        return false
+                    for project_id, title of v
+                        a = $("<a style='margin-right:3em'>").text(misc.trunc(title,80)).data(id:project_id)
+                        a.click(f)
+                        e.append(a)
+
+
         for k in ['start', 'current_period_start', 'current_period_end']
             v = subscription[k]
             if v
@@ -283,8 +305,6 @@ class STRIPE
             async.series([
                 (cb) =>
                     Stripe.card.createToken form, (status, _response) =>
-                        console.log("status=", status)
-                        console.log("response=", _response)
                         if status != 200
                             cb(_response.error.message)
                         else
@@ -324,12 +344,77 @@ class STRIPE
         dialog.find("form").submit(submit)
         btn.click(submit)
         dialog.modal()
+        return false
 
     edit_card: (card) =>
         log("edit_card")
 
     new_subscription: () =>
         log("new_subscription")
+        dialog         = templates.find(".smc-stripe-new-subscription").clone()
+        btn            = dialog.find(".btn-submit")
+        project_select = dialog.find(".smc-stripe-new-subscription-project")
+        plan_select    = dialog.find(".smc-stripe-new-subscription-plan")
+        coupon         = dialog.find(".smc-stripe-new-subscription-coupon")
+
+        show_error = (err) ->
+            dialog.find(".smc-stripe-subscription-error-row").show()
+            dialog.find(".smc-stripe-subscription-errors").text(err)
+
+        async.parallel([
+            (cb) =>
+                # todo -- exclude projects that are already upgraded.
+                exclude = []
+                projects.get_project_list
+                    update         : false
+                    select         : project_select
+                    select_exclude : exclude
+                    cb             : (err, x) =>
+                        if err
+                            cb("Unable to get projects: #{err}")
+                        else
+                            project_list = (a for a in x when not a.deleted)
+                            if project_list.length == 0
+                                cb("Please create a project first")
+                            else
+                                cb()
+            (cb) =>
+                salvus_client.stripe_get_plans
+                    cb : (err, plans) =>
+                        if err
+                            cb("Unable to get available plans: #{err}")
+                        else
+                            for plan in plans.data
+                                plan_select.append("<option value='#{plan.id}'>#{plan.name} ($#{plan.amount/100}/#{plan.interval})</option>")
+                            cb()
+        ], (err) =>
+            if err
+                alert_message(type:"error", message:err)
+            else
+                submit = () =>
+                    btn.icon_spin(start:true).addClass('disabled')
+                    coupon_code = coupon.val().trim()
+                    if not coupon_code
+                        coupon_code = undefined  # required by stripe api
+                    salvus_client.stripe_create_subscription
+                        plan     : plan_select.val()
+                        coupon   : coupon_code
+                        projects : [project_select.val()]
+                        cb       : (err) =>
+                            btn.icon_spin(false).removeClass('disabled')
+                            if err
+                                show_error(err)
+                            else
+                                @update()
+                                dialog.modal('hide')
+
+                dialog.submit(submit)
+                dialog.find("form").submit(submit)
+                btn.click(submit)
+                dialog.modal()
+        )
+
+        return false
 
     billing_history_append: (entry) =>
         e = @billing_history_row.clone().show()
