@@ -463,7 +463,8 @@ SAGE_PIP_PACKAGES = [
     'pattern',
     'seaborn',
     'brewer2mpl',
-    'ggplot'
+    'ggplot',
+    'nltk'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
