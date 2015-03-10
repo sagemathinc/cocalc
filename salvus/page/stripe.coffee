@@ -61,10 +61,12 @@ class STRIPE
 
     update: (cb) =>
         $(".smc-billing-tab-refresh-spinner").show().addClass('fa-spin')
+        #log("update")
         async.series([
             (cb) =>
                 salvus_client.stripe_get_customer
                     cb : (err, resp) =>
+                        #log("stripe_get_customer #{err}, #{misc.to_json(resp)}")
                         if err or not resp.stripe_publishable_key
                             $("#smc-billing-tab span").text("Billing is not yet available.")
                             cb(true)
@@ -89,11 +91,12 @@ class STRIPE
 
     set_customer: (customer) =>
         @customer = customer
+        if not @customer?
+            @customer =
+                cards         : {data:[]}
+                subscriptions : {data:[]}
 
     render_cards_and_subscriptions: () =>
-        if not @customer?
-            # nothing to do
-            return
         @render_cards()
         @render_subscriptions()
         if @customer.cards.data.length > 0
@@ -127,6 +130,9 @@ class STRIPE
         elt.find("a[href=#delete-card]").click () =>
             @delete_card(card)
             return false
+
+        if @customer.default_card == card.id
+            elt.find(".smc-stripe-card-default").show()
 
         return elt
 
@@ -285,7 +291,7 @@ class STRIPE
         elt_charges = panel.find(".smc-stripe-page-charges")
         elt_charges.empty()
         for charge in charges.data
-            elt_charges.append(@render_one_charge(charge))
+            elt_charges.prepend(@render_one_charge(charge))
 
         if charges.has_more
             panel.find("a[href=#show-more]").show().click () =>
@@ -416,18 +422,3 @@ class STRIPE
 
         return false
 
-    billing_history_append: (entry) =>
-        e = @billing_history_row.clone().show()
-        for k, v of entry
-            e.find(".smc-stripe-history-entry-#{k}").text(v)
-        @element.find(".smc-stripe-history-rows").append(e)
-
-    # TESTS:
-    test_billing: () =>
-        @billing_history_append
-            date    : '2014-01-29'
-            plan    : 'Small'
-            method  : 'Visa 4*** **** **** 1199'
-            receipt : '...'
-            amount  : 'USD $7.00'
-            status  : 'Succeeded'
