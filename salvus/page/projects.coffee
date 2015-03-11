@@ -100,8 +100,8 @@ exports.get_project_list = (opts) ->
             projects = if opts.hidden then hidden_project_list else project_list
             if opts.select?
                 select = opts.select
+                exclude = {}
                 if opts.select_exclude?
-                    exclude = {}
                     for project_id in opts.select_exclude
                         exclude[project_id] = true
                 v = ({project_id:x.project_id, title:x.title.slice(0,80)} for x in projects when not exclude[x.project_id])
