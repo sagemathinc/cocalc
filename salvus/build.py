@@ -639,6 +639,7 @@ class BuildSage(object):
         self.install_projlib()
         self.install_pip()
         self.install_pip_packages()
+        self.install_jinja2() # since sage's is too old and pip packages doesn't upgrade
         self.install_R_packages()
         self.install_pystan()
         self.install_optional_packages()
@@ -665,6 +666,9 @@ class BuildSage(object):
         # FAILED:
         self.install_pymc()     # FAIL -- also "pip install pymc" fails.
         self.install_rstan()    # FAIL -- ERROR: dependency StanHeaders is not available for package rstan
+
+    def install_jinja2(self):
+        self.cmd("pip install -U jinja2")
 
     def install_ipython_patch(self):
         """
