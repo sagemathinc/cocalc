@@ -464,6 +464,7 @@ SAGE_PIP_PACKAGES = [
     'seaborn',
     'brewer2mpl',
     'ggplot',
+    'periodictable'
     'nltk'
     ]
 
