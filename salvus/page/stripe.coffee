@@ -26,78 +26,291 @@
 
 async           = require('async')
 misc            = require('misc')
+{alert_message} = require('alerts')
 defaults        = misc.defaults
 required        = defaults.required
+projects        = require('projects')
 
 {salvus_client} = require('salvus_client')
 
 exports.stripe_user_interface = (opts) ->
     opts = defaults opts,
-        stripe_publishable_key : required
         element                : required
-    return new STRIPE(opts.stripe_publishable_key, opts.element)
+    return new STRIPE(opts.element)
 
-templates = $(".smc-billing-templates")
+templates = $(".smc-stripe-templates")
+
+stripe_date = (d) ->
+    return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
+
+log = (x,y,z) -> console.log('stripe: ', x,y,z)
+
 
 class STRIPE
-    constructor: (@stripe_publishable_key, elt) ->
-        Stripe.setPublishableKey(@stripe_publishable_key)
-        @element = templates.find(".smc-stripe-billing-page").clone()
+    constructor: (elt) ->
+        @element = templates.find(".smc-stripe-page").clone()
         elt.empty()
         elt.append(@element)
         @init()
+        window.s = @
 
     init: () =>
-        @elt_payment_methods = @element.find(".smc-stripe-billing-page-payment-methods")
+        @elt_cards = @element.find(".smc-stripe-page-card")
+        @element.find("a[href=#new-card]").click(@new_card)
+        @element.find("a[href=#new-subscription]").click(@new_subscription)
 
-
-        @element.find("a[href=#new-payment-method]").click(@new_payment_method)
-
+    update: (cb) =>
+        $(".smc-billing-tab-refresh-spinner").show().addClass('fa-spin')
+        #log("update")
+        async.series([
+            (cb) =>
+                salvus_client.stripe_get_customer
+                    cb : (err, resp) =>
+                        #log("stripe_get_customer #{err}, #{misc.to_json(resp)}")
+                        if err or not resp.stripe_publishable_key
+                            $("#smc-billing-tab span").text("Billing is not yet available.")
+                            cb(true)
+                        else
+                            Stripe.setPublishableKey(resp.stripe_publishable_key)
+                            @set_customer(resp.customer)
+                            @render_cards_and_subscriptions()
+                            cb()
+            (cb) =>
+                salvus_client.stripe_get_charges
+                    cb: (err, charges) =>
+                        if err
+                            cb(err)
+                        else
+                            @set_charges(charges)
+                            @render_charges()
+                            cb()
+        ], (err) =>
+            $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin')
+            cb?(err)
+        )
 
     set_customer: (customer) =>
         @customer = customer
+        if not @customer?
+            @customer =
+                cards         : {data:[]}
+                subscriptions : {data:[]}
 
-    render: () =>
-        console.log 'render (not done) '
+    render_cards_and_subscriptions: () =>
+        @render_cards()
+        @render_subscriptions()
+        if @customer.cards.data.length > 0
+            @element.find("a[href=#new-subscription]").removeClass("disabled")
+        else
+            @element.find("a[href=#new-subscription]").addClass("disabled")
 
-    new_payment_method: () =>
-
-        btn = @element.find("a[href=#new-payment-method]")
-        btn.addClass('disabled')  # only re-enable after save/cancel editing one card.
-
-        # clone a copy of the payment method row
-        row = templates.find(".smc-payment-method-row").clone()
-
-        # insert new payment method row into list of payment methods at the top
-        @elt_payment_methods.prepend(row)
-
-        row.find(".smc-payment-method").hide()
-        row.find("a[href=#update-payment-method]").hide()
-        row.find(".smc-payment-edit").show()
-
-        row.find("#smc-credit-card-number").validateCreditCard (result) =>
-            a = row.find(".smc-credit-card-number")
-            a.find("i").hide()
-            if result.valid
-                i = a.find(".fa-cc-#{result.card_type.name}")
-                if i.length > 0
-                    i.show()
-                else
-                    a.find(".fa-credit-card").show()
-                a.find(".fa-check").show()
-                a.find(".smc-credit-card-invalid").hide()
+    render_one_card: (card) =>
+        log('render_one_card', card)
+        # card is a map with domain
+        #    id, object, last4, brand, funding, exp_month, exp_year, fingerprint, country, name, address_line1, address_line2, address_city, address_state, address_zip, address_country, cvc_check, address_line1_check, address_zip_check, dynamic_last4, metadata, customer
+        elt = templates.find(".smc-stripe-card").clone()
+        if card?
+            elt.attr('id', card.id)
+            for k, v of card
+                if v? and v != null
+                    t = elt.find(".smc-stripe-card-#{k}")
+                    if t.length > 0
+                        t.text(v)
+            x = elt.find(".smc-stripe-card-brand-#{card.brand}")
+            if x.length > 0
+                x.show()
             else
-                a.find(".smc-credit-card-invalid").show()
+                elt.find(".smc-stripe-card-brand-Other").show()
 
-        row.find("a[href=#submit-payment-info]").click () =>
-            form = row.find("form")
+        elt.smc_toggle_details
+            show   : '.smc-stripe-card-show-details'
+            hide   : '.smc-stripe-card-hide-details'
+            target : '.smc-strip-card-details'
+
+        elt.find("a[href=#delete-card]").click () =>
+            @delete_card(card)
+            return false
+
+        if @customer.default_card == card.id
+            elt.find(".smc-stripe-card-default").show()
+
+        return elt
+
+    delete_card: (card, cb) =>
+        log("delete_card")
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Delete Payment Method</h4>  Are you sure you want to remove this #{card.brand} payment method?<br><br>"
+        bootbox.confirm m, (result) =>
+            if result
+                salvus_client.stripe_delete_card
+                    card_id : card.id
+                    cb      : (err) =>
+                        if err
+                            alert_message
+                                type    : "error"
+                                message : "Error trying to delete card."
+                        else
+                            alert_message
+                                type    : "info"
+                                message : "Card deleted."
+                            @update()
+                        cb?(err)
+            else
+                cb?()
+
+    render_cards: () =>
+        log("render_cards")
+        if not @customer?.cards?
+            # nothing to do
+            return
+        cards = @customer.cards
+        panel = @element.find(".smc-stripe-cards-panel").show()
+        elt_cards = panel.find(".smc-stripe-page-cards")
+        elt_cards.empty()
+        for card in cards.data
+            elt_cards.append(@render_one_card(card))
+
+        if cards.data.length > 1
+            panel.find("a[href=#change-default]").show()
+        else
+            panel.find("a[href=#change-default]").hide()
+
+        if cards.has_more
+            panel.find("a[href=#show-more]").show().click () =>
+                @show_all_cards()
+        else
+            panel.find("a[href=#show-more]").hide()
+
+    render_one_subscription: (subscription) =>
+        log('render_one_subscription', subscription)
+        ###
+        #
+        # subscription is a map with domain
+        #
+        #    id, plan, object, start, status, customer, cancel_at_period_end, current_period_start, current_period_end,
+        #    ended_at, trial_start, trial_end, canceled_at, quantity, application_fee_percent, discount, tax_percent, metadata
+        #
+        # The plan is another map with domain:
+        #
+        #    interval, name, created, amount, currency, id, object, livemode, interval_count, trial_period_days,
+        #    metadata, statement_descriptor
+        #
+        ###
+        elt = templates.find(".smc-stripe-subscription").clone()
+        elt.attr('id', subscription.id)
+
+        #elt.find(".smc-stripe-subscription-quantity").text(subscription.quantity)
+
+        if subscription.metadata.projects?
+            salvus_client.get_project_titles
+                project_ids : misc.from_json(subscription.metadata.projects)
+                cb          : (err, v) =>
+                    e = elt.find(".smc-stripe-subscription-project-titles")
+                    f = (evt) ->
+                        project_id = $(evt.target).data('id')
+                        projects.open_project
+                            project : project_id
+                        return false
+                    for project_id, title of v
+                        a = $("<a style='margin-right:3em'>").text(misc.trunc(title,80)).data(id:project_id)
+                        a.click(f)
+                        e.append(a)
+
+
+        for k in ['start', 'current_period_start', 'current_period_end']
+            v = subscription[k]
+            if v
+                elt.find(".smc-stripe-subscription-#{k}").text(stripe_date(v))
+
+        plan = subscription.plan
+        elt.find(".smc-stripe-subscription-plan-name").text(plan.name)
+
+        # TODO: make currency more sophisticated
+        elt.find(".smc-stripe-subscription-plan-amount").text("$#{plan.amount/100}/month")  #TODO!
+
+        elt.smc_toggle_details
+            show   : '.smc-stripe-subscription-show-details'
+            hide   : '.smc-stripe-subscription-hide-details'
+            target : '.smc-strip-subscription-details'
+
+        return elt
+
+    render_subscriptions: () =>
+        log("render_subscriptions")
+        subscriptions = @customer.subscriptions
+        panel = @element.find(".smc-stripe-subscriptions-panel")
+        if subscriptions.data.length == 0 and @customer.cards.data.length == 0
+            # no way to pay and no subscriptions yet -- don't show
+            panel.hide()
+            return
+        else
+            panel.show()
+        elt_subscriptions = panel.find(".smc-stripe-page-subscriptions")
+        elt_subscriptions.empty()
+        for subscription in subscriptions.data
+            elt_subscriptions.append(@render_one_subscription(subscription))
+
+        if subscriptions.has_more
+            panel.find("a[href=#show-more]").show().click () =>
+                @show_all_subscriptions()
+        else
+            panel.find("a[href=#show-more]").hide()
+
+    set_charges: (charges) =>
+        @charges = charges
+
+    render_one_charge: (charge) =>
+        log('render_one_charge', charge)
+        elt = templates.find(".smc-stripe-charge").clone()
+        elt.attr('id', charge.id)
+
+        elt.find(".smc-stripe-charge-amount").text("$#{charge.amount/100}") # TODO
+        if charge.description
+            elt.find(".smc-stripe-charge-plan-name").text(charge.description)
+
+        elt.find(".smc-stripe-charge-created").text(stripe_date(charge.created))
+
+        elt.smc_toggle_details
+            show   : '.smc-stripe-charge-show-details'
+            hide   : '.smc-stripe-charge-hide-details'
+            target : '.smc-stripe-charge-details'
+
+        return elt
+
+    render_charges: () =>
+        log("render_charges")
+        charges = @charges
+        if not charges?
+            return
+        panel = @element.find(".smc-stripe-charges-panel")
+        if charges.data.length == 0
+            # no charges yet -- don't show
+            panel.hide()
+            return
+        else
+            panel.show()
+        elt_charges = panel.find(".smc-stripe-page-charges")
+        elt_charges.empty()
+        for charge in charges.data
+            elt_charges.prepend(@render_one_charge(charge))
+
+        if charges.has_more
+            panel.find("a[href=#show-more]").show().click () =>
+                @show_all_charges()
+        else
+            panel.find("a[href=#show-more]").hide()
+
+    new_card: () =>
+        log("new_card")
+        dialog = templates.find(".smc-stripe-new-card").clone()
+        btn = dialog.find(".btn-submit")
+
+        submit = () =>
+            form = dialog.find("form")
             btn.icon_spin(start:true).addClass('disabled')
             response = undefined
             async.series([
                 (cb) =>
                     Stripe.card.createToken form, (status, _response) =>
-                        console.log("status=", status)
-                        console.log("response=", _response)
                         if status != 200
                             cb(_response.error.message)
                         else
@@ -110,39 +323,102 @@ class STRIPE
             ], (err) =>
                 btn.icon_spin(false).removeClass('disabled')
                 if err
-                    row.find(".smc-payment-error-row").show()
-                    row.find(".smc-payment-errors").text(err)
+                    dialog.find(".smc-stripe-card-error-row").show()
+                    dialog.find(".smc-stripe-card-errors").text(err)
                 else
-                    row.find(".smc-payment-edit").hide()
-                    row.find(".smc-payment-info").find("input").val('')
-                    row.find(".smc-payment-error-row").hide()
-                    row.find(".smc-payment-method").show().text("#{response.card.brand} card ending in #{response.card.last4} ")
-                    row.find("a[href=#update-payment-method]").show()
+                    @update()
+                    dialog.modal('hide')
             )
             return false
 
-        row.find("a[href=#cancel-payment-info]").click () =>
-            btn.removeClass('disabled')
-            row.find(".smc-payment-edit").hide()
-            row.find(".smc-payment-method").show()
+        dialog.find(".smc-stripe-credit-card-number").validateCreditCard (result) =>
+            console.log("validate result=", result)
+            elt = dialog.find(".smc-stripe-credit-card-number-group")
+            elt.find("i").hide()
+            if result.valid
+                i = elt.find(".fa-cc-#{result.card_type.name}")
+                if i.length > 0
+                    i.show()
+                else
+                    elt.find(".fa-credit-card").show()
+                elt.find(".fa-check").show()
+                elt.find(".smc-stripe-credit-card-invalid").hide()
+            else
+                elt.find(".smc-stripe-credit-card-invalid").show()
+
+        dialog.submit(submit)
+        dialog.find("form").submit(submit)
+        btn.click(submit)
+        dialog.modal()
+        return false
+
+    edit_card: (card) =>
+        log("edit_card")
+
+    new_subscription: () =>
+        log("new_subscription")
+        dialog         = templates.find(".smc-stripe-new-subscription").clone()
+        btn            = dialog.find(".btn-submit")
+        project_select = dialog.find(".smc-stripe-new-subscription-project")
+        plan_select    = dialog.find(".smc-stripe-new-subscription-plan")
+        coupon         = dialog.find(".smc-stripe-new-subscription-coupon")
+
+        show_error = (err) ->
+            dialog.find(".smc-stripe-subscription-error-row").show()
+            dialog.find(".smc-stripe-subscription-errors").text(err)
+
+        async.parallel([
+            (cb) =>
+                # todo -- exclude projects that are already upgraded.
+                exclude = []
+                projects.get_project_list
+                    update         : false
+                    select         : project_select
+                    select_exclude : exclude
+                    cb             : (err, x) =>
+                        if err
+                            cb("Unable to get projects: #{err}")
+                        else
+                            project_list = (a for a in x when not a.deleted)
+                            if project_list.length == 0
+                                cb("Please create a project first")
+                            else
+                                cb()
+            (cb) =>
+                salvus_client.stripe_get_plans
+                    cb : (err, plans) =>
+                        if err
+                            cb("Unable to get available plans: #{err}")
+                        else
+                            for plan in plans.data
+                                plan_select.append("<option value='#{plan.id}'>#{plan.name} ($#{plan.amount/100}/#{plan.interval})</option>")
+                            cb()
+        ], (err) =>
+            if err
+                alert_message(type:"error", message:err)
+            else
+                submit = () =>
+                    btn.icon_spin(start:true).addClass('disabled')
+                    coupon_code = coupon.val().trim()
+                    if not coupon_code
+                        coupon_code = undefined  # required by stripe api
+                    salvus_client.stripe_create_subscription
+                        plan     : plan_select.val()
+                        coupon   : coupon_code
+                        projects : [project_select.val()]
+                        cb       : (err) =>
+                            btn.icon_spin(false).removeClass('disabled')
+                            if err
+                                show_error(err)
+                            else
+                                @update()
+                                dialog.modal('hide')
+
+                dialog.submit(submit)
+                dialog.find("form").submit(submit)
+                btn.click(submit)
+                dialog.modal()
+        )
 
         return false
 
-
-
-
-    billing_history_append: (entry) =>
-        e = @billing_history_row.clone().show()
-        for k, v of entry
-            e.find(".smc-billing-history-entry-#{k}").text(v)
-        @element.find(".smc-billing-history-rows").append(e)
-
-    # TESTS:
-    test_billing: () =>
-        @billing_history_append
-            date    : '2014-01-29'
-            plan    : 'Small'
-            method  : 'Visa 4*** **** **** 1199'
-            receipt : '...'
-            amount  : 'USD $7.00'
-            status  : 'Succeeded'

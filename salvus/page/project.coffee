@@ -1059,7 +1059,6 @@ class ProjectPage
     init_project_config: () ->
         if not @container?
             return
-        console.log("yay")
         @container.find(".smc-project-config").show()
         for option in ['disable_collaborators', 'disable_downloads']
             if local_storage(@project.project_id, '', option)
@@ -2226,6 +2225,7 @@ class ProjectPage
             (cb) =>
                 require('projects').get_project_list
                     update : false   # uses cached version if available, rather than downloading from server
+                    select : dialog.find(".salvus-project-target-project-id")
                     cb : (err, x) =>
                         if err
                             cb(err)
@@ -2259,28 +2259,14 @@ class ProjectPage
                     dialog.find(".salvus-project-copy-dir").show()
                 else
                     dialog.find(".salvus-project-copy-file").show()
-                selector = dialog.find(".salvus-project-target-project-id")
-                v = ({project_id:x.project_id, title:x.title.slice(0,80)} for x in project_list)
-                for project in v.slice(0,7)
-                    selector.append("<option value='#{project.project_id}'>#{project.title}</option>")
-                v.sort (a,b) ->
-                    if a.title < b.title
-                        return -1
-                    else if a.title > b.title
-                        return 1
-                    return 0
-                selector.append('<option class="select-dash" disabled="disabled">----</option>')
-                for project in v
-                    selector.append("<option value='#{project.project_id}'>#{project.title}</option>")
 
                 submit = (ok) =>
                     dialog.modal('hide')
                     if ok
                         src_path          = dialog.find(".salvus-project-copy-src-path").val()
-                        target_project_id = dialog.find(".salvus-project-target-project-id").val()
-                        for p in v  # stupid linear search...
-                            if p.project_id == target_project_id
-                                target_project = p.title
+                        selector          = dialog.find(".salvus-project-target-project-id")
+                        target_project_id = selector.val()
+                        title_project     = selector.find('option[value="#{target_project_id}"]:first').text()
                         target_path       = dialog.find(".salvus-project-copy-target-path").val()
                         overwrite_newer   = dialog.find(".salvus-project-overwrite-newer").is(":checked")
                         delete_missing    = dialog.find(".salvus-project-delete-missing").is(":checked")

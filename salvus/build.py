@@ -311,7 +311,7 @@ In /etc/sysctl.conf, put:
 """
 
 TINC_VERSION       = '1.0.25'    # options here -- http://tinc-vpn.org/packages/
-CASSANDRA_VERSION  = '2.1.2'     # options here -- http://downloads.datastax.com/community/
+CASSANDRA_VERSION  = '2.1.3'     # options here -- http://downloads.datastax.com/community/
 NODE_VERSION       = '0.12.0'    # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
 PYTHON_VERSION     = '2.7.9'     # options here -- https://www.python.org/ftp/python/
 SETUPTOOLS_VERSION = '12.1'      # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
@@ -465,6 +465,7 @@ SAGE_PIP_PACKAGES = [
     'brewer2mpl',
     'ggplot',
     'periodictable'
+    'nltk'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -639,6 +640,7 @@ class BuildSage(object):
         self.install_projlib()
         self.install_pip()
         self.install_pip_packages()
+        self.install_jinja2() # since sage's is too old and pip packages doesn't upgrade
         self.install_R_packages()
         self.install_pystan()
         self.install_optional_packages()
@@ -665,6 +667,9 @@ class BuildSage(object):
         # FAILED:
         self.install_pymc()     # FAIL -- also "pip install pymc" fails.
         self.install_rstan()    # FAIL -- ERROR: dependency StanHeaders is not available for package rstan
+
+    def install_jinja2(self):
+        self.cmd("pip install -U jinja2")
 
     def install_ipython_patch(self):
         """
