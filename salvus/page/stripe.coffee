@@ -65,8 +65,12 @@ class STRIPE
                 #log("stripe_get_customer #{err}, #{misc.to_json(resp)}")
                 if err or not resp.stripe_publishable_key
                     $("#smc-billing-tab span").text("Billing is not yet available.")
+                    $(".smc-nonfree").hide()
+                    $(".smc-freeonly").show()
                     cb(true)
                 else
+                    $(".smc-nonfree").show()
+                    $(".smc-freeonly").hide()
                     Stripe.setPublishableKey(resp.stripe_publishable_key)
                     @set_customer(resp.customer)
                     cb()
@@ -174,7 +178,7 @@ class STRIPE
 
     delete_card: (card, cb) =>
         log("delete_card")
-        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Delete Payment Method</h4>  Are you sure you want to remove this #{card.brand} payment method?<br><br>"
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Delete Payment Method</h4>  Are you sure you want to remove this <b>#{card.brand}</b> payment method?<br><br>"
         bootbox.confirm m, (result) =>
             if result
                 salvus_client.stripe_delete_card
@@ -236,6 +240,7 @@ class STRIPE
 
         #elt.find(".smc-stripe-subscription-quantity").text(subscription.quantity)
 
+        titles = []
         if subscription.metadata.projects?
             salvus_client.get_project_titles
                 project_ids : misc.from_json(subscription.metadata.projects)
@@ -250,6 +255,8 @@ class STRIPE
                         a = $("<a style='margin-right:3em'>").text(misc.trunc(title,80)).data(id:project_id)
                         a.click(f)
                         e.append(a)
+                        titles.push(title)
+        desc = titles.join('; ')
 
 
         for k in ['start', 'current_period_start', 'current_period_end']
@@ -264,6 +271,7 @@ class STRIPE
             @cancel_subscription
                 subscription_id : subscription.id
                 elt             : elt.find("a[href=#cancel-subscription]")
+                desc            : desc
             return false
 
         # TODO: make currency more sophisticated
@@ -304,7 +312,7 @@ class STRIPE
             desc            : 'Project upgrade'
             cb              : undefined
         log("cancel_subscription")
-        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Cancel Project Upgrade</h4>  Are you sure you want to cancel #{opts.desc}<br><br>"
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa fa-times'></i>  Cancel Subscription</h4>  Are you sure you want to cancel your nonfree subscription for <em>'#{opts.desc}'</em>?<br><br>This project will move to a non-commercial-use only datacenter.<br><br>"
         bootbox.confirm m, (result) =>
             if result
                 opts.elt.icon_spin(start:true)
@@ -315,11 +323,11 @@ class STRIPE
                         if err
                             alert_message
                                 type    : "error"
-                                message : "Error trying to cancel #{opts.desc} -- #{err}"
+                                message : "Error trying to cancel subscription for '#{opts.desc}' -- #{err}"
                         else
                             alert_message
                                 type    : "info"
-                                message : "#{opts.desc} has been canceled."
+                                message : "Canceled project subscription for '#{opts.desc}' "
                             @update()
                         opts.cb?(err)
             else

@@ -4460,7 +4460,7 @@ class Project
             target : undefined   # optional prefered target
             cb : undefined
         @dbg("move_project")
-        @local_hub.move_project(opts)
+        @local_hub.move(opts)
 
     undelete_project: (opts) =>
         opts = defaults opts,

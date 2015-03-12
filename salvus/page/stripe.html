@@ -8,9 +8,9 @@
                     <div class="panel-heading">
                         <div class="row">
                             <div class="col-sm-3">
-                                <span class="panel-title"><i class="fa fa-level-up"></i>  Upgraded Projects</span>
+                                <span class="panel-title"><i class="fa fa-level-up"></i>  Nonfree Projects</span>
                             </div>
-                            <div class="col-sm-offset-4 cols-sm-5">
+                            <div class="col-sm-offset-4 cols-sm-5 hide">  <!-- disabled -- not sure we want this here -->
                                 <span class="pull-right" style="margin-right: 1em;">
                                     <a class="btn btn-primary disabled" href="#new-subscription">
                                         <i class="fa fa-plus-circle"></i> Upgrade Project...</a>
@@ -32,36 +32,36 @@
             </div>
         </div>
         <!-- <div class="row">
-            <div class="col-sm-12">
-                <div class="panel panel-default smc-stripe-premium-support-panel">
-                    <div class="panel-heading">
-                        <div class="row">
-                            <div class="col-sm-3">
-                                <span class="panel-title">Paid Support</span>
-                            </div>
-                            <div class="col-sm-offset-4 cols-sm-5">
-                                <span class="pull-right" style="margin-right: 1em;">
-                                    <a class="btn btn-primary" href="#new-subscription">
-                                        <i class="fa fa-plus-circle"></i> Upgrade to Paid Support</a>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="panel-body">
-                        Get paid SageMathCloud support for only $5/month.
+<div class="col-sm-12">
+<div class="panel panel-default smc-stripe-premium-support-panel">
+<div class="panel-heading">
+<div class="row">
+<div class="col-sm-3">
+<span class="panel-title">Paid Support</span>
+</div>
+<div class="col-sm-offset-4 cols-sm-5">
+<span class="pull-right" style="margin-right: 1em;">
+<a class="btn btn-primary" href="#new-subscription">
+<i class="fa fa-plus-circle"></i> Upgrade to Paid Support</a>
+</span>
+</div>
+</div>
+</div>
+<div class="panel-body">
+Get paid SageMathCloud support for only $5/month.
 
-                        <h3>
-                            Benefits
-                        </h3>
-                        <ul>
-                           <li>We will prioritize support requests for you.</li>
-                           <li>Help support SageMathCloud at this very early and critical stage.</li>
-                        </ul>
+<h3>
+Benefits
+</h3>
+<ul>
+<li>We will prioritize support requests for you.</li>
+<li>Help support SageMathCloud at this very early and critical stage.</li>
+</ul>
 
-                    </div>
-                </div>
-            </div>
-        </div>-->
+</div>
+</div>
+</div>
+</div>-->
         <div class="row">
             <div class="col-sm-12">
                 <div class="panel panel-default smc-stripe-cards-panel hide">
@@ -132,12 +132,12 @@
             <div class="col-sm-2">
                 <span class="smc-stripe-card-exp_month"></span>/<span class="smc-stripe-card-exp_year"></span>
             </div>
-            <div class="col-sm-offset-1 col-sm-3">
-                <span class="pull-right">
-                    <!-- <a class="btn btn-default btn-sm" href="#update-card"><i class="fa fa-credit-card"></i> Edit</a> -->
-                    <a class="btn btn-default btn-sm" href="#set-as-default"> Default</a>
-                    <a class="btn btn-default btn-sm" href="#delete-card"><i class="fa fa-credit-card"></i> Delete</a>
-                </span>
+            <div class="col-sm-2">
+                <a class="btn btn-default" href="#set-as-default"> Default</a>
+            </div>
+            <div class="col-sm-2">
+                <!-- <a class="btn btn-default btn-sm" href="#update-card"><i class="fa fa-credit-card"></i> Edit</a> -->
+                <a class="btn btn-default" href="#delete-card"><i class="fa fa-trash-o"></i> Delete</a>
             </div>
         </div>
         <div class="row hide smc-strip-card-details">
@@ -157,9 +157,9 @@
                 <i class="fa fa-caret-down smc-stripe-subscription-hide-details  smc-stripe-toggle hide"></i>
             </div>
             <div class="col-sm-1 lighten">
-                Project:
+                Title:
             </div>
-            <div class="col-sm-5">
+            <div class="col-sm-4">
                 <span class="smc-stripe-subscription-project-titles"></span>
             </div>
             <div class="col-sm-1 lighten">
@@ -170,9 +170,9 @@
                 <span class="smc-stripe-subscription-plan-name"></span>
                 <span class="lighten">(<span class="smc-stripe-subscription-plan-amount"></span>)</span>
             </div>
-            <div class="col-sm-2">
+            <div class="col-sm-3">
                 <span class="pull-right">
-                    <a class="btn btn-default btn-sm" href="#cancel-subscription"><i class="fa fa-credit-card"></i> Cancel</a>
+                    <a class="btn btn-default" href="#cancel-subscription"><i class="fa fa-times"></i> Cancel Subscription</a>
                 </span>
             </div>
         </div>
@@ -196,8 +196,10 @@
     <div class="smc-stripe-charge">
         <div class="row">
             <div class="col-sm-1">
-                <i class="fa fa-caret-right smc-stripe-charge-show-details smc-stripe-toggle"></i>
-                <i class="fa fa-caret-down smc-stripe-charge-hide-details smc-stripe-toggle hide"></i>
+                <span class="hide">
+                    <i class="fa fa-caret-right smc-stripe-charge-show-details smc-stripe-toggle"></i>
+                    <i class="fa fa-caret-down smc-stripe-charge-hide-details smc-stripe-toggle hide"></i>
+                </span>
             </div>
             <div class="col-sm-3">
                 <span class="smc-stripe-charge-amount"></span>
@@ -210,7 +212,6 @@
             </div>
         </div>
         <div class="row hide smc-stripe-charge-details">
-            (details)
         </div>
     </div>
 
@@ -317,7 +318,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group hide">
                             <label class="col-sm-3 lighten" style="font-size:12pt">
                                 <span>Coupon</span>
                             </label>
