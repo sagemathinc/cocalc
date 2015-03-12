@@ -829,7 +829,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                             <div class="panel panel-default project-settings-static salvus-project-settings-heading-well">
                                 <div class="panel-heading">
                                     <div class="panel-title">
-                                        <i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Usage
+                                        <i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Project Usage and Quotas
                                     </div>
                                 </div>
                                 <div class="panel-body">
@@ -854,39 +854,86 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                             </span>
                                         </div>
                                     </div>
-                                    <a class="btn btn-default btn-sm project-quota-edit hide pull-right"> <i class="fa fa-pencil"> </i> Edit</a>
-                                    <span class="project-disk_usage">
-                                        <ul>
-                                            <li class="salvus-zfs-quotas"> Disk usage:
-                                                <b><span class="salvus-userused-projects">(loading...)</span> MB</b> of <b><div class="salvus-userquota-projects"></div> MB</b>
-                                            </li>
-
-                                            <li class="salvus-zfs-quotas"> <tt>/scratch</tt> disk usage:
-
-                                                <b><span class="salvus-userused-scratch">(loading...)</span> MB</b> of <b><div class="salvus-userquota-scratch"></div> MB</b>
-                                            </li>
-                                            <li>
-                                                CPU cores: <b><div class="salvus-project-settings-cores">(loading...)</div></b> (shared)
-                                            </li>
-
-                                            <li>
-                                                RAM: <b><div class="salvus-project-settings-memory">(loading...)</div> GB</b> (shared)
-                                            </li>
-
-                                            <li>
-                                                Timeout: <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <div class="salvus-project-settings-mintime">(loading...)</div> hours</b> of inactivity
-                                            </li>
-
-                                            <li>
-                                                CPU share: <b><div class="salvus-project-settings-cpu_shares">(loading...)</div></b>
-                                            </li>
-
-                                            <li>
-                                                Network access: <b><input type="checkbox" class="project-settings-network-access-checkbox hide"> <div class="salvus-project-settings-network">(loading...)</div></b>
-                                            </li>
-
-                                        </ul>
-                                    </span>
+                                    <div class="project-disk_usage">
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <a class="btn btn-warning btn-sm project-quota-edit hide pull-right" style="margin-bottom:10px"> <i class="fa fa-pencil"> </i>  Edit as Administrator </a>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                Location
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <span class="smc-project-location hide">(loading...)</span>
+                                                <select class="form-control">
+                                                    <option value="dc0">Seattle-1 (free, limited network, slower cpu)</option>
+                                                    <option value="dc1">Seattle-2 (free, limited network, slower cpu)</option>
+                                                    <option value="dc2">Google us-central1-a (free, limited network)</option>
+                                                    <option value="dc5">Google us-central1-f (nonfree, fast cpu)</option>
+                                                    <option value="dc6">Google europe-west1-c (nonfree, fast cpu)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="row salvus-zfs-quotas">
+                                            <div class="col-sm-4 lighten">
+                                                Disk usage:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                using <b><span class="salvus-userused-projects">(loading...)</span> MB</b> of your <b><span class="salvus-userquota-projects"></span> MB</b> quota
+                                            </div>
+                                        </div>
+                                        <div class="row salvus-zfs-quotas">
+                                            <div class="col-sm-4 lighten">
+                                                <tt>/scratch</tt> disk usage:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                using <b><span class="salvus-userused-scratch">(loading...)</span> MB</b> of your <b><span class="salvus-userquota-scratch"></span> MB</b> quota
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                 CPU cores:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-project-settings-cores">(loading...)</span> shared core</b> quota
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                RAM:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-project-settings-memory">(loading...)</span> GB</b> RAM max quota
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                Timeout:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <span class="salvus-project-settings-mintime">(loading...)</span> hours</b> of inactivity until project stopped
+                                            </div>
+                                        </div>
+                                        <div class="row hide">  <!-- hide due to being unclear -->
+                                            <div class="col-sm-4 lighten">
+                                                CPU share:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-project-settings-cpu_shares">(loading...)</span></b>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                 External network access:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><input type="checkbox" class="project-settings-network-access-checkbox hide"> <span class="salvus-project-settings-network">(loading...)</span></b>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
