@@ -138,7 +138,7 @@ class STRIPE
 
     delete_card: (card, cb) =>
         log("delete_card")
-        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Delete Payment Method</h4>  Are you sure you want to delete this #{card.brand} card?<br><br>"
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Delete Payment Method</h4>  Are you sure you want to remove this #{card.brand} payment method?<br><br>"
         bootbox.confirm m, (result) =>
             if result
                 salvus_client.stripe_delete_card
