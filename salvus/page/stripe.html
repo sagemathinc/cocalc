@@ -13,7 +13,7 @@
                             <div class="col-sm-offset-4 cols-sm-5">
                                 <span class="pull-right" style="margin-right: 1em;">
                                     <a class="btn btn-primary disabled" href="#new-subscription">
-                                        <i class="fa fa-level-up"></i> Upgrade a Project...</a>
+                                        <i class="fa fa-plus-circle"></i> Add Project...</a>
                                 </span>
                             </div>
                         </div>
@@ -72,9 +72,6 @@
                             </div>
                             <div class="col-sm-offset-7 cols-sm-5">
                                 <span class="pull-right" style="margin-right: 1em;">
-                                    <a class="btn btn-default" href="#change-default">
-                                        <i class="fa fa-check"></i> Change Default Method
-                                    </a>
                                     <a class="btn btn-primary" href="#new-card">
                                         <i class="fa fa-plus-circle"></i> Add Payment Method...
                                     </a>
@@ -135,12 +132,10 @@
             <div class="col-sm-2">
                 <span class="smc-stripe-card-exp_month"></span>/<span class="smc-stripe-card-exp_year"></span>
             </div>
-            <div class="col-sm-offset-1 col-sm-1" style="padding-top: 4px;">
-                <span class="smc-stripe-card-default btn-primary hide">Default</span>
-            </div>
-            <div class="col-sm-2">
+            <div class="col-sm-offset-1 col-sm-3">
                 <span class="pull-right">
                     <!-- <a class="btn btn-default btn-sm" href="#update-card"><i class="fa fa-credit-card"></i> Edit</a> -->
+                    <a class="btn btn-default btn-sm" href="#set-as-default"> Default</a>
                     <a class="btn btn-default btn-sm" href="#delete-card"><i class="fa fa-credit-card"></i> Delete</a>
                 </span>
             </div>
@@ -167,7 +162,7 @@
             <div class="col-sm-3">
                 <!-- <span class="smc-stripe-subscription-quantity" style="margin-right: 5px;"></span> ×-->
                 <span class="smc-stripe-subscription-plan-name"></span>
-                (<span class="smc-stripe-subscription-plan-amount"></span>)
+                <span class="lighten">(<span class="smc-stripe-subscription-plan-amount"></span>)</span>
             </div>
             <div class="col-sm-2">
                 <span class="pull-right">

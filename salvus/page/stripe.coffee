@@ -59,22 +59,29 @@ class STRIPE
         @element.find("a[href=#new-card]").click(@new_card)
         @element.find("a[href=#new-subscription]").click(@new_subscription)
 
+    update_customer: (cb) =>
+        salvus_client.stripe_get_customer
+            cb : (err, resp) =>
+                #log("stripe_get_customer #{err}, #{misc.to_json(resp)}")
+                if err or not resp.stripe_publishable_key
+                    $("#smc-billing-tab span").text("Billing is not yet available.")
+                    cb(true)
+                else
+                    Stripe.setPublishableKey(resp.stripe_publishable_key)
+                    @set_customer(resp.customer)
+                    cb()
+
     update: (cb) =>
         $(".smc-billing-tab-refresh-spinner").show().addClass('fa-spin')
         #log("update")
         async.series([
             (cb) =>
-                salvus_client.stripe_get_customer
-                    cb : (err, resp) =>
-                        #log("stripe_get_customer #{err}, #{misc.to_json(resp)}")
-                        if err or not resp.stripe_publishable_key
-                            $("#smc-billing-tab span").text("Billing is not yet available.")
-                            cb(true)
-                        else
-                            Stripe.setPublishableKey(resp.stripe_publishable_key)
-                            @set_customer(resp.customer)
-                            @render_cards_and_subscriptions()
-                            cb()
+                @update_customer (err) =>
+                    if err
+                        cb(err)
+                    else
+                        @render_cards_and_subscriptions()
+                        cb()
             (cb) =>
                 salvus_client.stripe_get_charges
                     cb: (err, charges) =>
@@ -131,10 +138,39 @@ class STRIPE
             @delete_card(card)
             return false
 
+        elt.find("a[href=#set-as-default]").click () =>
+            @set_card_as_default(card, elt.find("a[href=#set-as-default]"))
+            return false
+
         if @customer.default_card == card.id
-            elt.find(".smc-stripe-card-default").show()
+            elt.find("a[href=#set-as-default]").addClass("btn-primary").removeClass('btn-default').addClass('disabled')
 
         return elt
+
+    set_card_as_default: (card, elt, cb) =>
+        log("set_card_as_default")
+        m = "<h4 style='font-weight:bold'><i class='fa-warning-sign'></i>  Change Default Payment Method</h4>  Are you sure you want to use your #{card.brand} card by default for subscription and invoice payments?<br><br>"
+        bootbox.confirm m, (result) =>
+            if result
+                elt.icon_spin(start:true)
+                salvus_client.stripe_set_default_card
+                    card_id : card.id
+                    cb      : (err) =>
+                        if err
+                            elt.icon_spin(false)
+                            alert_message
+                                type    : "error"
+                                message : "Error trying to make your #{card.brand} card the default -- #{err}"
+                            cb?(err)
+                        else
+                            @update (err) =>
+                                elt.icon_spin(false)
+                                alert_message
+                                    type    : "info"
+                                    message : "Your #{card.brand} card will now be used by default for subscription and invoice payments."
+                                cb?(err)
+            else
+                cb?()
 
     delete_card: (card, cb) =>
         log("delete_card")
@@ -147,11 +183,11 @@ class STRIPE
                         if err
                             alert_message
                                 type    : "error"
-                                message : "Error trying to delete card."
+                                message : "Error trying to delete your #{card.brand} card -- #{err}"
                         else
                             alert_message
                                 type    : "info"
-                                message : "Card deleted."
+                                message : "Your #{card.brand} card has been deleted."
                             @update()
                         cb?(err)
             else
@@ -170,9 +206,9 @@ class STRIPE
             elt_cards.append(@render_one_card(card))
 
         if cards.data.length > 1
-            panel.find("a[href=#change-default]").show()
+            panel.find("a[href=#set-as-default]").show()
         else
-            panel.find("a[href=#change-default]").hide()
+            panel.find("a[href=#set-as-default]").hide()
 
         if cards.has_more
             panel.find("a[href=#show-more]").show().click () =>

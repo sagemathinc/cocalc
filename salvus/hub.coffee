@@ -3108,6 +3108,20 @@ class Client extends EventEmitter
                 else
                     @success_to_client(id:mesg.id)
 
+    # set a payment method for this user to be the default
+    mesg_stripe_set_default_card: (mesg) =>
+        if not @ensure_fields(mesg, 'card_id')
+            return
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            stripe.customers.update customer_id, {default_card:mesg.card_id}, (err, confirmation) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
+
+
     # modify a payment method
     mesg_stripe_update_card: (mesg) =>
         if not @ensure_fields(mesg, 'card_id info')
