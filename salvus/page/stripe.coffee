@@ -260,6 +260,12 @@ class STRIPE
         plan = subscription.plan
         elt.find(".smc-stripe-subscription-plan-name").text(plan.name)
 
+        elt.find("a[href=#cancel-subscription]").click () =>
+            @cancel_subscription
+                subscription_id : subscription.id
+                elt             : elt.find("a[href=#cancel-subscription]")
+            return false
+
         # TODO: make currency more sophisticated
         elt.find(".smc-stripe-subscription-plan-amount").text("$#{plan.amount/100}/month")  #TODO!
 
@@ -290,6 +296,35 @@ class STRIPE
                 @show_all_subscriptions()
         else
             panel.find("a[href=#show-more]").hide()
+
+    cancel_subscription: (opts) =>
+        opts = defaults opts,
+            subscription_id : required
+            elt             : required
+            desc            : 'Project upgrade'
+            cb              : undefined
+        log("cancel_subscription")
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Cancel Project Upgrade</h4>  Are you sure you want to cancel #{opts.desc}<br><br>"
+        bootbox.confirm m, (result) =>
+            if result
+                opts.elt.icon_spin(start:true)
+                salvus_client.stripe_cancel_subscription
+                    subscription_id : opts.subscription_id
+                    cb              : (err) =>
+                        opts.elt.icon_spin(false)
+                        if err
+                            alert_message
+                                type    : "error"
+                                message : "Error trying to cancel #{opts.desc} -- #{err}"
+                        else
+                            alert_message
+                                type    : "info"
+                                message : "#{opts.desc} has been canceled."
+                            @update()
+                        opts.cb?(err)
+            else
+                opts.cb?()
+
 
     set_charges: (charges) =>
         @charges = charges
