@@ -1033,7 +1033,7 @@ salvus_client.on "remember_me_failed", () ->
 salvus_client.on "signed_in", () ->
     $(".salvus-remember_me-message").hide()
     require('projects').update_project_list()
-
+    update_billing_tab()
 
 
 ###

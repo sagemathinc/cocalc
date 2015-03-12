@@ -28,7 +28,7 @@
 
 {top_navbar} = require('top_navbar')
 top_navbar.hide_page_button("projects")
-top_navbar.hide_page_button("salvus-help")
+#top_navbar.hide_page_button("salvus-help")
 
 misc_page = require('misc_page')
 editor    = require('editor')
