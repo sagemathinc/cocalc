@@ -484,7 +484,9 @@ class Salvus(object):
         self.namespace = namespace
         self.message_queue = message_queue
         self.code_decorators = [] # gets reset if there are code decorators
-        namespace['salvus'] = self   # beware of circular ref?
+        # Alias: someday remove all references to "salvus" and instead use smc.
+        # For now this alias is easier to think of and use.
+        namespace['smc'] = namespace['salvus'] = self   # beware of circular ref?
         # Monkey patch in our "require" command.
         namespace['require'] = self.require
         # Make the salvus object itself available when doing "from sage.all import *".

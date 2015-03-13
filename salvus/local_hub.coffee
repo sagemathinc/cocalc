@@ -289,6 +289,9 @@ class ConsoleSessions
     connect: (client_socket, mesg, cb) =>
         if not mesg.session_uuid?
             mesg.session_uuid = misc.uuid()
+        client_socket.on 'end', () =>
+            winston.debug("a console session client socket ended -- session_uuid=#{mesg.session_uuid}")
+            #client_socket.destroy()
         @get_session mesg, (err, session) =>
             if err
                 client_socket.write_mesg('json', message.error(id:mesg.id, error:err))

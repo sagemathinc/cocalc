@@ -4466,6 +4466,13 @@ get_with_retry = (opts) ->
 
 # Embedded editor for editing IPython notebooks.  Enhanced with sync and integrated into the
 # overall cloud look.
+
+# Extension for the file used for synchronization of IPython
+# notebooks between users.
+# In the rare case that we change the format, must increase this and
+# also increase the version number forcing users to refresh their browser.
+IPYTHON_SYNCFILE_EXTENSION = ".syncdoc3"
+
 class IPythonNotebook extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
         opts = @opts = defaults opts,
@@ -4488,9 +4495,9 @@ class IPythonNotebook extends FileEditor
         @file = s.tail
 
         if @path
-            @syncdoc_filename = @path + '/.' + @file + ".syncdoc"
+            @syncdoc_filename = @path + '/.' + @file + IPYTHON_SYNCFILE_EXTENSION
         else
-            @syncdoc_filename = '.' + @file + ".syncdoc"
+            @syncdoc_filename = '.' + @file + IPYTHON_SYNCFILE_EXTENSION
 
         # This is where we put the page itself
         @notebook = @element.find(".salvus-ipython-notebook-notebook")
@@ -5060,18 +5067,6 @@ class IPythonNotebook extends FileEditor
         @nb.element.scrollTop(st)
         #console.log("from_obj: done", misc.mswalltime(t))
 
-    # Notebook Doc Format: line 0 is meta information in JSON; one line with the JSON of each cell for reset of file
-    to_doc: () =>
-        #console.log("to_doc: start"); t = misc.mswalltime()
-        obj = @to_obj()
-        if not obj?
-            return
-        doc = misc.to_json({notebook_name:obj.metadata.name})
-        for cell in obj.worksheets[0].cells
-            doc += '\n' + misc.to_json(cell)
-        #console.log("to_doc: done", misc.mswalltime(t))
-        return doc
-
     ###
     # simplistic version of modifying the notebook in place.  VERY slow when new cell added.
     from_doc0: (doc) =>
@@ -5168,6 +5163,61 @@ class IPythonNotebook extends FileEditor
         console.log("from_doc: done", misc.mswalltime(t))
     ###
 
+    # Notebook Doc Format: line 0 is meta information in JSON.
+    # Rest of file has one line for each cell for rest of file, in the following format:
+    #
+    #     cell input text (with newlines replaced) [special unicode character] json object for cell, without input
+    #
+    # We split the line as above so that if/when there are merge conflicts
+    # that result in json corruption, which we then reject, only the *output*
+    # is impacted. The odds of corruption in the output is much less.
+    #
+    cell_to_line: (cell) =>
+        cell = misc.copy(cell)
+        input = misc.to_json(cell.input)
+        delete cell['input']
+        source = misc.to_json(cell.source)
+        delete cell['source']
+        return input + diffsync.MARKERS.output + source + diffsync.MARKERS.output + misc.to_json(cell)
+
+    line_to_cell: (line) =>
+        v = line.split(diffsync.MARKERS.output)
+        try
+            if v[0] == 'undefined'  # backwards incompatibility...
+                input = undefined
+            else
+                input = JSON.parse(v[0])
+        catch e
+            console.log("line_to_cell('#{line}') -- input ERROR=", e)
+            return
+        try
+            if v[1] == 'undefined'  # backwards incompatibility...
+                source = undefined
+            else
+                source = JSON.parse(v[1])
+        catch e
+            console.log("line_to_cell('#{line}') -- source ERROR=", e)
+            return
+        try
+            obj = JSON.parse(v[2])
+            obj.input = input
+            obj.source = source
+            #console.log("line_to_cell('#{line}') -- obj=",obj)
+            return obj
+        catch e
+            console.log("line_to_cell('#{line}') -- output ERROR=", e)
+
+    to_doc: () =>
+        #console.log("to_doc: start"); t = misc.mswalltime()
+        obj = @to_obj()
+        if not obj?
+            return
+        doc = misc.to_json({notebook_name:obj.metadata.name})
+        for cell in obj.worksheets[0].cells
+            doc += '\n' + @cell_to_line(cell)
+        #console.log("to_doc: done", misc.mswalltime(t))
+        return doc
+
     from_doc: (doc) =>
         #console.log("goal='#{doc}'")
         #console.log("live='#{@to_doc()}'")
@@ -5179,6 +5229,7 @@ class IPythonNotebook extends FileEditor
             # reload anyways, so no need to set it here.
             return
 
+        # We want to transform live into goal.
         goal = doc.split('\n')
         live = @to_doc()?.split('\n')
         if not live?
@@ -5196,12 +5247,6 @@ class IPythonNotebook extends FileEditor
         index = 0
         i = 0
 
-        parse = (s) ->
-            try
-                return JSON.parse(s)
-            catch e
-                console.log("UNABLE to parse '#{s}' -- not changing this cell.")
-
         #console.log("diff=#{misc.to_json(diff)}")
         i = 0
         while i < diff.length
@@ -5212,7 +5257,7 @@ class IPythonNotebook extends FileEditor
                 # skip over  cells
                 index += val.length
             else if op == -1
-                # delete  cells:
+                # Deleting cell
                 # A common special case arises when one is editing a single cell, which gets represented
                 # here as deleting then inserting.  Replacing is far more efficient than delete and add,
                 # due to the overhead of creating codemirror instances (presumably).  (Also, there is a
@@ -5220,7 +5265,7 @@ class IPythonNotebook extends FileEditor
                 if i < diff.length - 1 and diff[i+1][0] == 1 and diff[i+1][1].length == val.length
                     #console.log("replace")
                     for x in diff[i+1][1]
-                        obj = parse(string_mapping._to_string[x])
+                        obj = @line_to_cell(string_mapping._to_string[x])
                         if obj?
                             @set_cell(index, obj)
                         index += 1
@@ -5233,7 +5278,7 @@ class IPythonNotebook extends FileEditor
                 # insert new cells
                 #console.log("insert")
                 for x in val
-                    obj = parse(string_mapping._to_string[x])
+                    obj = @line_to_cell(string_mapping._to_string[x])
                     if obj?
                         @insert_cell(index, obj)
                     index += 1

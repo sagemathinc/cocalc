@@ -158,6 +158,8 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
 
     # See http://stackoverflow.com/questions/26592577/installing-opencv-in-ubuntu-14-10
 
+    # Test: "import cv2"
+
     iptables -F && cd /tmp&& rm -rf libvpx && git clone https://chromium.googlesource.com/webm/libvpx && cd libvpx/ && ./configure --disable-static --enable-shared  && make -j20 install && chmod a+r /usr/local/lib/*libvpx* && rm /usr/lib/x86_64-linux-gnu/*libvpx* && cp -av /usr/local/lib/*libvpx* /usr/lib/x86_64-linux-gnu/ && cd .. && rm -rf libvpx  && rm -rf opencv && mkdir opencv && cd opencv && git clone git://source.ffmpeg.org/ffmpeg.git && cd ffmpeg && ./configure  --enable-libvpx --enable-shared --disable-static && make -j20 install && cd .. && rm -rf ffmpeg && wget http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.4.10/opencv-2.4.10.zip && unzip opencv-2.4.10.zip && cd opencv-2.4.10 && mkdir build && cd build && time cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON .. && time make -j12 && make install && sh -c 'echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf' && sudo ldconfig && cd /tmp && rm -rf opencv
 
 
@@ -214,7 +216,7 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
 
 # Make ROOT data analysis ipython notebook support system-wide work.
 
-   cd /usr/lib/x86_64-linux-gnu/root5.34 && wget https://gist.githubusercontent.com/mazurov/6194738/raw/67e851fdac969e670a11296642478f1801324b8d/rootnotes.py && chmod a+r * && echo "import sys; sys.path.extend(['/usr/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7', '/usr/lib/x86_64-linux-gnu/root5.34/'])"$'\n' >  /usr/local/sage/current/local/lib/python/sitecustomize.py
+   cd /usr/lib/x86_64-linux-gnu/root5.34 && wget https://gist.githubusercontent.com/mazurov/6194738/raw/67e851fdac969e670a11296642478f1801324b8d/rootnotes.py && chmod a+r * && echo "import sys; sys.path.extend(['/usr/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7', '/usr/lib/x86_64-linux-gnu/root5.34/', '/usr/local/lib/python2.7/dist-packages'])"$'\n' >  /usr/local/sage/current/local/lib/python/sitecustomize.py
 
 
 # Install 4ti2 system-wide...
@@ -309,7 +311,7 @@ In /etc/sysctl.conf, put:
 """
 
 TINC_VERSION       = '1.0.25'    # options here -- http://tinc-vpn.org/packages/
-CASSANDRA_VERSION  = '2.1.2'     # options here -- http://downloads.datastax.com/community/
+CASSANDRA_VERSION  = '2.1.3'     # options here -- http://downloads.datastax.com/community/
 NODE_VERSION       = '0.12.0'    # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
 PYTHON_VERSION     = '2.7.9'     # options here -- https://www.python.org/ftp/python/
 SETUPTOOLS_VERSION = '12.1'      # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
@@ -461,7 +463,9 @@ SAGE_PIP_PACKAGES = [
     'pattern',
     'seaborn',
     'brewer2mpl',
-    'ggplot' 
+    'ggplot',
+    'periodictable'
+    'nltk'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -636,6 +640,7 @@ class BuildSage(object):
         self.install_projlib()
         self.install_pip()
         self.install_pip_packages()
+        self.install_jinja2() # since sage's is too old and pip packages doesn't upgrade
         self.install_R_packages()
         self.install_pystan()
         self.install_optional_packages()
@@ -662,6 +667,9 @@ class BuildSage(object):
         # FAILED:
         self.install_pymc()     # FAIL -- also "pip install pymc" fails.
         self.install_rstan()    # FAIL -- ERROR: dependency StanHeaders is not available for package rstan
+
+    def install_jinja2(self):
+        self.cmd("pip install -U jinja2")
 
     def install_ipython_patch(self):
         """
