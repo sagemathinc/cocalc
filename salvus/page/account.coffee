@@ -1043,7 +1043,7 @@ salvus_client.on "signed_in", () ->
 stripe = undefined
 update_billing_tab = () ->
     if not stripe?
-        stripe = require('stripe').stripe_user_interface(element: $("#smc-billing-tab"))
+        stripe = require('stripe').stripe_user_interface()
     stripe.update()
 
 $("a[href=#smc-billing-tab]").click(update_billing_tab)

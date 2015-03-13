@@ -33,10 +33,12 @@ projects        = require('projects')
 
 {salvus_client} = require('salvus_client')
 
-exports.stripe_user_interface = (opts) ->
-    opts = defaults opts,
-        element                : required
-    return new STRIPE(opts.element)
+stripe_ui = undefined
+exports.stripe_user_interface = () ->
+    if stripe_ui?
+        return stripe_ui
+    stripe_ui = new STRIPE($("#smc-billing-tab"))
+    return stripe_ui
 
 templates = $(".smc-stripe-templates")
 
@@ -178,7 +180,7 @@ class STRIPE
 
     delete_card: (card, cb) =>
         log("delete_card")
-        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Delete Payment Method</h4>  Are you sure you want to remove this <b>#{card.brand}</b> payment method?<br><br>"
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa fa-trash-o'></i>  Delete Payment Method</h4>  Are you sure you want to remove this <b>#{card.brand}</b> payment method?<br><br>"
         bootbox.confirm m, (result) =>
             if result
                 salvus_client.stripe_delete_card
@@ -196,6 +198,10 @@ class STRIPE
                         cb?(err)
             else
                 cb?()
+
+    # this does not query the server -- it uses the last cached/known result.
+    has_a_billing_method: () =>
+        return @customer?.cards? and @customer.cards.data.length > 0
 
     render_cards: () =>
         log("render_cards")
@@ -378,12 +384,17 @@ class STRIPE
         else
             panel.find("a[href=#show-more]").hide()
 
-    new_card: () =>
+    new_card: (cb) =>   # cb?(true if created card; otherwise false)
         log("new_card")
         dialog = templates.find(".smc-stripe-new-card").clone()
         btn = dialog.find(".btn-submit")
-
-        submit = () =>
+        dialog.find(".smc-stripe-form-name").val(require('account').account_settings.fullname())
+        dialog.find(".smc-stripe-credit-card-number").focus()
+        submit = (do_it) =>
+            if not do_it
+                cb?(do_it)
+                dialog.modal('hide')
+                return
             form = dialog.find("form")
             btn.icon_spin(start:true).addClass('disabled')
             response = undefined
@@ -407,6 +418,7 @@ class STRIPE
                 else
                     @update()
                     dialog.modal('hide')
+                    cb?(do_it)
             )
             return false
 
@@ -428,6 +440,7 @@ class STRIPE
         dialog.submit(submit)
         dialog.find("form").submit(submit)
         btn.click(submit)
+        dialog.find(".btn-close").click(() => submit(false))
         dialog.modal()
         return false
 

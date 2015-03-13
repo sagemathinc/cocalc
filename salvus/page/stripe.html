@@ -68,12 +68,12 @@ Benefits
                     <div class="panel-heading">
                         <div class="row">
                             <div class="col-sm-3">
-                                <span class="panel-title"><i class="fa fa-credit-card"></i>  Payment Methods</span>
+                                <span class="panel-title"><i class="fa fa-credit-card"></i>  Credit Cards</span>
                             </div>
                             <div class="col-sm-offset-7 cols-sm-5">
                                 <span class="pull-right" style="margin-right: 1em;">
                                     <a class="btn btn-primary" href="#new-card">
-                                        <i class="fa fa-plus-circle"></i> Add Payment Method...
+                                        <i class="fa fa-plus-circle"></i> Add Credit Card...
                                     </a>
                                 </span>
                             </div>
@@ -137,7 +137,7 @@ Benefits
             </div>
             <div class="col-sm-2">
                 <!-- <a class="btn btn-default btn-sm" href="#update-card"><i class="fa fa-credit-card"></i> Edit</a> -->
-                <a class="btn btn-default" href="#delete-card"><i class="fa fa-trash-o"></i> Delete</a>
+                <a class="btn btn-default pull-right" href="#delete-card"><i class="fa fa-trash-o"></i> Delete Card</a>
             </div>
         </div>
         <div class="row hide smc-strip-card-details">
@@ -219,11 +219,17 @@ Benefits
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header hidden-xs">
-                    <button type="button" class="close" data-dismiss="modal">×</button>
-                    <h2><i class="fa fa-credit-card"> </i> Add Payment Method</h2>
+                    <button type="button" class="close btn-close"  aria-label="Close"><span aria-hidden="true">×</span></button>
+                    <h3><i class="fa fa-credit-card"> </i> Add Credit Card</h3>
+                    <br>
+                    <div class="lighten">
+                        Enter a valid credit card so that you can run your project in a premium non-free data center.
+                    </div>
                 </div>
+
                 <div class="modal-body">
-                    <form  class="form-horizontal">
+                    <br>
+                    <form  class="form-horizontal lighten">
                         <div class="form-group smc-stripe-card-error-row hide">
                             <div class="col-sm-12" style="background: darkred; color: white;padding: 1em; font-size:13pt">
                                 <span class="smc-stripe-card-errors"></span>
@@ -262,20 +268,35 @@ Benefits
 
                         <div class="form-group">
                             <label class="col-sm-4">
-                                <span>Expiration (MM/YYYY)</span>
+                                <span>Expiration (MM/YY)</span>
                             </label>
                             <div class="col-sm-8">
                                 <input class="form-control" style="display:inline;width:5em" placeholder="MM" type="text" size="2" data-stripe="exp-month" />
                                 <span> / </span>
-                                <input class="form-control" style="display:inline;width:7em"  placeholder="YYYY" type="text" size="4" data-stripe="exp-year"/>
+                                <input class="form-control" style="display:inline;width:5em"  placeholder="YY" type="text" size="2" data-stripe="exp-year"/>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-4">
+                                <span>Name on Card</span>
+                            </label>
+                            <div class="col-sm-8">
+                                <input class="form-control smc-stripe-form-name" placeholder="Name on Card" type="text" size="2" data-stripe="name" />
+                                <span>
                             </div>
                         </div>
 
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-default btn-md"  data-dismiss="modal">Cancel</button>
-                    <button class="btn btn-submit btn-primary btn-md" type="submit">Add Payment Method</button>
+                    <div class="pull-left">
+                        <a href="https://stripe.com" target="_blank">
+                            <span class="lighten">Powered by</span> <i class="fa fa-cc-stripe" style="font-size: 22pt; color: #008cdd; position: relative; top: 6px;"></i>
+                        </a>
+                    </div>
+                    <button class="btn btn-default btn-md btn-close" >Cancel</button>
+                    <button class="btn btn-submit btn-primary btn-md" type="submit">Add Credit Card</button>
                 </div>
             </div>
         </div>

@@ -2970,14 +2970,32 @@ class ProjectPage
         console.log("move_project_dialog")
         # if select nonfree target and no subscription, ask to upgrade
         # if select nonfree target and no card, ask for card
-
         dialog = $(".smc-move-project-dialog").clone()
+        btn_submit = dialog.find(".btn-submit")
         dialog.find(".smc-move-project-dialog-desc").text(opts.desc)
+
         free    = dialog.find(".smc-move-project-dialog-free")
         nonfree = dialog.find(".smc-move-project-dialog-nonfree")
         if opts.nonfree
+            stripe = require('stripe').stripe_user_interface()
             free.hide()
             nonfree.show()
+            pay_checkbox = dialog.find(".smc-move-project-dialog-pay-checkbox")
+            pay_checkbox.change () =>
+                if pay_checkbox.is(':checked')
+                    console.log("clicked pay_checkbox")
+                    if stripe.has_a_billing_method()
+                        btn_submit.removeClass('disabled')
+                    else
+                        stripe.new_card (created) =>
+                            console.log("created=", created)
+                            if created
+                                btn_submit.removeClass('disabled')
+                            else
+                                pay_checkbox.attr('checked', false)
+                                stripe.update()  # just in case maybe they entered it in another browser?
+                else
+                    btn_submit.addClass('disabled')
         else
             free.show()
             nonfree.hide()
@@ -3005,7 +3023,7 @@ class ProjectPage
                         @set_project_location_select()
 
         dialog.find(".btn-close").click(()=>submit(false))
-        dialog.find(".btn-submit").click(()=>submit(true))
+        btn_submit.click(()=>submit(true))
 
     set_project_location_select: () =>
         @container.find(".smc-project-location-select").val(@project.datacenter)
