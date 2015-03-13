@@ -1,0 +1,161 @@
+# hosts
+
+# The format is just like an /etc/hosts file, except that lines in
+#  quare brackets refer to groups of hosts
+# The rightmost hostname (when there are multiple names) is the canonical one.
+
+127.0.0.1   localhost  # for running things on whatever hosts admin.py is running on.
+
+# DC1:RAC0   128.95.242.135 cloud1   # 06salvus
+10.1.1.1 dc1     kvm-host   cloud1
+10.1.1.5 dc1     kvm        compute-2     compute1dc1
+
+# DC1:RAC0   128.95.242.137 cloud2   # 07salvus
+10.1.2.1 dc1     kvm-host   cloud2
+10.1.2.5 dc1     kvm        compute-2     compute2dc1
+
+# DC1:RAC0   128.95.224.237 cloud3   # 03salvus
+10.1.3.1 dc1 kvm-host   admin   cloud3
+10.1.3.5 dc1     kvm        compute-2     compute3dc1
+
+# DC1:RAC0   128.95.224.230 cloud4
+10.1.4.1 dc1 kvm-host           cloud4
+10.1.4.5 dc1     kvm        compute-2     compute4dc1
+
+# DC1:RAC0   cloud5
+10.1.5.1 dc1 kvm-host              cloud5
+10.1.5.5 dc1     kvm        compute-2     compute5dc1
+
+# DC1:RAC0   cloud6
+10.1.6.1 dc1 kvm-host              cloud6
+10.1.6.5 dc1     kvm        compute-2     compute6dc1
+
+
+# DC1:RAC0   cloud7
+10.1.7.1 dc1 kvm-host              cloud7
+10.1.7.5 dc1     kvm        compute-2     compute7dc1
+
+# DC0:RAC0   cloud10
+10.1.10.1  dc0 kvm-host       admin       cloud10
+10.1.10.5  dc0  kvm        compute-2 compute10dc0
+
+# DC0:RAC0   cloud11
+10.1.11.1  dc0 kvm-host              cloud11
+10.1.11.5  dc0  kvm        compute-2     compute11dc0
+
+# DC0:RAC0   cloud12
+10.1.12.1  dc0 kvm-host              cloud12
+10.1.12.5  dc0  kvm        compute-2     compute12dc0
+
+# DC0:RAC0   cloud13
+10.1.13.1  dc0 kvm-host              cloud13
+10.1.13.5  dc0  kvm        compute-2     compute13dc0
+
+# DC0:RAC0   cloud14
+10.1.14.1 dc0 kvm-host              cloud14
+10.1.14.5 dc0  kvm        compute-2     compute14dc0
+
+# DC0:RAC0   cloud15
+10.1.15.1 dc0 kvm-host              cloud15
+10.1.15.5 dc0  kvm        compute-2     compute15dc0
+
+# DC0:RAC0   cloud16
+10.1.16.1 dc0 kvm-host              cloud16
+10.1.16.5 dc0  kvm        compute-2     compute16dc0
+
+# DC0:RAC0   cloud17
+10.1.17.1 dc0 kvm-host              cloud17
+10.1.17.5 dc0  kvm        compute-2     compute17dc0
+
+# DC0:RAC0   cloud18
+10.1.18.1 dc0 kvm-host              cloud18
+10.1.18.5 dc0  kvm        compute-2     compute18dc0
+
+# DC0:RAC0   cloud19dc0
+10.1.19.1 dc0 kvm-host              cloud19
+10.1.19.5 dc0  kvm        compute-2     compute19dc0
+
+# DC0:RAC0   cloud20
+10.1.20.1 dc0 kvm-host              cloud20
+10.1.20.5 dc0  kvm        compute-2     compute20dc0
+
+# DC0:RAC0   cloud21
+10.1.21.1 dc0 kvm-host              cloud21
+10.1.21.5 dc0  kvm        compute-2     compute21dc0
+
+
+###
+## GCE dc2
+###
+
+10.3.1.5 dc2 compute-2 gce compute1dc2
+10.3.2.5 dc2 compute-2 gce compute2dc2
+10.3.3.5 dc2 compute-2 gce compute3dc2
+10.3.4.5 dc2 compute-2 gce compute4dc2
+10.3.5.5 dc2 compute-2 gce compute5dc2
+10.3.6.5 dc2 compute-2 gce compute6dc2
+10.3.7.5 dc2 compute-2 gce compute7dc2
+10.3.8.5 dc2 compute-2 gce compute8dc2
+
+
+###
+## GCE dc3 -- europe
+###
+
+#10.4.1.5 dc3 compute-2 gce compute1dc3
+
+
+###############################################################
+# New commercial stuff
+###############################################################
+
+# Important -- last name is the "canonical" one -- don't make it not last!!
+
+###
+## GCE dc5 -- commercial data center (in US)
+###
+
+10.5.1.1 dc5 cassandra hub gce nginx edge smc1dc5
+10.5.1.2 dc5 cassandra hub gce nginx edge smc2dc5
+10.5.1.3 dc5 cassandra hub gce nginx edge smc3dc5
+10.5.1.4 dc5 cassandra hub gce nginx edge smc4dc5
+10.5.1.5 dc5 cassandra hub gce nginx edge smc5dc5
+10.5.1.6 dc5 cassandra hub gce nginx edge smc6dc5
+10.5.1.7 dc5 cassandra hub gce nginx edge smc7dc5
+10.5.1.8 dc5 cassandra hub gce nginx edge smc8dc5
+
+#10.5.2.1 dc5 compute-2 compute1dc5
+#10.5.2.2 dc5 compute-2 compute2dc5
+
+
+###
+## GCE dc6 -- commercial data center (in Europe)
+###
+
+10.6.1.1 dc6 cassandra hub gce nginx edge smc1dc6
+10.6.1.2 dc6 cassandra hub gce nginx edge smc2dc6
+10.6.1.3 dc6 cassandra hub gce nginx edge smc3dc6
+10.6.1.4 dc6 cassandra hub gce nginx edge smc4dc6
+10.6.1.5 dc6 cassandra hub gce nginx edge smc5dc6
+10.6.1.6 dc6 cassandra hub gce nginx edge smc6dc6
+10.6.1.7 dc6 cassandra hub gce nginx edge smc7dc6
+10.6.1.8 dc6 cassandra hub gce nginx edge smc8dc6
+
+#10.6.2.1 dc6 compute-2 compute1dc6
+#10.6.2.2 dc6 compute-2 compute2dc6
+
+###
+## GCE dc7 -- commercial data center (in Asia)
+###
+
+#10.7.1.1 dc7 cassandra hub gce nginx edge smc1dc7
+#10.7.1.2 dc7 cassandra hub gce nginx edge smc2dc7
+#10.7.1.3 dc7 cassandra hub gce nginx edge smc3dc7
+#10.7.1.4 dc7 cassandra hub gce nginx edge smc4dc7
+#10.7.1.5 dc7 cassandra hub gce nginx edge smc5dc7
+#10.7.1.6 dc7 cassandra hub gce nginx edge smc6dc7
+#10.7.1.7 dc7 cassandra hub gce nginx edge smc7dc7
+#10.7.1.8 dc7 cassandra hub gce nginx edge smc8dc7
+
+#10.7.2.1 dc7 compute-2 compute1dc7
+#10.7.2.2 dc7 compute-2 compute2dc7

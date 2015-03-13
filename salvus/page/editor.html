@@ -336,8 +336,11 @@ Editor for files in a project
             <span class="visible-xs">
                 <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> Files...</a>
             </span>
-            <span class="hidden-xs">
+            <span>
                 <a href="#copy" class="btn btn-default btn-sm"><i class="fa fa-send-o"></i> Open IPython Notebook in Project...</a>
+            </span>
+            <span>
+                <a href="#download" class="btn btn-default btn-sm"><i class="fa fa-cloud-download"></i> Download</a>
             </span>
         </div>
         <div class="salvus-editor-ipython-nbviewer-content">
@@ -1092,10 +1095,13 @@ Editor for files in a project
                     <div class="row">
                         <div class="col-sm-3"><h2><i class="fa fa-magic"></i> Wizard</h2>
                         </div>
-                        <div class="col-sm-8">
+                        <div class="col-sm-6">
+                            <ul class="nav nav-pills smc-wizard-nav">
+                            </ul>
+                        </div>
+                        <div class="col-sm-2">
                             <div>
-                                <ul class="nav nav-pills smc-wizard-nav">
-                                </ul>
+                                <input class="form-control smc-wizard-search" type="text" placeholder="Search" />
                             </div>
                         </div>
                         <div class="col-sm-1">

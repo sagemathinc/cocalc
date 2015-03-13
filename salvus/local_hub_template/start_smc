@@ -42,7 +42,9 @@ cmd("console_server start </dev/null >/dev/null 2>&1 &")
 cmd("sage_server    start  </dev/null >/dev/null 2>&1 &")
 
 # Start IPython notebook server
-cmd("cd; ipython-notebook start </dev/null >/dev/null 2>&1 &")
+# This doesn't behave well and ends up wasting massive resources in some cases.  Only enable if later fix.
+# Startup is fast anyways.
+#cmd("cd; ipython-notebook start </dev/null >/dev/null 2>&1 &")
 
 
 # we only wait for local_hub and console -- not for sage_server, which can be broken by user with custom sage/python.

@@ -97,7 +97,7 @@ CASSANDRA_PORTS = CASSANDRA_INTERNODE_PORTS + [CASSANDRA_CLIENT_PORT, CASSANDRA_
 # See http://www.nixtutor.com/linux/send-mail-through-gmail-with-python/
 ####################
 
-def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@uw.edu', fromaddr='salvusmath@gmail.com'):
+def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@sagemath.com', fromaddr='salvusmath@gmail.com'):
     log.info("sending email to %s", toaddrs)
     username = 'salvusmath'
     password = open(os.path.join(os.environ['HOME'],'salvus/salvus/data/secrets/salvusmath_email_password')
@@ -134,11 +134,13 @@ def zfs_size(s):
 ####################
 MAXTIME_S=300
 
-def run(args, maxtime=MAXTIME_S, verbose=True):
+def run(args, maxtime=MAXTIME_S, verbose=True, stderr=True):
     """
     Run the command line specified by args (using subprocess.Popen)
     and return the stdout and stderr, killing the subprocess if it
     takes more than maxtime seconds to run.
+
+    If stderr is false, don't include in the returned output.
 
     If args is a list of lists, run all the commands separately in the
     list.
@@ -160,7 +162,10 @@ def run(args, maxtime=MAXTIME_S, verbose=True):
     try:
         a = subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
                                 stderr=subprocess.PIPE)
-        out = a.stderr.read()
+        if stderr:
+            out = a.stderr.read()
+        else:
+            out = ''
         out += a.stdout.read()
         if verbose:
             log.info("output '%s'", out[:256])
@@ -549,6 +554,8 @@ class Haproxy(Process):
                  base_url=''):
 
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
+
+        # WARNING: this is now ignored since I don't want to patch haproxy; instead logging goes to syslog...
         logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
 
         # randomize the order of the servers to get better distribution between them by all the different
@@ -694,18 +701,18 @@ class Hub(Process):
 # environ variable for conf/ dir:  CASSANDRA_CONF
 
 class Cassandra(Process):
-    def __init__(self, topology=None, path=None, id=0, monitor_database=None, conf_template_path=None,
-                 MAX_HEAP_SIZE=None,  HEAP_NEWSIZE=None,
+    def __init__(self,
+                 topology           = None,
+                 path               = None,   # CASSANDRA_HOME
+                 id                 = 0,
+                 monitor_database   = None,
+                 conf_template_path = None,
+                 MAX_HEAP_SIZE      = None,
+                 HEAP_NEWSIZE       = None,
                  **kwds):
         """
         id -- arbitrary identifier
         conf_template_path -- path that contains the initial conf files
-
-        MAX_HEAP_SIZE, HEAP_NEWSIZE -- use these if your computer has a lot of memory,
-        but you don't want to devote very much to cassandra; if you don't constrain it
-        this way, Cassandra uses its own internal memory.  E.g., on a large-memory
-        machine with strong per-user limits, use
-                MAX_HEAP_SIZE="4G",  HEAP_NEWSIZE="800M"
         """
 
         if MAX_HEAP_SIZE is not None:
@@ -720,20 +727,19 @@ class Cassandra(Process):
 
         path = os.path.join(DATA, 'cassandra-%s'%id) if path is None else path
         makedirs(path)
-        log_path = os.path.join(path, 'log'); makedirs(log_path)
-        lib_path = os.path.join(path, 'lib'); makedirs(lib_path)
+        os.environ['CASSANDRA_HOME'] = path
+
+        logs_path = os.path.join(path, 'logs'); makedirs(logs_path)
         conf_path = os.path.join(path, 'conf'); makedirs(conf_path)
 
         if topology:
             kwds['endpoint_snitch'] = 'org.apache.cassandra.locator.PropertyFileSnitch'
-            kwds['class_name'] = 'org.apache.cassandra.locator.SimpleSeedProvider'
+            kwds['class_name']      = 'org.apache.cassandra.locator.SimpleSeedProvider'
 
         for name in os.listdir(conf_template_path):
             f = os.path.join(conf_template_path, name)
             if not os.path.isfile(f): continue
             r = open(f).read()
-            r = r.replace('/var/log/cassandra', log_path)
-            r = r.replace('/var/lib/cassandra', lib_path)
 
             if name == 'cassandra.yaml':
                 for k,v in kwds.iteritems():
@@ -767,7 +773,7 @@ class Cassandra(Process):
 
         pidfile = os.path.join(PIDS, 'cassandra-%s.pid'%id)
         Process.__init__(self, id=id, name='cassandra', port=9160,
-                         logfile = '%s/system.log'%log_path,
+                         logfile = '%s/system.log'%logs_path,
                          pidfile = pidfile,
                          start_cmd = ['start-cassandra',  '-c', conf_path, '-p', pidfile],
                          monitor_database=monitor_database)
@@ -1073,14 +1079,14 @@ class Hosts(object):
     Defines a set of hosts on a network and provides convenient tools
     for running commands on them using ssh.
     """
-    def __init__(self, hosts_file, username=whoami, passwd=True):
+    def __init__(self, hosts_file, username=whoami, passwd=True, password=None):
         """
         - passwd -- if False, don't ask for a password; in this case nothing must require sudo to
           run, and all logins must work using ssh with keys
         """
         self._ssh = {}
         self._username = username
-        self._password = None
+        self._password = password
         self._passwd = passwd
         self._ip_addresses, self._canonical_hostnames = parse_hosts_file(hosts_file)
 
@@ -1388,7 +1394,7 @@ class Monitor(object):
     def compute(self):
         ans = []
         c = 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l && cd salvus/salvus; . salvus-env; ./bup_server status 2>/dev/null'
-        for k, v in self._hosts('compute-2', c, wait=True, parallel=True, timeout=80).iteritems():
+        for k, v in self._hosts('compute-2', c, wait=True, parallel=True, timeout=120).iteritems():
             d = {'host':k[0], 'service':'compute'}
             stdout = v.get('stdout','')
             m = stdout.splitlines()
@@ -1511,11 +1517,11 @@ class Monitor(object):
         """
         cmd = '&&'.join(["host -v google.com > /dev/null"]*rounds) + "; echo $?"
         ans = []
-        exclude = set(self._hosts['cellserver'])  # + self._hosts['webdev'])
+        exclude = set([])  # set(self._hosts['cellserver'])  # + self._hosts['webdev'])
         h = ' '.join([host for host in self._hosts[hosts] if host not in exclude])
         if not h:
             return []
-        for k, v in self._hosts(h, cmd, parallel=True, wait=True, timeout=80).iteritems():
+        for k, v in self._hosts(h, cmd, parallel=True, wait=True, timeout=30).iteritems():
             d = {'host':k[0], 'service':'dns'}
             exit_code = v.get('stdout','').strip()
             if exit_code == '':
@@ -1612,14 +1618,14 @@ class Monitor(object):
     def all(self):
         return {
             'timestamp'   : time.time(),
-            'dns'         : self.dns(),
+            #'dns'         : self.dns(),
             #'zfs'       : self.zfs(),
             'load'        : self.load(),
-            'cassandra'   : self.cassandra(),
+            #'cassandra'   : self.cassandra(),
             'hub'         : self.hub(),
             'stats'       : self.stats(),
             'compute'     : self.compute(),
-            'compute-ssh' : self.compute_ssh()
+            #'compute-ssh' : self.compute_ssh()
         }
 
     def down(self, all):
@@ -1638,9 +1644,9 @@ class Monitor(object):
 
         print "TIME: " + time.strftime("%Y-%m-%d  %H:%M:%S")
 
-        print "DNS"
-        for x in all['dns'][:n]:
-            print x
+        #print "DNS"
+        #for x in all['dns'][:n]:
+        #    print x
 
         print "HUB"
         for x in all['hub'][:n]:
@@ -1654,9 +1660,9 @@ class Monitor(object):
         for x in all['load'][:n]:
             print x
 
-        print "CASSANDRA"
-        for x in all['cassandra'][:n]:
-            print x
+        #print "CASSANDRA"
+        #for x in all['cassandra'][:n]:
+        #    print x
 
         print "STATS"
         for x in all['stats'][:n]:
@@ -1668,10 +1674,10 @@ class Monitor(object):
         for x in all['compute'][:n]:
             print x
 
-        print "COMPUTE-SSH"
-        vcompute = all['compute-ssh']
-        for x in all['compute-ssh'][:n]:
-            print x
+        #print "COMPUTE-SSH"
+        #vcompute = all['compute-ssh']
+        #for x in all['compute-ssh'][:n]:
+        #    print x
 
     def update_db(self, all=None):
         if all is None:
@@ -1744,7 +1750,7 @@ class Monitor(object):
                 #print "%s minutes since epoch"%now
                 if now % interval == residue:
                     i += 1
-                    if i % 3 == 0:
+                    if i % 10 == 0:
                         # update the external static ip address in the database every so often.
                         try:
                             self._services.update_ssh_storage_server_access()
@@ -1765,7 +1771,7 @@ class Monitor(object):
             time.sleep(20)
 
 class Services(object):
-    def __init__(self, path, username=whoami, keyspace='salvus', passwd=True):
+    def __init__(self, path, username=whoami, keyspace='salvus', passwd=True, password=None):
         """
         - passwd -- if False, don't ask for a password; in this case nothing must require sudo to
           run, and all logins must work using ssh with keys
@@ -1773,7 +1779,7 @@ class Services(object):
         self._keyspace = keyspace
         self._path = path
         self._username = username
-        self._hosts = Hosts(os.path.join(path, 'hosts'), username=username, passwd=passwd)
+        self._hosts = Hosts(os.path.join(path, 'hosts'), username=username, passwd=passwd, password=password)
 
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]
@@ -1808,28 +1814,28 @@ class Services(object):
         if 'cassandra' in self._options:
             v = self._options['cassandra']
             # determine the seeds
-            seeds = ','.join([h for h, o in v if o.get('seed',False)])
+            seeds = ','.join([self._hosts.hostname(h) for h, o in v if o.get('seed',False)])
             # determine global topology file; ip_address=data_center:rack
-            topology = '\n'.join(['%s=%s'%(h, o.get('topology', 'DC0:RAC0'))
+            topology = '\n'.join(['%s=%s'%(self._hosts.hostname(h), o.get('topology', 'DC0:RAC0'))
                                                                   for h, o in v] + ['default=DC0:RAC0'])
 
             for address, o in v:
                 dc = o.get('topology','DC0:RAC0').split(':')[0].lower()  # this must be before o['topology'] line below!
                 if dc not in self._cassandras_in_dc:
-                    self._cassandras_in_dc[dc] = [address]
+                    self._cassandras_in_dc[dc] = [self._hosts.hostname(address)]
                 else:
-                    self._cassandras_in_dc[dc].append(address)
+                    self._cassandras_in_dc[dc].append(self._hosts.hostname(address))
                 o['seeds']          = seeds
                 o['topology']       = topology
-                o['listen_address'] = address
-                o['rpc_address']    = address
+                o['listen_address'] = self._hosts.hostname(address)
+                o['rpc_address']    = self._hosts.hostname(address)
                 if 'seed' in o: del o['seed']
 
             native_transport_port = v[0][1].get('native_transport_port', 9042)
             if native_transport_port != 9042:
                 print "Serving cassandra on non-standard port %s"%native_transport_port
             try:
-                self._cassandra = ['%s:%s'%(h, native_transport_port) for h in self._hosts['cassandra']]
+                self._cassandra = ['%s:%s'%(self._hosts.hostname(h), native_transport_port) for h in self._hosts['cassandra']]
                 import cassandra
                 cassandra.KEYSPACE = self._keyspace
                 cassandra.set_nodes(self._hosts['cassandra'])
@@ -1858,7 +1864,9 @@ class Services(object):
         if 'hub' in self._options:
             for host, o in self._options['hub']:
                 # very important: set to listen only on our VPN.
-                o['host'] = host
+                #o['host'] = host
+                # FOR GCE: since everything is on a vpn anyways fastest to listen on everything
+                o['host'] = self._hosts.hostname(host)
 
         # Syncstring options
         #if 'syncstring' in self._options:
@@ -1922,7 +1930,10 @@ class Services(object):
             if s in options:
                 # restrict to the subset of servers in the same data center
                 dc = self.ip_address_to_dc(address)
-                options[s] = [x for x in options[s] if self.ip_address_to_dc(x['ip']) == dc]
+                options[s] = [dict(x) for x in options[s] if self.ip_address_to_dc(x['ip']) == dc]
+                # turn the ip's into hostnames
+                for x in options[s]:
+                    x['ip'] = self._hosts.hostname(x['ip'])
 
         if 'id' not in options:
             options['id'] = 0
@@ -2008,7 +2019,7 @@ class Services(object):
         """
         if not isinstance(dc, str):
             dc = "dc%s"%dc
-        return self._cassandras_in_dc[dc]
+        return self._cassandras_in_dc.get(dc,[])
 
     def stunnel_key_files(self, hostname, action):
         target = os.path.join(BASE, SECRETS)
@@ -2023,6 +2034,7 @@ class Services(object):
         time.sleep(.5)
 
     def cassandra_firewall(self, hostname, action):
+        return  # don't bother now that we're using GCE, which has it's own firewall.
         if action == "restart":
             action = 'start'
         if action == "stop":
@@ -2030,8 +2042,8 @@ class Services(object):
         elif action == "start":
             # hub hosts can connect to CASSANDRA_CLIENT_PORT and CASSANDRA_NATIVE_PORT
             # cassandra hosts can connect to CASSANDRA_INTERNODE_PORTS
-            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin cassandra cellserver']] +
-                        ['allow proto tcp from %s to any port %s'%(host, CASSANDRA_NATIVE_PORT) for host in self._hosts['hub admin cassandra cellserver']] +
+            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin cassandra']] +
+                        ['allow proto tcp from %s to any port %s'%(host, CASSANDRA_NATIVE_PORT) for host in self._hosts['hub admin cassandra']] +
                         ['allow proto tcp from %s to any port %s'%(host, port) for host in self._hosts['cassandra'] for port in CASSANDRA_INTERNODE_PORTS] +
                         ['deny proto tcp from any to any port %s'%(','.join([str(x) for x in CASSANDRA_PORTS]))])
         elif action == 'status':
@@ -2278,6 +2290,7 @@ class Services(object):
           - for uw machines: get the address from our conf script showing who hosts each vm
           - for the google machines: get both addresses by querying gcutil
         """
+        # TODO: temporarily disabled due to problem with google firewall -- will fix.
         import cassandra
         password = open(os.path.join(SECRETS, 'cassandra/monitor')).read().strip()
         print cassandra.KEYSPACE
@@ -2300,7 +2313,9 @@ class Services(object):
                 if v:
                     # Yep, it's a GCE machine: get the network info
                     cmd = ['gcutil', '--project', 'sagemathcloud', 'getinstance', '--format','json', 'smc-%s'%hostname]
-                    z = json.loads(run(cmd, verbose=False, maxtime=60))
+                    out = run(cmd, verbose=True, maxtime=60, stderr=False)
+                    self.out =out
+                    z = json.loads(out)
                     google_ip   = z["networkInterfaces"][0]["networkIP"]
                     external_ip = z["networkInterfaces"][0]["accessConfigs"][0]["natIP"]
                     value[-1] = external_ip

@@ -1,8 +1,0 @@
-#!/usr/bin/env python
-
-from backup_cassandra import *
-
-backup_cassandra(0, ['10.1.%s.2'%i for i in range(10,22)])
-
-# disk.math isn't encrypted
-#cmd2("time rsync -axvH --delete %s/ disk.math.washington.edu:cassandra/cassandra-dc0/"%os.environ['BUP_DIR'])

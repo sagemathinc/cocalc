@@ -92,7 +92,7 @@ def print_json(s):
 
 def gcutil(command, args=[], verbose=2, ignore_errors=False, interactive=False):
     # gcutil [--global_flags] <command> [--command_flags] [args]
-    v = ([GCUTIL, '--service_version', 'v1', '--project', 'sagemathcloud', '--format', 'json'] +
+    v = ([GCUTIL, '--service_version', 'v1', '--project', 'sage-math-inc', '--format', 'json'] +
          [command] +
          args)
     if interactive:
@@ -119,10 +119,10 @@ def get_snapshots(zone, prefix=''):
 
 class Instance(object):
     def __init__(self, hostname, zone):
-        self.hostname = hostname
-        self.instance_name = 'smc-' + hostname
-        self.tinc_name = "smc_gce_" + hostname.replace('-','_')
-        self.zone     = zone
+        self.hostname      = hostname
+        self.instance_name = hostname
+        self.tinc_name     = hostname.replace('-','_')
+        self.zone          = zone
 
     def log(self, s, *args):
         log.info("Instance(hostname=%s, zone=%s).%s", self.hostname, self.zone, s%args)
@@ -164,7 +164,7 @@ class Instance(object):
         self.log("stop()")
         try:
             # at least make an attempt at a proper shutdown; ZFS and other things might like this.
-            self.ssh("shutdown -h now", user='root', timeout=30)
+            self.ssh("shutdown -h now", sudo=True, timeout=30)
         except Exception, err:
             # normal -- we would typically get an error when kicked out during shutdown; and often run stop because machine is hung.
             self.log("stop(): WARNING: err=%s", err)
@@ -191,11 +191,8 @@ class Instance(object):
             self.log("start: create the instance itself")
             self.create_instance(disk_names=disk_names, base=base, instance_type=instance_type)
 
-        self.log("start: initialize the base ZFS pool")
-        self.init_base_pool()
-
-        self.log("start: set the hostname of the machine")
-        self.init_hostname()
+        #self.log("start: initialize the base ZFS pool")
+        #self.init_base_pool()
 
         self.log("start: add the machine to the vpn")
         self.configure_tinc(ip_address)
@@ -220,7 +217,7 @@ class Instance(object):
 
         if not base:
             self.log("start: determining optimal base image")
-            base = get_snapshots(zone=self.zone, prefix='salvus-')[-1]['name']
+            base = get_snapshots(zone=self.zone, prefix='smc-')[-1]['name']
             self.log("start: using base='%s'"%base)
 
         if not disk_exists(name=self.instance_name, zone=self.zone):
@@ -241,10 +238,14 @@ class Instance(object):
 
         self.gcutil("addinstance", *args)
 
-    def ssh(self, c, max_tries=1, user='salvus', timeout=120):
+    def ssh(self, c, max_tries=10, timeout=120, sudo=False):
         if '"' in c:
-            raise NotImplementedError
-        s = 'ssh -o StrictHostKeyChecking=no  -o ConnectTimeout=%s %s@%s "%s"'%(timeout, user, self.external_ip(), c)
+            raise NotImplementedError("no double quotes in command")
+        if sudo:
+            if "'" in c:
+                raise NotImplementedError("no single quotes in command")
+            c = "sudo su -c '%s'"%c
+        s = 'ssh -o StrictHostKeyChecking=no  -o ConnectTimeout=%s %s "%s"'%(timeout, self.external_ip(), c)
         tries = 0
         while tries < max_tries:
             try:
@@ -259,10 +260,7 @@ class Instance(object):
 
     def init_base_pool(self):
         self.log("init_base_pool: export and import the pool, and make sure mounted")
-        self.ssh("zpool export pool; zpool import -f pool; df -h |grep pool", max_tries=25, user='root')
-
-    def init_hostname(self):
-        self.ssh("echo '%s' > /etc/hostname && hostname %s && echo '127.0.1.1  %s' >> /etc/hosts"%(self.hostname, self.hostname, self.hostname), user='root')
+        self.ssh("zpool export pool; zpool import -f pool; df -h |grep pool", max_tries=25, sudo=True)
 
     def tinc_servers(self):
         """
@@ -289,7 +287,7 @@ class Instance(object):
         self.log("configure_tinc(ip_address=%s)", ip_address)
         self.delete_tinc_public_keys()
         external_ip = self.external_ip()
-        s = self.ssh("cd salvus/salvus && . salvus-env && configure_tinc.py init %s %s %s"%(external_ip, ip_address, self.tinc_name), user='salvus')
+        s = self.ssh("cd salvus/salvus && . salvus-env && configure_tinc.py init %s %s %s"%(external_ip, ip_address, self.tinc_name))
         v = json.loads(s)
         tinc_hosts = "/home/salvus/salvus/salvus/conf/tinc_hosts"
         host_filename = os.path.join(tinc_hosts, self.tinc_name)
@@ -311,17 +309,17 @@ class Instance(object):
         misc.thread_map(f, [((host,),{}) for host in self.tinc_servers() if host[1] != hostname])
 
         log.info("configure_tinc -- appending ConnectTo information to configuration")
-        self.ssh("cd salvus/salvus && . salvus-env && configure_tinc.py connect_to %s"%(' '.join(connect_to)), user='salvus')
+        self.ssh("cd salvus/salvus && . salvus-env && configure_tinc.py connect_to %s"%(' '.join(connect_to)))
 
         log.info("configure_tinc -- copy over the public key conf files of servers we will connect to")
         s = "cd %s && scp %s salvus@%s:salvus/salvus/conf/tinc_hosts/"%(tinc_hosts, ' '.join(connect_to), external_ip)
         cmd(s, timeout=60)
 
         log.info("Start tinc running...")
-        self.ssh("killall -9 tincd; sleep 3; nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd", user='root')
+        self.ssh("killall -9 tincd; sleep 3; nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd", sudo=True)
 
     def first_boot(self):
-        self.ssh("echo '/home/salvus/salvus/salvus/scripts/first_boot.py' >> /etc/rc.local; /home/salvus/salvus/salvus/scripts/first_boot.py", user='root')
+        self.ssh("echo /home/salvus/salvus/salvus/scripts/first_boot.py >> /etc/rc.local; /home/salvus/salvus/salvus/scripts/first_boot.py", sudo=True)
 
     def delete_tinc_public_keys(self):
         self.log("delete_tinc_public_keys() -- deleting the tinc public key files on the tinc servers")

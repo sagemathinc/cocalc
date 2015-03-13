@@ -121,10 +121,11 @@ class Session extends EventEmitter
                             cb(reply.error)
                         when 'session_connected'
                             #console.log("reconnect: #{@type()} session with id #{@session_uuid} -- SUCCESS")
-                            @conn.change_data_channel
-                                prev_channel : @data_channel
-                                new_channel  : reply.data_channel
-                                session      : @
+                            if @data_channel != reply.data_channel
+                                @conn.change_data_channel
+                                    prev_channel : @data_channel
+                                    new_channel  : reply.data_channel
+                                    session      : @
                             @data_channel = reply.data_channel
                             @init_history = reply.history
                             @emit("reconnect")
@@ -462,10 +463,13 @@ class exports.Connection extends EventEmitter
                     return
 
         id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.
-        f = @call_callbacks[id]
-        if f?
-            if f != null
-                f(null, mesg)
+        v = @call_callbacks[id]
+        if v?
+            {cb, error_event} = v
+            if error_event and mesg.event == 'error'
+                cb(mesg.error)
+            else
+                cb(undefined, mesg)
             delete @call_callbacks[id]
 
         # Finally, give other listeners a chance to do something with this message.
@@ -630,9 +634,10 @@ class exports.Connection extends EventEmitter
         #    * If the timeout is reached before any messages come back, delete the callback and stop listening.
         #      However, if the message later arrives it may still be handled by @handle_message.
         opts = defaults opts,
-            message : required
-            timeout : undefined
-            cb      : undefined
+            message     : required
+            timeout     : undefined
+            error_event : false  # if true, turn error events into just a normal err
+            cb          : undefined
         if not opts.cb?
             @send(opts.message)
             return
@@ -641,7 +646,11 @@ class exports.Connection extends EventEmitter
             opts.message.id = id
         else
             id = opts.message.id
-        @call_callbacks[id] = opts.cb
+
+        @call_callbacks[id] =
+            cb          : opts.cb
+            error_event : opts.error_event
+
         @send(opts.message)
         if opts.timeout
             setTimeout(
@@ -649,7 +658,7 @@ class exports.Connection extends EventEmitter
                     if @call_callbacks[id]?
                         error = "Timeout after #{opts.timeout} seconds"
                         opts.cb(error, message.error(id:id, error:error))
-                        @call_callbacks[id] = null
+                        delete @call_callbacks[id]
                 ), opts.timeout*1000
             )
 
@@ -2185,6 +2194,166 @@ class exports.Connection extends EventEmitter
     log_error: (error) =>
         @call(message : message.log_client_error(error:error))
 
+
+    ######################################################################
+    # stripe payments api
+    ######################################################################
+    # gets custormer info (if any) and stripe public api key
+    # for this user, if they are logged in
+    stripe_get_customer: (opts) =>
+        opts = defaults opts,
+            cb    : required
+        @call
+            message     : message.stripe_get_customer()
+            error_event : true
+            cb          : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else
+                    resp =
+                        stripe_publishable_key : mesg.stripe_publishable_key
+                        customer               : mesg.customer
+                    opts.cb(undefined, resp)
+
+    stripe_create_card: (opts) =>
+        opts = defaults opts,
+            token : required
+            cb    : required
+        @call
+            message     : message.stripe_create_card(token: opts.token)
+            error_event : true
+            cb          : opts.cb
+
+    stripe_delete_card: (opts) =>
+        opts = defaults opts,
+            card_id : required
+            cb    : required
+        @call
+            message     : message.stripe_delete_card(card_id: opts.card_id)
+            error_event : true
+            cb          : opts.cb
+
+    stripe_update_card: (opts) =>
+        opts = defaults opts,
+            card_id : required
+            info    : required    # see https://stripe.com/docs/api/node#update_card
+            cb      : required
+        @call
+            message     : message.stripe_update_card(card_id: opts.card_id, info:opts.info)
+            error_event : true
+            cb          : opts.cb
+
+    stripe_set_default_card: (opts) =>
+        opts = defaults opts,
+            card_id : required
+            cb    : required
+        @call
+            message     : message.stripe_set_default_card(card_id: opts.card_id)
+            error_event : true
+            cb          : opts.cb
+
+
+    # gets list of past stripe charges for this account.
+    stripe_get_charges: (opts) =>
+        opts = defaults opts,
+            limit          : undefined    # between 1 and 100 (default: 10)
+            ending_before  : undefined    # see https://stripe.com/docs/api/node#list_charges
+            starting_after : undefined
+            cb             : required
+        @call
+            message     :
+                message.stripe_get_charges
+                    limit          : opts.limit
+                    ending_before  : opts.ending_before
+                    starting_after : opts.starting_after
+            error_event : true
+            cb          : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, mesg.charges)
+
+    # gets stripe plans that could be subscribed to.
+    stripe_get_plans: (opts) =>
+        opts = defaults opts,
+            cb    : required
+        @call
+            message     : message.stripe_get_plans()
+            error_event : true
+            cb          : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, mesg.plans)
+
+    stripe_create_subscription: (opts) =>
+        opts = defaults opts,
+            plan     : required
+            quantity : 1  # must be >= number of projects
+            coupon   : undefined
+            projects : undefined  # ids of projects that subscription applies to
+            cb       : required
+        @call
+            message : message.stripe_create_subscription
+                plan     : opts.plan
+                quantity : opts.quantity
+                coupon   : opts.coupon
+                projects : opts.projects
+            error_event : true
+            cb          : opts.cb
+
+    stripe_cancel_subscription: (opts) =>
+        opts = defaults opts,
+            subscription_id : required
+            at_period_end   : false
+            cb              : required
+        @call
+            message : message.stripe_cancel_subscription
+                subscription_id : opts.subscription_id
+                at_period_end   : opts.at_period_end
+            error_event : true
+            cb          : opts.cb
+
+    stripe_update_subscription: (opts) =>
+        opts = defaults opts,
+            subscription_id : required
+            quantity : undefined  # if given, must be >= number of projects
+            coupon   : undefined
+            projects : undefined  # ids of projects that subscription applies to
+            plan     : undefined
+            cb       : required
+        @call
+            message : message.stripe_update_subscription
+                subscription_id : opts.subscription_id
+                quantity : opts.quantity
+                coupon   : opts.coupon
+                projects : opts.projects
+                plan     : opts.plan
+            error_event : true
+            cb          : opts.cb
+
+    # gets list of past stripe charges for this account.
+    stripe_get_subscriptions: (opts) =>
+        opts = defaults opts,
+            limit          : undefined    # between 1 and 100 (default: 10)
+            ending_before  : undefined    # see https://stripe.com/docs/api/node#list_subscriptions
+            starting_after : undefined
+            cb             : required
+        @call
+            message     :
+                message.stripe_get_subscriptions
+                    limit          : opts.limit
+                    ending_before  : opts.ending_before
+                    starting_after : opts.starting_after
+            error_event : true
+            cb          : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, mesg.subscriptions)
+
+
+
 #################################################
 # Other account Management functionality shared between client and server
 #################################################
@@ -2226,8 +2395,6 @@ exports.issues_with_create_account = (mesg) ->
         issues.agreed_to_terms = 'Agree to the Salvus Terms of Service.'
     if mesg.first_name == ''
         issues.first_name = 'Enter a first name.'
-    if mesg.last_name == ''
-        issues.last_name = 'Enter a last name.'
     if not exports.is_valid_email_address(mesg.email_address)
         issues.email_address = 'Email address does not appear to be valid.'
     [valid, reason] = exports.is_valid_password(mesg.password)

@@ -114,9 +114,9 @@ PROJECTS_PATH  = '/projects'
 # Default account settings
 
 DEFAULT_SETTINGS = {
-    'disk'       : 5000,     # default disk in megabytes
+    'disk'       : 2000,     # default disk in megabytes
     'scratch'    : 15000,    # default disk quota on /scratch
-    'memory'     : 8,        # memory in gigabytes
+    'memory'     : 2,        # memory in gigabytes
     'cpu_shares' : 256,
     'cores'      : 1,
     'login_shell': '/bin/bash',
@@ -219,7 +219,7 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
             else:
                 raise RuntimeError(x)
         if verbose>=2:
-            log("(%s seconds): %s"%(time.time()-t, x))
+            log(("(%s seconds): %s"%(time.time()-t, x))[:500])
         elif verbose >= 1:
             log("(%s seconds)"%(time.time()-t))
         return x.strip()
@@ -1263,19 +1263,62 @@ class Project(object):
         return result
 
 
-    # filename *must* resolve to be under PROJECTS_PATH/project_id or get an error; and it
+    # Filename *must* resolve to be under PROJECTS_PATH/project_id or get an error; and it
     # must have size in bytes less than the given limit
-    def read_file(self, path, maxsize):
+    # -- to download the directory blah/foo, request blah/foo.zip
+    def read_file(self, path, maxsize_bytes):
         project_id = self.project_id
         project_path = os.path.join(PROJECTS_PATH, project_id)
         abspath = os.path.abspath(os.path.join(project_path, path))
+        base, ext = os.path.splitext(abspath)
         if not abspath.startswith(project_path):
             raise RuntimeError("path (=%s) must be contained in project path %s"%(path, project_path))
-        size = os.lstat(abspath).st_size
-        if size > maxsize:
-            raise RuntimeError("path (=%s) must be at most %s bytes, but it is %s bytes"%(path, maxsize, size))
-        return open(abspath).read()
+        if not os.path.exists(abspath):
+            if ext != '.zip':
+                raise RuntimeError("path (=%s) does not exist"%path)
+            else:
+                if os.path.exists(base) and os.path.isdir(base):
+                    abspath = os.path.splitext(abspath)[0]
+                else:
+                    raise RuntimeError("path (=%s) does not exist and neither does"%(path, base))
 
+        filename = os.path.split(abspath)[-1]
+        if os.path.isfile(abspath):
+            # read a regular file
+            size = os.lstat(abspath).st_size
+            if size > maxsize_bytes:
+                raise RuntimeError("path (=%s) must be at most %s bytes, but it is %s bytes"%(path, maxsize_bytes, size))
+            return open(abspath).read()
+        else:
+            # create a zip file in memory from a directory tree
+            # REFERENCES:
+            #   - http://stackoverflow.com/questions/1855095/how-to-create-a-zip-archive-of-a-directory
+            #   - https://support.google.com/accounts/answer/6135882
+            import zipfile
+            from cStringIO import StringIO
+            output  = StringIO()
+            relroot = os.path.abspath(os.path.join(abspath, os.pardir))
+
+            size = 0
+            zip = zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED, False)
+            for root, dirs, files in os.walk(abspath):
+                # add directory (needed for empty dirs)
+                zip.write(root, os.path.relpath(root, relroot))
+                for file in files:
+                    filename = os.path.join(root, file)
+                    if os.path.isfile(filename): # regular files only
+                        size += os.lstat(filename).st_size
+                        if size > maxsize_bytes:
+                            raise RuntimeError("path (=%s) must be at most %s bytes, but it is at least %s bytes"%(path, maxsize_bytes, size))
+                        arcname = os.path.join(os.path.relpath(root, relroot), file)
+                        zip.write(filename, arcname)
+
+            # Mark the files as having been created on Windows so that
+            # Unix permissions are not inferred as 0000.
+            for zfile in zip.filelist:
+                zfile.create_system = 0
+            zip.close()
+            return output.getvalue()
 
 
 if __name__ == "__main__":
@@ -1360,6 +1403,28 @@ if __name__ == "__main__":
                                                        delete            = args.delete,
                                                        ))
 
+    def do_remote_is_ready(remote):
+        ans = {}
+        try:
+            for x in remote.split(','):
+                v = x.split(':')
+                remote = v[0]
+                if len(v) == 2:
+                    port = v[1]
+                else:
+                    port = '22'
+                ans[x] = project.remote_is_ready(remote=remote, port=port)
+        except Exception, mesg:
+            print json.dumps({"error":str(mesg)})
+        else:
+            print json.dumps(ans)
+
+    parser_remote_is_ready = subparsers.add_parser('remote_is_ready', help='check that remote servers are working; ip_address:port,ip_address:port,...;  the project_id is ignored!')
+    parser_remote_is_ready.add_argument("--remote", help="REQUIRED: hostnames:ports of remote machine",
+                       dest="remote", default='', type=str)
+    parser_remote_is_ready.set_defaults(func=lambda args: do_remote_is_ready(args.remote))
+
+
     def do_mkdir(*args, **kwds):
         try:
             project.mkdir(*args, **kwds)
@@ -1391,14 +1456,15 @@ if __name__ == "__main__":
     parser_directory_listing.set_defaults(func=lambda args: do_directory_listing(path = args.path, hidden=args.hidden, time=args.time, start=args.start, limit=args.limit))
 
 
-    def do_read_file(*args, **kwds):
+    def do_read_file(path, maxsize):
         try:
-            print json.dumps({'base64':base64.b64encode(project.read_file(*args, **kwds))})
+            print json.dumps({'base64':base64.b64encode(project.read_file(path, maxsize))})
         except Exception, mesg:
             print json.dumps({"error":str(mesg)})
-    parser_read_file = subparsers.add_parser('read_file', help='read a file from disk')
-    parser_read_file.add_argument("--path", help="relative path of a file in project (required)", dest="path", type=str)
-    parser_read_file.add_argument("--maxsize", help="maximum file size to read; any bigger and instead give an error",
+    parser_read_file = subparsers.add_parser('read_file',
+                     help="read a file/directory from disk; outputs {'base64':'..content in base64..'}; use directory.zip to get directory/ as a zip")
+    parser_read_file.add_argument("--path", help="relative path of a file/directory in project (required)", dest="path", type=str)
+    parser_read_file.add_argument("--maxsize", help="maximum file size in bytes to read; any bigger and instead give an error",
                                    dest="maxsize", default=3000000, type=int)
 
     parser_read_file.set_defaults(func=lambda args: do_read_file(path = args.path, maxsize=args.maxsize))

@@ -117,6 +117,8 @@ class ProjectPage
         @init_hidden_files_icon()
         @init_listing_show_all()
         @init_sortable_editor_tabs()
+        @init_current_path_info_button()
+
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
 
@@ -132,6 +134,7 @@ class ProjectPage
             @init_project_restart()
             @init_ssh()
             @init_worksheet_server_restart()
+            #@init_project_config()
             @init_delete_project()
             @init_undelete_project()
 
@@ -150,10 +153,11 @@ class ProjectPage
             @set_location()
             @init_title_desc_edit()
             @init_mini_command_line()
-            @init_current_path_info_button()
             @init_settings_url()
             @init_ssh_url_click()
             @init_billing()
+
+            @init_add_collaborators_button()
 
         # Show a warning if using SMC in devel mode. (no longer supported)
         if window.salvus_base_url != ""
@@ -1052,6 +1056,16 @@ class ProjectPage
             @update_local_status_link()
         return @
 
+    init_project_config: () ->
+        if not @container?
+            return
+        @container.find(".smc-project-config").show()
+        for option in ['disable_collaborators', 'disable_downloads']
+            if local_storage(@project.project_id, '', option)
+                @container.find(".account-settings-other_settings-" + option).find("input").prop("checked", true)
+            @container.find(".account-settings-other_settings-" + option).click () =>
+                checked = @container.find(".account-settings-other_settings-" + option).find("input").prop("checked")
+                local_storage(@project.project_id, '', option, checked)
 
     init_admin: () ->
         if not @container?
@@ -1257,18 +1271,27 @@ class ProjectPage
 
 
         # the search/mini file creation box
-        mini_set_input = () =>
-            search_box = @container.find(".salvus-project-search-for-file-input")
-            name = search_box.val().trim()
+        mini_search_box = @container.find(".salvus-project-search-for-file-input")
+        mini_set_input = (name) =>
+            if not name?
+                name = mini_search_box.val().trim()
             if name == ""
                 name = @default_filename()
             @update_new_file_tab_path()
             @new_file_tab_input.val(name)
-            search_box.val('')
+            mini_search_box.val('')
 
         @container.find("a[href=#smc-mini-new]").click () =>
-            mini_set_input()
-            create_file('sagews')
+            name = mini_search_box.val().trim()
+            if name
+                mini_set_input()
+                ext = misc.filename_extension(name)
+                if ext
+                    create_file(ext)
+                else
+                    create_file('sagews')
+            else
+                @load_target('new')
 
         @container.find(".smc-mini-new-file-type-list").find("a[href=#new-file]").click (evt) ->
             mini_set_input()
@@ -1577,8 +1600,14 @@ class ProjectPage
             return false
 
         if obj.isdir
-            # until we implement an archive process
-            dialog.find("a[href=#download-file]").hide()
+            if @public_access # only done for public access right now.
+                dialog.find("a[href=#download-file]").click () =>
+                    dialog.modal('hide')
+                    @download_file
+                        path : obj.fullname + ".zip"   # creates the zip in memory on the fly
+                    return false
+            else
+                dialog.find("a[href=#download-file]").hide()
         else
             dialog.find("a[href=#download-file]").click () =>
                 dialog.modal('hide')
@@ -2196,6 +2225,7 @@ class ProjectPage
             (cb) =>
                 require('projects').get_project_list
                     update : false   # uses cached version if available, rather than downloading from server
+                    select : dialog.find(".salvus-project-target-project-id")
                     cb : (err, x) =>
                         if err
                             cb(err)
@@ -2229,28 +2259,14 @@ class ProjectPage
                     dialog.find(".salvus-project-copy-dir").show()
                 else
                     dialog.find(".salvus-project-copy-file").show()
-                selector = dialog.find(".salvus-project-target-project-id")
-                v = ({project_id:x.project_id, title:x.title.slice(0,80)} for x in project_list)
-                for project in v.slice(0,7)
-                    selector.append("<option value='#{project.project_id}'>#{project.title}</option>")
-                v.sort (a,b) ->
-                    if a.title < b.title
-                        return -1
-                    else if a.title > b.title
-                        return 1
-                    return 0
-                selector.append('<option class="select-dash" disabled="disabled">----</option>')
-                for project in v
-                    selector.append("<option value='#{project.project_id}'>#{project.title}</option>")
 
                 submit = (ok) =>
                     dialog.modal('hide')
                     if ok
                         src_path          = dialog.find(".salvus-project-copy-src-path").val()
-                        target_project_id = dialog.find(".salvus-project-target-project-id").val()
-                        for p in v  # stupid linear search...
-                            if p.project_id == target_project_id
-                                target_project = p.title
+                        selector          = dialog.find(".salvus-project-target-project-id")
+                        target_project_id = selector.val()
+                        title_project     = selector.find('option[value="#{target_project_id}"]:first').text()
                         target_path       = dialog.find(".salvus-project-copy-target-path").val()
                         overwrite_newer   = dialog.find(".salvus-project-overwrite-newer").is(":checked")
                         delete_missing    = dialog.find(".salvus-project-delete-missing").is(":checked")
@@ -2946,8 +2962,90 @@ class ProjectPage
             dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
             return false
 
+    move_project_dialog: (opts) =>
+        opts = defaults opts,
+            target  : required
+            nonfree : required
+            desc    : required
+        console.log("move_project_dialog")
+        # if select nonfree target and no subscription, ask to upgrade
+        # if select nonfree target and no card, ask for card
+        dialog = $(".smc-move-project-dialog").clone()
+        btn_submit = dialog.find(".btn-submit")
+        dialog.find(".smc-move-project-dialog-desc").text(opts.desc)
+
+        free    = dialog.find(".smc-move-project-dialog-free")
+        nonfree = dialog.find(".smc-move-project-dialog-nonfree")
+        if opts.nonfree
+            stripe = require('stripe').stripe_user_interface()
+            free.hide()
+            nonfree.show()
+            pay_checkbox = dialog.find(".smc-move-project-dialog-pay-checkbox")
+            pay_checkbox.change () =>
+                if pay_checkbox.is(':checked')
+                    console.log("clicked pay_checkbox")
+                    if stripe.has_a_billing_method()
+                        btn_submit.removeClass('disabled')
+                    else
+                        stripe.new_card (created) =>
+                            console.log("created=", created)
+                            if created
+                                btn_submit.removeClass('disabled')
+                            else
+                                pay_checkbox.attr('checked', false)
+                                stripe.update()  # just in case maybe they entered it in another browser?
+                else
+                    btn_submit.addClass('disabled')
+        else
+            free.show()
+            nonfree.hide()
+        dialog.modal()
+        submit = (do_it) =>
+            console.log("submit: do_it=#{do_it}")
+            dialog.modal('hide')
+            if not do_it
+                @set_project_location_select()
+                return
+            @container.find(".smc-project-moving").show()
+            alert_message(timeout:60, type:"info", message:"Moving project '#{@project.title}' to #{opts.desc}...")
+            salvus_client.move_project
+                project_id : @project.project_id
+                target     : opts.target
+                cb         : (err, location) =>
+                    @container.find(".smc-project-moving").hide()
+                    if err
+                        alert_message(timeout:60, type:"error", message:"Error moving project '#{@project.title}' to #{opts.desc} -- #{misc.to_json(err)}")
+                    else
+                        alert_message(timeout:60, type:"success", message:"Project '#{@project.title}' is now running at #{opts.desc}.")
+                        @project.location = location
+                        @project.datacenter = opts.target
+                        @set_location()
+                        @set_project_location_select()
+
+        dialog.find(".btn-close").click(()=>submit(false))
+        btn_submit.click(()=>submit(true))
+
+    set_project_location_select: () =>
+        @container.find(".smc-project-location-select").val(@project.datacenter)
+
     init_move_project: () =>
-        return
+        @project.datacenter = 'dc0'   # fake
+        console.log("init_move_project")
+        window.project = @project
+        @set_project_location_select()
+        select = @container.find(".smc-project-location-select").change () =>
+            target = select.val()
+            e      = select.find("option[value=#{target}]")
+            desc   = e.text()
+            nonfree = e.hasClass("smc-nonfree")
+            @move_project_dialog
+                target  : target
+                desc    : desc
+                nonfree : nonfree
+
+
+    ###
+    xxx_init_move_project: () =>
         button = @container.find(".project-settings-move").find(".project-move-button")
 
         button.click () =>
@@ -3046,6 +3144,7 @@ class ProjectPage
                         alert_message(timeout:60, type:"success", message:"Project '#{@project.title}' is now running on #{location.host}.")
                         @project.location = location
                         @set_location()
+    ###
 
     init_add_collaborators: () =>
         input   = @container.find(".project-add-collaborator-input")
@@ -3622,7 +3721,7 @@ class ProjectPage
         url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{misc.encode_path(opts.path)}"
         if opts.auto
             download_file(url)
-            bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3><hr> If <b>#{opts.path}</b> isn't downloading <a target='_blank' href='#{url}'>open it in another tab</a>.")
+            bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3><hr> If <b>#{opts.path}</b> isn't downloading try <a target='_blank' href='#{url}'>#{url}</a>.")
         else
             window.open(url)
             #bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3> <hr><a target='_blank' href='#{url}'> Open #{opts.path} in another tab</a>.")
@@ -3662,6 +3761,21 @@ class ProjectPage
                 @editor.display_tab
                     path       : opened_path
                     foreground : opts.foreground
+
+
+    init_add_collaborators_button: () =>
+        @container.find("a[href=#projects-add-collaborators]").click () =>
+            @show_add_collaborators_box()
+            return false
+
+    show_add_collaborators_box: () =>
+        @display_tab('project-settings')
+        @container.find(".project-add-collaborator-input").focus()
+        collab = @container.find(".project-collaborators-box")
+        collab.css(border:'2px solid red')
+        setTimeout((()->collab.css(border:'')), 5000)
+        collab.css('box-shadow':'8px 8px 4px #888')
+        setTimeout((()->collab.css('box-shadow':'')), 5000)
 
 
 project_pages = {}

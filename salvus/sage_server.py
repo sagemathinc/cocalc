@@ -484,7 +484,9 @@ class Salvus(object):
         self.namespace = namespace
         self.message_queue = message_queue
         self.code_decorators = [] # gets reset if there are code decorators
-        namespace['salvus'] = self   # beware of circular ref?
+        # Alias: someday remove all references to "salvus" and instead use smc.
+        # For now this alias is easier to think of and use.
+        namespace['smc'] = namespace['salvus'] = self   # beware of circular ref?
         # Monkey patch in our "require" command.
         namespace['require'] = self.require
         # Make the salvus object itself available when doing "from sage.all import *".
@@ -947,7 +949,7 @@ class Salvus(object):
     def pdf(self, filename, **kwds):
         sage_salvus.show_pdf(filename, **kwds)
 
-    def tex(self, obj, display=False, done=False, once=None):
+    def tex(self, obj, display=False, done=False, once=None, **kwds):
         """
         Display obj nicely using TeX rendering.
 
@@ -957,7 +959,7 @@ class Salvus(object):
         - display -- (default: False); if True, typeset as display math (so centered, etc.)
         """
         self._flush_stdio()
-        tex = obj if isinstance(obj, str) else self.namespace['latex'](obj)
+        tex = obj if isinstance(obj, str) else self.namespace['latex'](obj, **kwds)
         self._send_output(tex={'tex':tex, 'display':display}, id=self._id, done=done, once=once)
         return self
 
@@ -1578,7 +1580,7 @@ def serve(port, host):
         log("setup namespace with extra functions")
 
         # Sage's pretty print is ancient and a mess.
-        namespace['pretty_print'] = sage.all.pretty_print = sage.misc.latex.pretty_print = namespace['show']
+        sage.all.pretty_print = sage.misc.latex.pretty_print = namespace['pretty_print'] = namespace['show']
 
         # this way client code can tell it is running as a Sage Worksheet.
         namespace['__SAGEWS__'] = True

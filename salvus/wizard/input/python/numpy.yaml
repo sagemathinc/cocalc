@@ -3,6 +3,7 @@
 # License:   Creative Commons: Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
 
 language: python
+---
 category: ["Numpy/Scipy", "Intro"]
 ---
 title: Numpy Basics

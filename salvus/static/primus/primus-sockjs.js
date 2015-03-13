@@ -41,9 +41,10 @@ EventEmitter.prototype._events = undefined;
  */
 EventEmitter.prototype.listeners = function listeners(event) {
   if (!this._events || !this._events[event]) return [];
+  if (this._events[event].fn) return [this._events[event].fn];
 
-  for (var i = 0, l = this._events[event].length, ee = []; i < l; i++) {
-    ee.push(this._events[event][i].fn);
+  for (var i = 0, l = this._events[event].length, ee = new Array(l); i < l; i++) {
+    ee[i] = this._events[event][i].fn;
   }
 
   return ee;
@@ -60,30 +61,31 @@ EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
   if (!this._events || !this._events[event]) return false;
 
   var listeners = this._events[event]
-    , length = listeners.length
     , len = arguments.length
-    , ee = listeners[0]
     , args
-    , i, j;
+    , i;
 
-  if (1 === length) {
-    if (ee.once) this.removeListener(event, ee.fn, true);
+  if ('function' === typeof listeners.fn) {
+    if (listeners.once) this.removeListener(event, listeners.fn, true);
 
     switch (len) {
-      case 1: return ee.fn.call(ee.context), true;
-      case 2: return ee.fn.call(ee.context, a1), true;
-      case 3: return ee.fn.call(ee.context, a1, a2), true;
-      case 4: return ee.fn.call(ee.context, a1, a2, a3), true;
-      case 5: return ee.fn.call(ee.context, a1, a2, a3, a4), true;
-      case 6: return ee.fn.call(ee.context, a1, a2, a3, a4, a5), true;
+      case 1: return listeners.fn.call(listeners.context), true;
+      case 2: return listeners.fn.call(listeners.context, a1), true;
+      case 3: return listeners.fn.call(listeners.context, a1, a2), true;
+      case 4: return listeners.fn.call(listeners.context, a1, a2, a3), true;
+      case 5: return listeners.fn.call(listeners.context, a1, a2, a3, a4), true;
+      case 6: return listeners.fn.call(listeners.context, a1, a2, a3, a4, a5), true;
     }
 
     for (i = 1, args = new Array(len -1); i < len; i++) {
       args[i - 1] = arguments[i];
     }
 
-    ee.fn.apply(ee.context, args);
+    listeners.fn.apply(listeners.context, args);
   } else {
+    var length = listeners.length
+      , j;
+
     for (i = 0; i < length; i++) {
       if (listeners[i].once) this.removeListener(event, listeners[i].fn, true);
 
@@ -113,9 +115,16 @@ EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
  * @api public
  */
 EventEmitter.prototype.on = function on(event, fn, context) {
+  var listener = new EE(fn, context || this);
+
   if (!this._events) this._events = {};
-  if (!this._events[event]) this._events[event] = [];
-  this._events[event].push(new EE( fn, context || this ));
+  if (!this._events[event]) this._events[event] = listener;
+  else {
+    if (!this._events[event].fn) this._events[event].push(listener);
+    else this._events[event] = [
+      this._events[event], listener
+    ];
+  }
 
   return this;
 };
@@ -129,9 +138,16 @@ EventEmitter.prototype.on = function on(event, fn, context) {
  * @api public
  */
 EventEmitter.prototype.once = function once(event, fn, context) {
+  var listener = new EE(fn, context || this, true);
+
   if (!this._events) this._events = {};
-  if (!this._events[event]) this._events[event] = [];
-  this._events[event].push(new EE(fn, context || this, true ));
+  if (!this._events[event]) this._events[event] = listener;
+  else {
+    if (!this._events[event].fn) this._events[event].push(listener);
+    else this._events[event] = [
+      this._events[event], listener
+    ];
+  }
 
   return this;
 };
@@ -150,17 +166,25 @@ EventEmitter.prototype.removeListener = function removeListener(event, fn, once)
   var listeners = this._events[event]
     , events = [];
 
-  if (fn) for (var i = 0, length = listeners.length; i < length; i++) {
-    if (listeners[i].fn !== fn && listeners[i].once !== once) {
-      events.push(listeners[i]);
+  if (fn) {
+    if (listeners.fn && (listeners.fn !== fn || (once && !listeners.once))) {
+      events.push(listeners);
+    }
+    if (!listeners.fn) for (var i = 0, length = listeners.length; i < length; i++) {
+      if (listeners[i].fn !== fn || (once && !listeners[i].once)) {
+        events.push(listeners[i]);
+      }
     }
   }
 
   //
   // Reset the array, or remove it completely if we have no more listeners.
   //
-  if (events.length) this._events[event] = events;
-  else this._events[event] = null;
+  if (events.length) {
+    this._events[event] = events.length === 1 ? events[0] : events;
+  } else {
+    delete this._events[event];
+  }
 
   return this;
 };
@@ -174,7 +198,7 @@ EventEmitter.prototype.removeListener = function removeListener(event, fn, once)
 EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
   if (!this._events) return this;
 
-  if (event) this._events[event] = null;
+  if (event) delete this._events[event];
   else this._events = {};
 
   return this;
@@ -434,6 +458,12 @@ try {
     }
 
     //
+    // We need to make sure that the URL is properly encoded because IE doesn't
+    // do this automatically.
+    //
+    data.href = encodeURI(decodeURI(data.href));
+
+    //
     // If we don't obtain a port number (e.g. when using zombie) then try
     // and guess at a value from the 'href' value.
     //
@@ -451,10 +481,10 @@ try {
     }
 
     //
-    // IE quirk: The `protocol` is parsed as ":" when a protocol agnostic URL
-    // is used. In this case we extract the value from the `href` value.
+    // IE quirk: The `protocol` is parsed as ":" or "" when a protocol agnostic
+    // URL is used. In this case we extract the value from the `href` value.
     //
-    if (':' === data.protocol) {
+    if (!data.protocol || ':' === data.protocol) {
       data.protocol = data.href.substr(0, data.href.indexOf(':') + 1);
     }
 
@@ -691,8 +721,7 @@ Primus.prototype.initialise = function initialise(options) {
 
     //
     // We received an error while connecting, this most likely the result of an
-    // unauthorized access to the server. But this something that is only
-    // triggered for Node based connections. Browsers trigger the error event.
+    // unauthorized access to the server.
     //
     if (connect) {
       if (~primus.options.strategy.indexOf('timeout')) primus.reconnect();
@@ -741,7 +770,9 @@ Primus.prototype.initialise = function initialise(options) {
     }
 
     if (primus.timers.connect) primus.end();
-    if (readyState !== Primus.OPEN) return;
+    if (readyState !== Primus.OPEN) {
+      return primus.attempt ? primus.reconnect() : false;
+    }
 
     this.writable = false;
     this.readable = false;
@@ -800,6 +831,14 @@ Primus.prototype.initialise = function initialise(options) {
     primus.online = false;
     primus.emit('offline');
     primus.end();
+
+    //
+    // It is certainly possible that we're in a reconnection loop and that the
+    // user goes offline. In this case we want to kill the existing attempt so
+    // when the user goes online, it will attempt to reconnect freshly again.
+    //
+    primus.clearTimeout('reconnect');
+    primus.attempt = null;
   }
 
   /**
@@ -1533,7 +1572,7 @@ Primus.prototype.client = function client() {
     , socket;
 
   //
-  // Selects an available Engine.IO factory.
+  // Select an available SockJS factory.
   //
   var Factory = (function Factory() {
     if ('undefined' !== typeof SockJS) return SockJS;
@@ -1544,7 +1583,10 @@ Primus.prototype.client = function client() {
     return undefined;
   })();
 
-  if (!Factory) return primus.critical(new Error('Missing required `sockjs-client-node` module. Please run `npm install --save sockjs-client-node`'));
+  if (!Factory) return primus.critical(new Error(
+    'Missing required `sockjs-client-node` module. ' +
+    'Please run `npm install --save sockjs-client-node`'
+  ));
 
   //
   // Connect to the given URL.
@@ -1590,11 +1632,9 @@ Primus.prototype.client = function client() {
   });
 
   //
-  // Attempt to reconnect the socket. It assumes that the `outgoing::end` event is
-  // called if it failed to disconnect.
+  // Attempt to reconnect the socket.
   //
   primus.on('outgoing::reconnect', function reconnect() {
-    primus.emit('outgoing::end');
     primus.emit('outgoing::open');
   });
 
@@ -1602,11 +1642,11 @@ Primus.prototype.client = function client() {
   // We need to close the socket.
   //
   primus.on('outgoing::end', function close() {
-    if (socket) {
-      socket.onerror = socket.onopen = socket.onclose = socket.onmessage = function () {};
-      socket.close();
-      socket = null;
-    }
+    if (!socket) return;
+
+    socket.onerror = socket.onopen = socket.onclose = socket.onmessage = function () {};
+    socket.close();
+    socket = null;
   });
 };
 Primus.prototype.authorization = false;
@@ -1629,7 +1669,7 @@ Primus.prototype.decoder = function decoder(data, fn) {
 
   fn(err, data);
 };
-Primus.prototype.version = "2.4.7";
+Primus.prototype.version = "2.4.12";
 
 //
 // Hack 1: \u2028 and \u2029 are allowed inside string in JSON. But JavaScript
@@ -2394,7 +2434,7 @@ utils.createIframe = function (iframe_url, error_callback) {
 };
 
 utils.createHtmlfile = function (iframe_url, error_callback) {
-    var doc = new ActiveXObject('htmlfile');
+    var doc = new window[(['Active'].concat('Object').join('X'))]('htmlfile');
     var tref, unload_ref;
     var iframe;
     var unattach = function() {
@@ -2468,10 +2508,10 @@ AbstractXHRObject.prototype._start = function(method, url, payload, opts) {
 
     if (!that.xhr) {
         try {
-            that.xhr = new _window.ActiveXObject('Microsoft.XMLHTTP');
+            that.xhr = new _window[(['Active'].concat('Object').join('X'))]('Microsoft.XMLHTTP');
         } catch(x) {};
     }
-    if (_window.ActiveXObject || _window.XDomainRequest) {
+    if (_window[(['Active'].concat('Object').join('X'))] || _window.XDomainRequest) {
         // IE8 caches even POSTs
         url += ((url.indexOf('?') === -1) ? '?' : '&') + 't='+(+new Date);
     }
@@ -3971,9 +4011,9 @@ EventSourceReceiver.prototype.abort = function() {
 var _is_ie_htmlfile_capable;
 var isIeHtmlfileCapable = function() {
     if (_is_ie_htmlfile_capable === undefined) {
-        if ('ActiveXObject' in _window) {
+        if ((['Active'].concat('Object').join('X')) in _window) {
             try {
-                _is_ie_htmlfile_capable = !!new ActiveXObject('htmlfile');
+                _is_ie_htmlfile_capable = !!new _window[(['Active'].concat('Object').join('X'))]('htmlfile');
             } catch (x) {}
         } else {
             _is_ie_htmlfile_capable = false;

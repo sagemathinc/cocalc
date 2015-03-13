@@ -46,7 +46,7 @@ misc      = require('misc')
 misc_node = require('misc_node')
 uuid      = require('node-uuid')
 cassandra = require('cassandra')
-cql       = require("node-cassandra-cql")
+cql       = require("cassandra-driver")
 
 # Set the log level
 winston.remove(winston.transports.Console)
@@ -58,7 +58,7 @@ TIMEOUT = 60*60
 
 # never do a save action more frequently than this - more precisely, saves just get
 # ignored until this much time elapses *and* an interesting file changes.
-MIN_SAVE_INTERVAL_S = 90
+MIN_SAVE_INTERVAL_S = 60*10 # 10 minutes
 
 STORAGE_SERVERS_UPDATE_INTERVAL_S = 60*3  # How frequently (in seconds)  to query the database for the list of storage servers
 
@@ -1193,6 +1193,129 @@ class GlobalProject
         )
 
 
+    ###
+    verify that it's possible to copy files between server_id from/to the given remote servers
+
+        x={};s=require('bup_server').global_client(cb:(err,c)->x.c=c;x.p=x.c.get_project('3702601d-9fbc-4e4e-b7ab-c10a79e34d3b'))
+
+        x.p.all_remotes_are_ready(cb:(e,a)->console.log("DONE!",e,a);x.a=a)
+
+        x.p.remote_is_ready(server_id:'eec826ad-f395-4a1d-bfb1-20f5a19d4bb0',cb:(e,a)->console.log("DONE!",e,a);x.a=a)
+
+    ###
+    all_remotes_are_ready: (opts) =>
+        opts = defaults opts,
+            cb        : required # cb(err, {server_id:[bad servers]})
+        ans = {}
+        f = (server_id, cb) =>
+            @remote_is_ready
+                server_id : server_id
+                cb        : (err, bad_servers) =>
+                    if err
+                        cb(err)
+                    else
+                        if bad_servers.length > 0
+                            ans[server_id] = bad_servers
+                        cb()
+        @database.select
+            table   : "storage_servers"
+            where   : {dummy:true}
+            columns : ['server_id']
+            cb      : (err, remotes) =>
+                if err
+                    opts.cb(err)
+                else
+                    async.map (x[0] for x in remotes), f, (err) =>
+                        if err
+                            opts.cb(err)
+                        else
+                            opts.cb(undefined, ans)
+
+    remote_is_ready: (opts) =>
+        opts = defaults opts,
+            remotes   : undefined  # array of strings 'server_id's, ...; if not given uses *all* servers
+            server_id : required # source -- doesn't actually have to be where this project is.
+            cb        : required # cb(err, [bad servers])
+        dbg = (m) => winston.debug("GlobalProject.remote_is_ready(): #{m}")
+        dbg()
+
+        source_server_id = opts.server_id
+        source_dc        = undefined
+        targets          = []
+        project          = undefined
+        bad_servers      = []
+
+        async.series([
+            (cb) =>
+                if opts.remotes?
+                    cb()
+                else
+                    dbg("get list of all servers")
+                    @database.select
+                        table   : "storage_servers"
+                        where   : {dummy:true}
+                        columns : ['server_id']
+                        cb      : (err, remotes) =>
+                            if err
+                                cb(err)
+                            else
+                                opts.remotes = (x[0] for x in remotes)
+                                cb()
+            (cb) =>
+                dbg("get dc of source project")
+                @global_client.get_data_center
+                    server_id : source_server_id
+                    cb        : (err, dc) =>
+                        if err
+                            cb(err)
+                        else
+                            source_dc = dc
+                            cb()
+            (cb) =>
+                dbg("get ip:port of target projects")
+                f = (target_server_id, cb) =>
+                    if source_server_id == target_server_id
+                        # special case when source and target are on the same machine.
+                        # NOTE: we *must* use localhost since the firewall doesn't allow
+                        # ssh'ing from localhost to host to localhost.  It will work.
+                        cb()
+                        return
+                    @global_client.get_external_ssh
+                        server_id : target_server_id
+                        dc        : source_dc
+                        cb        : (err, addr) =>
+                            if err
+                                cb(err)
+                            else
+                                targets.push(addr)
+                                cb()
+                async.map(opts.remotes, f, cb)
+            (cb) =>
+                dbg("get the project itself")
+                @project
+                    server_id : source_server_id
+                    cb        : (err, p) =>
+                        if err
+                            cb(err)
+                        else
+                            project = p
+                            cb()
+            (cb) =>
+                dbg("do the remote_is_ready action")
+                project.remote_is_ready
+                    targets : targets
+                    cb      : (err, ans) =>
+                        if err
+                            cb(err)
+                        else
+                            for addr, is_good of ans
+                                if not is_good
+                                    bad_servers.push(addr)
+                            cb()
+        ], (err) =>
+            opts.cb?(err, bad_servers)
+        )
+
     # copy a path from this project to another project
     copy_path: (opts) =>
         opts = defaults opts,
@@ -1382,6 +1505,9 @@ class GlobalProject
             cb     : undefined
         dbg = (m) -> winston.debug("GlobalProject.move(#{@project_id}): #{m}")
         dbg()
+        if opts.target? and not misc.is_valid_uuid_string(opts.target)
+            opts.cb?("target (='#{opts.target}') must be a v4 uuid")
+            return
         current = undefined
         is_running = false
         async.series([
@@ -1530,7 +1656,11 @@ class GlobalProject
                     else
                         args = [server_id, opts.last_save[server_id], @project_id]
                         winston.debug("#{s} -- #{misc.to_json(args)}")
-                        @database.cql(s, args, cql.types.consistencies.localQuorum, cb)
+                        @database.cql
+                            query       : s
+                            vals        : args
+                            consistency : cql.types.consistencies.localQuorum
+                            cb          : cb
                 winston.debug("#{misc.keys(opts.last_save)}")
                 async.map(misc.keys(opts.last_save), f, cb)
             (cb) =>
@@ -1821,7 +1951,10 @@ class GlobalProject
                 dbg("change settings in the database")
                 f = (key, c) =>
                     if opts[key]?
-                        @database.cql("UPDATE projects SET settings[?]=? WHERE project_id=?", [key, "#{opts[key]}", @project_id], c)
+                        @database.cql
+                            query : "UPDATE projects SET settings[?]=? WHERE project_id=?"
+                            vals  : [key, "#{opts[key]}", @project_id]
+                            cb    : c
                     else
                         c()
                 async.map(misc.keys(opts), f, (err) => cb(err))
@@ -1907,12 +2040,10 @@ class GlobalClient
                             else
                                 v = program.address.split('.')
                                 a = parseInt(v[1]); b = parseInt(v[3])
-                                if a == 1 and b>=1 and b<=7
-                                    hosts = ("10.1.#{i}.2" for i in [1..7])
-                                else if a == 1 and b>=10 and b<=21
-                                    hosts = ("10.1.#{i}.2" for i in [10..21])
-                                else if a == 3 or a == 4
-                                    hosts = ("10.#{a}.#{i}.2" for i in [1..4])
+                                if program.address == '10.1.1.10'  or a == 1 or a == 3 or a == 4
+                                    hosts = ("smc#{i}dc5" for i in [1..8])
+                                else if a == 5 or a == 6 or a == 7
+                                    hosts = ("smc#{i}dc#{a}" for i in [1..8])
                             winston.debug("database hosts=#{misc.to_json(hosts)}")
                             @database = new cassandra.Salvus
                                 hosts       : hosts
@@ -2019,7 +2150,7 @@ class GlobalClient
                 max_dc = 0
                 for r in results
                     max_dc = Math.max(max_dc, r.dc)
-                    r.host = cassandra.inet_to_str(r.host)  # parse inet datatype
+                    r.host = r.host
                     @servers.by_id[r.server_id] = r
                     if not @servers.by_dc[r.dc]?
                         @servers.by_dc[r.dc] = {}
@@ -2140,7 +2271,11 @@ class GlobalClient
             cb        : undefined
         query = "UPDATE storage_servers SET ssh[?]=? WHERE dummy=true and server_id=?"
         args  = [opts.dc, opts.address, opts.server_id]
-        @database.cql(query, args, cql.types.consistencies.one, opts.cb)
+        @database.cql
+            query       : query
+            vals        : args
+            consistency : cql.types.consistencies.one
+            cb          : opts.cb
 
     # get the address:port's that should be used to connect to the server with given
     # id from the given data center.
@@ -2498,8 +2633,7 @@ class GlobalClient
 
     CODE in console to use this:
 
-        x={};require('bup_server').global_client(cb:(e,c)->x.c=c)
-    	x.c.repair(dryrun:true, cb:(e,projects)->console.log("DONE",e);x.projects=projects)
+        x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.c.repair(dryrun:true, cb:(e,projects)->console.log("DONE",e,"NUM=",projects?.length);x.projects=projects))
         x.projects.length
 
         status=[];x.c.repair(limit:3, status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
@@ -2508,7 +2642,6 @@ class GlobalClient
     repair: (opts) =>
         opts = defaults opts,
             limit       : 5           # number to do in parallel
-            qlimit      : 10000000    # limit on number of projects to pull from database
             destructive : false
             timeout     : TIMEOUT
             dryrun      : false       # if true, just return the projects that need sync; don't actually sync
@@ -2527,12 +2660,13 @@ class GlobalClient
                     table     : 'projects'
                     columns   : ['project_id', 'bup_location', 'bup_last_save']
                     objectify : true
-                    limit     : opts.qlimit # TODO: change to use paging...
+                    stream    : true
                     cb        : (err, r) =>
                         if err
                             cb(err)
                         else
                             dbg("got #{r.length} records")
+                            dbg("sorting them by id")
                             r.sort (a,b) ->
                                 if a.project_id < b.project_id
                                     return -1
@@ -2540,7 +2674,12 @@ class GlobalClient
                                     return 1
                                 else
                                     return 0
+                            dbg("checking through each project to see if any replica is out of sync")
+                            i = 0
                             for project in r
+                                if i%5000 == 0
+                                    dbg("checked #{i}/#{r.length} projects...")
+                                i += 1
                                 if not project.bup_last_save? or misc.len(project.bup_last_save) == 0
                                     continue
                                 times = {}
@@ -2568,6 +2707,7 @@ class GlobalClient
                                             cb("BUG -- project.source_id didn't get set -- #{misc.to_json(project)}")
                                             return
                                     project.targets = (server_id for server_id, tm of project.bup_last_save when "#{tm}" != t)
+                                    dbg("found out of sync project: #{misc.to_json(project)}")
                                     projects.push(project)
                             cb()
             (cb) =>
@@ -2580,11 +2720,29 @@ class GlobalClient
                     dbg("*** syncing project #{i}/#{projects.length} ***: #{project.project_id}")
                     s = {'status':'running...', project:project}
                     opts.status.push(s)
+                    source_id = undefined
                     async.series([
+                        (cb) =>
+                            # Ensure that we open the project where it is currently
+                            # opened, if it is currently opened.   We do not just
+                            # use project.source_id, since it is possible (but very unlikely)
+                            # that the project moved between when we did the above database query
+                            # and when we actually sync out the project.
+                            @project_location
+                                project_id : project.project_id
+                                cb         : (err, result) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        if result?
+                                            source_id = result
+                                        else
+                                            source_id = project.source_id
+                                        cb()
                         (cb) =>
                             @project
                                 project_id : project.project_id
-                                server_id  : project.source_id
+                                server_id  : source_id
                                 cb         : (err, p) =>
                                     if err
                                         cb(err)
@@ -2632,7 +2790,6 @@ class GlobalClient
     delete_old_project_columns: (opts) =>
         opts = defaults opts,
             limit       : 5           # number to do in parallel
-            qlimit      : 10          # limit on number of projects to pull from database -- make this much bigger when serious
             cb          : required    # cb(err, errors)
         dbg = (m) => winston.debug("GlobalClient.delete_old_project_columns(): #{m}")
         dbg()
@@ -2644,8 +2801,7 @@ class GlobalClient
                     table       : 'projects'
                     columns     : ['project_id']
                     objectify   : false
-                    limit       : opts.qlimit # TODO: change to use paging...
-                    consistency : 1
+                    stream      : true
                     cb          : (err, r) =>
                         if err
                             cb(err)
@@ -2663,7 +2819,11 @@ class GlobalClient
                     if i % 100 == 0
                         console.log(i, projects.length)
                     query = "update projects set last_migrate2_error =null, last_migrate3_error=null, last_migrated=null, last_migrated2=null, last_migrated3=null, last_replication_error=null, last_snapshot=null, errors_zfs=null,  locations=null, modified_files=null where project_id=?"
-                    @database.cql(query, [project_id], 1, cb)
+                    @database.cql
+                        query       : query
+                        vals        : [project_id]
+                        consistency : 1
+                        cb          : cb
                 async.mapLimit(projects, opts.limit, f, (err) -> cb(err))
         ], opts.cb)
 
@@ -2671,7 +2831,6 @@ class GlobalClient
     sync_union: (opts) =>
         opts = defaults opts,
             limit       : 5           # number to do in parallel
-            qlimit      : 10000000    # limit on number of projects to pull from database
             timeout     : TIMEOUT
             dryrun      : false       # if true, just return the projects that need sync; don't actually sync
             status      : []
@@ -2692,8 +2851,7 @@ class GlobalClient
                     table     : 'projects'
                     columns   : ['project_id', 'bup_last_save']
                     objectify : true
-                    limit     : opts.qlimit # TODO: change to use paging...
-                    consistency : 1
+                    stream    : true
                     cb        : (err, r) =>
                         if err
                             cb(err)
@@ -3206,6 +3364,18 @@ class ClientProject
                         opts.cb(resp.result.error)
                     else
                         opts.cb(undefined, new Buffer(resp.result.base64, 'base64'))
+
+    remote_is_ready: (opts) =>
+        opts = defaults opts,
+            targets : required    # ['id_addr:port', 'ip_addr:port', ...]
+            cb      : required
+        @action
+            action  : 'remote_is_ready'
+            param   : ["--remote=#{opts.targets.join(',')}"]
+            timeout : opts.timeout
+            cb      : (err, r) =>
+                opts.cb(err, r?.result)
+
 
     copy_path: (opts) =>
         opts = defaults opts,

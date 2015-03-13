@@ -281,6 +281,8 @@ class AbstractSynchronizedDoc extends EventEmitter
         if before? and before.string?
             before = before.string()
         #console.log("_sync, live='#{before}'")
+        if not @dsync_client?
+            cb("must be connected before syncing"); return
         @dsync_client.push_edits (err) =>
             if err
                 if typeof(err)=='string' and err.indexOf('retry') != -1
@@ -428,7 +430,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
 
                 patch = undefined
                 synced_before = false
-                if @_last_sync?
+                if @_last_sync? and @dsync_client?
                     # We have sync'd before.
                     @_presync?() # give syncstring chance to be updated by true live.
                     patch = @dsync_client._compute_edits(@_last_sync, @live())
@@ -595,7 +597,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @codemirror.setOption('readOnly', @readonly)
                 @codemirror1.setOption('readOnly', @readonly)
 
-                if @_last_sync?
+                if @_last_sync? and @dsync_client?
                     #console.log("We have sync'd before.")
                     synced_before = true
                     patch = @dsync_client._compute_edits(@_last_sync, @live())

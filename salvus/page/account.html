@@ -1,20 +1,20 @@
 <!--
 SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and the Terminal.
 
-    Copyright (C) 2014, William Stein
+Copyright (C) 2014, William Stein
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 
@@ -33,7 +33,7 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
                 <div class="hide account-error-text" id="account-forgot_password-error-email_address"></div>
                 <input class="form-control" type="email" placeholder="Email address" id="account-forgot_password-email_address">
                 <hr>
-                Not working?  Email me at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a>.
+                Not working?  Email us at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a>.
             </div>
             <div class="modal-footer">
                 <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password-button-submit">Send email</button>
@@ -87,10 +87,10 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
 
 <div class="container-fluid constrained hide" id="account" style="padding-top: 1em;">
 
-    <div class="row hide" id="account-sign_in">
-        <div class="col-sm-5">
+    <div class="row hide" id="account-sign_in" style="margin-top:2em">
+        <div class="col-sm-6">
             <img src="favicon-128.png" width="64" height="64" class="img img-rounded">
-            <h2>Welcome Back to SageMathCloud™!</h2>
+            <h2>Welcome back to SageMathCloud™!</h2>
 
             <!-- <h3 class="hidden-xs">Computational mathematics in the cloud</h3>-->
         </div>
@@ -108,7 +108,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
 <span class="account-cell0"></span>
 </div>
 -->
-        <div class="well col-sm-6 ">
+        <div class="well col-sm-6">
             <div class="salvus-remember_me-message hide">
                 Loading <span></span>... <i class="fa fa-spin fa-refresh"></i>
             </div>
@@ -120,7 +120,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                 <input class="form-control" type="password" placeholder="Password" id="sign_in-password">
                 <div class="row">
                     <div class="col-sm-12 ">
-                        <button class="btn btn-primary btn-md" type="submit" id="sign_in-button">&nbsp;&nbsp;&nbsp;Sign in&nbsp;&nbsp;&nbsp;</button>
+                        <button class="btn btn-primary btn-lg" type="submit" id="sign_in-button">&nbsp;&nbsp;&nbsp;Sign in&nbsp;&nbsp;&nbsp;</button>
                     </div>
                 </div>
                 <div class="row">
@@ -130,65 +130,69 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                     </div>
                 </div>
                 <hr>
-                <span class="lighten" style="font-size:10pt">In case of problems, immediately email us at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a>.  We <b>really</b> want to know if anything isn't working!</span>
+                <span class="lighten" style="font-size:10pt">Not working? Email us at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> immediately!</span>
             </form>
 
         </div>
     </div>
 
-    <div class="row hide" id="account-create_account">
-        <div class="col-sm-6 ">
-            <!-- NOTE: not using mathjax on purpose here, since don't want landing page to update after load, which looks lame. -->
-            <img src="favicon-128.png" width="64" height="64" class="img img-rounded">
-            <h3>SageMathCloud™ is an open source web-based environment for using  Sage, IPython, R, LaTeX, a terminal, and much more  for mathematical research and teaching.</h3>
-            <br class="hidden-xs">
+    <div class="row hide" id="account-create_account" style="margin-top: 2em;">
 
-            <ul class="hidden-xs">
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-line-chart"></i>  <b>Mathematics software:</b> Use Sage, R, Octave, Python, Cython, GAP, Pari, Macaulay2, Singular, and more</li>
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-list-alt"></i>  <b>Interactive editing:</b> Collaboratively edit LaTeX documents, IPython notebooks and Sage worksheets</li>
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-file-code-o"></i>  <b>Programming:</b> Write, compile, and run code in most languages</li>
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-tasks"></i>  <b>Organize:</b> Manage todo list with hashtags</li>
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-graduation-cap"></i>  <b>Teach:</b> Organize teaching a course</li>
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-save"></i>  <b>Backed up:</b> All of your files are automatically snapshotted every few minutes</li>
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-terminal"></i>  <b>Shell access:</b> Full Linux accounts with color terminals</li>
-            </ul>
-            <br>
-            <hr>
-            <span class="lighten">SageMathCloud is a free service hosted at University of Washington that is supported by the National Science Foundation (awards
-                <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1161226" target="_blank">1161226</a>,
-                <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1147802" target="_blank">1147802</a>,
-                <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1020378" target="_blank">1020378</a>
-                and <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1015114" target="_blank">1015114</a>) and <a href="https://research.google.com/university/relations/appengine/index.html" target="_blank">Google's Education Grant program.</a>
-                  <!-- There are currently <b>288 cores</b>, <b>1.2TB RAM</b> and
-                    <b>50TB disk</b> space dedicated to the SageMathCloud cluster at University of Washington, and
-                    around <b>20 cores</b>, <b>128GB RAM</b>, and <b>2.5TB disk space</b> on Google Compute Engine. -->
-            </span>
-
-
-
-        </div>
         <div class="well col-sm-5 ">
             <h4>Create an account (or <a href="#account-sign_in">sign in</a>)</h4>
             <br>
 
-            <span class="hidden-xs lighten-2">First name</span>
-            <input class="form-control" type="text" placeholder="First name" id="create_account-first_name">
-            <span class="hidden-xs lighten-2">Last name</span>
-            <input class="form-control" type="text" placeholder="Last name" id="create_account-last_name">
+            <span class="hidden-xs lighten-2">First and Last Name</span>
+            <input class="form-control" type="text" placeholder="First and Last Name" id="create_account-name">
             <span class="hidden-xs lighten-2">Email</span>
             <input class="form-control" type="email" placeholder="Email" id="create_account-email_address">
             <span class="hidden-xs lighten-2 salvus-create_account-token hide">Token</span>
             <input class="form-control salvus-create_account-token hide" type="text" placeholder="Secret token that the site admin gave you" id="create_account-token">
             <span class="hidden-xs lighten-2">Password</span>
             <input class="salvus-password-meter form-control" type="password" placeholder="Password" id="create_account-password">
-            <span class="hidden-xs lighten-2">Retype password</span>
-            <input class="form-control" type="password" placeholder="Retype password" id="create_account-retype_password">
+            <!-- <span class="hidden-xs lighten-2">Retype password</span>
+<input class="form-control" type="password" placeholder="Retype password" id="create_account-retype_password">
+-->
 
             <div class="checkbox"><label style="margin-top: 1ex;margin-bottom: 1ex;">
                 <input type="checkbox" id="create_account-agreed_to_terms">
                 Agree to the <a href="#link-terms">SageMathCloud Terms</a>
-            </label></div>
-            <button class="btn btn-success btn-lg" type="submit" id="create_account-button">Create account for free</button>
+                </label></div>
+            <button class="btn btn-success btn-lg" style="width: 100%;" type="submit" id="create_account-button">Create account for free</button>
+            <hr>
+            <span class="lighten" style="font-size:10pt">Not working?  Email us at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> immediately!</span>
+
+
+
+        </div>
+
+        <div class="col-sm-6 col-sm-offset-1">
+            <!-- NOTE: not using mathjax on purpose here, since don't want landing page to update after load, which looks lame. -->
+            <img src="favicon-128.png" width="64" height="64" class="img img-rounded pull-right">
+            <h3>SageMathCloud™  collaborative computational mathematics</h3>
+            <br>
+            <h4>
+                SageMath, IPython, LaTeX, and terminals in your browser
+            </h4>
+            <br class="hidden-xs">
+
+            <ul class="hidden-xs">
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-line-chart"></i>  <b>Mathematics:</b>  use the best open source mathematics software <span class="lighten">(SageMath, R, Octave, Python, Cython, GAP, Pari, Macaulay2, Singular, and more)</span></li>
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-list-alt"></i>  <b>Edit:</b> collaboratively edit Sage worksheets, LaTeX documents and IPython notebooks</li>
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-file-code-o"></i>  <b>Program:</b> write, compile, and run programs in most programming languages</li>
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-graduation-cap"></i>  <b>Teach:</b> organize teaching a course</li>
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-save"></i>  <b>Backup:</b> all files automatically backed up every few minutes</li>
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-terminal"></i>  <b>Terminal:</b> full Linux account with color terminal</li>
+                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-users"></i>  <b>Collaborate:</b> over 30,000 monthly active users</li>
+            </ul>
+            <br>
+            <hr>
+            <span class="lighten">With support by the National Science Foundation (awards
+                <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1161226" target="_blank">1161226</a>,
+                <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1147802" target="_blank">1147802</a>,
+                <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1020378" target="_blank">1020378</a>
+                <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1015114" target="_blank">1015114</a>) and <a href="https://research.google.com/university/relations/appengine/index.html" target="_blank">Google</a>.
+            </span>
 
 
 
@@ -207,86 +211,30 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
         </div>
 
         <ul class="nav nav-tabs">
-            <li class="active"><a href="#account-settings-tab" data-toggle="tab"><i class="fa fa-cog"></i> Settings</a></li>
-            <li class="hide"><a href="#billing-tab" id="billing-tab-button" data-toggle="tab" aria-controls="billing-tab"><i class="fa fa-credit-card"></i>   Billing</a></li>
-            <!-- <li><a href="#account-info-tab" data-toggle="tab">Account info</a></li>-->
+            <li class="active">
+                <a href="#account-settings-tab" data-toggle="tab">
+                <i class="fa fa-cog"></i> Settings</a>
+            </li>
+            <li>
+                <a href="#smc-billing-tab" id="billing-tab-button" data-toggle="tab" aria-controls="billing-tab">
+                    <i class="fa fa-credit-card"></i> Billing
+                    <i class="fa fa-refresh smc-billing-tab-refresh-spinner hide" style="margin-left: 1em; cursor:pointer; color:#428bca;"> </i>
+                </a>
+            </li>
         </ul>
 
         <div class="tab-content">
-            <div class="tab-pane" id="billing-tab" aria-labelledBy="billing-tab-button">
-                <div class="row" style="height: 1000px;">  <!-- style is a stupid hack to ensure there is a scrollbar -->
-                    <div class=" panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">Overview</h3>
-                        </div>
-                        <div class="panel-body">
-                            <div class="row smc-billing-panel-row">
-                                <div class="col-sm-4 lighten">
-                                    Plan
-                                </div>
-                                <div class="col-sm-6">
-                                    <b>Free</b>
-                                </div>
-                                <div class="col-sm-2">
-                                    <b><a class="btn btn-default" href="#change-plan"><i class="fa fa-cog"></i> Change</a></b>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-4 lighten">
-                                    Payment Method
-                                </div>
-                                <div class="col-sm-6">
-                                    <b>None</b>
-                                </div>
-                                <div class="col-sm-2">
-                                    <b><a class="btn btn-default" href="#change-plan"><i class="fa fa-credit-card"></i> Change</a></b>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class=" panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">Payment History</h3>
-                        </div>
-                        <div class="panel-body smc-billing-history-rows">
-                            <div class="row" style="font-weight:bold">
-                                <div class="col-sm-2">
-                                    Date
-                                </div>
-                                <div class="col-sm-2">
-                                    Plan
-                                </div>
-                                <div class="col-sm-2">
-                                    Method
-                                </div>
-                                <div class="col-sm-2">
-                                    Receipt
-                                </div>
-                                <div class="col-sm-2">
-                                    Amount
-                                </div>
-                                <div class="col-sm-2">
-                                    Status
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- style is a hack to ensure there is a scrollbar -->
+            <div class="tab-pane" id="smc-billing-tab" aria-labelledBy="billing-tab-button" style="height: 1000px; margin-top: 1em;">
+                <span class="lighten">Loading billing information...</span>
             </div>
             <div class="tab-pane active" id="account-settings-tab">
-                <div class="pull-right" style="margin-bottom: 1em;">
-                    <button class="btn btn-success btn-sm" type="submit" id="account-settings-change-settings-button"><i class="fa fa-save"> </i> Save</button>
+                <div style="margin: 1em;">
+                    <button class="btn btn-success" type="submit" id="account-settings-change-settings-button"><i class="fa fa-save"> </i> Save</button>
                     <!--<button class="btn" id="account-settings-cancel-changes-button" style="margin-right:3em;">Cancel</button>-->
-                    <a href="#sign-out" class="btn btn-primary btn-sm"><i class="fa fa-sign-out"> </i> Sign out</a>
+                    <a href="#sign-out" class="btn btn-primary"><i class="fa fa-sign-out"> </i> Sign out</a>
                 </div>
 
-                <div class="row">
-                    <!-- TODO: this is a temporary warning/note -- settings *should* take effect immediately, and there should be no save/cancel button. -->
-                    <span class="lighten">
-                        <h4 style="margin-left: 2em;">NOTE: Editor and terminal settings only apply to newly (re-)opened files after saving settings.</h4>
-                    </span>
-                </div>
                 <div class="row">
                     <div class="col-sm-6">
                         <div class="panel panel-default" id="account-settings-account">
@@ -318,7 +266,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                     <div class="col-sm-8 "><span id="account-settings-email_address"></span> (<a href="#account-change_email_address">change</a>)</div>
                                 </div>
                             </div>
-                         </div>
+                        </div>
                     </div>
 
 
@@ -326,7 +274,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                         <div class="panel panel-default" id="account-settings-terminal">
                             <div class="panel-heading">
                                 <div class="panel-title ">
-                                    Terminal
+                                    Terminal <span class="lighten">(settings applied to newly opened terminals after saving)</span>
                                 </div>
                             </div>
                             <div class="panel-body">
@@ -374,7 +322,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                         <div class="panel panel-default" id="account-settings-editor_settings">
                             <div class="panel-heading">
                                 <div class="panel-title">
-                                    Editor
+                                    Editor <span class="lighten">(settings applied to newly opened files after saving)</span>
                                 </div>
                             </div>
                             <div class="panel-body">
@@ -494,7 +442,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                     <div class="col-sm-12 ">
                                         <div class="checkbox"><label class="" rel="tooltip" title="Whether to scroll or wrap for long lines.">
                                             <input type="checkbox" checked="checked" class="account-settings-line_wrapping" rel="tooltip">Line wrapping: <span class="lighten">scroll or wrap long lines</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -503,7 +451,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Show line numbers to the left of the editor">
                                             <input type="checkbox" checked="checked" class="account-settings-line_numbers" rel="tooltip">Line numbers:
                                             <span class="lighten">show line numbers</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -512,7 +460,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Fold/unfold selected blocks of code">
                                             <input type="checkbox" checked="checked" class="account-settings-code_folding" rel="tooltip">Code folding:
                                             <span class="lighten">fold code using ⌃Q</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -521,7 +469,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Whether to use the context sensitive indentation that the mode provides (or just indent the same as the line before).">
                                             <input type="checkbox" checked="checked" class="account-settings-smart_indent">Smart indent:
                                             <span class="lighten">context sensitive indentation</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -530,7 +478,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should reindent the current line when a character is typed that might change its proper indentation (only works if the mode supports indentation).">
                                             <input type="checkbox" checked="checked" class="account-settings-electric_chars">Electric characters:
                                             <span class="lighten">sometimes reindent current line</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -539,7 +487,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should visually indicate matching brackets.">
                                             <input type="checkbox" checked="checked" class="account-settings-match_brackets">Match brackets:
                                             <span class="lighten">highlight matching brackets near cursor</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -548,7 +496,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically add the closing bracket.">
                                             <input type="checkbox" checked="checked" class="account-settings-auto_close_brackets">Auto brackets:
                                             <span class="lighten">automatically close brackets</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -557,7 +505,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically highlight and match tags in xml modes.">
                                             <input type="checkbox" checked="checked" class="account-settings-match_xml_tags">Match XML tags:
                                             <span class="lighten">automatically match XML tags</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -566,7 +514,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Whether the editor should automatically add the closing tags in xml modes.">
                                             <input type="checkbox" checked="checked" class="account-settings-auto_close_xml_tags">Auto XML tags:
                                             <span class="lighten">automatically close XML tags</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -575,7 +523,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="If checked, trailing whitespace will be stripped from files when they are saved.">
                                             <input type="checkbox" checked="checked" class="account-settings-strip_trailing_whitespace">Delete trailing whitespace:
                                             <span class="lighten">remove whenever file is saved</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -584,7 +532,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Show trailing whitespace at the ends of lines.">
                                             <input type="checkbox" checked="checked" class="account-settings-show_trailing_whitespace">Show trailing whitespace:
                                             <span class="lighten">show spaces at ends of lines</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -593,11 +541,11 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="If checked, pressing tab inserts four spaces instead of a tab character.">
                                             <input type="checkbox" checked="checked" class="account-settings-spaces_instead_of_tabs">Spaces instead of tabs:
                                             <span class="lighten">send 4 spaces when the tab key is pressed</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
-                               <div class="row">
+                                <div class="row">
                                     <div class="col-sm-12 ">
                                         <div class="checkbox"><label class="" rel="tooltip" title="If checked, the revision history of your files will be tracked from now on.">
                                             <input type="checkbox" checked="checked" class="account-settings-track_revisions">Track revisions:
@@ -606,7 +554,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                     </div>
                                 </div>
 
-                               <div class="row">
+                                <div class="row">
                                     <div class="col-sm-12 ">
                                         <div class="checkbox"><label class="" rel="tooltip" title="If checked, some editors will provide an extra button bar.">
                                             <input type="checkbox" checked="checked" class="account-settings-extra_button_bar">Extra button bar:
@@ -715,7 +663,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                 <div class="row">
                                     <div class="col-sm-6 ">Shift selected text left</div>
                                     <div class="col-sm-3 ">
-                                       ⇧⇥
+                                        ⇧⇥
                                     </div>
                                     <div class="col-sm-3 ">
                                         shift+tab
@@ -724,7 +672,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                 <div class="row">
                                     <div class="col-sm-6 ">Split view in any editor</div>
                                     <div class="col-sm-3 ">
-                                       ⌃I <span class="salvus-apple hide">or ⌘I</span>
+                                        ⌃I <span class="salvus-apple hide">or ⌘I</span>
                                     </div>
                                     <div class="col-sm-3 ">
                                         control+I <span class="salvus-apple hide">or command+I</span>
@@ -736,14 +684,14 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         ⌃'
                                     </div>
                                     <div class="col-sm-3 ">
-                                       control+'
+                                        control+'
                                     </div>
                                 </div>
 
                                 <div class="row">
                                     <div class="col-sm-6 ">Simple autocomplete (any language)</div>
                                     <div class="col-sm-3 ">
-                                       ⌃␣
+                                        ⌃␣
                                     </div>
                                     <div class="col-sm-3 ">
                                         control+space
@@ -753,7 +701,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                 <div class="row">
                                     <div class="col-sm-6 ">Sage worksheet autocomplete</div>
                                     <div class="col-sm-3 ">
-                                       ⇥
+                                        ⇥
                                     </div>
                                     <div class="col-sm-3 ">
                                         tab
@@ -763,7 +711,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                 <div class="row">
                                     <div class="col-sm-6 ">Split cell in Sage worksheet</div>
                                     <div class="col-sm-3 ">
-                                       ⌃; <span class="salvus-apple hide">or ⌘;</span>
+                                        ⌃; <span class="salvus-apple hide">or ⌘;</span>
                                     </div>
                                     <div class="col-sm-3 ">
                                         control+; <span class="salvus-apple hide">or command+;</span>
@@ -812,7 +760,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Ask for confirmation before closing the SageMathCloud window.">
                                             <input type="checkbox" class="account-settings-other_settings-confirm_close">Confirm:
                                             <span class="lighten">always ask for confirmation before closing the browser window (except on mobile)</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
 
@@ -821,7 +769,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                                         <div class="checkbox"><label class="" rel="tooltip" title="Grey-out compiled and hidden files in the files tab.">
                                             <input type="checkbox" class="account-settings-other_settings-mask_files">Mask Files:
                                             <span class="lighten">grey-out files in the files viewer that you probably don't want to open.</span>
-                                        </label></div>
+                                            </label></div>
                                     </div>
                                 </div>
                             </div>
@@ -832,7 +780,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                         <div class="panel panel-default hide" id="account-settings-admin-settings">
                             <div class="panel-heading">
                                 <div class="panel-title">
-                                    Administrative/Server Settings
+                                    Administrative server settings
                                 </div>
                             </div>
 
@@ -862,13 +810,13 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                         <div class="col-sm-6 ">
                             <div class="checkbox"><label class="">
                                 <input type="checkbox" checked="checked" id="account-settings-enable_tooltips" rel="tooltip" title="Show tooltips like this one?">Show tooltips
-                            </label></div>
+                                </label></div>
                             <div class="checkbox"><label class="">
-                                <input type="checkbox" checked="checked" id="account-settings-email_new_features" rel="tooltip" title="Salvus sends email when we add new features.">Email me about new features
-                            </label></div>
+                                <input type="checkbox" checked="checked" id="account-settings-email_new_features" rel="tooltip" title="Salvus sends email when we add new features.">Email us about new features
+                                </label></div>
                             <div class="checkbox"><label class="">
-                                <input type="checkbox" checked="checked" id="account-settings-email_maintenance" rel="tooltip" title="Salvus sends an email when it might be slow or down due to scheduled maintenance.">Email me about scheduled maintenance
-                            </label></div>
+                                <input type="checkbox" checked="checked" id="account-settings-email_maintenance" rel="tooltip" title="Salvus sends an email when it might be slow or down due to scheduled maintenance.">Email us about scheduled maintenance
+                                </label></div>
                         </div>
                     </div>
 
@@ -898,47 +846,8 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                 </div>
 
 
-            </div>
-
-
-            <div class="tab-pane" id="account-info-tab">
-                <div class="row">
-                    <div class="well hide col-sm-12 ">
-                        <div class="row">
-                            <div class="col-sm-3 " rel="tooltip" title="Your account type determines the limits on your Salvus account.  In addition to the free plan, other more powerful plans are available.">Account type</div>
-                            <div class="col-sm-7 "><strong id="account-settings-plan_name"></strong> (<a href="#account-settings-upgrade">upgrade</a>)</div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-sm-4 " rel="tooltip" title="Salvus limits the total space that your documents and data can occupy.">Storage</div>
-                            <div class="col-sm-8 "><span id="account-settings-storage_limit"></span> MB</div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-sm-4 " rel="tooltip" title="Salvus limits the maximum number of simultaneous compute sessions you can run at once, so that more people can use Salvus.">Session limit</div>
-                            <div class="col-sm-8 "><span id="account-settings-session_limit"></span> simultaneous sessions</div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-sm-4 " rel="tooltip" title="Salvus compute sessions are automatically terminated after the maximum session time is reached, so that compute resources can be shared amongst more users.">Maximum session time</div>
-                            <div class="col-sm-8 "><span id="account-settings-max_session_time"></span> minutes</div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-sm-4 " rel="tooltip" title="Salvus limits the amount of RAM you can use in a compute session.">RAM limit</div>
-                            <div class="col-sm-8 "><span id="account-settings-ram_limit"></span> GB</div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-sm-4 " rel="tooltip" title="">Support level</div>
-                            <div class="col-sm-8 "><b><span id="account-settings-support_level"></span></b></div>
-                        </div>
-                    </div>
-                </div>
 
             </div>
-
-
         </div>
     </div>
 
@@ -1002,11 +911,11 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
                     <b class="hidden-xs">New password</b>
                     <input class="salvus-password-meter form-control" type="password" placeholder="New password" id="account-change_password-new_password">
                 </label>
-                <br>
-                <label>
-                    <b class="hidden-xs">Retype password</b>
-                    <input class="form-control" type="password" placeholder="Retype password" id="account-change_password-new_password-retype">
-                </label>
+                <!-- <br>
+<label>
+<b class="hidden-xs">Retype password</b>
+<input class="form-control" type="password" placeholder="Retype password" id="account-change_password-new_password-retype">
+</label> -->
             </div>
             <div class="modal-footer">
                 <button class="btn btn-primary" type="submit" data-dismiss="modal" id="account-change_password-button-submit">Change password</button>
@@ -1056,4 +965,7 @@ I agree to <a href="#link-terms">SageMathCloud Terms</a>
         <div class="col-sm-2 smc-billing-history-entry-status">
         </div>
     </div>
+
+
+
 </div>
