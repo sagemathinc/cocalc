@@ -1,4 +1,10 @@
-Developer Documentation for SageMathCloud (SMC)
+** Developer Documentation for SageMathCloud (SMC) **
+
+These are extremely rough -- I literally haven't proof read them for a second!  Flow of consciousness.
+
+ -- William Stein, March 14, 2015
+
+
 
 # How to setup your development environment
 
