@@ -809,10 +809,12 @@ class Client extends EventEmitter
             @remember_me_failed("invalid remember_me cookie")
             return
         hash = generate_hash(x[0], x[1], x[2], x[3])
+        winston.debug("checking for remember_me cookie with hash='#{hash}'")
         @remember_me_db.get
             key         : hash
             #consistency : cql.types.consistencies.one
             cb          : (error, signed_in_mesg) =>
+                winston.debug("remember_me: got error=#{error}, signed_in_mesg=#{misc.to_json(signed_in_mesg)}")
                 if error
                     @remember_me_failed("error accessing database")
                     return
@@ -4232,9 +4234,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # (This uses our system for multiplexing JSON and multiple binary streams
                 #  over one single connection.)
                 recently_sent_reconnect = false
-                winston.debug("installing data handler -- ignore='#{console_socket._ignore}")
+                #winston.debug("installing data handler -- ignore='#{console_socket._ignore}")
                 channel = opts.client.register_data_handler (data) =>
-                    winston.debug("handling data -- ignore='#{console_socket._ignore}")
+                    #winston.debug("handling data -- ignore='#{console_socket._ignore}")
                     if not console_socket._ignore
                         console_socket.write(data)
                     else
