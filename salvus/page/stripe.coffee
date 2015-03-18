@@ -33,10 +33,12 @@ projects        = require('projects')
 
 {salvus_client} = require('salvus_client')
 
-exports.stripe_user_interface = (opts) ->
-    opts = defaults opts,
-        element                : required
-    return new STRIPE(opts.element)
+stripe_ui = undefined
+exports.stripe_user_interface = () ->
+    if stripe_ui?
+        return stripe_ui
+    stripe_ui = new STRIPE($("#smc-billing-tab"))
+    return stripe_ui
 
 templates = $(".smc-stripe-templates")
 
@@ -59,22 +61,33 @@ class STRIPE
         @element.find("a[href=#new-card]").click(@new_card)
         @element.find("a[href=#new-subscription]").click(@new_subscription)
 
+    update_customer: (cb) =>
+        salvus_client.stripe_get_customer
+            cb : (err, resp) =>
+                #log("stripe_get_customer #{err}, #{misc.to_json(resp)}")
+                if err or not resp.stripe_publishable_key
+                    $("#smc-billing-tab span").text("Billing is not yet available.")
+                    $(".smc-nonfree").hide()
+                    $(".smc-freeonly").show()
+                    cb(true)
+                else
+                    $(".smc-nonfree").show()
+                    $(".smc-freeonly").hide()
+                    Stripe.setPublishableKey(resp.stripe_publishable_key)
+                    @set_customer(resp.customer)
+                    cb()
+
     update: (cb) =>
         $(".smc-billing-tab-refresh-spinner").show().addClass('fa-spin')
         #log("update")
         async.series([
             (cb) =>
-                salvus_client.stripe_get_customer
-                    cb : (err, resp) =>
-                        #log("stripe_get_customer #{err}, #{misc.to_json(resp)}")
-                        if err or not resp.stripe_publishable_key
-                            $("#smc-billing-tab span").text("Billing is not yet available.")
-                            cb(true)
-                        else
-                            Stripe.setPublishableKey(resp.stripe_publishable_key)
-                            @set_customer(resp.customer)
-                            @render_cards_and_subscriptions()
-                            cb()
+                @update_customer (err) =>
+                    if err
+                        cb(err)
+                    else
+                        @render_cards_and_subscriptions()
+                        cb()
             (cb) =>
                 salvus_client.stripe_get_charges
                     cb: (err, charges) =>
@@ -131,14 +144,43 @@ class STRIPE
             @delete_card(card)
             return false
 
+        elt.find("a[href=#set-as-default]").click () =>
+            @set_card_as_default(card, elt.find("a[href=#set-as-default]"))
+            return false
+
         if @customer.default_card == card.id
-            elt.find(".smc-stripe-card-default").show()
+            elt.find("a[href=#set-as-default]").addClass("btn-primary").removeClass('btn-default').addClass('disabled')
 
         return elt
 
+    set_card_as_default: (card, elt, cb) =>
+        log("set_card_as_default")
+        m = "<h4 style='font-weight:bold'><i class='fa-warning-sign'></i>  Change Default Payment Method</h4>  Are you sure you want to use your #{card.brand} card by default for subscription and invoice payments?<br><br>"
+        bootbox.confirm m, (result) =>
+            if result
+                elt.icon_spin(start:true)
+                salvus_client.stripe_set_default_card
+                    card_id : card.id
+                    cb      : (err) =>
+                        if err
+                            elt.icon_spin(false)
+                            alert_message
+                                type    : "error"
+                                message : "Error trying to make your #{card.brand} card the default -- #{err}"
+                            cb?(err)
+                        else
+                            @update (err) =>
+                                elt.icon_spin(false)
+                                alert_message
+                                    type    : "info"
+                                    message : "Your #{card.brand} card will now be used by default for subscription and invoice payments."
+                                cb?(err)
+            else
+                cb?()
+
     delete_card: (card, cb) =>
         log("delete_card")
-        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Delete Payment Method</h4>  Are you sure you want to remove this #{card.brand} payment method?<br><br>"
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa fa-trash-o'></i>  Delete Payment Method</h4>  Are you sure you want to remove this <b>#{card.brand}</b> payment method?<br><br>"
         bootbox.confirm m, (result) =>
             if result
                 salvus_client.stripe_delete_card
@@ -147,15 +189,19 @@ class STRIPE
                         if err
                             alert_message
                                 type    : "error"
-                                message : "Error trying to delete card."
+                                message : "Error trying to delete your #{card.brand} card -- #{err}"
                         else
                             alert_message
                                 type    : "info"
-                                message : "Card deleted."
+                                message : "Your #{card.brand} card has been deleted."
                             @update()
                         cb?(err)
             else
                 cb?()
+
+    # this does not query the server -- it uses the last cached/known result.
+    has_a_billing_method: () =>
+        return @customer?.cards? and @customer.cards.data.length > 0
 
     render_cards: () =>
         log("render_cards")
@@ -170,9 +216,9 @@ class STRIPE
             elt_cards.append(@render_one_card(card))
 
         if cards.data.length > 1
-            panel.find("a[href=#change-default]").show()
+            panel.find("a[href=#set-as-default]").show()
         else
-            panel.find("a[href=#change-default]").hide()
+            panel.find("a[href=#set-as-default]").hide()
 
         if cards.has_more
             panel.find("a[href=#show-more]").show().click () =>
@@ -200,6 +246,7 @@ class STRIPE
 
         #elt.find(".smc-stripe-subscription-quantity").text(subscription.quantity)
 
+        titles = []
         if subscription.metadata.projects?
             salvus_client.get_project_titles
                 project_ids : misc.from_json(subscription.metadata.projects)
@@ -214,6 +261,8 @@ class STRIPE
                         a = $("<a style='margin-right:3em'>").text(misc.trunc(title,80)).data(id:project_id)
                         a.click(f)
                         e.append(a)
+                        titles.push(title)
+        desc = titles.join('; ')
 
 
         for k in ['start', 'current_period_start', 'current_period_end']
@@ -223,6 +272,13 @@ class STRIPE
 
         plan = subscription.plan
         elt.find(".smc-stripe-subscription-plan-name").text(plan.name)
+
+        elt.find("a[href=#cancel-subscription]").click () =>
+            @cancel_subscription
+                subscription_id : subscription.id
+                elt             : elt.find("a[href=#cancel-subscription]")
+                desc            : desc
+            return false
 
         # TODO: make currency more sophisticated
         elt.find(".smc-stripe-subscription-plan-amount").text("$#{plan.amount/100}/month")  #TODO!
@@ -254,6 +310,35 @@ class STRIPE
                 @show_all_subscriptions()
         else
             panel.find("a[href=#show-more]").hide()
+
+    cancel_subscription: (opts) =>
+        opts = defaults opts,
+            subscription_id : required
+            elt             : required
+            desc            : 'Project upgrade'
+            cb              : undefined
+        log("cancel_subscription")
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa fa-times'></i>  Cancel Subscription</h4>  Are you sure you want to cancel your nonfree subscription for <em>'#{opts.desc}'</em>?<br><br>This project will move to a non-commercial-use only datacenter.<br><br>"
+        bootbox.confirm m, (result) =>
+            if result
+                opts.elt.icon_spin(start:true)
+                salvus_client.stripe_cancel_subscription
+                    subscription_id : opts.subscription_id
+                    cb              : (err) =>
+                        opts.elt.icon_spin(false)
+                        if err
+                            alert_message
+                                type    : "error"
+                                message : "Error trying to cancel subscription for '#{opts.desc}' -- #{err}"
+                        else
+                            alert_message
+                                type    : "info"
+                                message : "Canceled project subscription for '#{opts.desc}' "
+                            @update()
+                        opts.cb?(err)
+            else
+                opts.cb?()
+
 
     set_charges: (charges) =>
         @charges = charges
@@ -299,12 +384,17 @@ class STRIPE
         else
             panel.find("a[href=#show-more]").hide()
 
-    new_card: () =>
+    new_card: (cb) =>   # cb?(true if created card; otherwise false)
         log("new_card")
         dialog = templates.find(".smc-stripe-new-card").clone()
         btn = dialog.find(".btn-submit")
-
-        submit = () =>
+        dialog.find(".smc-stripe-form-name").val(require('account').account_settings.fullname())
+        dialog.find(".smc-stripe-credit-card-number").focus()
+        submit = (do_it) =>
+            if not do_it
+                cb?(do_it)
+                dialog.modal('hide')
+                return
             form = dialog.find("form")
             btn.icon_spin(start:true).addClass('disabled')
             response = undefined
@@ -328,6 +418,7 @@ class STRIPE
                 else
                     @update()
                     dialog.modal('hide')
+                    cb?(do_it)
             )
             return false
 
@@ -349,6 +440,7 @@ class STRIPE
         dialog.submit(submit)
         dialog.find("form").submit(submit)
         btn.click(submit)
+        dialog.find(".btn-close").click(() => submit(false))
         dialog.modal()
         return false
 

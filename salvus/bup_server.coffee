@@ -1505,6 +1505,9 @@ class GlobalProject
             cb     : undefined
         dbg = (m) -> winston.debug("GlobalProject.move(#{@project_id}): #{m}")
         dbg()
+        if opts.target? and not misc.is_valid_uuid_string(opts.target)
+            opts.cb?("target (='#{opts.target}') must be a v4 uuid")
+            return
         current = undefined
         is_running = false
         async.series([

@@ -8,12 +8,12 @@
                     <div class="panel-heading">
                         <div class="row">
                             <div class="col-sm-3">
-                                <span class="panel-title"><i class="fa fa-level-up"></i>  Upgraded Projects</span>
+                                <span class="panel-title"><i class="fa fa-level-up"></i>  Nonfree Projects</span>
                             </div>
-                            <div class="col-sm-offset-4 cols-sm-5">
+                            <div class="col-sm-offset-4 cols-sm-5 hide">  <!-- disabled -- not sure we want this here -->
                                 <span class="pull-right" style="margin-right: 1em;">
                                     <a class="btn btn-primary disabled" href="#new-subscription">
-                                        <i class="fa fa-level-up"></i> Upgrade a Project...</a>
+                                        <i class="fa fa-plus-circle"></i> Upgrade Project...</a>
                                 </span>
                             </div>
                         </div>
@@ -32,51 +32,48 @@
             </div>
         </div>
         <!-- <div class="row">
-            <div class="col-sm-12">
-                <div class="panel panel-default smc-stripe-premium-support-panel">
-                    <div class="panel-heading">
-                        <div class="row">
-                            <div class="col-sm-3">
-                                <span class="panel-title">Paid Support</span>
-                            </div>
-                            <div class="col-sm-offset-4 cols-sm-5">
-                                <span class="pull-right" style="margin-right: 1em;">
-                                    <a class="btn btn-primary" href="#new-subscription">
-                                        <i class="fa fa-plus-circle"></i> Upgrade to Paid Support</a>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="panel-body">
-                        Get paid SageMathCloud support for only $5/month.
+<div class="col-sm-12">
+<div class="panel panel-default smc-stripe-premium-support-panel">
+<div class="panel-heading">
+<div class="row">
+<div class="col-sm-3">
+<span class="panel-title">Paid Support</span>
+</div>
+<div class="col-sm-offset-4 cols-sm-5">
+<span class="pull-right" style="margin-right: 1em;">
+<a class="btn btn-primary" href="#new-subscription">
+<i class="fa fa-plus-circle"></i> Upgrade to Paid Support</a>
+</span>
+</div>
+</div>
+</div>
+<div class="panel-body">
+Get paid SageMathCloud support for only $5/month.
 
-                        <h3>
-                            Benefits
-                        </h3>
-                        <ul>
-                           <li>We will prioritize support requests for you.</li>
-                           <li>Help support SageMathCloud at this very early and critical stage.</li>
-                        </ul>
+<h3>
+Benefits
+</h3>
+<ul>
+<li>We will prioritize support requests for you.</li>
+<li>Help support SageMathCloud at this very early and critical stage.</li>
+</ul>
 
-                    </div>
-                </div>
-            </div>
-        </div>-->
+</div>
+</div>
+</div>
+</div>-->
         <div class="row">
             <div class="col-sm-12">
                 <div class="panel panel-default smc-stripe-cards-panel hide">
                     <div class="panel-heading">
                         <div class="row">
                             <div class="col-sm-3">
-                                <span class="panel-title"><i class="fa fa-credit-card"></i>  Payment Methods</span>
+                                <span class="panel-title"><i class="fa fa-credit-card"></i>  Credit Cards</span>
                             </div>
                             <div class="col-sm-offset-7 cols-sm-5">
                                 <span class="pull-right" style="margin-right: 1em;">
-                                    <a class="btn btn-default" href="#change-default">
-                                        <i class="fa fa-check"></i> Change Default Method
-                                    </a>
                                     <a class="btn btn-primary" href="#new-card">
-                                        <i class="fa fa-plus-circle"></i> Add Payment Method...
+                                        <i class="fa fa-plus-circle"></i> Add Credit Card...
                                     </a>
                                 </span>
                             </div>
@@ -135,14 +132,12 @@
             <div class="col-sm-2">
                 <span class="smc-stripe-card-exp_month"></span>/<span class="smc-stripe-card-exp_year"></span>
             </div>
-            <div class="col-sm-offset-1 col-sm-1" style="padding-top: 4px;">
-                <span class="smc-stripe-card-default btn-primary hide">Default</span>
+            <div class="col-sm-2">
+                <a class="btn btn-default" href="#set-as-default"> Default</a>
             </div>
             <div class="col-sm-2">
-                <span class="pull-right">
-                    <!-- <a class="btn btn-default btn-sm" href="#update-card"><i class="fa fa-credit-card"></i> Edit</a> -->
-                    <a class="btn btn-default btn-sm" href="#delete-card"><i class="fa fa-credit-card"></i> Delete</a>
-                </span>
+                <!-- <a class="btn btn-default btn-sm" href="#update-card"><i class="fa fa-credit-card"></i> Edit</a> -->
+                <a class="btn btn-default pull-right" href="#delete-card"><i class="fa fa-trash-o"></i> Delete Card</a>
             </div>
         </div>
         <div class="row hide smc-strip-card-details">
@@ -161,17 +156,23 @@
                 <i class="fa fa-caret-right smc-stripe-subscription-show-details  smc-stripe-toggle"></i>
                 <i class="fa fa-caret-down smc-stripe-subscription-hide-details  smc-stripe-toggle hide"></i>
             </div>
-            <div class="col-sm-6">
+            <div class="col-sm-1 lighten">
+                Title:
+            </div>
+            <div class="col-sm-4">
                 <span class="smc-stripe-subscription-project-titles"></span>
             </div>
-            <div class="col-sm-3">
-                <!-- <span class="smc-stripe-subscription-quantity" style="margin-right: 5px;"></span> ×-->
-                <span class="smc-stripe-subscription-plan-name"></span>
-                (<span class="smc-stripe-subscription-plan-amount"></span>)
+            <div class="col-sm-1 lighten">
+                Plan:
             </div>
             <div class="col-sm-2">
+                <!-- <span class="smc-stripe-subscription-quantity" style="margin-right: 5px;"></span> ×-->
+                <span class="smc-stripe-subscription-plan-name"></span>
+                <span class="lighten">(<span class="smc-stripe-subscription-plan-amount"></span>)</span>
+            </div>
+            <div class="col-sm-3">
                 <span class="pull-right">
-                    <a class="btn btn-default btn-sm" href="#edit-subscription"><i class="fa fa-credit-card"></i> Edit</a>
+                    <a class="btn btn-default" href="#cancel-subscription"><i class="fa fa-times"></i> Cancel Subscription</a>
                 </span>
             </div>
         </div>
@@ -195,8 +196,10 @@
     <div class="smc-stripe-charge">
         <div class="row">
             <div class="col-sm-1">
-                <i class="fa fa-caret-right smc-stripe-charge-show-details smc-stripe-toggle"></i>
-                <i class="fa fa-caret-down smc-stripe-charge-hide-details smc-stripe-toggle hide"></i>
+                <span class="hide">
+                    <i class="fa fa-caret-right smc-stripe-charge-show-details smc-stripe-toggle"></i>
+                    <i class="fa fa-caret-down smc-stripe-charge-hide-details smc-stripe-toggle hide"></i>
+                </span>
             </div>
             <div class="col-sm-3">
                 <span class="smc-stripe-charge-amount"></span>
@@ -209,7 +212,6 @@
             </div>
         </div>
         <div class="row hide smc-stripe-charge-details">
-            (details)
         </div>
     </div>
 
@@ -217,11 +219,17 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header hidden-xs">
-                    <button type="button" class="close" data-dismiss="modal">×</button>
-                    <h2><i class="fa fa-credit-card"> </i> Add Payment Method</h2>
+                    <button type="button" class="close btn-close"  aria-label="Close"><span aria-hidden="true">×</span></button>
+                    <h3><i class="fa fa-credit-card"> </i> Add Credit Card</h3>
+                    <br>
+                    <div class="lighten">
+                        Enter a valid credit card so that you can run your project in a premium non-free data center.
+                    </div>
                 </div>
+
                 <div class="modal-body">
-                    <form  class="form-horizontal">
+                    <br>
+                    <form  class="form-horizontal lighten">
                         <div class="form-group smc-stripe-card-error-row hide">
                             <div class="col-sm-12" style="background: darkred; color: white;padding: 1em; font-size:13pt">
                                 <span class="smc-stripe-card-errors"></span>
@@ -260,20 +268,35 @@
 
                         <div class="form-group">
                             <label class="col-sm-4">
-                                <span>Expiration (MM/YYYY)</span>
+                                <span>Expiration (MM/YY)</span>
                             </label>
                             <div class="col-sm-8">
                                 <input class="form-control" style="display:inline;width:5em" placeholder="MM" type="text" size="2" data-stripe="exp-month" />
                                 <span> / </span>
-                                <input class="form-control" style="display:inline;width:7em"  placeholder="YYYY" type="text" size="4" data-stripe="exp-year"/>
+                                <input class="form-control" style="display:inline;width:5em"  placeholder="YY" type="text" size="2" data-stripe="exp-year"/>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-4">
+                                <span>Name on Card</span>
+                            </label>
+                            <div class="col-sm-8">
+                                <input class="form-control smc-stripe-form-name" placeholder="Name on Card" type="text" size="2" data-stripe="name" />
+                                <span>
                             </div>
                         </div>
 
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-default btn-md"  data-dismiss="modal">Cancel</button>
-                    <button class="btn btn-submit btn-primary btn-md" type="submit">Add Payment Method</button>
+                    <div class="pull-left">
+                        <a href="https://stripe.com" target="_blank">
+                            <span class="lighten">Powered by</span> <i class="fa fa-cc-stripe" style="font-size: 22pt; color: #008cdd; position: relative; top: 6px;"></i>
+                        </a>
+                    </div>
+                    <button class="btn btn-default btn-md btn-close" >Cancel</button>
+                    <button class="btn btn-submit btn-primary btn-md" type="submit">Add Credit Card</button>
                 </div>
             </div>
         </div>
@@ -316,7 +339,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group hide">
                             <label class="col-sm-3 lighten" style="font-size:12pt">
                                 <span>Coupon</span>
                             </label>

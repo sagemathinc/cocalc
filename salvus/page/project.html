@@ -1,20 +1,20 @@
 <!--
 SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and the Terminal.
 
-    Copyright (C) 2014, William Stein
+Copyright (C) 2014, William Stein
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 
@@ -678,7 +678,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                             <div class="panel panel-default">
                                 <div class="panel-heading">
                                     <div class="panel-title">
-                                        <i class="fa fa-header"> </i>&nbsp;&nbsp; Title and Description
+                                        <i class="fa fa-header"> </i>&nbsp;&nbsp; Title and description
                                     </div>
                                 </div>
                                 <div class="panel-body">
@@ -713,51 +713,51 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                     </div>
                                 </div>
                                 <div class="panel-body">
-                                <div class="row">
-                                    <div class="col-sm-4">
-                                    </div>
-                                    <div class="col-sm-8">
-                                        <div class="input-group">
-                                            <input type="search" class="project-add-collaborator-input form-control" placeholder="Search email addresses or names...">
-                                            <span class="input-group-btn">
-                                                <button class="btn btn-default project-add-collaborator-button" type="button">
-                                                    <i class="fa fa-search project-collaborator-search-loaded"> </i>
-                                                    <i class="fa fa-spinner fa-spin project-collaborator-search-loading hide"> </i>
-                                                </button>
-                                            </span>
+                                    <div class="row">
+                                        <div class="col-sm-4">
                                         </div>
+                                        <div class="col-sm-8">
+                                            <div class="input-group">
+                                                <input type="search" class="project-add-collaborator-input form-control" placeholder="Search email addresses or names...">
+                                                <span class="input-group-btn">
+                                                    <button class="btn btn-default project-add-collaborator-button" type="button">
+                                                        <i class="fa fa-search project-collaborator-search-loaded"> </i>
+                                                        <i class="fa fa-spinner fa-spin project-collaborator-search-loading hide"> </i>
+                                                    </button>
+                                                </span>
+                                            </div>
 
-                                        <select multiple="multiple" class="project-add-collaborator-select form-control hide"></select>
+                                            <select multiple="multiple" class="project-add-collaborator-select form-control hide"></select>
 
 
-                                        <div class="project-add-noncloud-collaborator hide">
-                                            <a href="#add-noncloud-collaborator" style="margin-bottom: 1ex; margin-top: 1ex;" class="btn btn-primary btn-lg">
-                                                <i class="fa fa-user"> </i> No matches.  Send Invitation...
-                                            </a>
-                                        </div>
-                                        <div class="project-add-collaborator hide">
-                                            <a href="#add-collaborator" style="margin-bottom: 1ex; display: inline-block;" class="btn btn-primary btn-lg" data-toggle="tooltip" data-placement="right" title="Add all selected users as collaborators on this project.">
-                                                <i class="fa fa-plus"> </i>Add Selected
-                                            </a>
-                                            <!-- NOT TRUE YET, so don't claim it!<br>
+                                            <div class="project-add-noncloud-collaborator hide">
+                                                <a href="#add-noncloud-collaborator" style="margin-bottom: 1ex; margin-top: 1ex;" class="btn btn-primary btn-lg">
+                                                    <i class="fa fa-user"> </i> No matches.  Send Invitation...
+                                                </a>
+                                            </div>
+                                            <div class="project-add-collaborator hide">
+                                                <a href="#add-collaborator" style="margin-bottom: 1ex; display: inline-block;" class="btn btn-primary btn-lg" data-toggle="tooltip" data-placement="right" title="Add all selected users as collaborators on this project.">
+                                                    <i class="fa fa-plus"> </i>Add Selected
+                                                </a>
+                                                <!-- NOT TRUE YET, so don't claim it!<br>
 <span class="lighten">(To confirm identity, search for the user's email address; they <i>must</i> have access to that email account in order to collaborate on the project.)</span>-->
+                                            </div>
+                                            <br>
+                                            <!-- <a class="hide" href="#invite-friend">Didn't find who you were looking for?</a> -->
                                         </div>
-                                        <br>
-                                        <!-- <a class="hide" href="#invite-friend">Didn't find who you were looking for?</a> -->
                                     </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-sm-12">
-                                        <span class="lighten">Collaborators can <b>modify anything</b> in this project, except <a href="#snapshot">snapshots</a>.  They can add other collaborators, but can't remove the owner.</span>
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <span class="lighten">Collaborators can <b>modify anything</b> in this project, except <a href="#snapshot">snapshots</a>.  They can add other collaborators, but can't remove the owner.</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-sm-12 project-collaborators-loading hide">
-                                        Loading collaborators... <i class="fa fa-spinner fa-spin"> </i>
+                                    <div class="row">
+                                        <div class="col-sm-12 project-collaborators-loading hide">
+                                            Loading collaborators... <i class="fa fa-spinner fa-spin"> </i>
+                                        </div>
+                                        <div class="col-sm-12 well well-sm project-collaborators project-connections lighten">
+                                        </div>
                                     </div>
-                                    <div class="col-sm-12 well well-sm project-collaborators project-connections lighten">
-                                    </div>
-                                </div>
                                 </div>
                             </div>
                         </div>
@@ -766,7 +766,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                             <div class="panel panel-default salvus-project-settings-heading-well">
                                 <div class="panel-heading">
                                     <div class="panel-title">
-                                        <i class="fa fa-gears"> </i>&nbsp;&nbsp; Project Server
+                                        <i class="fa fa-gears"> </i>&nbsp;&nbsp; Project server
                                     </div>
                                 </div>
                                 <div class="panel-body">
@@ -829,11 +829,11 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                             <div class="panel panel-default project-settings-static salvus-project-settings-heading-well">
                                 <div class="panel-heading">
                                     <div class="panel-title">
-                                        <i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Usage
+                                        <i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Project usage and quotas
                                     </div>
                                 </div>
                                 <div class="panel-body">
-                                    <div class="smc-upgrade-project">
+                                    <div class="smc-upgrade-project smc-freeonly hide">
                                         <a href="#upgrade-project" class="btn btn-success pull-right" data-toggle="tooltip" data-placement="top" title="Upgrade this project ">
                                             <i class="fa fa-star"> </i> Upgrade Project
                                         </a>
@@ -854,39 +854,87 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                             </span>
                                         </div>
                                     </div>
-                                    <a class="btn btn-default btn-sm project-quota-edit hide pull-right"> <i class="fa fa-pencil"> </i> Edit</a>
-                                    <span class="project-disk_usage">
-                                        <ul>
-                                            <li class="salvus-zfs-quotas"> Disk usage:
-                                                <b><span class="salvus-userused-projects">(loading...)</span> MB</b> of <b><div class="salvus-userquota-projects"></div> MB</b>
-                                            </li>
-
-                                            <li class="salvus-zfs-quotas"> <tt>/scratch</tt> disk usage:
-
-                                                <b><span class="salvus-userused-scratch">(loading...)</span> MB</b> of <b><div class="salvus-userquota-scratch"></div> MB</b>
-                                            </li>
-                                            <li>
-                                                CPU cores: <b><div class="salvus-project-settings-cores">(loading...)</div></b> (shared)
-                                            </li>
-
-                                            <li>
-                                                RAM: <b><div class="salvus-project-settings-memory">(loading...)</div> GB</b> (shared)
-                                            </li>
-
-                                            <li>
-                                                Timeout: <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <div class="salvus-project-settings-mintime">(loading...)</div> hours</b> of inactivity
-                                            </li>
-
-                                            <li>
-                                                CPU share: <b><div class="salvus-project-settings-cpu_shares">(loading...)</div></b>
-                                            </li>
-
-                                            <li>
-                                                Network access: <b><input type="checkbox" class="project-settings-network-access-checkbox hide"> <div class="salvus-project-settings-network">(loading...)</div></b>
-                                            </li>
-
-                                        </ul>
-                                    </span>
+                                    <div class="project-disk_usage">
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <a class="btn btn-warning btn-sm project-quota-edit hide pull-right" style="margin-bottom:10px"> <i class="fa fa-pencil"> </i>  Edit as Administrator </a>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                Location
+                                                <span class="smc-project-moving hide">moving...<i class="fa fa-spinner fa-spin"></i></span>
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <span class="smc-project-location hide">(loading...)</span>
+                                                <select class="smc-project-location-select form-control">
+                                                    <option value="dc0">Seattle-1 (free, limited network, slower cpu)</option>
+                                                    <option value="dc1">Seattle-2 (free, limited network, slower cpu)</option>
+                                                    <option value="dc2">Google us-central1-a (free, limited network)</option>
+                                                    <option class="smc-nonfree hide" value="dc5">Google us-central1-f (nonfree, fast cpu)</option>
+                                                    <option class="smc-nonfree hide" value="dc6">Google europe-west1-c (nonfree, fast cpu)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="row salvus-zfs-quotas">
+                                            <div class="col-sm-4 lighten">
+                                                Disk usage:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-userused-projects">(loading...)</span> MB</b> used of your <b><span class="salvus-userquota-projects"></span> MB</b> quota
+                                            </div>
+                                        </div>
+                                        <div class="row salvus-zfs-quotas">
+                                            <div class="col-sm-4 lighten">
+                                                <tt>/scratch</tt> disk usage:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-userused-scratch">(loading...)</span> MB</b> used of your <b><span class="salvus-userquota-scratch"></span> MB</b> quota
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                CPU cores:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-project-settings-cores">(loading...)</span> core</b> quota
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                RAM:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-project-settings-memory">(loading...)</span> GB</b> RAM quota
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                Timeout:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <span class="salvus-project-settings-mintime">(loading...)</span> hours</b> of inactivity until project automatically stops <span class="lighten smc-project-location-free hide">(increase by moving to non-free data center)</span>
+                                            </div>
+                                        </div>
+                                        <div class="row hide">  <!-- hide due to being unclear -->
+                                            <div class="col-sm-4 lighten">
+                                                CPU share:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-project-settings-cpu_shares">(loading...)</span></b>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                External network access:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><input type="checkbox" class="project-settings-network-access-checkbox hide"> <span class="salvus-project-settings-network">(loading...)</span></b> <span class="lighten smc-project-location-free hide">(enable by moving to non-free data centers)</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -896,7 +944,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                             <div class="panel panel-default salvus-project-settings-heading-well">
                                 <div class="panel-heading">
                                     <div class="panel-title">
-                                        <i class="fa fa-refresh"> </i>&nbsp;&nbsp;  Sage Worksheet Server
+                                        <i class="fa fa-refresh"> </i>&nbsp;&nbsp;  Sage worksheet server
                                     </div>
                                 </div>
                                 <div class="panel-body">
@@ -919,7 +967,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                             <div class="panel panel-default salvus-project-settings-heading-well">
                                 <div class="panel-heading">
                                     <div class="panel-title">
-                                        <i class="fa fa-warning"> </i>&nbsp;&nbsp; Hide or Delete Project
+                                        <i class="fa fa-warning"> </i>&nbsp;&nbsp; Hide or delete project
                                     </div>
                                 </div>
                                 <div class="panel-body">
@@ -984,7 +1032,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                             <div class="panel panel-default salvus-project-settings-heading-well">
                                 <div class="panel-heading">
                                     <div class="panel-title">
-                                        <i class="fa fa-gears"> </i>&nbsp;&nbsp;  Project Configuration
+                                        <i class="fa fa-gears"> </i>&nbsp;&nbsp;  Project configuration
                                     </div>
                                 </div>
                                 <div class="panel-body">
@@ -1199,39 +1247,75 @@ Recent Files (<span class="project-editor-file-count">0</span>)
 </div>
 
 <!-- Network access payment -->
-<div class="modal" id="projects-network-access-payment" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+<div class="modal smc-move-project-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header hidden-xs">
-                <button type="button" class="close" data-dismiss="modal">×</button>
-                <h2><i class="fa fa-sitemap"> </i> Purchase Network Access</h2>
+            <div class="modal-header">
+                <button type="button" class="close btn-close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                <h3 class="modal-title"><i class="fa fa-globe"> </i> Move Project</h3>
+                <br>
                 <div class="lighten">
-                    Get access to the rest of the internet for a month.
+                    Move your project to a different data center.
                 </div>
             </div>
             <div class="modal-body">
-                <!-- title -->
-                <div>
-                    <h4 class="hidden-xs">Title</h4>
-                    <input type="text" style="width:95%" placeholder="Title (you can easily change this later)" id="projects-create_project-title" class="form-control">
+
+                <div class="smc-move-project-dialog-confirm-move" style="font-size:13pt">
+                    Are you sure you want to move this project to <span class="smc-move-project-dialog-desc"></span>?
                 </div>
 
-                <!-- description -->
-                <div>
-                    <h4 class="hidden-xs">Description</h4>
-                    <input type="text" style="width:95%" placeholder="No description" id="projects-create_project-description" class="form-control">
+                <div class="smc-move-project-dialog-nonfree hide">
+                    <br>
+                    <div class="checkbox well" style="font-size:13pt">
+                        <label>
+                            <input type="checkbox" class="smc-move-project-dialog-pay-checkbox"> I agree to pay <span class="smc-move-project-dialog-monthly-price">$10</span>/month for a subscription to run this project in a non-free data center.
+                            <span style="color:red">*</span>
+                        </label>
+                    </div>
                 </div>
-
-                <div>
-                    <span class="hidden-xs lighten">You can change the title and description at any time later.</span>
-                </div>
+                <hr>
+                <ul class="lighten">
+                    <li>
+                        Your project may be unavailable for a few minutes while your files are copied.
+                    </li>
+                    <li class='hide smc-move-project-dialog-free'>
+                        The target data center only runs free projects, which compete for limited resources on slower computers.
+                    <li class="hide smc-move-project-dialog-free">
+                        You agree to only use free projects for <em><strong>non-commercial purposes</strong></em>,
+                        e.g., academic research.
+                    </li>
+                    <li class="hide smc-move-project-dialog-free">
+                        Network access, cpu time and other quotas are severely restricted for free projects.
+                    </li>
+                    <li class='hide smc-move-project-dialog-nonfree'>
+                        The target data center <strong>only</strong> runs non-free projects.
+                    <li class="hide smc-move-project-dialog-nonfree">
+                        You may use non-free projects for <em><strong>commercial purposes</strong></em>.
+                    </li>
+                    <li class="hide smc-move-project-dialog-nonfree">
+                        Network access, cpu time, and other quotas are less restrictive for non-free projects.
+                    </li>
+                    <!-- <li class="hide smc-move-project-dialog-nonfree">
+                        View your subscriptions in the <a href="#billing-page">billing tab of account settings</a>.
+                    </li> -->
+                    <li class='hide smc-move-project-dialog-nonfree'>
+                        <strong>Warning:</strong>
+                        If you have any questions about billing or problems, please email us at
+                        <a href="mailto:billing@sagemath.com" target="_blank">billing@sagemath.com</a>
+                        immediately.
+                    </li>
+                </ul>
 
             </div>
             <!-- do it -->
             <div class="modal-footer">
-                <button class="btn btn-default btn-md" id="projects-create_project-button-cancel">Cancel</button>
-                <button class="btn btn-primary btn-md" type="submit" id="projects-create_project-button-create_project">Create Project</button>
+                <button class="btn btn-default btn-close btn-md">Cancel</button>
+                <button class="btn btn-primary btn-submit btn-md smc-move-project-dialog-free hide" type="submit">Move Project</button>
+                <button class="btn btn-primary btn-submit btn-md smc-move-project-dialog-nonfree hide disabled" type="submit">Move Project</button>
             </div>
         </div>
     </div>
 </div>
+
+
+
