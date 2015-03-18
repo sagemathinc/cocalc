@@ -154,6 +154,15 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
    echo $'\n'"deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main"$'\n' >> /etc/apt/sources.list && apt-get update && sudo apt-get install open-axiom*
 
 
+# Primesieve
+
+As root do
+
+    cd /tmp && iptables -F && wget http://dl.bintray.com/kimwalisch/primesieve/primesieve-5.4.1.tar.gz && tar xf primesieve-5.4.1.tar.gz && cd primesieve-5.4.1 && ./configure && make -j 10 && make install && rm -rf /tmp/primesieve*
+
+Check http://primesieve.org/build.html for the latest version.
+
+
 # OpenCV Computer Vision:
 
     # See http://stackoverflow.com/questions/26592577/installing-opencv-in-ubuntu-14-10
@@ -652,6 +661,7 @@ class BuildSage(object):
         self.install_gdal()
         self.install_stein_watkins()
         self.install_jsanimation()
+        self.install_psage()
 
         self.clean_up()
         self.extend_sys_path()
@@ -679,6 +689,9 @@ class BuildSage(object):
 
     def install_jsanimation(self):
         self.cmd("cd /tmp && rm -rf JSAnimation && git clone https://github.com/jakevdp/JSAnimation.git && cd JSAnimation && python setup.py install && rm -rf /tmp/JSAnimation")
+
+    def install_psage(self):
+        self.cmd("cd /tmp/&& rm -rf psage && git clone git@github.com:williamstein/psage.git&& cd psage&& sage setup.py install && rm -rf /tmp/psage")
 
     def patch_sage_location(self):
         """
