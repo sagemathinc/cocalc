@@ -56,7 +56,6 @@ localhost    {'hostname':'smc4dc5', 'disk':'cassandra-ext4:50', 'instance_type':
 localhost    {'hostname':'smc5dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 localhost    {'hostname':'smc6dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 localhost    {'hostname':'smc7dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
-localhost    {'hostname':'smc8dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 
 #localhost    {'hostname':'compute1dc5', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'us-central1-f'}
 #localhost    {'hostname':'compute2dc5', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'us-central1-f'}
@@ -71,7 +70,6 @@ localhost    {'hostname':'smc4dc6', 'disk':'cassandra-ext4:50', 'instance_type':
 localhost    {'hostname':'smc5dc6', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
 localhost    {'hostname':'smc6dc6', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
 localhost    {'hostname':'smc7dc6', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
-localhost    {'hostname':'smc8dc6', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
 
 #localhost    {'hostname':'compute1dc6', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-c'}
 #localhost    {'hostname':'compute2dc6', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-c'}
