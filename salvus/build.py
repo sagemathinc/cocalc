@@ -474,7 +474,9 @@ SAGE_PIP_PACKAGES = [
     'brewer2mpl',
     'ggplot',
     'periodictable'
-    'nltk'
+    'nltk',
+    'param',
+    'holoviews'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -530,6 +532,7 @@ SAGE_OPTIONAL_PACKAGES = [
     'database_kohel',
     'database_symbolic_data',
     'dot2tex',
+    'gambit',
     'gap_packages',
     'gnuplotpy',
     'guppy',

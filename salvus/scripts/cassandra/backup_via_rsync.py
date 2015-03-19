@@ -23,7 +23,7 @@ def backup_cassandra(dc, hosts):
         for s in ['snapshots', 'backups']:
             print host, s
             cmd2("mkdir -p %s/latest/%s/%s/"%(TARGET,host,s))
-            cmd2("time rsync -axH --delete --include '/*' --include '/*/*' --include='*/*/%s/***' --exclude='*' %s:/mnt/cassandra/lib/data/ %s/latest/%s/%s/ "%(s, host, TARGET, host, s))
+            cmd2("time rsync -axH --delete --include '/*' --include '/*/*' --include='*/*/%s/***' --exclude='*' %s:/mnt/cassandra/data/data/ %s/latest/%s/%s/ "%(s, host, TARGET, host, s))
 
     # then save them via bup to a snapshot
     BUP_DIR = "%s/bup"%TARGET
@@ -41,4 +41,4 @@ def backup_cassandra(dc, hosts):
     # more efficient.
 
 if __name__ == "__main__":
-    backup_cassandra(5, ['smc%sdc5'%i for i in range(1,9)])
+    backup_cassandra(5, ['smc%sdc5'%i for i in range(1,8)])
