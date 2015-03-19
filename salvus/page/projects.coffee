@@ -25,6 +25,8 @@
 # View and manipulate the list of user projects
 #
 ###################################################
+async = require('async')
+
 
 {salvus_client} = require('salvus_client')
 {top_navbar}    = require('top_navbar')
@@ -40,25 +42,84 @@ templates = $(".salvus-projects-templates")
 project_list = undefined
 hidden_project_list = undefined
 
+# get project info, using local cache if possible
+exports.get_project_info = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required
+    if project_list?
+        for p in project_list
+            if p.project_id == project
+                opts.cb(undefined, p)
+                return
+    if hidden_project_list?
+        for p in project_list
+            if p.project_id == project
+                opts.cb(undefined, p)
+                return
+    # have to get info from database.
+    salvus_client.project_info
+        project_id : opts.project_id
+        cb         : opts.cb
+
 # Return last downloaded project list
 exports.get_project_list = (opts) ->
     opts = defaults opts,
-        update : false     # if false used cached local version if available,
-                           # though it may be out of date
-        cb     : undefined  # cb(err, project_list)
-    if not opts.update and project_list?
-        opts.cb?(undefined, project_list)
-        return
-    salvus_client.get_projects
-        hidden : false
-        cb: (err, mesg) ->
-            if err
-                opts.cb?(err)
-            else if mesg.event == 'error'
-                opts.cb?(mesg.error)
-            else
-                project_list = mesg.projects
-                opts.cb?(undefined, project_list)
+        update   : false      # if false used cached local version if available,
+                              # though it may be out of date
+        hidden   : false      # whether to list hidden projects (if false don't list any hidden projects; if true list only hidden projects)
+
+        select   : undefined  # if given, populate with selectable list of all projects
+        select_exclude : undefined # if given, list of project_id's to exclude from select
+        number_recent : 7     # number of recent projects to include at top if selector is given.
+
+        cb       : undefined  # cb(err, project_list)
+
+    update_list = (cb) ->
+        if not opts.update and ((project_list? and not opts.hidden) or (hidden_project_list? and opts.hidden))
+            # done
+            cb()
+        else
+            salvus_client.get_projects
+                hidden : opts.hidden
+                cb     : (err, mesg) ->
+                    if err
+                        cb(err)
+                    else if mesg.event == 'error'
+                        cb(mesg.error)
+                    else
+                        if opts.hidden
+                            hidden_project_list = mesg.projects
+                        else
+                            project_list = mesg.projects
+                        cb()
+    update_list (err) ->
+        if err
+            opts.cb?(err)
+        else
+            projects = if opts.hidden then hidden_project_list else project_list
+            if opts.select?
+                select = opts.select
+                exclude = {}
+                if opts.select_exclude?
+                    for project_id in opts.select_exclude
+                        exclude[project_id] = true
+                v = ({project_id:x.project_id, title:x.title.slice(0,80)} for x in projects when not exclude[x.project_id])
+                # First list newest projects
+                for project in v.slice(0,opts.number_recent)
+                    select.append("<option value='#{project.project_id}'>#{project.title}</option>")
+                v.sort (a,b) ->
+                    if a.title < b.title
+                        return -1
+                    else if a.title > b.title
+                        return 1
+                    return 0
+                # Now list all projects, if there are any more
+                if v.length > opts.number_recent
+                    select.append('<option class="select-dash" disabled="disabled">----</option>')
+                    for project in v
+                        select.append("<option value='#{project.project_id}'>#{project.title}</option>")
+            opts.cb?(undefined, projects)
 
 project_hashtags = {}
 compute_search_data = () ->

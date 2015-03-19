@@ -701,18 +701,18 @@ class Hub(Process):
 # environ variable for conf/ dir:  CASSANDRA_CONF
 
 class Cassandra(Process):
-    def __init__(self, topology=None, path=None, id=0, monitor_database=None, conf_template_path=None,
-                 MAX_HEAP_SIZE=None,  HEAP_NEWSIZE=None,
+    def __init__(self,
+                 topology           = None,
+                 path               = None,   # CASSANDRA_HOME
+                 id                 = 0,
+                 monitor_database   = None,
+                 conf_template_path = None,
+                 MAX_HEAP_SIZE      = None,
+                 HEAP_NEWSIZE       = None,
                  **kwds):
         """
         id -- arbitrary identifier
         conf_template_path -- path that contains the initial conf files
-
-        MAX_HEAP_SIZE, HEAP_NEWSIZE -- use these if your computer has a lot of memory,
-        but you don't want to devote very much to cassandra; if you don't constrain it
-        this way, Cassandra uses its own internal memory.  E.g., on a large-memory
-        machine with strong per-user limits, use
-                MAX_HEAP_SIZE="4G",  HEAP_NEWSIZE="800M"
         """
 
         if MAX_HEAP_SIZE is not None:
@@ -727,20 +727,19 @@ class Cassandra(Process):
 
         path = os.path.join(DATA, 'cassandra-%s'%id) if path is None else path
         makedirs(path)
-        log_path = os.path.join(path, 'log'); makedirs(log_path)
-        lib_path = os.path.join(path, 'lib'); makedirs(lib_path)
+        os.environ['CASSANDRA_HOME'] = path
+
+        logs_path = os.path.join(path, 'logs'); makedirs(logs_path)
         conf_path = os.path.join(path, 'conf'); makedirs(conf_path)
 
         if topology:
             kwds['endpoint_snitch'] = 'org.apache.cassandra.locator.PropertyFileSnitch'
-            kwds['class_name'] = 'org.apache.cassandra.locator.SimpleSeedProvider'
+            kwds['class_name']      = 'org.apache.cassandra.locator.SimpleSeedProvider'
 
         for name in os.listdir(conf_template_path):
             f = os.path.join(conf_template_path, name)
             if not os.path.isfile(f): continue
             r = open(f).read()
-            r = r.replace('/var/log/cassandra', log_path)
-            r = r.replace('/var/lib/cassandra', lib_path)
 
             if name == 'cassandra.yaml':
                 for k,v in kwds.iteritems():
@@ -774,7 +773,7 @@ class Cassandra(Process):
 
         pidfile = os.path.join(PIDS, 'cassandra-%s.pid'%id)
         Process.__init__(self, id=id, name='cassandra', port=9160,
-                         logfile = '%s/system.log'%log_path,
+                         logfile = '%s/system.log'%logs_path,
                          pidfile = pidfile,
                          start_cmd = ['start-cassandra',  '-c', conf_path, '-p', pidfile],
                          monitor_database=monitor_database)

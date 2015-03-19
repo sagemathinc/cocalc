@@ -186,6 +186,7 @@ init_http_server = () ->
             when "alive"
                 if not database_is_working
                     # this will stop haproxy from routing traffic to us until db connection starts working again.
+                    winston.debug("alive: answering *NO*")
                     res.writeHead(404, {'Content-Type':'text/plain'})
                 res.end('')
             when "proxy"
@@ -790,6 +791,8 @@ class Client extends EventEmitter
             for id,f of c.call_callbacks
                 f("connection closed")
             delete c.call_callbacks
+        for h in all_local_hubs
+            h.free_resources_for_client_id(@id)
 
     remember_me_failed: (reason) =>
         #winston.debug("client(id=#{@id}): remember_me_failed(#{reason})")
@@ -806,10 +809,12 @@ class Client extends EventEmitter
             @remember_me_failed("invalid remember_me cookie")
             return
         hash = generate_hash(x[0], x[1], x[2], x[3])
+        winston.debug("checking for remember_me cookie with hash='#{hash}'")
         @remember_me_db.get
             key         : hash
             #consistency : cql.types.consistencies.one
             cb          : (error, signed_in_mesg) =>
+                winston.debug("remember_me: got error=#{error}, signed_in_mesg=#{misc.to_json(signed_in_mesg)}")
                 if error
                     @remember_me_failed("error accessing database")
                     return
@@ -3105,6 +3110,20 @@ class Client extends EventEmitter
                 else
                     @success_to_client(id:mesg.id)
 
+    # set a payment method for this user to be the default
+    mesg_stripe_set_default_card: (mesg) =>
+        if not @ensure_fields(mesg, 'card_id')
+            return
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            stripe.customers.update customer_id, {default_card:mesg.card_id}, (err, confirmation) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
+
+
     # modify a payment method
     mesg_stripe_update_card: (mesg) =>
         if not @ensure_fields(mesg, 'card_id info')
@@ -3176,7 +3195,7 @@ class Client extends EventEmitter
                         cb : (err) =>
                             if err
                                 cb(err)
-                                # BAD situation -- adding to our database failed.
+                                # BAD unlikely situation -- adding to our database failed.
                                 # Try to at least cancel the subscription to stripe - likely to work, since
                                 # creating subscription above just worked.
                                 stripe.customers.cancelSubscription customer_id, subscription.id, (err, s) =>
@@ -3186,7 +3205,7 @@ class Client extends EventEmitter
                                         send_email
                                             to      : 'help@sagemath.com'
                                             subject : "Stripe billing issue **needing** human inspection"
-                                            body    : "Issue creating subscription.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription.id}"
+                                            body    : "Issue creating subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription.id} -- #{err}"
                             else
                                 cb()
             ], (err) =>
@@ -3200,12 +3219,176 @@ class Client extends EventEmitter
 
     # cancel a subscription for this user
     mesg_stripe_cancel_subscription: (mesg) =>
+        if not @ensure_fields(mesg, 'subscription_id')
+            return
+        if mesg.at_period_end
+            # don't support this yet, since we first have to make
+            # sure projects don't get unsubscribed immediately.
+            @error_to_client(id:mesg.id, error:"stripe cancel subscription at_period_end option net yet supported")
+            return
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+
+            projects        = undefined
+            subscription_id = mesg.subscription_id
+            async.series([
+                (cb) =>
+                    # Cancel the subscription.  This also returns the subscription, which lets
+                    # us easily get the metadata of all projects associated to this subscription.
+                    stripe.customers.cancelSubscription customer_id, subscription_id, (err, subscription) =>
+                        if err
+                            cb(err)
+                        else
+                            if subscription.metadata?.projects?
+                                projects = misc.from_json(subscription.metadata.projects)
+                            cb()
+                (cb) =>
+                    if not projects?
+                        cb(); return
+                    # remove subscription from projects
+                    database.cql
+                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions-{'#{subscription_id}'} WHERE project_id IN (#{projects.join(',')})"
+                        cb : (err) =>
+                            if err
+                                cb(err)
+                                # BAD unlikely situation -- removing from our database failed.
+                                send_email
+                                    to      : 'help@sagemath.com'
+                                    subject : "Stripe billing issue **needing** human inspection"
+                                    body    : "Issue removing subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription_id} -- #{err}"
+                            else
+                                cb()
+            ], (err) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
+            )
+
 
     # edit a subscription for this user
     mesg_stripe_update_subscription: (mesg) =>
+        if not @ensure_fields(mesg, 'subscription_id')
+            return
+        subscription_id = mesg.subscription_id
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            # sanity check that each thing in mesg.project is a uuid.
+            if mesg.projects?
+                for project_id in mesg.projects
+                    if not misc.is_valid_uuid_string(project_id)
+                        @error_to_client(id:mesg.id, error:"invalid project id #{project_id}")
+                        return
+            subscription = undefined
+            projects0    = undefined
+            projects     = undefined
+            quantity     = undefined
+
+            async.series([
+                (cb) =>
+                    # If changing the projects or quantity, get the current subscription.
+                    if mesg.projects? or mesg.quantity?
+                        stripe.customers.retrieveSubscription  customer_id, subscription_id, (err, s) =>
+                            if err
+                                cb(err)
+                            else
+                                # Do consistency check
+                                projects0 = if s.metadata.projects? then misc.from_json(s.metadata.projects) else []
+                                projects  = if mesg.projects? then mesg.projects else projects0
+                                quantity  = if mesg.quantity? then mesg.quantity else s.quantity
+                                if projects? and projects.length > quantity
+                                    cb("number of projects (=#{projects.length}) must be less than quantity (=#{quantity})")
+                                else
+                                    subscription = s
+                                    cb()
+                    else
+                        cb()
+                (cb) =>
+                    # Update the subscription.  This also returns the subscription, which lets
+                    # us easily get the metadata of all projects associated to this subscription.
+                    changes =
+                        quantity : mesg.quantity
+                        plan     : mesg.plan
+                        coupon   : mesg.coupon
+                    if mesg.projects?
+                        changes.metadata = {projects:misc.to_json(mesg.projects)}
+                    stripe.customers.updateSubscription customer_id, subscription_id, changes, (err, subscription) =>
+                        if err
+                            cb(err)
+                        else
+                            cb()
+                (cb) =>
+                    to_delete = (project_id for project_id in projects0 when project_id not in projects)
+                    if to_delete.length == 0
+                        cb(); return
+                    # remove subscription from projects
+                    database.cql
+                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions-{'#{subscription_id}'} WHERE project_id IN (#{to_delete.join(',')})"
+                        cb : (err) =>
+                            if err
+                                cb() # still want to try adding
+                                send_email
+                                    to      : 'help@sagemath.com'
+                                    subject : "Stripe billing issue **needing** human inspection"
+                                    body    : "Issue removing subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription_id} -- #{err}"
+                            else
+                                cb()
+                (cb) =>
+                    to_add = (project_id for project_id in projects when project_id not in projects0)
+                    if to_add.length == 0
+                        cb(); return
+                    # add subscriptions to projects
+                    database.cql
+                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions+{'#{subscription_id}'} WHERE project_id IN (#{to_add.join(',')})"
+                        cb : (err) =>
+                            if err
+                                cb(err)
+                                send_email
+                                    to      : 'help@sagemath.com'
+                                    subject : "Stripe billing issue **needing** human inspection"
+                                    body    : "Issue adding subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription_id} -- #{err}"
+                            else
+                                cb()
+            ], (err) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
+            )
+
+    # get a list of all the subscriptions that this customer has
+    mesg_stripe_get_subscriptions: (mesg) =>
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            options =
+                limit          : mesg.limit
+                ending_before  : mesg.ending_before
+                starting_after : mesg.starting_after
+            stripe.customers.listSubscriptions customer_id, options, (err, subscriptions) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.stripe_subscriptions(id:mesg.id, subscriptions:subscriptions))
 
     # get a list of all the charges this customer has ever had.
     mesg_stripe_get_charges: (mesg) =>
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            options =
+                customer       : customer_id
+                limit          : mesg.limit
+                ending_before  : mesg.ending_before
+                starting_after : mesg.starting_after
+            stripe.charges.list options, (err, charges) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.stripe_charges(id:mesg.id, charges:charges))
+
 
 
 ##############################
@@ -3694,10 +3877,18 @@ new_local_hub = (project_id) ->    # cb(err, hub)
         _local_hub_cache[project_id] = H
     return H
 
+all_local_hubs = () ->
+    v = []
+    for k, h of _local_hub_cache
+        if h?
+            v.push(h)
+    return v
+
 class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
     constructor: (@project_id) ->
         @_local_hub_socket_connecting = false
-        @_sockets = {}
+        @_sockets = {}  # key = session_uuid:client_id
+        @_sockets_by_client_id = {}   #key = client_id, value = list of sockets for that client
         @_multi_response = {}
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
@@ -3736,25 +3927,18 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             catch e
                 winston.debug("free_resources: exception closing a socket: #{e}")
         @_sockets = {}
+        @_sockets_by_client_id = {}
 
-    # Send a JSON message to a session.
-    # NOTE -- This makes no sense for console sessions, since they use a binary protocol,
-    # but makes sense for other sessions.
-    send_message_to_session: (opts) =>
-        opts = defaults opts,
-            message      : required
-            session_uuid : required
-            cb           : undefined   # cb?(err)
-
-        socket = @_sockets[opts.session_uuid]
-        if not socket?
-            opts.cb?("Session #{opts.session_uuid} is no longer open.")
-            return
-        try
-            socket.write_mesg('json', opts.message)
-            opts.cb?()
-        catch e
-            opts.cb?("Error sending message to session #{opts.session_uuid} -- #{e}")
+    free_resources_for_client_id: (client_id) =>
+        v = @_sockets_by_client_id[client_id]
+        if v?
+            @dbg("free_resources_for_client_id(#{client_id}) -- #{v.length} sockets")
+            for socket in v
+                try
+                    socket.end()
+                catch e
+                    # do nothing
+            delete @_sockets_by_client_id[client_id]
 
     # handle incoming JSON messages from the local_hub that do *NOT* have an id tag,
     # except those in @_multi_response.
@@ -3807,13 +3991,14 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @_local_hub_socket_connecting = true
         @_local_hub_socket_queue = [cb]
         connecting_timer = undefined
+
         cancel_connecting = () =>
             @_local_hub_socket_connecting = false
             @_local_hub_socket_queue = []
             clearTimeout(connecting_timer)
 
-        # If below fails for 60s for some reason, allow for future attempt.
-        connecting_timer = setTimeout(cancel_connecting, 60000)
+        # If below fails for 20s for some reason, cancel everything to allow for future attempt.
+        connecting_timer = setTimeout(cancel_connecting, 20000)
 
         @dbg("local_hub_socket: getting new socket")
         @new_socket (err, socket) =>
@@ -3928,6 +4113,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
     _open_session_socket: (opts) =>
         opts = defaults opts,
+            client_id    : required
             session_uuid : required
             type         : required  # 'sage', 'console'
             params       : required
@@ -3941,13 +4127,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         # plug this socket into an existing session with the given session_uuid, or
         # create a new session with that uuid and plug this socket into it.
 
-        socket = @_sockets[opts.session_uuid]
+        key = "#{opts.session_uuid}:#{opts.client_id}"
+        socket = @_sockets[key]
         if socket?
             try
+                winston.debug("ending local_hub socket for #{key}")
                 socket.end()
             catch e
                 @dbg("_open_session_socket: exception ending existing socket: #{e}")
-            delete @_sockets[opts.session_uuid]
+            delete @_sockets[key]
 
         socket = undefined
         async.series([
@@ -3958,7 +4146,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         cb(err)
                     else
                         socket = _socket
-                        @_sockets[opts.session_uuid] = socket
+                        @_sockets[key] = socket
+                        if not @_sockets_by_client_id[opts.client_id]?
+                            @_sockets_by_client_id[opts.client_id] = [socket]
+                        else
+                            @_sockets_by_client_id[opts.client_id].push(socket)
                         cb()
             (cb) =>
                 mesg = message.connect_to_session
@@ -4012,13 +4204,14 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             params       : {command: 'bash'}
             session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
             cb           : required    # cb(err, [session_connected message])
-        @dbg("connect client to a console session")
+        @dbg("connect client to console session -- session_uuid=#{opts.session_uuid}")
         # Connect to the console server
         if not opts.session_uuid?
             # Create a new session
             opts.session_uuid = uuid.v4()
 
         @_open_session_socket
+            client_id    : opts.client.id
             session_uuid : opts.session_uuid
             project_id   : opts.project_id
             type         : 'console'
@@ -4028,9 +4221,10 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     opts.cb(err)
                     return
 
-                ignore = false
+                console_socket._ignore = false
                 console_socket.on 'end', () =>
-                    ignore = true
+                    winston.debug("console_socket (session_uuid=#{opts.session_uuid}): received 'end' so setting ignore=true")
+                    console_socket._ignore = true
                     delete @_sockets[opts.session_uuid]
 
                 # Plug the two consoles together
@@ -4040,8 +4234,10 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # (This uses our system for multiplexing JSON and multiple binary streams
                 #  over one single connection.)
                 recently_sent_reconnect = false
+                #winston.debug("installing data handler -- ignore='#{console_socket._ignore}")
                 channel = opts.client.register_data_handler (data) =>
-                    if not ignore
+                    #winston.debug("handling data -- ignore='#{console_socket._ignore}")
+                    if not console_socket._ignore
                         console_socket.write(data)
                     else
                         # send a reconnect message, but at most once every 5 seconds.
@@ -4266,7 +4462,7 @@ class Project
             target : undefined   # optional prefered target
             cb : undefined
         @dbg("move_project")
-        @local_hub.move_project(opts)
+        @local_hub.move(opts)
 
     undelete_project: (opts) =>
         opts = defaults opts,
