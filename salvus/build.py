@@ -158,7 +158,7 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
 
 As root do
 
-    cd /tmp && iptables -F && wget http://dl.bintray.com/kimwalisch/primesieve/primesieve-5.4.1.tar.gz && tar xf primesieve-5.4.1.tar.gz && cd primesieve-5.4.1 && ./configure && make -j 10 && make install && rm -rf /tmp/primesieve*
+    cd /tmp && wget http://dl.bintray.com/kimwalisch/primesieve/primesieve-5.4.1.tar.gz && tar xf primesieve-5.4.1.tar.gz && cd primesieve-5.4.1 && ./configure && make -j 10 && make install && rm -rf /tmp/primesieve*
 
 Check http://primesieve.org/build.html for the latest version.
 
