@@ -1512,6 +1512,26 @@ class Monitor(object):
         print s
         return json.loads(s)
 
+    def disk_usage(self, hosts='all', disk_threshold=90):
+        """
+        Verify that no disk is more than disk_threshold (=90%).
+        """
+        cmd = "df --output=pcent |sort -n |tail -1"
+        ans = []
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=30).iteritems():
+            d = {'host':k[0], 'service':'disk_usage'}
+            percent = int(v.get('stdout','100').strip().strip('%'))
+            d['percent'] = percent
+            if percent > disk_threshold:
+                d['status'] = 'down'
+                print k,v
+            else:
+                d['status'] = 'up'
+            ans.append(d)
+        w = [((-d['percent'],d['host']),d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
+
     def dns(self, hosts='all', rounds=1):
         """
         Verify that DNS is working well on all machines.
@@ -1619,6 +1639,7 @@ class Monitor(object):
     def all(self):
         return {
             'timestamp'   : time.time(),
+            'disk_usage'   : self.disk_usage(),
             #'dns'         : self.dns(),
             #'zfs'       : self.zfs(),
             'load'        : self.load(),
@@ -1651,6 +1672,10 @@ class Monitor(object):
 
         print "HUB"
         for x in all['hub'][:n]:
+            print x
+
+        print "DISK USAGE"
+        for x in all['disk_usage'][:n]:
             print x
 
         #print "ZFS"
@@ -1714,11 +1739,11 @@ class Monitor(object):
 
     def _go(self):
         all = self.all()
-        try:
-            self.update_db(all=all)
-        except:
-            # exception can happen, e.g., when db is down
-            print "Failed to update database"
+        #try:
+        #    self.update_db(all=all)
+        #except:
+        #    # exception can happen, e.g., when db is down
+        #    print "Failed to update database"
         self.print_status(all=all)
         down = self.down(all=all)
         m = ''
