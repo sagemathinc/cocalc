@@ -195,6 +195,125 @@ Note that there is currently no mechanism for hubs to communicate with each othe
 # The Client Frontend
 
 
+Most users use SMC via their web browsers, by visiting https://cloud.sagemath.com.  Their web browser downloads many of the files in `salvus/static`, then starts running a Javascript program (written mostly
+in coffeescript).  That program connects using websockets (or a fallback mechanishm in case of old browsers or bad networks) via the Primus library to
+exactly one backend hub.   The browser will always connect to the same hub,
+unless it stops working or the user clears the SERVERID cookie
+in their browser.
+
+**NOTE:** this is just one way in which I envision people using the
+SMC backend functionality.  The web-browser client frontend could
+be replaced by a native application or a smartphone app or other
+more lightweight applications that use the same messaging protocol but
+have different functionality.  Henceforth we will assume that the
+connection is via websockets below, but things work exactly the same
+(except for speed) for fallbacks.
+
+There is exactly **one** websocket connection (per browser tab)
+between the client and the hub, even if
+the user has multiple projects open in a
+single tab.
+
+Messages are sent in both ways between the client and the hub it connects
+to encoded as a string created using JSON.stringify on a
+Javascript object.
+
+Most communication between the client and server uses messages over this
+one websocket.  One exception is data involving a terminal, which is often
+a single character.  Since sending an entire message for every character
+would waste a lot of bandwidth, each terminal session gets a
+"channel" associated to it.  When sending either binary data or a message
+over the websocket, SMC first sends one character which indicates the channel,  with 0 being the JSON string channel, then the data.   To send
+a single character over the terminal, SMC just sends the channel (one character), then the data, then null (?? not sure about null).
+
+The client connects to the hub, which checks for secure signed
+authentication cookies, which would have been saved if the user logged
+in previously from this browser.  If the cookies are there, the
+hub sends a message saying "you are signed in as XXX", and includes various
+information about their account.   If there's no valid auth cookie,
+the user sees either the sign-in screen or the create account screen,
+depending on whether they have logged in before.
+
+Account creation involves sending a message over the websocket to the hub saying "please create an account with these credentials".  The client then waits for a response for the server, either signing them in,
+or telling them there is a problem with their account creation request.
+
+Once the initial auth dance has concluded, the browser checks the URL and opens the corresponding
+page.  For example, if the url is /projects/project_id, then it opens that project.  For example,
+for public files on projects that the user is not collaborating on, it will then render them, even
+if the user hasn't logged in yet.
+
+Once the client is logged in, it requests a list of all their projects, which includes their associated metadata (e.g., a list
+of collaborators on each project).
+
+Most operations involve the following flow of data. Imagine the user
+wants to do something, e.g., get a list of projects, find out how many
+projects are active, create a new project, or change the title of a project.
+There are hundreds of operations like this.  The file `message.coffee` defines
+the structure of a every message between the client, hub and local hub
+(and many more that should be deleted since they were never used).  For example,
+the CoffeeScript
+
+    # client --> hub
+    message
+        event          : 'create_account'
+        id             : undefined
+        first_name     : required
+        last_name      : required
+        email_address  : required
+        password       : required
+        agreed_to_terms: required
+        token          : undefined   # only required when token is set.
+
+calls the function `message`, which is defined near the top of the file, with input the Javascript
+object with keys `event`, `id`, ..., `token`.  This `message` function adds `create_account` to
+the exported namespace of the `message` module, so now `f=require('message').create_account`
+is defined.  In turn `f` must be called with an object that satisfies the constraints given
+in the right above.  For example, `first_name` must be specified, but `token` need not be
+defined.  The constraints are as defined in `misc.coffee`, with the only options being `required`
+and `undefined`.  (At some point it might be a good idea to idea more interesting type checking,
+e.g., instead of just `required` maybe `required_number` or `required_string`.)  The output of `f`
+is a Javascript object that has the properties specified above.   Most code that calls
+functions defined in `message.coffee` is located in `client.coffee`, `hub.coffee`, and `local_hub.coffee`.
+
+To carry out an operation, the client constructs a message as above, then sends it
+over the websocket connection to the hub it is connected to.  Some messages don't require
+any response, e.g., there is a message that reports whenever the user sees a red error
+alert message, which results in the hub writing the error message to a database for logging purposes.
+Most messages assume that there will be a response from the server within a certain amount of time.
+The file `client.coffee` implements a large number of functions, which are called all over in the
+code in the `page/` directory, and which implements most cases of communication between
+the client and the hub.  In particular, it calls tons of functions in `message.coffee`, and
+handles timeouts, etc.  When sending a message requiring a response to the hub, the client
+puts a random uuid in the id field above.
+
+The code in `client.coffee`
+also listens for incoming messages from the hub, and decides on what to
+do with them.  For example, if the id field above is filled in, the client checks
+for an associated callback (in a map with keys uuid's of messages that expect responses).
+If it finds such a callback function, it calls it with the response message as input.
+Also, many other messages arrive that are not in response to any previous message.
+For example, notifications are pushed to the client without being requested.  Also,
+document synchronization cycles can be initiated by the local_hub, which sends a
+"please sync now" message to various hubs, which forwards them on to the appropriate
+clients. 
+
+**WARNING:** right now (March 19, 2015),
+when a document is changed by a remote user, the client receives a message
+saying "please sync this document now", and only then does the client
+synchronize the document, by computing a local diff, then sending that upstreams,
+waiting for another patch from upstream, and then applying that.  It would be way more
+efficient to eliminate the first step and just directly send a sync diff
+message from the remote (skipping the "you need to sync" message entirely).  I implemented
+this in some version of notifications, but not in the general sync infrastructure.  It's
+an optimization that needs to get done.
+
+
+
+
+
+
+
+
 
 
 # Console Server
