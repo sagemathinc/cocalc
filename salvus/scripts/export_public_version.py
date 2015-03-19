@@ -16,4 +16,8 @@ if __name__ == '__main__':
     cmd("cp -v cloud-private/*.md cloud-public/")
     cmd("cd cloud-public && rm -r conf/deploy_cloud  conf/tinc_* && git add --all .")
     print "See %s/tmp/cloud-public"%os.environ['HOME']
+    print "NOW do this:"
+    print "git commit -a -v"
+    print "git push"
+    print "git push git@github.com:sagemath/cloud.git"
     #cmd("rm -rf cloud-private")
