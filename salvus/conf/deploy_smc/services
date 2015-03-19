@@ -130,7 +130,6 @@ smc4dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
 smc5dc5  {'seed':True,   'topology':'DC5:RAC0', 'num_tokens':256}
 smc6dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
 smc7dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
-smc8dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
 
 # DC6: Commercial google: europe-west1-c
 smc1dc6  {'seed':True,   'topology':'DC6:RAC0', 'num_tokens':256}
@@ -140,7 +139,6 @@ smc4dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
 smc5dc6  {'seed':True,   'topology':'DC6:RAC0', 'num_tokens':256}
 smc6dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
 smc7dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
-smc8dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
 
 # DC7: Commercial google: asia-east1-c
 #smc1dc7  {'seed':True,   'topology':'DC7:RAC0', 'num_tokens':256}
