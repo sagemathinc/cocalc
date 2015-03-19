@@ -2243,6 +2243,15 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : opts.cb
 
+    stripe_set_default_card: (opts) =>
+        opts = defaults opts,
+            card_id : required
+            cb    : required
+        @call
+            message     : message.stripe_set_default_card(card_id: opts.card_id)
+            error_event : true
+            cb          : opts.cb
+
 
     # gets list of past stripe charges for this account.
     stripe_get_charges: (opts) =>

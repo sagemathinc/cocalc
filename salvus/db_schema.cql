@@ -1,11 +1,8 @@
 /*
-CREATE KEYSPACE salvus WITH replication = {
-  'class': 'NetworkTopologyStrategy',
-  'DC0': '3',
-  'DC1': '3'
-  'DC2': '3'
-  'DC3': '3'
-};
+
+CREATE KEYSPACE salvus WITH replication = {'class': 'NetworkTopologyStrategy', 'DC5': '3', 'DC6': '3'}  AND durable_writes = true;
+
+or
 
 CREATE KEYSPACE salvus WITH replication = {
   'class': 'NetworkTopologyStrategy',
@@ -16,8 +13,11 @@ CREATE KEYSPACE salvus WITH replication = {
 GRANT SELECT ON table storage_servers TO monitor;
 GRANT MODIFY ON table storage_servers TO monitor;
 
-ALTER KEYSPACE system_auth WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3', 'DC3':'3'};
 
+CREATE KEYSPACE system_auth WITH replication = {'class': 'NetworkTopologyStrategy', 'DC5': '3', 'DC6': '3'}  AND durable_writes = true;
+
+
+ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'DC5': '3', 'DC6': '3'} ;
 */
 
 /* NOTE: as explained at https://cloud.sagemath.com/projects/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/files/salvus/salvus/db_schema.cql

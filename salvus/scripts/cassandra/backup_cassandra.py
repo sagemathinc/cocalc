@@ -1,4 +1,7 @@
+
 import os
+
+# every 7200 time ./backup-cassandra-dc1   
 
 def cmd(s):
     print s

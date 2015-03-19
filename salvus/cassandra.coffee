@@ -732,7 +732,7 @@ class exports.Cassandra extends EventEmitter
             stream      : false
             fetch_size  : 100   # only used for streaming
             cb          : undefined
-        winston.debug("cql: '#{misc.trunc(opts.query,100)}', consistency=#{opts.consistency}, stream=#{opts.stream}")
+        #winston.debug("cql: '#{misc.trunc(opts.query,100)}', consistency=#{opts.consistency}, stream=#{opts.stream}")
         cb = (err, results) =>
             if err?
                 winston.error("cql ERROR: ('#{opts.query}',params=#{misc.to_json(opts.vals).slice(0,512)}) error = #{err}")

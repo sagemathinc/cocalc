@@ -101,6 +101,26 @@ $.fn.spin = (opts) ->
             data.spinner = new Spinner($.extend({color: $this.css("color")}, opts)).spin(this)
     this
 
+# Easily enable toggling details of some elements...
+# (grep code for usage examples)
+$.fn.smc_toggle_details = (opts) ->
+    opts = defaults opts,
+        show   : required   # string -- jquery selector
+        hide   : required   # string -- jquery selector
+        target : required   # string -- jquery selector
+    @each ->
+        elt = $(this)
+        elt.find(opts.show).click () ->
+            elt.find(opts.show).hide()
+            elt.find(opts.hide).show()
+            elt.find(opts.target).show()
+        elt.find(opts.hide).click () ->
+            elt.find(opts.hide).hide()
+            elt.find(opts.show).show()
+            elt.find(opts.target).hide()
+        return elt
+
+
 # jQuery plugin that sets the innerHTML of an element and doesn't do anything with script tags;
 # in particular, doesn't explicitly remove and run them like jQuery does.
 $.fn.html_noscript = (html) ->

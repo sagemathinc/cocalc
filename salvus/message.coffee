@@ -1637,6 +1637,11 @@ message
     id      : undefined
 
 message
+    event   : 'stripe_set_default_card'
+    card_id : required
+    id      : undefined
+
+message
     event   : 'stripe_update_card'
     card_id : required
     info    : required                  # see https://stripe.com/docs/api/node#update_card, except we don't allow changing metadata

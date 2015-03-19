@@ -2225,6 +2225,7 @@ class ProjectPage
             (cb) =>
                 require('projects').get_project_list
                     update : false   # uses cached version if available, rather than downloading from server
+                    select : dialog.find(".salvus-project-target-project-id")
                     cb : (err, x) =>
                         if err
                             cb(err)
@@ -2258,28 +2259,14 @@ class ProjectPage
                     dialog.find(".salvus-project-copy-dir").show()
                 else
                     dialog.find(".salvus-project-copy-file").show()
-                selector = dialog.find(".salvus-project-target-project-id")
-                v = ({project_id:x.project_id, title:x.title.slice(0,80)} for x in project_list)
-                for project in v.slice(0,7)
-                    selector.append("<option value='#{project.project_id}'>#{project.title}</option>")
-                v.sort (a,b) ->
-                    if a.title < b.title
-                        return -1
-                    else if a.title > b.title
-                        return 1
-                    return 0
-                selector.append('<option class="select-dash" disabled="disabled">----</option>')
-                for project in v
-                    selector.append("<option value='#{project.project_id}'>#{project.title}</option>")
 
                 submit = (ok) =>
                     dialog.modal('hide')
                     if ok
                         src_path          = dialog.find(".salvus-project-copy-src-path").val()
-                        target_project_id = dialog.find(".salvus-project-target-project-id").val()
-                        for p in v  # stupid linear search...
-                            if p.project_id == target_project_id
-                                target_project = p.title
+                        selector          = dialog.find(".salvus-project-target-project-id")
+                        target_project_id = selector.val()
+                        title_project     = selector.find('option[value="#{target_project_id}"]:first').text()
                         target_path       = dialog.find(".salvus-project-copy-target-path").val()
                         overwrite_newer   = dialog.find(".salvus-project-overwrite-newer").is(":checked")
                         delete_missing    = dialog.find(".salvus-project-delete-missing").is(":checked")
@@ -2975,8 +2962,90 @@ class ProjectPage
             dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
             return false
 
+    move_project_dialog: (opts) =>
+        opts = defaults opts,
+            target  : required
+            nonfree : required
+            desc    : required
+        console.log("move_project_dialog")
+        # if select nonfree target and no subscription, ask to upgrade
+        # if select nonfree target and no card, ask for card
+        dialog = $(".smc-move-project-dialog").clone()
+        btn_submit = dialog.find(".btn-submit")
+        dialog.find(".smc-move-project-dialog-desc").text(opts.desc)
+
+        free    = dialog.find(".smc-move-project-dialog-free")
+        nonfree = dialog.find(".smc-move-project-dialog-nonfree")
+        if opts.nonfree
+            stripe = require('stripe').stripe_user_interface()
+            free.hide()
+            nonfree.show()
+            pay_checkbox = dialog.find(".smc-move-project-dialog-pay-checkbox")
+            pay_checkbox.change () =>
+                if pay_checkbox.is(':checked')
+                    console.log("clicked pay_checkbox")
+                    if stripe.has_a_billing_method()
+                        btn_submit.removeClass('disabled')
+                    else
+                        stripe.new_card (created) =>
+                            console.log("created=", created)
+                            if created
+                                btn_submit.removeClass('disabled')
+                            else
+                                pay_checkbox.attr('checked', false)
+                                stripe.update()  # just in case maybe they entered it in another browser?
+                else
+                    btn_submit.addClass('disabled')
+        else
+            free.show()
+            nonfree.hide()
+        dialog.modal()
+        submit = (do_it) =>
+            console.log("submit: do_it=#{do_it}")
+            dialog.modal('hide')
+            if not do_it
+                @set_project_location_select()
+                return
+            @container.find(".smc-project-moving").show()
+            alert_message(timeout:60, type:"info", message:"Moving project '#{@project.title}' to #{opts.desc}...")
+            salvus_client.move_project
+                project_id : @project.project_id
+                target     : opts.target
+                cb         : (err, location) =>
+                    @container.find(".smc-project-moving").hide()
+                    if err
+                        alert_message(timeout:60, type:"error", message:"Error moving project '#{@project.title}' to #{opts.desc} -- #{misc.to_json(err)}")
+                    else
+                        alert_message(timeout:60, type:"success", message:"Project '#{@project.title}' is now running at #{opts.desc}.")
+                        @project.location = location
+                        @project.datacenter = opts.target
+                        @set_location()
+                        @set_project_location_select()
+
+        dialog.find(".btn-close").click(()=>submit(false))
+        btn_submit.click(()=>submit(true))
+
+    set_project_location_select: () =>
+        @container.find(".smc-project-location-select").val(@project.datacenter)
+
     init_move_project: () =>
-        return
+        @project.datacenter = 'dc0'   # fake
+        console.log("init_move_project")
+        window.project = @project
+        @set_project_location_select()
+        select = @container.find(".smc-project-location-select").change () =>
+            target = select.val()
+            e      = select.find("option[value=#{target}]")
+            desc   = e.text()
+            nonfree = e.hasClass("smc-nonfree")
+            @move_project_dialog
+                target  : target
+                desc    : desc
+                nonfree : nonfree
+
+
+    ###
+    xxx_init_move_project: () =>
         button = @container.find(".project-settings-move").find(".project-move-button")
 
         button.click () =>
@@ -3075,6 +3144,7 @@ class ProjectPage
                         alert_message(timeout:60, type:"success", message:"Project '#{@project.title}' is now running on #{location.host}.")
                         @project.location = location
                         @set_location()
+    ###
 
     init_add_collaborators: () =>
         input   = @container.find(".project-add-collaborator-input")
