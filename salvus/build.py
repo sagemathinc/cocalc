@@ -474,7 +474,9 @@ SAGE_PIP_PACKAGES = [
     'brewer2mpl',
     'ggplot',
     'periodictable'
-    'nltk'
+    'nltk',
+    'param',
+    'holoviews'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
