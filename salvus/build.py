@@ -530,6 +530,7 @@ SAGE_OPTIONAL_PACKAGES = [
     'database_kohel',
     'database_symbolic_data',
     'dot2tex',
+    'gambit',
     'gap_packages',
     'gnuplotpy',
     'guppy',
