@@ -1291,7 +1291,7 @@ class ProjectPage
                 else
                     create_file('sagews')
             else
-                @load_target('new')
+                @display_tab("project-new-file")
 
         @container.find(".smc-mini-new-file-type-list").find("a[href=#new-file]").click (evt) ->
             mini_set_input()
