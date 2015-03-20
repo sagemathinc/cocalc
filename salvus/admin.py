@@ -1639,14 +1639,14 @@ class Monitor(object):
         return {
             'timestamp'   : time.time(),
             'disk_usage'   : self.disk_usage(),
-            #'dns'         : self.dns(),
-            #'zfs'       : self.zfs(),
+            'dns'         : self.dns(),
             'load'        : self.load(),
-            #'cassandra'   : self.cassandra(),
             'hub'         : self.hub(),
             'stats'       : self.stats(),
             'compute'     : self.compute(),
-            #'compute-ssh' : self.compute_ssh()
+            'compute-ssh' : self.compute_ssh()
+            #'zfs'       : self.zfs(),
+            #'cassandra'   : self.cassandra(),
         }
 
     def down(self, all):
