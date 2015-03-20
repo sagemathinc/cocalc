@@ -3030,8 +3030,8 @@ class ProjectPage
 
     init_move_project: () =>
         @project.datacenter = 'dc0'   # fake
-        console.log("init_move_project")
-        window.project = @project
+        #console.log("init_move_project")
+        #window.project = @project
         @set_project_location_select()
         select = @container.find(".smc-project-location-select").change () =>
             target = select.val()
