@@ -229,6 +229,12 @@ file_associations['sage-history'] =
     name   : 'sage history'
     exclude_from_menu : true
 
+file_associations['zip'] =
+    editor : 'archive'
+    icon   : 'fa-file-archive-o'
+    opts   : {}
+    name   : 'archive'
+
 file_associations['sage'].name = "sage code"
 
 file_associations['sagews'].name = "sage worksheet"
@@ -890,6 +896,8 @@ class exports.Editor
                 editor = new PDF_PreviewEmbed(@, filename, content, extra_opts)
             when 'tasks'
                 editor = new TaskList(@, filename, content, extra_opts)
+            when 'archive'
+                editor = new Archive(@, filename, content, extra_opts)
             when 'course'
                 editor = new Course(@, filename, content, extra_opts)
             when 'ipynb'
@@ -5380,6 +5388,17 @@ class Course extends FileEditorWrapper
         @element = course.course(@editor, @filename)
         @wrapped = @element.data('course')
 
+
+###
+# Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.
+###
+
+{archive} = require('archive')
+
+class Archive extends FileEditorWrapper
+    init_wrapped: () ->
+        @element = archive(@editor.project_id, @filename, @)
+        @wrapped = @element.data('archive')
 
 #############################################
 # Editor for HTML/Markdown/ReST documents
