@@ -2479,6 +2479,7 @@ class Client extends EventEmitter
     # Public/published projects data
     ################################################
     path_is_in_public_paths: (path, paths) =>
+        #winston.debug("path_is_in_public_paths('#{path}', #{misc.to_json(paths)})")
         return misc.path_is_in_public_paths(path, paths)
 
     get_public_project: (opts) =>
