@@ -139,6 +139,7 @@ class Archive
                     if err
                         out = err
                     else
+                        @contents = contents
                         out = contents
                     cb(err)
         ], (err) =>
@@ -160,7 +161,7 @@ class Archive
                 else
                     cb(undefined, out.stdout + '\n' + out.stderr)
 
-    extract: () =>
+    extract: (cb) =>
         {command, args} = COMMANDS[@file_type].extract
 
         output = @element.find(".smc-archive-extract-output")
@@ -169,23 +170,64 @@ class Archive
         error.text('')
         @element.find("a[href=#extract]").icon_spin(start:true)
         s = misc.path_split(@filename)
-        salvus_client.exec
-            project_id : @project_id
-            path       : s.head
-            command    : command
-            args       : args.concat([s.tail])
-            err_on_exit: false
-            cb         : (err, out) =>
-                #console.log("done extract: ", err, out)
-                @element.find("a[href=#extract]").icon_spin(false)
-                if err
-                    error.show()
-                    error.text(err)
+        extra_args = []
+        post_args = []
+        async.series([
+            (cb) =>
+                if not @contents?
+                    cb(); return
+                if @file_type == 'zip'
+                    # special case for zip files: if heuristically it looks like not everything is contained
+                    # in a subdirectory with name the zip file, then create that subdirectory.
+                    base = s.tail.slice(0, s.tail.length - 4)
+                    if @contents.indexOf(base+'/') == -1
+                        extra_args = ['-d', base]
+                    cb()
+                else if @file_type == 'tar'
+                    # special case for tar files: if heuristically it looks like not everything is contained
+                    # in a subdirectory with name the tar file, then create that subdirectory.
+                    i = s.tail.lastIndexOf('.t')  # hopefully that's good enough.
+                    base = s.tail.slice(0, i)
+                    if @contents.indexOf(base+'/') == -1
+                        post_args = ['-C', base]
+                        salvus_client.exec
+                            project_id : @project_id
+                            path       : s.head
+                            command    : "mkdir"
+                            args       : ['-p', base]
+                            cb         : cb
+                    else
+                        cb()
                 else
-                    if out.stdout
-                        output.show()
-                        output.text(out.stdout)
-                    if out.stderr
-                        error.show()
-                        error.text(out.stderr)
+                    cb()
+            (cb) =>
+                args = args.concat(extra_args).concat([s.tail]).concat(post_args)
+                args_str = ((if x.indexOf(' ')!=-1 then "'#{x}'" else x) for x in args).join(' ')
+                cmd = "cd #{s.head} ; #{command} #{args_str}"
+                @element.find(".smc-archive-extract-cmd").show().text(cmd)
+                salvus_client.exec
+                    project_id : @project_id
+                    path       : s.head
+                    command    : command
+                    args       : args
+                    err_on_exit: false
+                    cb         : (err, out) =>
+                        #console.log("done extract: ", err, out)
+                        @element.find("a[href=#extract]").icon_spin(false)
+                        if err
+                            error.show()
+                            error.text(err)
+                        else
+                            if out.stdout
+                                output.show()
+                                output.text(out.stdout)
+                            if out.stderr
+                                error.show()
+                                error.text(out.stderr)
+                        cb(err)
+        ], (err) =>
+            cb?(err)
+        )
+
+
 
