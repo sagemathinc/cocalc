@@ -20,8 +20,6 @@
 ###############################################################################
 
 
-
-
 misc            = require('misc')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
@@ -38,3 +36,52 @@ exports.archive = (project_id, filename, editor) ->
 class Archive
     constructor : (@project_id, @filename, @element, @editor) ->
         @element.data('archive', @)
+        @element.find(".smc-archive-filename").text(@filename)
+        @element.find("a[href=#extract]").click () =>
+            @extract()
+            return false
+        @init_contents()
+
+    show: () =>
+        @element.maxheight()
+
+    init_contents: (cb) =>
+        salvus_client.exec
+            project_id : @project_id
+            command    : "unzip"
+            args       : ["-l", @filename]
+            err_on_exit: false
+            cb         : (err, out) =>
+                if err
+                    out = err
+                else
+                    out = out.stdout + '\n' + out.stderr
+                @element.find(".smc-archive-extract-contents").text(out)
+                cb?(err)
+
+    extract: () =>
+        output = @element.find(".smc-archive-extract-output")
+        error  = @element.find(".smc-archive-extract-error")
+        output.text('')
+        error.text('')
+        @element.find("a[href=#extract]").icon_spin(start:true)
+        s = misc.path_split(@filename)
+        salvus_client.exec
+            project_id : @project_id
+            path       : s.head
+            command    : "unzip"
+            args       : ["-B", s.tail]
+            err_on_exit: false
+            cb         : (err, out) =>
+                @element.find("a[href=#extract]").icon_spin(false)
+                if err
+                    error.show()
+                    error.text(err)
+                else
+                    if out.stdout
+                        output.show()
+                        output.text(out.stdout)
+                    if out.stderr
+                        error.show()
+                        error.text(out.stderr)
+
