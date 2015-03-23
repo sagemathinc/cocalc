@@ -171,9 +171,9 @@ init_http_server = () ->
 
         pathname = pathname.slice(program.base_url.length)
 
-        if pathname != '/alive'
-            winston.info("#{req.connection.remoteAddress} accessed #{req.url}")
-            winston.info("pathname='#{pathname}'")
+        #if pathname != '/alive'
+            #winston.info("#{req.connection.remoteAddress} accessed #{req.url}")
+            #winston.info("pathname='#{pathname}'")
 
         segments = pathname.split('/')
         switch segments[1]
@@ -2479,6 +2479,7 @@ class Client extends EventEmitter
     # Public/published projects data
     ################################################
     path_is_in_public_paths: (path, paths) =>
+        #winston.debug("path_is_in_public_paths('#{path}', #{misc.to_json(paths)})")
         return misc.path_is_in_public_paths(path, paths)
 
     get_public_project: (opts) =>
@@ -5789,9 +5790,7 @@ get_blob = (opts) ->
                     get_blob(uuid:opts.uuid, cb:opts.cb, max_retries:opts.max_retries-1)
                 setTimeout(f, 300)
             else
-                if result?
-                    dbg("got the blob")
-                else
+                if not result?
                     dbg("no such blob")
                 opts.cb(undefined, result)
 
@@ -6269,4 +6268,5 @@ if program._name.slice(0,3) == 'hub'
             process.exit()
     else
         console.log("Running web server; pidfile=#{program.pidfile}")
-        daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+        # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
+        daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)

@@ -229,6 +229,16 @@ file_associations['sage-history'] =
     name   : 'sage history'
     exclude_from_menu : true
 
+# For tar, see http://en.wikipedia.org/wiki/Tar_%28computing%29
+archive_association =
+    editor : 'archive'
+    icon   : 'fa-file-archive-o'
+    opts   : {}
+    name   : 'archive'
+
+for ext in 'zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip'.split(' ')
+    file_associations[ext] = archive_association
+
 file_associations['sage'].name = "sage code"
 
 file_associations['sagews'].name = "sage worksheet"
@@ -669,7 +679,7 @@ class exports.Editor
                 cb?("You can only edit '.sagemathcloud.log' via the terminal.")
                 return
 
-            if ext == "sws"   # sagenb worksheet
+            if ext == "sws" or ext.slice(0,4) == "sws~"   # sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
                 alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{filename}...")
                 @convert_sagenb_worksheet filename, (err, sagews_filename) =>
                     if not err
@@ -723,15 +733,37 @@ class exports.Editor
 
 
     convert_sagenb_worksheet: (filename, cb) =>
-        salvus_client.exec
-            project_id : @project_id
-            command    : "sws2sagews.py"
-            args       : [filename]
-            cb         : (err, output) =>
-                if err
-                    cb("#{err}, #{misc.to_json(output)}")
+        async.series([
+            (cb) =>
+                ext = misc.filename_extension(filename)
+                if ext == "sws"
+                    cb()
                 else
-                    cb(false, filename.slice(0,filename.length-3) + 'sagews')
+                    i = filename.length - ext.length
+                    new_filename = filename.slice(0, i-1) + ext.slice(3) + '.sws'
+                    salvus_client.exec
+                        project_id : @project_id
+                        command    : "cp"
+                        args       : [filename, new_filename]
+                        cb         : (err, output) =>
+                            if err
+                                cb(err)
+                            else
+                                filename = new_filename
+                                cb()
+            (cb) =>
+                salvus_client.exec
+                    project_id : @project_id
+                    command    : "sws2sagews.py"
+                    args       : [filename]
+                    cb         : (err, output) =>
+                        cb(err)
+        ], (err) =>
+            if err
+                cb(err)
+            else
+                cb(undefined, filename.slice(0,filename.length-3) + 'sagews')
+        )
 
     convert_docx_file: (filename, cb) =>
         salvus_client.exec
@@ -890,6 +922,8 @@ class exports.Editor
                 editor = new PDF_PreviewEmbed(@, filename, content, extra_opts)
             when 'tasks'
                 editor = new TaskList(@, filename, content, extra_opts)
+            when 'archive'
+                editor = new Archive(@, filename, content, extra_opts)
             when 'course'
                 editor = new Course(@, filename, content, extra_opts)
             when 'ipynb'
@@ -5380,6 +5414,17 @@ class Course extends FileEditorWrapper
         @element = course.course(@editor, @filename)
         @wrapped = @element.data('course')
 
+
+###
+# Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.
+###
+
+{archive} = require('archive')
+
+class Archive extends FileEditorWrapper
+    init_wrapped: () ->
+        @element = archive(@editor.project_id, @filename, @)
+        @wrapped = @element.data('archive')
 
 #############################################
 # Editor for HTML/Markdown/ReST documents

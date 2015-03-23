@@ -1291,7 +1291,7 @@ class ProjectPage
                 else
                     create_file('sagews')
             else
-                @load_target('new')
+                @display_tab("project-new-file")
 
         @container.find(".smc-mini-new-file-type-list").find("a[href=#new-file]").click (evt) ->
             mini_set_input()
@@ -3030,8 +3030,8 @@ class ProjectPage
 
     init_move_project: () =>
         @project.datacenter = 'dc0'   # fake
-        console.log("init_move_project")
-        window.project = @project
+        #console.log("init_move_project")
+        #window.project = @project
         @set_project_location_select()
         select = @container.find(".smc-project-location-select").change () =>
             target = select.val()

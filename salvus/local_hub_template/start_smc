@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 import argparse, os, sys,time
 
@@ -9,7 +9,6 @@ args = parser.parse_args()
 
 SAGEMATHCLOUD=os.path.abspath(os.path.dirname(__file__))
 os.environ['SAGEMATHCLOUD'] = SAGEMATHCLOUD
-
 
 os.chdir(os.environ['HOME'])
 
@@ -43,7 +42,7 @@ cmd("sage_server    start  </dev/null >/dev/null 2>&1 &")
 
 # Start IPython notebook server
 # This doesn't behave well and ends up wasting massive resources in some cases.  Only enable if later fix.
-# Startup is fast anyways.
+# Startup is fast enough anyways.
 #cmd("cd; ipython-notebook start </dev/null >/dev/null 2>&1 &")
 
 

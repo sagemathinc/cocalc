@@ -257,6 +257,16 @@ $(".salvus-notification-indicator").click () ->
         $(document).click(notification_list_click)
         $(window).resize(resize_notification_list)
         resize_notification_list()
+
+        # disable/blur any other editors that may be open...
+        # This should be replaced by a function that calls some sort of
+        # blur or disable function on the currently opened editor, if
+        # there is one.  As of now, this is only needed for tasks, which
+        # take over the keyboard when visible, so we just do it here.
+        # ALSO: On closing the activity list, we should probably
+        # explicitly restore the focus of the opened editor.
+        require('tasks').unset_key_handler()
+
     else
         notification_list.hide()
         unbind_handlers()

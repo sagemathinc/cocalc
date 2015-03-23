@@ -31,6 +31,9 @@ syncdoc.coffee
 syncdb.coffee
 
 tasks.coffee
+
+archive.coffee
+
 course.coffee
 
 editor.coffee
@@ -39,7 +42,6 @@ interact.coffee
 
 project.coffee
 projects.coffee
-
 
 explore.coffee
 

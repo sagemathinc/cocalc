@@ -675,6 +675,7 @@ class TaskList
             task.element.find(".salvus-task-undelete").hide()
 
     click_on_task: (e) =>
+        set_key_handler(@)
         task = $(e.delegateTarget).closest(".salvus-task").data('task')
         target = $(e.target)
         if target.hasClass("salvus-task-viewer-not-done")
@@ -1460,11 +1461,14 @@ current_task_list = undefined
 set_key_handler = (task_list) ->
     current_task_list = task_list
 
+exports.unset_key_handler = unset_key_handler = () ->
+    current_task_list = undefined
+
 $(window).keydown (evt) =>
     if not current_task_list?
         return
     if not  current_task_list.element.is(":visible")
-        current_task_list = undefined
+        unset_key_handler()
         return
 
     if help_dialog_open

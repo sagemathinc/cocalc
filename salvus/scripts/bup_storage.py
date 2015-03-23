@@ -360,7 +360,7 @@ class Project(object):
         except RuntimeError:
             return None
 
-    def status(self, running=False):
+    def status(self, running=False, stop_on_error=True):
         log = self._log("status")
         if running:
             s = {}
@@ -391,10 +391,17 @@ class Project(object):
             return s
         except Exception, msg:
             log("Error getting status -- %s"%msg)
-            # important to actually let error propogate so that bup_server gets an error and knows things are
+            # Original comment: important to actually let error propogate so that bup_server gets an error and knows things are
             # messed up, namely there is a user created, but the status command isn't working at all.  In this
             # case bup_server will know to try to kill this.
-            raise
+            if stop_on_error:
+                # ** Actually, in practice sometimes the caller doesn't know
+                # to kill this project.   So we explicitly toss in a stop below,
+                # which will clean things up completely. **
+                self.stop()
+                return self.status(running=running, stop_on_error=False)  # try again
+            else:
+                raise
 
     def create_home(self):
         self._log('create_home')

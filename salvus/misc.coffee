@@ -782,9 +782,9 @@ exports.mathjax_escape = (html) ->
 
 
 exports.path_is_in_public_paths = (path, paths) ->
-    # Return share object {path:.,desction:.} if (1) path is contained in one
+    # Return share object {path:.,description:.} if (1) path is contained in one
     # of the given paths (a list of strings) -- or path without zip extension is in paths,
-    # or if (2) path is undefined
+    # or if (2) path is undefined.
     # then true if paths has length at least 1.
     if paths.length == 0
         return false
@@ -794,6 +794,8 @@ exports.path_is_in_public_paths = (path, paths) ->
         # just deny any potentially trickiery involving relative path segments (TODO: maybe too restrictive?)
         return false
     for p in paths
+        if p.path == ""  # the whole project is public, which matches everything
+            return p
         if path == p.path
             # exact match
             return p

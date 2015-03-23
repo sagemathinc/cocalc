@@ -648,6 +648,7 @@ class BuildSage(object):
         """
         Do everything to patch/update/install/enhance this Sage install.
         """
+        self.pull_smc_sage()
         self.unextend_sys_path()
         self.patch_sage_location()
         self.patch_banner()
@@ -687,6 +688,9 @@ class BuildSage(object):
 
     def install_sage_manifolds(self):
         self.cmd("cd $SAGE_ROOT && git pull https://github.com/sagemanifolds/sage.git </dev/null && sage -br < /dev/null")
+
+    def pull_smc_sage(self):
+        self.cmd("cd $SAGE_ROOT && git pull https://github.com/sagemathinc/smc-sage")
 
     def install_jinja2(self):
         self.cmd("pip install -U jinja2")
