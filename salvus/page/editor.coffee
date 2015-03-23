@@ -239,8 +239,6 @@ archive_association =
 for ext in 'zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip'.split(' ')
     file_associations[ext] = archive_association
 
-console.log(misc.keys(file_associations))
-
 file_associations['sage'].name = "sage code"
 
 file_associations['sagews'].name = "sage worksheet"
