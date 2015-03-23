@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 # Copyright (c) 2012 Trent Mick.
 # Copyright (c) 2007-2008 ActiveState Corp.
 # License: MIT (http://www.opensource.org/licenses/mit-license.php)

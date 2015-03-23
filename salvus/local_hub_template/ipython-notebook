@@ -1,9 +1,13 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 ######################################################################
 # This is a daemon-ization script for the IPython notebook, for running
 # it under a specific URL behind a given proxy server.  It is probably
 # only of use directly in https://cloud.sagemath.com.
+#
+# This is written in Python, but that can be any python2 on the system; not the
+# Python that the ipython command runs. 
+#
 #
 # Copyright (c) 2013, William Stein, All rights reserved.
 # 2-clause BSD:
