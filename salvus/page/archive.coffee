@@ -24,6 +24,8 @@ misc            = require('misc')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
 
+async = require('async')
+
 {defaults, required} = misc
 
 templates = $(".smc-archive-templates")
@@ -33,33 +35,134 @@ exports.archive = (project_id, filename, editor) ->
     new Archive(project_id, filename, element, editor)
     return element
 
+# For tar, see http://en.wikipedia.org/wiki/Tar_%28computing%29
+COMMANDS =
+    zip :
+        list :
+            command : 'unzip'
+            args    : ['-l']
+        extract :
+            command : 'unzip'
+            args    : ['-B']
+    tar :
+        list :
+            command : 'tar'
+            args    : ['-tf']
+        extract :
+            command : 'tar'
+            args    : ['-xvf']
+    gz :
+        list :
+            command : 'gzip'
+            args    : ['-l']
+        extract :
+            command : 'gunzip'
+            args    : ['-vf']
+    bzip2 :
+        list :
+            command : 'ls'
+            args    : ['-l']
+        extract :
+            command : 'bunzip2'
+            args    : ['-vf']
+    lzip :
+        list :
+            command : 'ls'
+            args    : ['-l']
+        extract :
+            command : 'lzip'
+            args    : ['-vfd']
+    xz :
+        list :
+            command : 'xz'
+            args    : ['-l']
+        extract :
+            command : 'xz'
+            args    : ['-vfd']
+
+
 class Archive
     constructor : (@project_id, @filename, @element, @editor) ->
         @element.data('archive', @)
         @element.find(".smc-archive-filename").text(@filename)
-        @element.find("a[href=#extract]").click () =>
-            @extract()
-            return false
-        @init_contents()
+        @init (err) =>
+            if not err
+                @element.find("a[href=#extract]").removeClass('disabled').click () =>
+                    @extract()
+                    return false
 
     show: () =>
         @element.maxheight()
 
-    init_contents: (cb) =>
+    parse_file_type: (file_info) =>
+        # See editor.coffee, where we claim to handle these:
+        #    zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip
+        @element.find(".smc-archive-type").text(file_info)
+        if file_info.indexOf('Zip archive data') != -1
+            @file_type = 'zip'
+        else if file_info.indexOf('tar archive') != -1
+            @file_type = 'tar'
+        else if file_info.indexOf('gzip compressed data') != -1
+            @file_type = 'gz'
+        else if file_info.indexOf('bzip2 compressed data') != -1
+            @file_type = 'bzip2'
+        else if file_info.indexOf('lzip compressed data') != -1
+            @file_type = 'lzip'
+        else if file_info.indexOf('XZ compressed data') != -1
+            @file_type = 'xz'
+        else
+            return "Unsupported archive type -- '#{file_info}'\n\nYou might try using a terminal."
+        return undefined
+
+    init: (cb) =>
+        #console.log("init")
+        out = undefined
+        async.series([
+            (cb) =>
+                #console.log("calling file")
+                salvus_client.exec
+                    project_id : @project_id
+                    command    : "file"
+                    args       : ["-z", "-b", @filename]
+                    err_on_exit: true
+                    cb         : (err, output) =>
+                        if err
+                            if err.indexOf('No such file or directory') != -1
+                                err = "No such file or directory"
+                            out = err
+                            cb(err)
+                        else
+                            out = @parse_file_type(output.stdout.trim())
+                            cb(out)
+            (cb) =>
+                @list_contents (err, contents) =>
+                    if err
+                        out = err
+                    else
+                        out = contents
+                    cb(err)
+        ], (err) =>
+            @element.find(".smc-archive-extract-contents").text(out)
+            cb?(err)
+        )
+
+    list_contents: (cb) =>
+        {command, args} = COMMANDS[@file_type].list
+        #console.log("list_contents ", command, args)
         salvus_client.exec
             project_id : @project_id
-            command    : "unzip"
-            args       : ["-l", @filename]
+            command    : command
+            args       : args.concat([@filename])
             err_on_exit: false
             cb         : (err, out) =>
                 if err
-                    out = err
+                    cb(err)
                 else
-                    out = out.stdout + '\n' + out.stderr
-                @element.find(".smc-archive-extract-contents").text(out)
-                cb?(err)
+                    cb(undefined, out.stdout + '\n' + out.stderr)
 
     extract: () =>
+        {command, args} = COMMANDS[@file_type].extract
+
         output = @element.find(".smc-archive-extract-output")
         error  = @element.find(".smc-archive-extract-error")
         output.text('')
@@ -69,10 +172,11 @@ class Archive
         salvus_client.exec
             project_id : @project_id
             path       : s.head
-            command    : "unzip"
-            args       : ["-B", s.tail]
+            command    : command
+            args       : args.concat([s.tail])
             err_on_exit: false
             cb         : (err, out) =>
+                #console.log("done extract: ", err, out)
                 @element.find("a[href=#extract]").icon_spin(false)
                 if err
                     error.show()
