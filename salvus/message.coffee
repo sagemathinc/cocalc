@@ -201,6 +201,7 @@ message
     interact     : undefined   # create an interact layout defined by a JSON object
     obj          : undefined   # used for passing any JSON-able object along as output; this is used, e.g., by interact.
     file         : undefined   # used for passing a file -- is an object {filename:..., uuid:..., show:true}; the file is at https://cloud.sagemath.com/blobs/filename?uuid=[the uuid]
+    raw_input    : undefined   # used for getting blocking input from client -- {raw_input:{prompt:'input stuff?', value:'', submitted:false}}
     done         : false       # the sequences of messages for a given code evaluation is done.
     session_uuid : undefined   # the uuid of the session that produced this output
     once         : undefined   # if given, message is transient; it is not saved by the worksheet, etc.
@@ -409,6 +410,12 @@ message
     data         : undefined
     session_uuid : required
     preparse     : true
+
+# client --> hub --> local_hub --> sage_server
+message
+    event        : 'codemirror_sage_raw_input'
+    value        : required
+    session_uuid : required
 
 # Introspection in the context of a codemirror editing session.
 # client --> hub --> sage_server

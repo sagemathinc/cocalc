@@ -1194,6 +1194,14 @@ class CodeMirrorSession
                 mesg.event = 'execute_code'   # event that sage session understands
                 socket.write_mesg('json', mesg)
 
+    sage_raw_input: (client_socket, mesg) =>
+        winston.debug("sage_raw_input '#{misc.to_json(mesg)}")
+        @sage_socket (err, socket) =>
+            if err
+                winston.debug("sage_raw_input: error getting sage socket -- #{err}")
+            else
+                socket.write_mesg('json', mesg)
+
     sage_call: (opts) =>
         opts = defaults opts,
             mesg : required
@@ -1374,6 +1382,18 @@ class CodeMirrorSession
         if n == -1
             winston.debug("WORKSHEET: output cell corrupted (ignoring) -- #{output_id}")
             return
+
+        if mesg.clear?
+            # delete all output server side
+            k = i + (diffsync.MARKERS.output + output_id).length + 1
+            @content = @content.slice(0, k) + @content.slice(n)
+            return
+
+        if mesg.delete_last?
+            k = @content.lastIndexOf(diffsync.MARKERS.output, n-2)
+            @content = @content.slice(0, k+1) + @content.slice(n)
+            return
+
         @content = @content.slice(0,n) + JSON.stringify(mesg) + diffsync.MARKERS.output + @content.slice(n)
 
     sage_find_cell_meta: (id, start) =>
@@ -1893,6 +1913,8 @@ class CodeMirrorSessions
             when 'codemirror_disconnect'
                 session.remove_client(client_socket, mesg.client_id)
                 client_socket.write_mesg('json', message.success(id:mesg.id))
+            when 'codemirror_sage_raw_input'
+                session.sage_raw_input(client_socket, mesg)
             else
                 client_socket.write_mesg('json', message.error(id:mesg.id, error:"unknown CodeMirror session event: #{mesg.event}."))
 

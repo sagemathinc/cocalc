@@ -2931,6 +2931,54 @@ class Marked(object):
 md = Marked()
 
 #####
+## Raw Input
+def raw_input(prompt='', default='', placeholder='', input_width=None, label_width=None, type=None):
+    """
+    Read a string from the user in the worksheet interface to Sage.
+
+    INPUTS:
+
+    - prompt -- (default: '') a label to the left of the input
+    - default -- (default: '') default value to put in input box
+    - placeholder -- (default: '') default placeholder to put in grey when input box empty
+    - input_width -- (default: None) css that gives the width of the input box
+    - label_width -- (default: None) css that gives the width of the label
+    - type -- (default: None) if not given, returns a unicode string representing the exact user input.
+      Other options include:
+          - type='sage' -- will evaluate it to a sage expression in the global scope.
+          - type=anything that can be called, e.g., type=int, type=float.
+
+    OUTPUT:
+
+    - By default, returns a **unicode** string (not a normal Python str). However, can be customized
+      by changing the type.
+
+    EXAMPLE:
+
+        print salvus.raw_input("What is your full name?", default="Sage Math", input_width="20ex", label_width="15ex")
+    """
+    return salvus.raw_input(prompt=prompt, default=default, placeholder=placeholder, input_width=input_width, label_width=label_width, type=type)
+
+#####
+## Clear
+def clear():
+    """
+    Clear the output of the current cell.  You can use this to
+    dynamically animate the output of a cell using a for loop.
+
+    SEE ALSO: delete_last_output
+    """
+    salvus.clear()
+
+def delete_last_output():
+    """
+    Delete the last output message.
+
+    SEE ALSO: clear
+    """
+    salvus.delete_last_output()
+
+#####
 # Generic Pandoc cell decorator
 
 def pandoc(fmt, doc=None, hide=True):

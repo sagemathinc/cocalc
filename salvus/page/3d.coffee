@@ -892,6 +892,8 @@ exports.render_3d_scene = (opts) ->
         return
 
     scene_obj = undefined
+    e = $(".salvus-3d-templates .salvus-3d-loading").clone()
+    opts.element.append(e)
     async.series([
         (cb) =>
             if opts.scene?
@@ -921,6 +923,7 @@ exports.render_3d_scene = (opts) ->
                         else
                             cb()
         (cb) =>
+            e.remove()
             # do this initialization *after* we create the 3d renderer
             init = (err, s) ->
                 if err
