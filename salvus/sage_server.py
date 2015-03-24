@@ -1609,7 +1609,7 @@ def serve(port, host):
                      'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
                      'reset', 'restore', 'md', 'load', 'runfile', 'typeset_mode', 'default_mode',
                      'sage_chat', 'fortran', 'magics', 'go', 'julia', 'pandoc', 'wiki',
-                     'mediawiki', 'help', 'raw_input', 'clear', 'sage_eval']:
+                     'mediawiki', 'help', 'raw_input', 'clear', 'delete_last_output', 'sage_eval']:
             namespace[name] = getattr(sage_salvus, name)
 
         # alias pretty_print_default to typeset_mode, since sagenb has/uses that.
