@@ -595,7 +595,7 @@ class Project(object):
         # We ignore_errors below because unfortunately bup will return a nonzero exit code ("WARNING")
         # when it hits a fuse filesystem.   TODO: somehow be more careful that each
         if not USE_BUP_WATCH:
-            self.cmd(["/usr/bin/bup", "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
+            self.cmd(["/usr/bin/bup", "index", "-x"] + self.exclude(path+'/',prog='bup') + [path], ignore_errors=True)
 
         what_changed = self.cmd(["/usr/bin/bup", "index", '-m', path],verbose=0).splitlines()
         files_saved = max(0, len(what_changed) - 1)      # 1 since always includes the directory itself
