@@ -536,6 +536,7 @@ SAGE_OPTIONAL_PACKAGES = [
     'database_kohel',
     'database_symbolic_data',
     'dot2tex',
+    'fricas',
     'gambit',
     'gap_packages',
     'gnuplotpy',
