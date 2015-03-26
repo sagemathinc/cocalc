@@ -35,7 +35,7 @@
 #
 # or even this is fine:
 #
-#     ./hub nodaemon --port 5000 --tcp_port 5001 --keyspace salvus --host 10.2.2.3 --database_nodes 10.2.1.2,10.2.2.2,10.2.3.2,10.2.4.2
+#     ./hub nodaemon --port 5000 --tcp_port 5001 --keyspace salvus --host localhost --database_nodes localhost
 #
 ##############################################################################
 
@@ -166,7 +166,10 @@ init_express_http_server = () ->
 
     # Create an express application
     express = require('express')
+    bodyParser = require('body-parser')
+
     app = express()
+    app.use(bodyParser.urlencoded({ extended: true }))
 
     # Define how the endpoints are handled
 
@@ -329,10 +332,57 @@ init_express_http_server = () ->
                     fs.unlink(files.file.path)
             )
 
+    # init authentication via passport.
+    init_passport(app)
+
     # Get the http server and return it.
     http_server = require('http').createServer(app)
     http_server.on('close', clean_up_on_shutdown)
     return http_server
+
+
+###
+# Passport Authentication (oauth, etc.)
+###
+
+init_passport = (app) ->
+    # Initialize authentication plugins using Passport
+    passport = require('passport')
+    console.log('init')
+
+    LocalStrategy = require('passport-local').Strategy
+
+    validate_local = (username, password, done) ->
+        if username == 'a'
+            return done(null, false, { message: 'Incorrect password.' })
+        console.log("local strategy validating user #{username}")
+        done(null, {username:username})
+
+    passport.use(new LocalStrategy(validate_local))
+
+    passport.serializeUser (user, done) ->
+        console.log("serializeUser")
+        done(null, user)
+
+    passport.deserializeUser (user, done) ->
+        console.log("deserializeUser")
+        done(null, user)
+
+    app.use(passport.initialize())
+
+    app.post '/login', passport.authenticate('local'), (req, res) ->
+        console.log("authenticated... ")
+        res.send("authenticated....")
+
+    app.get '/login', (req, res) ->
+        console.log('get login form')
+        res.send("""<form action="/login" method="post">
+                        <label>Email</label>
+                        <input type="text" name="username">
+                        <label>Password</label>
+                        <input type="password" name="password">
+                        <button type="submit" value="Log In"/>Login</button>
+                    </form>""")
 
 
 ###

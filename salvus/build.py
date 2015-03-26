@@ -364,13 +364,14 @@ NODE_MODULES = [
     'node-uuid',
     'browserify@1.16.4',
     'uglify-js2',
+    'express',       # web server
+    'body-parser',   # parse post form uploads (needed for auth)
     'passport',
     'passport-facebook',
     'passport-github',
     'passport-google',
     'passport-local',
     'passport-wordpress',
-    'express',
     'nodeunit',
     'validator',
     'async',
