@@ -66,6 +66,11 @@ CREATE TABLE log (
     PRIMARY KEY(service_id, time)
 );
 
+CREATE TABLE passport_settings (
+    strategy varchar PRIMARY KEY,
+    conf     map<varchar, varchar>
+);
+
 // If you add columns to this table, also get_account in cassandra.coffee
 // and account_settings_defaults in message.coffee.
 

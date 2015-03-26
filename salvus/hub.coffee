@@ -162,7 +162,7 @@ PROJECT_TEMPLATE = 'conf/project_templates/default/'
 formidable = require('formidable')
 util = require('util')
 
-init_express_http_server = () ->
+init_express_http_server = (cb) ->
 
     # Create an express application
     express = require('express')
@@ -332,57 +332,121 @@ init_express_http_server = () ->
                     fs.unlink(files.file.path)
             )
 
-    # init authentication via passport.
-    init_passport(app)
-
     # Get the http server and return it.
     http_server = require('http').createServer(app)
     http_server.on('close', clean_up_on_shutdown)
-    return http_server
+
+    # init authentication via passport.
+    init_passport app, (err) =>
+        if err
+            cb?(err)
+        else
+            cb?(undefined, http_server)
 
 
 ###
 # Passport Authentication (oauth, etc.)
 ###
 
-init_passport = (app) ->
+init_passport = (app, cb) ->
     # Initialize authentication plugins using Passport
     passport = require('passport')
-    console.log('init')
 
-    LocalStrategy = require('passport-local').Strategy
+    # initialize use of passport middleware
+    app.use(passport.initialize())
 
-    validate_local = (username, password, done) ->
-        if username == 'a'
-            return done(null, false, { message: 'Incorrect password.' })
-        console.log("local strategy validating user #{username}")
-        done(null, {username:username})
-
-    passport.use(new LocalStrategy(validate_local))
-
+    # Define user serialization
     passport.serializeUser (user, done) ->
         console.log("serializeUser")
         done(null, user)
-
     passport.deserializeUser (user, done) ->
         console.log("deserializeUser")
         done(null, user)
 
-    app.use(passport.initialize())
+    settings = database.key_value_store(name:'passport_settings')
+    get_conf = (strategy, cb) ->
+        database.select_one
+            table  : 'passport_settings'
+            where  :
+                strategy : strategy
+            columns: ['conf']
+            cb     : (err, result) ->
+                if err
+                    cb(err)
+                else
+                    cb(undefined, result[0])
 
-    app.post '/login', passport.authenticate('local'), (req, res) ->
-        console.log("authenticated... ")
-        res.send("authenticated....")
+    get_conf 'site_conf', (err, site_conf) ->
+        auth_url = site_conf.auth
 
-    app.get '/login', (req, res) ->
-        console.log('get login form')
-        res.send("""<form action="/login" method="post">
-                        <label>Email</label>
-                        <input type="text" name="username">
-                        <label>Password</label>
-                        <input type="password" name="password">
-                        <button type="submit" value="Log In"/>Login</button>
-                    </form>""")
+        init_passport_local = (cb) ->
+            # Strategy: local email address / password login
+            LocalStrategy = require('passport-local').Strategy
+
+            verify = (username, password, done) ->
+                if username == 'a'
+                    return done(null, false, { message: 'Incorrect password.' })
+                console.log("local strategy validating user #{username}")
+                done(null, {username:username})
+
+            passport.use(new LocalStrategy(verify))
+
+            app.get '/auth/local', (req, res) ->
+                console.log('get login form')
+                res.send("""<form action="/auth/local" method="post">
+                                <label>Email</label>
+                                <input type="text" name="username">
+                                <label>Password</label>
+                                <input type="password" name="password">
+                                <button type="submit" value="Log In"/>Login</button>
+                            </form>""")
+
+            app.post '/auth/local', passport.authenticate('local'), (req, res) ->
+                console.log("authenticated... ")
+                res.json(req.user)
+
+            cb()
+
+        init_passport_google = (cb) ->
+            # Strategy: Google OAuth 2 -- https://github.com/jaredhanson/passport-google-oauth
+            #
+            # NOTE: The passport-recommend library passport-google uses openid2, which
+            # is deprecated in a few days!   So instead, I have to use oauth2, which
+            # is in https://github.com/jaredhanson/passport-google-oauth, which I found by luck!?!
+            #
+            GoogleStrategy = require('passport-google-oauth').OAuth2Strategy
+            strategy = 'google'
+            get_conf strategy, (err, conf) ->
+                if err
+                    cb(err)
+                    return
+                # docs for getting these for your app
+                # https://developers.google.com/accounts/docs/OpenIDConnect#appsetup
+                opts =
+                    clientID     : conf.clientID
+                    clientSecret : conf.clientSecret
+                    callbackURL  : "#{auth_url}/#{strategy}/return"
+
+                verify = (accessToken, refreshToken, profile, done) ->
+                    console.log("google auth: accessToken=",accessToken, " profile=", profile, "refreshToken=", refreshToken)
+                    done(undefined, {profile:profile})
+                passport.use(new GoogleStrategy(opts, verify))
+
+                # Enabling "profile" below I think required that I explicitly go to Google Developer Console for the project,
+                # then select API&Auth, then API's, then Google+, then explicitly enable it.  Otherwise, stuff just mysteriously
+                # didn't work.  To figure out that this was the problem, I had to grep the source code of the passport-google-oauth
+                # library and put in print statements to see what the *REAL* errors were, since that
+                # library hid the errors (**WHY**!!?).
+                app.get "/auth/#{strategy}", passport.authenticate(strategy, {'scope': 'openid email profile'})
+
+                app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+                    console.log("/auth/google/return")
+                    res.json(req.user)
+
+                cb()
+
+        async.parallel([init_passport_local, init_passport_google], cb)
+
 
 
 ###
@@ -6212,6 +6276,7 @@ exports.start_server = start_server = (cb) ->
     # the order of init below is important
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
+    http_server = undefined
     async.series([
         (cb) ->
             winston.debug("Connecting to the database.")
@@ -6229,7 +6294,10 @@ exports.start_server = start_server = (cb) ->
             init_bup_server(cb)
         (cb) ->
             # proxy server and http server, etc. relies on bup server having been created
-            http_server = init_express_http_server()
+            init_express_http_server (err, server) ->
+                http_server = server
+                cb(err)
+        (cb) ->
             init_http_proxy_server()
 
             # start updating stats cache every so often -- note: this is cached in the database, so it isn't

@@ -369,7 +369,7 @@ NODE_MODULES = [
     'passport',
     'passport-facebook',
     'passport-github',
-    'passport-google',
+    'passport-google-oauth',
     'passport-local',
     'passport-wordpress',
     'nodeunit',
