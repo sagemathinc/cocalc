@@ -5008,6 +5008,8 @@ create_account = (client, mesg) ->
     id = mesg.id
     account_id = null
     dbg = (m) -> winston.debug("create_account (#{mesg.email_address}): #{m}")
+    if mesg.email_address?
+        mesg.email_address = misc.lower_email_address(mesg.email_address)
     async.series([
         (cb) ->
             dbg("run tests on generic validity of input")
