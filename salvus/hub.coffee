@@ -71,7 +71,7 @@ BLOB_TTL = 60*60*24*90     # 3 months
 REGISTER_INTERVAL_S = 30   # every 30 seconds
 
 # node.js -- builtin libraries
-net     = require 'net'
+net     = require('net')
 assert  = require('assert')
 http    = require('http')
 url     = require('url')
@@ -79,7 +79,6 @@ fs      = require('fs')
 {EventEmitter} = require('events')
 
 _       = require('underscore')
-mime    = require('mime')
 
 # salvus libraries
 sage    = require("sage")               # sage server
@@ -143,7 +142,6 @@ DEFAULTS =
 
 
 # module scope variables:
-http_server        = null
 database           = null
 
 # the connected clients
@@ -164,173 +162,177 @@ PROJECT_TEMPLATE = 'conf/project_templates/default/'
 formidable = require('formidable')
 util = require('util')
 
-init_http_server = () ->
-    http_server = http.createServer((req, res) ->
+init_express_http_server = () ->
 
-        {query, pathname} = url.parse(req.url, true)
+    # Create an express application
+    express = require('express')
+    app = express()
 
-        pathname = pathname.slice(program.base_url.length)
+    # Define how the endpoints are handled
 
-        #if pathname != '/alive'
-            #winston.info("#{req.connection.remoteAddress} accessed #{req.url}")
-            #winston.info("pathname='#{pathname}'")
+    # used for testing that this hub is working
+    app.get '/alive', (req, res) ->
+        if not database_is_working
+            # this will stop haproxy from routing traffic to us
+            # until db connection starts working again.
+            winston.debug("alive: answering *NO*")
+            res.status(404).end()
+        else
+            res.send('alive')
 
-        segments = pathname.split('/')
-        switch segments[1]
-            when "cookies"
-                cookies = new Cookies(req, res)
-                if query.set
-                    # TODO: implement expires as part of query.
-                    cookies.set(query.set, query.value, {expires:new Date(new Date().getTime() + 1000*24*3600*365)})
-                res.end('')
-            when "alive"
-                if not database_is_working
-                    # this will stop haproxy from routing traffic to us until db connection starts working again.
-                    winston.debug("alive: answering *NO*")
-                    res.writeHead(404, {'Content-Type':'text/plain'})
-                res.end('')
-            when "proxy"
-                res.end("testing the proxy server -- #{pathname}")
-            when "stats"
-                server_stats (err, stats) ->
-                    if err
-                        res.writeHead(500, {'Content-Type':'text/plain'})
-                        res.end("internal error: #{err}")
+    # return uuid-indexed blobs (mainly used for graphics)
+    app.get '/blobs/*', (req, res) ->
+        #winston.debug("blob (hub --> client): #{misc.to_json(req.query)}, #{req.path}")
+        if not misc.is_valid_uuid_string(req.query.uuid)
+            res.status(404).send("invalid uuid=#{req.query.uuid}")
+            return
+        get_blob
+            uuid : req.query.uuid
+            cb   : (err, data) ->
+                if err
+                    res.status(500).send("internal error: #{err}")
+                else if not data?
+                    res.status(404).send("blob #{req.query.uuid} not found")
+                else
+                    filename = req.path.slice(req.path.lastIndexOf('/') + 1)
+                    if req.query.download?
+                        # tell browser to download the link as a file instead
+                        # of displaying it in browser
+                        res.attachment(filename)
                     else
-                        res.end(misc.to_json(stats))
-            when "registration"
-                database.key_value_store(name:'global_admin_settings').get
-                    key : 'account_creation_token'
-                    cb  : (err, token) ->
-                        if err or not token
-                            res.end(misc.to_json({}))
-                        else
-                            res.end(misc.to_json({token:true}))
+                        res.type(filename)
+                    res.send(data)
 
-            when "blobs"
-                #winston.debug("serving a blob: #{misc.to_json(query)}")
-                if not query.uuid?
-                    res.writeHead(500, {'Content-Type':'text/plain'})
-                    res.end("internal error")
-                    return
-                get_blob uuid:query.uuid, cb:(error, data) ->
-                    if error
-                        res.writeHead(500, {'Content-Type':'text/plain'})
-                        res.end("internal error: #{error}")
-                    else if not data?
-                        res.writeHead(404, {'Content-Type':'text/plain'})
-                        res.end("404 blob #{query.uuid} not found")
-                    else
-                        header = {'Content-Type':mime.lookup(pathname)}
-                        if query.download?
-                            # tell browser to download the link as a file instead of displaying it in browser
-                            header['Content-disposition'] = 'attachment; filename=' + segments[segments.length-1]
-                        res.writeHead(200, header)
-                        res.end(data, 'utf-8')
+    # TODO: is this cookie trick dangerous in some surprising way?
+    app.get '/cookies', (req, res) ->
+        if req.query.set
+            # TODO: implement expires as part of query?  not needed for now.
+            expires = new Date(new Date().getTime() + 1000*24*3600*365) # one year
+            cookies = new Cookies(req, res)
+            cookies.set(req.query.set, req.query.value, {expires:expires})
+        res.end()
 
-            when 'projects', 'help', 'settings'
-                res.writeHead(302, {
-                  'Location': program.base_url + '/#' +  segments.slice(1).join('/')
-                })
-                res.end()
+    # Used to determine whether or not a token is needed for
+    # the user to create an account.
+    app.get '/registration', (req, res) ->
+        database.key_value_store(name:'global_admin_settings').get
+            key : 'account_creation_token'
+            cb  : (err, token) ->
+                if err or not token
+                    res.json({})
+                else
+                    res.json({token:true})
 
-            when "upload"
-                # See https://github.com/felixge/node-formidable
-                if req.method == "POST"
-                    # user uploaded a file
-                    winston.debug("User uploading a file...")
-                    form = new formidable.IncomingForm()
-                    form.parse req, (err, fields, files) ->
-                        res.writeHead(200, {'content-type': 'text/plain'})
-                        res.write('received upload:\n\n');
-                        res.end('')
-                        if not files.file? or not files.file.path? or not files.file.name?
-                            winston.debug("file upload failed -- #{misc.to_json(files)}")
-                            return # nothing to do -- no actual file upload requested
+    # Save other paths in # part of URL then redirect to the single page app.
+    app.get ['/projects*', '/help', '/help/', '/settings', '/settings/'], (req, res) ->
+        res.redirect(program.base_url + "/#" + req.path.slice(1))
 
-                        account_id = undefined
-                        project_id = undefined
-                        dest_dir   = undefined
-                        data       = undefined
-                        async.series([
-                            # authenticate user
-                            (cb) ->
-                                cookies = new Cookies(req, res)
-                                # we prefix base_url to cookies mainly for doing development of SMC inside SMC.
-                                value = cookies.get(program.base_url + 'remember_me')
-                                if not value?
-                                    res.end('ERROR -- you must enable remember_me cookies')
-                                    return
-                                x    = value.split('$')
-                                hash = generate_hash(x[0], x[1], x[2], x[3])
-                                database.key_value_store(name: 'remember_me').get
-                                    key         : hash
-                                    consistency : cql.types.consistencies.one
-                                    cb          : (err, signed_in_mesg) =>
-                                        if err or not signed_in_mesg?
-                                            cb('unable to get remember_me cookie from db -- cookie invalid'); return
-                                        account_id = signed_in_mesg.account_id
-                                        if not account_id?
-                                            cb('invalid remember_me cookie'); return
-                                        winston.debug("Upload from: '#{account_id}'")
-                                        project_id = query.project_id
-                                        dest_dir   = query.dest_dir
-                                        if dest_dir == ""
-                                            dest_dir = '.'
-                                        winston.debug("project = #{project_id}")
-                                        winston.debug("dest_dir = '#{dest_dir}'")
-                                        cb()
-                            # auth user access to *write* to the project
-                            (cb) ->
-                                user_has_write_access_to_project
-                                    project_id     : project_id
-                                    account_id     : account_id
-                                    cb             : (err, result) =>
-                                        #winston.debug("PROXY: #{project_id}, #{account_id}, #{err}, #{misc.to_json(result)}")
-                                        if err
-                                            cb(err)
-                                        else if not result
-                                            cb("User does not have write access to project.")
-                                        else
-                                            winston.debug("user has write access to project.")
-                                            cb()
-                            # TODO: we *should* stream the file, not write to disk/read/etc.... but that is
-                            # more work and I don't have time now.
-                            # get the file itself
-                            (cb) ->
-                                #winston.debug(misc.to_json(files))
-                                winston.debug("Reading file from disk '#{files.file.path}'")
-                                fs.readFile files.file.path, (err, _data) ->
-                                    if err
-                                        cb(err)
-                                    else
-                                        data = _data
-                                        cb()
 
-                            # actually send the file to the project
-                            (cb) ->
-                                winston.debug("getting project...")
-                                project = new_project(project_id)
-                                path = dest_dir + '/' + files.file.name
-                                winston.debug("writing file '#{path}' to project...")
-                                project.write_file
-                                    path : path
-                                    data : data
-                                    cb   : cb
-
-                        ], (err) ->
-                            if err
-                                winston.debug("Error during file upload: #{misc.to_json(err)}")
-                            # delete tmp file
-                            if files?.file?.path?
-                                fs.unlink(files.file.path)
-                        )
+    # Return global status information about smc
+    app.get '/stats', (req, res) ->
+        server_stats (err, stats) ->
+            if err
+                res.status(500).send("internal error: #{err}")
             else
-                res.end('hub server')
+                res.json(stats)
 
-    )
+    app.post '/upload', (req, res) ->
+        # See https://github.com/felixge/node-formidable
+        # user uploaded a file
+        winston.debug("User uploading a file...")
+        form = new formidable.IncomingForm()
+        form.parse req, (err, fields, files) ->
+            if err or not files.file? or not files.file.path? or not files.file.name?
+                e = "file upload failed -- #{err} -- #{misc.to_json(files)}"
+                winston.debug(e)
+                res.status(500).send(e)
+                return # nothing to do -- no actual file upload requested
 
+            account_id = undefined
+            project_id = undefined
+            dest_dir   = undefined
+            data       = undefined
+            async.series([
+                # authenticate user
+                (cb) ->
+                    cookies = new Cookies(req, res)
+                    # we prefix base_url to cookies mainly for doing development of SMC inside SMC.
+                    value = cookies.get(program.base_url + 'remember_me')
+                    if not value?
+                        cb('you must enable remember_me cookies to upload files')
+                        return
+                    x    = value.split('$')
+                    hash = generate_hash(x[0], x[1], x[2], x[3])
+                    database.key_value_store(name: 'remember_me').get
+                        key         : hash
+                        consistency : cql.types.consistencies.one
+                        cb          : (err, signed_in_mesg) =>
+                            if err or not signed_in_mesg?
+                                cb('unable to get remember_me cookie from db -- cookie invalid')
+                                return
+                            account_id = signed_in_mesg.account_id
+                            if not account_id?
+                                cb('invalid remember_me cookie')
+                                return
+                            winston.debug("Upload from: '#{account_id}'")
+                            project_id = req.query.project_id
+                            dest_dir   = req.query.dest_dir
+                            if dest_dir == ""
+                                dest_dir = '.'
+                            winston.debug("project = #{project_id}")
+                            winston.debug("dest_dir = '#{dest_dir}'")
+                            cb()
+                # auth user access to *write* to the project
+                (cb) ->
+                    user_has_write_access_to_project
+                        project_id     : project_id
+                        account_id     : account_id
+                        cb             : (err, result) =>
+                            #winston.debug("PROXY: #{project_id}, #{account_id}, #{err}, #{misc.to_json(result)}")
+                            if err
+                                cb(err)
+                            else if not result
+                                cb("User does not have write access to project.")
+                            else
+                                winston.debug("user has write access to project.")
+                                cb()
+                (cb) ->
+                    #winston.debug(misc.to_json(files))
+                    winston.debug("Reading file from disk '#{files.file.path}'")
+                    fs.readFile files.file.path, (err, _data) ->
+                        if err
+                            cb(err)
+                        else
+                            data = _data
+                            cb()
+
+                # actually send the file to the project
+                (cb) ->
+                    winston.debug("getting project...")
+                    project = new_project(project_id)
+                    path = dest_dir + '/' + files.file.name
+                    winston.debug("writing file '#{path}' to project...")
+                    project.write_file
+                        path : path
+                        data : data
+                        cb   : cb
+
+            ], (err) ->
+                if err
+                    winston.debug(e)
+                    e = "file upload error -- #{err}"
+                    res.status(500).send(e)
+                else
+                    res.send('received upload:\n\n')
+                # delete tmp file
+                if files?.file?.path?
+                    fs.unlink(files.file.path)
+            )
+
+    # Get the http server and return it.
+    http_server = require('http').createServer(app)
     http_server.on('close', clean_up_on_shutdown)
+    return http_server
 
 
 ###
@@ -577,7 +579,7 @@ init_http_proxy_server = () =>
         #buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
 
         dbg = (m) -> winston.debug("http_proxy_server(#{req_url}): #{m}")
-        dbg()
+        dbg('got request')
 
         cookies = new Cookies(req, res)
         remember_me = cookies.get(program.base_url + 'remember_me')
@@ -593,7 +595,7 @@ init_http_proxy_server = () =>
             return
 
         target remember_me, req_url, (err, location) ->
-            #dbg("got target: #{misc.walltime(tm)}")
+            dbg("got target: #{misc.walltime(tm)}")
             if err
                 public_raw req_url, res, (err, is_public) ->
                     if err or not is_public
@@ -605,9 +607,9 @@ init_http_proxy_server = () =>
                 if proxy_cache[t]?
                     # we already have the proxy server for this remote location in the cache, so use it.
                     proxy = proxy_cache[t]
-                    #dbg("used cached proxy object: #{misc.walltime(tm)}")
+                    dbg("used cached proxy object: #{misc.walltime(tm)}")
                 else
-                    # make a new proxy server connecting to this remote location
+                    dbg("make a new proxy server connecting to this remote location")
                     proxy = httpProxy.createProxyServer(ws:false, target:t, timeout:0)
                     # and cache it.
                     proxy_cache[t] = proxy
@@ -3692,7 +3694,7 @@ snap_command = (opts) ->
 # Create the Primus realtime socket server
 ##############################
 primus_server = undefined
-init_primus_server = () ->
+init_primus_server = (http_server) ->
     Primus = require('primus')
     # change also requires changing head.html
     opts =
@@ -4623,7 +4625,7 @@ user_has_read_access_to_project = (opts) ->
     )
 
 ########################################
-# Passwords
+# Password hashing
 ########################################
 
 password_hash_library = require('password-hash')
@@ -6154,11 +6156,10 @@ init_stripe = (cb) ->
 # Start everything running
 #############################################
 
-exports.start_server = start_server = () ->
+exports.start_server = start_server = (cb) ->
     # the order of init below is important
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
-
     async.series([
         (cb) ->
             winston.debug("Connecting to the database.")
@@ -6176,20 +6177,25 @@ exports.start_server = start_server = () ->
             init_bup_server(cb)
         (cb) ->
             # proxy server and http server, etc. relies on bup server having been created
-            init_http_server()
+            http_server = init_express_http_server()
             init_http_proxy_server()
 
             # start updating stats cache every so often -- note: this is cached in the database, so it isn't
             # too big a problem if we call it too frequently...
             update_server_stats(); setInterval(update_server_stats, 120*1000)
             register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
-            init_primus_server()
+            init_primus_server(http_server)
             init_stateless_exec()
-            http_server.listen(program.port, program.host)
 
+            http_server.listen program.port, program.host, (err) =>
+                cb(err)
+    ], (err) =>
+        if err
+            winston.error("Error starting hub services! err=#{err}")
+        else
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
-            cb()
-    ])
+        cb?(err)
+    )
 
 ###
 # Command line admin stuff -- should maybe be moved to another program?

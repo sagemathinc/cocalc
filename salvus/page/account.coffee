@@ -69,9 +69,8 @@ focus =
 current_account_page = null
 show_page = exports.show_page  = (p) ->
     if p == "account-create_account"
-        $.get "/registration", (val, status) ->
+        $.get "/registration", (obj, status) ->
             if status == 'success'
-                obj = misc.from_json(val)
                 if obj.token  # registration token is required, so show the field
                     $(".salvus-create_account-token").show()
     current_account_page = p
