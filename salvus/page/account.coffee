@@ -38,10 +38,10 @@ to_json  = misc.to_json
 defaults = misc.defaults
 required = defaults.required
 
-set_account_tab_label = (signed_in, email_address) ->
+set_account_tab_label = (signed_in, label) ->
     if signed_in
         top_navbar.pages['account'].icon = 'fa-cog'
-        top_navbar.set_button_label("account", email_address)
+        top_navbar.set_button_label("account", label)
     else
         # nothing
         top_navbar.set_button_label("account", "Sign in", "", false)
@@ -390,8 +390,8 @@ signed_in = (mesg) ->
             account_settings.set_view()
             # change the view in the account page to the settings/sign out view
             show_page("account-settings")
-            # change the navbar title from "Sign in" to their email address -- don't use the one from mesg, which may be out of date
-            set_account_tab_label(true, account_settings.settings.email_address)
+            # change the navbar title from "Sign in" to their name
+            set_account_tab_label(true, account_settings.fullname())
             $("#account-forgot_password-email_address").val(account_settings.settings.email_address)
 
 
@@ -621,6 +621,7 @@ class AccountSettings
 
             @settings[prop] = val
 
+        set_account_tab_label(true, @fullname())
 
     set_view: () ->
         if not @settings?
@@ -689,7 +690,7 @@ class AccountSettings
                 else
                     set(element, value)
 
-        set_account_tab_label(true, @settings.email_address)
+        set_account_tab_label(true, @fullname())
 
     # Store the properties that user can freely change to the backend database.
     # The other properties only get saved by direct api calls that require additional
@@ -815,7 +816,6 @@ $("#account-change_email_address_button").click (event) ->
                 # success
                 $("#account-settings-email_address").html(new_email_address)
                 account_settings.settings.email_address = new_email_address
-                set_account_tab_label(true, new_email_address)
                 close_change_email_address()
                 alert_message(type:"success", message:"Email address successfully changed.")
     return false
