@@ -393,8 +393,8 @@ init_passport = (app, cb) ->
         auth_url = site_conf.auth
         dbg("auth_url=#{auth_url}")
 
-        init_passport_local = (cb) ->
-            dbg("init_passport_local")
+        init_local = (cb) ->
+            dbg("init_local")
             # Strategy: local email address / password login
             PassportStrategy = require('passport-local').Strategy
 
@@ -422,8 +422,8 @@ init_passport = (app, cb) ->
 
             cb()
 
-        init_passport_google = (cb) ->
-            dbg("init_passport_google")
+        init_google = (cb) ->
+            dbg("init_google")
             # Strategy: Google OAuth 2 -- https://github.com/jaredhanson/passport-google-oauth
             #
             # NOTE: The passport-recommend library passport-google uses openid2, which
@@ -466,8 +466,8 @@ init_passport = (app, cb) ->
 
                 cb()
 
-        init_passport_github = (cb) ->
-            dbg("init_passport_github")
+        init_github = (cb) ->
+            dbg("init_github")
             # Strategy: Github OAuth2 -- https://github.com/jaredhanson/passport-github
             PassportStrategy = require('passport-github').Strategy
             strategy = 'github'
@@ -499,7 +499,45 @@ init_passport = (app, cb) ->
 
                 cb()
 
-        async.parallel([init_passport_local, init_passport_google, init_passport_github], cb)
+
+        init_facebook = (cb) ->
+            dbg("init_facebook")
+            # Strategy: Facebook OAuth2 --
+            PassportStrategy = require('passport-facebook').Strategy
+            strategy = 'facebook'
+            get_conf strategy, (err, conf) ->
+                if err or not conf?
+                    cb(err)
+                    return
+                # Get these by going to https://developers.facebook.com/ and creating a new application.
+                # For that application, set the url to the site SMC will be served from.
+                # The Facebook "App ID" and is clientID and the Facebook "App Secret" is the clientSecret
+                # for oauth2, as I discovered by a lucky guess... (sigh).
+                #
+                # You must then put them in the database, via
+                #   update passport_settings set conf['clientID']='...'     where strategy='facebook';
+                #   update passport_settings set conf['clientSecret']='...' where strategy='facebook';
+
+                opts =
+                    clientID     : conf.clientID
+                    clientSecret : conf.clientSecret
+                    callbackURL  : "#{auth_url}/#{strategy}/return"
+                    enableProof  : false
+
+                verify = (accessToken, refreshToken, profile, done) ->
+                    console.log("#{strategy} auth: accessToken=",accessToken, " profile=", profile, "refreshToken=", refreshToken)
+                    done(undefined, {profile:profile})
+                passport.use(new PassportStrategy(opts, verify))
+
+                app.get "/auth/#{strategy}", passport.authenticate(strategy)
+
+                app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+                    console.log("/auth/#{strategy}/return")
+                    res.json(req.user)
+
+                cb()
+
+        async.parallel([init_local, init_google, init_github, init_facebook], cb)
 
 
 
