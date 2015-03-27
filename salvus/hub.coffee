@@ -366,7 +366,7 @@ init_passport = (app, cb) ->
         done(null, user)
 
     settings = database.key_value_store(name:'passport_settings')
-    strategies = ['local']   # configured strategies listed here.
+    strategies = []   # configured strategies listed here.
     get_conf = (strategy, cb) ->
         database.select
             table  : 'passport_settings'
@@ -665,7 +665,7 @@ init_passport = (app, cb) ->
                 res.json(req.user)
 
             cb()
-            
+
     async.series([
         (cb) ->
             get_conf 'site_conf', (err, site_conf) ->
@@ -682,7 +682,11 @@ init_passport = (app, cb) ->
             else
                 async.parallel([init_local, init_google, init_github, init_facebook,
                                 init_dropbox, init_bitbucket, init_wordpress, init_twitter], cb)
-    ], cb)
+    ], (err) =>
+        strategies.sort()
+        strategies.unshift('email')
+        cb(err)
+    )
 
 
 

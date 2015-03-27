@@ -1049,3 +1049,24 @@ $("a[href=#smc-billing-tab]").click(update_billing_tab)
 
 $("a[href=#account-settings-tab]").click () ->
     $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin').hide()
+
+
+###
+# Sign Strategies
+###
+
+$.get '/auth/strategies', (strategies, status) ->
+    e = $(".smc-signup-strategies")
+    if strategies.length > 0
+        e.show()
+    for strategy in strategies
+        e.find("a[href=##{strategy}]").show()
+    ###
+        if strategy == 'email'
+            continue
+        icon = strategy
+        name = strategy[0].toUpperCase() + strategy.slice(1)
+        btn = $("<a href='##{strategy}' class='btn btn-default'><i class='fa fa-#{icon}'></i> #{name}</a>")
+        e.append(btn)
+    ###
+

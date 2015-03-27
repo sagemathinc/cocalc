@@ -115,6 +115,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                         <a href="#account-forgot_password" style="font-size:12pt">Forgot your password?</a>
                     </div>
                 </div>
+
+                <hr>
+                You may also sign in using<br>
+
+                <div class="smc-signup-strategies hide" style="margin-top:8px">
+                    <span class="btn-group">
+                        <a href="#google" class="btn btn-default hide"><i class="fa fa-google"></i> Gmail</a>
+                        <a href="#facebook" class="btn btn-default hide"><i class="fa fa-facebook"></i> Facebook</a>
+                        <a href="#github" class="btn btn-default hide"><i class="fa fa-github"></i> Github</a>
+                    </span>
+                    <span class="btn-group" style="margin-top: 3px;">
+                        <a href="#bitbucket" class="btn btn-default hide"><i class="fa fa-bitbucket"></i> Bitbucket</a>
+                        <a href="#dropbox" class="btn btn-default hide"><i class="fa fa-dropbox"></i> Dropbox</a>
+                        <a href="#twitter" class="btn btn-default hide"><i class="fa fa-twitter"></i> Twitter</a>
+                        <a href="#wordpress" class="btn btn-default hide"><i class="fa fa-wordpress"></i> Wordpress</a>
+                    </span>
+                </div>
+
+
                 <hr>
                 <span class="lighten" style="font-size:10pt">Not working? Email us at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> immediately!</span>
             </form>
@@ -126,25 +145,47 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
         <div class="well col-sm-5 ">
             <h4>Create an account (or <a href="#account-sign_in">sign in</a>)</h4>
-            <br>
 
-            <span class="hidden-xs lighten-2">First and Last Name</span>
-            <input class="form-control" type="text" placeholder="First and Last Name" id="create_account-name">
-            <span class="hidden-xs lighten-2">Email</span>
-            <input class="form-control" type="email" placeholder="Email" id="create_account-email_address">
-            <span class="hidden-xs lighten-2 salvus-create_account-token hide">Token</span>
-            <input class="form-control salvus-create_account-token hide" type="text" placeholder="Secret token that the site admin gave you" id="create_account-token">
-            <span class="hidden-xs lighten-2">Password</span>
-            <input class="salvus-password-meter form-control" type="password" placeholder="Password" id="create_account-password">
-            <!-- <span class="hidden-xs lighten-2">Retype password</span>
-<input class="form-control" type="password" placeholder="Retype password" id="create_account-retype_password">
--->
 
-            <div class="checkbox"><label style="margin-top: 1ex;margin-bottom: 1ex;">
-                <input type="checkbox" id="create_account-agreed_to_terms">
-                Agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>
-                </label></div>
-            <button class="btn btn-success btn-lg" style="width: 100%;" type="submit" id="create_account-button">Create account for free</button>
+            <div>
+                <div class="checkbox"><label style="margin-top: 1ex;margin-bottom: 1ex;">
+                    <input type="checkbox" id="create_account-agreed_to_terms">
+                    Agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>
+                    </label>
+                </div>
+
+                <span class="hidden-xs lighten-2">First and Last Name</span>
+                <input class="form-control" type="text" placeholder="First and Last Name" id="create_account-name">
+                <span class="hidden-xs lighten-2">Email</span>
+                <input class="form-control" type="email" placeholder="Email" id="create_account-email_address">
+                <span class="hidden-xs lighten-2 salvus-create_account-token hide">Token</span>
+                <input class="form-control salvus-create_account-token hide" type="text" placeholder="Secret token that the site admin gave you" id="create_account-token">
+                <span class="hidden-xs lighten-2">Password</span>
+                <input class="salvus-password-meter form-control" type="password" placeholder="Password" id="create_account-password">
+                <!-- <span class="hidden-xs lighten-2">Retype password</span>
+    <input class="form-control" type="password" placeholder="Retype password" id="create_account-retype_password">
+    -->
+
+                <button class="btn btn-success btn-lg" style="width: 100%;" type="submit" id="create_account-button">Create account for free</button>
+            </div>
+
+            <hr>
+            You may also sign up using<br>
+
+            <div class="smc-signup-strategies hide" style="margin-top:8px">
+                <span class="btn-group">
+                    <a href="#google" class="btn btn-default hide"><i class="fa fa-google"></i> Gmail</a>
+                    <a href="#facebook" class="btn btn-default hide"><i class="fa fa-facebook"></i> Facebook</a>
+                    <a href="#github" class="btn btn-default hide"><i class="fa fa-github"></i> Github</a>
+                </span>
+                <span class="btn-group" style="margin-top: 3px;">
+                    <a href="#bitbucket" class="btn btn-default hide"><i class="fa fa-bitbucket"></i> Bitbucket</a>
+                    <a href="#dropbox" class="btn btn-default hide"><i class="fa fa-dropbox"></i> Dropbox</a>
+                    <a href="#twitter" class="btn btn-default hide"><i class="fa fa-twitter"></i> Twitter</a>
+                    <a href="#wordpress" class="btn btn-default hide"><i class="fa fa-wordpress"></i> Wordpress</a>
+                </span>
+            </div>
+
             <hr>
             <span class="lighten" style="font-size:10pt">Not working?  Email us at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> immediately!</span>
 
