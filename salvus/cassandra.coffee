@@ -1183,30 +1183,62 @@ class exports.Salvus extends exports.Cassandra
 
     create_account: (opts={}) ->
         opts = defaults opts,
-            first_name    : required
-            last_name     : required
-            email_address : required
-            password_hash : required
-            cb            : required
+            first_name        : required
+            last_name         : required
+
+            email_address     : undefined
+            password_hash     : undefined
+
+            passport_strategy : undefined
+            passport_id       : undefined
+            passport_profile  : undefined
+            cb                : required
+
+        dbg = (m) -> winston.debug("create_account(#{opts.first_name}, #{opts.last_name} #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}): #{m}")
 
         account_id = uuid.v4()
-        opts.email_address = misc.lower_email_address(opts.email_address)   # canonicalize the email address
+        if opts.email_address?
+            # canonicalize the email address (if given)
+            opts.email_address = misc.lower_email_address(opts.email_address)
+
         async.series([
-            # verify that account doesn't already exist
             (cb) =>
-                @select
-                    table : 'email_address_to_account_id'
-                    columns : ['account_id']
-                    where : {'email_address':opts.email_address}
-                    cb    : (err, results) =>
-                        if err
-                            cb(err)
-                        else if results.length > 0
-                            cb("account with email address '#{opts.email_address}' already exists")
-                        else
-                            cb()
-            # create account
+                # Verify in parallel that there's no account already with the
+                # requested email or passport.  This should never fail, except
+                # in case of some sort of rare bug or race condition where a
+                # person tries to sign up several times at once...
+                async.parallel([
+                    (cb) =>
+                        if not opts.email_address?
+                            cb(); return
+                        dbg("verify that no account with the given email (='#{opts.email_address}') already exists")
+                        @account_exists
+                            email_address : opts.email_address
+                            cb : (err, account_id) =>
+                                if err
+                                    cb(err)
+                                else if account_id
+                                    cb("account with email address '#{opts.email_address}' already exists")
+                                else
+                                    cb()
+                    (cb) =>
+                        if not opts.passport_strategy?
+                            cb(); return
+                        dbg("verify that no account with the given passport strategy (='#{opts.passport_strategy}') already exists")
+                        @passport_exists
+                            strategy : opts.passport_strategy
+                            id       : opts.passport_id
+                            cb       : (err, account_id) ->
+                                if err
+                                    cb(err)
+                                else if account_id
+                                    cb("account with email passport strategy '#{opts.passport_strategy}' and id '#{opts.passport_id}' already exists")
+                                else
+                                    cb()
+                ], cb)
+
             (cb) =>
+                dbg("create the actual account")
                 @update
                     table :'accounts'
                     set   :
@@ -1218,11 +1250,28 @@ class exports.Salvus extends exports.Cassandra
                     where : {account_id:account_id}
                     cb    : cb
             (cb) =>
-                @update
-                    table : 'email_address_to_account_id'
-                    set   : {account_id : account_id}
-                    where : {email_address: opts.email_address}
-                    cb    : cb
+                async.parallel([
+                    (cb) =>
+                        if not opts.email_address?
+                            cb(); return
+                        dbg("recording email address in index")
+                        @update
+                            table : 'email_address_to_account_id'
+                            set   : {account_id : account_id}
+                            where : {email_address: opts.email_address}
+                            cb    : cb
+                    (cb) =>
+                        if not opts.passport_strategy?
+                            cb(); return
+                        dbg("recording passport strategy")
+                        @create_passport
+                            account_id : account_id
+                            strategy   : opts.passport_strategy
+                            id         : opts.passport_id
+                            profile    : opts.passport_profile
+                            activated  : true   # pre-activate - new account so we trust.
+                            cb         : cb
+                ], cb)
             # add 1 to the "number of accounts" counter
             (cb) =>
                 @update_table_counter
@@ -1231,8 +1280,10 @@ class exports.Salvus extends exports.Cassandra
                     cb    : cb
         ], (err) =>
             if err
+                dbg("error creating account -- #{err}")
                 opts.cb(err)
             else
+                dbg("successfully created account")
                 opts.cb(false, account_id)
         )
 
@@ -1543,6 +1594,113 @@ class exports.Salvus extends exports.Cassandra
             set    : {dummy : true}
             where  : {email_address : misc.canonicalize_email_address(opts.email_address)}
             cb     : (err) => opts.cb?(err)
+
+    # create a new passport, which modifies the passports and accounts tables.
+    create_passport: (opts) =>
+        opts= defaults opts,
+            account_id : required
+            strategy   : required
+            id         : required
+            profile    : required
+            activated  : false
+            cb         : required   # cb(err)
+        async.series([  # series instead of parallel, since if second thing failed but
+                        # first succeeded, that would not prevent user login, but the
+                        # other way around could cause real problems.
+            (cb) =>
+                @update
+                    table : 'passports'
+                    where :
+                        strategy   : opts.strategy
+                        id         : opts.id
+                    set   :
+                        profile    : opts.profile
+                        account_id : opts.account_id
+                        activated  : opts.activated
+                    json  : ['profile']
+                    cb    : cb
+            (cb) =>
+                @cql
+                    query : "UPDATE accounts SET passports[?]=? WHERE account_id=?"
+                    vals  : [opts.strategy, opts.id, opts.account_id]
+                    cb    : cb
+        ], opts.cb)
+
+    # activate a specific passport -- this must be done before login is allowed using this passport.
+    activate_passport: (opts) =>
+        opts= defaults opts,
+            strategy   : required
+            id         : required
+            cb         : required
+        @update
+            table : 'passports'
+            where :
+                strategy   : opts.strategy
+                id         : opts.id
+            set   :
+                activated  : true
+            cb    : opts.cb
+
+    # completely delete a passport from the database -- removes from passports table and from account
+    delete_passport: (opts) =>
+        opts= defaults opts,
+            strategy   : required
+            id         : required
+            cb         : required
+        account_id = undefined
+        async.series([
+            (cb) =>
+                passport_exists
+                    strategy : opts.strategy
+                    id       : opts.id
+                    cb       : (err, _account_id) =>
+                        if err
+                            cb(err)
+                        else
+                            account_id = _account_id
+                            cb()
+            (cb) =>
+                if not account_id
+                    cb(); return
+                async.parallel([
+                    (cb) =>
+                        @delete
+                            table : 'passports'
+                            where :
+                                strategy   : opts.strategy
+                                id         : opts.id
+                            cb    : cb
+                    (cb) =>
+                        @cql
+                            query : "DELETE passports[?] FROM accounts WHERE account_id=?"
+                            vals  : [opts.strategy, opts.account_id]
+                            cb    : cb
+                ], cb)
+        ], opts.cb)
+
+    passport_exists: (opts) =>
+        opts = defaults opts,
+            strategy : required
+            id       : required
+            cb       : required   # cb(err, account_id or false) -- true if account exists; err = problem with db connection...
+
+        @select
+            table     : 'passports'
+            where     :
+                strategy : opts.strategy
+                id       : opts.id
+            columns   : ['account_id']
+            objectify : false
+            cb        : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    if results.length == 0
+                        opts.cb(false, false)
+                    else
+                        opts.cb(false, results[0][0])
+
+
 
     account_exists: (opts) =>
         opts = defaults opts,

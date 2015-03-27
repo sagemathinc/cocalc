@@ -126,12 +126,25 @@ CREATE TABLE accounts (
     remember_me          set<varchar>,
 
     /* The stripe customer id, if this user has setup a billing account at stripe. */
-    stripe_customer_id   varchar;
+    stripe_customer_id   varchar,
+
+    /* Map from passport logins for this account to their auth-provided id.  The raw
+       profile information is stored in the passports table defined below. */
+    passports            map<varchar, varchar>;
 );
 
 CREATE TABLE email_address_to_account_id (
     email_address varchar PRIMARY KEY,
     account_id    uuid
+);
+
+CREATE TABLE passports (
+    id         varchar,
+    strategy   varchar,
+    account_id uuid,
+    profile    varchar,   /* raw user profile that we got from the authentication provider */
+    activated  boolean,   /* if false, require user to be logged in and explicitly active this connection before letting it work; we *can't* trust that emails by oauth providers were properly validated. */
+    PRIMARY KEY(id, strategy)  /* id is first so it is the cluster key, so data more smoothly distributed, rather than grouped by strategy */
 );
 
 CREATE INDEX ON accounts(email_address);  /* this is horrible and should not be used or exist */

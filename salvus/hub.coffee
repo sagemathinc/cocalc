@@ -348,6 +348,118 @@ init_express_http_server = (cb) ->
 # Passport Authentication (oauth, etc.)
 ###
 
+passport_login = (opts) ->
+    opts = defaults opts,
+        strategy   : required     # name of the auth strategy, e.g., 'google', 'facebook', etc.
+        profile    : required     # will just get saved in database
+        id         : required     # unique id given by oauth provider
+        first_name : undefined
+        last_name  : undefined
+        full_name  : undefined
+        emails     : undefined    # not required -- but will automatically link with existing account if has same email (otherwise uses first)
+        req        : required     # request object
+        res        : required     # response object
+
+    dbg = (m) -> winston.debug("passport_login: #{m}")
+
+    dbg(misc.to_json(opts.req.user))
+
+    if opts.full_name? and not opts.first_name? and not opts.last_name?
+        name = opts.full_name
+        i = name.lastIndexOf(' ')
+        if i == -1
+            opts.first_name = name
+            opts.last_name = name
+        else
+            opts.first_name = name.slice(0,i).trim()
+            opts.last_name = name.slice(i).trim()
+    if not opts.first_name?
+        opts.first_name = "Anonymous"
+    if not opts.last_name?
+        opts.last_name = "User"
+
+    if opts.emails?
+        opts.emails = (x.toLowerCase() for x in opts.emails)
+
+    opts.id = "#{opts.id}"  # convert to string (id is often a number)
+
+    account_id    = undefined
+    email_address = undefined
+    async.series([
+        (cb) ->
+            dbg("check to see if the passport already exists indexed by the given id")
+            database.passport_exists
+                strategy : opts.strategy
+                id       : opts.id
+                cb       : (err, _account_id) ->
+                    account_id = _account_id
+                    cb(err)
+        (cb) ->
+            if account_id or not opts.emails?
+                cb(); return
+            dbg("passport doesn't exist, so check for existing account with a matching email")
+            f = (email, cb) ->
+                if account_id
+                    dbg("already found a match with account_id=#{account_id} -- done")
+                    cb()
+                else
+                    dbg("checking for account with email #{email}...")
+                    database.account_exists
+                        email_address : email.toLowerCase()
+                        cb            : (err, _account_id) ->
+                            if account_id # already done, so ignore
+                                dbg("already found a match with account_id=#{account_id} -- done")
+                                cb()
+                            else if err or not _account_id
+                                cb(err)
+                            else
+                                account_id    = _account_id
+                                email_address = email.toLowerCase()
+                                dbg("found matching account #{account_id} for email #{email_address}; adding info to passports tables")
+                                database.create_passport
+                                    account_id : account_id
+                                    strategy   : opts.strategy
+                                    id         : opts.id
+                                    profile    : opts.profile
+                                    activated  : false  # existing account -- require login via email/password before activing this passport.
+                                    cb         : cb
+            async.map(opts.emails, f, cb)
+        (cb) ->
+            if account_id
+                cb(); return
+            dbg("no existing account to link, so create new account")
+            if opts.emails?
+                email_address = opts.emails[0]
+            async.series([
+                (cb) ->
+                    database.create_account
+                        first_name        : opts.first_name
+                        last_name         : opts.last_name
+                        email_address     : email_address
+                        passport_strategy : opts.strategy
+                        passport_id       : opts.id
+                        passport_profile  : opts.profile
+                        cb                : (err, _account_id) ->
+                            account_id = _account_id
+                            cb(err)
+                (cb) ->
+                    if not email_address?
+                        cb()
+                    else
+                        account_creation_actions
+                            email_address : email_address
+                            account_id    : account_id
+                            cb            : cb
+            ], cb)
+
+    ], (err) ->
+        if err
+            opts.res.send("Error trying to login using #{opts.strategy} -- #{err}")
+        else
+            opts.res.send("Succeess -- account_id=#{account_id}.")
+    )
+
+
 init_passport = (app, cb) ->
     # Initialize authentication plugins using Passport
     passport = require('passport')
@@ -355,7 +467,7 @@ init_passport = (app, cb) ->
     dbg()
 
     # initialize use of middleware
-    app.use(require('express-session')({secret:'CHANGE THIS -- used only for testing bitbucket oauth1'}))
+    app.use(require('express-session')({secret:misc.uuid()}))  # secret is totally random and per-hub session -- don't use it for now.
     app.use(passport.initialize())
     app.use(passport.session())
 
@@ -462,7 +574,16 @@ init_passport = (app, cb) ->
             app.get "/auth/#{strategy}", passport.authenticate(strategy, {'scope': 'openid email profile'})
 
             app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                res.json(req.user)
+                profile = req.user.profile
+                passport_login
+                    strategy   : strategy
+                    profile    : profile  # will just get saved in database
+                    id         : profile.id
+                    first_name : profile.name.givenName
+                    last_name  : profile.name.familyName
+                    emails     : (x.value for x in profile.emails)
+                    req        : req
+                    res        : res
 
             cb()
 
@@ -493,7 +614,15 @@ init_passport = (app, cb) ->
             app.get "/auth/#{strategy}", passport.authenticate(strategy)
 
             app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                res.json(req.user)
+                profile = req.user.profile
+                passport_login
+                    strategy   : strategy
+                    profile    : profile  # will just get saved in database
+                    id         : profile.id
+                    full_name  : profile.name or profile.displayName or profile.username
+                    emails     : (x.value for x in profile.emails)
+                    req        : req
+                    res        : res
 
             cb()
 
@@ -528,7 +657,14 @@ init_passport = (app, cb) ->
             app.get "/auth/#{strategy}", passport.authenticate(strategy)
 
             app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                res.json(req.user)
+                profile = req.user.profile
+                passport_login
+                    strategy   : strategy
+                    profile    : profile  # will just get saved in database
+                    id         : profile.id
+                    full_name  : profile.displayName
+                    req        : req
+                    res        : res
 
             cb()
 
@@ -563,7 +699,16 @@ init_passport = (app, cb) ->
             app.get "/auth/#{strategy}", passport.authenticate("dropbox-oauth2")
 
             app.get "/auth/#{strategy}/return", passport.authenticate("dropbox-oauth2", {failureRedirect: '/auth/local'}), (req, res) ->
-                res.json(req.user)
+                profile = req.user.profile
+                passport_login
+                    strategy   : strategy
+                    profile    : profile  # will just get saved in database
+                    id         : profile.id
+                    first_name : profile._json.name_details.familiar_name
+                    last_name  : profile._json.name_details.surname
+                    full_name  : profile.displayName
+                    req        : req
+                    res        : res
 
             cb()
 
@@ -596,7 +741,16 @@ init_passport = (app, cb) ->
             app.get "/auth/#{strategy}", passport.authenticate(strategy)
 
             app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                res.json(req.user)
+                profile = req.user.profile
+                #winston.debug("profile=#{misc.to_json(profile)}")
+                passport_login
+                    strategy   : strategy
+                    profile    : profile  # will just get saved in database
+                    id         : profile.username
+                    first_name : profile.name.givenName
+                    last_name  : profile.name.familyName
+                    req        : req
+                    res        : res
 
             cb()
 
@@ -630,7 +784,15 @@ init_passport = (app, cb) ->
             app.get "/auth/#{strategy}", passport.authenticate(strategy)
 
             app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                res.json(req.user)
+                profile = req.user.profile
+                passport_login
+                    strategy   : strategy
+                    profile    : profile  # will just get saved in database
+                    id         : profile._json.ID
+                    emails     : [profile._json.email]
+                    full_name  : profile.displayName
+                    req        : req
+                    res        : res
 
             cb()
 
@@ -662,7 +824,14 @@ init_passport = (app, cb) ->
             app.get "/auth/#{strategy}", passport.authenticate(strategy)
 
             app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                res.json(req.user)
+                profile = req.user.profile
+                passport_login
+                    strategy   : strategy
+                    profile    : profile  # will just get saved in database
+                    id         : profile.id
+                    full_name  : profile.displayName
+                    req        : req
+                    res        : res
 
             cb()
 

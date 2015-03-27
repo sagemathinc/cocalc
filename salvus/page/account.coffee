@@ -1052,7 +1052,7 @@ $("a[href=#account-settings-tab]").click () ->
 
 
 ###
-# Sign Strategies
+# Sign Strategies -- show only configured buttons
 ###
 
 $.get '/auth/strategies', (strategies, status) ->
@@ -1060,7 +1060,10 @@ $.get '/auth/strategies', (strategies, status) ->
     if strategies.length > 0
         e.show()
     for strategy in strategies
-        e.find("a[href=##{strategy}]").show()
+        e.find(".smc-auth-#{strategy}").show()
+
+
+
     ###
         if strategy == 'email'
             continue

@@ -117,19 +117,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 </div>
 
                 <hr>
-                You may also sign in using<br>
+                <h4>
+                    Or sign in using
+                </h4>
 
                 <div class="smc-signup-strategies hide" style="margin-top:8px">
                     <span class="btn-group">
-                        <a href="#google" class="btn btn-default hide"><i class="fa fa-google"></i> Gmail</a>
-                        <a href="#facebook" class="btn btn-default hide"><i class="fa fa-facebook"></i> Facebook</a>
-                        <a href="#github" class="btn btn-default hide"><i class="fa fa-github"></i> Github</a>
+                        <a href="/auth/google" class="btn btn-default hide smc-auth-google"><i class="fa fa-google"></i> Gmail</a>
+                        <a href="/auth/facebook" class="btn btn-default hide  smc-auth-facebook"><i class="fa fa-facebook"></i> Facebook</a>
+                        <a href="/auth/github" class="btn btn-default hide  smc-auth-github"><i class="fa fa-github"></i> Github</a>
                     </span>
                     <span class="btn-group" style="margin-top: 3px;">
-                        <a href="#bitbucket" class="btn btn-default hide"><i class="fa fa-bitbucket"></i> Bitbucket</a>
-                        <a href="#dropbox" class="btn btn-default hide"><i class="fa fa-dropbox"></i> Dropbox</a>
-                        <a href="#twitter" class="btn btn-default hide"><i class="fa fa-twitter"></i> Twitter</a>
-                        <a href="#wordpress" class="btn btn-default hide"><i class="fa fa-wordpress"></i> Wordpress</a>
+                        <a href="/auth/bitbucket" class="btn btn-default hide  smc-auth-bitbucket"><i class="fa fa-bitbucket"></i> Bitbucket</a>
+                        <a href="/auth/dropbox" class="btn btn-default hide  smc-auth-dropbox"><i class="fa fa-dropbox"></i> Dropbox</a>
+                        <a href="/auth/twitter" class="btn btn-default hide  smc-auth-twitter"><i class="fa fa-twitter"></i> Twitter</a>
+                        <a href="/auth/wordpress" class="btn btn-default hide  smc-auth-wordpress"><i class="fa fa-wordpress"></i> Wordpress</a>
                     </span>
                 </div>
 
@@ -148,12 +150,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
             <div>
-                <div class="checkbox"><label style="margin-top: 1ex;margin-bottom: 1ex;">
-                    <input type="checkbox" id="create_account-agreed_to_terms">
-                    Agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>
-                    </label>
-                </div>
-
                 <span class="hidden-xs lighten-2">First and Last Name</span>
                 <input class="form-control" type="text" placeholder="First and Last Name" id="create_account-name">
                 <span class="hidden-xs lighten-2">Email</span>
@@ -162,6 +158,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 <input class="form-control salvus-create_account-token hide" type="text" placeholder="Secret token that the site admin gave you" id="create_account-token">
                 <span class="hidden-xs lighten-2">Password</span>
                 <input class="salvus-password-meter form-control" type="password" placeholder="Password" id="create_account-password">
+                <div class="checkbox"><label style="margin-top: 1ex;margin-bottom: 1ex;">
+                    <input type="checkbox" id="create_account-agreed_to_terms">
+                    Agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>
+                    </label>
+                </div>
+
                 <!-- <span class="hidden-xs lighten-2">Retype password</span>
     <input class="form-control" type="password" placeholder="Retype password" id="create_account-retype_password">
     -->
@@ -170,19 +172,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             </div>
 
             <hr>
-            You may also sign up using<br>
+            <h4>
+                Or sign up using
+            </h4>
 
             <div class="smc-signup-strategies hide" style="margin-top:8px">
                 <span class="btn-group">
-                    <a href="#google" class="btn btn-default hide"><i class="fa fa-google"></i> Gmail</a>
-                    <a href="#facebook" class="btn btn-default hide"><i class="fa fa-facebook"></i> Facebook</a>
-                    <a href="#github" class="btn btn-default hide"><i class="fa fa-github"></i> Github</a>
+                    <a href="/auth/google" class="btn btn-default hide smc-auth-google"><i class="fa fa-google"></i> Google</a>
+                    <a href="/auth/facebook" class="btn btn-default hide  smc-auth-facebook"><i class="fa fa-facebook"></i> Facebook</a>
+                    <a href="/auth/github" class="btn btn-default hide  smc-auth-github"><i class="fa fa-github"></i> Github</a>
                 </span>
                 <span class="btn-group" style="margin-top: 3px;">
-                    <a href="#bitbucket" class="btn btn-default hide"><i class="fa fa-bitbucket"></i> Bitbucket</a>
-                    <a href="#dropbox" class="btn btn-default hide"><i class="fa fa-dropbox"></i> Dropbox</a>
-                    <a href="#twitter" class="btn btn-default hide"><i class="fa fa-twitter"></i> Twitter</a>
-                    <a href="#wordpress" class="btn btn-default hide"><i class="fa fa-wordpress"></i> Wordpress</a>
+                    <a href="/auth/bitbucket" class="btn btn-default hide  smc-auth-bitbucket"><i class="fa fa-bitbucket"></i> Bitbucket</a>
+                    <a href="/auth/dropbox" class="btn btn-default hide  smc-auth-dropbox"><i class="fa fa-dropbox"></i> Dropbox</a>
+                    <a href="/auth/twitter" class="btn btn-default hide  smc-auth-twitter"><i class="fa fa-twitter"></i> Twitter</a>
+                    <a href="/auth/wordpress" class="btn btn-default hide  smc-auth-wordpress"><i class="fa fa-wordpress"></i> Wordpress</a>
                 </span>
             </div>
 

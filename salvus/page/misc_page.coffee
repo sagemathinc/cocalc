@@ -1513,4 +1513,3 @@ exports.restore_selection = (selected_range) ->
     else if document.selection and selected_range
         selected_range.select()
 
-
