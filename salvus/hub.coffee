@@ -351,6 +351,8 @@ init_express_http_server = (cb) ->
 init_passport = (app, cb) ->
     # Initialize authentication plugins using Passport
     passport = require('passport')
+    dbg = (m) -> winston.debug("init_passport: #{m}")
+    dbg()
 
     # initialize use of passport middleware
     app.use(passport.initialize())
@@ -365,23 +367,36 @@ init_passport = (app, cb) ->
 
     settings = database.key_value_store(name:'passport_settings')
     get_conf = (strategy, cb) ->
-        database.select_one
+        database.select
             table  : 'passport_settings'
             where  :
                 strategy : strategy
             columns: ['conf']
-            cb     : (err, result) ->
+            cb     : (err, results) ->
                 if err
+                    dbg("error getting passport conf for #{strategy} -- #{err}")
                     cb(err)
                 else
-                    cb(undefined, result[0])
+                    if results.length == 0
+                        dbg("WARNING: passport strategy #{strategy} not configured")
+                        cb(undefined, undefined)
+                    else
 
+                        cb(undefined, results[0][0])
+
+    # Set the site conf via cassandra like this:
+    #    update passport_settings set conf['auth']='https://cloud.sagemath.com/auth' where strategy='site_conf';
     get_conf 'site_conf', (err, site_conf) ->
+        if err or not site_conf?
+            cb(err)
+            return
         auth_url = site_conf.auth
+        dbg("auth_url=#{auth_url}")
 
         init_passport_local = (cb) ->
+            dbg("init_passport_local")
             # Strategy: local email address / password login
-            LocalStrategy = require('passport-local').Strategy
+            PassportStrategy = require('passport-local').Strategy
 
             verify = (username, password, done) ->
                 if username == 'a'
@@ -389,7 +404,7 @@ init_passport = (app, cb) ->
                 console.log("local strategy validating user #{username}")
                 done(null, {username:username})
 
-            passport.use(new LocalStrategy(verify))
+            passport.use(new PassportStrategy(verify))
 
             app.get '/auth/local', (req, res) ->
                 console.log('get login form')
@@ -408,29 +423,35 @@ init_passport = (app, cb) ->
             cb()
 
         init_passport_google = (cb) ->
+            dbg("init_passport_google")
             # Strategy: Google OAuth 2 -- https://github.com/jaredhanson/passport-google-oauth
             #
             # NOTE: The passport-recommend library passport-google uses openid2, which
             # is deprecated in a few days!   So instead, I have to use oauth2, which
             # is in https://github.com/jaredhanson/passport-google-oauth, which I found by luck!?!
             #
-            GoogleStrategy = require('passport-google-oauth').OAuth2Strategy
+            PassportStrategy = require('passport-google-oauth').OAuth2Strategy
             strategy = 'google'
             get_conf strategy, (err, conf) ->
-                if err
+                if err or not conf?
                     cb(err)
                     return
                 # docs for getting these for your app
                 # https://developers.google.com/accounts/docs/OpenIDConnect#appsetup
+                #
+                # You must then put them in the database, via
+                #   update passport_settings set conf['clientID']='...'     where strategy='google';
+                #   update passport_settings set conf['clientSecret']='...' where strategy='google';
+                #
                 opts =
                     clientID     : conf.clientID
                     clientSecret : conf.clientSecret
                     callbackURL  : "#{auth_url}/#{strategy}/return"
 
                 verify = (accessToken, refreshToken, profile, done) ->
-                    console.log("google auth: accessToken=",accessToken, " profile=", profile, "refreshToken=", refreshToken)
+                    console.log("#{strategy} auth: accessToken=",accessToken, " profile=", profile, "refreshToken=", refreshToken)
                     done(undefined, {profile:profile})
-                passport.use(new GoogleStrategy(opts, verify))
+                passport.use(new PassportStrategy(opts, verify))
 
                 # Enabling "profile" below I think required that I explicitly go to Google Developer Console for the project,
                 # then select API&Auth, then API's, then Google+, then explicitly enable it.  Otherwise, stuff just mysteriously
@@ -440,12 +461,45 @@ init_passport = (app, cb) ->
                 app.get "/auth/#{strategy}", passport.authenticate(strategy, {'scope': 'openid email profile'})
 
                 app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                    console.log("/auth/google/return")
+                    console.log("/auth/#{strategy}/return")
                     res.json(req.user)
 
                 cb()
 
-        async.parallel([init_passport_local, init_passport_google], cb)
+        init_passport_github = (cb) ->
+            dbg("init_passport_github")
+            # Strategy: Github OAuth2 -- https://github.com/jaredhanson/passport-github
+            PassportStrategy = require('passport-github').Strategy
+            strategy = 'github'
+            get_conf strategy, (err, conf) ->
+                if err or not conf?
+                    cb(err)
+                    return
+                # Get these here:
+                #      https://github.com/settings/applications/new
+                # You must then put them in the database, via
+                #   update passport_settings set conf['clientID']='...'     where strategy='github';
+                #   update passport_settings set conf['clientSecret']='...' where strategy='github';
+
+                opts =
+                    clientID     : conf.clientID
+                    clientSecret : conf.clientSecret
+                    callbackURL  : "#{auth_url}/#{strategy}/return"
+
+                verify = (accessToken, refreshToken, profile, done) ->
+                    console.log("#{strategy} auth: accessToken=",accessToken, " profile=", profile, "refreshToken=", refreshToken)
+                    done(undefined, {profile:profile})
+                passport.use(new PassportStrategy(opts, verify))
+
+                app.get "/auth/#{strategy}", passport.authenticate(strategy)
+
+                app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+                    console.log("/auth/#{strategy}/return")
+                    res.json(req.user)
+
+                cb()
+
+        async.parallel([init_passport_local, init_passport_google, init_passport_github], cb)
 
 
 
