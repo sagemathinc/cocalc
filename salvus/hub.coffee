@@ -449,7 +449,6 @@ init_passport = (app, cb) ->
                     callbackURL  : "#{auth_url}/#{strategy}/return"
 
                 verify = (accessToken, refreshToken, profile, done) ->
-                    console.log("#{strategy} auth: accessToken=",accessToken, " profile=", profile, "refreshToken=", refreshToken)
                     done(undefined, {profile:profile})
                 passport.use(new PassportStrategy(opts, verify))
 
@@ -461,7 +460,6 @@ init_passport = (app, cb) ->
                 app.get "/auth/#{strategy}", passport.authenticate(strategy, {'scope': 'openid email profile'})
 
                 app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                    console.log("/auth/#{strategy}/return")
                     res.json(req.user)
 
                 cb()
@@ -487,18 +485,15 @@ init_passport = (app, cb) ->
                     callbackURL  : "#{auth_url}/#{strategy}/return"
 
                 verify = (accessToken, refreshToken, profile, done) ->
-                    console.log("#{strategy} auth: accessToken=",accessToken, " profile=", profile, "refreshToken=", refreshToken)
                     done(undefined, {profile:profile})
                 passport.use(new PassportStrategy(opts, verify))
 
                 app.get "/auth/#{strategy}", passport.authenticate(strategy)
 
                 app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                    console.log("/auth/#{strategy}/return")
                     res.json(req.user)
 
                 cb()
-
 
         init_facebook = (cb) ->
             dbg("init_facebook")
@@ -525,19 +520,52 @@ init_passport = (app, cb) ->
                     enableProof  : false
 
                 verify = (accessToken, refreshToken, profile, done) ->
-                    console.log("#{strategy} auth: accessToken=",accessToken, " profile=", profile, "refreshToken=", refreshToken)
                     done(undefined, {profile:profile})
                 passport.use(new PassportStrategy(opts, verify))
 
                 app.get "/auth/#{strategy}", passport.authenticate(strategy)
 
                 app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                    console.log("/auth/#{strategy}/return")
                     res.json(req.user)
 
                 cb()
 
-        async.parallel([init_local, init_google, init_github, init_facebook], cb)
+        init_dropbox = (cb) ->
+            dbg("init_dropbox")
+            PassportStrategy = require('passport-dropbox-oauth2').Strategy
+            strategy = 'dropbox'
+            get_conf strategy, (err, conf) ->
+                if err or not conf?
+                    cb(err)
+                    return
+                # Get these by:
+                #   (1) creating a dropbox account, then going to this url: https://www.dropbox.com/developers/apps
+                #   (2) make a dropbox api app that only access the datastore (not user files -- for now, since we're just doing auth!).
+                #   (3) You'll see an "App key" and an "App secret".
+                #   (4) Add the redirect URL on the dropbox page as well, which will be like https://cloud.sagemath.com/auth/dropbox/return
+                # This might (or might not) be relevant when we support dropbox sync: https://github.com/dropbox/dropbox-js
+                #
+                # You must then put them in the database, via
+                #   update passport_settings set conf['clientID']='...'     where strategy='dropbox';
+                #   update passport_settings set conf['clientSecret']='...' where strategy='dropbox';
+
+                opts =
+                    clientID     : conf.clientID
+                    clientSecret : conf.clientSecret
+                    callbackURL  : "#{auth_url}/#{strategy}/return"
+
+                verify = (accessToken, refreshToken, profile, done) ->
+                    done(undefined, {profile:profile})
+                passport.use(new PassportStrategy(opts, verify))
+
+                app.get "/auth/#{strategy}", passport.authenticate("dropbox-oauth2")
+
+                app.get "/auth/#{strategy}/return", passport.authenticate("dropbox-oauth2", {failureRedirect: '/auth/local'}), (req, res) ->
+                    res.json(req.user)
+
+                cb()
+
+        async.parallel([init_local, init_google, init_github, init_facebook, init_dropbox], cb)
 
 
 
