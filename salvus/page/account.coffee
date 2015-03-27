@@ -81,7 +81,7 @@ show_page = exports.show_page  = (p) ->
         else
             $("##{page}").hide()
 
-if localStorage.remember_me
+if localStorage.remember_me or window.location.hash.substr(1) == 'login'
     show_page("account-sign_in")
 else
     show_page("account-create_account")
@@ -406,7 +406,7 @@ signed_in = (mesg) ->
             # the account page by default in that case makes sense.
             if first_login
                 first_login = false
-                if window.salvus_target
+                if window.salvus_target and window.salvus_target != 'login'
                     require('history').load_target(window.salvus_target)
                     window.salvus_target = ''
                 else
@@ -1015,8 +1015,8 @@ show_connection_information = () ->
 ################################################
 # Automatically log in
 ################################################
-if localStorage.remember_me
-    $(".salvus-remember_me-message").show().find("span").text(localStorage.remember_me)
+if localStorage.remember_me or window.location.hash.substr(1) == 'login'
+    $(".salvus-remember_me-message").show()
     $(".salvus-sign_in-form").hide()
     # just in case, always show manual login screen after 45s.
     setTimeout((()=>$(".salvus-remember_me-message").hide(); $(".salvus-sign_in-form").show()), 45000)

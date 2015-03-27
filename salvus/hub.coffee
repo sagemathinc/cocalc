@@ -359,6 +359,7 @@ passport_login = (opts) ->
         emails     : undefined    # not required -- but will automatically link with existing account if has same email (otherwise uses first)
         req        : required     # request object
         res        : required     # response object
+        cb         : undefined
 
     dbg = (m) -> winston.debug("passport_login: #{m}")
 
@@ -385,14 +386,16 @@ passport_login = (opts) ->
 
     account_id    = undefined
     email_address = undefined
+    activated     = false
     async.series([
         (cb) ->
             dbg("check to see if the passport already exists indexed by the given id")
             database.passport_exists
                 strategy : opts.strategy
                 id       : opts.id
-                cb       : (err, _account_id) ->
+                cb       : (err, _account_id, _activated) ->
                     account_id = _account_id
+                    activated  = _activated
                     cb(err)
         (cb) ->
             if account_id or not opts.emails?
@@ -416,18 +419,21 @@ passport_login = (opts) ->
                                 account_id    = _account_id
                                 email_address = email.toLowerCase()
                                 dbg("found matching account #{account_id} for email #{email_address}; adding info to passports tables")
+
+                                activated = false # existing account -- require login via email/password before activing this passport.
                                 database.create_passport
                                     account_id : account_id
                                     strategy   : opts.strategy
                                     id         : opts.id
                                     profile    : opts.profile
-                                    activated  : false  # existing account -- require login via email/password before activing this passport.
+                                    activated  : activated
                                     cb         : cb
             async.map(opts.emails, f, cb)
         (cb) ->
             if account_id
                 cb(); return
             dbg("no existing account to link, so create new account")
+            activated = true  # because it's a new account
             if opts.emails?
                 email_address = opts.emails[0]
             async.series([
@@ -451,12 +457,51 @@ passport_login = (opts) ->
                             account_id    : account_id
                             cb            : cb
             ], cb)
+        (cb) ->
+            # Set cookies and send them to site.
+            target = "/" + program.base_url + "/projects#login"
+            if activated
+                dbg("passport exists or created and is activated")
+                # create and set remember_me cookie, then redirect.
+                # See the remember_me method of client for the algorithm we use.
+                signed_in_mesg = message.signed_in
+                    remember_me : true
+                    hub         : program.host
+                    account_id  : account_id
+                    first_name  : opts.first_name
+                    last_name   : opts.last_name
 
+                dbg("create remember_me cookie")
+                session_id = uuid.v4()
+                hash_session_id = password_hash(session_id)
+                ttl = 24*3600*30     # 30 days
+                x = hash_session_id.split('$')
+                remember_me_value = [x[0], x[1], x[2], session_id].join('$')
+                dbg("set remember_me cookies in client")
+                expires = new Date(new Date().getTime() + ttl*1000)
+                cookies = new Cookies(opts.req, opts.res)
+                cookies.set(program.base_url + 'remember_me', remember_me_value, {expires:expires})
+                dbg("set remember_me cookie in database")
+                database.key_value_store(name:'remember_me').set
+                    key   : hash_session_id
+                    value : signed_in_mesg
+                    ttl   : ttl
+                    cb    : (err) ->
+                        if err
+                            cb(err)
+                        else
+                            dbg("finally redirect the client to #{target}, who should auto login")
+                            opts.res.redirect(target)
+                            cb()
+            else
+                dbg("passport exists or created but is NOT activated")
+                # TODO: need to have user type password to activate...
+                opts.res.redirect(target)
+                cb()
     ], (err) ->
         if err
             opts.res.send("Error trying to login using #{opts.strategy} -- #{err}")
-        else
-            opts.res.send("Succeess -- account_id=#{account_id}.")
+        opts.cb?(err)
     )
 
 
@@ -1347,11 +1392,18 @@ class Client extends EventEmitter
                 if not signed_in_mesg?
                     @remember_me_failed("remember_me deleted or expired")
                     return
+                # sign them in if not already signed in
+                if @account_id != signed_in_mesg.account_id
+                    signed_in_mesg.hub     = program.host + ':' + program.port
+                    @hash_session_id = hash
+                    @signed_in(signed_in_mesg)
+                    @push_to_client(signed_in_mesg)
+                ###
                 database.is_banned_user
                     email_address : signed_in_mesg.email_address
                     cb            : (err, is_banned) =>
                         if err
-                            @remember_me_failed("error checking whether or not user is banned")
+                            @remember_me_failed("error checking whether or not user is banned -- {err}")
                         else if is_banned
                             # delete this auth key, since banned users are a waste of space.
                             # TODO: probably want to log this attempt...
@@ -1364,6 +1416,7 @@ class Client extends EventEmitter
                                 @hash_session_id = hash
                                 @signed_in(signed_in_mesg)
                                 @push_to_client(signed_in_mesg)
+                ###
 
     #######################################################
     # Capping resource limits; client can request anything.
@@ -1484,11 +1537,11 @@ class Client extends EventEmitter
         #############################################################
         # Remember me.  There are many ways to implement
         # "remember me" functionality in a web app. Here's how
-        # we do it with Salvus.  We generate a random uuid,
+        # we do it with SMC:    We generate a random uuid,
         # which along with salt, is stored in the user's
         # browser as an httponly cookie.  We password hash the
         # random uuid and store that in our database.  When
-        # the user later visits the Salvus site, their browser
+        # the user later visits the SMC site, their browser
         # sends the cookie, which the server hashes to get the
         # key for the database table, which has corresponding
         # value the mesg needed for sign in.  We then sign the
@@ -1507,7 +1560,11 @@ class Client extends EventEmitter
         # Regarding ttl, we use 1 year.  The database will forget
         # the cookie automatically at the same time that the
         # browser invalidates it.
+        #
         #############################################################
+
+        # WARNING: The code below is somewhat replicated in
+        # passport_login.
 
         opts = defaults opts,
             email_address : required
@@ -1545,7 +1602,7 @@ class Client extends EventEmitter
                         else
                             cb()
             (cb) =>
-                # Write cookie to databse quickly so it is likely
+                # Write cookie to database quickly so it is likely
                 # to be available if there are queries for it here
                 # or on another node in same DC.
                 @remember_me_db.set
@@ -5435,7 +5492,7 @@ record_sign_in = (opts) ->
     opts = defaults opts,
         ip_address    : required
         successful    : required
-        email_address : required
+        email_address : undefined
         account_id    : undefined
         remember_me   : false
     if not opts.successful

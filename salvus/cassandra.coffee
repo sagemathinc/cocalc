@@ -1682,23 +1682,23 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults opts,
             strategy : required
             id       : required
-            cb       : required   # cb(err, account_id or false) -- true if account exists; err = problem with db connection...
+            cb       : required   # cb(err, account_id or undefined, activated or undefined)
 
         @select
             table     : 'passports'
             where     :
                 strategy : opts.strategy
                 id       : opts.id
-            columns   : ['account_id']
+            columns   : ['account_id', 'activated']
             objectify : false
             cb        : (err, results) =>
                 if err
                     opts.cb(err)
                 else
                     if results.length == 0
-                        opts.cb(false, false)
+                        opts.cb(undefined, undefined)
                     else
-                        opts.cb(false, results[0][0])
+                        opts.cb(undefined, results[0][0], results[0][1])
 
 
 
