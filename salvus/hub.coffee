@@ -598,7 +598,43 @@ init_passport = (app, cb) ->
 
                 cb()
 
-        async.parallel([init_local, init_google, init_github, init_facebook, init_dropbox, init_bitbucket], cb)
+
+        init_wordpress = (cb) ->
+            dbg("init_wordpress")
+            PassportStrategy = require('passport-wordpress').Strategy
+            strategy = 'wordpress'
+            get_conf strategy, (err, conf) ->
+                if err or not conf?
+                    cb(err)
+                    return
+                # Get these by:
+                #    (1) Make a wordpress account
+                #    (2) Go to https://developer.wordpress.com/apps/
+                #    (3) Click "Create a New Application"
+                #    (4) Fill the form as usual and eventual get the id and secret.
+                #
+                # You must then put them in the database, via
+                #   update passport_settings set conf['clientID']='...'     where strategy='wordpress';
+                #   update passport_settings set conf['clientSecret']='...' where strategy='wordpress';
+
+                opts =
+                    clientID     : conf.clientID
+                    clientSecret : conf.clientSecret
+                    callbackURL  : "#{auth_url}/#{strategy}/return"
+
+                verify = (accessToken, refreshToken, profile, done) ->
+                    done(undefined, {profile:profile})
+                passport.use(new PassportStrategy(opts, verify))
+
+                app.get "/auth/#{strategy}", passport.authenticate(strategy)
+
+                app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+                    res.json(req.user)
+
+                cb()
+
+        async.parallel([init_local, init_google, init_github, init_facebook,
+                        init_dropbox, init_bitbucket, init_wordpress], cb)
 
 
 
