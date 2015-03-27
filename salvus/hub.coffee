@@ -366,6 +366,7 @@ init_passport = (app, cb) ->
         done(null, user)
 
     settings = database.key_value_store(name:'passport_settings')
+    strategies = ['local']   # configured strategies listed here.
     get_conf = (strategy, cb) ->
         database.select
             table  : 'passport_settings'
@@ -381,291 +382,307 @@ init_passport = (app, cb) ->
                         dbg("WARNING: passport strategy #{strategy} not configured")
                         cb(undefined, undefined)
                     else
+                        conf = results[0][0]
+                        if strategy != 'site_conf' and conf?
+                            strategies.push(strategy)
+                        cb(undefined, conf)
 
-                        cb(undefined, results[0][0])
+    # Return the configured and supported authentication strategies.
+    app.get '/auth/strategies', (req, res) ->
+        res.json(strategies)
 
     # Set the site conf via cassandra like this:
     #    update passport_settings set conf['auth']='https://cloud.sagemath.com/auth' where strategy='site_conf';
-    get_conf 'site_conf', (err, site_conf) ->
-        if err or not site_conf?
-            cb(err)
-            return
-        auth_url = site_conf.auth
-        dbg("auth_url=#{auth_url}")
 
-        init_local = (cb) ->
-            dbg("init_local")
-            # Strategy: local email address / password login
-            PassportStrategy = require('passport-local').Strategy
+    auth_url = undefined # gets set below
 
-            verify = (username, password, done) ->
-                if username == 'a'
-                    return done(null, false, { message: 'Incorrect password.' })
-                console.log("local strategy validating user #{username}")
-                done(null, {username:username})
+    init_local = (cb) ->
+        dbg("init_local")
+        # Strategy: local email address / password login
+        PassportStrategy = require('passport-local').Strategy
 
-            passport.use(new PassportStrategy(verify))
+        verify = (username, password, done) ->
+            if username == 'a'
+                return done(null, false, { message: 'Incorrect password.' })
+            console.log("local strategy validating user #{username}")
+            done(null, {username:username})
 
-            app.get '/auth/local', (req, res) ->
-                console.log('get login form')
-                res.send("""<form action="/auth/local" method="post">
-                                <label>Email</label>
-                                <input type="text" name="username">
-                                <label>Password</label>
-                                <input type="password" name="password">
-                                <button type="submit" value="Log In"/>Login</button>
-                            </form>""")
+        passport.use(new PassportStrategy(verify))
 
-            app.post '/auth/local', passport.authenticate('local'), (req, res) ->
-                console.log("authenticated... ")
+        app.get '/auth/local', (req, res) ->
+            res.send("""<form action="/auth/local" method="post">
+                            <label>Email</label>
+                            <input type="text" name="username">
+                            <label>Password</label>
+                            <input type="password" name="password">
+                            <button type="submit" value="Log In"/>Login</button>
+                        </form>""")
+
+        app.post '/auth/local', passport.authenticate('local'), (req, res) ->
+            console.log("authenticated... ")
+            res.json(req.user)
+
+        cb()
+
+    init_google = (cb) ->
+        dbg("init_google")
+        # Strategy: Google OAuth 2 -- https://github.com/jaredhanson/passport-google-oauth
+        #
+        # NOTE: The passport-recommend library passport-google uses openid2, which
+        # is deprecated in a few days!   So instead, I have to use oauth2, which
+        # is in https://github.com/jaredhanson/passport-google-oauth, which I found by luck!?!
+        #
+        PassportStrategy = require('passport-google-oauth').OAuth2Strategy
+        strategy = 'google'
+        get_conf strategy, (err, conf) ->
+            if err or not conf?
+                cb(err)
+                return
+            # docs for getting these for your app
+            # https://developers.google.com/accounts/docs/OpenIDConnect#appsetup
+            #
+            # You must then put them in the database, via
+            #   update passport_settings set conf['clientID']='...'     where strategy='google';
+            #   update passport_settings set conf['clientSecret']='...' where strategy='google';
+            #
+            opts =
+                clientID     : conf.clientID
+                clientSecret : conf.clientSecret
+                callbackURL  : "#{auth_url}/#{strategy}/return"
+
+            verify = (accessToken, refreshToken, profile, done) ->
+                done(undefined, {profile:profile})
+            passport.use(new PassportStrategy(opts, verify))
+
+            # Enabling "profile" below I think required that I explicitly go to Google Developer Console for the project,
+            # then select API&Auth, then API's, then Google+, then explicitly enable it.  Otherwise, stuff just mysteriously
+            # didn't work.  To figure out that this was the problem, I had to grep the source code of the passport-google-oauth
+            # library and put in print statements to see what the *REAL* errors were, since that
+            # library hid the errors (**WHY**!!?).
+            app.get "/auth/#{strategy}", passport.authenticate(strategy, {'scope': 'openid email profile'})
+
+            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 res.json(req.user)
 
             cb()
 
-        init_google = (cb) ->
-            dbg("init_google")
-            # Strategy: Google OAuth 2 -- https://github.com/jaredhanson/passport-google-oauth
+    init_github = (cb) ->
+        dbg("init_github")
+        # Strategy: Github OAuth2 -- https://github.com/jaredhanson/passport-github
+        PassportStrategy = require('passport-github').Strategy
+        strategy = 'github'
+        get_conf strategy, (err, conf) ->
+            if err or not conf?
+                cb(err)
+                return
+            # Get these here:
+            #      https://github.com/settings/applications/new
+            # You must then put them in the database, via
+            #   update passport_settings set conf['clientID']='...'     where strategy='github';
+            #   update passport_settings set conf['clientSecret']='...' where strategy='github';
+
+            opts =
+                clientID     : conf.clientID
+                clientSecret : conf.clientSecret
+                callbackURL  : "#{auth_url}/#{strategy}/return"
+
+            verify = (accessToken, refreshToken, profile, done) ->
+                done(undefined, {profile:profile})
+            passport.use(new PassportStrategy(opts, verify))
+
+            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+
+            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+                res.json(req.user)
+
+            cb()
+
+    init_facebook = (cb) ->
+        dbg("init_facebook")
+        # Strategy: Facebook OAuth2 --
+        PassportStrategy = require('passport-facebook').Strategy
+        strategy = 'facebook'
+        get_conf strategy, (err, conf) ->
+            if err or not conf?
+                cb(err)
+                return
+            # Get these by going to https://developers.facebook.com/ and creating a new application.
+            # For that application, set the url to the site SMC will be served from.
+            # The Facebook "App ID" and is clientID and the Facebook "App Secret" is the clientSecret
+            # for oauth2, as I discovered by a lucky guess... (sigh).
             #
-            # NOTE: The passport-recommend library passport-google uses openid2, which
-            # is deprecated in a few days!   So instead, I have to use oauth2, which
-            # is in https://github.com/jaredhanson/passport-google-oauth, which I found by luck!?!
+            # You must then put them in the database, via
+            #   update passport_settings set conf['clientID']='...'     where strategy='facebook';
+            #   update passport_settings set conf['clientSecret']='...' where strategy='facebook';
+
+            opts =
+                clientID     : conf.clientID
+                clientSecret : conf.clientSecret
+                callbackURL  : "#{auth_url}/#{strategy}/return"
+                enableProof  : false
+
+            verify = (accessToken, refreshToken, profile, done) ->
+                done(undefined, {profile:profile})
+            passport.use(new PassportStrategy(opts, verify))
+
+            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+
+            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+                res.json(req.user)
+
+            cb()
+
+    init_dropbox = (cb) ->
+        dbg("init_dropbox")
+        PassportStrategy = require('passport-dropbox-oauth2').Strategy
+        strategy = 'dropbox'
+        get_conf strategy, (err, conf) ->
+            if err or not conf?
+                cb(err)
+                return
+            # Get these by:
+            #   (1) creating a dropbox account, then going to this url: https://www.dropbox.com/developers/apps
+            #   (2) make a dropbox api app that only access the datastore (not user files -- for now, since we're just doing auth!).
+            #   (3) You'll see an "App key" and an "App secret".
+            #   (4) Add the redirect URL on the dropbox page as well, which will be like https://cloud.sagemath.com/auth/dropbox/return
+            # This might (or might not) be relevant when we support dropbox sync: https://github.com/dropbox/dropbox-js
             #
-            PassportStrategy = require('passport-google-oauth').OAuth2Strategy
-            strategy = 'google'
-            get_conf strategy, (err, conf) ->
-                if err or not conf?
+            # You must then put them in the database, via
+            #   update passport_settings set conf['clientID']='...'     where strategy='dropbox';
+            #   update passport_settings set conf['clientSecret']='...' where strategy='dropbox';
+
+            opts =
+                clientID     : conf.clientID
+                clientSecret : conf.clientSecret
+                callbackURL  : "#{auth_url}/#{strategy}/return"
+
+            verify = (accessToken, refreshToken, profile, done) ->
+                done(undefined, {profile:profile})
+            passport.use(new PassportStrategy(opts, verify))
+
+            app.get "/auth/#{strategy}", passport.authenticate("dropbox-oauth2")
+
+            app.get "/auth/#{strategy}/return", passport.authenticate("dropbox-oauth2", {failureRedirect: '/auth/local'}), (req, res) ->
+                res.json(req.user)
+
+            cb()
+
+    init_bitbucket = (cb) ->
+        dbg("init_bitbucket")
+        PassportStrategy = require('passport-bitbucket').Strategy
+        strategy = 'bitbucket'
+        get_conf strategy, (err, conf) ->
+            if err or not conf?
+                cb(err)
+                return
+            # Get these by:
+            #      (1) make a bitbucket account
+            #      (2) Go to https://bitbucket.org/account/user/[your username]/api
+            #      (3) Click add consumer and enter the URL of your SMC instance.
+            #
+            # You must then put them in the database, via
+            #   update passport_settings set conf['clientID']='...'     where strategy='bitbucket';
+            #   update passport_settings set conf['clientSecret']='...' where strategy='bitbucket';
+
+            opts =
+                consumerKey    : conf.clientID
+                consumerSecret : conf.clientSecret
+                callbackURL    : "#{auth_url}/#{strategy}/return"
+
+            verify = (accessToken, refreshToken, profile, done) ->
+                done(undefined, {profile:profile})
+            passport.use(new PassportStrategy(opts, verify))
+
+            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+
+            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+                res.json(req.user)
+
+            cb()
+
+    init_wordpress = (cb) ->
+        dbg("init_wordpress")
+        PassportStrategy = require('passport-wordpress').Strategy
+        strategy = 'wordpress'
+        get_conf strategy, (err, conf) ->
+            if err or not conf?
+                cb(err)
+                return
+            # Get these by:
+            #    (1) Make a wordpress account
+            #    (2) Go to https://developer.wordpress.com/apps/
+            #    (3) Click "Create a New Application"
+            #    (4) Fill the form as usual and eventual get the id and secret.
+            #
+            # You must then put them in the database, via
+            #   update passport_settings set conf['clientID']='...'     where strategy='wordpress';
+            #   update passport_settings set conf['clientSecret']='...' where strategy='wordpress';
+
+            opts =
+                clientID     : conf.clientID
+                clientSecret : conf.clientSecret
+                callbackURL  : "#{auth_url}/#{strategy}/return"
+
+            verify = (accessToken, refreshToken, profile, done) ->
+                done(undefined, {profile:profile})
+            passport.use(new PassportStrategy(opts, verify))
+
+            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+
+            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+                res.json(req.user)
+
+            cb()
+
+    init_twitter = (cb) ->
+        dbg("init_twitter")
+        PassportStrategy = require('passport-twitter').Strategy
+        strategy = 'twitter'
+        get_conf strategy, (err, conf) ->
+            if err or not conf?
+                cb(err)
+                return
+            # Get these by:
+            #    (1) Go to https://apps.twitter.com/ and create a new application.
+            #    (2) Click on Keys and Access Tokens
+            #
+            # You must then put them in the database, via
+            #   update passport_settings set conf['clientID']='...'     where strategy='twitter';
+            #   update passport_settings set conf['clientSecret']='...' where strategy='twitter';
+
+            opts =
+                consumerKey    : conf.clientID
+                consumerSecret : conf.clientSecret
+                callbackURL    : "#{auth_url}/#{strategy}/return"
+
+            verify = (accessToken, refreshToken, profile, done) ->
+                done(undefined, {profile:profile})
+            passport.use(new PassportStrategy(opts, verify))
+
+            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+
+            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+                res.json(req.user)
+
+            cb()
+            
+    async.series([
+        (cb) ->
+            get_conf 'site_conf', (err, site_conf) ->
+                if err
                     cb(err)
-                    return
-                # docs for getting these for your app
-                # https://developers.google.com/accounts/docs/OpenIDConnect#appsetup
-                #
-                # You must then put them in the database, via
-                #   update passport_settings set conf['clientID']='...'     where strategy='google';
-                #   update passport_settings set conf['clientSecret']='...' where strategy='google';
-                #
-                opts =
-                    clientID     : conf.clientID
-                    clientSecret : conf.clientSecret
-                    callbackURL  : "#{auth_url}/#{strategy}/return"
-
-                verify = (accessToken, refreshToken, profile, done) ->
-                    done(undefined, {profile:profile})
-                passport.use(new PassportStrategy(opts, verify))
-
-                # Enabling "profile" below I think required that I explicitly go to Google Developer Console for the project,
-                # then select API&Auth, then API's, then Google+, then explicitly enable it.  Otherwise, stuff just mysteriously
-                # didn't work.  To figure out that this was the problem, I had to grep the source code of the passport-google-oauth
-                # library and put in print statements to see what the *REAL* errors were, since that
-                # library hid the errors (**WHY**!!?).
-                app.get "/auth/#{strategy}", passport.authenticate(strategy, {'scope': 'openid email profile'})
-
-                app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                    res.json(req.user)
-
+                else
+                    if site_conf?
+                        auth_url = site_conf.auth
+                        dbg("auth_url=#{auth_url}")
+                    cb()
+        (cb) ->
+            if not auth_url?
                 cb()
-
-        init_github = (cb) ->
-            dbg("init_github")
-            # Strategy: Github OAuth2 -- https://github.com/jaredhanson/passport-github
-            PassportStrategy = require('passport-github').Strategy
-            strategy = 'github'
-            get_conf strategy, (err, conf) ->
-                if err or not conf?
-                    cb(err)
-                    return
-                # Get these here:
-                #      https://github.com/settings/applications/new
-                # You must then put them in the database, via
-                #   update passport_settings set conf['clientID']='...'     where strategy='github';
-                #   update passport_settings set conf['clientSecret']='...' where strategy='github';
-
-                opts =
-                    clientID     : conf.clientID
-                    clientSecret : conf.clientSecret
-                    callbackURL  : "#{auth_url}/#{strategy}/return"
-
-                verify = (accessToken, refreshToken, profile, done) ->
-                    done(undefined, {profile:profile})
-                passport.use(new PassportStrategy(opts, verify))
-
-                app.get "/auth/#{strategy}", passport.authenticate(strategy)
-
-                app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                    res.json(req.user)
-
-                cb()
-
-        init_facebook = (cb) ->
-            dbg("init_facebook")
-            # Strategy: Facebook OAuth2 --
-            PassportStrategy = require('passport-facebook').Strategy
-            strategy = 'facebook'
-            get_conf strategy, (err, conf) ->
-                if err or not conf?
-                    cb(err)
-                    return
-                # Get these by going to https://developers.facebook.com/ and creating a new application.
-                # For that application, set the url to the site SMC will be served from.
-                # The Facebook "App ID" and is clientID and the Facebook "App Secret" is the clientSecret
-                # for oauth2, as I discovered by a lucky guess... (sigh).
-                #
-                # You must then put them in the database, via
-                #   update passport_settings set conf['clientID']='...'     where strategy='facebook';
-                #   update passport_settings set conf['clientSecret']='...' where strategy='facebook';
-
-                opts =
-                    clientID     : conf.clientID
-                    clientSecret : conf.clientSecret
-                    callbackURL  : "#{auth_url}/#{strategy}/return"
-                    enableProof  : false
-
-                verify = (accessToken, refreshToken, profile, done) ->
-                    done(undefined, {profile:profile})
-                passport.use(new PassportStrategy(opts, verify))
-
-                app.get "/auth/#{strategy}", passport.authenticate(strategy)
-
-                app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                    res.json(req.user)
-
-                cb()
-
-        init_dropbox = (cb) ->
-            dbg("init_dropbox")
-            PassportStrategy = require('passport-dropbox-oauth2').Strategy
-            strategy = 'dropbox'
-            get_conf strategy, (err, conf) ->
-                if err or not conf?
-                    cb(err)
-                    return
-                # Get these by:
-                #   (1) creating a dropbox account, then going to this url: https://www.dropbox.com/developers/apps
-                #   (2) make a dropbox api app that only access the datastore (not user files -- for now, since we're just doing auth!).
-                #   (3) You'll see an "App key" and an "App secret".
-                #   (4) Add the redirect URL on the dropbox page as well, which will be like https://cloud.sagemath.com/auth/dropbox/return
-                # This might (or might not) be relevant when we support dropbox sync: https://github.com/dropbox/dropbox-js
-                #
-                # You must then put them in the database, via
-                #   update passport_settings set conf['clientID']='...'     where strategy='dropbox';
-                #   update passport_settings set conf['clientSecret']='...' where strategy='dropbox';
-
-                opts =
-                    clientID     : conf.clientID
-                    clientSecret : conf.clientSecret
-                    callbackURL  : "#{auth_url}/#{strategy}/return"
-
-                verify = (accessToken, refreshToken, profile, done) ->
-                    done(undefined, {profile:profile})
-                passport.use(new PassportStrategy(opts, verify))
-
-                app.get "/auth/#{strategy}", passport.authenticate("dropbox-oauth2")
-
-                app.get "/auth/#{strategy}/return", passport.authenticate("dropbox-oauth2", {failureRedirect: '/auth/local'}), (req, res) ->
-                    res.json(req.user)
-
-                cb()
-
-        init_bitbucket = (cb) ->
-            dbg("init_bitbucket")
-            PassportStrategy = require('passport-bitbucket').Strategy
-            strategy = 'bitbucket'
-            get_conf strategy, (err, conf) ->
-                if err or not conf?
-                    cb(err)
-                    return
-                # Get these by:
-                #      (1) make a bitbucket account
-                #      (2) Go to https://bitbucket.org/account/user/[your username]/api
-                #      (3) Click add consumer and enter the URL of your SMC instance.
-                #
-                # You must then put them in the database, via
-                #   update passport_settings set conf['clientID']='...'     where strategy='bitbucket';
-                #   update passport_settings set conf['clientSecret']='...' where strategy='bitbucket';
-
-                opts =
-                    consumerKey    : conf.clientID
-                    consumerSecret : conf.clientSecret
-                    callbackURL    : "#{auth_url}/#{strategy}/return"
-
-                verify = (accessToken, refreshToken, profile, done) ->
-                    done(undefined, {profile:profile})
-                passport.use(new PassportStrategy(opts, verify))
-
-                app.get "/auth/#{strategy}", passport.authenticate(strategy)
-
-                app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                    res.json(req.user)
-
-                cb()
-
-        init_wordpress = (cb) ->
-            dbg("init_wordpress")
-            PassportStrategy = require('passport-wordpress').Strategy
-            strategy = 'wordpress'
-            get_conf strategy, (err, conf) ->
-                if err or not conf?
-                    cb(err)
-                    return
-                # Get these by:
-                #    (1) Make a wordpress account
-                #    (2) Go to https://developer.wordpress.com/apps/
-                #    (3) Click "Create a New Application"
-                #    (4) Fill the form as usual and eventual get the id and secret.
-                #
-                # You must then put them in the database, via
-                #   update passport_settings set conf['clientID']='...'     where strategy='wordpress';
-                #   update passport_settings set conf['clientSecret']='...' where strategy='wordpress';
-
-                opts =
-                    clientID     : conf.clientID
-                    clientSecret : conf.clientSecret
-                    callbackURL  : "#{auth_url}/#{strategy}/return"
-
-                verify = (accessToken, refreshToken, profile, done) ->
-                    done(undefined, {profile:profile})
-                passport.use(new PassportStrategy(opts, verify))
-
-                app.get "/auth/#{strategy}", passport.authenticate(strategy)
-
-                app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                    res.json(req.user)
-
-                cb()
-
-        init_twitter = (cb) ->
-            dbg("init_twitter")
-            PassportStrategy = require('passport-twitter').Strategy
-            strategy = 'twitter'
-            get_conf strategy, (err, conf) ->
-                if err or not conf?
-                    cb(err)
-                    return
-                # Get these by:
-                #    (1) Go to https://apps.twitter.com/ and create a new application.
-                #    (2) Click on Keys and Access Tokens
-                #
-                # You must then put them in the database, via
-                #   update passport_settings set conf['clientID']='...'     where strategy='twitter';
-                #   update passport_settings set conf['clientSecret']='...' where strategy='twitter';
-
-                opts =
-                    consumerKey    : conf.clientID
-                    consumerSecret : conf.clientSecret
-                    callbackURL    : "#{auth_url}/#{strategy}/return"
-
-                verify = (accessToken, refreshToken, profile, done) ->
-                    done(undefined, {profile:profile})
-                passport.use(new PassportStrategy(opts, verify))
-
-                app.get "/auth/#{strategy}", passport.authenticate(strategy)
-
-                app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                    res.json(req.user)
-
-                cb()
-
-        async.parallel([init_local, init_google, init_github, init_facebook,
-                        init_dropbox, init_bitbucket, init_wordpress, init_twitter], cb)
+            else
+                async.parallel([init_local, init_google, init_github, init_facebook,
+                                init_dropbox, init_bitbucket, init_wordpress, init_twitter], cb)
+    ], cb)
 
 
 
