@@ -598,7 +598,6 @@ init_passport = (app, cb) ->
 
                 cb()
 
-
         init_wordpress = (cb) ->
             dbg("init_wordpress")
             PassportStrategy = require('passport-wordpress').Strategy
@@ -633,8 +632,40 @@ init_passport = (app, cb) ->
 
                 cb()
 
+        init_twitter = (cb) ->
+            dbg("init_twitter")
+            PassportStrategy = require('passport-twitter').Strategy
+            strategy = 'twitter'
+            get_conf strategy, (err, conf) ->
+                if err or not conf?
+                    cb(err)
+                    return
+                # Get these by:
+                #    (1) Go to https://apps.twitter.com/ and create a new application.
+                #    (2) Click on Keys and Access Tokens
+                #
+                # You must then put them in the database, via
+                #   update passport_settings set conf['clientID']='...'     where strategy='twitter';
+                #   update passport_settings set conf['clientSecret']='...' where strategy='twitter';
+
+                opts =
+                    consumerKey    : conf.clientID
+                    consumerSecret : conf.clientSecret
+                    callbackURL    : "#{auth_url}/#{strategy}/return"
+
+                verify = (accessToken, refreshToken, profile, done) ->
+                    done(undefined, {profile:profile})
+                passport.use(new PassportStrategy(opts, verify))
+
+                app.get "/auth/#{strategy}", passport.authenticate(strategy)
+
+                app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+                    res.json(req.user)
+
+                cb()
+
         async.parallel([init_local, init_google, init_github, init_facebook,
-                        init_dropbox, init_bitbucket, init_wordpress], cb)
+                        init_dropbox, init_bitbucket, init_wordpress, init_twitter], cb)
 
 
 

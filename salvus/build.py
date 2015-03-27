@@ -374,6 +374,7 @@ NODE_MODULES = [
     'passport-github',
     'passport-google-oauth',
     'passport-local',
+    'passport-twitter',
     'passport-wordpress',
     'nodeunit',
     'validator',
