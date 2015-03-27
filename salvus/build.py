@@ -365,8 +365,11 @@ NODE_MODULES = [
     'browserify@1.16.4',
     'uglify-js2',
     'express',       # web server
+    'express-session',   # needed for oauth1 bitbucket auth
     'body-parser',   # parse post form uploads (needed for auth)
     'passport',
+    'passport-bitbucket',
+    'passport-dropbox-oauth2',
     'passport-facebook',
     'passport-github',
     'passport-google-oauth',

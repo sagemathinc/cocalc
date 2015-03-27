@@ -354,15 +354,15 @@ init_passport = (app, cb) ->
     dbg = (m) -> winston.debug("init_passport: #{m}")
     dbg()
 
-    # initialize use of passport middleware
+    # initialize use of middleware
+    app.use(require('express-session')({secret:'CHANGE THIS -- used only for testing bitbucket oauth1'}))
     app.use(passport.initialize())
+    app.use(passport.session())
 
     # Define user serialization
     passport.serializeUser (user, done) ->
-        console.log("serializeUser")
         done(null, user)
     passport.deserializeUser (user, done) ->
-        console.log("deserializeUser")
         done(null, user)
 
     settings = database.key_value_store(name:'passport_settings')
@@ -565,7 +565,40 @@ init_passport = (app, cb) ->
 
                 cb()
 
-        async.parallel([init_local, init_google, init_github, init_facebook, init_dropbox], cb)
+        init_bitbucket = (cb) ->
+            dbg("init_bitbucket")
+            PassportStrategy = require('passport-bitbucket').Strategy
+            strategy = 'bitbucket'
+            get_conf strategy, (err, conf) ->
+                if err or not conf?
+                    cb(err)
+                    return
+                # Get these by:
+                #      (1) make a bitbucket account
+                #      (2) Go to https://bitbucket.org/account/user/[your username]/api
+                #      (3) Click add consumer and enter the URL of your SMC instance.
+                #
+                # You must then put them in the database, via
+                #   update passport_settings set conf['clientID']='...'     where strategy='bitbucket';
+                #   update passport_settings set conf['clientSecret']='...' where strategy='bitbucket';
+
+                opts =
+                    consumerKey    : conf.clientID
+                    consumerSecret : conf.clientSecret
+                    callbackURL    : "#{auth_url}/#{strategy}/return"
+
+                verify = (accessToken, refreshToken, profile, done) ->
+                    done(undefined, {profile:profile})
+                passport.use(new PassportStrategy(opts, verify))
+
+                app.get "/auth/#{strategy}", passport.authenticate(strategy)
+
+                app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+                    res.json(req.user)
+
+                cb()
+
+        async.parallel([init_local, init_google, init_github, init_facebook, init_dropbox, init_bitbucket], cb)
 
 
 
