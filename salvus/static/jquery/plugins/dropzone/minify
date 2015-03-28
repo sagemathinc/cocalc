@@ -1,0 +1,1 @@
+uglifyjs2 dropzone.js -c -m > dropzone.min.js
