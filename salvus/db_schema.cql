@@ -139,7 +139,6 @@ CREATE TABLE passports (
     strategy   varchar,
     account_id uuid,
     profile    varchar,   /* raw user profile that we got from the authentication provider */
-    activated  boolean,   /* if false, require user to be logged in and explicitly active this connection before letting it work; we *can't* trust that emails by oauth providers were properly validated. */
     PRIMARY KEY(id, strategy)  /* id is first so it is the cluster key, so data more smoothly distributed, rather than grouped by strategy */
 );
 

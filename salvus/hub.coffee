@@ -386,16 +386,14 @@ passport_login = (opts) ->
 
     account_id    = undefined
     email_address = undefined
-    activated     = false
     async.series([
         (cb) ->
             dbg("check to see if the passport already exists indexed by the given id")
             database.passport_exists
                 strategy : opts.strategy
                 id       : opts.id
-                cb       : (err, _account_id, _activated) ->
+                cb       : (err, _account_id) ->
                     account_id = _account_id
-                    activated  = _activated
                     cb(err)
         (cb) ->
             if account_id or not opts.emails?
@@ -420,20 +418,17 @@ passport_login = (opts) ->
                                 email_address = email.toLowerCase()
                                 dbg("found matching account #{account_id} for email #{email_address}; adding info to passports tables")
 
-                                activated = false # existing account -- require login via email/password before activing this passport.
                                 database.create_passport
                                     account_id : account_id
                                     strategy   : opts.strategy
                                     id         : opts.id
                                     profile    : opts.profile
-                                    activated  : activated
                                     cb         : cb
             async.map(opts.emails, f, cb)
         (cb) ->
             if account_id
                 cb(); return
             dbg("no existing account to link, so create new account")
-            activated = true  # because it's a new account
             if opts.emails?
                 email_address = opts.emails[0]
             async.series([
@@ -460,44 +455,38 @@ passport_login = (opts) ->
         (cb) ->
             # Set cookies and send them to site.
             target = "/" + program.base_url + "#login"
-            if activated
-                dbg("passport exists or created and is activated")
-                # create and set remember_me cookie, then redirect.
-                # See the remember_me method of client for the algorithm we use.
-                signed_in_mesg = message.signed_in
-                    remember_me : true
-                    hub         : program.host
-                    account_id  : account_id
-                    first_name  : opts.first_name
-                    last_name   : opts.last_name
+            dbg("passport created")
+            # create and set remember_me cookie, then redirect.
+            # See the remember_me method of client for the algorithm we use.
+            signed_in_mesg = message.signed_in
+                remember_me : true
+                hub         : program.host
+                account_id  : account_id
+                first_name  : opts.first_name
+                last_name   : opts.last_name
 
-                dbg("create remember_me cookie")
-                session_id = uuid.v4()
-                hash_session_id = password_hash(session_id)
-                ttl = 24*3600*30     # 30 days
-                x = hash_session_id.split('$')
-                remember_me_value = [x[0], x[1], x[2], session_id].join('$')
-                dbg("set remember_me cookies in client")
-                expires = new Date(new Date().getTime() + ttl*1000)
-                cookies = new Cookies(opts.req, opts.res)
-                cookies.set(program.base_url + 'remember_me', remember_me_value, {expires:expires})
-                dbg("set remember_me cookie in database")
-                database.key_value_store(name:'remember_me').set
-                    key   : hash_session_id
-                    value : signed_in_mesg
-                    ttl   : ttl
-                    cb    : (err) ->
-                        if err
-                            cb(err)
-                        else
-                            dbg("finally redirect the client to #{target}, who should auto login")
-                            opts.res.redirect(target)
-                            cb()
-            else
-                dbg("passport exists or created but is NOT activated")
-                # TODO: need to have user type password to activate...
-                opts.res.redirect(target)
-                cb()
+            dbg("create remember_me cookie")
+            session_id = uuid.v4()
+            hash_session_id = password_hash(session_id)
+            ttl = 24*3600*30     # 30 days
+            x = hash_session_id.split('$')
+            remember_me_value = [x[0], x[1], x[2], session_id].join('$')
+            dbg("set remember_me cookies in client")
+            expires = new Date(new Date().getTime() + ttl*1000)
+            cookies = new Cookies(opts.req, opts.res)
+            cookies.set(program.base_url + 'remember_me', remember_me_value, {expires:expires})
+            dbg("set remember_me cookie in database")
+            database.key_value_store(name:'remember_me').set
+                key   : hash_session_id
+                value : signed_in_mesg
+                ttl   : ttl
+                cb    : (err) ->
+                    if err
+                        cb(err)
+                    else
+                        dbg("finally redirect the client to #{target}, who should auto login")
+                        opts.res.redirect(target)
+                        cb()
     ], (err) ->
         if err
             opts.res.send("Error trying to login using #{opts.strategy} -- #{err}")

@@ -1269,7 +1269,6 @@ class exports.Salvus extends exports.Cassandra
                             strategy   : opts.passport_strategy
                             id         : opts.passport_id
                             profile    : opts.passport_profile
-                            activated  : true   # pre-activate - new account so we trust.
                             cb         : cb
                 ], cb)
             # add 1 to the "number of accounts" counter
@@ -1602,7 +1601,6 @@ class exports.Salvus extends exports.Cassandra
             strategy   : required
             id         : required
             profile    : required
-            activated  : false
             cb         : required   # cb(err)
         async.series([  # series instead of parallel, since if second thing failed but
                         # first succeeded, that would not prevent user login, but the
@@ -1616,7 +1614,6 @@ class exports.Salvus extends exports.Cassandra
                     set   :
                         profile    : opts.profile
                         account_id : opts.account_id
-                        activated  : opts.activated
                     json  : ['profile']
                     cb    : cb
             (cb) =>
@@ -1625,21 +1622,6 @@ class exports.Salvus extends exports.Cassandra
                     vals  : [opts.strategy, opts.id, opts.account_id]
                     cb    : cb
         ], opts.cb)
-
-    # activate a specific passport -- this must be done before login is allowed using this passport.
-    activate_passport: (opts) =>
-        opts= defaults opts,
-            strategy   : required
-            id         : required
-            cb         : required
-        @update
-            table : 'passports'
-            where :
-                strategy   : opts.strategy
-                id         : opts.id
-            set   :
-                activated  : true
-            cb    : opts.cb
 
     # completely delete a passport from the database -- removes from passports table and from account
     delete_passport: (opts) =>
@@ -1682,14 +1664,14 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults opts,
             strategy : required
             id       : required
-            cb       : required   # cb(err, account_id or undefined, activated or undefined)
+            cb       : required   # cb(err, account_id or undefined)
 
         @select
             table     : 'passports'
             where     :
                 strategy : opts.strategy
                 id       : opts.id
-            columns   : ['account_id', 'activated']
+            columns   : ['account_id']
             objectify : false
             cb        : (err, results) =>
                 if err
@@ -1698,7 +1680,7 @@ class exports.Salvus extends exports.Cassandra
                     if results.length == 0
                         opts.cb(undefined, undefined)
                     else
-                        opts.cb(undefined, results[0][0], results[0][1])
+                        opts.cb(undefined, results[0][0])
 
 
 
