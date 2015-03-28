@@ -1626,13 +1626,14 @@ class exports.Salvus extends exports.Cassandra
     # completely delete a passport from the database -- removes from passports table and from account
     delete_passport: (opts) =>
         opts= defaults opts,
+            account_id : undefined   # if given, must match what is on file for the strategy
             strategy   : required
             id         : required
             cb         : required
         account_id = undefined
         async.series([
             (cb) =>
-                passport_exists
+                @passport_exists
                     strategy : opts.strategy
                     id       : opts.id
                     cb       : (err, _account_id) =>
@@ -1644,6 +1645,8 @@ class exports.Salvus extends exports.Cassandra
             (cb) =>
                 if not account_id
                     cb(); return
+                if opts.account_id? and opts.account_id != account_id
+                    cb("delete_passport error -- account_id's do match"); return
                 async.parallel([
                     (cb) =>
                         @delete

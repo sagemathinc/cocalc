@@ -687,8 +687,9 @@ class AccountSettings
                         element.find(".account-settings-other_settings-#{x}").prop("checked", value[x])
                         element.find(".account-settings-other_settings-default_file_sort").val(value.default_file_sort)
                 when 'passports'
+                    element.find("a").removeClass('btn-warning')
                     for strategy, id of value
-                        element.find("a[href=##{strategy}]").addClass('btn-warning')
+                        element.find(".smc-auth-#{strategy}").addClass('btn-warning')
                 else
                     set(element, value)
 
@@ -1076,6 +1077,39 @@ $.get '/auth/strategies', (strategies, status) ->
                 template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'
             ).popover("show").focus( () -> $(@).popover("destroy"))
             return false   # cancel actually creating the account
+
+    # account settings
+    elt = $("#account-settings-passports")
+    for strategy in strategies
+        elt.find(".smc-auth-#{strategy}").removeClass('disabled').data(strategy:strategy).click (evt) ->
+            toggle_account_strategy($(evt.target).data('strategy'))
+            return false
+
+toggle_account_strategy = (strategy) ->
+    console.log("toggle_account_strategy ", strategy)
+
+    id = account_settings.settings.passports?[strategy]
+    if id
+        if account_settings.settings.passports? and misc.keys(account_settings.settings.passports).length == 1 and not account_settings.settings.email_address
+            bootbox.alert("You can't unlink #{strategy} since it is the only login method.  Please set an email address first (as an alternate login method).")
+        else
+            bootbox.confirm "Are you sure you want to unlink #{strategy} from your account?  You won't be able to log in using #{strategy}.", (result) ->
+                if result
+                    btn = $("#account-settings-passports").find(".smc-auth-#{strategy}")
+                    btn.icon_spin(start:true)
+                    salvus_client.unlink_passport
+                        strategy : strategy
+                        id       : id
+                        cb       : (err) ->
+                            btn.icon_spin(false)
+                            if err
+                                alert_message(type:"error", message:"Unable to unlink #{strategy} -- #{err}")
+                            else
+                                alert_message(type:"info", message:"Successfully unlinked #{strategy}")
+                                account_settings.load_from_server () =>
+                                    account_settings.set_view()
+    else
+        bootbox.alert("Link #{strategy} to your account?  You will be able to log into your account using #{strategy}.  No interesting extra linking or synchronization features are implemented yet.<br><br><a class='btn btn-large btn-success' href='/auth/#{strategy}' target='_blank'>Link to #{strategy}...</a>")
 
 
     ###

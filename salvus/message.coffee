@@ -562,6 +562,14 @@ message
     ttl                 : undefined   # if user is trying to change password too often, this is time to wait
 
 
+
+# Unlink a passport auth for this account.
+# client --> hub
+message
+    event    : 'unlink_passport'
+    strategy : required
+    id       : required
+
 ############################################
 # Account Settings
 #############################################

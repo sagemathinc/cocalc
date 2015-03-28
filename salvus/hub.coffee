@@ -210,7 +210,7 @@ init_express_http_server = (cb) ->
     app.get '/cookies', (req, res) ->
         if req.query.set
             # TODO: implement expires as part of query?  not needed for now.
-            expires = new Date(new Date().getTime() + 1000*24*3600*365) # one year
+            expires = new Date(new Date().getTime() + 1000*24*3600*30) # one month
             cookies = new Cookies(req, res)
             cookies.set(req.query.set, req.query.value, {expires:expires})
         res.end()
@@ -356,7 +356,7 @@ passport_login = (opts) ->
         first_name : undefined
         last_name  : undefined
         full_name  : undefined
-        emails     : undefined    # not required -- but will automatically link with existing account if has same email (otherwise uses first)
+        emails     : undefined    # if user not logged in (via remember_me) already, and existing account with same email, and passport not created, then get an error instead of login or account creation.
         req        : required     # request object
         res        : required     # response object
         cb         : undefined
@@ -384,21 +384,66 @@ passport_login = (opts) ->
 
     opts.id = "#{opts.id}"  # convert to string (id is often a number)
 
+    remember_me_db = database.key_value_store(name:'remember_me')
+    has_valid_remember_me = false
     account_id    = undefined
     email_address = undefined
     async.series([
         (cb) ->
-            dbg("check to see if the passport already exists indexed by the given id")
+            dbg("check if user has a valid remember_me token, in which case we can trust who they are already")
+            cookies = new Cookies(opts.req)
+            value = cookies.get(program.base_url + 'remember_me')
+            if not value?
+                cb()
+                return
+            x = value.split('$')
+            if x.length != 4
+                cb()
+                return
+            hash = generate_hash(x[0], x[1], x[2], x[3])
+            remember_me_db.get
+                key : hash
+                cb  : (err, signed_in_mesg) ->
+                    if err
+                        cb(err)
+                    else if signed_in_mesg?
+                        account_id = signed_in_mesg.account_id
+                        has_valid_remember_me = true
+                        cb()
+                    else
+                        cb()
+        (cb) ->
+            dbg("check to see if the passport already exists indexed by the given id -- in that case we will log user in")
             database.passport_exists
                 strategy : opts.strategy
                 id       : opts.id
                 cb       : (err, _account_id) ->
-                    account_id = _account_id
-                    cb(err)
+                    if err
+                        cb(err)
+                    else
+                        if not _account_id and has_valid_remember_me
+                            dbg("passport doesn't exist, but user is authenticated (via remember_me), so we add this passport for them.")
+                            database.create_passport
+                                account_id : account_id
+                                strategy   : opts.strategy
+                                id         : opts.id
+                                profile    : opts.profile
+                                cb         : cb
+                        else
+                            if has_valid_remember_me and account_id != _account_id
+                                dbg("passport exists but is associated with another account already")
+                                cb("Your #{opts.strategy} account is already attached to another SageMathCloud account.  First sign into that account and unlink #{opts.strategy} in account settings if you want to instead associate it with this account.")
+                            else
+                                if has_valid_remember_me
+                                    dbg("passport already exists and is associated to the currently logged into account")
+                                else
+                                    dbg("passport exists and is already associated to a valid account, which we'll log user into")
+                                    account_id = _account_id
+                                cb()
         (cb) ->
             if account_id or not opts.emails?
                 cb(); return
-            dbg("passport doesn't exist, so check for existing account with a matching email")
+            dbg("passport doesn't exist and emails available, so check for existing account with a matching email -- if we find one it's an error")
             f = (email, cb) ->
                 if account_id
                     dbg("already found a match with account_id=#{account_id} -- done")
@@ -416,19 +461,13 @@ passport_login = (opts) ->
                             else
                                 account_id    = _account_id
                                 email_address = email.toLowerCase()
-                                dbg("found matching account #{account_id} for email #{email_address}; adding info to passports tables")
-
-                                database.create_passport
-                                    account_id : account_id
-                                    strategy   : opts.strategy
-                                    id         : opts.id
-                                    profile    : opts.profile
-                                    cb         : cb
+                                dbg("found matching account #{account_id} for email #{email_address}")
+                                cb("There is already an account with email address #{email_address}; please sign in using that email account, then link #{opts.strategy} to it in account settings.")
             async.map(opts.emails, f, cb)
         (cb) ->
             if account_id
                 cb(); return
-            dbg("no existing account to link, so create new account")
+            dbg("no existing account to link, so create new account that can be accessed using this passport")
             if opts.emails?
                 email_address = opts.emails[0]
             async.series([
@@ -453,9 +492,13 @@ passport_login = (opts) ->
                             cb            : cb
             ], cb)
         (cb) ->
-            # Set cookies and send them to site.
             target = "/" + program.base_url + "#login"
-            dbg("passport created")
+
+            if has_valid_remember_me
+                opts.res.redirect(target)
+                cb()
+                return
+            dbg("passport created: set remember_me cookie, so user gets logged in")
             # create and set remember_me cookie, then redirect.
             # See the remember_me method of client for the algorithm we use.
             signed_in_mesg = message.signed_in
@@ -476,7 +519,7 @@ passport_login = (opts) ->
             cookies = new Cookies(opts.req, opts.res)
             cookies.set(program.base_url + 'remember_me', remember_me_value, {expires:expires})
             dbg("set remember_me cookie in database")
-            database.key_value_store(name:'remember_me').set
+            remember_me_db.set
                 key   : hash_session_id
                 value : signed_in_mesg
                 ttl   : ttl
@@ -1565,7 +1608,7 @@ class Client extends EventEmitter
         signed_in_mesg   = message.signed_in(opts)
         session_id       = uuid.v4()
         @hash_session_id = password_hash(session_id)
-        ttl              = 24*3600 * 365     # 365 days
+        ttl              = 24*3600 * 30     # 30 days
 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
@@ -1971,6 +2014,20 @@ class Client extends EventEmitter
 
     mesg_change_email_address: (mesg) =>
         change_email_address(mesg, @ip_address, @push_to_client)
+
+    mesg_unlink_passport: (mesg) =>
+        if not @account_id
+            @error_to_client(id:mesg.id, error:"must be logged in")
+        else
+            database.delete_passport
+                account_id : @account_id
+                strategy   : mesg.strategy
+                id         : mesg.id
+                cb         : (err) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @success_to_client(id:mesg.id)
 
     ######################################################
     # Messages: Account settings
