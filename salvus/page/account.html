@@ -241,8 +241,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         <div class="alert alert-d alert-warning alert-dismissable" id="account-settings-error">
             <button type="button" class="close" data-dismiss="alert">×</button>
             <i class="fa fa-info-circle"></i>
-            There was an error loading your account settings from the database (<a href="#reload-account-settings">try again</a>).
-            The information below may be out of date.
+            Error loading account settings from the database (<a href="#reload-account-settings">try again now</a>)
+            -- <span class="smc-account-settings-error-message"></span>
         </div>
 
         <ul class="nav nav-tabs">
@@ -288,12 +288,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                     <div class="col-sm-8 "><input class="form-control" type="text" value="" id="account-settings-last_name"></div>
                                 </div>
                                 <div class="row">
-                                    <div class="col-sm-4 "><i class="fa fa-envelope"></i> Email login</div>
+                                    <div class="col-sm-4 "><i class="fa fa-envelope"></i> Email address</div>
                                     <div class="col-sm-8 "><span id="account-settings-email_address"></span> (<a href="#account-change_email_address">change</a>)
                                         <br>
-                                        <a href="#account-change_password">Change password</a>
-                                        &nbsp;&nbsp;
-                                        (<a href="#account-forgot_password">forgot password</a>)
+                                        <span class="smc-change-forgot-password-links hide">
+                                            <a href="#account-change_password">Change password</a>
+                                            &nbsp;&nbsp;
+                                            (<a href="#account-forgot_password">forgot password</a>)
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="row hide smc-signup-strategies" id="account-settings-passports">
@@ -892,7 +894,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
-                <h3 class="hidden-xs">Change email address</h3>
+                <h3 class="hidden-xs"><i class="fa fa-envelope"></i> Change email address</h3>
                 <div class="hide account-error-text" id="account-change_email_address-too_frequent">Wait<span></span>before trying to change your email address again.</div>
             </div>
             <div class="modal-body col-sm-offset-1">
@@ -904,7 +906,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 </label>
                 <br>
                 <div class="hide account-error-text" id="account-change_email_address-invalid_password">Invalid password:</div>
-                <label>
+                <label class="smc-change-email-password">
                     <b class="hidden-xs">Password</b>
                     <input class="form-control" type="password" placeholder="Password" id="account-change_email_password">
                 </label>
@@ -930,7 +932,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             </div>
             <div class="modal-body col-sm-offset-1">
                 <div class="hide account-error-text" id="account-change_password-error-old_password"></div>
-                <label>
+                <label class="smc-change-password-old">
                     <b class="hidden-xs">Old password</b>
                     <input class="form-control" type="password" placeholder="Old password" id="account-change_password-old_password">
                 </label>

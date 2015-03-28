@@ -5339,14 +5339,17 @@ reset_password = (email_address, cb) ->
 is_password_correct = (opts) ->
     opts = defaults opts,
         password      : required
-        cb            : undefined
         password_hash : undefined
         account_id    : undefined
         email_address : undefined
+        allow_empty_password : false  # If true and no password set in account, it matches anything.
+                                      # this is only used when first changing the email address or password
+                                      # in passport-only accounts.
+        cb            : required
+
     if opts.password_hash?
         r = password_hash_library.verify(opts.password, opts.password_hash)
-        opts.cb?(false, r)
-        return r
+        opts.cb(undefined, r)
     else if opts.account_id? or opts.email_address?
         database.get_account
             account_id    : opts.account_id
@@ -5354,11 +5357,14 @@ is_password_correct = (opts) ->
             columns       : ['password_hash']
             cb            : (error, account) ->
                 if error
-                    opts.cb?(error)
+                    opts.cb(error)
                 else
-                    opts.cb?(false, password_hash_library.verify(opts.password, account.password_hash))
+                    if opts.allow_empty_password and not account.password_hash
+                        opts.cb(undefined, true)
+                    else
+                        opts.cb(undefined, password_hash_library.verify(opts.password, account.password_hash))
     else
-        opts.cb?("One of password_hash, account_id, or email_address must be specified.")
+        opts.cb("One of password_hash, account_id, or email_address must be specified.")
 
 
 ########################################
@@ -5504,24 +5510,31 @@ sign_in = (client, mesg) =>
                             email_address : mesg.email_address
                         sign_in_error("Sign in error -- #{error}")
                         cb(true); return
-                    if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
-                        record_sign_in
-                            ip_address    : client.ip_address
-                            successful    : false
-                            email_address : mesg.email_address
-                            account_id    : account.account_id
-                        sign_in_error("Incorrect password; please try resetting your password, and if that doesn't work email help@sagemath.com and we will help you sort this out.")
-                        cb(true); return
-                    else
-                        signed_in_mesg = message.signed_in
-                            id            : mesg.id
-                            account_id    : account.account_id
-                            email_address : mesg.email_address
-                            remember_me   : false
-                            hub           : program.host + ':' + program.port
-                        client.signed_in(signed_in_mesg)
-                        client.push_to_client(signed_in_mesg)
-                        cb()
+
+                    is_password_correct
+                        password      : mesg.password
+                        password_hash : account.password_hash
+                        cb            : (err, is_correct) ->
+                            if err
+                                cb(err); return
+                            if not is_correct
+                                record_sign_in
+                                    ip_address    : client.ip_address
+                                    successful    : false
+                                    email_address : mesg.email_address
+                                    account_id    : account.account_id
+                                sign_in_error("Incorrect password; please try resetting your password, and if that doesn't work email help@sagemath.com and we will help you sort this out.")
+                                cb(true); return
+                            else
+                                signed_in_mesg = message.signed_in
+                                    id            : mesg.id
+                                    account_id    : account.account_id
+                                    email_address : mesg.email_address
+                                    remember_me   : false
+                                    hub           : program.host + ':' + program.port
+                                client.signed_in(signed_in_mesg)
+                                client.push_to_client(signed_in_mesg)
+                                cb()
 
         # remember me
         (cb) ->
@@ -5841,14 +5854,24 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                     cb(true)
                     return
                 account = result
-                if not is_password_correct(password:mesg.old_password, password_hash:account.password_hash)
-                    push_to_client(message.changed_password(id:mesg.id, error:{old_password:"Invalid old password."}))
-                    database.log
-                        event : 'change_password'
-                        value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:"Invalid old password."}
-                    cb(true)
-                    return
-                cb()
+                is_password_correct
+                    account_id           : result.account_id
+                    password             : mesg.old_password
+                    password_hash        : account.password_hash
+                    allow_empty_password : true
+                    cb                   : (err, is_correct) ->
+                        if err
+                            cb(err)
+                        else
+                            if not is_correct
+                                err = "invalid old password"
+                                push_to_client(message.changed_password(id:mesg.id, error:{old_password:err}))
+                                database.log
+                                    event : 'change_password'
+                                    value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:err}
+                                cb(err)
+                            else
+                                cb()
 
         # check that new password is valid
         (cb) ->
@@ -5906,19 +5929,20 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
             tracker = database.key_value_store(name:'change_email_address_tracker')
             tracker.get(
                 key : mesg.old_email_address
-                cb : (error, value) ->
-                    if error
-                        push_to_client(message.changed_email_address(id:mesg.id, error:error))
-                        dbg("error: #{error}")
-                        cb(true)
+                cb : (err, value) ->
+                    if err
+                        push_to_client(message.changed_email_address(id:mesg.id, error:err))
+                        dbg("err: #{err}")
+                        cb(err)
                         return
                     if value?  # is defined, so problem -- it's over
                         dbg("limited!")
-                        push_to_client(message.changed_email_address(id:mesg.id, error:'too_frequent', ttl:WAIT))
+                        err = "too_frequent"
+                        push_to_client(message.changed_email_address(id:mesg.id, error:err, ttl:WAIT))
                         database.log
                             event : 'change_email_address'
                             value : {email_address:mesg.old_email_address, client_ip_address:client_ip_address, message:"attack?"}
-                        cb(true)
+                        cb(err)
                         return
                     else
                         # record change in tracker with ttl (don't care about confirming that this succeeded)
@@ -5932,18 +5956,20 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         (cb) ->
             dbg("no limit issues, so validate the password")
             is_password_correct
-                account_id    : mesg.account_id
-                password      : mesg.password
-                cb : (error, is_correct) ->
-                    if error
-                        push_to_client(message.changed_email_address(id:mesg.id, error:"Server error checking password."))
-                        cb(true)
-                        return
+                account_id           : mesg.account_id
+                password             : mesg.password
+                allow_empty_password : true  # in case account created using a linked passport only
+                cb                   : (err, is_correct) ->
+                    if err
+                        err = "Error checking password -- please try again in a minute -- #{err}."
+                        push_to_client(message.changed_email_address(id:mesg.id, error:err))
+                        cb(err)
                     else if not is_correct
-                        push_to_client(message.changed_email_address(id:mesg.id, error:"invalid_password"))
-                        cb(true)
-                        return
-                    cb()
+                        err = "invalid_password"
+                        push_to_client(message.changed_email_address(id:mesg.id, error:err))
+                        cb(err)
+                    else
+                        cb()
 
         # Record current email address (just in case?) and that we are
         # changing email address to the new one.  This will make it

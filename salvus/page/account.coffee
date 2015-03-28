@@ -54,6 +54,7 @@ account_id = undefined
 top_navbar.on "switch_to_page-account", () ->
     if account_id?
         window.history.pushState("", "", window.salvus_base_url + '/settings')
+        account_settings.reload()
     else
         window.history.pushState("", "", window.salvus_base_url)
 
@@ -112,7 +113,15 @@ $("#account-settings-change-settings-button").click (event) ->
 
 $("#account-settings-cancel-changes-button").click((event) -> account_settings.set_view())
 
-$("#account-settings-tab").find("form").click((event) -> return false)
+$("#account-settings-tab").find("form").click (event) ->
+    return false
+
+$("a[href=#account-settings-tab]").click () =>
+    account_settings.reload()
+
+$("a[href=#reload-account-settings]").click () =>
+    account_settings.reload()
+
 
 #############
 # Autosave
@@ -528,17 +537,16 @@ class AccountSettings
                 #console.log("load got back ", error, settings_mesg)
                 if error or settings_mesg.event == 'error'
                     $("#account-settings-error").show()
+                    $(".smc-account-settings-error-message").text(error or settings_mesg.error)
                     # try to get settings again in a bit to fix that the settings aren't known
-                    f = () =>
-                        #console.log("calling again")
-                        @load_from_server()
-                    setTimeout(f, 10000)
+                    setTimeout(@reload, 15000)
                     cb?(error)
                     return
 
 
                 if settings_mesg.event != "account_settings"
                     $("#account-settings-error").show()
+                    $(".smc-account-settings-error-message").text('')
                     alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
                     cb?("invalid message")
                     return
@@ -549,6 +557,12 @@ class AccountSettings
                 delete @settings['event']
 
                 cb?()
+
+    reload: () =>
+        @load_from_server (err) =>
+            if not err
+                @set_view()
+                $("#account-settings-error").hide()
 
     git_author: () =>
         return misc.git_author(@settings.first_name, @settings.last_name, @settings.email_address)
@@ -636,6 +650,17 @@ class AccountSettings
 
         top_navbar.activity_indicator('account')
 
+        # Have to do this here instead of passports section below, in case no passports
+        # at all, since then key wouldn't be in settings.
+        $("#account-settings-passports").find("a").removeClass('btn-warning')
+
+        if @settings.email_address
+            $(".smc-change-forgot-password-links").show()
+            $("a[href=#account-change_email_address]").text("change")
+        else
+            $(".smc-change-forgot-password-links").hide()
+            $("a[href=#account-change_email_address]").text("set an email address")
+
         for prop, value of @settings
             def = message.account_settings_defaults[prop]
             if typeof(def) == "object"
@@ -687,7 +712,6 @@ class AccountSettings
                         element.find(".account-settings-other_settings-#{x}").prop("checked", value[x])
                         element.find(".account-settings-other_settings-default_file_sort").val(value.default_file_sort)
                 when 'passports'
-                    element.find("a").removeClass('btn-warning')
                     for strategy, id of value
                         element.find(".smc-auth-#{strategy}").addClass('btn-warning')
                 else
@@ -769,20 +793,26 @@ edit_account_creation_token_button = $("a[href=#edit-account_creation-token]").c
 change_email_address = $("#account-change_email_address")
 
 $("a[href=#account-change_email_address]").click (event) ->
-    $('#account-change_email_address').modal('show')
+    dialog = $('#account-change_email_address')
+    dialog.modal('show')
+    if account_settings.settings.password_is_set
+        $(".smc-change-email-password").show()
+    else
+        $(".smc-change-email-password").hide()
+    dialog.find("#account-change_email_new_address").focus()
     return false
 
 close_change_email_address = () ->
-    change_email_address.modal('hide').find('input').val('').trim()
+    change_email_address.modal('hide').find('input').val('')
     change_email_address.find(".account-error-text").hide()
 
 # When click in the cancel button on the change email address
 # dialog, it is important to hide an error messages; also clear
 # password.
-change_email_address.find(".close").click((event) -> close_change_email_address())
-$("#account-change_email_address_cancel_button").click((event)->close_change_email_address())
+change_email_address.find(".close").click (event) ->
+    close_change_email_address()
 
-change_email_address.on("shown", () -> $("#account-change_email_new_address").focus())
+$("#account-change_email_address_cancel_button").click((event)->close_change_email_address())
 
 # User clicked button to change the email address, so try to
 # change it.
@@ -821,6 +851,7 @@ $("#account-change_email_address_button").click (event) ->
                 account_settings.settings.email_address = new_email_address
                 close_change_email_address()
                 alert_message(type:"success", message:"Email address successfully changed.")
+                account_settings.reload()
     return false
 
 ################################################
@@ -844,12 +875,19 @@ close_change_password = () ->
 #$("#account-change_password-new_password").keyup(change_passwd_keyup)
 
 
-change_password.find(".close").click((event) -> close_change_password())
-$("#account-change_password-button-cancel").click((event)->close_change_password())
-change_password.on("shown", () -> $("#account-change_password-old_password").focus())
+change_password.find(".close").click (event) ->
+    close_change_password()
+
+$("#account-change_password-button-cancel").click (event) ->
+    close_change_password()
 
 $("a[href=#account-change_password]").click (event) ->
     $('#account-change_password').modal('show')
+    $("#account-change_password-old_password").focus()
+    if account_settings.settings.password_is_set
+        $(".smc-change-password-old").show()
+    else
+        $(".smc-change-password-old").hide()
     return false
 
 $("#account-change_password-button-submit").click (event) ->
@@ -1081,19 +1119,22 @@ $.get '/auth/strategies', (strategies, status) ->
     # account settings
     elt = $("#account-settings-passports")
     for strategy in strategies
-        elt.find(".smc-auth-#{strategy}").removeClass('disabled').data(strategy:strategy).click (evt) ->
+        elt.find(".smc-auth-#{strategy}").data(strategy:strategy).removeClass('disabled').click (evt) ->
             toggle_account_strategy($(evt.target).data('strategy'))
             return false
 
 toggle_account_strategy = (strategy) ->
     console.log("toggle_account_strategy ", strategy)
-
+    if not strategy?
+        bootbox.alert("Please try linking your account again in a minute.")
+        return
     id = account_settings.settings.passports?[strategy]
+    Strategy = strategy[0].toUpperCase() + strategy.slice(1)
     if id
         if account_settings.settings.passports? and misc.keys(account_settings.settings.passports).length == 1 and not account_settings.settings.email_address
             bootbox.alert("You can't unlink #{strategy} since it is the only login method.  Please set an email address first (as an alternate login method).")
         else
-            bootbox.confirm "Are you sure you want to unlink #{strategy} from your account?  You won't be able to log in using #{strategy}.", (result) ->
+            bootbox.confirm "<h3><i class='fa fa-#{strategy}'></i> Unlink #{strategy} from your account?</h3> <hr> DANGER: You won't be able to log in using #{Strategy}.", (result) ->
                 if result
                     btn = $("#account-settings-passports").find(".smc-auth-#{strategy}")
                     btn.icon_spin(start:true)
@@ -1106,10 +1147,9 @@ toggle_account_strategy = (strategy) ->
                                 alert_message(type:"error", message:"Unable to unlink #{strategy} -- #{err}")
                             else
                                 alert_message(type:"info", message:"Successfully unlinked #{strategy}")
-                                account_settings.load_from_server () =>
-                                    account_settings.set_view()
+                                account_settings.reload()
     else
-        bootbox.alert("Link #{strategy} to your account?  You will be able to log into your account using #{strategy}.  No interesting extra linking or synchronization features are implemented yet.<br><br><a class='btn btn-large btn-success' href='/auth/#{strategy}' target='_blank'>Link to #{strategy}...</a>")
+        bootbox.alert("<h3><i class='fa fa-#{strategy}'></i> Link #{Strategy} to your account?</h3><hr>  Click the big green button and you will be able to log into your account using #{Strategy}.  <br><br>NOTE: No exciting extra linking or synchronization features are implemented yet.<br><br><a class='btn btn-lg btn-success' href='/auth/#{strategy}' target='_blank'><i class='fa fa-#{strategy}'></i> Link to #{Strategy}...</a>")
 
 
     ###

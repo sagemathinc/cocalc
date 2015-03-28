@@ -782,7 +782,7 @@ class exports.Connection extends EventEmitter
     change_password: (opts) ->
         opts = defaults opts,
             email_address : required
-            old_password  : required
+            old_password  : ""
             new_password  : required
             cb            : undefined
         @call
@@ -795,9 +795,9 @@ class exports.Connection extends EventEmitter
     change_email: (opts) ->
         opts = defaults opts,
             account_id        : required
-            old_email_address : required
+            old_email_address : ""
             new_email_address : required
-            password          : required
+            password          : ""
             cb                : undefined
 
         @call

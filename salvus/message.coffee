@@ -510,7 +510,7 @@ message
     event          : 'change_password'
     id             : undefined
     email_address  : required
-    old_password   : required
+    old_password   : ""
     new_password   : required
 
 # hub --> client
@@ -550,9 +550,9 @@ message
     event             : 'change_email_address'
     id                : undefined
     account_id        : required
-    old_email_address : required
+    old_email_address : ""
     new_email_address : required
-    password          : required
+    password          : ""
 
 # hub --> client
 message
@@ -593,6 +593,7 @@ exports.restricted_account_settings =
     support_level        : undefined
     email_address        : undefined
     passports            : undefined
+    password_is_set      : undefined
     groups               : undefined  # only admins can actually change this...
 
 # these can be changed without additional re-typing of the password

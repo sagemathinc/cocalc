@@ -1476,11 +1476,19 @@ class exports.Salvus extends exports.Cassandra
                              'default_system', 'evaluate_key',
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
                              'autosave', 'terminal', 'editor_settings', 'other_settings',
-                             'groups', 'passports']
+                             'groups', 'passports',
+                             'password_is_set'  # set in the answer to true or false, depending on whether a password is set at all.
+                            ]
 
         account = undefined
         if opts.email_address?
             opts.email_address = misc.lower_email_address(opts.email_address)
+
+        check_if_password_is_set = opts.columns.indexOf('password_is_set') != -1
+        if check_if_password_is_set
+            winston.debug("get_account: check_if_password_is_set")
+            opts.columns = (x for x in opts.columns when x != 'password_is_set')
+            opts.columns.push('password_hash')
         async.series([
             (cb) =>
                 if opts.account_id?
@@ -1518,6 +1526,12 @@ class exports.Salvus extends exports.Cassandra
                             cb("There is no SageMathCloud account with account_id #{opts.account_id}.")
                         else
                             account = results[0]
+                            if check_if_password_is_set
+                                if account.password_hash # if anything set, then true  -- this is used by client to impact settings UI
+                                    account.password_is_set = true
+                                else
+                                    account.password_is_set = false
+                                delete account.password_hash
                             if not account.groups?
                                 account.groups = []  # make it an array in all cases.
                             cb()
@@ -1895,11 +1909,14 @@ class exports.Salvus extends exports.Cassandra
                     where : {email_address: opts.email_address}
                     cb    : cb
             (cb) =>
-                dbg("delete old address in email_address_to_account_id")
-                @delete
-                    table : 'email_address_to_account_id'
-                    where : {email_address: orig_address}
-                    cb    : (ignored) => cb()
+                if not orig_address?
+                    cb()
+                else
+                    dbg("delete old address in email_address_to_account_id")
+                    @delete
+                        table : 'email_address_to_account_id'
+                        where : {email_address: orig_address}
+                        cb    : (ignored) => cb()
 
         ], (err) =>
             if err == "nothing to do"
