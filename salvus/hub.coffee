@@ -459,7 +459,7 @@ passport_login = (opts) ->
             ], cb)
         (cb) ->
             # Set cookies and send them to site.
-            target = "/" + program.base_url + "/projects#login"
+            target = "/" + program.base_url + "#login"
             if activated
                 dbg("passport exists or created and is activated")
                 # create and set remember_me cookie, then redirect.

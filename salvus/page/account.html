@@ -283,18 +283,35 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                     <div class="col-sm-4 ">Last name</div>
                                     <div class="col-sm-8 "><input class="form-control" type="text" value="" id="account-settings-last_name"></div>
                                 </div>
-                                <br>
                                 <div class="row">
-                                    <div class="col-sm-4 ">Password</div>
-                                    <div class="col-sm-8 ">
-                                        <a href="#account-change_password">Change password</a><br>
-                                        <a href="#account-forgot_password">Forgot password</a>
+                                    <div class="col-sm-4 "><i class="fa fa-envelope"></i> Email login</div>
+                                    <div class="col-sm-8 "><span id="account-settings-email_address"></span> (<a href="#account-change_email_address">change</a>)
+                                        <br>
+                                        <a href="#account-change_password">Change password</a>
+                                        &nbsp;&nbsp;
+                                        (<a href="#account-forgot_password">forgot password</a>)
                                     </div>
                                 </div>
-                                <br>
-                                <div class="row">
-                                    <div class="col-sm-4 ">Email</div>
-                                    <div class="col-sm-8 "><span id="account-settings-email_address"></span> (<a href="#account-change_email_address">change</a>)</div>
+                                <div class="row  hide smc-auth-google" id="account-settings-passports">
+                                    <hr>
+                                    <div class="col-sm-12 ">
+                                        <a href="#google" class="btn btn-default hide smc-auth-btn smc-auth-google"><i class="fa fa-google"></i>
+                                            Google</a>
+                                        <a href="#facebook" class="btn btn-default hide  smc-auth-btn smc-auth-facebook"><i class="fa fa-facebook"></i>
+                                            Facebook</a>
+                                        <a href="#github" class="btn btn-default hide  smc-auth-btn smc-auth-github"><i class="fa fa-github"></i>
+                                            Github</a>
+                                        <a href="#bitbucket" class="btn btn-default hide  smc-auth-btn smc-auth-bitbucket"><i class="fa fa-bitbucket"></i>
+                                            Bitbucket</a>
+                                        <a href="#dropbox" class="btn btn-default hide  smc-auth-btn smc-auth-dropbox"><i class="fa fa-dropbox"></i>
+                                            Dropbox</a>
+                                        <a href="#twitter" class="btn btn-default hide  smc-auth-btn smc-auth-twitter"><i class="fa fa-twitter"></i>
+                                            Twitter</a>
+                                        <a href="#wordpress" class="btn btn-default hide  smc-auth-btn smc-auth-wordpress"><i class="fa fa-wordpress"></i>
+                                            Wordpress</a>
+                                        <br><br><span class="lighten">Linked accounts are <em><strong>only</strong></em> used for sign in;
+                                        sync is not yet implemented.</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

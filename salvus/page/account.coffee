@@ -377,6 +377,15 @@ signed_in = (mesg) ->
     # Record which hub we're connected to.
     hub = mesg.hub
 
+    top_navbar.show_page_button("projects")
+    if first_login
+        first_login = false
+        if window.salvus_target and window.salvus_target != 'login'
+            require('history').load_target(window.salvus_target)
+            window.salvus_target = ''
+        else
+            require('history').load_target('projects')
+
     # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
     account_settings.load_from_server (error) ->
@@ -394,9 +403,6 @@ signed_in = (mesg) ->
             set_account_tab_label(true, account_settings.fullname())
             $("#account-forgot_password-email_address").val(account_settings.settings.email_address)
 
-
-            top_navbar.show_page_button("projects")
-
             # If this is the initial login, switch to the project
             # page.  We do this because if the user's connection is
             # flakie, they might get dropped and re-logged-in multiple
@@ -404,13 +410,6 @@ signed_in = (mesg) ->
             # projects page in that case.  Also, if they explicitly
             # log out, then log back in as another user, seeing
             # the account page by default in that case makes sense.
-            if first_login
-                first_login = false
-                if window.salvus_target and window.salvus_target != 'login'
-                    require('history').load_target(window.salvus_target)
-                    window.salvus_target = ''
-                else
-                    require('history').load_target('projects')
 
 
 # Listen for pushed sign_in events from the server.  This is one way that
@@ -687,6 +686,9 @@ class AccountSettings
                     for x in OTHER_SETTINGS_CHECKBOXES
                         element.find(".account-settings-other_settings-#{x}").prop("checked", value[x])
                         element.find(".account-settings-other_settings-default_file_sort").val(value.default_file_sort)
+                when 'passports'
+                    for strategy, id of value
+                        element.find("a[href=##{strategy}]").addClass('btn-warning')
                 else
                     set(element, value)
 
@@ -1060,7 +1062,7 @@ $.get '/auth/strategies', (strategies, status) ->
     if strategies.length > 0
         e.show()
     for strategy in strategies
-        e.find(".smc-auth-#{strategy}").show()
+        $(".smc-auth-#{strategy}").show()
 
 
 

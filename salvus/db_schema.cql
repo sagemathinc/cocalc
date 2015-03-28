@@ -95,10 +95,6 @@ CREATE TABLE accounts (
     email_new_features   boolean,
     email_maintenance    boolean,
 
-    connect_Github       varchar,
-    connect_Google       varchar,
-    connect_Dropbox      varchar,
-
     autosave             int,
     terminal             varchar, /* JSON */
 

@@ -584,9 +584,7 @@ exports.restricted_account_settings =
     ram_limit            : undefined
     support_level        : undefined
     email_address        : undefined
-    connect_Github       : undefined
-    connect_Google       : undefined
-    connect_Dropbox      : undefined
+    passports            : undefined
     groups               : undefined  # only admins can actually change this...
 
 # these can be changed without additional re-typing of the password
@@ -611,9 +609,6 @@ exports.account_settings_defaults =
     email_new_features : true
     email_maintenance  : true
     enable_tooltips    : true
-    connect_Github     : ''
-    connect_Google     : ''
-    connect_Dropbox    : ''
     autosave           : 45
     groups             : undefined
     other_settings     :
