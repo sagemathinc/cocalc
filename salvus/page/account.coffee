@@ -1058,12 +1058,24 @@ $("a[href=#account-settings-tab]").click () ->
 ###
 
 $.get '/auth/strategies', (strategies, status) ->
-    e = $(".smc-signup-strategies")
-    if strategies.length > 0
-        e.show()
+    if strategies.length == 0
+        return
+    $(".smc-signup-strategies").show()
+    $(".smc-signin-strategies").show()
     for strategy in strategies
         $(".smc-auth-#{strategy}").show()
-
+    $(".smc-signup-strategies").find("a").click (evt) ->
+        # check that terms of service was clicked on
+        terms = $("#create_account-agreed_to_terms")
+        if not terms.is(":checked")
+            terms.popover(
+                title     : "Agree to the terms of service."
+                animation : false
+                trigger   : "manual"
+                placement : if $(window).width() <= 800 then "top" else "right"
+                template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'
+            ).popover("show").focus( () -> $(@).popover("destroy"))
+            return false   # cancel actually creating the account
 
 
     ###

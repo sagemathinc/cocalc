@@ -121,7 +121,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     Or sign in using
                 </h4>
 
-                <div class="smc-signup-strategies hide" style="margin-top:8px">
+                <div class="smc-signin-strategies hide" style="margin-top:8px">
                     <span class="btn-group">
                         <a href="/auth/google" class="btn btn-default hide smc-auth-google"><i class="fa fa-google"></i> Google</a>
                         <a href="/auth/facebook" class="btn btn-default hide  smc-auth-facebook"><i class="fa fa-facebook"></i> Facebook</a>
@@ -145,59 +145,66 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
     <div class="row hide" id="account-create_account" style="margin-top: 2em;">
 
-        <div class="well col-sm-5 ">
-            <h4>Create an account (or <a href="#account-sign_in">sign in</a>)</h4>
+        <div class="well col-sm-6 ">
+            <h4>Create  account (or <a href="#account-sign_in">sign in</a>)</h4>
 
 
             <div>
-                <span class="hidden-xs lighten-2">First and Last Name</span>
-                <input class="form-control" type="text" placeholder="First and Last Name" id="create_account-name">
-                <span class="hidden-xs lighten-2">Email</span>
-                <input class="form-control" type="email" placeholder="Email" id="create_account-email_address">
-                <span class="hidden-xs lighten-2 salvus-create_account-token hide">Token</span>
-                <input class="form-control salvus-create_account-token hide" type="text" placeholder="Secret token that the site admin gave you" id="create_account-token">
-                <span class="hidden-xs lighten-2">Password</span>
-                <input class="salvus-password-meter form-control" type="password" placeholder="Password" id="create_account-password">
                 <div class="checkbox"><label style="margin-top: 1ex;margin-bottom: 1ex;">
                     <input type="checkbox" id="create_account-agreed_to_terms">
                     Agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>
                     </label>
                 </div>
+                <span class="hidden-xs lighten-2 salvus-create_account-token hide">Token</span>
+                <input class="form-control salvus-create_account-token hide" type="text" placeholder="Secret token that the site admin gave you" id="create_account-token">
 
-                <!-- <span class="hidden-xs lighten-2">Retype password</span>
-    <input class="form-control" type="password" placeholder="Retype password" id="create_account-retype_password">
-    -->
+                <h4>
+                    Use
+                </h4>
+                <div class="row">
+                    <div class="col-sm-offset-1 col-sm-10">
+                        <div class="smc-signup-strategies hide" style="margin-top:8px">
+                            <span class="btn-group">
+                                <a href="/auth/google" class="btn btn-default hide smc-auth-google "><i class="fa fa-google"></i> Google</a>
+                                <a href="/auth/facebook" class="btn btn-default hide  smc-auth-facebook "><i class="fa fa-facebook"></i> Facebook</a>
+                                <a href="/auth/github" class="btn btn-default hide  smc-auth-github "><i class="fa fa-github"></i> Github</a>
+                            </span>
+                            <span class="btn-group" style="margin-top: 3px;">
+                                <a href="/auth/bitbucket" class="btn btn-default hide  smc-auth-bitbucket "><i class="fa fa-bitbucket"></i> Bitbucket</a>
+                                <a href="/auth/dropbox" class="btn btn-default hide  smc-auth-dropbox "><i class="fa fa-dropbox"></i> Dropbox</a>
+                                <a href="/auth/twitter" class="btn btn-default hide  smc-auth-twitter "><i class="fa fa-twitter"></i> Twitter</a>
+                                <a href="/auth/wordpress" class="btn btn-default hide  smc-auth-wordpress "><i class="fa fa-wordpress"></i> Wordpress</a>
+                            </span>
+                        </div>
+                    </div>
+                </div>
 
-                <button class="btn btn-success btn-lg" style="width: 100%;" type="submit" id="create_account-button">Create account for free</button>
+                <h4>
+                    Or use your email address
+                </h4>
+                <div class="row">
+                    <div class="col-sm-offset-1 col-sm-10">
+                        <span class="hidden-xs lighten-2">First and Last Name</span>
+                        <input class="form-control" type="text" placeholder="First and Last Name" id="create_account-name">
+                        <span class="hidden-xs lighten-2">Email</span>
+                        <input class="form-control" type="email" placeholder="Email" id="create_account-email_address">
+                        <span class="hidden-xs lighten-2">Password</span>
+                        <input class="salvus-password-meter form-control" type="password" placeholder="Password" id="create_account-password">
+                        <button class="btn btn-success btn-lg" style="width: 100%;" type="submit" id="create_account-button">Create account for free</button>
+                    </div>
+                </div>
             </div>
 
             <hr>
-            <h4>
-                Or sign up using
-            </h4>
 
-            <div class="smc-signup-strategies hide" style="margin-top:8px">
-                <span class="btn-group">
-                    <a href="/auth/google" class="btn btn-default hide smc-auth-google"><i class="fa fa-google"></i> Google</a>
-                    <a href="/auth/facebook" class="btn btn-default hide  smc-auth-facebook"><i class="fa fa-facebook"></i> Facebook</a>
-                    <a href="/auth/github" class="btn btn-default hide  smc-auth-github"><i class="fa fa-github"></i> Github</a>
-                </span>
-                <span class="btn-group" style="margin-top: 3px;">
-                    <a href="/auth/bitbucket" class="btn btn-default hide  smc-auth-bitbucket"><i class="fa fa-bitbucket"></i> Bitbucket</a>
-                    <a href="/auth/dropbox" class="btn btn-default hide  smc-auth-dropbox"><i class="fa fa-dropbox"></i> Dropbox</a>
-                    <a href="/auth/twitter" class="btn btn-default hide  smc-auth-twitter"><i class="fa fa-twitter"></i> Twitter</a>
-                    <a href="/auth/wordpress" class="btn btn-default hide  smc-auth-wordpress"><i class="fa fa-wordpress"></i> Wordpress</a>
-                </span>
-            </div>
-
-            <hr>
-            <span class="lighten" style="font-size:10pt">Not working?  Email us at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> immediately!</span>
+            <span class="lighten" style="font-size:10pt">Not working?  Email us at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> immediately!
+            </span>
 
 
 
         </div>
 
-        <div class="col-sm-6 col-sm-offset-1">
+        <div class="col-sm-5 col-sm-offset-1">
             <!-- NOTE: not using mathjax on purpose here, since don't want landing page to update after load, which looks lame. -->
             <img src="favicon-128.png" width="64" height="64" class="img img-rounded pull-right">
             <h3>SageMathCloud™  collaborative computational mathematics</h3>
@@ -208,24 +215,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             <br class="hidden-xs">
 
             <ul class="hidden-xs">
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-line-chart"></i>  <b>Mathematics:</b>  use the best open source mathematics software <span class="lighten">(SageMath, R, Octave, Python, Cython, GAP, Pari, Macaulay2, Singular, and more)</span></li>
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-list-alt"></i>  <b>Edit:</b> collaboratively edit Sage worksheets, LaTeX documents and IPython notebooks</li>
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-file-code-o"></i>  <b>Program:</b> write, compile, and run programs in most programming languages</li>
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-graduation-cap"></i>  <b>Teach:</b> organize teaching a course</li>
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-save"></i>  <b>Backup:</b> all files automatically backed up every few minutes</li>
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-terminal"></i>  <b>Terminal:</b> full Linux account with color terminal</li>
-                <li class="salvus-help-list"><i class="salvus-landing-icon fa fa-users"></i>  <b>Collaborate:</b> over 30,000 monthly active users</li>
+                <li class="salvus-help-list"><i class="smc-landing-icon fa fa-line-chart"></i>  <b>Mathematics:</b>  SageMath, R, IPython, Numpy/Scipy/Matplotlib, Octave, Cython, GAP, Pari, Macaulay2, Singular, and much more</li>
+                <li class="salvus-help-list"><i class="smc-landing-icon fa fa-list-alt"></i>  <b>Collaborate:</b> edit Sage worksheets, LaTeX documents and IPython notebooks with realtime sync</li>
+                <li class="salvus-help-list"><i class="smc-landing-icon fa fa-file-code-o"></i>  <b>Program:</b> write, compile, and run programs in most programming languages</li>
+                <li class="salvus-help-list"><i class="smc-landing-icon fa fa-graduation-cap"></i>  <b>Teach:</b>  course management</li>
+                <li class="salvus-help-list"><i class="smc-landing-icon fa fa-save"></i>  <b>Backup:</b> all files backed up every few minutes</li>
+                <li class="salvus-help-list"><i class="smc-landing-icon fa fa-terminal"></i>  <b>Terminal:</b> full color terminal</li>
             </ul>
             <br>
             <hr>
-            <span class="lighten">With support by the National Science Foundation (awards
+            <span class="lighten">SMC is run by SageMath, Inc., and receives grant funding from the National Science Foundation (awards
                 <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1161226" target="_blank">1161226</a>,
                 <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1147802" target="_blank">1147802</a>,
                 <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1020378" target="_blank">1020378</a>
-                <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1015114" target="_blank">1015114</a>) and <a href="https://research.google.com/university/relations/appengine/index.html" target="_blank">Google</a>.
+                <a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1015114" target="_blank">1015114</a>) and <a href="http://googleresearch.blogspot.com/2014/09/collaborative-mathematics-with.html" target="_blank">Google</a>.
             </span>
-
-
 
         </div>
     </div>
@@ -852,7 +856,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 </div>
 
 
-                <!-- Hide for now, since no plan to implement ASAP -->
+                <!-- Hide for now, since no plan to implement... -->
                 <div class="row hide">
                     <div class="well col-sm-6 ">
                         <div class="col-sm-6 ">
@@ -860,37 +864,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                 <input type="checkbox" checked="checked" id="account-settings-enable_tooltips" rel="tooltip" title="Show tooltips like this one?">Show tooltips
                                 </label></div>
                             <div class="checkbox"><label class="">
-                                <input type="checkbox" checked="checked" id="account-settings-email_new_features" rel="tooltip" title="Salvus sends email when we add new features.">Email us about new features
+                                <input type="checkbox" checked="checked" id="account-settings-email_new_features" rel="tooltip" title="Email when we add new features.">Email us about new features
                                 </label></div>
                             <div class="checkbox"><label class="">
-                                <input type="checkbox" checked="checked" id="account-settings-email_maintenance" rel="tooltip" title="Salvus sends an email when it might be slow or down due to scheduled maintenance.">Email us about scheduled maintenance
+                                <input type="checkbox" checked="checked" id="account-settings-email_maintenance" rel="tooltip" title="Email when it might be slow or down due to scheduled maintenance.">Email us about scheduled maintenance
                                 </label></div>
                         </div>
                     </div>
 
-                    <!-- hide for now, since not implemented -->
-                    <div class="well hide col-sm-offset-1 col-sm-5 ">
-                        <div class="row">
-                            <div class="col-sm-2 " rel="tooltip" title="You can link your Salvus account with Github, so that a project can be synchronized with a Github repository.">Github</div>
-                            <div class="col-sm-4 ">
-                                <a id="account-settings-connect_Github" href=""></a>
-                            </div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-sm-2 " rel="tooltip" title="You can link your Salvus account with Google, so that some of your Salvus files are stored in Google drive.">Google</div>
-                            <div class="col-sm-4 ">
-                                <a id="account-settings-connect_Google" href=""></a>
-                            </div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-sm-2 " rel="tooltip" title="You can link your Salvus account with Dropbox, so that selected Salvus projects are mirrored to a Dropbox folder.">Dropbox</div>
-                            <div class="col-sm-4 ">
-                                <a id="account-settings-connect_Dropbox" href=""></a>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
 
