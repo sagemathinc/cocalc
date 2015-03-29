@@ -1654,44 +1654,43 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     if marks.length == 0
                         @mark_output_line(cm, line)
                     mark = cm.findMarksAt({line:line, ch:1})[0]
-                    if mark? and not mark.finish_editing?
-                        uuid = cm.getRange({line:line,ch:1}, {line:line,ch:37})
-                        if misc.is_valid_uuid_string(uuid)
-                            if mark.uuid != uuid # uuid changed -- completely new output
-                                #console.log("uuid changed -- completely new output")
-                                output = @elt_at_mark(mark)
-                                if not output?
-                                    console.log("ERROR: sagews -- output element at line #{line} vanished!")
-                                    return
-                                mark.processed = 38
-                                mark.uuid = uuid
-                                output.find(".sagews-output-editor").hide()
-                                output.find(".sagews-output-editor-content").empty()
-                                output.find(".sagews-output-messages").empty().show()
-                                output.data('blobs',[])  # used to track visible files displaying data from database blob store
-                            if mark.processed < x.length-1
-                                #console.log("new output to process: #{mark.processed}, #{x.length}", x)
-                                # new output to process
-                                t = x.slice(mark.processed, x.length-1)
-                                for s in t.split(MARKERS.output)
-                                    if s.length > 0
-                                        output = @elt_at_mark(mark)
-                                        # appearance of output shows output
-                                        output.removeClass('sagews-output-hide')
-                                        try
-                                            #t = misc.mswalltime()
-                                            @process_output_mesg
-                                                mesg:JSON.parse(s)
-                                                element:output.find(".sagews-output-messages")
-                                            #console.log("time to parse = ", misc.mswalltime(t))
-                                            mark.processed += 1 + s.length
-                                        catch e
-                                            console.log(e.stack)
-                                            log("BUG: error rendering output: '#{s}' -- #{e}")
-                                            break
-                                    else
-                                        mark.processed += 1
+                    window.x = x
+                    f = (elt, mesg) =>
+                        try
+                            @process_output_mesg
+                                mesg    : JSON.parse(mesg)
+                                element : elt
+                        catch e
+                            console.log(e.stack)
+                            log("BUG: error rendering output: '#{mesg}' -- #{e}")
 
+                    if mark? and not mark.finish_editing? and mark.processed != x
+                        # This is more complicated than you might think because past messages can
+                        # be modified at any time -- it's not a linear stream.
+                        output = @elt_at_mark(mark)
+                        # appearance of output shows output
+                        output.removeClass('sagews-output-hide')
+                        messages = x.split(MARKERS.output).slice(2) # skip output uuid
+                        elts = output.find(".sagews-output-messages")
+                        outputs = elts.children()
+                        for i in [0...Math.max(messages.length, outputs.length)]
+                            if i >= messages.length
+                                $(outputs[i]).remove()
+                            else if i >= outputs.length
+                                mesg = messages[i]
+                                elt = $("<span>")
+                                elt.data('mesg',mesg)
+                                elts.append(elt)
+                                if mesg.length > 0
+                                    f(elt, mesg)
+                            else
+                                elt = $(outputs[i])
+                                mesg = messages[i]
+                                if elt.data('mesg') != mesg
+                                    elt.empty().data('mesg', mesg)
+                                    if mesg.length > 0
+                                        f(elt, mesg)
+                        mark.processed = x
 
                 else if x.indexOf(MARKERS.output) != -1
                     #console.log("correcting merge/paste issue with output marker line (line=#{line})")
@@ -1912,18 +1911,70 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 uuids : uuids
                 cb    : cb
 
+    raw_input: (raw_input) =>
+        prompt = raw_input.prompt
+        value  = raw_input.value
+        if not value?
+            value = ''
+        submitted = raw_input.submitted
+        if not submitted?
+            submitted = false
+        elt = templates.find(".sagews-output-raw_input").clone()
+        label = elt.find(".sagews-output-raw_input-prompt")
+        label.text(prompt)
+        input = elt.find(".sagews-output-raw_input-value")
+        input.val(value)
+
+        if raw_input.placeholder?
+            input.attr('placeholder', raw_input.placeholder)
+
+        btn = elt.find(".sagews-output-raw_input-submit")
+
+        if submitted or @readonly
+            btn.addClass('disabled')
+            input.attr('readonly', true)
+        else
+            submit_raw_input = () =>
+                console.log("submitting raw_input...")
+                btn.addClass('disabled')
+                input.attr('readonly', true)
+                for cm in @codemirrors()
+                    cm.setOption('readOnly',@readonly)
+                @call
+                    message : message.codemirror_sage_raw_input
+                        value        : input.val()
+                        session_uuid : @session_uuid
+
+            input.keyup (evt) =>
+                # if return, submit result
+                if evt.which == 13
+                    submit_raw_input()
+
+            btn.click () =>
+                submit_raw_input()
+                return false
+
+            f = () =>
+                input.focus()
+            setTimeout(f, 50)
+
+        if raw_input.input_width?
+            input.width(raw_input.input_width)
+
+        if raw_input.label_width?
+            label.width(raw_input.label_width)
+
+        return elt
+
     process_output_mesg: (opts) =>
         opts = defaults opts,
             mesg    : required
             element : required
-            mark     : undefined
+            mark    : undefined
         mesg = opts.mesg
         output = opts.element
         # mesg = object
         # output = jQuery wrapped element
-
-        if mesg.clear? and mesg.clear
-            output.empty()
 
         if mesg.stdout?
             output.append($("<span class='sagews-output-stdout'>").text(mesg.stdout))
@@ -1981,6 +2032,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
             else
                 arg.inline = true
             output.append(elt.mathjax(arg))
+
+        if mesg.raw_input?
+            output.append(@raw_input(mesg.raw_input))
 
         if mesg.file?
             val = mesg.file
@@ -2569,7 +2623,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @sync()
 
 
-        # This was a nightmare because it causes codemirror to update the output div, which contains the editor.  Have to change things so editor is contained somewhere else first (i.e., nontrivial project).
+        # This was a nightmare because it causes codemirror to update the output div,
+        # which contains the editor.  Have to change things so editor is contained
+        # somewhere else first (i.e., nontrivial project).
         save_to_output = () =>
             save_to_output_timer = undefined
             line = output_mark.find()?.from.line

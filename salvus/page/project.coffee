@@ -1060,10 +1060,12 @@ class ProjectPage
         if not @container?
             return
         @container.find(".smc-project-config").show()
-        for option in ['disable_collaborators', 'disable_downloads']
+        #each for closure
+        $.each ['disable_collaborators', 'disable_downloads'], (index, option) =>
+            #local_storage needs to be replaced with project database object soon
             if local_storage(@project.project_id, '', option)
                 @container.find(".account-settings-other_settings-" + option).find("input").prop("checked", true)
-            @container.find(".account-settings-other_settings-" + option).click () =>
+            @container.find(".account-settings-other_settings-" + option).click (e) =>
                 checked = @container.find(".account-settings-other_settings-" + option).find("input").prop("checked")
                 local_storage(@project.project_id, '', option, checked)
 
@@ -2266,7 +2268,7 @@ class ProjectPage
                         src_path          = dialog.find(".salvus-project-copy-src-path").val()
                         selector          = dialog.find(".salvus-project-target-project-id")
                         target_project_id = selector.val()
-                        title_project     = selector.find('option[value="#{target_project_id}"]:first').text()
+                        target_project    = selector.find("option[value='#{target_project_id}']:first").text()
                         target_path       = dialog.find(".salvus-project-copy-target-path").val()
                         overwrite_newer   = dialog.find(".salvus-project-overwrite-newer").is(":checked")
                         delete_missing    = dialog.find(".salvus-project-delete-missing").is(":checked")

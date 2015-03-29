@@ -1437,7 +1437,7 @@ class Monitor(object):
             d['status'] = 'up'
             if d['etime'] == 'ELAPSED':
                 d['status'] = 'down'
-            if d['sign_in_timeouts'] > 0:
+            if d['sign_in_timeouts'] > 4:  # threshold of 4: worry only if this gets big, for now...
                 d['status'] = 'down'  # demands attention!
             ans.append(d)
         def f(x,y):

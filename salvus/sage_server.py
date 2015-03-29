@@ -225,6 +225,7 @@ class Message(object):
                tex          = None,
                d3           = None,
                file         = None,
+               raw_input    = None,
                obj          = None,
                done         = None,
                once         = None,
@@ -232,7 +233,8 @@ class Message(object):
                show         = None,
                auto         = None,
                events       = None,
-               clear        = None):
+               clear        = None,
+               delete_last  = None):
         m = self._new('output')
         m['id'] = id
         t = truncate_text
@@ -257,6 +259,7 @@ class Message(object):
         if d3 is not None: m['d3'] = d3
         if obj is not None: m['obj'] = json.dumps(obj)
         if file is not None: m['file'] = file    # = {'filename':..., 'uuid':...}
+        if raw_input is not None: m['raw_input'] = raw_input
         if done is not None: m['done'] = done
         if once is not None: m['once'] = once
         if hide is not None: m['hide'] = hide
@@ -264,6 +267,7 @@ class Message(object):
         if auto is not None: m['auto'] = auto
         if events is not None: m['events'] = events
         if clear is not None: m['clear'] = clear
+        if delete_last is not None: m['delete_last'] = delete_last
         return m
 
     def introspect_completions(self, id, completions, target):
@@ -967,10 +971,10 @@ class Salvus(object):
         self._send_output(done=False, id=self._id)
 
     def clear(self, done=False):
-        """
-        Clear the output of the current cell.
-        """
         self._send_output(clear=True, id=self._id, done=done)
+
+    def delete_last_output(self, done=False):
+        self._send_output(delete_last=True, id=self._id, done=done)
 
     def stdout(self, output, done=False, once=None):
         """
@@ -1073,6 +1077,40 @@ class Salvus(object):
         """
         kwds['coffeescript'] = True
         self.javascript(*args, **kwds)
+
+    def raw_input(self, prompt='', default='', placeholder='', input_width=None, label_width=None, done=False, type=None):  # done is ignored here
+        self._flush_stdio()
+        m = {'prompt':unicode8(prompt)}
+        if input_width is not None:
+            m['input_width'] = unicode8(input_width)
+        if label_width is not None:
+            m['label_width'] = unicode8(label_width)
+        if default:
+            m['value'] = unicode8(default)
+        if placeholder:
+            m['placeholder'] = unicode8(placeholder)
+        self._send_output(raw_input=m, id=self._id)
+        typ, mesg = self.message_queue.next_mesg()
+        if typ == 'json' and mesg['event'] == 'codemirror_sage_raw_input':
+            # everything worked out perfectly
+            self.delete_last_output()
+            m['value'] = mesg['value'] # as unicode!
+            m['submitted'] = True
+            self._send_output(raw_input=m, id=self._id)
+            value = mesg['value']
+            if type is not None:
+                if type == 'sage':
+                    value = sage_salvus.sage_eval(value)
+                else:
+                    try:
+                        value = type(value)
+                    except TypeError:
+                        # Some things in Sage are clueless about unicode for some reason...
+                        # Let's at least try, in case the unicode can convert to a string.
+                        value = type(str(value))
+            return value
+        else:
+            raise KeyboardInterrupt("raw_input interrupted by another action")
 
     def _check_component(self, component):
         if component not in ['input', 'output']:
@@ -1248,6 +1286,9 @@ class Salvus(object):
 
 
 Salvus.pdf.__func__.__doc__ = sage_salvus.show_pdf.__doc__
+Salvus.raw_input.__func__.__doc__ = sage_salvus.raw_input.__doc__
+Salvus.clear.__func__.__doc__ = sage_salvus.clear.__doc__
+Salvus.delete_last_output.__func__.__doc__ = sage_salvus.delete_last_output.__doc__
 
 def execute(conn, id, code, data, cell_id, preparse, message_queue):
 
@@ -1364,7 +1405,7 @@ def session(conn):
     import sage.all; sage.all.set_random_seed()
     import random; random.seed(sage.all.initial_seed())
 
-    # get_memory_usage is (by ignorant design) not aware of being forked... (should post a trac ticket!)
+    # get_memory_usage is not aware of being forked...
     import sage.misc.getusage
     sage.misc.getusage._proc_status = "/proc/%s/status"%os.getpid()
 
@@ -1374,7 +1415,7 @@ def session(conn):
             typ, mesg = mq.next_mesg()
 
             #print 'INFO:child%s: received message "%s"'%(pid, mesg)
-            log("handling message ", truncate_text(unicode8(mesg), 256))
+            log("handling message ", truncate_text(unicode8(mesg), 400))
             event = mesg['event']
             if event == 'terminate_session':
                 return
@@ -1568,7 +1609,7 @@ def serve(port, host):
                      'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
                      'reset', 'restore', 'md', 'load', 'runfile', 'typeset_mode', 'default_mode',
                      'sage_chat', 'fortran', 'magics', 'go', 'julia', 'pandoc', 'wiki',
-                     'mediawiki', 'help']:
+                     'mediawiki', 'help', 'raw_input', 'clear', 'delete_last_output', 'sage_eval']:
             namespace[name] = getattr(sage_salvus, name)
 
         # alias pretty_print_default to typeset_mode, since sagenb has/uses that.
@@ -1592,8 +1633,8 @@ def serve(port, host):
     s.listen(128)
     i = 0
 
-    log("Write to file name of port we are now listening on.", args.port)
     try:
+        log("Write to file name of port we are now listening on.", args.port)
         open(os.path.join(DATA_PATH, "sage_server.port"),'w').write(str(args.port))
     except Exception, err:
         log("Not writing sage_server.port file --", err)

@@ -769,20 +769,21 @@ class exports.Connection extends EventEmitter
 
     sign_out: (opts) ->
         opts = defaults opts,
+            everywhere   : false
             cb           : undefined
             timeout      : DEFAULT_TIMEOUT # seconds
 
         @account_id = undefined
-
+ 
         @call
-            message : message.sign_out()
+            message : message.sign_out(everywhere:opts.everywhere)
             timeout : opts.timeout
             cb      : opts.cb
 
     change_password: (opts) ->
         opts = defaults opts,
             email_address : required
-            old_password  : required
+            old_password  : ""
             new_password  : required
             cb            : undefined
         @call
@@ -795,9 +796,9 @@ class exports.Connection extends EventEmitter
     change_email: (opts) ->
         opts = defaults opts,
             account_id        : required
-            old_email_address : required
+            old_email_address : ""
             new_email_address : required
-            password          : required
+            password          : ""
             cb                : undefined
 
         @call
@@ -865,6 +866,19 @@ class exports.Connection extends EventEmitter
             message : message.account_settings(misc.merge(opts.settings, {account_id: opts.account_id, password: opts.password}))
             cb      : opts.cb
 
+    # forget about a given passport authentication strategy for this user
+    unlink_passport: (opts) ->
+        opts = defaults opts,
+            strategy : required
+            id       : required
+            cb       : undefined
+        @call
+            message : message.unlink_passport
+                strategy : opts.strategy
+                id       : opts.id
+            error_event : true
+            timeout : 15
+            cb : opts.cb
 
     ############################################
     # Scratch worksheet

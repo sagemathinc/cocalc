@@ -201,6 +201,7 @@ message
     interact     : undefined   # create an interact layout defined by a JSON object
     obj          : undefined   # used for passing any JSON-able object along as output; this is used, e.g., by interact.
     file         : undefined   # used for passing a file -- is an object {filename:..., uuid:..., show:true}; the file is at https://cloud.sagemath.com/blobs/filename?uuid=[the uuid]
+    raw_input    : undefined   # used for getting blocking input from client -- {raw_input:{prompt:'input stuff?', value:'', submitted:false}}
     done         : false       # the sequences of messages for a given code evaluation is done.
     session_uuid : undefined   # the uuid of the session that produced this output
     once         : undefined   # if given, message is transient; it is not saved by the worksheet, etc.
@@ -410,6 +411,12 @@ message
     session_uuid : required
     preparse     : true
 
+# client --> hub --> local_hub --> sage_server
+message
+    event        : 'codemirror_sage_raw_input'
+    value        : required
+    session_uuid : required
+
 # Introspection in the context of a codemirror editing session.
 # client --> hub --> sage_server
 message
@@ -491,6 +498,7 @@ message
 # client --> hub
 message
     event          : 'sign_out'
+    everywhere     : false
     id             : undefined
 
 # hub --> client
@@ -503,7 +511,7 @@ message
     event          : 'change_password'
     id             : undefined
     email_address  : required
-    old_password   : required
+    old_password   : ""
     new_password   : required
 
 # hub --> client
@@ -543,9 +551,9 @@ message
     event             : 'change_email_address'
     id                : undefined
     account_id        : required
-    old_email_address : required
+    old_email_address : ""
     new_email_address : required
-    password          : required
+    password          : ""
 
 # hub --> client
 message
@@ -554,6 +562,14 @@ message
     error               : false  # some other error
     ttl                 : undefined   # if user is trying to change password too often, this is time to wait
 
+
+
+# Unlink a passport auth for this account.
+# client --> hub
+message
+    event    : 'unlink_passport'
+    strategy : required
+    id       : required
 
 ############################################
 # Account Settings
@@ -577,9 +593,8 @@ exports.restricted_account_settings =
     ram_limit            : undefined
     support_level        : undefined
     email_address        : undefined
-    connect_Github       : undefined
-    connect_Google       : undefined
-    connect_Dropbox      : undefined
+    passports            : undefined
+    password_is_set      : undefined
     groups               : undefined  # only admins can actually change this...
 
 # these can be changed without additional re-typing of the password
@@ -604,9 +619,6 @@ exports.account_settings_defaults =
     email_new_features : true
     email_maintenance  : true
     enable_tooltips    : true
-    connect_Github     : ''
-    connect_Google     : ''
-    connect_Dropbox    : ''
     autosave           : 45
     groups             : undefined
     other_settings     :

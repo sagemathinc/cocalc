@@ -211,6 +211,7 @@ class Archive
                     command    : command
                     args       : args
                     err_on_exit: false
+                    timeout    : 120
                     cb         : (err, out) =>
                         #console.log("done extract: ", err, out)
                         @element.find("a[href=#extract]").icon_spin(false)

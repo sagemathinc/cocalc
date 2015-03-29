@@ -364,9 +364,18 @@ NODE_MODULES = [
     'node-uuid',
     'browserify@1.16.4',
     'uglify-js2',
+    'express',       # web server
+    'express-session',   # needed for oauth1 bitbucket auth
+    'body-parser',   # parse post form uploads (needed for auth)
     'passport',
+    'passport-bitbucket',
+    'passport-dropbox-oauth2',
+    'passport-facebook',
     'passport-github',
-    'express',
+    'passport-google-oauth',
+    'passport-local',
+    'passport-twitter',
+    'passport-wordpress',
     'nodeunit',
     'validator',
     'async',
@@ -536,6 +545,7 @@ SAGE_OPTIONAL_PACKAGES = [
     'database_kohel',
     'database_symbolic_data',
     'dot2tex',
+    'fricas',
     'gambit',
     'gap_packages',
     'gnuplotpy',
