@@ -2749,6 +2749,28 @@ class GlobalClient
                 opts.cb(err, status)
             )
 
+    backup_project_locations: (opts) =>
+        opts = defaults opts,
+            filename : undefined
+            cb       : required   # cb(err)
+        if not @servers?
+            opts.cb?("@servers not yet initialized"); return
+        if not opts.filename?
+            opts.filename = "backup_project_locations-#{new Date() - 0}.json"
+        dbg = (m) => winston.debug("backup_project_locations(filename:'#{opts.filename}'): #{m}")
+        dbg()
+        dbg("querying database....")
+        @database.select
+            table     : 'projects'
+            columns   : ['project_id', 'bup_location', 'bup_last_save']
+            objectify : true
+            stream    : true
+            cb        : (err, projects) =>
+                if err
+                    opts.cb(err)
+                else
+                    fs.writeFile(opts.filename, JSON.stringify(projects), opts.cb)
+
     ###
     For every project, check that the bup_last_save times are all the same,
     so that everything is fully replicated.
