@@ -2641,7 +2641,7 @@ class GlobalClient
     ###
     repair: (opts) =>
         opts = defaults opts,
-            limit       : 5           # number to do in parallel
+            limit       : 20           # number to do in parallel
             destructive : false
             timeout     : TIMEOUT
             dryrun      : false       # if true, just return the projects that need sync; don't actually sync
