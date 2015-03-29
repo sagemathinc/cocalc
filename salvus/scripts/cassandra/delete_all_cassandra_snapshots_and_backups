@@ -1,0 +1,2 @@
+echo "Deleting all backups and snapshot on this node"
+cd /mnt/cassandra/data/data && time rm -r */*/backups */*/snapshots
