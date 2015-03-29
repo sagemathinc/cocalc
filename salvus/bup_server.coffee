@@ -2109,13 +2109,13 @@ class GlobalClient
     decommission_server: (opts) =>
         opts = defaults opts,
             server_id : required
-            limit     : 1            # number of running projects to simultaneously move off server
+            limit     : 10            # number of running projects to simultaneously move off server
             cb        : undefined
         dbg = (m) -> winston.debug("decommission_server(#{opts.server_id}): #{m}")
         dbg()
         projects = undefined
-        delete_bup_location = []
-        delete_bup_last_save = []
+        delete_bup_locations = []
+        delete_bup_last_saves = []
 
         async.series([
             (cb) =>
@@ -2126,6 +2126,7 @@ class GlobalClient
                         experimental : true
                         health       : 0
                     where :
+                        dummy : true
                         server_id : opts.server_id
                     cb : cb
             (cb) =>
@@ -2139,20 +2140,13 @@ class GlobalClient
                 @move_running_projects_off_server
                     server_id : opts.server_id
                     limit     : opts.limit
-                    cb        : (err, number) =>
-                        if err
-                            cb(err)
-                        else
-                            if number > 0
-                                cb("after two attempts still couldn't move everything running off -- suspicious")
-                            else
-                                cb()
-            (cb) =>
-                dbg("do a full repair, just in case -- this will ensure data is consistent")
-                @repair
-                    limit  : 10
-                    dryrun : false
-                    cb     : cb
+                    cb        : cb
+            #(cb) =>
+            #    dbg("do a full repair, just in case -- this will ensure data is consistent")
+            #    @repair
+            #        limit  : 10
+            #        dryrun : false
+            #        cb     : cb
             (cb) =>
                 dbg("move running projects off the server a final time, just to be sure")
                 @move_running_projects_off_server
@@ -2163,19 +2157,22 @@ class GlobalClient
                             cb(err)
                         else
                             if number > 0
-                                cb("after two attempts still couldn't move everything running off -- suspicious")
+                                cb("after multiple attempts still couldn't move everything running off -- suspicious; number = #{number}")
                             else
                                 cb()
             (cb) =>
-                dbg("load data from entire database about all projects")
-                # TODO: this must change to have some sort of index or something, since this
-                # doesn't scale.
+                dbg("load data from entire database about all projects (should take a few minutes)")
+                # TODO: this must eventually change to have some sort of index or
+                # something, since this doesn't scale.
+                t = misc.walltime()
                 @database.select
                     table     : 'projects'
                     columns   : ['project_id', 'bup_location', 'bup_last_save']
                     objectify : true
                     stream    : true
+                    #limit     : 1000  # for testing.
                     cb        : (err, r) =>
+                        dbg("projects db dump too #{misc.walltime(t)} seconds.")
                         if err
                             cb(err)
                         else
@@ -2187,38 +2184,52 @@ class GlobalClient
                 # figure out what we plan to do
                 for project in projects
                     if project.bup_location == opts.server_id
-                        delete_bup_location.push(project.project_id)
-                    if project.bup_last_save[opts.server_id]
-                        delete_bup_last_save.push(project.project_id)
-                dbg("delete #{delete_bup_locations.length} bup_locations, so projects last run on this server -- doing this in one very big query")
-                @database.delete
-                    table   : 'projects'
-                    columns : ['bup_location']
-                    where   : {project_id:{'in':delete_bup_locations}}
-                    cb      : cb
+                        delete_bup_locations.push(project.project_id)
+                    if project.bup_last_save?[opts.server_id]
+                        delete_bup_last_saves.push(project.project_id)
+                dbg("#{delete_bup_locations.length} bup_locations")
+                dbg("#{delete_bup_last_saves.length} bup_last_saves")
+                cb()
             (cb) =>
-                dbg("delete #{delete_bup_last_save.length} bup_last_saves (10 at once), so projects with one replica on this server")
+                dbg("delete #{delete_bup_locations.length} bup_locations, so projects last run on this server -- doing this in one very big query")
                 i = 0
                 f = (project_id, cb) =>
                     i += 1
-                    dbg("#{i}/#{delete_bup_last_save.length}: deleting bup_last_save for project #{project_id}")
+                    if i % 50 == 0
+                        dbg("#{i}/#{delete_bup_locations.length}: deleting bup_location for project #{project_id}")
+                    @database.update
+                        table : 'projects'
+                        set   :
+                            bup_location : undefined
+                        where :
+                            project_id : project_id
+                        cb      : cb
+                async.mapLimit(delete_bup_locations, opts.limit, f, cb)
+            (cb) =>
+                dbg("delete #{delete_bup_last_saves.length} bup_last_saves (#{opts.limit} at once), so projects with one replica on this server")
+                i = 0
+                f = (project_id, cb) =>
+                    i += 1
+                    if i % 50 == 0
+                        dbg("#{i}/#{delete_bup_last_saves.length}: deleting bup_last_save for project #{project_id}")
                     @database.cql
                         query : 'UPDATE projects SET bup_last_save[?]=null WHERE project_id=?'
                         vals  : [opts.server_id, project_id]
                         cb    : cb
-                async.mapLimit(delete_bup_last_save, 10, f, cb)
+                async.mapLimit(delete_bup_last_saves, opts.limit, f, cb)
             (cb) =>
                 dbg("remove entry in the storage_servers table corresponding to this server")
                 @database.delete
                     table : 'storage_servers'
                     where :
                         server_id : opts.server_id
+                        dummy     : true
                     cb : cb
         ], (err) =>
             if err
                 dbg("something bad happened -- #{err}")
             else
-                dbg("YES!  We have successfully decommissioned the server with server_id #{server_id}.  You can turn it off and forget about it.")
+                dbg("YES!  We have successfully decommissioned the server with server_id #{opts.server_id}.  You can turn it off and forget about it.")
             opts.cb?(err)
         )
 
