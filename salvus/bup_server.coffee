@@ -2749,6 +2749,9 @@ class GlobalClient
                 opts.cb(err, status)
             )
 
+    # As of March 28, 2015, this backup_project_locations function takes about 5 minutes.
+    # It is NOT scalable forever -- eventually node.js will run out of RAM, and we'll need
+    # to change this to truly use streaming.
     backup_project_locations: (opts) =>
         opts = defaults opts,
             filename : undefined
