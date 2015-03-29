@@ -498,6 +498,7 @@ message
 # client --> hub
 message
     event          : 'sign_out'
+    everywhere     : false
     id             : undefined
 
 # hub --> client

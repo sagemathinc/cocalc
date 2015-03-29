@@ -769,13 +769,14 @@ class exports.Connection extends EventEmitter
 
     sign_out: (opts) ->
         opts = defaults opts,
+            everywhere   : false
             cb           : undefined
             timeout      : DEFAULT_TIMEOUT # seconds
 
         @account_id = undefined
-
+ 
         @call
-            message : message.sign_out()
+            message : message.sign_out(everywhere:opts.everywhere)
             timeout : opts.timeout
             cb      : opts.cb
 

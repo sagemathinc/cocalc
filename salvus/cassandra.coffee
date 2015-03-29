@@ -1788,6 +1788,33 @@ class exports.Salvus extends exports.Cassandra
                         cb()
         ])
 
+    # Save remember info in the database
+    save_remember_me: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            hash       : required
+            value      : required
+            ttl        : required
+            cb         : undefined
+        async.series([
+            (cb) =>
+                # Write key to accounts table so we can invalidate
+                # this cookie if the users changes their password.
+                # Must do this first, since important to security model
+                # that this is recorded no matter what.
+                @cql
+                    query : "UPDATE accounts SET remember_me=remember_me+{'#{opts.hash}'} WHERE account_id=?"
+                    vals  : [opts.account_id]
+                    cb    : cb
+            (cb) =>
+                # write to remember_me key-value store
+                @key_value_store(name: 'remember_me').set
+                    key         : opts.hash
+                    value       : opts.value
+                    ttl         : opts.ttl
+                    cb          : cb
+        ], (err) => opts.cb?(err))
+
     # Invalidate all outstanding remember me cookies for the given account by
     # deleting them from the remember_me key:value store.
     invalidate_all_remember_me: (opts) =>

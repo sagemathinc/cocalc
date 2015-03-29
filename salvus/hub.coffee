@@ -519,11 +519,12 @@ passport_login = (opts) ->
             cookies = new Cookies(opts.req, opts.res)
             cookies.set(program.base_url + 'remember_me', remember_me_value, {expires:expires})
             dbg("set remember_me cookie in database")
-            remember_me_db.set
-                key   : hash_session_id
-                value : signed_in_mesg
-                ttl   : ttl
-                cb    : (err) ->
+            database.save_remember_me
+                account_id : account_id
+                hash       : hash_session_id
+                value      : signed_in_mesg
+                ttl        : ttl
+                cb         : (err) ->
                     if err
                         cb(err)
                     else
@@ -1601,6 +1602,7 @@ class Client extends EventEmitter
         opts = defaults opts,
             email_address : required
             account_id    : required
+            cb            : undefined
 
         opts.hub = program.host
         opts.remember_me = true
@@ -1617,45 +1619,12 @@ class Client extends EventEmitter
             value : @_remember_me_value
             ttl   : ttl
 
-        # Remember cookie info in the database
-        async.series([
-            (cb) =>
-                # Write key to accounts table so we can invalidate
-                # this cookie if the users changes their password.  Must do this first, since
-                # important to security that this is recorded no matter what.
-                database.cql
-                    query : "UPDATE accounts SET remember_me=remember_me+{'#{@hash_session_id}'} WHERE account_id=?"
-                    vals  : [opts.account_id]
-                    cb    : (err) =>
-                        if err
-                            # important not to record anything in the database.
-                            winston.debug("ERROR: unable to record remember_me cookie for account -- #{err}")
-                            cb(err)
-                        else
-                            cb()
-            (cb) =>
-                # Write cookie to database quickly so it is likely
-                # to be available if there are queries for it here
-                # or on another node in same DC.
-                @remember_me_db.set
-                    key         : @hash_session_id
-                    value       : signed_in_mesg
-                    ttl         : ttl
-                    consistency : cql.types.consistencies.one
-                    cb          : (err) =>
-                        if err
-                            winston.debug("WARNING: issue writing remember me cookie consistency=1 (#{misc.to_json(signed_in_mesg)}): #{err}")
-                        cb() # ignore errors since we will try again no matter what
-            (cb) =>
-                # write to more replicas, just for good measure
-                @remember_me_db.set
-                    key         : @hash_session_id
-                    value       : signed_in_mesg
-                    ttl         : ttl
-                    cb          : (err) =>
-                        if err
-                            winston.debug("ERROR: issue writing remember me cookie (#{misc.to_json(signed_in_mesg)}): #{err}")
-        ])
+        database.save_remember_me
+            account_id : opts.account_id
+            hash       : @hash_session_id
+            value      : signed_in_mesg
+            ttl        : ttl
+            cb         : opts.cb
 
     invalidate_remember_me: (opts) ->
         opts = defaults opts,
@@ -1987,8 +1956,12 @@ class Client extends EventEmitter
             @push_to_client(message.error(id:mesg.id, error:"Not signed in."))
             return
 
-        @signed_out()
-        #winston.debug("after signed_out, account_id = #{@account_id}")
+        if mesg.everywhere
+            # invalidate all remeber_me cookies
+            database.invalidate_all_remember_me
+                account_id : @account_id
+        @signed_out()  # deletes @account_id... so must be below database call above
+        # invalidate the remember_me on this browser
         @invalidate_remember_me
             cb:(error) =>
                 winston.debug("signing out: #{mesg.id}, #{error}")
@@ -5453,17 +5426,19 @@ sign_in_check = (opts) ->
         return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
     return false
 
-sign_in = (client, mesg) =>
+sign_in = (client, mesg, cb) =>
     #winston.debug("sign_in")
     sign_in_error = (error) ->
         client.push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
 
     if mesg.email_address == ""
         sign_in_error("Empty email address.")
+        cb("empty email")
         return
 
     if mesg.password == ""
         sign_in_error("Empty password.")
+        cb("empty password")
         return
 
     mesg.email_address = misc.lower_email_address(mesg.email_address)
@@ -5474,6 +5449,7 @@ sign_in = (client, mesg) =>
     if m
         winston.debug("WARNING: sign_in fail(email=#{mesg.email}, ip=#{client.ip_address}): #{m}")
         sign_in_error(m)
+        cb(m)
         return
 
     signed_in_mesg = null
@@ -5497,8 +5473,10 @@ sign_in = (client, mesg) =>
 
         (cb) ->
             # get account and check credentials
-            # NOTE: Despite people complaining, we do give away info about whether the e-mail address is for a valid user or not.
-            # There is no security in not doing this, since the same information can be determined via the invite collaborators feature.
+            # NOTE: Despite people complaining, we do give away info about whether
+            # the e-mail address is for a valid user or not.
+            # There is no security in not doing this, since the same information
+            # can be determined via the invite collaborators feature.
             database.get_account
                 email_address : mesg.email_address
                 columns       : ['password_hash', 'account_id']
@@ -5509,7 +5487,7 @@ sign_in = (client, mesg) =>
                             successful    : false
                             email_address : mesg.email_address
                         sign_in_error("Sign in error -- #{error}")
-                        cb(true); return
+                        cb(error); return
 
                     is_password_correct
                         password      : mesg.password
@@ -5524,7 +5502,7 @@ sign_in = (client, mesg) =>
                                     email_address : mesg.email_address
                                     account_id    : account.account_id
                                 sign_in_error("Incorrect password; please try resetting your password, and if that doesn't work email help@sagemath.com and we will help you sort this out.")
-                                cb(true); return
+                                cb("password"); return
                             else
                                 signed_in_mesg = message.signed_in
                                     id            : mesg.id
@@ -5542,8 +5520,10 @@ sign_in = (client, mesg) =>
                 client.remember_me
                     account_id    : signed_in_mesg.account_id
                     email_address : signed_in_mesg.email_address
-            cb()
-    ])
+                    cb            : cb
+            else
+                cb()
+    ], (err) -> cb?(err))
 
 
 # Record to the database a failed and/or successful login attempt.
@@ -5821,7 +5801,7 @@ change_password = (mesg, client_ip_address, push_to_client) ->
         # email address in the last 5 seconds
         (cb) ->
             tracker = database.key_value_store(name:'change_password_tracker')
-            tracker.get(
+            tracker.get
                 key : mesg.email_address
                 cb : (error, value) ->
                     if error
@@ -5841,7 +5821,6 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                             value : client_ip_address
                             ttl   : 5
                         cb()
-            )
 
         # get account and validate the password
         (cb) ->

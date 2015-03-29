@@ -428,17 +428,21 @@ salvus_client.on("signed_in", signed_in)
 ################################################
 # Explicit sign out
 ################################################
-sign_out = () ->
+sign_out = (opts={}) ->
+    opts = defaults opts,
+        everywhere : false
 
-    ga('send', 'event', 'account', 'sign_out')    # custom google analytic event -- user explicitly signed out.
-
-    # require('worksheet1').close_scratch_worksheet()
+    evt = 'sign_out'
+    if opts.everywhere
+        evt += '_everywhere'
+    ga('send', 'event', 'account', evt)    # custom google analytic event -- user explicitly signed out.
 
     # Send a message to the server that the user explicitly
     # requested to sign out.  The server must clean up resources
     # and *invalidate* the remember_me cookie for this client.
     salvus_client.sign_out
-        cb      : (error) ->
+        everywhere : opts.everywhere
+        cb         : (error) ->
             if error
                 alert_message(type:"error", message:error)
             else
@@ -451,7 +455,15 @@ sign_out = () ->
 
 
 $("#account").find("a[href=#sign-out]").click (event) ->
-    sign_out()
+    bootbox.confirm "<h3><i class='fa fa-sign-out'></i> Sign out?</h3> <hr> Are you sure you want to sign out of your account on this web browser?", (result) ->
+        if result
+            sign_out()
+    return false
+
+$("#account").find("a[href=#sign-out-everywhere]").click (event) ->
+    bootbox.confirm "<h3><i class='fa fa-sign-out'></i> Sign out everywhere?</h3> <hr> Are you sure you want to sign out on <b>ALL</b> web browser?  Every web browser will have to reauthenticate before using this account again.", (result) ->
+        if result
+            sign_out(everywhere:true)
     return false
 
 ################################################

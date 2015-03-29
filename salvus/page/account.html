@@ -99,7 +99,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 Loading ... <i class="fa fa-spin fa-refresh"></i>
             </div>
             <form class="salvus-sign_in-form">
-                <h4>Sign in (or <a href="#account-create_account">create an account</a>)</h4>
+                <h3>Sign in (or <a href="#account-create_account">create an account</a>)</h3>
+
+
                 <!--<span class="hidden-xs lighten">Email:</span>-->
                 <input class="form-control" type="email" placeholder="Email" id="sign_in-email">
                 <!--<span class="hidden-xs lighten">Password:</span>-->
@@ -117,11 +119,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 </div>
 
                 <hr>
-                <h4>
-                    Or sign in using
-                </h4>
 
-                <div class="smc-signin-strategies hide" style="margin-top:8px">
+                <div class="smc-signin-strategies hide">
+
+                    <h4>
+                        Sign in using
+                    </h4>
+
                     <span class="btn-group">
                         <a href="/auth/google" class="btn btn-default hide smc-auth-google"><i class="fa fa-google"></i> Google</a>
                         <a href="/auth/facebook" class="btn btn-default hide  smc-auth-facebook"><i class="fa fa-facebook"></i> Facebook</a>
@@ -146,20 +150,43 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <div class="row hide" id="account-create_account" style="margin-top: 2em;">
 
         <div class="well col-sm-6 ">
-            <h4>Create  account (or <a href="#account-sign_in">sign in</a>)</h4>
+            <h3>Create  account (or <a href="#account-sign_in">sign in</a>)</h3>
 
 
             <div>
-                <div class="checkbox"><label style="margin-top: 1ex;margin-bottom: 1ex;">
-                    <input type="checkbox" id="create_account-agreed_to_terms">
-                    Agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>
-                    </label>
-                </div>
-                <span class="hidden-xs lighten-2 salvus-create_account-token hide">Token</span>
-                <input class="form-control salvus-create_account-token hide" type="text" placeholder="Secret token that the site admin gave you" id="create_account-token">
+                <div class="row">
+                    <div class="col-sm-offset-1 col-sm-10">
+                        <div class="checkbox"><label style="margin-top: 1ex;margin-bottom: 1ex;">
+                            <input type="checkbox" id="create_account-agreed_to_terms">
+                            First, agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>
+                            </label>
+                        </div>
 
+                        <span class="hidden-xs lighten-2 salvus-create_account-token hide">Token</span>
+                        <input class="form-control salvus-create_account-token hide" type="text" placeholder="Secret token that the site admin gave you" id="create_account-token">
+                    </div>
+                </div>
+
+                <hr>
                 <h4>
-                    Use
+                    Use your email address
+                </h4>
+                <div class="row">
+                    <div class="col-sm-offset-1 col-sm-10">
+                        <span class="hidden-xs lighten-2">Name</span>
+                        <input class="form-control" type="text" placeholder="First and Last Name" id="create_account-name">
+                        <span class="hidden-xs lighten-2">Email</span>
+                        <input class="form-control" type="email" placeholder="Email" id="create_account-email_address">
+                        <span class="hidden-xs lighten-2">Choose a password</span>
+                        <input class="salvus-password-meter form-control" type="password" placeholder="Choose a password" id="create_account-password">
+                        <button class="btn btn-success btn-lg" style="width: 100%;" type="submit" id="create_account-button">Create account for free</button>
+                    </div>
+                </div>
+
+                <hr>
+
+                <h4 class="smc-signup-strategies hide">
+                    Or use
                 </h4>
                 <div class="row">
                     <div class="col-sm-offset-1 col-sm-10">
@@ -176,21 +203,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                 <a href="/auth/wordpress" class="btn btn-default hide  smc-auth-wordpress "><i class="fa fa-wordpress"></i> Wordpress</a>
                             </span>
                         </div>
-                    </div>
-                </div>
-
-                <h4>
-                    Or use your email address
-                </h4>
-                <div class="row">
-                    <div class="col-sm-offset-1 col-sm-10">
-                        <span class="hidden-xs lighten-2">First and Last Name</span>
-                        <input class="form-control" type="text" placeholder="First and Last Name" id="create_account-name">
-                        <span class="hidden-xs lighten-2">Email</span>
-                        <input class="form-control" type="email" placeholder="Email" id="create_account-email_address">
-                        <span class="hidden-xs lighten-2">Password</span>
-                        <input class="salvus-password-meter form-control" type="password" placeholder="Password" id="create_account-password">
-                        <button class="btn btn-success btn-lg" style="width: 100%;" type="submit" id="create_account-button">Create account for free</button>
                     </div>
                 </div>
             </div>
@@ -265,9 +277,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             </div>
             <div class="tab-pane active" id="account-settings-tab">
                 <div style="margin: 1em;">
-                    <button class="btn btn-success" type="submit" id="account-settings-change-settings-button"><i class="fa fa-save"> </i> Save</button>
+                    <button class="btn btn-success" type="submit" id="account-settings-change-settings-button"><i class="fa fa-save"> </i> Save Settings</button>
                     <!--<button class="btn" id="account-settings-cancel-changes-button" style="margin-right:3em;">Cancel</button>-->
-                    <a href="#sign-out" class="btn btn-primary"><i class="fa fa-sign-out"> </i> Sign out</a>
+                    <span class="pull-right">
+                        <a href="#sign-out" class="btn btn-warning"><i class="fa fa-sign-out"> </i> Sign out</a>
+                        <a href="#sign-out-everywhere" class="btn btn-warning"><i class="fa fa-sign-out"> </i> Sign out everywhere</a>
+                    </span>
                 </div>
 
                 <div class="row">
