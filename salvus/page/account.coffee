@@ -38,10 +38,10 @@ to_json  = misc.to_json
 defaults = misc.defaults
 required = defaults.required
 
-set_account_tab_label = (signed_in, email_address) ->
+set_account_tab_label = (signed_in, label) ->
     if signed_in
         top_navbar.pages['account'].icon = 'fa-cog'
-        top_navbar.set_button_label("account", email_address)
+        top_navbar.set_button_label("account", label)
     else
         # nothing
         top_navbar.set_button_label("account", "Sign in", "", false)
@@ -54,6 +54,7 @@ account_id = undefined
 top_navbar.on "switch_to_page-account", () ->
     if account_id?
         window.history.pushState("", "", window.salvus_base_url + '/settings')
+        account_settings.reload()
     else
         window.history.pushState("", "", window.salvus_base_url)
 
@@ -69,9 +70,8 @@ focus =
 current_account_page = null
 show_page = exports.show_page  = (p) ->
     if p == "account-create_account"
-        $.get "/registration", (val, status) ->
+        $.get "/registration", (obj, status) ->
             if status == 'success'
-                obj = misc.from_json(val)
                 if obj.token  # registration token is required, so show the field
                     $(".salvus-create_account-token").show()
     current_account_page = p
@@ -82,7 +82,7 @@ show_page = exports.show_page  = (p) ->
         else
             $("##{page}").hide()
 
-if localStorage.remember_me
+if localStorage.remember_me or window.location.hash.substr(1) == 'login'
     show_page("account-sign_in")
 else
     show_page("account-create_account")
@@ -113,7 +113,15 @@ $("#account-settings-change-settings-button").click (event) ->
 
 $("#account-settings-cancel-changes-button").click((event) -> account_settings.set_view())
 
-$("#account-settings-tab").find("form").click((event) -> return false)
+$("#account-settings-tab").find("form").click (event) ->
+    return false
+
+$("a[href=#account-settings-tab]").click () =>
+    account_settings.reload()
+
+$("a[href=#reload-account-settings]").click () =>
+    account_settings.reload()
+
 
 #############
 # Autosave
@@ -378,6 +386,15 @@ signed_in = (mesg) ->
     # Record which hub we're connected to.
     hub = mesg.hub
 
+    top_navbar.show_page_button("projects")
+    if first_login
+        first_login = false
+        if window.salvus_target and window.salvus_target != 'login'
+            require('history').load_target(window.salvus_target)
+            window.salvus_target = ''
+        else
+            require('history').load_target('projects')
+
     # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
     account_settings.load_from_server (error) ->
@@ -391,12 +408,9 @@ signed_in = (mesg) ->
             account_settings.set_view()
             # change the view in the account page to the settings/sign out view
             show_page("account-settings")
-            # change the navbar title from "Sign in" to their email address -- don't use the one from mesg, which may be out of date
-            set_account_tab_label(true, account_settings.settings.email_address)
+            # change the navbar title from "Sign in" to their name
+            set_account_tab_label(true, account_settings.fullname())
             $("#account-forgot_password-email_address").val(account_settings.settings.email_address)
-
-
-            top_navbar.show_page_button("projects")
 
             # If this is the initial login, switch to the project
             # page.  We do this because if the user's connection is
@@ -405,13 +419,6 @@ signed_in = (mesg) ->
             # projects page in that case.  Also, if they explicitly
             # log out, then log back in as another user, seeing
             # the account page by default in that case makes sense.
-            if first_login
-                first_login = false
-                if window.salvus_target
-                    require('history').load_target(window.salvus_target)
-                    window.salvus_target = ''
-                else
-                    require('history').load_target('projects')
 
 
 # Listen for pushed sign_in events from the server.  This is one way that
@@ -421,17 +428,21 @@ salvus_client.on("signed_in", signed_in)
 ################################################
 # Explicit sign out
 ################################################
-sign_out = () ->
+sign_out = (opts={}) ->
+    opts = defaults opts,
+        everywhere : false
 
-    ga('send', 'event', 'account', 'sign_out')    # custom google analytic event -- user explicitly signed out.
-
-    # require('worksheet1').close_scratch_worksheet()
+    evt = 'sign_out'
+    if opts.everywhere
+        evt += '_everywhere'
+    ga('send', 'event', 'account', evt)    # custom google analytic event -- user explicitly signed out.
 
     # Send a message to the server that the user explicitly
     # requested to sign out.  The server must clean up resources
     # and *invalidate* the remember_me cookie for this client.
     salvus_client.sign_out
-        cb      : (error) ->
+        everywhere : opts.everywhere
+        cb         : (error) ->
             if error
                 alert_message(type:"error", message:error)
             else
@@ -444,7 +455,15 @@ sign_out = () ->
 
 
 $("#account").find("a[href=#sign-out]").click (event) ->
-    sign_out()
+    bootbox.confirm "<h3><i class='fa fa-sign-out'></i> Sign out?</h3> <hr> Are you sure you want to sign out of your account on this web browser?", (result) ->
+        if result
+            sign_out()
+    return false
+
+$("#account").find("a[href=#sign-out-everywhere]").click (event) ->
+    bootbox.confirm "<h3><i class='fa fa-sign-out'></i> Sign out everywhere?</h3> <hr> Are you sure you want to sign out on <b>ALL</b> web browser?  Every web browser will have to reauthenticate before using this account again.", (result) ->
+        if result
+            sign_out(everywhere:true)
     return false
 
 ################################################
@@ -530,17 +549,16 @@ class AccountSettings
                 #console.log("load got back ", error, settings_mesg)
                 if error or settings_mesg.event == 'error'
                     $("#account-settings-error").show()
+                    $(".smc-account-settings-error-message").text(error or settings_mesg.error)
                     # try to get settings again in a bit to fix that the settings aren't known
-                    f = () =>
-                        #console.log("calling again")
-                        @load_from_server()
-                    setTimeout(f, 10000)
+                    setTimeout(@reload, 15000)
                     cb?(error)
                     return
 
 
                 if settings_mesg.event != "account_settings"
                     $("#account-settings-error").show()
+                    $(".smc-account-settings-error-message").text('')
                     alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
                     cb?("invalid message")
                     return
@@ -551,6 +569,12 @@ class AccountSettings
                 delete @settings['event']
 
                 cb?()
+
+    reload: () =>
+        @load_from_server (err) =>
+            if not err
+                @set_view()
+                $("#account-settings-error").hide()
 
     git_author: () =>
         return misc.git_author(@settings.first_name, @settings.last_name, @settings.email_address)
@@ -622,6 +646,7 @@ class AccountSettings
 
             @settings[prop] = val
 
+        set_account_tab_label(true, @fullname())
 
     set_view: () ->
         if not @settings?
@@ -636,6 +661,17 @@ class AccountSettings
             $("#account-settings-admin-settings").show()
 
         top_navbar.activity_indicator('account')
+
+        # Have to do this here instead of passports section below, in case no passports
+        # at all, since then key wouldn't be in settings.
+        $("#account-settings-passports").find("a").removeClass('btn-warning')
+
+        if @settings.email_address
+            $(".smc-change-forgot-password-links").show()
+            $("a[href=#account-change_email_address]").text("change")
+        else
+            $(".smc-change-forgot-password-links").hide()
+            $("a[href=#account-change_email_address]").text("set an email address")
 
         for prop, value of @settings
             def = message.account_settings_defaults[prop]
@@ -687,10 +723,13 @@ class AccountSettings
                     for x in OTHER_SETTINGS_CHECKBOXES
                         element.find(".account-settings-other_settings-#{x}").prop("checked", value[x])
                         element.find(".account-settings-other_settings-default_file_sort").val(value.default_file_sort)
+                when 'passports'
+                    for strategy, id of value
+                        element.find(".smc-auth-#{strategy}").addClass('btn-warning')
                 else
                     set(element, value)
 
-        set_account_tab_label(true, @settings.email_address)
+        set_account_tab_label(true, @fullname())
 
     # Store the properties that user can freely change to the backend database.
     # The other properties only get saved by direct api calls that require additional
@@ -766,20 +805,26 @@ edit_account_creation_token_button = $("a[href=#edit-account_creation-token]").c
 change_email_address = $("#account-change_email_address")
 
 $("a[href=#account-change_email_address]").click (event) ->
-    $('#account-change_email_address').modal('show')
+    dialog = $('#account-change_email_address')
+    dialog.modal('show')
+    if account_settings.settings.password_is_set
+        $(".smc-change-email-password").show()
+    else
+        $(".smc-change-email-password").hide()
+    dialog.find("#account-change_email_new_address").focus()
     return false
 
 close_change_email_address = () ->
-    change_email_address.modal('hide').find('input').val('').trim()
+    change_email_address.modal('hide').find('input').val('')
     change_email_address.find(".account-error-text").hide()
 
 # When click in the cancel button on the change email address
 # dialog, it is important to hide an error messages; also clear
 # password.
-change_email_address.find(".close").click((event) -> close_change_email_address())
-$("#account-change_email_address_cancel_button").click((event)->close_change_email_address())
+change_email_address.find(".close").click (event) ->
+    close_change_email_address()
 
-change_email_address.on("shown", () -> $("#account-change_email_new_address").focus())
+$("#account-change_email_address_cancel_button").click((event)->close_change_email_address())
 
 # User clicked button to change the email address, so try to
 # change it.
@@ -816,9 +861,9 @@ $("#account-change_email_address_button").click (event) ->
                 # success
                 $("#account-settings-email_address").html(new_email_address)
                 account_settings.settings.email_address = new_email_address
-                set_account_tab_label(true, new_email_address)
                 close_change_email_address()
                 alert_message(type:"success", message:"Email address successfully changed.")
+                account_settings.reload()
     return false
 
 ################################################
@@ -842,12 +887,19 @@ close_change_password = () ->
 #$("#account-change_password-new_password").keyup(change_passwd_keyup)
 
 
-change_password.find(".close").click((event) -> close_change_password())
-$("#account-change_password-button-cancel").click((event)->close_change_password())
-change_password.on("shown", () -> $("#account-change_password-old_password").focus())
+change_password.find(".close").click (event) ->
+    close_change_password()
+
+$("#account-change_password-button-cancel").click (event) ->
+    close_change_password()
 
 $("a[href=#account-change_password]").click (event) ->
     $('#account-change_password').modal('show')
+    $("#account-change_password-old_password").focus()
+    if account_settings.settings.password_is_set
+        $(".smc-change-password-old").show()
+    else
+        $(".smc-change-password-old").hide()
     return false
 
 $("#account-change_password-button-submit").click (event) ->
@@ -1016,8 +1068,8 @@ show_connection_information = () ->
 ################################################
 # Automatically log in
 ################################################
-if localStorage.remember_me
-    $(".salvus-remember_me-message").show().find("span").text(localStorage.remember_me)
+if localStorage.remember_me or window.location.hash.substr(1) == 'login'
+    $(".salvus-remember_me-message").show()
     $(".salvus-sign_in-form").hide()
     # just in case, always show manual login screen after 45s.
     setTimeout((()=>$(".salvus-remember_me-message").hide(); $(".salvus-sign_in-form").show()), 45000)
@@ -1050,3 +1102,74 @@ $("a[href=#smc-billing-tab]").click(update_billing_tab)
 
 $("a[href=#account-settings-tab]").click () ->
     $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin').hide()
+
+
+###
+# Sign Strategies -- show only configured buttons
+###
+
+$.get '/auth/strategies', (strategies, status) ->
+    if strategies.length == 0
+        return
+    $(".smc-signup-strategies").show()
+    $(".smc-signin-strategies").show()
+    for strategy in strategies
+        $(".smc-auth-#{strategy}").show()
+    $(".smc-signup-strategies").find("a").click (evt) ->
+        # check that terms of service was clicked on
+        terms = $("#create_account-agreed_to_terms")
+        if not terms.is(":checked")
+            terms.popover(
+                title     : "Agree to the terms of service."
+                animation : false
+                trigger   : "manual"
+                placement : if $(window).width() <= 800 then "top" else "right"
+                template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'
+            ).popover("show").focus( () -> $(@).popover("destroy"))
+            return false   # cancel actually creating the account
+
+    # account settings
+    elt = $("#account-settings-passports")
+    for strategy in strategies
+        elt.find(".smc-auth-#{strategy}").data(strategy:strategy).removeClass('disabled').click (evt) ->
+            toggle_account_strategy($(evt.target).data('strategy'))
+            return false
+
+toggle_account_strategy = (strategy) ->
+    console.log("toggle_account_strategy ", strategy)
+    if not strategy?
+        bootbox.alert("Please try linking your account again in a minute.")
+        return
+    id = account_settings.settings.passports?[strategy]
+    Strategy = strategy[0].toUpperCase() + strategy.slice(1)
+    if id
+        if account_settings.settings.passports? and misc.keys(account_settings.settings.passports).length == 1 and not account_settings.settings.email_address
+            bootbox.alert("You can't unlink #{strategy} since it is the only login method.  Please set an email address first (as an alternate login method).")
+        else
+            bootbox.confirm "<h3><i class='fa fa-#{strategy}'></i> Unlink #{strategy} from your account?</h3> <hr> DANGER: You won't be able to log in using #{Strategy}.", (result) ->
+                if result
+                    btn = $("#account-settings-passports").find(".smc-auth-#{strategy}")
+                    btn.icon_spin(start:true)
+                    salvus_client.unlink_passport
+                        strategy : strategy
+                        id       : id
+                        cb       : (err) ->
+                            btn.icon_spin(false)
+                            if err
+                                alert_message(type:"error", message:"Unable to unlink #{strategy} -- #{err}")
+                            else
+                                alert_message(type:"info", message:"Successfully unlinked #{strategy}")
+                                account_settings.reload()
+    else
+        bootbox.alert("<h3><i class='fa fa-#{strategy}'></i> Link #{Strategy} to your account?</h3><hr>  Click the big green button and you will be able to log into your account using #{Strategy}.  <br><br>NOTE: No exciting extra linking or synchronization features are implemented yet.<br><br><a class='btn btn-lg btn-success' href='/auth/#{strategy}' target='_blank'><i class='fa fa-#{strategy}'></i> Link to #{Strategy}...</a>")
+
+
+    ###
+        if strategy == 'email'
+            continue
+        icon = strategy
+        name = strategy[0].toUpperCase() + strategy.slice(1)
+        btn = $("<a href='##{strategy}' class='btn btn-default'><i class='fa fa-#{icon}'></i> #{name}</a>")
+        e.append(btn)
+    ###
+

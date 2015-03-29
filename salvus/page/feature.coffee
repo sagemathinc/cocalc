@@ -56,3 +56,6 @@ $.browser.safari = not $.browser.chrome and user_agent.indexOf('safari') > 0
 
 $.browser.ie = not $.browser.chrome and user_agent.indexOf('windows') > 0
 
+# Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
+if not navigator.cookieEnabled
+    $(".smc-cookie-warning").show()
