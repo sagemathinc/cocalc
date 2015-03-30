@@ -1607,7 +1607,9 @@ class Client extends EventEmitter
         opts.hub = program.host
         opts.remember_me = true
 
-        signed_in_mesg   = message.signed_in(opts)
+        opts0 = misc.copy(opts)
+        delete opts0.cb
+        signed_in_mesg   = message.signed_in(opts0)
         session_id       = uuid.v4()
         @hash_session_id = password_hash(session_id)
         ttl              = 24*3600 * 30     # 30 days
@@ -3030,6 +3032,8 @@ class Client extends EventEmitter
     mesg_project_set_quota: (mesg) =>
         if not @user_is_in_group('admin')
             @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to set project quotas")
+        else if not misc.is_valid_uuid_string(mesg.project_id)
+            @error_to_client(id:mesg.id, error:"invalid project_id")
         else
             bup_server.get_project(mesg.project_id).set_settings
                 memory     : mesg.memory
@@ -4471,7 +4475,6 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
 _local_hub_cache = {}
 new_local_hub = (project_id) ->    # cb(err, hub)
     H    = _local_hub_cache[project_id]
-
     if H?
         winston.debug("new_local_hub (#{project_id}) -- using cached version")
     else
@@ -5426,19 +5429,26 @@ sign_in_check = (opts) ->
         return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
     return false
 
-sign_in = (client, mesg, cb) =>
-    #winston.debug("sign_in")
-    sign_in_error = (error) ->
-        client.push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
+sign_in = (client, mesg, cb) ->
+    dbg = (m) -> winston.debug("sign_in(#{mesg.email_address}): #{m}")
+    dbg()
 
-    if mesg.email_address == ""
+    sign_in_error = (error) ->
+        dbg("sign_in_error -- #{error}")
+        record_sign_in
+            ip_address    : client.ip_address
+            successful    : false
+            email_address : mesg.email_address
+            account_id    : account?.account_id
+        client.push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
+        cb?(error)
+
+    if not mesg.email_address
         sign_in_error("Empty email address.")
-        cb("empty email")
         return
 
-    if mesg.password == ""
+    if not mesg.password
         sign_in_error("Empty password.")
-        cb("empty password")
         return
 
     mesg.email_address = misc.lower_email_address(mesg.email_address)
@@ -5447,83 +5457,68 @@ sign_in = (client, mesg, cb) =>
         email : mesg.email_address
         ip    : client.ip_address
     if m
-        winston.debug("WARNING: sign_in fail(email=#{mesg.email}, ip=#{client.ip_address}): #{m}")
-        sign_in_error(m)
-        cb(m)
+        sign_in_error("sign_in_check fail(ip=#{client.ip_address}): #{m}")
         return
 
     signed_in_mesg = null
+    account = undefined
     async.series([
-        # POLICY: Don't allow banned users to sign in.  Slow to check and kind of pointless
-        # since it is so easy for a user to just make a different account.  Of course,
-        # forcing them to lose access to all their work is useful.
         (cb) ->
-            database.is_banned_user
-                email_address : mesg.email_address
-                cb            : (err, is_banned) ->
-                    if err
-                        sign_in_error(err)
-                        cb(err)
-                    else
-                        if is_banned
-                            sign_in_error("User '#{mesg.email_address}' is banned from SageMathCloud due to violation of the terms of usage.")
-                            cb(true)
-                        else
-                            cb()
-
-        (cb) ->
-            # get account and check credentials
+            dbg("get account and check credentials")
             # NOTE: Despite people complaining, we do give away info about whether
             # the e-mail address is for a valid user or not.
             # There is no security in not doing this, since the same information
             # can be determined via the invite collaborators feature.
             database.get_account
                 email_address : mesg.email_address
-                columns       : ['password_hash', 'account_id']
-                cb            : (error, account) ->
-                    if error
-                        record_sign_in
-                            ip_address    : client.ip_address
-                            successful    : false
+                columns       : ['password_hash', 'account_id', 'passports']
+                cb            : (err, _account) ->
+                    if err
+                        cb(err)
+                    else
+                        account = _account
+                        cb()
+        (cb) ->
+            dbg("got account; now checking if password is correct...")
+            is_password_correct
+                account_id    : account.account_id
+                password      : mesg.password
+                password_hash : account.password_hash
+                cb            : (err, is_correct) ->
+                    if err
+                        cb("Error checking correctness of password -- #{err}")
+                        return
+                    if not is_correct
+                        if not account.password_hash
+                            cb("The account #{mesg.email_address} exists but doesn't have a password. Either set your password by clicking 'Forgot your password?' or log in using #{misc.keys(account.passports).join(', ')}.  If that doesn't work, email help@sagemath.com and we will sort this out.")
+                        else
+                            cb("Incorrect password for #{mesg.email_address}.  Reset your password; if that doesn't work, email help@sagemath.com and we will sort this out.")
+                    else
+                        signed_in_mesg = message.signed_in
+                            id            : mesg.id
+                            account_id    : account.account_id
                             email_address : mesg.email_address
-                        sign_in_error("Sign in error -- #{error}")
-                        cb(error); return
-
-                    is_password_correct
-                        password      : mesg.password
-                        password_hash : account.password_hash
-                        cb            : (err, is_correct) ->
-                            if err
-                                cb(err); return
-                            if not is_correct
-                                record_sign_in
-                                    ip_address    : client.ip_address
-                                    successful    : false
-                                    email_address : mesg.email_address
-                                    account_id    : account.account_id
-                                sign_in_error("Incorrect password; please try resetting your password, and if that doesn't work email help@sagemath.com and we will help you sort this out.")
-                                cb("password"); return
-                            else
-                                signed_in_mesg = message.signed_in
-                                    id            : mesg.id
-                                    account_id    : account.account_id
-                                    email_address : mesg.email_address
-                                    remember_me   : false
-                                    hub           : program.host + ':' + program.port
-                                client.signed_in(signed_in_mesg)
-                                client.push_to_client(signed_in_mesg)
-                                cb()
-
+                            remember_me   : false
+                            hub           : program.host + ':' + program.port
+                        client.signed_in(signed_in_mesg)
+                        client.push_to_client(signed_in_mesg)
+                        cb()
         # remember me
         (cb) ->
             if mesg.remember_me
+                dbg("remember_me")
                 client.remember_me
                     account_id    : signed_in_mesg.account_id
                     email_address : signed_in_mesg.email_address
                     cb            : cb
             else
                 cb()
-    ], (err) -> cb?(err))
+    ], (err) ->
+        if err
+            sign_in_error(err)
+        else
+            cb?()
+    )
 
 
 # Record to the database a failed and/or successful login attempt.
