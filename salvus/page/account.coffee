@@ -1109,7 +1109,9 @@ $("a[href=#account-settings-tab]").click () ->
 ###
 
 $.get '/auth/strategies', (strategies, status) ->
-    if strategies.length == 0
+    if strategies.length <= 1  # just ['email']
+        $(".smc-signup-strategies").hide()
+        $(".smc-signin-strategies").hide()
         return
     $(".smc-signup-strategies").show()
     $(".smc-signin-strategies").show()
