@@ -2192,6 +2192,8 @@ class GlobalClient
                 dbg("#{delete_bup_last_saves.length} bup_last_saves")
                 cb()
             (cb) =>
+                # TODO NO!!!!!
+                cb("no!!!")
                 dbg("delete #{delete_bup_locations.length} bup_locations, so projects last run on this server -- doing this in one very big query")
                 i = 0
                 f = (project_id, cb) =>
@@ -2942,6 +2944,63 @@ class GlobalClient
                     opts.cb?(undefined, projects)
                 else
                     opts.cb?()
+        )
+
+    repair_bup_location: (opts) =>
+        opts = defaults opts,
+            limit       : 20           # number to do in parallel
+            timeout     : TIMEOUT
+            cb          : required    # cb(err, errors)
+        if not @servers?
+            opts.cb?("@servers not yet initialized"); return
+        dbg = (m) => winston.debug("GlobalClient.repair_bup_location(...): #{m}")
+        dbg()
+        projects = []
+        async.series([
+            (cb) =>
+                dbg("querying database....")
+                @database.select
+                    table     : 'projects'
+                    columns   : ['project_id', 'bup_location', 'bup_last_save']
+                    objectify : true
+                    stream    : true
+                    cb        : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("got #{r.length} records")
+                            dbg("checking through each project to see which don't have bup_location set")
+                            i = 0
+                            for project in r
+                                if i%5000 == 0
+                                    dbg("checked #{i}/#{r.length} projects...")
+                                i += 1
+                                if project.bup_location or not project.bup_last_save? or misc.len(project.bup_last_save) == 0
+                                    continue
+                                bup_location = undefined
+                                newest_date = undefined
+                                for server_id, date of project.bup_last_save
+                                    if not bup_location or date >= newest_date
+                                        bup_location = server_id
+                                        newest_date = date
+                                projects.push({project_id:project.project_id, bup_location:bup_location})
+                            console.log(projects)
+                            cb()
+            (cb) =>
+                i = 0
+                f = (project, cb) =>
+                    i += 1
+                    if i%50 == 0
+                        console.log("#{i}/#{projects.length}")
+                    @database.update
+                        table : 'projects'
+                        set   :
+                            bup_location : project.bup_location
+                        where :
+                            project_id : project.project_id
+                        cb    : cb
+                async.mapLimit(projects, opts.limit, f, cb)
+        ], (err) => opts.cb?(err)
         )
 
     # I used this function to delete all deprecated content from columns in the projects table.
