@@ -55,7 +55,6 @@ localhost    {'hostname':'smc3dc5', 'disk':'cassandra-ext4:50', 'instance_type':
 localhost    {'hostname':'smc4dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 localhost    {'hostname':'smc5dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 localhost    {'hostname':'smc6dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
-localhost    {'hostname':'smc7dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 
 #localhost    {'hostname':'compute1dc5', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'us-central1-f'}
 #localhost    {'hostname':'compute2dc5', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'us-central1-f'}
@@ -69,7 +68,6 @@ localhost    {'hostname':'smc3dc6', 'disk':'cassandra-ext4:50', 'instance_type':
 localhost    {'hostname':'smc4dc6', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
 localhost    {'hostname':'smc5dc6', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
 localhost    {'hostname':'smc6dc6', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
-localhost    {'hostname':'smc7dc6', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'europe-west1-c'}
 
 #localhost    {'hostname':'compute1dc6', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-c'}
 #localhost    {'hostname':'compute2dc6', 'disk':'bup:200', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-c'}
@@ -129,7 +127,6 @@ smc3dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
 smc4dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
 smc5dc5  {'seed':True,   'topology':'DC5:RAC0', 'num_tokens':256}
 smc6dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
-smc7dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
 
 # DC6: Commercial google: europe-west1-c
 smc1dc6  {'seed':True,   'topology':'DC6:RAC0', 'num_tokens':256}
@@ -138,7 +135,6 @@ smc3dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
 smc4dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
 smc5dc6  {'seed':True,   'topology':'DC6:RAC0', 'num_tokens':256}
 smc6dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
-smc7dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
 
 # DC7: Commercial google: asia-east1-c
 #smc1dc7  {'seed':True,   'topology':'DC7:RAC0', 'num_tokens':256}

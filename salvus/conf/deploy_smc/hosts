@@ -121,7 +121,6 @@
 10.5.1.4 dc5 cassandra hub gce nginx edge smc4dc5
 10.5.1.5 dc5 cassandra hub gce nginx edge smc5dc5
 10.5.1.6 dc5 cassandra hub gce nginx edge smc6dc5
-10.5.1.7 dc5 cassandra hub gce nginx edge smc7dc5
 
 #10.5.2.1 dc5 compute-2 compute1dc5
 #10.5.2.2 dc5 compute-2 compute2dc5
@@ -137,7 +136,6 @@
 10.6.1.4 dc6 cassandra hub gce nginx edge smc4dc6
 10.6.1.5 dc6 cassandra hub gce nginx edge smc5dc6
 10.6.1.6 dc6 cassandra hub gce nginx edge smc6dc6
-10.6.1.7 dc6 cassandra hub gce nginx edge smc7dc6
 
 #10.6.2.1 dc6 compute-2 compute1dc6
 #10.6.2.2 dc6 compute-2 compute2dc6
