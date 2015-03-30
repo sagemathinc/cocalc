@@ -652,6 +652,7 @@ class GlobalProject
         opts = defaults opts,
             timeout : 30
             cb : required      # cb(err, {host:hostname, port:port, status:status, server_id:server_id})
+        dbg = (m) => winston.info("local_hub_address(#{@project_id}): #{m}")
         if @_local_hub_address_queue?
             @_local_hub_address_queue.push(opts.cb)
         else
@@ -667,7 +668,7 @@ class GlobalProject
         opts = defaults opts,
             timeout : 90
             cb : required      # cb(err, {host:hostname, port:port, status:status, server_id:server_id})
-        dbg = (m) -> winston.info("local_hub_address(#{@project_id}): #{m}")
+        dbg = (m) => winston.info("local_hub_address(#{@project_id}): #{m}")
         dbg()
         server_id = undefined
         port      = undefined
@@ -730,7 +731,7 @@ class GlobalProject
 
 
     _update_project_settings: (cb) =>
-        dbg = (m) -> winston.debug("GlobalProject.update_project_settings(#{@project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.update_project_settings(#{@project_id}): #{m}")
         dbg()
         @database.select_one
             table   : 'projects'
@@ -754,7 +755,7 @@ class GlobalProject
         opts = defaults opts,
             target : undefined
             cb     : undefined
-        dbg = (m) -> winston.debug("GlobalProject.start(#{@project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.start(#{@project_id}): #{m}")
         dbg()
         state     = undefined
         project   = undefined
@@ -1503,7 +1504,7 @@ class GlobalProject
         opts = defaults opts,
             target : undefined
             cb     : undefined
-        dbg = (m) -> winston.debug("GlobalProject.move(#{@project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.move(#{@project_id}): #{m}")
         dbg()
         if opts.target? and not misc.is_valid_uuid_string(opts.target)
             opts.cb?("target (='#{opts.target}') must be a v4 uuid")
@@ -1696,7 +1697,7 @@ class GlobalProject
         opts = defaults opts,
             cb : required
         hosts = []
-        dbg = (m) -> winston.debug("GlobalProject.get_hosts(#{@project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.get_hosts(#{@project_id}): #{m}")
         async.series([
             (cb) =>
                 dbg("get last save info from database...")
@@ -1752,7 +1753,7 @@ class GlobalProject
         server_id = undefined
         project = undefined
         state = 'error'
-        dbg = (m) -> winston.debug("GlobalProject.get_local_state(#{@project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.get_local_state(#{@project_id}): #{m}")
         async.series([
             (cb) =>
                 @get_location_pref (err, s) =>
@@ -2078,7 +2079,7 @@ class GlobalClient
             server_id : required     # uuid of a host
             cb        : undefined
 
-        dbg = (m) -> winston.debug("move_projects_off_host: #{m}")
+        dbg = (m) => winston.debug("move_projects_off_host: #{m}")
         dbg()
         projects = undefined
         async.series([
@@ -2133,7 +2134,7 @@ class GlobalClient
 
 
     _update: (cb) =>
-        dbg = (m) -> winston.debug("GlobalClient._update: #{m}")
+        dbg = (m) => winston.debug("GlobalClient._update: #{m}")
         #dbg("updating list of available storage servers...")
         @database.select
             table     : 'storage_servers'
@@ -2165,7 +2166,7 @@ class GlobalClient
         if not @servers?
             opts.cb?("@servers not yet initialized"); return
         console.log("starting...")
-        dbg = (m) -> winston.info("push_servers_files: #{m}")
+        dbg = (m) => winston.info("push_servers_files: #{m}")
         dbg('starting... logged')
         errors = {}
         file = "#{DATA}/bup_servers"
@@ -2214,7 +2215,7 @@ class GlobalClient
             experimental : false   # if true, don't allocate new projects here
             timeout      : 30
             cb     : undefined
-        dbg = (m) -> winston.debug("GlobalClient.add_storage_server(#{opts.host}, #{opts.dc}): #{m}")
+        dbg = (m) => winston.debug("GlobalClient.add_storage_server(#{opts.host}, #{opts.dc}): #{m}")
         dbg("adding storage server to the database by grabbing server_id files, etc.")
         get_file = (path, cb) =>
             dbg("get_file: #{path}")
