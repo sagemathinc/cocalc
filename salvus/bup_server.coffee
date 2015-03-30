@@ -574,7 +574,7 @@ require('bup_server').global_client(database:x.d, cb:(e,c)->x.e=e;x.c=c)
 
 (x.c.register_server(host:"10.1.#{i}.5",dc:1,cb:console.log) for i in [1..7])
 
-(x.c.register_server(host:"10.3.#{i}.4",dc:1,cb:console.log) for i in [1..8])
+(x.c.register_server(host:"10.3.#{i}.5",dc:2,cb:console.log) for i in [1..8])
 
 x.c.push_servers_files(cb:console.log)
 
