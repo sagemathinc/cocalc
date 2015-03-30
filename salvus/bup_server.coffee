@@ -648,7 +648,7 @@ class GlobalProject
 
     # starts project if necessary, waits until it is running, and
     # gets the hostname port where the local hub is serving.
-    local_hub_address: (opts) =>
+    xxx_local_hub_address: (opts) =>
         opts = defaults opts,
             timeout : 30
             cb : required      # cb(err, {host:hostname, port:port, status:status, server_id:server_id})
@@ -664,9 +664,9 @@ class GlobalProject
                        cb(err, r)
                    delete @_local_hub_address_queue
 
-    _local_hub_address: (opts) =>
+    local_hub_address: (opts) =>
         opts = defaults opts,
-            timeout : 90
+            timeout : 30
             cb : required      # cb(err, {host:hostname, port:port, status:status, server_id:server_id})
         dbg = (m) => winston.info("local_hub_address(#{@project_id}): #{m}")
         dbg()
