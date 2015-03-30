@@ -1,0 +1,15 @@
+set -v
+set -e 
+
+echo "Deleting all backups and snapshot on this node"
+
+echo "before"
+df -i /mnt/cassandra/
+df -h /mnt/cassandra/
+
+cd /mnt/cassandra/data/data && time rm -r */*/backups */*/snapshots
+
+echo "after"
+df -i /mnt/cassandra
+df -h /mnt/cassandra
+
