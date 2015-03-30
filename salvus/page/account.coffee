@@ -387,12 +387,10 @@ signed_in = (mesg) ->
     hub = mesg.hub
 
     top_navbar.show_page_button("projects")
+    load_file = window.salvus_target and window.salvus_target != 'login'
     if first_login
         first_login = false
-        if window.salvus_target and window.salvus_target != 'login'
-            require('history').load_target(window.salvus_target)
-            window.salvus_target = ''
-        else
+        if not load_file
             require('history').load_target('projects')
 
     # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
@@ -405,6 +403,9 @@ signed_in = (mesg) ->
                 return
             alert_message(type:"error", message:error)
         else
+            if load_file
+                require('history').load_target(window.salvus_target)
+                window.salvus_target = ''
             account_settings.set_view()
             # change the view in the account page to the settings/sign out view
             show_page("account-settings")
