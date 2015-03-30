@@ -143,26 +143,34 @@ exports.defaults = (obj1, obj2, allow_extra) ->
     if typeof(obj1) != 'object'
         # We put explicit traces before the errors in this function,
         # since otherwise they can be very hard to debug.
+        err = "misc.defaults -- TypeError: function takes inputs as an object #{error()}"
+        console.log(err)
         console.trace()
-        throw "misc.defaults -- TypeError: function takes inputs as an object #{error()}"
+        throw err
     r = {}
     for prop, val of obj2
         if obj1.hasOwnProperty(prop) and obj1[prop]?
             if obj2[prop] == exports.defaults.required and not obj1[prop]?
+                err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
+                console.log(err)
                 console.trace()
-                throw "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
+                throw err
             r[prop] = obj1[prop]
         else if obj2[prop]?  # only record not undefined properties
             if obj2[prop] == exports.defaults.required
+                err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
+                console.log(err)
                 console.trace()
-                throw "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
+                throw err
             else
                 r[prop] = obj2[prop]
     if not allow_extra
         for prop, val of obj1
             if not obj2.hasOwnProperty(prop)
+                err = "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
+                console.log(err)
                 console.trace()
-                throw "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
+                throw err
     return r
 
 # WARNING -- don't accidentally use this as a default:
