@@ -5437,6 +5437,7 @@ sign_in_check = (opts) ->
 sign_in = (client, mesg, cb) ->
     dbg = (m) -> winston.debug("sign_in(#{mesg.email_address}): #{m}")
     dbg()
+    tm = misc.walltime()
 
     sign_in_error = (error) ->
         dbg("sign_in_error -- #{error}")
@@ -5465,7 +5466,7 @@ sign_in = (client, mesg, cb) ->
         sign_in_error("sign_in_check fail(ip=#{client.ip_address}): #{m}")
         return
 
-    signed_in_mesg = null
+    signed_in_mesg = undefined
     account = undefined
     async.series([
         (cb) ->
@@ -5497,21 +5498,19 @@ sign_in = (client, mesg, cb) ->
                         if not account.password_hash
                             cb("The account #{mesg.email_address} exists but doesn't have a password. Either set your password by clicking 'Forgot your password?' or log in using #{misc.keys(account.passports).join(', ')}.  If that doesn't work, email help@sagemath.com and we will sort this out.")
                         else
-                            cb("Incorrect password for #{mesg.email_address}.  Reset your password; if that doesn't work, email help@sagemath.com and we will sort this out.")
+                            cb("Incorrect password for #{mesg.email_address}.  You can reset your password by clicking the 'Forgot your password?' link.   If that doesn't work, email help@sagemath.com and we will sort this out.")
                     else
-                        signed_in_mesg = message.signed_in
-                            id            : mesg.id
-                            account_id    : account.account_id
-                            email_address : mesg.email_address
-                            remember_me   : false
-                            hub           : program.host + ':' + program.port
-                        client.signed_in(signed_in_mesg)
-                        client.push_to_client(signed_in_mesg)
                         cb()
         # remember me
         (cb) ->
             if mesg.remember_me
-                dbg("remember_me")
+                dbg("remember_me -- setting the remember_me cookie")
+                signed_in_mesg = message.signed_in
+                    id            : mesg.id
+                    account_id    : account.account_id
+                    email_address : mesg.email_address
+                    remember_me   : false
+                    hub           : program.host + ':' + program.port
                 client.remember_me
                     account_id    : signed_in_mesg.account_id
                     email_address : signed_in_mesg.email_address
@@ -5520,8 +5519,13 @@ sign_in = (client, mesg, cb) ->
                 cb()
     ], (err) ->
         if err
+            dbg("send error to user (in #{misc.walltime(tm)}seconds) -- #{err}")
             sign_in_error(err)
+            cb?(err)
         else
+            dbg("user got signed in fine (in #{misc.walltime(tm)}seconds) -- sending them a message")
+            client.signed_in(signed_in_mesg)
+            client.push_to_client(signed_in_mesg)
             cb?()
     )
 
@@ -5578,6 +5582,7 @@ create_account = (client, mesg, cb) ->
     id = mesg.id
     account_id = null
     dbg = (m) -> winston.debug("create_account (#{mesg.email_address}): #{m}")
+    tm = misc.walltime()
     if mesg.email_address?
         mesg.email_address = misc.lower_email_address(mesg.email_address)
     async.series([
@@ -5697,10 +5702,11 @@ create_account = (client, mesg, cb) ->
                 cb            : cb
     ], (reason) ->
         if reason
+            dbg("send message to user that there was an error (in #{misc.walltime(tm)}seconds) -- #{misc.to_json(reason)}")
             client.push_to_client(message.account_creation_failed(id:id, reason:reason))
             cb?("error creating account -- #{misc.to_json(reason)}")
         else
-            dbg("send message back to user that they are logged in as the new user")
+            dbg("send message back to user that they are logged in as the new user (in #{misc.walltime(tm)}seconds)")
             mesg1 = message.signed_in
                 id            : mesg.id
                 account_id    : account_id
