@@ -5574,7 +5574,7 @@ is_valid_password = (password) ->
 
 
 
-create_account = (client, mesg) ->
+create_account = (client, mesg, cb) ->
     id = mesg.id
     account_id = null
     dbg = (m) -> winston.debug("create_account (#{mesg.email_address}): #{m}")
@@ -5595,8 +5595,7 @@ create_account = (client, mesg) ->
             # delete issues['password']
 
             if misc.len(issues) > 0
-                client.push_to_client(message.account_creation_failed(id:id, reason:issues))
-                cb(true)
+                cb(issues)
             else
                 cb()
 
@@ -5607,52 +5606,46 @@ create_account = (client, mesg) ->
         (cb) ->
             dbg("ip_tracker test")
             ip_tracker = database.key_value_store(name:'create_account_ip_tracker')
-            ip_tracker.get(
+            ip_tracker.get
                 key : client.ip_address
                 cb  : (error, value) ->
                     if error
-                        client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
-                        cb(true)
+                        cb({'other':"Internal error creating account -- #{error}.  Please try later."})
+                        return
                     if not value?
-                        ip_tracker.set(key: client.ip_address, value:1, ttl:6*3600)
+                        ip_tracker.set(key: client.ip_address, value:1, ttl:3600)
                         cb()
-                    else if value < 5000
-                        ip_tracker.set(key: client.ip_address, value:value+1, ttl:6*3600)
+                    else if value < 1000
+                        ip_tracker.set(key: client.ip_address, value:value+1, ttl:3600)
                         cb()
                     else # bad situation
-                        database.log(
+                        database.log
                             event : 'create_account'
                             value : {ip_address:client.ip_address, reason:'too many requests'}
-                        )
-                        client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Too many account requests from the ip address #{client.ip_address} in the last 6 hours.  Please try again later."}))
-                        cb(true)
-            )
+                        cb({'other':"There were too many account creation requests from the ip address #{client.ip_address} in the last hour."})
 
         (cb) ->
             dbg("query database to determine whether the email address is available")
-            database.is_email_address_available(mesg.email_address, (error, available) ->
+            database.is_email_address_available mesg.email_address, (error, available) ->
                 if error
-                    client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
-                    cb(true)
+                    cb({'other':"Unable to create account.  Please try later."})
                 else if not available
-                    client.push_to_client(message.account_creation_failed(id:id, reason:{email_address:"This e-mail address is already taken."}))
-                    cb(true)
+                    cb({email_address:"This e-mail address is already taken."})
                 else
                     cb()
-            )
-        (cb) ->
-            dbg("check that account is not banned")
-            database.is_banned_user
-                email_address : mesg.email_address
-                cb            : (err, is_banned) ->
-                    if err
-                        client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
-                        cb(true)
-                    else if is_banned
-                        client.push_to_client(message.account_creation_failed(id:id, reason:{email_address:"This e-mail address is banned."}))
-                        cb(true)
-                    else
-                        cb()
+
+        #(cb) ->
+        #    dbg("check that account is not banned")
+        #    database.is_banned_user
+        #        email_address : mesg.email_address
+        #        cb            : (err, is_banned) ->
+        #            if err
+        #                cb({'other':"Unable to create account.  Please try later."})
+        #            else if is_banned
+        #                cb({email_address:"This e-mail address is banned."})
+        #            else
+        #                cb()
+
         (cb) ->
             dbg("check if a registration token is required")
             database.key_value_store(name:'global_admin_settings').get
@@ -5662,10 +5655,10 @@ create_account = (client, mesg) ->
                         cb()
                     else
                         if token != mesg.token
-                            client.push_to_client(message.account_creation_failed(id:id, reason:{token:"Incorrect registration token."}))
-                            cb(true)
+                            cb({token:"Incorrect registration token."})
                         else
                             cb()
+
         (cb) ->
             dbg("create new account")
             database.create_account
@@ -5675,15 +5668,16 @@ create_account = (client, mesg) ->
                 password_hash: password_hash(mesg.password)
                 cb: (error, result) ->
                     if error
-                        client.push_to_client(message.account_creation_failed(
-                                 id:id, reason:{'other':"Unable to create account right now.  Please try later."})
-                        )
-                        cb(true)
+                        cb({'other':"Unable to create account right now.  Please try later."})
                     else
                         account_id = result
                         database.log
                             event : 'create_account'
-                            value : {account_id:account_id, first_name:mesg.first_name, last_name:mesg.last_name, email_address:mesg.email_address}
+                            value :
+                                account_id : account_id
+                                first_name : mesg.first_name
+                                last_name  : mesg.last_name
+                                email_address : mesg.email_address
                         cb()
 
         (cb) ->
@@ -5694,8 +5688,20 @@ create_account = (client, mesg) ->
                 cb            : cb
 
         (cb) ->
+            dbg("set remember_me cookie...")
+            # so that proxy server will allow user to connect and
+            # download images, etc., the very first time right after they make a new account.
+            client.remember_me
+                email_address : mesg.email_address
+                account_id    : account_id
+                cb            : cb
+    ], (reason) ->
+        if reason
+            client.push_to_client(message.account_creation_failed(id:id, reason:reason))
+            cb?("error creating account -- #{misc.to_json(reason)}")
+        else
             dbg("send message back to user that they are logged in as the new user")
-            mesg = message.signed_in
+            mesg1 = message.signed_in
                 id            : mesg.id
                 account_id    : account_id
                 email_address : mesg.email_address
@@ -5703,16 +5709,12 @@ create_account = (client, mesg) ->
                 last_name     : mesg.last_name
                 remember_me   : false
                 hub           : program.host + ':' + program.port
-            client.signed_in(mesg)
-            client.push_to_client(mesg)
-            dbg("set remember_me cookie...")
-            # so that proxy server will allow user to connect and
-            # download images, etc., the very first time right after they make a new account.
-            client.remember_me
-                email_address : mesg.email_address
-                account_id    : account_id
-            cb()
-    ])
+            client.signed_in(mesg1)
+            client.push_to_client(mesg1)
+            cb?()
+    )
+
+
 
 
 account_creation_actions = (opts) ->
@@ -5738,7 +5740,9 @@ account_creation_actions = (opts) ->
                                 winston.debug("Error adding user to project: #{err}")
                             cb(err)
                 else
-                    cb("unknown action -- #{action.action}")
+                    # TODO: need to report this some better way, maybe email?
+                    winston.debug("skipping unknown action -- #{action.action}")
+                    cb()
             async.map(actions, f, (err) -> opts.cb(err))
 
 run_all_account_creation_actions = (cb) ->

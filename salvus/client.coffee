@@ -2415,7 +2415,7 @@ exports.issues_with_create_account = (mesg) ->
     if not mesg.agreed_to_terms
         issues.agreed_to_terms = 'Agree to the Salvus Terms of Service.'
     if mesg.first_name == ''
-        issues.first_name = 'Enter a first name.'
+        issues.first_name = 'Enter your name.'
     if not exports.is_valid_email_address(mesg.email_address)
         issues.email_address = 'Email address does not appear to be valid.'
     [valid, reason] = exports.is_valid_password(mesg.password)
