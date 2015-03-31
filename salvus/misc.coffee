@@ -222,10 +222,19 @@ exports.to_json = (x) ->
 # convert object x to a JSON string, removing any keys that have "pass" in them.
 exports.to_safe_str = (x) ->
     obj = {}
-    for key of x
-        if key.indexOf("pass") == -1
+    for key, value of x
+        sanitize = false
+
+        if key.indexOf("pass") != -1
+            sanitize = true
+        else if typeof(value)=='string' and value.slice(0,7) == "sha512$"
+            sanitize = true
+
+        if sanitize
+            obj[key] = '(unsafe)'
+        else
             obj[key] = x[key]
-    return exports.to_json(obj)
+    x = exports.to_json(obj)
 
 # convert from a JSON string to Javascript
 exports.from_json = (x) ->
