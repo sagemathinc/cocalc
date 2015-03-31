@@ -380,7 +380,7 @@ passport_login = (opts) ->
         opts.last_name = "User"
 
     if opts.emails?
-        opts.emails = (x.toLowerCase() for x in opts.emails)
+        opts.emails = (x.toLowerCase() for x in opts.emails when (x? and x.toLowerCase?))
 
     opts.id = "#{opts.id}"  # convert to string (id is often a number)
 
