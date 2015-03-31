@@ -1173,6 +1173,7 @@ init_http_proxy_server = () =>
     proxy_cache = {}
     http_proxy_server = http.createServer (req, res) ->
         tm = misc.walltime()
+        {query, pathname} = url.parse(req.url, true)
         req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
         if req_url == "/alive"
             res.end('')
@@ -1189,7 +1190,7 @@ init_http_proxy_server = () =>
         if not remember_me?
 
             # before giving an error, check on possibility that file is public
-            public_raw req_url, res, (err, is_public) ->
+            public_raw req_url, query, res, (err, is_public) ->
                 if err or not is_public
                     res.writeHead(500, {'Content-Type':'text/html'})
                     res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> with cookies enabled, then refresh this page.")
@@ -1199,7 +1200,7 @@ init_http_proxy_server = () =>
         target remember_me, req_url, (err, location) ->
             dbg("got target: #{misc.walltime(tm)}")
             if err
-                public_raw req_url, res, (err, is_public) ->
+                public_raw req_url, query, res, (err, is_public) ->
                     if err or not is_public
                         winston.debug("proxy denied -- #{err}")
                         res.writeHead(500, {'Content-Type':'text/html'})
@@ -1253,12 +1254,14 @@ init_http_proxy_server = () =>
 
     public_raw_paths_cache = {}
 
-    public_raw = (req_url, res, cb) ->
+    public_raw = (req_url, query, res, cb) ->
         # Determine if the requested path is public (and not too big).
         # If so, send content to the client and cb(undefined, true)
         # If not, cb(undefined, false)
         # req_url = /9627b34f-fefd-44d3-88ba-5b1fc1affef1/raw/a.html
-        v = req_url.split('?')[0].split('/')
+        x = req_url.split('?')
+        params = x[1]
+        v = x[0].split('/')
         if v[2] != 'raw'
             cb(undefined, false)
             return
@@ -1309,7 +1312,9 @@ init_http_proxy_server = () =>
                             if err
                                 cb(err)
                             else
-                                res.setHeader('Content-disposition', 'attachment')
+                                if query.download?
+                                    res.setHeader('Content-disposition', 'attachment')
+                                filename = path.slice(path.lastIndexOf('/') + 1)
                                 res.write(data)
                                 res.end()
                                 is_public = true
