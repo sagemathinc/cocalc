@@ -160,8 +160,10 @@ def run(args, maxtime=MAXTIME_S, verbose=True, stderr=True):
     if verbose:
         log.info("running '%s'", ' '.join(args))
     try:
-        a = subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
-                                stderr=subprocess.PIPE)
+        a = subprocess.Popen(args,
+                             stdin  = subprocess.PIPE,
+                             stdout = subprocess.PIPE,
+                             stderr = subprocess.PIPE)
         if stderr:
             out = a.stderr.read()
         else:
@@ -1223,6 +1225,7 @@ class Hosts(object):
                 raise RuntimeError("on %s@%s command '%s' timed out"%(self._username, hostname, command))
         return {'stdout':stdout.read(), 'stderr':stderr.read(), 'exit_status':chan.recv_exit_status()}
 
+
     def public_ssh_keys(self, hostname, timeout=5):
         return '\n'.join([x['stdout'] for x in self.exec_command(hostname, 'cat .ssh/id_rsa.pub', timeout=timeout).values()])
 
@@ -1437,7 +1440,7 @@ class Monitor(object):
             d['status'] = 'up'
             if d['etime'] == 'ELAPSED':
                 d['status'] = 'down'
-            if d['sign_in_timeouts'] > 0:  
+            if d['sign_in_timeouts'] > 0:
                 d['status'] = 'down'  # demands attention!
             ans.append(d)
         def f(x,y):

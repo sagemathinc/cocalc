@@ -967,3 +967,17 @@ exports.activity_log = (opts) -> new ActivityLog(opts)
 # see http://stackoverflow.com/questions/1144783/replacing-all-occurrences-of-a-string-in-javascript
 exports.replace_all = (string, search, replace) ->
     string.split(search).join(replace)
+
+
+
+
+exports.remove_c_comments = (s) ->
+    while true
+        i = s.indexOf('/*')
+        if i == -1
+            return s
+        j = s.indexOf('*/')
+        if i >= j
+            return s
+        s = s.slice(0, i) + s.slice(j+2)
+
