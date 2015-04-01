@@ -24,31 +24,9 @@ compute_cpu   = 12   # DO *NOT* change compute_cpu willy-nilly; if you change it
 
 # Google Compute Engine
 [vmgce]
-#####################
-## us-central1-a
-#####################
-# compute/storage nodes:
-localhost    {'hostname':'compute1dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute2dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute3dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute4dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute5dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute6dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute7dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-localhost    {'hostname':'compute8dc2', 'disk':'bup:500', 'instance_type':'n1-highmem-4', 'zone':'us-central1-a'}
-
-
-#####################
-## europe-west1-b
-#####################
-# compute/storage nodes:
-
-#localhost     {'hostname':'compute1dc3', 'disk':'bup:500', 'instance_type':'n1-highmem-2', 'zone':'europe-west1-b'}
-
-
 
 # dc5: Commercial google us-central1-f
-
+# TODO: these disks are really ssd's now...
 localhost    {'hostname':'smc1dc5', 'disk':'cassandra-ext4:100', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 localhost    {'hostname':'smc2dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
 localhost    {'hostname':'smc3dc5', 'disk':'cassandra-ext4:50', 'instance_type':'n1-standard-1', 'zone':'us-central1-f'}
