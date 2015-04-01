@@ -25,18 +25,21 @@ In this section we explain how to install and run your own copy of SMC on Ubuntu
 1. Create a symbolic link:
         cd /usr/local/bin/
         sudo ln -s /home/salvus/salvus/salvus/scripts/bup_storage.py .
-1. Once the build completes successfully, start SMC running as follows:
+1. Once the build completes successfully, start SMC running as follows (this will fail miserably, of course):
         cd ~/salvus/salvus
         . environ
         bup_server start
         ipython
-        In [1]: import admin; reload(admin); a = admin.Services('conf/deploy_local/')
+        In [1]: import admin; reload(admin); a = admin.Services('conf/deploy_local3/',password='')
         In [2]: a.start('all')
 1. In order to open Sage worksheets, you must also have Sage installed and available system-wide.
-1. Create the database schema.  Right now I do this by copying and pasting from `~/salvus/salvus/db_schema.cql`.
-1. Copy the bup server's port, location, and secret key into the database (todo).
 
+1. Create the database schema.  To get cassandra running, do this `mkdir -p salvus/salvus/data/cassandra-0; cd salvus/salvus/data/cassandra-0; ln -s ../local/cassandra/lib .` then start the cassandra service.   To make the schema, see the function `create_schema` in `cassandra.coffee`.  In particular, you have to (1) create the keyspace  as explained there, then (2) start coffeescript and paste in a line to parse and load the schema.
 
+1. Copy the bup server's port, location, and secret key into the database.  Search in `bup_server.coffee` for "Adding new servers form the coffeescript command line and pushing out config files".   In particular, for a simple local installation:
+        x={};s=require('bup_server').global_client(keyspace:'devel', cb:(err,c)->x.c=c;x.c.register_server(host:"127.0.0.1",dc:0,cb:console.log))
+To confirm this worked, type this in a bash shell:
+        echo 'select * from storage_servers;' |  cqlsh -k devel
 
 ## Within a SageMathCloud project
 
@@ -295,7 +298,7 @@ Also, many other messages arrive that are not in response to any previous messag
 For example, notifications are pushed to the client without being requested.  Also,
 document synchronization cycles can be initiated by the local_hub, which sends a
 "please sync now" message to various hubs, which forwards them on to the appropriate
-clients. 
+clients.
 
 **WARNING:** right now (March 19, 2015),
 when a document is changed by a remote user, the client receives a message

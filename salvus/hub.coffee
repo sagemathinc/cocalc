@@ -380,7 +380,7 @@ passport_login = (opts) ->
         opts.last_name = "User"
 
     if opts.emails?
-        opts.emails = (x.toLowerCase() for x in opts.emails)
+        opts.emails = (x.toLowerCase() for x in opts.emails when (x? and x.toLowerCase? and client_lib.is_valid_email_address(x)))
 
     opts.id = "#{opts.id}"  # convert to string (id is often a number)
 
@@ -1173,6 +1173,7 @@ init_http_proxy_server = () =>
     proxy_cache = {}
     http_proxy_server = http.createServer (req, res) ->
         tm = misc.walltime()
+        {query, pathname} = url.parse(req.url, true)
         req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
         if req_url == "/alive"
             res.end('')
@@ -1189,7 +1190,7 @@ init_http_proxy_server = () =>
         if not remember_me?
 
             # before giving an error, check on possibility that file is public
-            public_raw req_url, res, (err, is_public) ->
+            public_raw req_url, query, res, (err, is_public) ->
                 if err or not is_public
                     res.writeHead(500, {'Content-Type':'text/html'})
                     res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> with cookies enabled, then refresh this page.")
@@ -1199,7 +1200,7 @@ init_http_proxy_server = () =>
         target remember_me, req_url, (err, location) ->
             dbg("got target: #{misc.walltime(tm)}")
             if err
-                public_raw req_url, res, (err, is_public) ->
+                public_raw req_url, query, res, (err, is_public) ->
                     if err or not is_public
                         winston.debug("proxy denied -- #{err}")
                         res.writeHead(500, {'Content-Type':'text/html'})
@@ -1253,12 +1254,14 @@ init_http_proxy_server = () =>
 
     public_raw_paths_cache = {}
 
-    public_raw = (req_url, res, cb) ->
+    public_raw = (req_url, query, res, cb) ->
         # Determine if the requested path is public (and not too big).
         # If so, send content to the client and cb(undefined, true)
         # If not, cb(undefined, false)
         # req_url = /9627b34f-fefd-44d3-88ba-5b1fc1affef1/raw/a.html
-        v = req_url.split('?')[0].split('/')
+        x = req_url.split('?')
+        params = x[1]
+        v = x[0].split('/')
         if v[2] != 'raw'
             cb(undefined, false)
             return
@@ -1309,7 +1312,9 @@ init_http_proxy_server = () =>
                             if err
                                 cb(err)
                             else
-                                res.setHeader('Content-disposition', 'attachment')
+                                if query.download?
+                                    res.setHeader('Content-disposition', 'attachment')
+                                filename = path.slice(path.lastIndexOf('/') + 1)
                                 res.write(data)
                                 res.end()
                                 is_public = true
@@ -1607,7 +1612,9 @@ class Client extends EventEmitter
         opts.hub = program.host
         opts.remember_me = true
 
-        signed_in_mesg   = message.signed_in(opts)
+        opts0 = misc.copy(opts)
+        delete opts0.cb
+        signed_in_mesg   = message.signed_in(opts0)
         session_id       = uuid.v4()
         @hash_session_id = password_hash(session_id)
         ttl              = 24*3600 * 30     # 30 days
@@ -3030,6 +3037,8 @@ class Client extends EventEmitter
     mesg_project_set_quota: (mesg) =>
         if not @user_is_in_group('admin')
             @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to set project quotas")
+        else if not misc.is_valid_uuid_string(mesg.project_id)
+            @error_to_client(id:mesg.id, error:"invalid project_id")
         else
             bup_server.get_project(mesg.project_id).set_settings
                 memory     : mesg.memory
@@ -4471,7 +4480,6 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
 _local_hub_cache = {}
 new_local_hub = (project_id) ->    # cb(err, hub)
     H    = _local_hub_cache[project_id]
-
     if H?
         winston.debug("new_local_hub (#{project_id}) -- using cached version")
     else
@@ -5426,19 +5434,27 @@ sign_in_check = (opts) ->
         return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
     return false
 
-sign_in = (client, mesg, cb) =>
-    #winston.debug("sign_in")
-    sign_in_error = (error) ->
-        client.push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
+sign_in = (client, mesg, cb) ->
+    dbg = (m) -> winston.debug("sign_in(#{mesg.email_address}): #{m}")
+    dbg()
+    tm = misc.walltime()
 
-    if mesg.email_address == ""
+    sign_in_error = (error) ->
+        dbg("sign_in_error -- #{error}")
+        record_sign_in
+            ip_address    : client.ip_address
+            successful    : false
+            email_address : mesg.email_address
+            account_id    : account?.account_id
+        client.push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
+        cb?(error)
+
+    if not mesg.email_address
         sign_in_error("Empty email address.")
-        cb("empty email")
         return
 
-    if mesg.password == ""
+    if not mesg.password
         sign_in_error("Empty password.")
-        cb("empty password")
         return
 
     mesg.email_address = misc.lower_email_address(mesg.email_address)
@@ -5447,83 +5463,71 @@ sign_in = (client, mesg, cb) =>
         email : mesg.email_address
         ip    : client.ip_address
     if m
-        winston.debug("WARNING: sign_in fail(email=#{mesg.email}, ip=#{client.ip_address}): #{m}")
-        sign_in_error(m)
-        cb(m)
+        sign_in_error("sign_in_check fail(ip=#{client.ip_address}): #{m}")
         return
 
-    signed_in_mesg = null
+    signed_in_mesg = undefined
+    account = undefined
     async.series([
-        # POLICY: Don't allow banned users to sign in.  Slow to check and kind of pointless
-        # since it is so easy for a user to just make a different account.  Of course,
-        # forcing them to lose access to all their work is useful.
         (cb) ->
-            database.is_banned_user
-                email_address : mesg.email_address
-                cb            : (err, is_banned) ->
-                    if err
-                        sign_in_error(err)
-                        cb(err)
-                    else
-                        if is_banned
-                            sign_in_error("User '#{mesg.email_address}' is banned from SageMathCloud due to violation of the terms of usage.")
-                            cb(true)
-                        else
-                            cb()
-
-        (cb) ->
-            # get account and check credentials
+            dbg("get account and check credentials")
             # NOTE: Despite people complaining, we do give away info about whether
             # the e-mail address is for a valid user or not.
             # There is no security in not doing this, since the same information
             # can be determined via the invite collaborators feature.
             database.get_account
                 email_address : mesg.email_address
-                columns       : ['password_hash', 'account_id']
-                cb            : (error, account) ->
-                    if error
-                        record_sign_in
-                            ip_address    : client.ip_address
-                            successful    : false
-                            email_address : mesg.email_address
-                        sign_in_error("Sign in error -- #{error}")
-                        cb(error); return
-
-                    is_password_correct
-                        password      : mesg.password
-                        password_hash : account.password_hash
-                        cb            : (err, is_correct) ->
-                            if err
-                                cb(err); return
-                            if not is_correct
-                                record_sign_in
-                                    ip_address    : client.ip_address
-                                    successful    : false
-                                    email_address : mesg.email_address
-                                    account_id    : account.account_id
-                                sign_in_error("Incorrect password; please try resetting your password, and if that doesn't work email help@sagemath.com and we will help you sort this out.")
-                                cb("password"); return
-                            else
-                                signed_in_mesg = message.signed_in
-                                    id            : mesg.id
-                                    account_id    : account.account_id
-                                    email_address : mesg.email_address
-                                    remember_me   : false
-                                    hub           : program.host + ':' + program.port
-                                client.signed_in(signed_in_mesg)
-                                client.push_to_client(signed_in_mesg)
-                                cb()
-
+                columns       : ['password_hash', 'account_id', 'passports']
+                cb            : (err, _account) ->
+                    if err
+                        cb(err)
+                    else
+                        account = _account
+                        cb()
+        (cb) ->
+            dbg("got account; now checking if password is correct...")
+            is_password_correct
+                account_id    : account.account_id
+                password      : mesg.password
+                password_hash : account.password_hash
+                cb            : (err, is_correct) ->
+                    if err
+                        cb("Error checking correctness of password -- #{err}")
+                        return
+                    if not is_correct
+                        if not account.password_hash
+                            cb("The account #{mesg.email_address} exists but doesn't have a password. Either set your password by clicking 'Forgot your password?' or log in using #{misc.keys(account.passports).join(', ')}.  If that doesn't work, email help@sagemath.com and we will sort this out.")
+                        else
+                            cb("Incorrect password for #{mesg.email_address}.  You can reset your password by clicking the 'Forgot your password?' link.   If that doesn't work, email help@sagemath.com and we will sort this out.")
+                    else
+                        cb()
         # remember me
         (cb) ->
             if mesg.remember_me
+                dbg("remember_me -- setting the remember_me cookie")
+                signed_in_mesg = message.signed_in
+                    id            : mesg.id
+                    account_id    : account.account_id
+                    email_address : mesg.email_address
+                    remember_me   : false
+                    hub           : program.host + ':' + program.port
                 client.remember_me
                     account_id    : signed_in_mesg.account_id
                     email_address : signed_in_mesg.email_address
                     cb            : cb
             else
                 cb()
-    ], (err) -> cb?(err))
+    ], (err) ->
+        if err
+            dbg("send error to user (in #{misc.walltime(tm)}seconds) -- #{err}")
+            sign_in_error(err)
+            cb?(err)
+        else
+            dbg("user got signed in fine (in #{misc.walltime(tm)}seconds) -- sending them a message")
+            client.signed_in(signed_in_mesg)
+            client.push_to_client(signed_in_mesg)
+            cb?()
+    )
 
 
 # Record to the database a failed and/or successful login attempt.
@@ -5574,10 +5578,11 @@ is_valid_password = (password) ->
 
 
 
-create_account = (client, mesg) ->
+create_account = (client, mesg, cb) ->
     id = mesg.id
     account_id = null
     dbg = (m) -> winston.debug("create_account (#{mesg.email_address}): #{m}")
+    tm = misc.walltime()
     if mesg.email_address?
         mesg.email_address = misc.lower_email_address(mesg.email_address)
     async.series([
@@ -5595,8 +5600,7 @@ create_account = (client, mesg) ->
             # delete issues['password']
 
             if misc.len(issues) > 0
-                client.push_to_client(message.account_creation_failed(id:id, reason:issues))
-                cb(true)
+                cb(issues)
             else
                 cb()
 
@@ -5607,52 +5611,46 @@ create_account = (client, mesg) ->
         (cb) ->
             dbg("ip_tracker test")
             ip_tracker = database.key_value_store(name:'create_account_ip_tracker')
-            ip_tracker.get(
+            ip_tracker.get
                 key : client.ip_address
                 cb  : (error, value) ->
                     if error
-                        client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
-                        cb(true)
+                        cb({'other':"Internal error creating account -- #{error}.  Please try later."})
+                        return
                     if not value?
-                        ip_tracker.set(key: client.ip_address, value:1, ttl:6*3600)
+                        ip_tracker.set(key: client.ip_address, value:1, ttl:3600)
                         cb()
-                    else if value < 5000
-                        ip_tracker.set(key: client.ip_address, value:value+1, ttl:6*3600)
+                    else if value < 1000
+                        ip_tracker.set(key: client.ip_address, value:value+1, ttl:3600)
                         cb()
                     else # bad situation
-                        database.log(
+                        database.log
                             event : 'create_account'
                             value : {ip_address:client.ip_address, reason:'too many requests'}
-                        )
-                        client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Too many account requests from the ip address #{client.ip_address} in the last 6 hours.  Please try again later."}))
-                        cb(true)
-            )
+                        cb({'other':"There were too many account creation requests from the ip address #{client.ip_address} in the last hour."})
 
         (cb) ->
             dbg("query database to determine whether the email address is available")
-            database.is_email_address_available(mesg.email_address, (error, available) ->
+            database.is_email_address_available mesg.email_address, (error, available) ->
                 if error
-                    client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
-                    cb(true)
+                    cb({'other':"Unable to create account.  Please try later."})
                 else if not available
-                    client.push_to_client(message.account_creation_failed(id:id, reason:{email_address:"This e-mail address is already taken."}))
-                    cb(true)
+                    cb({email_address:"This e-mail address is already taken."})
                 else
                     cb()
-            )
-        (cb) ->
-            dbg("check that account is not banned")
-            database.is_banned_user
-                email_address : mesg.email_address
-                cb            : (err, is_banned) ->
-                    if err
-                        client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
-                        cb(true)
-                    else if is_banned
-                        client.push_to_client(message.account_creation_failed(id:id, reason:{email_address:"This e-mail address is banned."}))
-                        cb(true)
-                    else
-                        cb()
+
+        #(cb) ->
+        #    dbg("check that account is not banned")
+        #    database.is_banned_user
+        #        email_address : mesg.email_address
+        #        cb            : (err, is_banned) ->
+        #            if err
+        #                cb({'other':"Unable to create account.  Please try later."})
+        #            else if is_banned
+        #                cb({email_address:"This e-mail address is banned."})
+        #            else
+        #                cb()
+
         (cb) ->
             dbg("check if a registration token is required")
             database.key_value_store(name:'global_admin_settings').get
@@ -5662,10 +5660,10 @@ create_account = (client, mesg) ->
                         cb()
                     else
                         if token != mesg.token
-                            client.push_to_client(message.account_creation_failed(id:id, reason:{token:"Incorrect registration token."}))
-                            cb(true)
+                            cb({token:"Incorrect registration token."})
                         else
                             cb()
+
         (cb) ->
             dbg("create new account")
             database.create_account
@@ -5675,15 +5673,16 @@ create_account = (client, mesg) ->
                 password_hash: password_hash(mesg.password)
                 cb: (error, result) ->
                     if error
-                        client.push_to_client(message.account_creation_failed(
-                                 id:id, reason:{'other':"Unable to create account right now.  Please try later."})
-                        )
-                        cb(true)
+                        cb({'other':"Unable to create account right now.  Please try later."})
                     else
                         account_id = result
                         database.log
                             event : 'create_account'
-                            value : {account_id:account_id, first_name:mesg.first_name, last_name:mesg.last_name, email_address:mesg.email_address}
+                            value :
+                                account_id : account_id
+                                first_name : mesg.first_name
+                                last_name  : mesg.last_name
+                                email_address : mesg.email_address
                         cb()
 
         (cb) ->
@@ -5694,8 +5693,21 @@ create_account = (client, mesg) ->
                 cb            : cb
 
         (cb) ->
-            dbg("send message back to user that they are logged in as the new user")
-            mesg = message.signed_in
+            dbg("set remember_me cookie...")
+            # so that proxy server will allow user to connect and
+            # download images, etc., the very first time right after they make a new account.
+            client.remember_me
+                email_address : mesg.email_address
+                account_id    : account_id
+                cb            : cb
+    ], (reason) ->
+        if reason
+            dbg("send message to user that there was an error (in #{misc.walltime(tm)}seconds) -- #{misc.to_json(reason)}")
+            client.push_to_client(message.account_creation_failed(id:id, reason:reason))
+            cb?("error creating account -- #{misc.to_json(reason)}")
+        else
+            dbg("send message back to user that they are logged in as the new user (in #{misc.walltime(tm)}seconds)")
+            mesg1 = message.signed_in
                 id            : mesg.id
                 account_id    : account_id
                 email_address : mesg.email_address
@@ -5703,16 +5715,12 @@ create_account = (client, mesg) ->
                 last_name     : mesg.last_name
                 remember_me   : false
                 hub           : program.host + ':' + program.port
-            client.signed_in(mesg)
-            client.push_to_client(mesg)
-            dbg("set remember_me cookie...")
-            # so that proxy server will allow user to connect and
-            # download images, etc., the very first time right after they make a new account.
-            client.remember_me
-                email_address : mesg.email_address
-                account_id    : account_id
-            cb()
-    ])
+            client.signed_in(mesg1)
+            client.push_to_client(mesg1)
+            cb?()
+    )
+
+
 
 
 account_creation_actions = (opts) ->
@@ -5738,7 +5746,9 @@ account_creation_actions = (opts) ->
                                 winston.debug("Error adding user to project: #{err}")
                             cb(err)
                 else
-                    cb("unknown action -- #{action.action}")
+                    # TODO: need to report this some better way, maybe email?
+                    winston.debug("skipping unknown action -- #{action.action}")
+                    cb()
             async.map(actions, f, (err) -> opts.cb(err))
 
 run_all_account_creation_actions = (cb) ->

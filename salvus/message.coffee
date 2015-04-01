@@ -452,7 +452,7 @@ message
 # hub --> client
 message
     event          : 'account_creation_failed'
-    id             : required
+    id             : undefined
     reason         : required
 
 # client <--> hub

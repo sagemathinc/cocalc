@@ -41,4 +41,4 @@ def backup_cassandra(dc, hosts):
     # more efficient.
 
 if __name__ == "__main__":
-    backup_cassandra(5, ['smc%sdc5'%i for i in range(1,8)])
+    backup_cassandra(5, ['smc%sdc5'%i for i in range(1,7)])

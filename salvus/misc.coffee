@@ -143,26 +143,34 @@ exports.defaults = (obj1, obj2, allow_extra) ->
     if typeof(obj1) != 'object'
         # We put explicit traces before the errors in this function,
         # since otherwise they can be very hard to debug.
+        err = "misc.defaults -- TypeError: function takes inputs as an object #{error()}"
+        console.log(err)
         console.trace()
-        throw "misc.defaults -- TypeError: function takes inputs as an object #{error()}"
+        throw err
     r = {}
     for prop, val of obj2
         if obj1.hasOwnProperty(prop) and obj1[prop]?
             if obj2[prop] == exports.defaults.required and not obj1[prop]?
+                err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
+                console.log(err)
                 console.trace()
-                throw "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
+                throw err
             r[prop] = obj1[prop]
         else if obj2[prop]?  # only record not undefined properties
             if obj2[prop] == exports.defaults.required
+                err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
+                console.log(err)
                 console.trace()
-                throw "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
+                throw err
             else
                 r[prop] = obj2[prop]
     if not allow_extra
         for prop, val of obj1
             if not obj2.hasOwnProperty(prop)
+                err = "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
+                console.log(err)
                 console.trace()
-                throw "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
+                throw err
     return r
 
 # WARNING -- don't accidentally use this as a default:
@@ -214,10 +222,19 @@ exports.to_json = (x) ->
 # convert object x to a JSON string, removing any keys that have "pass" in them.
 exports.to_safe_str = (x) ->
     obj = {}
-    for key of x
-        if key.indexOf("pass") == -1
+    for key, value of x
+        sanitize = false
+
+        if key.indexOf("pass") != -1
+            sanitize = true
+        else if typeof(value)=='string' and value.slice(0,7) == "sha512$"
+            sanitize = true
+
+        if sanitize
+            obj[key] = '(unsafe)'
+        else
             obj[key] = x[key]
-    return exports.to_json(obj)
+    x = exports.to_json(obj)
 
 # convert from a JSON string to Javascript
 exports.from_json = (x) ->
@@ -950,3 +967,17 @@ exports.activity_log = (opts) -> new ActivityLog(opts)
 # see http://stackoverflow.com/questions/1144783/replacing-all-occurrences-of-a-string-in-javascript
 exports.replace_all = (string, search, replace) ->
     string.split(search).join(replace)
+
+
+
+
+exports.remove_c_comments = (s) ->
+    while true
+        i = s.indexOf('/*')
+        if i == -1
+            return s
+        j = s.indexOf('*/')
+        if i >= j
+            return s
+        s = s.slice(0, i) + s.slice(j+2)
+

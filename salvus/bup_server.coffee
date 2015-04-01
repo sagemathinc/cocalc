@@ -366,6 +366,7 @@ handle_mesg = (socket, mesg) ->
 
 up_since = undefined
 init_up_since = (cb) ->
+    winston.debug("init_up_since")
     fs.readFile "/proc/uptime", (err, data) ->
         if err
             cb(err)
@@ -376,22 +377,28 @@ init_up_since = (cb) ->
 SERVER_ID = undefined
 
 init_server_id = (cb) ->
+    dbg = (m) -> winston.debug("init_server_id: #{m}")
+    dbg()
     file = program.server_id_file
     fs.exists file, (exists) ->
         if not exists
+            dbg("file '#{file}' does not exist, writing...")
             SERVER_ID = uuid.v4()
             fs.writeFile file, SERVER_ID, (err) ->
                 if err
-                    winston.debug("Error writing server_id file!")
+                    dbg("Error writing server_id file!")
                     cb(err)
                 else
-                    winston.debug("Wrote new SERVER_ID =#{SERVER_ID}")
+                    dbg("Wrote new SERVER_ID =#{SERVER_ID}")
                     cb()
         else
+            dbg("file '#{file}' exists, reading...")
             fs.readFile file, (err, data) ->
                 if err
+                    dbg("error reading #{err}")
                     cb(err)
                 else
+                    dbg("read file")
                     SERVER_ID = data.toString()
                     cb()
 
@@ -462,26 +469,27 @@ idle_timeout = () ->
                 dbg("finished checking for projects that need to be killed")
 
 start_tcp_server = (cb) ->
-    winston.info("starting tcp server...")
+    dbg = (m) -> winston.debug("tcp_server: #{m}")
+    dbg("start")
 
     setInterval(idle_timeout, IDLE_TIMEOUT_INTERVAL_S * 1000)
 
     server = net.createServer (socket) ->
-        winston.debug("received connection")
+        dbg("received connection")
         socket.id = uuid.v4()
         misc_node.unlock_socket socket, secret_token, (err) ->
             if err
-                winston.debug("ERROR: unable to unlock socket -- #{err}")
+                dbg("ERROR: unable to unlock socket -- #{err}")
             else
-                winston.debug("unlocked connection")
+                dbg("unlocked connection")
                 misc_node.enable_mesg(socket)
                 socket.on 'mesg', (type, mesg) ->
                     if type == "json"   # other types ignored -- we only deal with json
-                        winston.debug("received mesg #{misc.to_safe_str(mesg)}")
+                        dbg("received mesg #{misc.to_safe_str(mesg)}")
                         try
                             handle_mesg(socket, mesg)
                         catch e
-                            winston.debug(new Error().stack)
+                            dbg(new Error().stack)
                             winston.error "ERROR: '#{e}' handling message '#{misc.to_safe_str(mesg)}'"
 
     get_port = (c) ->
@@ -502,22 +510,20 @@ start_tcp_server = (cb) ->
                             program.port = data.toString()
                             c()
     listen = (c) ->
-        winston.debug("trying port #{program.port}")
-        server.listen program.port, program.address, (err) ->
-            if err
-                winston.debug("failed to listen to #{program.port} -- #{err}")
-                c(err)
-            else
-                program.port = server.address().port
-                fs.writeFile(program.portfile, program.port, cb)
-                winston.debug("listening on #{program.address}:#{program.port}")
-                c()
+        dbg("trying port #{program.port}")
+        server.listen program.port, program.address, () ->
+            dbg("listening on #{program.address}:#{program.port}")
+            program.port = server.address().port
+            fs.writeFile(program.portfile, program.port, cb)
+        server.on 'error', (e) ->
+            dbg("error getting port -- #{e}; try again in one second (type 'netstat -tulpn |grep #{program.port}' to figure out what has the port)")
+            try_again = () ->
+                server.close()
+                server.listen(program.port, program.address)
+            setTimeout(try_again, 1000)
+
     get_port () ->
-        listen (err) ->
-            if err
-                winston.debug("fail so let OS assign port...")
-                program.port = 0
-                listen()
+        listen(cb)
 
 
 secret_token = undefined
@@ -525,37 +531,42 @@ read_secret_token = (cb) ->
     if secret_token?
         cb()
         return
-    winston.debug("read_secret_token")
+    dbg = (m) -> winston.debug("read_secret_token: #{m}")
 
     async.series([
         # Read or create the file; after this step the variable secret_token
         # is set and the file exists.
         (cb) ->
+            dbg("check if file exists")
             fs.exists program.secret_file, (exists) ->
                 if exists
-                    winston.debug("read '#{program.secret_file}'")
+                    dbg("exists -- now reading '#{program.secret_file}'")
                     fs.readFile program.secret_file, (err, buf) ->
-                        secret_token = buf.toString().trim()
-                        cb()
+                        if err
+                            dbg("error reading the file '#{program.secret_file}'")
+                            cb(err)
+                        else
+                            secret_token = buf.toString().trim()
+                            cb()
                 else
-                    winston.debug("create '#{program.secret_file}'")
+                    dbg("creating '#{program.secret_file}'")
                     require('crypto').randomBytes 64, (ex, buf) ->
                         secret_token = buf.toString('base64')
                         fs.writeFile(program.secret_file, secret_token, cb)
-
-        # Ensure restrictive permissions on the secret token file.
         (cb) ->
+            dbg("Ensure restrictive permissions on the secret token file.")
             fs.chmod(program.secret_file, 0o600, cb)
     ], cb)
 
 
-start_server = () ->
+start_server = (cb) ->
     winston.debug("start_server")
     async.series [init_server_id, init_up_since, read_secret_token, start_tcp_server], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
         else
             winston.debug("Successfully started server.")
+        cb?(err)
 
 
 ###########################
@@ -574,7 +585,7 @@ require('bup_server').global_client(database:x.d, cb:(e,c)->x.e=e;x.c=c)
 
 (x.c.register_server(host:"10.1.#{i}.5",dc:1,cb:console.log) for i in [1..7])
 
-(x.c.register_server(host:"10.3.#{i}.4",dc:1,cb:console.log) for i in [1..8])
+(x.c.register_server(host:"10.3.#{i}.5",dc:2,cb:console.log) for i in [1..8])
 
 x.c.push_servers_files(cb:console.log)
 
@@ -648,10 +659,11 @@ class GlobalProject
 
     # starts project if necessary, waits until it is running, and
     # gets the hostname port where the local hub is serving.
-    local_hub_address: (opts) =>
+    xxx_local_hub_address: (opts) =>
         opts = defaults opts,
             timeout : 30
             cb : required      # cb(err, {host:hostname, port:port, status:status, server_id:server_id})
+        dbg = (m) => winston.info("local_hub_address(#{@project_id}): #{m}")
         if @_local_hub_address_queue?
             @_local_hub_address_queue.push(opts.cb)
         else
@@ -663,11 +675,11 @@ class GlobalProject
                        cb(err, r)
                    delete @_local_hub_address_queue
 
-    _local_hub_address: (opts) =>
+    local_hub_address: (opts) =>
         opts = defaults opts,
-            timeout : 90
+            timeout : 30
             cb : required      # cb(err, {host:hostname, port:port, status:status, server_id:server_id})
-        dbg = (m) -> winston.info("local_hub_address(#{@project_id}): #{m}")
+        dbg = (m) => winston.info("local_hub_address(#{@project_id}): #{m}")
         dbg()
         server_id = undefined
         port      = undefined
@@ -730,7 +742,7 @@ class GlobalProject
 
 
     _update_project_settings: (cb) =>
-        dbg = (m) -> winston.debug("GlobalProject.update_project_settings(#{@project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.update_project_settings(#{@project_id}): #{m}")
         dbg()
         @database.select_one
             table   : 'projects'
@@ -754,7 +766,7 @@ class GlobalProject
         opts = defaults opts,
             target : undefined
             cb     : undefined
-        dbg = (m) -> winston.debug("GlobalProject.start(#{@project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.start(#{@project_id}): #{m}")
         dbg()
         state     = undefined
         project   = undefined
@@ -1503,7 +1515,7 @@ class GlobalProject
         opts = defaults opts,
             target : undefined
             cb     : undefined
-        dbg = (m) -> winston.debug("GlobalProject.move(#{@project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.move(#{@project_id}): #{m}")
         dbg()
         if opts.target? and not misc.is_valid_uuid_string(opts.target)
             opts.cb?("target (='#{opts.target}') must be a v4 uuid")
@@ -1696,7 +1708,7 @@ class GlobalProject
         opts = defaults opts,
             cb : required
         hosts = []
-        dbg = (m) -> winston.debug("GlobalProject.get_hosts(#{@project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.get_hosts(#{@project_id}): #{m}")
         async.series([
             (cb) =>
                 dbg("get last save info from database...")
@@ -1752,7 +1764,7 @@ class GlobalProject
         server_id = undefined
         project = undefined
         state = 'error'
-        dbg = (m) -> winston.debug("GlobalProject.get_local_state(#{@project_id}): #{m}")
+        dbg = (m) => winston.debug("GlobalProject.get_local_state(#{@project_id}): #{m}")
         async.series([
             (cb) =>
                 @get_location_pref (err, s) =>
@@ -2002,26 +2014,36 @@ class GlobalProject
 
 
 
-global_client_cache=undefined
+
+global_client_cache = {}
 
 exports.global_client = (opts) ->
     opts = defaults opts,
-        database           : undefined
-        cb                 : required
-    C = global_client_cache
+        database : undefined  # one of database or keyspace must be specified
+        keyspace : undefined
+        cb       : required
+    C = global_client_cache[opts.keyspace]
     if C?
         opts.cb(undefined, C)
     else
-        global_client_cache = new GlobalClient
+        new GlobalClient
             database : opts.database
-            cb       : opts.cb
-
+            keyspace : opts.keyspace
+            cb       : (err, C) =>
+                if not err
+                    global_client_cache[opts.keyspace] = C
+                opts.cb(err, C)
 
 class GlobalClient
     constructor: (opts) ->
         opts = defaults opts,
             database : undefined   # connection to cassandra database
+            keyspace : undefined
             cb       : required   # cb(err, @) -- called when initialized
+
+        if not opts.database? and not opts.keyspace?
+            opts.cb("one of database or keyspace must be specified")
+            return
 
         @_project_cache = {}
 
@@ -2033,25 +2055,24 @@ class GlobalClient
                 else
                     fs.readFile "#{process.cwd()}/data/secrets/cassandra/hub", (err, password) =>
                         if err
-                            cb(err)
+                            winston.debug("warning: no password file -- assuming localhost and will only work if there is no password.")
+                            hosts    = ['localhost']
+                            password = ''
                         else
-                            if process.env.USER=='wstein'
-                                hosts = ['localhost']
-                            else
-                                v = program.address.split('.')
-                                a = parseInt(v[1]); b = parseInt(v[3])
-                                if program.address == '10.1.1.10'  or a == 1 or a == 3 or a == 4
-                                    hosts = ("smc#{i}dc5" for i in [1..8])
-                                else if a == 5 or a == 6 or a == 7
-                                    hosts = ("smc#{i}dc#{a}" for i in [1..8])
-                            winston.debug("database hosts=#{misc.to_json(hosts)}")
-                            @database = new cassandra.Salvus
-                                hosts       : hosts
-                                keyspace    : if process.env.USER=='wstein' then 'test' else 'salvus'
-                                username    : if process.env.USER=='wstein' then 'salvus' else 'hub'
-                                consistency : cql.types.consistencies.localQuorum
-                                password    : password.toString().trim()
-                                cb          : cb
+                            v = program.address.split('.')
+                            a = parseInt(v[1]); b = parseInt(v[3])
+                            if program.address == '10.1.1.10'  or a == 1 or a == 3 or a == 4
+                                hosts = ("smc#{i}dc5" for i in [1..8])
+                            else if a == 5 or a == 6 or a == 7
+                                hosts = ("smc#{i}dc#{a}" for i in [1..8])
+                        winston.debug("database hosts=#{misc.to_json(hosts)}")
+                        @database = new cassandra.Salvus
+                            hosts       : hosts
+                            keyspace    : opts.keyspace
+                            username    : 'hub'
+                            consistency : cql.types.consistencies.localQuorum
+                            password    : password.toString().trim()
+                            cb          : cb
             (cb) =>
                 @_update(cb)
         ], (err) =>
@@ -2064,7 +2085,7 @@ class GlobalClient
 
                 opts.cb(undefined, @)
             else
-                opts.cb(err, @)
+                opts.cb(err)
         )
 
     get_project: (project_id) =>
@@ -2079,7 +2100,7 @@ class GlobalClient
             limit     : 1            # number at once...
             cb        : undefined    # cb(err, number of projects moved)
 
-        dbg = (m) -> winston.debug("move_running_projects_off_server(#{opts.server_id}): #{m}")
+        dbg = (m) => winston.debug("move_running_projects_off_server(#{opts.server_id}): #{m}")
         dbg()
         projects = undefined
         async.series([
@@ -2191,6 +2212,8 @@ class GlobalClient
                 dbg("#{delete_bup_last_saves.length} bup_last_saves")
                 cb()
             (cb) =>
+                # TODO NO!!!!!
+                cb("no!!!")
                 dbg("delete #{delete_bup_locations.length} bup_locations, so projects last run on this server -- doing this in one very big query")
                 i = 0
                 f = (project_id, cb) =>
@@ -2267,7 +2290,7 @@ class GlobalClient
 
 
     _update: (cb) =>
-        dbg = (m) -> winston.debug("GlobalClient._update: #{m}")
+        dbg = (m) => winston.debug("GlobalClient._update: #{m}")
         #dbg("updating list of available storage servers...")
         @database.select
             table     : 'storage_servers'
@@ -2299,7 +2322,7 @@ class GlobalClient
         if not @servers?
             opts.cb?("@servers not yet initialized"); return
         console.log("starting...")
-        dbg = (m) -> winston.info("push_servers_files: #{m}")
+        dbg = (m) => winston.info("push_servers_files: #{m}")
         dbg('starting... logged')
         errors = {}
         file = "#{DATA}/bup_servers"
@@ -2348,7 +2371,7 @@ class GlobalClient
             experimental : false   # if true, don't allocate new projects here
             timeout      : 30
             cb     : undefined
-        dbg = (m) -> winston.debug("GlobalClient.add_storage_server(#{opts.host}, #{opts.dc}): #{m}")
+        dbg = (m) => winston.debug("GlobalClient.add_storage_server(#{opts.host}, #{opts.dc}): #{m}")
         dbg("adding storage server to the database by grabbing server_id files, etc.")
         get_file = (path, cb) =>
             dbg("get_file: #{path}")
@@ -2941,6 +2964,63 @@ class GlobalClient
                     opts.cb?(undefined, projects)
                 else
                     opts.cb?()
+        )
+
+    repair_bup_location: (opts) =>
+        opts = defaults opts,
+            limit       : 20           # number to do in parallel
+            timeout     : TIMEOUT
+            cb          : required    # cb(err, errors)
+        if not @servers?
+            opts.cb?("@servers not yet initialized"); return
+        dbg = (m) => winston.debug("GlobalClient.repair_bup_location(...): #{m}")
+        dbg()
+        projects = []
+        async.series([
+            (cb) =>
+                dbg("querying database....")
+                @database.select
+                    table     : 'projects'
+                    columns   : ['project_id', 'bup_location', 'bup_last_save']
+                    objectify : true
+                    stream    : true
+                    cb        : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("got #{r.length} records")
+                            dbg("checking through each project to see which don't have bup_location set")
+                            i = 0
+                            for project in r
+                                if i%5000 == 0
+                                    dbg("checked #{i}/#{r.length} projects...")
+                                i += 1
+                                if project.bup_location or not project.bup_last_save? or misc.len(project.bup_last_save) == 0
+                                    continue
+                                bup_location = undefined
+                                newest_date = undefined
+                                for server_id, date of project.bup_last_save
+                                    if not bup_location or date >= newest_date
+                                        bup_location = server_id
+                                        newest_date = date
+                                projects.push({project_id:project.project_id, bup_location:bup_location})
+                            console.log(projects)
+                            cb()
+            (cb) =>
+                i = 0
+                f = (project, cb) =>
+                    i += 1
+                    if i%50 == 0
+                        console.log("#{i}/#{projects.length}")
+                    @database.update
+                        table : 'projects'
+                        set   :
+                            bup_location : project.bup_location
+                        where :
+                            project_id : project.project_id
+                        cb    : cb
+                async.mapLimit(projects, opts.limit, f, cb)
+        ], (err) => opts.cb?(err)
         )
 
     # I used this function to delete all deprecated content from columns in the projects table.
@@ -3652,14 +3732,14 @@ main = () ->
         winston.remove(winston.transports.Console)
         winston.add(winston.transports.Console, {level: program.debug, timestamp:true, colorize:true})
 
-    winston.debug "Running as a Daemon"
+    winston.debug("running as a deamon")
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
         winston.debug("BUG ****************************************************************************")
         winston.debug("Uncaught exception: " + err)
         winston.debug(err.stack)
         winston.debug("BUG ****************************************************************************")
-    daemon({max:999999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+    daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
 if program._name.split('.')[0] == 'bup_server'
     main()
