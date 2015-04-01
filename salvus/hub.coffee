@@ -35,7 +35,7 @@
 #
 # or even this is fine:
 #
-#     ./hub nodaemon --port 5000 --tcp_port 5001 --keyspace salvus --host localhost --database_nodes localhost
+#     ./hub nodaemon --port 5000 --tcp_port 5001 --keyspace devel --host localhost --database_nodes localhost
 #
 ##############################################################################
 
@@ -6724,10 +6724,15 @@ clean_up_on_shutdown = () ->
 connect_to_database = (cb) ->
     if database? # already did this
         cb(); return
-    fs.readFile "#{SALVUS_HOME}/data/secrets/cassandra/hub", (err, password) ->
+    dbg = (m) -> winston.debug("connect_to_database: #{m}")
+    password_file = "#{SALVUS_HOME}/data/secrets/cassandra/hub"
+    dbg("reading '#{password_file}'")
+    fs.readFile password_file, (err, password) ->
         if err
-            cb(err)
+            dbg("error reading password file -- #{err}")
+            setTimeout((()->cb(err)), 5000)
         else
+            dbg("got password; now connecting to database")
             new cass.Salvus
                 hosts       : program.database_nodes.split(',')
                 keyspace    : program.keyspace
@@ -6736,10 +6741,10 @@ connect_to_database = (cb) ->
                 consistency : cql.types.consistencies.localQuorum
                 cb          : (err, _db) ->
                     if err
-                        winston.debug("Error connecting to database")
+                        dbg("Error connecting to database -- #{err}")
                         cb(err)
                     else
-                        winston.debug("Successfully connected to database.")
+                        dbg("Successfully connected to database.")
                         database = _db
                         cb()
 
