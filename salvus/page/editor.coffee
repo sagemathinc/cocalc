@@ -3262,7 +3262,7 @@ class PDF_PreviewEmbed extends FileEditor
         @_last_width = width
         @_last_height = height
 
-        output_height = height - ( @output.offset().top - @element.offset().top)
+        output_height = height - (@output.offset().top - @element.offset().top)
         @output.height(output_height)
         @output.width(width)
 

@@ -740,18 +740,23 @@ class exports.Connection extends EventEmitter
             password       : required
             agreed_to_terms: required
             token          : undefined       # only required if an admin set the account creation token.
-            timeout        : DEFAULT_TIMEOUT # seconds
+            timeout        : 15
             cb             : required
 
-        mesg = message.create_account
-            first_name      : opts.first_name
-            last_name       : opts.last_name
-            email_address   : opts.email_address
-            password        : opts.password
-            agreed_to_terms : opts.agreed_to_terms
-            token           : opts.token
+        if not opts.agreed_to_terms
+            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the Salvus Terms of Service."}))
+            return
 
-        @call(message:mesg, timeout:opts.timeout, cb:opts.cb)
+        @call
+            message : message.create_account
+                first_name      : opts.first_name
+                last_name       : opts.last_name
+                email_address   : opts.email_address
+                password        : opts.password
+                agreed_to_terms : opts.agreed_to_terms
+                token           : opts.token
+            timeout : opts.timeout
+            cb      : opts.cb
 
     sign_in: (opts) ->
         opts = defaults opts,
@@ -759,13 +764,15 @@ class exports.Connection extends EventEmitter
             password      : required
             remember_me   : false
             cb            : required
-            timeout       : DEFAULT_TIMEOUT # seconds
+            timeout       : 15
 
         @call
-            message : message.sign_in(email_address:opts.email_address, password:opts.password, remember_me:opts.remember_me)
+            message : message.sign_in
+                email_address : opts.email_address
+                password      : opts.password
+                remember_me   : opts.remember_me
             timeout : opts.timeout
-            cb      : (error, mesg) =>
-                opts.cb(error, mesg)
+            cb      : opts.cb
 
     sign_out: (opts) ->
         opts = defaults opts,
@@ -774,7 +781,7 @@ class exports.Connection extends EventEmitter
             timeout      : DEFAULT_TIMEOUT # seconds
 
         @account_id = undefined
- 
+
         @call
             message : message.sign_out(everywhere:opts.everywhere)
             timeout : opts.timeout
@@ -2408,7 +2415,7 @@ exports.issues_with_create_account = (mesg) ->
     if not mesg.agreed_to_terms
         issues.agreed_to_terms = 'Agree to the Salvus Terms of Service.'
     if mesg.first_name == ''
-        issues.first_name = 'Enter a first name.'
+        issues.first_name = 'Enter your name.'
     if not exports.is_valid_email_address(mesg.email_address)
         issues.email_address = 'Email address does not appear to be valid.'
     [valid, reason] = exports.is_valid_password(mesg.password)

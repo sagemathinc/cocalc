@@ -66,6 +66,10 @@ assert  = require('assert')
 async   = require('async')
 winston = require('winston')                    # https://github.com/flatiron/winston
 
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+
+
 cql     = require("cassandra-driver")
 Client  = cql.Client  # https://github.com/datastax/nodejs-driver
 uuid    = require('node-uuid')
@@ -117,20 +121,6 @@ exports.inet_to_str = (r) ->
 PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'hide_from_accounts'].concat(PROJECT_GROUPS)
 
 exports.PUBLIC_PROJECT_COLUMNS = ['project_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted']
-
-exports.create_schema = (conn, cb) ->
-    t = misc.walltime()
-    blocks = require('fs').readFileSync('db_schema.cql', 'utf8').split('CREATE')
-    f = (s, cb) ->
-        console.log(s)
-        if s.length > 0
-            conn.cql("CREATE "+s, [], ((e,r)->console.log(e) if e; cb(null,0)))
-        else
-            cb(null, 0)
-    async.mapSeries blocks, f, (err, results) ->
-        winston.info("created schema in #{misc.walltime()-t} seconds.")
-        winston.info(err)
-        cb(err)
 
 class UUIDStore
     set: (opts) ->
@@ -848,6 +838,42 @@ class exports.Salvus extends exports.Cassandra
             opts.keyspace = 'salvus'
         super(opts)
 
+    ###
+    Initialize the database schema
+
+    First, on the bash command line, do this:
+
+        echo "CREATE KEYSPACE devel WITH replication = {  'class': 'NetworkTopologyStrategy',  'DC0': '1' };" | cqlsh
+
+    Then in a coffeescript shell, do this:
+
+        a = new (require("cassandra").Salvus)(hosts:['localhost'], keyspace:'devel', cb:()->a.create_schema(console.log))
+
+    If this goes wrong, you can completely drop the keyspace and start from scratch:
+
+        echo "DROP KEYSPACE devel;" | cqlsh
+
+    ###
+    create_schema: (cb) =>
+        t = misc.walltime()
+
+        file = require('fs').readFileSync('db_schema.cql', 'utf8')
+        file = misc.remove_c_comments(file)
+
+        blocks = file.split('CREATE')
+        blocks = (b.trim() for b in blocks when b.trim().length > 0)
+        winston.debug("read #{blocks.length} blocks of CREATE statements.  Now executing them:")
+        f = (s, cb) =>
+            s = "CREATE #{s}"
+            winston.debug(s)
+            @cql
+                query : s
+                cb    : cb
+
+        async.mapSeries blocks, f, (err, results) ->
+            winston.debug(err)
+            cb(err)
+
     #####################################
     # The cluster status monitor
     #####################################
@@ -1172,14 +1198,15 @@ class exports.Salvus extends exports.Cassandra
     # Account Management
     #####################################
     is_email_address_available: (email_address, cb) =>
-        @count
-            table : "email_address_to_account_id"
-            where :{email_address : misc.lower_email_address(email_address)}
-            cb    : (error, cnt) =>
-                if error
-                   cb(error)
+        @select
+            table   : "email_address_to_account_id"
+            where   :{email_address : misc.lower_email_address(email_address)}
+            columns : ['account_id']
+            cb      : (err, records) =>
+                if err
+                    cb(err)
                 else
-                   cb(null, cnt==0)
+                    cb(undefined, records.length==0)
 
     create_account: (opts={}) ->
         opts = defaults opts,

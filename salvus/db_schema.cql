@@ -1,13 +1,10 @@
 /*
 
+CREATE KEYSPACE salvus WITH replication = {  'class': 'NetworkTopologyStrategy',  'DC0': '1' };
+
 CREATE KEYSPACE salvus WITH replication = {'class': 'NetworkTopologyStrategy', 'DC5': '3', 'DC6': '3'}  AND durable_writes = true;
 
 or
-
-CREATE KEYSPACE salvus WITH replication = {
-  'class': 'NetworkTopologyStrategy',
-  'DC0': '1'
-};
 
 
 GRANT SELECT ON table storage_servers TO monitor;
@@ -20,10 +17,10 @@ CREATE KEYSPACE system_auth WITH replication = {'class': 'NetworkTopologyStrateg
 ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'DC5': '3', 'DC6': '3'} ;
 */
 
-/* NOTE: as explained at https://cloud.sagemath.com/projects/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/files/salvus/salvus/db_schema.cql
+/* NOTE: as explained at db_schema.cql
    these blob tables below will store everything with a given name in the *same* single Cassandra column, hence not spread across
    the cluster.  This is technically bad (though in practice can maybe mean some queries are faster).  It's mainly an issue if the
-   size of the table were huge, which it isn't now.   This should be restructured at some point though.
+   size of the table were huge, which it isn't now.   This must be restructured at some point though.
 */
 
 CREATE TABLE uuid_blob (
@@ -71,8 +68,8 @@ CREATE TABLE passport_settings (
     conf     map<varchar, varchar>
 );
 
-// If you add columns to this table, also get_account in cassandra.coffee
-// and account_settings_defaults in message.coffee.
+/* If you add columns to this table, also may need to update get_account in cassandra.coffee
+   and account_settings_defaults in message.coffee. */
 
 CREATE TABLE accounts (
     account_id           uuid PRIMARY KEY,
@@ -126,7 +123,7 @@ CREATE TABLE accounts (
 
     /* Map from passport logins for this account to their auth-provided id.  The raw
        profile information is stored in the passports table defined below. */
-    passports            map<varchar, varchar>;
+    passports            map<varchar, varchar>
 );
 
 CREATE TABLE email_address_to_account_id (
@@ -167,7 +164,6 @@ CREATE TABLE account_creation_actions (
 
 
 
-
 CREATE TABLE auths (
     account_id   uuid,
     provider     varchar,
@@ -177,7 +173,7 @@ CREATE TABLE auths (
 );
 
 
-// the central log
+/* the central log */
 CREATE TABLE central_log (
     time   timestamp PRIMARY KEY,
     event  varchar,
@@ -187,19 +183,19 @@ CREATE TABLE central_log (
 CREATE INDEX ON central_log(event);
 
 CREATE TABLE feedback (
-    feedback_id uuid PRIMARY KEY,     // id of this feedback
-    account_id uuid,      // user who reported the feedback (if known)
-    category  varchar,      // 'bug', 'idea', 'comment'
-    description varchar,  // description of feedback by user
-    data    varchar,      // JSON object -- anything system wants to record about feedback, e.g., fields with state info (!)
-    nps     int,          // "how likely are you to recommend salvus to one of your friends or colleagues" -- good time to ask: 0,1,..,9,10
-    status  varchar,      // 'new' (user just reported it), 'issue' (opened ticket in feedback tracker), 'closed' (resolved), 'invalid'
-    notes   varchar,      // notes by salvus developers about this issue
-    url     varchar,      // pointer into feedback tracking system, if feedback is sent to a standard feedback tracker (e.g., a github issue)
+    feedback_id uuid PRIMARY KEY,   /* id of this feedback */
+    account_id uuid,                /* user who reported the feedback (if known) */
+    category  varchar,              /* 'bug', 'idea', 'comment' */
+    description varchar,            /* description of feedback by user */
+    data    varchar,                /* JSON object -- anything system wants to record about feedback, e.g., fields with state info (!) */
+    nps     int,                    /* "how likely are you to recommend salvus to one of your friends or colleagues" -- good time to ask: 0,1,..,9,10 */
+    status  varchar,                /* 'new' (user just reported it), 'issue' (opened ticket in feedback tracker), 'closed' (resolved), 'invalid' */
+    notes   varchar,                /* notes by salvus developers about this issue */
+    url     varchar,                /* pointer into feedback tracking system, if feedback is sent to a standard feedback tracker (e.g., a github issue) */
     time    timestamp
 );
 
-CREATE INDEX ON feedback(account_id);   // so we can show (via GUI) all feedback issues associated with a given user to a user
+CREATE INDEX ON feedback(account_id);   /* so we can show (via GUI) all feedback issues associated with a given user to a user */
 CREATE INDEX ON feedback(category);
 CREATE INDEX ON feedback(status);
 CREATE INDEX ON feedback(nps);
@@ -220,9 +216,7 @@ CREATE TABLE password_reset_attempts_by_email_address (
      PRIMARY KEY(email_address, time)
 );
 
-//////////////////////////////////////////
-// sign in log
-//////////////////////////////////////////
+/* sign in log */
 CREATE TABLE failed_sign_ins_by_ip_address (
      ip_address    varchar,
      time          timestamp,
@@ -251,34 +245,34 @@ CREATE TABLE successful_sign_ins (
 
 
 
-////////////////////////////////////////////
-// Projects -- see the appropriate section
-// of message.coffee for how projects work.
-////////////////////////////////////////////
+/*
+   Projects -- see the appropriate section
+   of message.coffee for how projects work.
+   */
 
 CREATE TABLE projects (
      project_id       uuid  PRIMARY KEY,
      created          timestamp,
 
-     account_id       uuid,          // id of original creator of this project
+     account_id       uuid,          /* id of original creator of this project */
      title            varchar,
      description      varchar,
-     public           boolean,   // whether or not the project is visible to everybody in the world - TODO: NOT USED CURRENTLY
-     snapshots_disabled boolean, // if true, do not make snapshots (e.g., because something is weird)
+     public           boolean,       /* whether or not the project is visible to everybody in the world - TODO: NOT USED CURRENTLY */
+     snapshots_disabled boolean,     /* if true, do not make snapshots (e.g., because something is weird) */
 
-     last_edited      timestamp,// timestamp of last modification of the project
+     last_edited      timestamp,     /* timestamp of last modification of the project */
 
 
-     bup_location     uuid,     // location using new bup-based storage system
+     bup_location     uuid,         /* location using new bup-based storage system */
      bup_last_save    map<uuid, timestamp>,
-     bup_repo_size_kb     int,      // last known size of bup repository in kilobytes = 1000 bytes
-     bup_working_size_kb  int,      // last known size of working directory in kilobytes = 1000 bytes
+     bup_repo_size_kb     int,      /* last known size of bup repository in kilobytes = 1000 bytes */
+     bup_working_size_kb  int,      /* last known size of working directory in kilobytes = 1000 bytes */
 
 
-     settings         map<text,text>,  // various project settings, e.g., 'memory', 'cpu_shares', 'cores', 'disk', 'mintime', 'login_shell'
+     settings         map<text,text>,  /* various project settings, e.g., 'memory', 'cpu_shares', 'cores', 'disk', 'mintime', 'login_shell' */
 
-     size             int,      // total size in bytes at last save
-     deleted          boolean,  // if true, user deleted the project, so nobody sees it.
+     size             int,      /* total size in bytes at last save */
+     deleted          boolean,  /* if true, user deleted the project, so nobody sees it. */
 
      owner                set<uuid>,   /* owners of this project (will have some special perms) */
      collaborator         set<uuid>,   /* all actual collaborators on this project              */
@@ -329,10 +323,7 @@ CREATE TABLE recently_modified_projects (
 );
 
 
-
-////////////////////////////////////////////
-// public shared documents/paths
-////////////////////////////////////////////
+/* public shared documents/paths */
 CREATE TABLE public_paths (
     project_id  uuid,
     path        varchar,
@@ -341,9 +332,7 @@ CREATE TABLE public_paths (
 );
 
 
-////////////////////////////////////////////
-// Hubs -- the global hubs that coordinate users with resources
-////////////////////////////////////////////
+/* Hubs -- the global hubs that coordinate users with resources */
 
 /* The hub servers -- entries in this table should always be inserted with a
    small ttl (e.g., 30 seconds) that is periodically updated. */
@@ -360,9 +349,7 @@ CREATE TABLE hub_servers (
 
 
 
-////////////////////////////////////////////
-// Admin -- log of events
-////////////////////////////////////////////
+/* Admin -- log of events */
 
 CREATE TABLE admin_log (
     service varchar,
@@ -379,9 +366,7 @@ CREATE TABLE client_error_log (
     PRIMARY KEY(type, timestamp)
 );
 
-////////////////////
-// Record of and notifications about activity on specific paths
-///////////////////
+/* Record of and notifications about activity on specific paths */
 
 /* the 2 is because I messed up a previous schema */
 CREATE TABLE activity_by_project2 (
@@ -424,9 +409,7 @@ CREATE TABLE activity_by_user (
    PRIMARY KEY (account_id, timestamp)
 );
 
-////////////////////
-// Database-backed synchronized strings
-////////////////////
+/* Database-backed synchronized strings */
 
 CREATE TABLE syncstrings (
     string_id  uuid,
@@ -449,9 +432,7 @@ CREATE TABLE syncstring_servers (
     PRIMARY KEY (dummy, host, port)
 );
 
-////////////////////
-// Server stats
-///////////////////
+/* Server stats */
 
 CREATE TABLE stats (
     time timestamp PRIMARY KEY,
@@ -562,123 +543,6 @@ CREATE TABLE storage_servers (
     ssh           map<int, varchar>,   /*  dc -> 'address:port' when connecting *from* that dc; use dc=-1 for connecting from the greater internet */
     PRIMARY KEY(dummy, server_id)
 );
-
-
-/*STORAGE */
-
-/*
-  CREATE KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3'};
-  ALTER KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3'};
-
-  ALTER KEYSPACE system_auth WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3', 'DC3':'3'};
-
-CREATE USER salvus WITH PASSWORD '...'  SUPERUSER;
-DROP USER cassandra;
-CREATE USER storage_server WITH PASSWORD '...';
-
-*/
-
-
-/*
-  - write this right before storing the object -- delete when object successfully stored.
-  - scrub will periodically go through and delete sufficiently old chunks left around from writing records.
-  - querying the writing table is an easy way to see what writes are happening right now.
-*/
-CREATE TABLE storage_writing (
-    dummy       boolean,    /* so can do:   select id,name,size from storage_writing where dummy=true    */
-    timestamp   timestamp,
-    id          uuid,
-    name        varchar,
-    size        varchar,   /* object size (too big for 32 bit int and bigint+node.js=pain) */
-    chunk_size  int,      /* size in bytes that file/object is divided into */
-    chunk_ids   list<uuid>,
-    PRIMARY KEY (dummy, timestamp, id, name)
-);
-
-/* write this once the object is stored. */
-CREATE TABLE storage (
-    id          uuid,
-    name        varchar,
-    size        varchar,  /* object size (too big for 32 bit int and bigint+node.js=pain) */
-    chunk_size  int,      /* size in bytes that file/object is divided into */
-    chunk_ids   list<uuid>,
-    PRIMARY KEY (id, name)
-);
-
-CREATE TABLE storage_chunks (
-    chunk_id    uuid      PRIMARY KEY,
-    size        int,      /* size in bytes (32-bit) */
-    chunk       blob
-);
-
-CREATE TABLE storage_log (
-    id          uuid,
-    timestamp   timestamp,
-    host        varchar,
-    compute_id  uuid,        /* id of the compute machine on which which the action was taken */
-    action      varchar,
-    param       varchar,     /* JSON */
-    error       varchar,     /* JSON */
-    time_s      float,       /* elapsed time for action */
-    PRIMARY KEY (id, timestamp)
-);
-
-
-
-CREATE TABLE project_state (
-    project_id     uuid,
-    compute_id     uuid,         /* uuid of the compute VM that is hosting some version of this project */
-    sync_streams   timestamp,    /* last time to sync with database */
-    recv_streams   timestamp,    /* last recv time */
-    send_streams   timestamp,    /* snapshot time of last successful image send */
-    import_pool    timestamp,    /* last zpool import; undefined if exported */
-    snapshot_pool  timestamp,    /* last time the filsystem in the zpool was snapshotted on this host */
-    scrub_pool     timestamp,    /* last time we ran zpool scrub on this pool */
-    broken         boolean,      /* set to true of we consider this copy of the project broken: change once fixed */
-    PRIMARY KEY    (project_id, compute_id)
-);
-
-/* Use this table to get a global view on what projects are on a host, e.g., as a consistency check (when host dies).
-   This is basically just a "CREATE INDEX on project_storage(host)", except that it isn't dog slow and useless. */
-
-CREATE TABLE compute_hosts (
-    dummy          boolean,      /* localize all data so "select *" is fast (table is very small) */
-    compute_id     uuid,         /* random uuid of this particular compute host */
-    host           inet,         /* ip address */
-    port           int,          /* port of storage server: undefined if down -- set frequently with a ttl */
-    up_since       timestamp,    /* time when this host became fully operational; undefined if down -- set frequently with a ttl! */
-    health         float,        /* 0 is bad, 1 is good */
-    zfs_queue_len  int,          /* zfs ops: first come, first served: is queue is big, mounting even a small project could take a while */
-    projects       set<uuid>,    /* projects with data on this compute host */
-    PRIMARY KEY (dummy, compute_id)
-);
-
-/* TODO: only here for the migration. */
-CREATE TABLE project_new (
-    project_id  uuid PRIMARY KEY,
-    new         boolean,      /* if true, mount and *run* using the new storage format */
-);
-
-CREATE INDEX on compute_hosts(host);
-
-
-GRANT SELECT ON table storage TO storage_server;
-GRANT MODIFY ON table storage TO storage_server;
-GRANT MODIFY ON table storage_writing TO storage_server;
-GRANT SELECT ON table storage_writing TO storage_server;
-GRANT MODIFY ON table storage_chunks TO storage_server;
-GRANT SELECT ON table storage_chunks TO storage_server;
-GRANT SELECT ON table storage_log TO storage_server;
-GRANT MODIFY ON table storage_log TO storage_server;
-GRANT SELECT ON table project_state  TO storage_server;
-GRANT MODIFY ON table project_state  TO storage_server;
-GRANT SELECT ON table compute_hosts TO storage_server;
-GRANT MODIFY ON table compute_hosts TO storage_server;
-GRANT SELECT ON table project_new TO storage_server;
-GRANT MODIFY ON table project_new TO storage_server;
-
-
-
 
 
 

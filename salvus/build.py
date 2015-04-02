@@ -132,7 +132,7 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
 # Additional packages (mainly for users, not building).
 
 
-    apt-get install  libmed1 libhdf5-openmpi-7 gmsh dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin npm coffeescript  coffeescript-doc lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev yi php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3
+    apt-get install  libmed1 libhdf5-openmpi-7 gmsh dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin npm coffeescript  coffeescript-doc lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev yi php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3 gpicview python-pip python3-pip
 
 
 # SAGE
@@ -348,12 +348,11 @@ os.environ['PREFIX'] = PREFIX
 if 'MAKE' in os.environ:
     del os.environ['MAKE']
 
-# WARNING--as of Sept 1, 2013, start-stop-daemon's install is broken, even though no versions (and no dep versions) have changed,
-# due to some packages cheating npm.  So I'm typically just copying over node_modules/start-stop-daemon from previous installs.
-
 NODE_MODULES = [
     'commander',
-    'start-stop-daemon',
+    # I had to fork the official start-stop-daemon, since it is broken with
+    # newer node versions -- https://github.com/sagemathinc/start-stop-daemon
+    'sagemathinc/start-stop-daemon',
     'winston',
     'primus',  # websocket abstraction
     'ws',      # fast low-level websocket depedency for primus
@@ -403,6 +402,7 @@ NODE_MODULES = [
     'stripe'        # for billing -- https://github.com/stripe/stripe-node
     ]
 
+# this is for the python in the /home/salvus/... place, not the system-wide or sage python!
 PYTHON_PACKAGES = [
     'readline',
     'ipython',            # a usable command line  (ipython uses readline)
@@ -697,6 +697,7 @@ class BuildSage(object):
         self.install_rstan()    # FAIL -- ERROR: dependency StanHeaders is not available for package rstan
 
     def install_sage_manifolds(self):
+        # TODO: this will probably fail due to an interactive merge request (?)
         self.cmd("cd $SAGE_ROOT && git pull https://github.com/sagemanifolds/sage.git </dev/null && sage -br < /dev/null")
 
     def pull_smc_sage(self):

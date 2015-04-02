@@ -35,7 +35,7 @@
 #
 # or even this is fine:
 #
-#     ./hub nodaemon --port 5000 --tcp_port 5001 --keyspace salvus --host localhost --database_nodes localhost
+#     ./hub nodaemon --port 5000 --tcp_port 5001 --keyspace devel --host localhost --database_nodes localhost
 #
 ##############################################################################
 
@@ -80,7 +80,7 @@ fs      = require('fs')
 
 _       = require('underscore')
 
-# salvus libraries
+# SMC libraries
 sage    = require("sage")               # sage server
 misc    = require("misc")
 {defaults, required} = require('misc')
@@ -89,6 +89,7 @@ cass    = require("cassandra")
 cql     = require("cassandra-driver")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
+{send_email} = require('email')
 
 
 SALVUS_VERSION = 0
@@ -380,7 +381,7 @@ passport_login = (opts) ->
         opts.last_name = "User"
 
     if opts.emails?
-        opts.emails = (x.toLowerCase() for x in opts.emails)
+        opts.emails = (x.toLowerCase() for x in opts.emails when (x? and x.toLowerCase? and client_lib.is_valid_email_address(x)))
 
     opts.id = "#{opts.id}"  # convert to string (id is often a number)
 
@@ -1173,6 +1174,7 @@ init_http_proxy_server = () =>
     proxy_cache = {}
     http_proxy_server = http.createServer (req, res) ->
         tm = misc.walltime()
+        {query, pathname} = url.parse(req.url, true)
         req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
         if req_url == "/alive"
             res.end('')
@@ -1189,7 +1191,7 @@ init_http_proxy_server = () =>
         if not remember_me?
 
             # before giving an error, check on possibility that file is public
-            public_raw req_url, res, (err, is_public) ->
+            public_raw req_url, query, res, (err, is_public) ->
                 if err or not is_public
                     res.writeHead(500, {'Content-Type':'text/html'})
                     res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> with cookies enabled, then refresh this page.")
@@ -1199,7 +1201,7 @@ init_http_proxy_server = () =>
         target remember_me, req_url, (err, location) ->
             dbg("got target: #{misc.walltime(tm)}")
             if err
-                public_raw req_url, res, (err, is_public) ->
+                public_raw req_url, query, res, (err, is_public) ->
                     if err or not is_public
                         winston.debug("proxy denied -- #{err}")
                         res.writeHead(500, {'Content-Type':'text/html'})
@@ -1253,12 +1255,14 @@ init_http_proxy_server = () =>
 
     public_raw_paths_cache = {}
 
-    public_raw = (req_url, res, cb) ->
+    public_raw = (req_url, query, res, cb) ->
         # Determine if the requested path is public (and not too big).
         # If so, send content to the client and cb(undefined, true)
         # If not, cb(undefined, false)
         # req_url = /9627b34f-fefd-44d3-88ba-5b1fc1affef1/raw/a.html
-        v = req_url.split('?')[0].split('/')
+        x = req_url.split('?')
+        params = x[1]
+        v = x[0].split('/')
         if v[2] != 'raw'
             cb(undefined, false)
             return
@@ -1309,7 +1313,9 @@ init_http_proxy_server = () =>
                             if err
                                 cb(err)
                             else
-                                res.setHeader('Content-disposition', 'attachment')
+                                if query.download?
+                                    res.setHeader('Content-disposition', 'attachment')
+                                filename = path.slice(path.lastIndexOf('/') + 1)
                                 res.write(data)
                                 res.end()
                                 is_public = true
@@ -5432,6 +5438,7 @@ sign_in_check = (opts) ->
 sign_in = (client, mesg, cb) ->
     dbg = (m) -> winston.debug("sign_in(#{mesg.email_address}): #{m}")
     dbg()
+    tm = misc.walltime()
 
     sign_in_error = (error) ->
         dbg("sign_in_error -- #{error}")
@@ -5460,7 +5467,7 @@ sign_in = (client, mesg, cb) ->
         sign_in_error("sign_in_check fail(ip=#{client.ip_address}): #{m}")
         return
 
-    signed_in_mesg = null
+    signed_in_mesg = undefined
     account = undefined
     async.series([
         (cb) ->
@@ -5492,21 +5499,19 @@ sign_in = (client, mesg, cb) ->
                         if not account.password_hash
                             cb("The account #{mesg.email_address} exists but doesn't have a password. Either set your password by clicking 'Forgot your password?' or log in using #{misc.keys(account.passports).join(', ')}.  If that doesn't work, email help@sagemath.com and we will sort this out.")
                         else
-                            cb("Incorrect password for #{mesg.email_address}.  Reset your password; if that doesn't work, email help@sagemath.com and we will sort this out.")
+                            cb("Incorrect password for #{mesg.email_address}.  You can reset your password by clicking the 'Forgot your password?' link.   If that doesn't work, email help@sagemath.com and we will sort this out.")
                     else
-                        signed_in_mesg = message.signed_in
-                            id            : mesg.id
-                            account_id    : account.account_id
-                            email_address : mesg.email_address
-                            remember_me   : false
-                            hub           : program.host + ':' + program.port
-                        client.signed_in(signed_in_mesg)
-                        client.push_to_client(signed_in_mesg)
                         cb()
         # remember me
         (cb) ->
             if mesg.remember_me
-                dbg("remember_me")
+                dbg("remember_me -- setting the remember_me cookie")
+                signed_in_mesg = message.signed_in
+                    id            : mesg.id
+                    account_id    : account.account_id
+                    email_address : mesg.email_address
+                    remember_me   : false
+                    hub           : program.host + ':' + program.port
                 client.remember_me
                     account_id    : signed_in_mesg.account_id
                     email_address : signed_in_mesg.email_address
@@ -5515,8 +5520,13 @@ sign_in = (client, mesg, cb) ->
                 cb()
     ], (err) ->
         if err
+            dbg("send error to user (in #{misc.walltime(tm)}seconds) -- #{err}")
             sign_in_error(err)
+            cb?(err)
         else
+            dbg("user got signed in fine (in #{misc.walltime(tm)}seconds) -- sending them a message")
+            client.signed_in(signed_in_mesg)
+            client.push_to_client(signed_in_mesg)
             cb?()
     )
 
@@ -5569,10 +5579,11 @@ is_valid_password = (password) ->
 
 
 
-create_account = (client, mesg) ->
+create_account = (client, mesg, cb) ->
     id = mesg.id
     account_id = null
     dbg = (m) -> winston.debug("create_account (#{mesg.email_address}): #{m}")
+    tm = misc.walltime()
     if mesg.email_address?
         mesg.email_address = misc.lower_email_address(mesg.email_address)
     async.series([
@@ -5590,8 +5601,7 @@ create_account = (client, mesg) ->
             # delete issues['password']
 
             if misc.len(issues) > 0
-                client.push_to_client(message.account_creation_failed(id:id, reason:issues))
-                cb(true)
+                cb(issues)
             else
                 cb()
 
@@ -5602,52 +5612,46 @@ create_account = (client, mesg) ->
         (cb) ->
             dbg("ip_tracker test")
             ip_tracker = database.key_value_store(name:'create_account_ip_tracker')
-            ip_tracker.get(
+            ip_tracker.get
                 key : client.ip_address
                 cb  : (error, value) ->
                     if error
-                        client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
-                        cb(true)
+                        cb({'other':"Internal error creating account -- #{error}.  Please try later."})
+                        return
                     if not value?
-                        ip_tracker.set(key: client.ip_address, value:1, ttl:6*3600)
+                        ip_tracker.set(key: client.ip_address, value:1, ttl:3600)
                         cb()
-                    else if value < 5000
-                        ip_tracker.set(key: client.ip_address, value:value+1, ttl:6*3600)
+                    else if value < 1000
+                        ip_tracker.set(key: client.ip_address, value:value+1, ttl:3600)
                         cb()
                     else # bad situation
-                        database.log(
+                        database.log
                             event : 'create_account'
                             value : {ip_address:client.ip_address, reason:'too many requests'}
-                        )
-                        client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Too many account requests from the ip address #{client.ip_address} in the last 6 hours.  Please try again later."}))
-                        cb(true)
-            )
+                        cb({'other':"There were too many account creation requests from the ip address #{client.ip_address} in the last hour."})
 
         (cb) ->
             dbg("query database to determine whether the email address is available")
-            database.is_email_address_available(mesg.email_address, (error, available) ->
+            database.is_email_address_available mesg.email_address, (error, available) ->
                 if error
-                    client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
-                    cb(true)
+                    cb({'other':"Unable to create account.  Please try later."})
                 else if not available
-                    client.push_to_client(message.account_creation_failed(id:id, reason:{email_address:"This e-mail address is already taken."}))
-                    cb(true)
+                    cb({email_address:"This e-mail address is already taken."})
                 else
                     cb()
-            )
-        (cb) ->
-            dbg("check that account is not banned")
-            database.is_banned_user
-                email_address : mesg.email_address
-                cb            : (err, is_banned) ->
-                    if err
-                        client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
-                        cb(true)
-                    else if is_banned
-                        client.push_to_client(message.account_creation_failed(id:id, reason:{email_address:"This e-mail address is banned."}))
-                        cb(true)
-                    else
-                        cb()
+
+        #(cb) ->
+        #    dbg("check that account is not banned")
+        #    database.is_banned_user
+        #        email_address : mesg.email_address
+        #        cb            : (err, is_banned) ->
+        #            if err
+        #                cb({'other':"Unable to create account.  Please try later."})
+        #            else if is_banned
+        #                cb({email_address:"This e-mail address is banned."})
+        #            else
+        #                cb()
+
         (cb) ->
             dbg("check if a registration token is required")
             database.key_value_store(name:'global_admin_settings').get
@@ -5657,10 +5661,10 @@ create_account = (client, mesg) ->
                         cb()
                     else
                         if token != mesg.token
-                            client.push_to_client(message.account_creation_failed(id:id, reason:{token:"Incorrect registration token."}))
-                            cb(true)
+                            cb({token:"Incorrect registration token."})
                         else
                             cb()
+
         (cb) ->
             dbg("create new account")
             database.create_account
@@ -5670,15 +5674,16 @@ create_account = (client, mesg) ->
                 password_hash: password_hash(mesg.password)
                 cb: (error, result) ->
                     if error
-                        client.push_to_client(message.account_creation_failed(
-                                 id:id, reason:{'other':"Unable to create account right now.  Please try later."})
-                        )
-                        cb(true)
+                        cb({'other':"Unable to create account right now.  Please try later."})
                     else
                         account_id = result
                         database.log
                             event : 'create_account'
-                            value : {account_id:account_id, first_name:mesg.first_name, last_name:mesg.last_name, email_address:mesg.email_address}
+                            value :
+                                account_id : account_id
+                                first_name : mesg.first_name
+                                last_name  : mesg.last_name
+                                email_address : mesg.email_address
                         cb()
 
         (cb) ->
@@ -5689,8 +5694,21 @@ create_account = (client, mesg) ->
                 cb            : cb
 
         (cb) ->
-            dbg("send message back to user that they are logged in as the new user")
-            mesg = message.signed_in
+            dbg("set remember_me cookie...")
+            # so that proxy server will allow user to connect and
+            # download images, etc., the very first time right after they make a new account.
+            client.remember_me
+                email_address : mesg.email_address
+                account_id    : account_id
+                cb            : cb
+    ], (reason) ->
+        if reason
+            dbg("send message to user that there was an error (in #{misc.walltime(tm)}seconds) -- #{misc.to_json(reason)}")
+            client.push_to_client(message.account_creation_failed(id:id, reason:reason))
+            cb?("error creating account -- #{misc.to_json(reason)}")
+        else
+            dbg("send message back to user that they are logged in as the new user (in #{misc.walltime(tm)}seconds)")
+            mesg1 = message.signed_in
                 id            : mesg.id
                 account_id    : account_id
                 email_address : mesg.email_address
@@ -5698,16 +5716,12 @@ create_account = (client, mesg) ->
                 last_name     : mesg.last_name
                 remember_me   : false
                 hub           : program.host + ':' + program.port
-            client.signed_in(mesg)
-            client.push_to_client(mesg)
-            dbg("set remember_me cookie...")
-            # so that proxy server will allow user to connect and
-            # download images, etc., the very first time right after they make a new account.
-            client.remember_me
-                email_address : mesg.email_address
-                account_id    : account_id
-            cb()
-    ])
+            client.signed_in(mesg1)
+            client.push_to_client(mesg1)
+            cb?()
+    )
+
+
 
 
 account_creation_actions = (opts) ->
@@ -5733,7 +5747,9 @@ account_creation_actions = (opts) ->
                                 winston.debug("Error adding user to project: #{err}")
                             cb(err)
                 else
-                    cb("unknown action -- #{action.action}")
+                    # TODO: need to report this some better way, maybe email?
+                    winston.debug("skipping unknown action -- #{action.action}")
+                    cb()
             async.map(actions, f, (err) -> opts.cb(err))
 
 run_all_account_creation_actions = (cb) ->
@@ -6102,15 +6118,30 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         # send an email to mesg.email_address that has a link to
         (cb) ->
             body = """
+                Hello,
+
                 Somebody just requested to change the password on your SageMathCloud account.
-                If you requested this password change, please change your password by
-                following the link below within an hour:
+                If you requested this password change, please click this link:
 
                      https://cloud.sagemath.com#forgot-#{id}
 
                 If you don't want to change your password, ignore this message.
 
-                In case of problems, email help@sagemath.com immediately.
+                In case of problems, email help@sagemath.com immediately (or just reply to this email).
+
+
+
+
+
+
+
+
+
+
+
+
+
+                ---
                 """
 
             send_email
@@ -6227,84 +6258,6 @@ get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
     database.get_all_feedback_from_user
         account_id  : account_id
         cb          : (err, results) -> push_to_client(message.all_feedback_from_user(id:mesg.id, data:to_json(results), error:err))
-
-
-
-#########################################
-# Sending emails
-#########################################
-
-nodemailer   = require("nodemailer")
-sgTransport  = require('nodemailer-sendgrid-transport')
-email_server = undefined
-
-# here's how I test this function:
-#    require('hub').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@uw.edu', cb:console.log)
-exports.send_email = send_email = (opts={}) ->
-    opts = defaults opts,
-        subject : required
-        body    : required
-        from    : 'SageMath Help <help@sagemath.com>'
-        to      : required
-        cc      : ''
-        cb      : undefined
-
-    dbg = (m) -> winston.debug("send_email(to:#{opts.to}) -- #{m}")
-    dbg(opts.body)
-
-    disabled = false
-    async.series([
-        (cb) ->
-            if email_server?
-                cb(); return
-            dbg("starting sendgrid client...")
-            filename = 'data/secrets/sendgrid_email_password'
-            fs.readFile filename, 'utf8', (error, password) ->
-                if error
-                    err = "unable to read the file '#{filename}', which is needed to send emails."
-                    dbg(err)
-                    cb(err)
-                else
-                    pass = password.toString().trim()
-                    if pass.length == 0
-                        winston.debug("email_server: explicitly disabled -- so pretend to always succeed for testing purposes")
-                        disabled = true
-                        email_server = {disabled:true}
-                        cb()
-                        return
-
-                    email_server = nodemailer.createTransport(sgTransport(auth:{api_user:'wstein', api_key:pass}))
-                    dbg("started email server")
-                    cb()
-        (cb) ->
-            if disabled or email_server?.disabled
-                cb(undefined, 'email disabled -- no actual message sent')
-                return
-            winston.debug("sendMail to #{opts.to} starting...")
-            email =
-                from    : opts.from
-                to      : opts.to
-                text    : opts.body
-                subject : opts.subject
-                cc      : opts.cc
-            email_server.sendMail email, (err, res) =>
-                winston.debug("sendMail to #{opts.to} done...; got err=#{misc.to_json(err)} and res=#{misc.to_json(res)}")
-                if err
-                    dbg("sendMail -- error = #{misc.to_json(err)}")
-                else
-                    dbg("sendMail -- success = #{misc.to_json(res)}")
-                cb(err)
-
-    ], (err, message) ->
-        if err
-            # so next time it will try fresh to connect to email server, rather than being wrecked forever.
-            email_server = undefined
-            err = "error sending email -- #{misc.to_json(err)}"
-            dbg(err)
-        else
-            dbg("successfully sent email")
-        opts.cb?(err, message)
-    )
 
 
 ########################################
@@ -6709,10 +6662,15 @@ clean_up_on_shutdown = () ->
 connect_to_database = (cb) ->
     if database? # already did this
         cb(); return
-    fs.readFile "#{SALVUS_HOME}/data/secrets/cassandra/hub", (err, password) ->
+    dbg = (m) -> winston.debug("connect_to_database: #{m}")
+    password_file = "#{SALVUS_HOME}/data/secrets/cassandra/hub"
+    dbg("reading '#{password_file}'")
+    fs.readFile password_file, (err, password) ->
         if err
-            cb(err)
+            dbg("error reading password file -- #{err}")
+            setTimeout((()->cb(err)), 5000)
         else
+            dbg("got password; now connecting to database")
             new cass.Salvus
                 hosts       : program.database_nodes.split(',')
                 keyspace    : program.keyspace
@@ -6721,10 +6679,10 @@ connect_to_database = (cb) ->
                 consistency : cql.types.consistencies.localQuorum
                 cb          : (err, _db) ->
                     if err
-                        winston.debug("Error connecting to database")
+                        dbg("Error connecting to database -- #{err}")
                         cb(err)
                     else
-                        winston.debug("Successfully connected to database.")
+                        dbg("Successfully connected to database.")
                         database = _db
                         cb()
 
