@@ -80,7 +80,7 @@ fs      = require('fs')
 
 _       = require('underscore')
 
-# salvus libraries
+# SMC libraries
 sage    = require("sage")               # sage server
 misc    = require("misc")
 {defaults, required} = require('misc')
@@ -89,6 +89,7 @@ cass    = require("cassandra")
 cql     = require("cassandra-driver")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
+{send_email} = require('email')
 
 
 SALVUS_VERSION = 0
@@ -6117,15 +6118,30 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         # send an email to mesg.email_address that has a link to
         (cb) ->
             body = """
+                Hello,
+
                 Somebody just requested to change the password on your SageMathCloud account.
-                If you requested this password change, please change your password by
-                following the link below within an hour:
+                If you requested this password change, please click this link:
 
                      https://cloud.sagemath.com#forgot-#{id}
 
                 If you don't want to change your password, ignore this message.
 
-                In case of problems, email help@sagemath.com immediately.
+                In case of problems, email help@sagemath.com immediately (or just reply to this email).
+
+
+
+
+
+
+
+
+
+
+
+
+
+                ---
                 """
 
             send_email
@@ -6242,84 +6258,6 @@ get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
     database.get_all_feedback_from_user
         account_id  : account_id
         cb          : (err, results) -> push_to_client(message.all_feedback_from_user(id:mesg.id, data:to_json(results), error:err))
-
-
-
-#########################################
-# Sending emails
-#########################################
-
-nodemailer   = require("nodemailer")
-sgTransport  = require('nodemailer-sendgrid-transport')
-email_server = undefined
-
-# here's how I test this function:
-#    require('hub').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@uw.edu', cb:console.log)
-exports.send_email = send_email = (opts={}) ->
-    opts = defaults opts,
-        subject : required
-        body    : required
-        from    : 'SageMath Help <help@sagemath.com>'
-        to      : required
-        cc      : ''
-        cb      : undefined
-
-    dbg = (m) -> winston.debug("send_email(to:#{opts.to}) -- #{m}")
-    dbg(opts.body)
-
-    disabled = false
-    async.series([
-        (cb) ->
-            if email_server?
-                cb(); return
-            dbg("starting sendgrid client...")
-            filename = 'data/secrets/sendgrid_email_password'
-            fs.readFile filename, 'utf8', (error, password) ->
-                if error
-                    err = "unable to read the file '#{filename}', which is needed to send emails."
-                    dbg(err)
-                    cb(err)
-                else
-                    pass = password.toString().trim()
-                    if pass.length == 0
-                        winston.debug("email_server: explicitly disabled -- so pretend to always succeed for testing purposes")
-                        disabled = true
-                        email_server = {disabled:true}
-                        cb()
-                        return
-
-                    email_server = nodemailer.createTransport(sgTransport(auth:{api_user:'wstein', api_key:pass}))
-                    dbg("started email server")
-                    cb()
-        (cb) ->
-            if disabled or email_server?.disabled
-                cb(undefined, 'email disabled -- no actual message sent')
-                return
-            winston.debug("sendMail to #{opts.to} starting...")
-            email =
-                from    : opts.from
-                to      : opts.to
-                text    : opts.body
-                subject : opts.subject
-                cc      : opts.cc
-            email_server.sendMail email, (err, res) =>
-                winston.debug("sendMail to #{opts.to} done...; got err=#{misc.to_json(err)} and res=#{misc.to_json(res)}")
-                if err
-                    dbg("sendMail -- error = #{misc.to_json(err)}")
-                else
-                    dbg("sendMail -- success = #{misc.to_json(res)}")
-                cb(err)
-
-    ], (err, message) ->
-        if err
-            # so next time it will try fresh to connect to email server, rather than being wrecked forever.
-            email_server = undefined
-            err = "error sending email -- #{misc.to_json(err)}"
-            dbg(err)
-        else
-            dbg("successfully sent email")
-        opts.cb?(err, message)
-    )
 
 
 ########################################
