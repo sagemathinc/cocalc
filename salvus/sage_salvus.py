@@ -603,12 +603,12 @@ def interact_control(arg, value):
     c._opts['var'] = arg
     return c
 
-def sage_eval(x):
+def sage_eval(x, locals=None):
     x = str(x).strip()
     if x.isspace():
         return None
     from sage.all import sage_eval
-    return sage_eval(x, salvus.namespace)
+    return sage_eval(x, locals=locals)
 
 class ParseValue:
     def __init__(self, type):
