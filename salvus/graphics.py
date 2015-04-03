@@ -678,7 +678,7 @@ def graph_to_d3_jsonable(G,
 
         for v in G.vertices():
             x, y = Gpos[v]
-            pos.append([x, -y])
+            pos.append([json_float(x), json_float(-y)])
 
     return {"nodes"          : nodes,
             "links"          : edges, "loops": loops, "pos": pos,
