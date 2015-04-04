@@ -4505,10 +4505,11 @@ get_with_retry = (opts) ->
 # notebooks between users.
 # In the rare case that we change the format, must increase this and
 # also increase the version number forcing users to refresh their browser.
-IPYTHON_SYNCFILE_EXTENSION = ".syncdoc3"
+IPYTHON_SYNCFILE_EXTENSION = ".syncdoc4"
 
 class IPythonNotebook extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
+        #window.ipython = @
         opts = @opts = defaults opts,
             sync_interval : 500
             cursor_interval : 2000
@@ -4798,7 +4799,7 @@ class IPythonNotebook extends FileEditor
 
                 @status("Loading IPython notebook...")
 
-                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.01').attr('src', "#{@server.url}notebooks/#{@filename}")
+                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").attr('src', "#{@server.url}notebooks/#{@filename}")
                 @notebook.html('').append(@iframe)
                 @show()
 
@@ -4846,7 +4847,7 @@ class IPythonNotebook extends FileEditor
 
                             # Replace the IPython Notebook logo, which is for some weird reason an ugly png, with proper HTML; this ensures the size
                             # and color match everything else.
-                            a.html('<span style="font-size: 18pt;"><span style="color:black">IP</span>[<span style="color:black">y</span>]: Notebook</span>')
+                            #a.html('<span style="font-size: 18pt;"><span style="color:black">IP</span>[<span style="color:black">y</span>]: Notebook</span>')
 
                             # proper file rename with sync not supported yet (but will be -- TODO; needs to work with sync system)
                             @frame.$("#notebook_name").unbind('click').css("line-height",'0em')
@@ -4857,7 +4858,10 @@ class IPythonNotebook extends FileEditor
                             @frame.$("#kill_and_exit").remove()
                             @frame.$("#menus").find("li:first").find(".divider").remove()
 
-                            @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
+                            #@frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
+
+                            @frame.$('<style type=text/css></style>').appendTo(@frame.$("body"))
+
                             @nb._save_checkpoint = @nb.save_checkpoint
                             @nb.save_checkpoint = @save
 
@@ -4874,9 +4878,9 @@ class IPythonNotebook extends FileEditor
                             # then the thing hangs and reconnecting then doesn't work (the user has to do a full frame refresh).
                             # TODO: understand this and fix it properly.  This is entirely related to the complicated proxy server
                             # stuff in SMC, not sync!
-                            websocket_reconnect = () =>
-                                @nb?.kernel?.start_channels()
-                            @_reconnect_interval = setInterval(websocket_reconnect, 60000)
+                            ##websocket_reconnect = () =>
+                            ##    @nb?.kernel?.start_channels()
+                            ##@_reconnect_interval = setInterval(websocket_reconnect, 60000)
 
                             @status()
                             cb()
@@ -4924,7 +4928,7 @@ class IPythonNotebook extends FileEditor
         if not @nb? or @readonly
             cb?(); return
         @save_button.icon_spin(start:true, delay:1000)
-        @nb._save_checkpoint?()
+        @nb.save_notebook?()
         @doc.save () =>
             @save_button.icon_spin(false)
             @save_button.addClass('disabled')
@@ -5116,7 +5120,7 @@ class IPythonNotebook extends FileEditor
             catch e
                 console.log("error de-jsoning '#{line}'", e)
         obj = @to_obj()
-        obj.worksheets[0].cells = cells
+        obj.cells = cells
         @from_obj(obj)
         console.log("from_doc: done", misc.mswalltime(t))
     ###
@@ -5132,12 +5136,13 @@ class IPythonNotebook extends FileEditor
 
     set_cell: (index, cell_data) =>
         #console.log("set_cell: start"); t = misc.mswalltime()
+        console.log("set_cell ", index, cell_data)
         if not @nb?
             return
 
         cell = @nb.get_cell(index)
 
-        if cell? and cell_data.cell_type == cell.cell_type
+        if false and cell? and cell_data.cell_type == cell.cell_type
             #console.log("setting in place")
 
             if cell.output_area?
@@ -5208,38 +5213,31 @@ class IPythonNotebook extends FileEditor
     #
     cell_to_line: (cell) =>
         cell = misc.copy(cell)
-        input = misc.to_json(cell.input)
-        delete cell['input']
         source = misc.to_json(cell.source)
         delete cell['source']
-        return input + diffsync.MARKERS.output + source + diffsync.MARKERS.output + misc.to_json(cell)
+        line = source + diffsync.MARKERS.output + misc.to_json(cell)
+        #console.log("\n\ncell=", misc.to_json(cell))
+        #console.log("line=", line)
+        return line
 
     line_to_cell: (line) =>
         v = line.split(diffsync.MARKERS.output)
         try
             if v[0] == 'undefined'  # backwards incompatibility...
-                input = undefined
-            else
-                input = JSON.parse(v[0])
-        catch e
-            console.log("line_to_cell('#{line}') -- input ERROR=", e)
-            return
-        try
-            if v[1] == 'undefined'  # backwards incompatibility...
                 source = undefined
             else
-                source = JSON.parse(v[1])
+                source = JSON.parse(v[0])
         catch e
             console.log("line_to_cell('#{line}') -- source ERROR=", e)
             return
         try
-            obj = JSON.parse(v[2])
-            obj.input = input
-            obj.source = source
-            #console.log("line_to_cell('#{line}') -- obj=",obj)
-            return obj
+            cell = JSON.parse(v[1])
+            cell.source = source
         catch e
             console.log("line_to_cell('#{line}') -- output ERROR=", e)
+        #console.log("\n\nlin=", line)
+        #console.log("cell=", misc.to_json(cell))
+        return cell
 
     to_doc: () =>
         #console.log("to_doc: start"); t = misc.mswalltime()
@@ -5247,7 +5245,7 @@ class IPythonNotebook extends FileEditor
         if not obj?
             return
         doc = misc.to_json({notebook_name:obj.metadata.name})
-        for cell in obj.worksheets[0].cells
+        for cell in obj.cells
             doc += '\n' + @cell_to_line(cell)
         #console.log("to_doc: done", misc.mswalltime(t))
         return doc
