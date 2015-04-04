@@ -148,9 +148,12 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
                                 If you're already signed in, first sign out
                                 by clicking on your email address by the  <i class="fa fa-cog"> </i> icon
                                 in the upper right, and clicking "Sign out".
-                                Click on "create an account", then enter the first name, last name, email address, and password for
-                                the new account you would like to create, and read and agree to the terms of usage.
-                                You may <a href="#help-change-my-username">change your email address, password, etc.</a>
+                                Click on "create an account", then agree to the terms of usage.
+                                Next either
+                                enter your name, email address, and password for
+                                the new account you would like to create, or login
+                                using your Google, Github, Facebook, etc., account.
+                                You may change your name, email address or password
                                 at any time later, and also reset your password in case you forget it.
                             </p>
                             <div class="lighten">
@@ -158,19 +161,11 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
                                     Technical Notes
                                 </h4>
                                 <ul>
-                                    <li> If you want to associate multiple accounts to the same email address, e.g.,
-                                        to sagemath@gmail.com, instead
-                                        use sagemath+1@gmail.com, sagemath+2@gmail.com, etc.  These accounts will be treated differently, but all email
-                                        notifications, password resets, etc., will go to sagemath@gmail.com.   There's no reason you should
-                                        need to do this.
-                                    </li>
-                                    <li> You may create as many accounts as you want for free, but there is no reason you should need
-                                        to.</li>
-                                    <li> The only requirement on your password is that it not be "Very weak" according
-                                        to the password strength checker.  However, please
-                                        use a strong password, especially when you start using the SageMathCloud frequently.</li>
+                                    <li> Please
+                                        use a strong password or login via Google, Github or another provider,
+                                        especially when you start using the SageMathCloud frequently.</li>
                                     <li> Only the hash of your password is stored by the server, which uses 1000 iterations
-                                        of the sha-512 hash function, with a salt length of 32.  This makes it much more
+                                        of a sha-512 hash function, with a salt length of 32.  This makes it more
                                         difficult for a hacker to brute-force your password, even if they have the database of
                                         password hashes, since every guess takes much more work to make.
                                     </li>
