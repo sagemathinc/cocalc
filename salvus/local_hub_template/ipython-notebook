@@ -6,7 +6,7 @@
 # only of use directly in https://cloud.sagemath.com.
 #
 # This is written in Python, but that can be any python2 on the system; not the
-# Python that the ipython command runs. 
+# Python that the ipython command runs.
 #
 #
 # Copyright (c) 2013, William Stein, All rights reserved.
@@ -132,7 +132,10 @@ def action():
 
             c = "ps -u`whoami` -o pid,cmd|grep 'ipython notebook'"
             for s in os.popen(c).read().splitlines():
-                p = int(s.split()[0])
+                v = s.split()
+                if v[1] != 'python':
+                    continue
+                p = int(v[0])
                 if "port=%s"%port not in s:
                     try:
                         os.kill(p, 9)  # kill any other ipython notebook servers by this user
