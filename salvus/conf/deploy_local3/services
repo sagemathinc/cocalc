@@ -3,7 +3,7 @@
 #  import admin; reload(admin); s = admin.Services('conf/deploy_local/', username='wstein'); h=s._hosts
 
 [cassandra] {'cluster_name':'salvus1', 'memtable_allocation_type':'offheap_objects'}
-localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
+localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0, 'tokens':1}
 
 [nginx]
 localhost
