@@ -36,9 +36,10 @@ cmd("local_hub start --timeout=%s"%args.timeout)
 # We redirect to /dev/null to detach file descriptors so remote ssh can terminates
 # without waiting for these (in case we want to return earlier, e.g., without waiting for sage server)
 # Start console server:
-cmd("console_server start </dev/null >/dev/null 2>&1 &")
+#cmd("console_server start </dev/null >/dev/null 2>&1 &")
+
 # Start sage_server
-cmd("sage_server    start  </dev/null >/dev/null 2>&1 &")
+#cmd("sage_server    start  </dev/null >/dev/null 2>&1 &")
 
 # Start IPython notebook server
 # This doesn't behave well and ends up wasting massive resources in some cases.  Only enable if later fix.
