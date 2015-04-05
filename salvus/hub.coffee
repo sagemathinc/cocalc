@@ -5084,8 +5084,9 @@ class Project
             cb : required
         @dbg("jupyter_port")
         @call
-            mesg : message.jupyter_port()
-            cb   : (err, resp) =>
+            mesg    : message.jupyter_port()
+            timeout : 30
+            cb      : (err, resp) =>
                 if err
                     opts.cb(err)
                 else

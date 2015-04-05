@@ -159,7 +159,7 @@ get_with_retry = (opts) ->
     opts = defaults opts,
         url           : required
         initial_timeout : 5000
-        max_timeout     : 15000     # once delay hits this, give up
+        max_timeout     : 20000     # once delay hits this, give up
         factor        : 1.1     # for exponential backoff
         bad_string    : 'ECONNREFUSED'
         cb            : required  # cb(err, data)  # data = content of that url

@@ -710,7 +710,7 @@ class BuildSage(object):
         """
         TODO:
         """
-        raise RuntimeError("TODO: change line 171 of '/usr/local/sage/current/local/lib/python/site-packages/IPython/html/notebookapp.py' to 'static_url_prefix = '/static/ipython/''")
+        raise RuntimeError("TODO: change '/usr/local/sage/current/local/lib/python/site-packages/IPython/html/notebookapp.py' to 'static_url_prefix = '/static/jupyter/''")
 
     def install_jsanimation(self):
         self.cmd("cd /tmp && rm -rf JSAnimation && git clone https://github.com/jakevdp/JSAnimation.git && cd JSAnimation && python setup.py install && rm -rf /tmp/JSAnimation")

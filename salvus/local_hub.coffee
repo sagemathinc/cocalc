@@ -2171,6 +2171,7 @@ jupyter_port = (socket, mesg) ->
         args        : ['start']
         err_on_exit : true
         bash        : false
+        timeout     : 30
         cb          : (err, out) ->
             if not err
                 try
