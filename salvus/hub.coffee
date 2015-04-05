@@ -1505,7 +1505,7 @@ class Client extends EventEmitter
     push_data_to_client: (channel, data) ->
         if @closed
             return
-        #winston.debug("push_data_to_client(#{channel},'#{data}')")
+        #winston.debug("inside push_data_to_client(#{channel},'#{data}')")
         @conn.write(channel + data)
 
     error_to_client: (opts) ->
@@ -4816,7 +4816,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             params       : {command: 'bash'}
             session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
             cb           : required    # cb(err, [session_connected message])
-        @dbg("connect client to console session -- session_uuid=#{opts.session_uuid}")
+        @dbg("console_session: connect client to console session -- session_uuid=#{opts.session_uuid}")
+
         # Connect to the console server
         if not opts.session_uuid?
             # Create a new session
@@ -4870,12 +4871,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # console --> client:
                 # When data comes in from the socket, we push it on to the connected
                 # client over the channel we just created.
-                console_socket.on 'data', (data) ->
+                f = (data) ->
                     # Never push more than 20000 characters at once to client, since display is slow, etc.
                     if data.length > 20000
                         data = "[...]" + data.slice(data.length - 20000)
+                    #winston.debug("push_data_to_client('#{data}')")
                     opts.client.push_data_to_client(channel, data)
-
+                console_socket.on('data', f)
 
     terminate_session: (opts) =>
         opts = defaults opts,

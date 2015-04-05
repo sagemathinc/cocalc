@@ -62,5 +62,42 @@
     </div>
 
 
+    <div class="modal smc-jupyter-publish-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close btn-close" aria-hidden="true">
+                        <span style="font-size:20pt;">×</span>
+                    </button>
+                    <h3><i class="fa fa-share-square-o"> </i>  Publishing IPython Notebook</h3>
+                </div>
+                <div class="well">
+                    <div class="smc-jupyter-publish-dialog-publishing">Publishing...
+                        <span class="smc-jupyter-publish-status"></span>
+                        <br>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0"
+                                 aria-valuemax="100" style="width: 0%;">
+                                0%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="smc-jupyter-publish-dialog-fail hide"><b>Error:</b> <span></span></div>
+                    <div class="smc-jupyter-publish-dialog-success hide"><br>Share the following link:
+                        <br><br>
+                        <input class="form-control smc-jupyter-publish-url"><br>
+                        <span class="lighten">(Anybody may read this public notebook; only collaborators may change it.)</span>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-close pull-left btn-default btn-lg">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
 
 </div>

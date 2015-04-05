@@ -19,6 +19,18 @@
 #
 ###############################################################################
 
+###
+
+Jupyter Notebook Synchronization
+
+
+
+
+
+
+###
+
+
 async                = require('async')
 
 misc                 = require('misc')
@@ -189,8 +201,8 @@ exports.jupyter_notebook = (editor, filename, opts) ->
     return J.element
 
 class JupyterNotebook
-    dbg: (m) =>
-        console.log("JupyterNotebook: #{m}")
+    dbg: (f, m...) =>
+        console.log("#{new Date()} -- JupyterNotebook.#{f}: #{misc.to_json(m)}")
 
     constructor: (@editor, @filename, opts={}) ->
         opts = @opts = defaults opts,
@@ -368,6 +380,7 @@ class JupyterNotebook
         @doc.dsync_client._apply_edits_to_live = apply_edits2
 
         @doc.on "reconnect", () =>
+            @dbg("_config_doc", "reconnect")
             if not @doc.dsync_client?
                 # this could be an older connect emit that didn't get handled -- ignore.
                 return
@@ -472,19 +485,21 @@ class JupyterNotebook
     # Initialize the embedded iframe and wait until the notebook object in it is initialized.
     # If this returns (calls cb) without an error, then the @nb attribute must be defined.
     _init_iframe: (cb) =>
+        @dbg("_init_iframe")
         @status("Rendering Jupyter notebook")
         get_with_retry
             url : @server.url
             cb  : (err) =>
                 if err
+                    @dbg("_init_iframe", "error", err)
                     @status()
                     #console.log("exit _init_iframe 2")
                     cb(err); return
+
                 @iframe_uuid = misc.uuid()
 
                 @status("Loading Jupyter notebook...")
-
-                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").attr('src', "#{@server.url}notebooks/#{@filename}")
+                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} style='opacity:.05'>").attr('src', "#{@server.url}notebooks/#{@filename}")
                 @notebook.html('').append(@iframe)
                 @show()
 
@@ -822,7 +837,7 @@ class JupyterNotebook
 
     set_cell: (index, cell_data) =>
         #console.log("set_cell: start"); t = misc.mswalltime()
-        console.log("set_cell ", index, cell_data)
+        @dbg("set_cell", index, cell_data)
         if not @nb?
             return
 

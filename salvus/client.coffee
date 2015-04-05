@@ -303,10 +303,8 @@ class exports.Connection extends EventEmitter
         # the Primus websocket server with that url, then creates the following event emitters:
         #      "connected", "error", "close"
         # and returns a function to write raw data to the socket.
-
         @_connect @url, (data) =>
             if data.length > 0  # all messages must start with a channel; length 0 means nothing.
-
                 # Incoming messages are tagged with a single UTF-16
                 # character c (there are 65536 possibilities).  If
                 # that character is JSON_CHANNEL, the message is
@@ -327,7 +325,6 @@ class exports.Connection extends EventEmitter
 
                 # give other listeners a chance to do something with this data.
                 @emit("data", channel, data)
-
         @_connected = false
 
         # start pinging -- not used/needed with primus
