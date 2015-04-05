@@ -215,6 +215,38 @@ Check http://primesieve.org/build.html for the latest version.
 
    apt-get install python-pip python3-pip &&   umask 022 && /usr/bin/pip install -U theano && /usr/bin/pip install -U clawpack
 
+# IPYTHON3 in Python3 systemwide
+
+    sudo pip3 install --upgrade ipython
+    sudo ipython3 kernelspec install-self
+
+    Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option in so that python3 can start with the sage -sh environment set.
+
+# IJULIA
+
+        umask 022
+        sudo su
+        export JULIA_PKGDIR=/usr/local/share/julia/site/
+        julia
+        julia> Pkg.init()
+        julia> Pkg.add("IJulia")
+
+        # this copy may change when ipython dir changes
+ 		cp -rv "/root/.sage/ipython-2.3.0.p0/kernels/julia 0.3" "/usr/local/share/jupyter/kernels/julia 0.3"
+
+        Make sure the json file is this:
+
+        {
+          "display_name": "Julia 0.3.7",
+          "argv": [
+            "/usr/bin/julia",
+            "-i",
+            "-F",
+            "/usr/local/share/julia/site/v0.3/IJulia/src/kernel.jl",
+            "{connection_file}"
+          ],
+          "language": "julia"
+        }
 
 # POLYMAKE system-wide
 
@@ -710,7 +742,7 @@ class BuildSage(object):
         """
         TODO:
         """
-        raise RuntimeError("TODO: change '/usr/local/sage/current/local/lib/python/site-packages/IPython/html/notebookapp.py' to 'static_url_prefix = '/static/jupyter/''")
+        raise RuntimeError(r"""TODO: change '/usr/local/sage/current/local/lib/python/site-packages/IPython/html/notebookapp.py' to 'static_url_prefix = '/static/jupyter/''""")
 
     def install_jsanimation(self):
         self.cmd("cd /tmp && rm -rf JSAnimation && git clone https://github.com/jakevdp/JSAnimation.git && cd JSAnimation && python setup.py install && rm -rf /tmp/JSAnimation")
