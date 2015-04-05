@@ -943,6 +943,17 @@ message
     project_id : required
 
 
+######################################################################
+# Jupyter server
+######################################################################
+
+# starts jupyter hub server and reports the port it is running on
+# hub <--> project
+message
+    event     : 'jupyter_port'
+    port      : undefined    # gets set in response
+    id        : undefined
+
 #############################################################################
 
 # A hub sends this message to the project_server to request that the

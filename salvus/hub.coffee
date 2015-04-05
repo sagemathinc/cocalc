@@ -1071,8 +1071,15 @@ init_http_proxy_server = () =>
         key        = remember_me + project_id + type
         if type == 'port'
             key += v[3]
-            port = parseInt(v[3])
+            port = v[3]
         return {key:key, type:type, project_id:project_id, port_number:port}
+
+    jupyter_server_port = (opts) ->
+        opts = defaults opts,
+            project_id : required   # assumed valid and that all auth already done
+            cb         : required   # cb(err, port)
+        new_project(opts.project_id).jupyter_port
+            cb   : opts.cb
 
     target = (remember_me, url, cb) ->
         {key, type, project_id, port_number} = target_parse_req(remember_me, url)
@@ -1129,8 +1136,18 @@ init_http_proxy_server = () =>
             (cb) ->
                 # determine the port
                 if type == 'port'
-                    port = port_number
-                    cb()
+                    if port_number == "jupyter"
+                        jupyter_server_port
+                            project_id : project_id
+                            cb         : (err, jupyter_port) ->
+                                if err
+                                    cb(err)
+                                else
+                                    port = jupyter_port
+                                    cb()
+                    else
+                        port = port_number
+                        cb()
                 else if type == 'raw'
                     bup_server.project
                         project_id : project_id
@@ -1248,6 +1265,7 @@ init_http_proxy_server = () =>
                     proxy.on "error", (e) ->
                         dbg("websocket proxy error, so clearing cache -- #{e}")
                         delete _ws_proxy_servers[t]
+                        invalidate_target_cache(undefined, req_url)
                     _ws_proxy_servers[t] = proxy
                 else
                     dbg("websocket upgrade -- using cache")
@@ -5060,6 +5078,20 @@ class Project
         @_fixpath(opts.mesg)
         opts.mesg.project_id = @project_id
         @local_hub.call(opts)
+
+    jupyter_port: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @dbg("jupyter_port")
+        @call
+            mesg : message.jupyter_port()
+            cb   : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    @dbg("jupyter_port -- #{resp.port}")
+                    opts.cb(undefined, resp.port)
+
 
     # Set project as deleted (which sets a flag in the database)
     delete_project: (opts) =>

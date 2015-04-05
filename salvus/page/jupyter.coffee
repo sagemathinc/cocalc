@@ -212,6 +212,9 @@ class JupyterNotebook
         @element = templates.find(".smc-jupyter-notebook").clone()
         @element.data("jupyter_notebook", @)
 
+        # Jupyter is now proxied via a canonical URL
+        @server_url = "/#{@editor.project_id}/port/jupyter/"
+
         @_start_time = misc.walltime()
         if window.salvus_base_url != ""
             # TODO: having a base_url doesn't imply necessarily that we're in a dangerous devel mode...
@@ -433,11 +436,13 @@ class JupyterNotebook
                 cursor_data.pos = pos
 
             # first fade the label out
-            cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:1).fadeOut(duration:16000)
-            # Then fade the cursor out (a non-active cursor is a waste of space).
-            cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
-            @nb?.get_cell(pos.index)?.code_mirror.addWidget(
-                      {line:pos.line,ch:pos.ch}, cursor_data.cursor[0], false)
+            c = cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label")
+            if c.length > 0
+                c.stop().show().animate(opacity:1).fadeOut(duration:16000)
+                # Then fade the cursor out (a non-active cursor is a waste of space).
+                cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
+                @nb?.get_cell(pos.index)?.code_mirror.addWidget(
+                          {line:pos.line,ch:pos.ch}, cursor_data.cursor[0], false)
         @status()
 
 
@@ -468,27 +473,13 @@ class JupyterNotebook
         @doc?.disconnect_from_session()
         @_dead = true
 
-    initialize: (cb) =>
-        async.series([
-            (cb) =>
-                @status("Connecting to Jupyter Notebook server")
-                ipython_notebook_server
-                    project_id : @editor.project_id
-                    cb         : (err, server) =>
-                        @status("Connected to Jupyter Notebook server")
-                        @server = server
-                        cb(err)
-            (cb) =>
-                @_init_iframe(cb)
-        ], cb)
-
     # Initialize the embedded iframe and wait until the notebook object in it is initialized.
     # If this returns (calls cb) without an error, then the @nb attribute must be defined.
-    _init_iframe: (cb) =>
-        @dbg("_init_iframe")
+    initialize: (cb) =>
+        @dbg("initialize")
         @status("Rendering Jupyter notebook")
         get_with_retry
-            url : @server.url
+            url : @server_url
             cb  : (err) =>
                 if err
                     @dbg("_init_iframe", "error", err)
@@ -499,7 +490,7 @@ class JupyterNotebook
                 @iframe_uuid = misc.uuid()
 
                 @status("Loading Jupyter notebook...")
-                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} style='opacity:.05'>").attr('src', "#{@server.url}notebooks/#{@filename}")
+                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} style='opacity:.05'>").attr('src', "#{@server_url}notebooks/#{@filename}")
                 @notebook.html('').append(@iframe)
                 @show()
 
@@ -587,23 +578,6 @@ class JupyterNotebook
 
                 setTimeout(f, delay)
 
-    # although highly unlikely, this could happen if something else steals our port before we can restart...
-    check_for_moved_server: () =>
-        @dbg("check_for_moved_server")
-        if @nb?.kernel?  # only try if nb is already loaded
-            if not @nb.kernel.shell_channel   # if backend is gone/replaced, then this would get set to null
-                ipython_notebook_server
-                    project_id : @editor.project_id
-                    path       : @path
-                    cb         : (err, server) =>
-                        if err
-                            # nothing to be done.
-                            return
-                        if server.url != @server.url
-                            # server moved!?
-                            @server = server
-                            @reload() # -- only thing we can do, really
-
     autosync: () =>
         if @readonly
             return
@@ -653,8 +627,7 @@ class JupyterNotebook
         #t += "<h4>Connect to this Jupyter kernel in a terminal</h4>"
         #t += "<pre>ipython console --existing #{@kernel_id}</pre>"
         t += "<h4>Pure Jupyter notebooks</h4>"
-        if @server?.url?
-            t += "You can <a target='_blank' href='#{@server.url}notebooks/#{@filename}'>open this notebook in a vanilla Jupyter Notebook server without sync</a> (this link works only for project collaborators).  "
+        t += "You can <a target='_blank' href='#{@server_url}notebooks/#{@filename}'>open this notebook in a vanilla Jupyter Notebook server without sync</a> (this link works only for project collaborators).  "
         #t += "<br><br>To start your own unmodified Jupyter Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
         t += "<h4>Known Issues</h4>"
         t += "If two people edit the same <i>cell</i> simultaneously, the cursor will jump to the start of the cell."
