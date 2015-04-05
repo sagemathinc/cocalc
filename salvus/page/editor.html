@@ -330,25 +330,6 @@ Editor for files in a project
         </div>
     </div>
 
-    <!-- IPython Notebook Viewer -->
-    <div class="salvus-editor-ipython-nbviewer">
-        <div style="margin-left:1em">
-            <span class="visible-xs">
-                <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> Files...</a>
-            </span>
-            <span>
-                <a href="#copy" class="btn btn-default btn-sm"><i class="fa fa-send-o"></i> Open IPython Notebook in Project...</a>
-            </span>
-            <span>
-                <a href="#download" class="btn btn-default btn-sm"><i class="fa fa-cloud-download"></i> Download</a>
-            </span>
-        </div>
-        <div class="salvus-editor-ipython-nbviewer-content">
-            <iframe style="width:100%;border:0px;">
-            </iframe>
-        </div>
-    </div>
-
     <!-- Templates for the png-based PDF previewer; this is designed for the pdf changes in little ways locally.  -->
     <div class="salvus-editor-pdf-preview">
         <div class="salvus-editor-pdf-preview-spinner hide"></div>
@@ -488,10 +469,16 @@ Editor for files in a project
         <div class="salvus-ipython-notebook-buttons hidden-xs">
             <span class="salvus-ipython-notebook-status-messages lighten"> </span>
             <span class="hide salvus-ipython-notebook-danger">DANGER: Users on this VM could connect unless you stop your ipython-notebook server (they would have to know secret internal project-id).</span>
-            <a href="#save" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Save .ipynb file to disk (file is constantly sync'd with server)."> <i class="fa fa-save"></i> Save</a>
-            <a href="#reload" class="btn  btn-sm btn-warning" data-toggle="tooltip" data-placement="bottom" title="Reload this Notebook; use if the IPython server is killed or restarted on another port"> <i class="fa fa-refresh"></i> Reload</a>
-            <a href="#publish" class="btn btn-primary btn-sm" data-toggle="tooltip" data-placement="bottom" title="Publish this notebook for anybody to see"> <i class="fa fa-refresh fa-spin hide"> </i> <i class="fa fa-share-square-o"></i> Publish</a>
-            <a href="#info" class="btn  btn-sm btn-info" data-toggle="tooltip" data-placement="bottom" title="Extra information about the IPython notebook"> <i class="fa fa-info-circle"></i> About </a>
+            <span class="btn-group">
+                <a href="#save" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Save .ipynb file to disk (file is constantly sync'd with server)."> <i class="fa fa-save"></i> Save</a>
+                <a href="#history" class="btn btn-sm btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
+                        <i class="fa fa-history"></i>
+                        <span class="hidden-sm">History</span>
+                </a>
+                <a href="#reload" class="btn  btn-sm btn-warning" data-toggle="tooltip" data-placement="bottom" title="Reload this Notebook; use if the IPython server is killed or restarted on another port"> <i class="fa fa-refresh"></i> Reload</a>
+                <a href="#publish" class="btn btn-primary btn-sm" data-toggle="tooltip" data-placement="bottom" title="Publish this notebook for anybody to see"> <i class="fa fa-refresh fa-spin hide"> </i> <i class="fa fa-share-square-o"></i> Publish</a>
+                <a href="#info" class="btn  btn-sm btn-info" data-toggle="tooltip" data-placement="bottom" title="Extra information about the IPython notebook"> <i class="fa fa-info-circle"></i> About </a>
+            </span>
         </div>
         <div class="visible-xs">
             <span class="btn-group">

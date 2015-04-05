@@ -1,0 +1,66 @@
+<div class="smc-jupyter-templates hide">
+
+    <div class="smc-jupyter-notebook">
+        <!--<h3 style="margin-left:1em">IPython Notebook: <span class="smc-jupyter-filename"></span></h3>-->
+        <div class="smc-jupyter-notebook-buttons hidden-xs">
+            <span class="smc-jupyter-notebook-status-messages lighten"> </span>
+            <span class="hide smc-jupyter-notebook-danger">DANGER: Users on this VM could connect unless you stop your ipython-notebook server (they would have to know secret internal project-id).</span>
+            <span class="btn-group">
+                <a href="#save" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Save .ipynb file to disk (file is constantly sync'd with server)."> <i class="fa fa-save"></i> Save</a>
+                <a href="#history" class="btn btn-sm btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
+                        <i class="fa fa-history"></i>
+                        <span class="hidden-sm">History</span>
+                </a>
+                <a href="#reload" class="btn  btn-sm btn-warning" data-toggle="tooltip" data-placement="bottom" title="Reload this Notebook; use if the IPython server is killed or restarted on another port"> <i class="fa fa-refresh"></i> Reload</a>
+                <a href="#publish" class="btn btn-primary btn-sm" data-toggle="tooltip" data-placement="bottom" title="Publish this notebook for anybody to see"> <i class="fa fa-refresh fa-spin hide"> </i> <i class="fa fa-share-square-o"></i> Publish</a>
+                <a href="#info" class="btn  btn-sm btn-info" data-toggle="tooltip" data-placement="bottom" title="Extra information about the IPython notebook"> <i class="fa fa-info-circle"></i> About </a>
+            </span>
+        </div>
+        <div class="visible-xs">
+            <span class="btn-group">
+                <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> Files...</a>
+                <a href="#save" class="btn btn-success btn-lg"> <i class="fa fa-save"></i> Save</a>
+            </span>
+            <span class="btn-group salvus-editor-codemirror-worksheet-buttons hide">
+                <a href="#execute" class="btn btn-success btn-lg"> <i class="fa fa-play"></i>
+                    <span>Run</span>
+                </a>
+                <a href="#interrupt" class="btn btn-warning btn-lg"> <i class="fa fa-stop"></i>
+                    <span>Stop</span>
+                </a>
+                <a href="#tab" class="btn btn-default btn-lg"> <i class="fa fa-info-circle"></i>
+                    <span>Tab</span>
+                </a>
+            </span>
+            <span class="btn-group">
+                <a href="#reload" class="btn btn-warning btn-lg"> <i class="fa fa-refresh"></i> Reload</a>
+                <a href="#info" class="btn  btn-info btn-lg"> <i class="fa fa-info-circle"></i> </a>
+            </span>
+        </div>
+        <h3 class="smc-jupyter-notebook-connecting hide" style="margin-left:2em">Opening...</h3>
+        <div class="smc-jupyter-notebook-notebook"></div>
+    </div>
+
+
+    <!-- Jupyter Notebook Viewer -->
+    <div class="smc-jupyter-nbviewer">
+        <div style="margin-left:1em">
+            <span class="visible-xs">
+                <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> Files...</a>
+            </span>
+            <span>
+                <a href="#copy" class="btn btn-default btn-sm"><i class="fa fa-send-o"></i> Open IPython Notebook in Project...</a>
+            </span>
+            <span>
+                <a href="#download" class="btn btn-default btn-sm"><i class="fa fa-cloud-download"></i> Download</a>
+            </span>
+        </div>
+        <div class="smc-jupyter-nbviewer-content">
+            <iframe style="width:100%;border:0px;">
+            </iframe>
+        </div>
+    </div>
+
+
+
+</div>
