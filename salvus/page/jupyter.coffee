@@ -490,7 +490,7 @@ class JupyterNotebook
                 @iframe_uuid = misc.uuid()
 
                 @status("Loading Jupyter notebook...")
-                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} style='opacity:.05'>").attr('src', "#{@server_url}notebooks/#{@filename}")
+                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} style='opacity:.7'>").attr('src', "#{@server_url}notebooks/#{@filename}")
                 @notebook.html('').append(@iframe)
                 @show()
 
