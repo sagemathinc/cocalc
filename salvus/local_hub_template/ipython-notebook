@@ -113,7 +113,7 @@ def action(mode):
         # See http://mail.scipy.org/pipermail/ipython-user/2012-May/010043.html
         cmd, base, port = command()
 
-        c = '%s 2>/dev/null >/dev/null &'%cmd
+        c = '%s 2> $SAGEMATHCLOUD/data/ipython-notebook.err 1>$SAGEMATHCLOUD/data/ipython-notebook.log &'%cmd
         sys.stderr.write(c+'\n'); sys.stderr.flush()
         os.system(c)
 
