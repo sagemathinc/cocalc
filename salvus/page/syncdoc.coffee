@@ -442,6 +442,8 @@ class SynchronizedString extends AbstractSynchronizedDoc
                     # This initialiation is the first.
                     @_last_sync   = resp.content
                     reconnect = false
+                else
+                    reconnect = true
 
                 @dsync_server = new DiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
@@ -451,16 +453,18 @@ class SynchronizedString extends AbstractSynchronizedDoc
                 if reconnect
                     @emit('reconnect')
 
-                delete @_connect_lock
-                cb?()
+                @emit('connect')   # successful connection
 
-                # This patch application below must happen *AFTER* everything above, including
-                # the callback, since that fully initializes the document and sync mechanisms.
+                delete @_connect_lock
+
+                # This patch application below must happen *AFTER* everything above, since that
+                # fully initializes the document and sync mechanisms.
                 if synced_before
                     # applying missed patches to the new upstream version that we just got from the hub.
                     #console.log("now applying missed patches to the new upstream version that we just got from the hub: ", patch)
                     @_apply_patch_to_live(patch)
                     reconnect = true
+                cb?()
 
     disconnect_from_session: (cb) =>
         @_remove_listeners()
@@ -483,7 +487,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
     constructor: (@editor, opts, cb) ->  # if given, cb will be called when done initializing.
         @opts = defaults opts,
             cursor_interval   : 1000
-            sync_interval     : 750     # never send sync messages up stream more often than this
+            sync_interval     : 750     # never send sync messages upstream more often than this
             revision_tracking : account.account_settings.settings.editor_settings.track_revisions   # if true, save every revision in @.filename.sage-history
         @project_id = @editor.project_id
         @filename   = @editor.filename
@@ -496,8 +500,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             #logname   : 'connect'
             #verbose   : true
 
-        @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
-        @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
+        @sync       = misc.retry_until_success_wrapper(f:@_sync, max_delay : 5000, min_interval:@opts.sync_interval)#, logname:'sync')
+        @save       = misc.retry_until_success_wrapper(f:@_save, max_delay : 5000, min_interval:2*@opts.sync_interval)#, logname:'save')
 
 
         @editor.save = @save
@@ -602,7 +606,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     synced_before = true
                     patch = @dsync_client._compute_edits(@_last_sync, @live())
                 else
-                    #console.log("This initialization is the first sync.")
+                    console.log("This initialization is the first sync.")
                     @_last_sync   = DiffSyncDoc(string:resp.content)
                     synced_before = false
                     @editor._set(resp.content)
@@ -623,18 +627,19 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @_add_listeners()
                 @editor.has_unsaved_changes(false) # TODO: start with no unsaved changes -- not tech. correct!!
 
-                @emit 'connect'    # successful connection
+                @emit('connect')   # successful connection
 
                 delete @_connect_lock
-                cb?()
 
-                # This patch application below must happen *AFTER* everything above, including
-                # the callback, since that fully initializes the document and sync mechanisms.
+                # This patch application below must happen *AFTER* everything above,
+                # since that fully initializes the document and sync mechanisms.
                 if synced_before
                     # applying missed patches to the new upstream version that we just got from the hub.
-                    #console.log("now applying missed patches to the new upstream version that we just got from the hub: ", patch)
+                    # console.log("now applying missed patches to the new upstream version that we just got from the hub: #{misc.to_json(patch)}")
                     @_apply_patch_to_live(patch)
                     @emit('sync')
+
+                cb?()
 
                 if @opts.revision_tracking
                     @call

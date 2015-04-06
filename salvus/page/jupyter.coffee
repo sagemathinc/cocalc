@@ -23,9 +23,21 @@
 
 Jupyter Notebook Synchronization
 
+There are multiple representations of the notebook.
+
+   - @doc      = the synchronized string, which is a sync friendly version of the notebook
+   - @nb       = the visible view stored in the browser DOM
+   - @filename = the .ipynb file on disk
+
+In addition, every other browser opened viewing the notebook has it's own @doc and @nb, and
+there is a single upstream copy of @doc in the local_hub daemon.
 
 
 
+The user edits @nb.  Periodically we check to see if any changes were made (@nb.dirty) and
+if so, we copy the state of @nb to @doc's live.   We then initiate a sync with upstream.
+
+When we are told to sync with upstream, we set
 
 
 ###
@@ -206,7 +218,7 @@ class JupyterNotebook
 
     constructor: (@editor, @filename, opts={}) ->
         opts = @opts = defaults opts,
-            sync_interval : 500
+            sync_interval   : 1000
             cursor_interval : 2000
         window.ipython = @
         @element = templates.find(".smc-jupyter-notebook").clone()
@@ -245,6 +257,7 @@ class JupyterNotebook
             # even though the output has changed.   For example, if you type "123" in a cell, run, then
             # comment out the line and shift-enter again, the empty output doesn't get sync'd out until you do
             # something else.  If any output appears then the dirty happens.  I guess this is a bug that should be fixed in ipython.
+
             @_autosync_interval = setInterval(@autosync, @opts.sync_interval)
             @_cursor_interval = setInterval(@broadcast_cursor_pos, @opts.cursor_interval)
 
@@ -327,16 +340,16 @@ class JupyterNotebook
         if @doc?
             # already initialized
             @doc.sync () =>
-                @set_live_from_syncdoc()
+                @set_nb_from_doc()
                 @iframe.css(opacity:1)
                 @show()
                 cb?()
             return
         @doc = syncdoc.synchronized_string
-            project_id : @editor.project_id
-            filename   : @syncdoc_filename
+            project_id    : @editor.project_id
+            filename      : @syncdoc_filename
             sync_interval : @opts.sync_interval
-            cb         : (err) =>
+            cb            : (err) =>
                 #console.log("_init_doc returned: err=#{err}")
                 @status()
                 if err
@@ -348,14 +361,17 @@ class JupyterNotebook
                     cb?()
 
     _config_doc: () =>
-        #console.log("_config_doc")
+        @dbg("_config_doc")
         # todo -- should check if .ipynb file is newer... ?
         @status("Displaying Jupyter Notebook")
         if @doc.live() == ''
-            @doc.live(@to_doc())
+            # set the synchronized string from the visible notebook
+            @doc.live(@nb_to_string())
         else
-            @set_live_from_syncdoc()
-        #console.log("DONE SETTING!")
+            # set the visible notebook from the synchronized string
+            @set_nb_from_doc()
+        @dbg("_config_doc", "DONE SETTING!")
+
         @iframe.css(opacity:1)
         @show()
 
@@ -363,38 +379,24 @@ class JupyterNotebook
             if not @nb? or @_reloading
                 # no point -- reinitializing the notebook frame right now...
                 return
-            @doc.live(@to_doc())
+            #@dbg("about to sync with upstream")
+            # We ensure that before we sync with upstream, the live
+            # syncstring equals what is in the DOM.
+            @before_sync = @nb_to_string()
+            @doc.live(@before_sync)
 
-        apply_edits = @doc.dsync_client._apply_edits_to_live
+        @doc.dsync_client._pre_apply_edits_to_live = () =>
+            @doc.live(@nb_to_string())
 
-        apply_edits2 = (patch, cb) =>
-            #console.log("_apply_edits_to_live ")#-- #{JSON.stringify(patch)}")
-            before =  @to_doc()
-            if not before?
-                cb?("reloading")
-                return
-            @doc.dsync_client.live = before
-            apply_edits(patch)
-            if @doc.dsync_client.live != before
-                @from_doc(@doc.dsync_client.live)
-                #console.log("edits should now be applied!")#, @doc.dsync_client.live)
-            cb?()
+        @doc.on 'sync', () =>
+            # We just sync'ed with upstream.
+            after_sync = @doc.live()
+            if @before_sync != after_sync
+                # Apply any upstream changes to the DOM.
+                #console.log("sync - before='#{@before_sync}'")
+                #console.log("sync - after='#{after_sync}'")
+                @set_nb_from_doc(after_sync)
 
-        @doc.dsync_client._apply_edits_to_live = apply_edits2
-
-        @doc.on "reconnect", () =>
-            @dbg("_config_doc", "reconnect")
-            if not @doc.dsync_client?
-                # this could be an older connect emit that didn't get handled -- ignore.
-                return
-            apply_edits = @doc.dsync_client._apply_edits_to_live
-            @doc.dsync_client._apply_edits_to_live = apply_edits2
-            # Update the live document with the edits that we missed when offline
-            @status("Reconnecting and updating live document...")
-            @from_doc(@doc.dsync_client.live)
-            @status()
-
-        # TODO: we should just create a class that derives from SynchronizedString at this point.
         @doc.draw_other_cursor = (pos, color, name) =>
             if not @_cursors?
                 @_cursors = {}
@@ -436,13 +438,15 @@ class JupyterNotebook
                 cursor_data.pos = pos
 
             # first fade the label out
-            c = cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label")
-            if c.length > 0
+            try
+                c = cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label")
                 c.stop().show().animate(opacity:1).fadeOut(duration:16000)
                 # Then fade the cursor out (a non-active cursor is a waste of space).
                 cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
                 @nb?.get_cell(pos.index)?.code_mirror.addWidget(
                           {line:pos.line,ch:pos.ch}, cursor_data.cursor[0], false)
+            catch e
+                # pass
         @status()
 
 
@@ -556,6 +560,9 @@ class JupyterNotebook
                             @nb._save_checkpoint = @nb.save_checkpoint
                             @nb.save_checkpoint = @save
 
+                            # We have our own auto-save system
+                            @nb.set_autosave_interval(0)
+
                             if @readonly
                                 @frame.$("#save_widget").append($("<b style='background: red;color: white;padding-left: 1ex; padding-right: 1ex;'>This is a READONLY document that can't be saved.</b>"))
 
@@ -579,21 +586,23 @@ class JupyterNotebook
                 setTimeout(f, delay)
 
     autosync: () =>
-        if @readonly
+        if @readonly or @_reloading
             return
-        if @frame?.IPython?.notebook?.dirty and not @_reloading
+        if @nb.dirty
             @dbg("autosync")
+            @nb.dirty = false
             #console.log("causing sync")
             @save_button.removeClass('disabled')
             @sync()
-            @nb.dirty = false
 
     sync: () =>
         if @readonly
             return
         @editor.activity_indicator(@filename)
-        @save_button.icon_spin(start:true, delay:1000)
+        @save_button.icon_spin(start:true, delay:1500)
+        @dbg("sync", "start")
         @doc.sync () =>
+            @dbg("sync", "done")
             @save_button.icon_spin(false)
 
     has_unsaved_changes: () =>
@@ -609,14 +618,15 @@ class JupyterNotebook
             @save_button.addClass('disabled')
             cb?()
 
-    set_live_from_syncdoc: () =>
+    # Set the the visible notebook in the DOM from the synchronized string
+    set_nb_from_doc: () =>
         if not @doc?.dsync_client?  # could be re-initializing
             return
-        current = @to_doc()
+        current = @nb_to_string()
         if not current?
             return
-        if @doc.dsync_client.live != current
-            @from_doc(@doc.dsync_client.live)
+        if @doc.live() != current
+            @set_nb(@doc.live())
 
     info: () =>
         t = "<h3>The Jupyter Notebook</h3>"
@@ -754,7 +764,6 @@ class JupyterNotebook
                 console.log("nbconvert finished with err='#{err}, output='#{misc.to_json(output)}'")
                 opts.cb?(err)
 
-    # WARNING: Do not call this before @nb is defined!
     to_obj: () =>
         #console.log("to_obj: start"); t = misc.mswalltime()
         if not @nb?
@@ -767,8 +776,8 @@ class JupyterNotebook
         #console.log("to_obj: done", misc.mswalltime(t))
         return obj
 
+    ###
     from_obj: (obj) =>
-        #console.log("from_obj: start"); t = misc.mswalltime()
         if not @nb?
             return
         i = @nb.get_selected_index()
@@ -777,26 +786,6 @@ class JupyterNotebook
         @nb.dirty = false
         @nb.select(i)
         @nb.element.scrollTop(st)
-        #console.log("from_obj: done", misc.mswalltime(t))
-
-    ###
-    # simplistic version of modifying the notebook in place.  VERY slow when new cell added.
-    from_doc0: (doc) =>
-        #console.log("from_doc: start"); t = misc.mswalltime()
-        nb = @nb
-        v = doc.split('\n')
-        nb.metadata.name  = v[0].notebook_name
-        cells = []
-        for line in v.slice(1)
-            try
-                c = misc.from_json(line)
-                cells.push(c)
-            catch e
-                console.log("error de-jsoning '#{line}'", e)
-        obj = @to_obj()
-        obj.cells = cells
-        @from_obj(obj)
-        console.log("from_doc: done", misc.mswalltime(t))
     ###
 
     delete_cell: (index) =>
@@ -816,65 +805,35 @@ class JupyterNotebook
 
         cell = @nb.get_cell(index)
 
-        if false and cell? and cell_data.cell_type == cell.cell_type
-            #console.log("setting in place")
-
-            if cell.output_area?
-                # for some reason fromJSON doesn't clear the output (it should, imho), and the clear_output method
-                # on the output_area doesn't work as expected.
-                wrapper = cell.output_area.wrapper
-                wrapper.empty()
-                cell.output_area = new @ipython.OutputArea(wrapper, true)
-
-            cell.fromJSON(cell_data)
-
-            ###  for debugging that we properly update a cell in place -- if this is wrong,
-            #    all hell breaks loose, and sync loops ensue.
-            a = misc.to_json(cell_data)
-            b = misc.to_json(cell.toJSON())
-            if a != b
-                console.log("didn't work:")
-                console.log(a)
-                console.log(b)
-                @nb.delete_cell(index)
-                new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
-                new_cell.fromJSON(cell_data)
-            ###
-
-        else
-            #console.log("replacing")
-            @nb.delete_cell(index)
-            new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
-            new_cell.fromJSON(cell_data)
+        # Commented out since it weirdly fails in Jupyter 3.0...
+        ##if false and cell? and cell_data.cell_type == cell.cell_type
+        #    #console.log("setting in place")
+        #    if cell.output_area?
+        #        # For some reason fromJSON doesn't clear the output (it should, imho),
+        #        # and the clear_output method on the output_area doesn't work as expected.
+        #        wrapper = cell.output_area.wrapper
+        #        wrapper.empty()
+        #        cell.output_area = new @ipython.OutputArea(wrapper, true)
+        #    cell.fromJSON(cell_data)
+        #    ###  for debugging that we properly update a cell in place -- if this is wrong,
+        #    #    all hell breaks loose, and sync loops ensue.
+        #    a = misc.to_json(cell_data)
+        #    b = misc.to_json(cell.toJSON())
+        #    if a != b
+        #        console.log("didn't work:")
+        #        console.log(a)
+        #        console.log(b)
+        #        @nb.delete_cell(index)
+        #        new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
+        #        new_cell.fromJSON(cell_data)
+        #    ###
+        #else
+        #console.log("replacing")
+        # Add a new one then deleting existing -- correct order avoids flicker/jump
+        new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
+        new_cell.fromJSON(cell_data)
+        @nb.delete_cell(index + 1)
         #console.log("set_cell: done", misc.mswalltime(t))
-
-    ###
-    # simplistic version of setting from doc; *very* slow on cell insert.
-    from_doc0: (doc) =>
-        console.log("goal='#{doc}'")
-        console.log("live='#{@to_doc()}'")
-
-        console.log("from_doc: start"); t = misc.mswalltime()
-        goal = doc.split('\n')
-        live = @to_doc().split('\n')
-
-        @nb.metadata.name  = goal[0].notebook_name
-
-        for i in [1...Math.max(goal.length, live.length)]
-            index = i-1
-            if i >= goal.length
-                console.log("deleting cell #{index}")
-                @nb.delete_cell(index)
-            else if goal[i] != live[i]
-                console.log("replacing cell #{index}")
-                try
-                    cell_data = JSON.parse(goal[i])
-                    @set_cell(index, cell_data)
-                catch e
-                    console.log("error de-jsoning '#{goal[i]}'", e)
-
-        console.log("from_doc: done", misc.mswalltime(t))
-    ###
 
     # Notebook Doc Format: line 0 is meta information in JSON.
     # Rest of file has one line for each cell for rest of file, in the following format:
@@ -913,21 +872,23 @@ class JupyterNotebook
         #console.log("cell=", misc.to_json(cell))
         return cell
 
-    to_doc: () =>
-        #console.log("to_doc: start"); t = misc.mswalltime()
+    # Convert the visible displayed notebook into a textual sync-friendly string
+    nb_to_string: () =>
+        tm = misc.mswalltime()
+        #@dbg("nb_to_string", "computing")
         obj = @to_obj()
         if not obj?
             return
         doc = misc.to_json({notebook_name:obj.metadata.name})
         for cell in obj.cells
             doc += '\n' + @cell_to_line(cell)
-        #console.log("to_doc: done", misc.mswalltime(t))
+        @nb.dirty = false
+        #@dbg("nb_to_string", "time", misc.mswalltime(tm))
         return doc
 
-    from_doc: (doc) =>
-        #console.log("goal='#{doc}'")
-        #console.log("live='#{@to_doc()}'")
-        #console.log("from_doc: start"); tm = misc.mswalltime()
+    # Transform the visible displayed notebook view into exactly what is described by the string doc.
+    set_nb: (doc) =>
+        tm = misc.mswalltime()
         if not @nb?
             # The live notebook is not currently initialized -- there's nothing to be done for now.
             # This can happen if reconnect (to hub) happens at the same time that user is reloading
@@ -935,12 +896,17 @@ class JupyterNotebook
             # reload anyways, so no need to set it here.
             return
 
-        # We want to transform live into goal.
+        # what we want visible document to look like
         goal = doc.split('\n')
-        live = @to_doc()?.split('\n')
-        if not live?
+
+        # what the actual visible document looks like
+        live = @nb_to_string()?.split('\n')
+
+        if not live? # no visible doc?
             # reloading...
             return
+
+        # first line is metadata...
         @nb.metadata.name  = goal[0].notebook_name
 
         v0    = live.slice(1)
@@ -992,12 +958,8 @@ class JupyterNotebook
                 console.log("BUG -- invalid diff!", diff)
             i += 1
 
-        #console.log("from_doc: done", misc.mswalltime(tm))
-        #if @to_doc() != doc
-        #    console.log("FAIL!")
-        #    console.log("goal='#{doc}'")
-        #    console.log("live='#{@to_doc()}'")
-        #    @from_doc0(doc)
+        @dbg("from_doc", "time=", misc.mswalltime(tm))
+
 
     focus: () =>
         # TODO

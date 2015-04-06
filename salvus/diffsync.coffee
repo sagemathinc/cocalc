@@ -127,6 +127,7 @@ class DiffSync extends EventEmitter  #not used here, but may be in derived class
         cb?(false, dmp.patch_apply(edits, doc)[0])
 
     _apply_edits_to_live: (edits, cb) =>
+        @_pre_apply_edits_to_live?()
         @_apply_edits  edits, @live, (err, result) =>
             if err
                 cb?(err); return
@@ -284,6 +285,7 @@ class CustomDiffSync extends DiffSync
         cb?(false, @opts.patch(edits, doc))
 
     _apply_edits_to_live: (edits, cb) =>
+        @_pre_apply_edits_to_live?()
         if @opts.patch_in_place?
             @opts.patch_in_place(edits, @live)
             cb?()
