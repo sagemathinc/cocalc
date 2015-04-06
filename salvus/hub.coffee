@@ -4062,8 +4062,8 @@ normalize_path = (path) ->
             path = head + '/' + tail
         else
             path = tail
-    else if ext == 'syncdoc'   # for IPython, and possibly other things later
-        path = path.slice(0, path.length-'.syncdoc'.length)
+    else if ext.slice(0,7) == 'syncdoc'   # for IPython, and possibly other things later
+        path = path.slice(0, path.length - ext.length - 1)
         {head, tail} = misc.path_split(path)
         tail = tail.slice(1) # get rid of .
         if head

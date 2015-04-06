@@ -184,10 +184,11 @@ class DiffSyncHub
 class AbstractSynchronizedDoc extends EventEmitter
     constructor: (opts) ->
         @opts = defaults opts,
-            project_id : required
-            filename   : required
-            sync_interval : 1000    # no matter what, we won't send sync messages back to the server more frequently than this (in ms)
-            cb         : required   # cb(err) once doc has connected to hub first time and got session info; will in fact keep trying until success
+            project_id        : required
+            filename          : required
+            sync_interval     : 1000    # no matter what, we won't send sync messages back to the server more frequently than this (in ms)
+            revision_tracking : false     # if true, save every change in @.filename.sage-history
+            cb                : required   # cb(err) once doc has connected to hub first time and got session info; will in fact keep trying until success
 
         @project_id = @opts.project_id   # must also be set by derived classes that don't call this constructor!
         @filename   = @opts.filename
@@ -465,6 +466,22 @@ class SynchronizedString extends AbstractSynchronizedDoc
                     @_apply_patch_to_live(patch)
                     reconnect = true
                 cb?()
+
+                if @opts.revision_tracking
+                    #console.log("enabling revision tracking for #{@filename}")
+                    @call
+                        message : message.codemirror_revision_tracking
+                            session_uuid : @session_uuid
+                            enable       : true
+                        timeout : 120
+                        cb      : (err, resp) =>
+                            if resp.event == 'error'
+                                err = resp.error
+                            if err
+                                #alert_message(type:"error", message:)
+                                # usually this is harmless -- it could happen on reconnect or network is flakie.
+                                console.log("ERROR: ", "error enabling revision saving -- #{err} -- #{@editor.filename}")
+
 
     disconnect_from_session: (cb) =>
         @_remove_listeners()

@@ -334,6 +334,17 @@ class JupyterNotebook
                 cb?()
         )
 
+    click_history_button: () =>
+        p = misc.path_split(@syncdoc_filename)
+        if p.head
+            path = "#{p.head}/.#{p.tail}.sage-history"
+        else
+            path = ".#{p.tail}.sage-history"
+        @editor.project_page.open_file
+            path       : path
+            foreground : true
+        return false
+
     _init_doc: (cb) =>
         #console.log("_init_doc: connecting to sync session")
         @status("Connecting to synchronized editing session...")
@@ -345,11 +356,13 @@ class JupyterNotebook
                 @show()
                 cb?()
             return
+        revision_tracking = require('account').account_settings.settings.editor_settings.track_revisions
         @doc = syncdoc.synchronized_string
-            project_id    : @editor.project_id
-            filename      : @syncdoc_filename
-            sync_interval : @opts.sync_interval
-            cb            : (err) =>
+            project_id        : @editor.project_id
+            filename          : @syncdoc_filename
+            sync_interval     : @opts.sync_interval
+            revision_tracking : revision_tracking
+            cb                : (err) =>
                 #console.log("_init_doc returned: err=#{err}")
                 @status()
                 if err
@@ -358,6 +371,7 @@ class JupyterNotebook
                     if @_use_disk_file
                         @doc.live('')
                     @_config_doc()
+                    @element.find("a[href=#history]").show().click(@click_history_button)
                     cb?()
 
     _config_doc: () =>
@@ -550,12 +564,19 @@ class JupyterNotebook
                             # Get rid of file menu, which weirdly and wrongly for sync replicates everything.
                             for cmd in ['new', 'open', 'copy', 'rename']
                                 @frame.$("#" + cmd + "_notebook").remove()
-                            @frame.$("#kill_and_exit").remove()
+
+                            @frame.$("#save-notbook").remove()  # typo in ipython-3
+                            @frame.$("#save-notebook").remove()  # in case they fix the typo
+
                             @frame.$("#menus").find("li:first").find(".divider").remove()
 
-                            #@frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
+                            # This would make the ipython notebook take up the full horizontal width, which is more
+                            # consistent with the rest of SMC.. Also looks way better on mobile.
+                            @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
+                            if not require("feature").IS_MOBILE
+                                @frame.$("#site").css("padding-left", "20px")
 
-                            @frame.$('<style type=text/css></style>').appendTo(@frame.$("body"))
+                            #@frame.$('<style type=text/css></style>').appendTo(@frame.$("body"))
 
                             @nb._save_checkpoint = @nb.save_checkpoint
                             @nb.save_checkpoint = @save
