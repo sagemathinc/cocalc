@@ -4163,8 +4163,8 @@ class HistoryEditor extends FileEditor
             @forward_button.addClass("disabled")
         else
             @forward_button.removeClass("disabled")
-        if @ext == 'sagews'
-            @worksheet.process_sage_updates()
+
+        @process_view()
         #console.log("going to revision #{num} took #{misc.mswalltime(t)}ms")
 
     render_history: (first) =>
@@ -4194,8 +4194,15 @@ class HistoryEditor extends FileEditor
             @slider.slider
                 max : @nlines
             @forward_button.removeClass("disabled")
+
+        @process_view()
+
+    process_view: () =>
         if @ext == 'sagews'
             @worksheet.process_sage_updates()
+        else if @ext == 'syncdoc4'
+            # Jupyter notebook history
+            jupyter.process_history_editor(@history_editor.codemirror)
 
     show: () =>
         if not @is_active()
@@ -4447,15 +4454,15 @@ class Archive extends FileEditorWrapper
 ###
 # Jupyter notebook
 ###
+jupyter = require('jupyter')
+
 class JupyterNotebook extends FileEditorWrapper
     init_wrapped: () =>
-        jupyter = require('jupyter')
         @element = jupyter.jupyter_notebook(@editor, @filename, @opts)
         @wrapped = @element.data('jupyter_notebook')
 
 class JupyterNBViewer extends FileEditorWrapper
     init_wrapped: () ->
-        jupyter = require('jupyter')
         @element = jupyter.jupyter_nbviewer(@editor, @filename, @content, @opts)
         @wrapped = @element.data('jupyter_nbviewer')
 

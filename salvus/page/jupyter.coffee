@@ -214,7 +214,7 @@ exports.jupyter_notebook = (editor, filename, opts) ->
 
 class JupyterNotebook
     dbg: (f, m...) =>
-        console.log("#{new Date()} -- JupyterNotebook.#{f}: #{misc.to_json(m)}")
+        #console.log("#{new Date()} -- JupyterNotebook.#{f}: #{misc.to_json(m)}")
 
     constructor: (@editor, @filename, opts={}) ->
         opts = @opts = defaults opts,
@@ -334,15 +334,124 @@ class JupyterNotebook
                 cb?()
         )
 
-    click_history_button: () =>
+    history_hide_viewer: () =>
+        @dbg("history_hide_viewer")
+        if not @history_mode
+            return
+        @element.find(".smc-jupyter-notebook-buttons").show()
+        @element.find(".smc-jupyter-notebook-history-slider-controls").hide()
+        @history.disconnect_from_session()
+        delete @_parse_logstring_cache
+        @history_mode = false
+        @set_nb_from_doc()
+        return false
+
+    parse_logstring: (s) =>
+        if not @_parse_logstring_cache?
+            @_parse_logstring_cache = {}
+        obj = @_parse_logstring_cache[s]
+        if obj?
+            return obj
+        try
+            obj = JSON.parse(s)
+            obj.patch = diffsync.decompress_patch_compat(obj.patch)
+        catch e
+            console.log("ERROR -- corrupt line in history -- '#{s}'")
+            obj = {time:0, patch:[]}
+        @_parse_logstring_cache[s] = obj
+        return obj
+
+    parse_logstring_inverse: (s) =>
+        if not @_parse_logstring_inverse_cache?
+            @_parse_logstring_inverse_cache = {}
+        obj = @_parse_logstring_inverse_cache[s]
+        if obj?
+            return obj
+        obj = misc.deep_copy(@parse_logstring(s))
+        diffsync.invert_patch_in_place(obj.patch)
+        @_parse_logstring_inverse_cache[s] = obj
+        return obj
+
+    history_back: () =>
+        @history_goto_revision(@revision_num - 1)
+
+    history_forward: () =>
+        @history_goto_revision(@revision_num + 1)
+
+    history_goto_revision: (num) ->
+        @dbg("history_goto_revision", num)
+
+        @element.find(".smc-jupyter-history-revision-number").text("Revision " + num)
+        if num == 0
+            @element.find(".smc-jupyter-history-revision-time").text("start")
+        else
+            @element.find(".smc-jupyter-history-revision-time").text(new Date(@parse_logstring(@log[@nlines-num+1]).time).toLocaleString())
+
+        text = @last_history_shown
+        if @revision_num > num
+            text_old = text
+            for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
+                text = diffsync.dmp.patch_apply(@parse_logstring(patch).patch, text)[0]
+            @set_nb(text)
+
+        else if @revision_num < num
+            text_old = text
+            for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
+                text = diffsync.dmp.patch_apply(@parse_logstring_inverse(patch).patch, text)[0]
+            @set_nb(text)
+
+        @last_history_shown = text
+        @revision_num = num
+
+        if @revision_num == 0
+            @back_button.addClass("disabled")
+        else
+            @back_button.removeClass("disabled")
+        if @revision_num == @nlines
+            @forward_button.addClass("disabled")
+        else
+            @forward_button.removeClass("disabled")
+
+    history_revert_to_current_revision: () =>
+        bootbox.confirm "Revert live notebook to the displayed version?", (result) =>
+            if result
+                @doc.live(@last_history_shown)
+                @sync () =>
+                    @history_hide_viewer()
+        return false
+
+    history_show_viewer: () =>
+        @dbg("history_show_viewer")
+        if @history_mode
+            return
         p = misc.path_split(@syncdoc_filename)
         if p.head
             path = "#{p.head}/.#{p.tail}.sage-history"
         else
             path = ".#{p.tail}.sage-history"
-        @editor.project_page.open_file
-            path       : path
-            foreground : true
+        @history = syncdoc.synchronized_string
+            project_id        : @editor.project_id
+            filename          : path
+            cb                : (err) =>
+                if err
+                    return
+                @element.find(".smc-jupyter-notebook-buttons").hide()
+                controls = @element.find(".smc-jupyter-notebook-history-slider-controls")
+                controls.show()
+                slider = controls.find(".smc-jupyter-notebook-history-slider")
+                @log = @history.live().split("\n")
+                @nlines = @log.length - 1
+                @last_history_shown = JSON.parse(@log[0])
+                @revision_num = @nlines
+                slider.slider
+                    min     : 0
+                    max     : @nlines
+                    step    : 1
+                    value   : @revision_num
+                    slide  : (event, ui) =>
+                        @history_goto_revision(ui.value)
+                @history_goto_revision(@revision_num)
+                @history_mode = true
         return false
 
     _init_doc: (cb) =>
@@ -371,7 +480,6 @@ class JupyterNotebook
                     if @_use_disk_file
                         @doc.live('')
                     @_config_doc()
-                    @element.find("a[href=#history]").show().click(@click_history_button)
                     cb?()
 
     _config_doc: () =>
@@ -390,7 +498,7 @@ class JupyterNotebook
         @show()
 
         @doc._presync = () =>
-            if not @nb? or @_reloading
+            if not @nb? or @_reloading or @history_mode
                 # no point -- reinitializing the notebook frame right now...
                 return
             #@dbg("about to sync with upstream")
@@ -400,16 +508,20 @@ class JupyterNotebook
             @doc.live(@before_sync)
 
         @doc.dsync_client._pre_apply_edits_to_live = () =>
+            if @history_mode
+                return
             @doc.live(@nb_to_string())
 
         @doc.on 'sync', () =>
+            if @history_mode
+                return
             # We just sync'ed with upstream.
             after_sync = @doc.live()
             if @before_sync != after_sync
                 # Apply any upstream changes to the DOM.
                 #console.log("sync - before='#{@before_sync}'")
                 #console.log("sync - after='#{after_sync}'")
-                @set_nb_from_doc(after_sync)
+                @set_nb_from_doc()
 
         @doc.draw_other_cursor = (pos, color, name) =>
             if not @_cursors?
@@ -568,6 +680,9 @@ class JupyterNotebook
                             @frame.$("#save-notbook").remove()  # typo in ipython-3
                             @frame.$("#save-notebook").remove()  # in case they fix the typo
 
+                            @frame.$(".checkpoint_status").remove()
+                            @frame.$(".autosave_status").remove()
+
                             @frame.$("#menus").find("li:first").find(".divider").remove()
 
                             # This would make the ipython notebook take up the full horizontal width, which is more
@@ -616,8 +731,9 @@ class JupyterNotebook
             @save_button.removeClass('disabled')
             @sync()
 
-    sync: () =>
+    sync: (cb) =>
         if @readonly
+            cb?()
             return
         @editor.activity_indicator(@filename)
         @save_button.icon_spin(start:true, delay:1500)
@@ -625,6 +741,7 @@ class JupyterNotebook
         @doc.sync () =>
             @dbg("sync", "done")
             @save_button.icon_spin(false)
+            cb?()
 
     has_unsaved_changes: () =>
         return not @save_button.hasClass('disabled')
@@ -660,8 +777,10 @@ class JupyterNotebook
         t += "<h4>Pure Jupyter notebooks</h4>"
         t += "You can <a target='_blank' href='#{@server_url}notebooks/#{@filename}'>open this notebook in a vanilla Jupyter Notebook server without sync</a> (this link works only for project collaborators).  "
         #t += "<br><br>To start your own unmodified Jupyter Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
-        t += "<h4>Known Issues</h4>"
-        t += "If two people edit the same <i>cell</i> simultaneously, the cursor will jump to the start of the cell."
+
+        # this is still a problem, but removed to avoid overwhelming user.
+        #t += "<h4>Known Issues</h4>"
+        #t += "If two people edit the same <i>cell</i> simultaneously, the cursor will jump to the start of the cell."
         bootbox.alert(t)
         return false
 
@@ -711,6 +830,13 @@ class JupyterNotebook
         @element.find("a[href=#tab]").click () =>
             @nb?.get_cell(@nb?.get_selected_index()).completer.startCompletion()
             return false
+
+        if require('account').account_settings.settings.editor_settings.track_revisions
+            @element.find("a[href=#history]").show().click(@history_show_viewer)
+            @element.find("a[href=#revert-history]").click(@history_revert_to_current_revision)
+            @element.find(".smc-jupyter-notebook-history-slider-controls").find("a[href=#close-history]").click(@history_hide_viewer)
+            @back_button = @element.find("a[href=#history-back]").click(@history_back)
+            @forward_button = @element.find("a[href=#history-forward]").click(@history_forward)
 
     publish_ui: () =>
         url = document.URL
@@ -782,7 +908,7 @@ class JupyterNotebook
             err_on_exit : true
             timeout     : 30
             cb          : (err, output) =>
-                console.log("nbconvert finished with err='#{err}, output='#{misc.to_json(output)}'")
+                #console.log("nbconvert finished with err='#{err}, output='#{misc.to_json(output)}'")
                 opts.cb?(err)
 
     to_obj: () =>
@@ -810,13 +936,18 @@ class JupyterNotebook
     ###
 
     delete_cell: (index) =>
+        @dbg("delete_cell", index)
         @nb?.delete_cell(index)
 
     insert_cell: (index, cell_data) =>
+        @dbg("insert_cell", index)
         if not @nb?
             return
         new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
-        new_cell.fromJSON(cell_data)
+        try
+            new_cell.fromJSON(cell_data)
+        catch e
+            console.log("insert_cell fromJSON error -- #{e} -- cell_data=",cell_data)
 
     set_cell: (index, cell_data) =>
         #console.log("set_cell: start"); t = misc.mswalltime()
@@ -852,7 +983,10 @@ class JupyterNotebook
         #console.log("replacing")
         # Add a new one then deleting existing -- correct order avoids flicker/jump
         new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
-        new_cell.fromJSON(cell_data)
+        try
+            new_cell.fromJSON(cell_data)
+        catch e
+            console.log("set_cell fromJSON error -- #{e} -- cell_data=",cell_data)
         @nb.delete_cell(index + 1)
         #console.log("set_cell: done", misc.mswalltime(t))
 
@@ -940,7 +1074,7 @@ class JupyterNotebook
         index = 0
         i = 0
 
-        #console.log("diff=#{misc.to_json(diff)}")
+        @dbg("set_nb", "diff", diff)
         i = 0
         while i < diff.length
             chunk = diff[i]
@@ -979,7 +1113,7 @@ class JupyterNotebook
                 console.log("BUG -- invalid diff!", diff)
             i += 1
 
-        @dbg("from_doc", "time=", misc.mswalltime(tm))
+        @dbg("set_nb", "time=", misc.mswalltime(tm))
 
 
     focus: () =>
@@ -995,4 +1129,30 @@ class JupyterNotebook
         # console.log("top=#{top}; setting maxheight for iframe =", @iframe)
         @iframe?.attr('width',w).maxheight()
         setTimeout((()=>@iframe?.maxheight()), 1)   # set it one time more the next render loop.
+
+# This isn't used really -- it is called if somehow somebody directly opens the .ipython.syncdoc
+# history file, rather than opening the history directly in an ipython notebook.
+exports.process_history_editor = (cm) ->
+    #console.log("process_history_editor")
+    window.cm = cm
+    if cm.findMarksAt({line:0,ch:0}).length == 0
+        # hide document-wide metadata line
+        cm.markText({line:0,ch:0},{line:1,ch:0},{collapsed:true})
+    for i in [1...cm.lineCount()]
+        v = cm.getLine(i)
+        j = v.indexOf(diffsync.MARKERS.output)
+        m = cm.findMarksAt({line:i, ch:j-1})
+        #console.log("existing marks=",m)
+        if m.length == 0
+            #console.log("putting a mark from", {line:i, ch:j}, " to ", {line:i,ch:v.length})
+            cm.markText({line:i, ch:j-1}, {line:i,ch:v.length}, {collapsed:true})
+            cm.markText({line:i, ch:0}, {line:i,ch:1}, {collapsed:true})
+
+
+
+
+
+
+
+
 

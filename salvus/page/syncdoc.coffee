@@ -305,6 +305,9 @@ class AbstractSynchronizedDoc extends EventEmitter
                 @emit('sync')
 
                 s = @live()
+                if not s?
+                    cb?()  # doing sync with this object is over... unwind with grace.
+                    return
                 if s.copy?
                     s = s.copy()
                 @_last_sync = s    # What was the last successful sync with upstream.
@@ -480,7 +483,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
                             if err
                                 #alert_message(type:"error", message:)
                                 # usually this is harmless -- it could happen on reconnect or network is flakie.
-                                console.log("ERROR: ", "error enabling revision saving -- #{err} -- #{@editor.filename}")
+                                console.log("ERROR: ", "error enabling revision saving -- #{err} -- #{@filename}")
 
 
     disconnect_from_session: (cb) =>
