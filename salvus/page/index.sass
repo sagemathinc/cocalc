@@ -25,6 +25,7 @@
 @import project
 @import wizard
 @import editor
+@import jupyter
 @import tasks
 @import archive
 @import course
@@ -213,3 +214,9 @@ input[type="text"], select, input[type="email"], select, input[type="password"],
 
 *[data-toggle*="collapse"]
   cursor:pointer
+
+/* Fix menubar height at the top of the screen, mainly on Firefox. */
+ul.nav.pull-right.navbar-nav li
+  height: 42px
+
+

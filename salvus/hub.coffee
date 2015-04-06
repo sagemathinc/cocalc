@@ -1071,8 +1071,15 @@ init_http_proxy_server = () =>
         key        = remember_me + project_id + type
         if type == 'port'
             key += v[3]
-            port = parseInt(v[3])
+            port = v[3]
         return {key:key, type:type, project_id:project_id, port_number:port}
+
+    jupyter_server_port = (opts) ->
+        opts = defaults opts,
+            project_id : required   # assumed valid and that all auth already done
+            cb         : required   # cb(err, port)
+        new_project(opts.project_id).jupyter_port
+            cb   : opts.cb
 
     target = (remember_me, url, cb) ->
         {key, type, project_id, port_number} = target_parse_req(remember_me, url)
@@ -1129,8 +1136,18 @@ init_http_proxy_server = () =>
             (cb) ->
                 # determine the port
                 if type == 'port'
-                    port = port_number
-                    cb()
+                    if port_number == "jupyter"
+                        jupyter_server_port
+                            project_id : project_id
+                            cb         : (err, jupyter_port) ->
+                                if err
+                                    cb(err)
+                                else
+                                    port = jupyter_port
+                                    cb()
+                    else
+                        port = port_number
+                        cb()
                 else if type == 'raw'
                     bup_server.project
                         project_id : project_id
@@ -1248,6 +1265,7 @@ init_http_proxy_server = () =>
                     proxy.on "error", (e) ->
                         dbg("websocket proxy error, so clearing cache -- #{e}")
                         delete _ws_proxy_servers[t]
+                        invalidate_target_cache(undefined, req_url)
                     _ws_proxy_servers[t] = proxy
                 else
                     dbg("websocket upgrade -- using cache")
@@ -1505,7 +1523,7 @@ class Client extends EventEmitter
     push_data_to_client: (channel, data) ->
         if @closed
             return
-        #winston.debug("push_data_to_client(#{channel},'#{data}')")
+        #winston.debug("inside push_data_to_client(#{channel},'#{data}')")
         @conn.write(channel + data)
 
     error_to_client: (opts) ->
@@ -4816,7 +4834,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             params       : {command: 'bash'}
             session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
             cb           : required    # cb(err, [session_connected message])
-        @dbg("connect client to console session -- session_uuid=#{opts.session_uuid}")
+        @dbg("console_session: connect client to console session -- session_uuid=#{opts.session_uuid}")
+
         # Connect to the console server
         if not opts.session_uuid?
             # Create a new session
@@ -4870,12 +4889,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # console --> client:
                 # When data comes in from the socket, we push it on to the connected
                 # client over the channel we just created.
-                console_socket.on 'data', (data) ->
+                f = (data) ->
                     # Never push more than 20000 characters at once to client, since display is slow, etc.
                     if data.length > 20000
                         data = "[...]" + data.slice(data.length - 20000)
+                    #winston.debug("push_data_to_client('#{data}')")
                     opts.client.push_data_to_client(channel, data)
-
+                console_socket.on('data', f)
 
     terminate_session: (opts) =>
         opts = defaults opts,
@@ -5058,6 +5078,21 @@ class Project
         @_fixpath(opts.mesg)
         opts.mesg.project_id = @project_id
         @local_hub.call(opts)
+
+    jupyter_port: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @dbg("jupyter_port")
+        @call
+            mesg    : message.jupyter_port()
+            timeout : 30
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    @dbg("jupyter_port -- #{resp.port}")
+                    opts.cb(undefined, resp.port)
+
 
     # Set project as deleted (which sets a flag in the database)
     delete_project: (opts) =>

@@ -6,7 +6,7 @@
 # only of use directly in https://cloud.sagemath.com.
 #
 # This is written in Python, but that can be any python2 on the system; not the
-# Python that the ipython command runs. 
+# Python that the ipython command runs.
 #
 #
 # Copyright (c) 2013, William Stein, All rights reserved.
@@ -55,8 +55,8 @@ def random_port():
 
 def command():
     port = random_port()  # time consuming!
-    base = "%s/%s/port/%s/"%(info['base_url'], project_id, port)
-    cmd = "ipython notebook --port-retries=0 --matplotlib=inline --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js  --NotebookApp.base_project_url=%s --NotebookApp.base_kernel_url=%s --ip=%s --port=%s"%(base, base, ip, port)
+    base = "%s/%s/port/jupyter/"%(info['base_url'], project_id)
+    cmd = "ipython notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js  --NotebookApp.base_project_url=%s --NotebookApp.base_kernel_url=%s --ip=%s --port=%s"%(base, base, ip, port)
     cmd += " " + ' '.join(sys.argv[1:])
     return cmd, base, port
 
@@ -83,7 +83,7 @@ def is_daemon_running():
         return False
 
 
-def action():
+def action(mode):
     sys.stdout.flush()
 
     if mode == 'status':
@@ -96,11 +96,11 @@ def action():
         print json.dumps(s)
         return
 
-    if mode == 'start':
+    elif mode == 'start':
         if os.path.exists(DAEMON_FILE) and time.time() - os.path.getmtime(DAEMON_FILE) < 15:
-            # avoid calling repeatedly -- some clients go nuts
-            print json.dumps({"status":"starting"})
-            return
+            # if we just tried to start then called again, wait a bit before checking
+            # on process
+            time.sleep(5)
 
         info = is_daemon_running()
         if info:
@@ -113,7 +113,7 @@ def action():
         # See http://mail.scipy.org/pipermail/ipython-user/2012-May/010043.html
         cmd, base, port = command()
 
-        c = '%s 2>/dev/null >/dev/null &'%cmd
+        c = '%s 2> $SAGEMATHCLOUD/data/ipython-notebook.err 1>$SAGEMATHCLOUD/data/ipython-notebook.log &'%cmd
         sys.stderr.write(c+'\n'); sys.stderr.flush()
         os.system(c)
 
@@ -132,7 +132,10 @@ def action():
 
             c = "ps -u`whoami` -o pid,cmd|grep 'ipython notebook'"
             for s in os.popen(c).read().splitlines():
-                p = int(s.split()[0])
+                v = s.split()
+                if len(v) < 2 or v[1].split('/')[-1] != 'python':
+                    continue
+                p = int(v[0])
                 if "port=%s"%port not in s:
                     try:
                         os.kill(p, 9)  # kill any other ipython notebook servers by this user
@@ -149,7 +152,7 @@ def action():
         open(DAEMON_FILE,'w').write(s)
         return
 
-    if mode == 'stop':
+    elif mode == 'stop':
         info = is_daemon_running()
         if not info:
             # not running -- nothing to do
@@ -165,7 +168,7 @@ def action():
             pass
         return
 
-    if mode == 'run':
+    elif mode == 'run':
         print cmd + '\n\n'
         print "*"*80 + '\n'
         print "  The IPython Notebook server is running at \n"
@@ -175,4 +178,11 @@ def action():
         print '\n\n' + "*"*80 + '\n\n'
         os.system(cmd + "  2>&1 | grep -v running ")
 
-action()
+    elif mode == 'restart':
+        action('stop')
+        action('start')
+
+    else:
+        raise RuntimeError("unknown command '%s'"%mode)
+
+action(mode)

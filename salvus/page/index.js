@@ -36,7 +36,10 @@ archive.coffee
 
 course.coffee
 
+jupyter.coffee
+
 editor.coffee
+
 
 interact.coffee
 

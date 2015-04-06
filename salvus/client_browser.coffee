@@ -30,17 +30,20 @@ t = walltime()
 class Connection extends client.Connection
     _connect: (url, ondata) ->
         @url = url
+        if @ondata?
+            # handlers already setup
+            return
+
         @ondata = ondata
-        console.log("websocket -- connecting to '#{url}'...")
 
         opts =
             ping      : 6000   # used for maintaining the connection and deciding when to reconnect.
             pong      : 12000  # used to decide when to reconnect
             strategy  : 'disconnect,online,timeout'
             reconnect :
-              maxDelay : 15000
-              minDelay : 500
-              retries  : 100000  # why ever stop trying if we're only trying once every 15 seconds?
+                maxDelay : 15000
+                minDelay : 500
+                retries  : 100000  # why ever stop trying if we're only trying once every 15 seconds?
 
         conn = new Primus(url, opts)
         @_conn = conn
@@ -54,15 +57,17 @@ class Connection extends client.Connection
                 protocol = 'websocket'
             else
                 protocol = 'polling'
-            console.log("#{protocol} -- connected in #{walltime(t)} seconds")
+            console.log("#{protocol} -- connected")
 
             @emit("connected", protocol)
 
+            #console.log("installing ondata handler")
+            conn.removeAllListeners('data')
             f = (data) =>
                 @_conn_id = data.toString()
                 conn.removeListener('data',f)
                 conn.on('data', ondata)
-            conn.on("data",f)
+            conn.on("data", f)
 
 
         conn.on 'message', (evt) =>
@@ -77,12 +82,13 @@ class Connection extends client.Connection
             console.log("websocket -- closed")
             @_connected = false
             t = walltime()
-            conn.removeListener('data', ondata)
+            conn.removeAllListeners('data')
             @emit("connecting")
 
         conn.on 'reconnecting', (opts) =>
-            console.log('websocket --reconnecting in %d ms', opts.timeout)
-            console.log('websocket --this is attempt %d out of %d', opts.attempt, opts.retries)
+            conn.removeAllListeners('data')
+            console.log('websocket -- reconnecting in %d ms', opts.timeout)
+            console.log('websocket -- this is attempt %d out of %d', opts.attempt, opts.retries)
 
         conn.on 'incoming::pong', (time) =>
             #console.log("pong latency=#{conn.latency}")
@@ -98,9 +104,8 @@ class Connection extends client.Connection
 
 
     _fix_connection: () =>
-        console.log("websocket --_fix_connection...")
-        @_conn.end()
-        @_connect(@url, @ondata)
+        console.log("websocket --_fix_connection... ")
+        @_conn.reconnect()
 
     _cookies: (mesg) =>
         $.ajax(url:mesg.url, data:{id:mesg.id, set:mesg.set, get:mesg.get, value:mesg.value})
