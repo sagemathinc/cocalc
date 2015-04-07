@@ -2104,7 +2104,6 @@ class CodeMirrorEditor extends FileEditor
         f = () =>
             for {cm,height,width} in v
                 cm.refresh()
-                setTimeout((()=>cm.refresh), 1)
                 ###
                 scroll = cm.getScrollInfo(); pos = cm.getCursor()
                 # above refresh

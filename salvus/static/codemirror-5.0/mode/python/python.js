@@ -240,6 +240,7 @@
       while (top(state).offset > indented) {
         if (top(state).type != "py") return true;
         state.scopes.pop();
+        if (state.scopes.length == 0) return false;
       }
       return top(state).offset != indented;
     }

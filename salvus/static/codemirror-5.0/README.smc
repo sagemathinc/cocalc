@@ -8,6 +8,25 @@
 
   diff mode/python/python.js ../codemirror-4.12/mode/python/python.js
 
+Also, it's critical to fix a bug by adding this line at the end of the while loop of dedent:
+
+           if (state.scopes.length == 0) return false;
+
+salvus@devel1dc5:~/salvus/salvus/static/codemirror-5.0$ gd mode/python/python.js
+diff --git a/salvus/static/codemirror-5.0/mode/python/python.js b/salvus/static/codemirror-5.0/mode/python/python.js
+index ec5d372..e81bc44 100644
+--- a/salvus/static/codemirror-5.0/mode/python/python.js
++++ b/salvus/static/codemirror-5.0/mode/python/python.js
+@@ -240,6 +240,7 @@
+      while (top(state).offset > indented) {
+        if (top(state).type != "py") return true;
+        state.scopes.pop();
+        if (state.scopes.length == 0) return false;
+      }
+      return top(state).offset != indented;
+    }
+
+
 -----------------------------------------------------------------------------------------------
 
 * The theme/solarized.css file looks like *CRAP* -- I had to remove the weird background image and shadow text.  Come on.
