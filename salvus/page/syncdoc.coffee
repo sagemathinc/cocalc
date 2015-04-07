@@ -626,7 +626,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     synced_before = true
                     patch = @dsync_client._compute_edits(@_last_sync, @live())
                 else
-                    console.log("This initialization is the first sync.")
+                    #console.log("This initialization is the first sync.")
                     @_last_sync   = DiffSyncDoc(string:resp.content)
                     synced_before = false
                     @editor._set(resp.content)

@@ -220,7 +220,6 @@ class JupyterNotebook
         opts = @opts = defaults opts,
             sync_interval   : 1000
             cursor_interval : 2000
-        window.ipython = @
         @element = templates.find(".smc-jupyter-notebook").clone()
         @element.data("jupyter_notebook", @)
 
@@ -1134,7 +1133,6 @@ class JupyterNotebook
 # history file, rather than opening the history directly in an ipython notebook.
 exports.process_history_editor = (cm) ->
     #console.log("process_history_editor")
-    window.cm = cm
     if cm.findMarksAt({line:0,ch:0}).length == 0
         # hide document-wide metadata line
         cm.markText({line:0,ch:0},{line:1,ch:0},{collapsed:true})
