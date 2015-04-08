@@ -220,14 +220,13 @@ Check http://primesieve.org/build.html for the latest version.
     sudo pip3 install --upgrade ipython
     sudo ipython3 kernelspec install-self
 
-    Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option in so that python3 can start with the sage -sh environment set.
+Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option in so that python3 can start with the sage -sh environment set.
 
 # IJULIA
 
-        umask 022
         sudo su
-        export JULIA_PKGDIR=/usr/local/share/julia/site/
-        julia
+        umask 022; export JULIA_PKGDIR=/usr/local/share/julia/site/; julia
+
         julia> Pkg.init()
         julia> Pkg.add("IJulia")
 
@@ -235,6 +234,8 @@ Check http://primesieve.org/build.html for the latest version.
  		cp -rv "/root/.sage/ipython-2.3.0.p0/kernels/julia 0.3" "/usr/local/share/jupyter/kernels/julia 0.3"
 
         Make sure the json file is this:
+
+        vi "/usr/local/share/jupyter/kernels/julia 0.3/kernel.json"
 
         {
           "display_name": "Julia 0.3.7",
