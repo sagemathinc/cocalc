@@ -250,21 +250,8 @@ Check http://primesieve.org/build.html for the latest version.
 
 # R Kernel support for Jupyter (see https://github.com/IRkernel/IRkernel)
 
-		sudo apt-get install libzmq3-dev
-
-Create this file system-wide as root `/usr/local/share/jupyter/kernels/ir/kernel.json`:
-
-{
-    "language": "r",
-    "argv": [
-        "R",
-        "-e",
-        "IRkernel::main()",
-        "--args",
-        "{connection_file}"
-    ],
-    "display_name": "R"
-}
+    sudo su
+    umask 022 && mkdir -p /usr/local/share/jupyter/kernels/ir/ && echo '{ "language": "r", "argv": [ "R", "-e", "IRkernel::main()", "—args", "{connection_file}" ], "display_name": "R" }'  > /usr/local/share/jupyter/kernels/ir/kernel.json
 
 
 # POLYMAKE system-wide
@@ -363,8 +350,7 @@ In /etc/sysctl.conf, put:
 # Copy over the newest SageTex, so it actually works (only do this with the default sage):
 
     sudo su
-    umask 022
-    cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/ && texhash
+    umask 022 && cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/ && texhash
 
 
 
@@ -754,7 +740,7 @@ class BuildSage(object):
 
     def install_r_jupyter_kernel(self):
         # see https://github.com/IRkernel/IRkernel
-        self.cmd(r"""echo 'install.packages("devtools", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("RCurl", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("base64enc", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("uuid", repos="http://ftp.osuosl.org/pub/cran/"); library(devtools); install_github("armstrtw/rzmq"); install_github("IRkernel/IRdisplay"); install_github("IRkernel/IRkernel");' | R""")
+        self.cmd(r"""echo 'install.packages("devtools", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("RCurl", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("base64enc", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("uuid", repos="http://ftp.osuosl.org/pub/cran/"); library(devtools); install_github("armstrtw/rzmq"); install_github("IRkernel/IRdisplay"); install_github("IRkernel/IRkernel");' | R --no-save""")
 
     def pull_smc_sage(self):
         self.cmd("cd $SAGE_ROOT && git pull https://github.com/sagemathinc/smc-sage")
