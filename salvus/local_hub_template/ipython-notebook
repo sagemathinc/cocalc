@@ -97,10 +97,10 @@ def action(mode):
         return
 
     elif mode == 'start':
-        if os.path.exists(DAEMON_FILE) and time.time() - os.path.getmtime(DAEMON_FILE) < 15:
+        if os.path.exists(DAEMON_FILE) and time.time() - os.path.getmtime(DAEMON_FILE) < 30:
             # if we just tried to start then called again, wait a bit before checking
             # on process
-            time.sleep(5)
+            time.sleep(15)
 
         info = is_daemon_running()
         if info:
