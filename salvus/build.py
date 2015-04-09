@@ -220,7 +220,7 @@ Check http://primesieve.org/build.html for the latest version.
     sudo pip3 install --upgrade ipython
     sudo ipython3 kernelspec install-self
 
-Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option in so that python3 can start with the sage -sh environment set.
+Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before "-m" so that python3 can start with the sage -sh environment set.
 
 # IJULIA
 
@@ -233,7 +233,7 @@ Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option in so t
         # this copy may change when ipython dir changes
  		cp -rv "/root/.sage/ipython-2.3.0.p0/kernels/julia 0.3" "/usr/local/share/jupyter/kernels/julia 0.3"
 
-        Make sure the json file is this:
+        Make sure the json file is this (it should be, with no change):
 
         vi "/usr/local/share/jupyter/kernels/julia 0.3/kernel.json"
 
