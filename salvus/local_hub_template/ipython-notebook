@@ -97,10 +97,10 @@ def action(mode):
         return
 
     elif mode == 'start':
-        if os.path.exists(DAEMON_FILE) and time.time() - os.path.getmtime(DAEMON_FILE) < 30:
+        if os.path.exists(DAEMON_FILE) and time.time() - os.path.getmtime(DAEMON_FILE) < 60:
             # if we just tried to start then called again, wait a bit before checking
             # on process
-            time.sleep(15)
+            time.sleep(20)
 
         info = is_daemon_running()
         if info:
@@ -144,7 +144,7 @@ def action(mode):
                 else:
                     pid = p
             if not pid:
-                time.sleep(.2)
+                time.sleep(3)
                 continue
 
         s = json.dumps({'base':base, 'port':port, 'pid':pid})
