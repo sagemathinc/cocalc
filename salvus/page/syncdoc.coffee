@@ -2318,7 +2318,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 @edit_cell
                     line : mark.find().from.line - 1
                     cm   : cm
-                return false
 
         return mark
 
