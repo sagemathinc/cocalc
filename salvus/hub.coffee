@@ -2954,12 +2954,22 @@ class Client extends EventEmitter
                             # send an email to the user -- async, not blocking user.
                             # TODO: this can take a while -- we need to take some action
                             # if it fails, e.g., change a setting in the projects table!
-                            send_email
+                            if @account_settings?
+                                fullname = "#{@account_settings.first_name} #{@account_settings.last_name}"
+                                subject  = "#{fullname} has invited you to SageMathCloud"
+                            else
+                                fullname = ""
+                                subject  = "SageMathCloud invitation"
+                            opts =
                                 to      : email_address
-                                subject : "SageMathCloud Invitation"
+                                bcc     : 'invites@sagemath.com'
+                                from    : "SageMathCloud <invites@sagemath.com>"
+                                subject : subject
                                 body    : email.replace("https://cloud.sagemath.com", "Sign up at https://cloud.sagemath.com using the email address #{email_address}.")
                                 cb      : (err) =>
                                     winston.debug("send_email to #{email_address} -- done -- err={misc.to_json(err)}")
+
+                            send_email(opts)
 
                 ], cb)
 
@@ -6174,14 +6184,13 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
 
 
 
-
-
                 ---
                 """
 
             send_email
                 subject : 'SageMathCloud password reset confirmation'
                 body    : body
+                from    : 'SageMath Help <help@sagemath.com>'
                 to      : mesg.email_address
                 cb      : (err) ->
                     if err
