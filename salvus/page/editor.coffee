@@ -2557,12 +2557,7 @@ class PDFLatexDocument
                 opts.cb(false, {n:n, x:x, y:y})
 
     default_tex_command: () =>
-        a = "pdflatex -synctex=1 -interact=nonstopmode "
-        if @filename_tex.indexOf(' ') != -1
-            a += "'#{@filename_tex}'"
-        else
-            a += @filename_tex
-        return a
+        return "pdflatex -synctex=1 -interact=nonstopmode '#{@filename_tex}'"
 
     # runs pdflatex; updates number of pages, latex log, parsed error log
     update_pdf: (opts={}) =>
