@@ -615,7 +615,7 @@ class ParseValue:
         self._type = type
 
     def _eval(self, value):
-        return sage_eval(value)
+        return sage_eval(value, locals=None if salvus is None else salvus.namespace)
 
     def __call__(self, value):
         from sage.all import Color
