@@ -2641,6 +2641,10 @@ class Client extends EventEmitter
                     @push_to_client(resp)
 
     mesg_project_exec: (mesg) =>
+        if mesg.command == "ipython-notebook"
+            # we just drop these messages, which are from old non-updated clients (since we haven't
+            # written code yet to not allow them to connect -- TODO!).
+            return
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
