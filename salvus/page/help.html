@@ -32,7 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
             <ul>
                 <li class="salvus-help-list">
-                    In case of problems, <b><i>do not hesitate</i></b> to immediately email us at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a>.  We want to know if anything isn't working!  <b>Include a link (the address in your browser) to any project or document you are asking about.</b>
+                    In case of problems with the SageMathCloud platform, <b><i>do not hesitate</i></b> to immediately email us at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a>.  We want to know if anything isn't working!  <b>Include a link (the address in your browser) to any project or document you are asking about.</b>
                 </li>
 
                 <li class="salvus-help-list"> <a href="https://www.washington.edu/giving/make-a-gift/?page=make&code=SGEMCS" target="_blank">Donate to the SageMathCloud Support Fund</a></li>
@@ -384,11 +384,13 @@ sending an empty email to <a href="mailto:sage-cloud-announce+subscribe@googlegr
                             <div class="lighten">
                                 <h4>Technical Notes</h4>
                                 <ul class="lighten">
-                                    <li>You can also run a normal version of the Jupyter notebook server (no sync, not integrated into cloud)
-                                        using the <span class="tt">ipython-notebook</span> command in a terminal.  You'll get a url that looks like
-                                        <span class="tt" style="word-wrap: break-word">https://cloud.sagemath.com/1234601d-9fbc-4e4e-b7ab-c10a79e34d3b/port/11769/</span>; any collaborator
-                                        on your project can securly use the Jupyter notebook server by visiting this link, but nobody else
-                                        can (not even other users on localhost on the same virtual machine!).
+                                    <li>You can also run a normal version of the Jupyter notebook server
+                                     (no sync, not integrated into cloud) by (1) finding your project's id in project settings, then (2) visiting
+                                        <span class="tt">https://cloud.sagemath.com/[project_id]/port/jupyter</span> (you will possibly
+                                        have to refresh your browser if this takes too long the first time).
+                                        Any collaborator
+                                        on your project can securely use the Jupyter notebook server by visiting this link, but nobody else
+                                        can.
                                     </li>
                                 </ul>
                             </div>

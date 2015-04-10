@@ -2171,7 +2171,7 @@ jupyter_port = (socket, mesg) ->
         args        : ['start']
         err_on_exit : true
         bash        : false
-        timeout     : 30
+        timeout     : 60
         cb          : (err, out) ->
             if not err
                 try
@@ -2203,6 +2203,9 @@ jupyter_port = (socket, mesg) ->
 ###############################################
 project_exec = (socket, mesg) ->
     winston.debug("project_exec")
+    if mesg.command == "ipython-notebook"
+        socket.write_mesg("json", message.error(id:mesg.id, error:"old client code -- you may not run ipython-notebook directly"))
+        return
     misc_node.execute_code
         command     : mesg.command
         args        : mesg.args

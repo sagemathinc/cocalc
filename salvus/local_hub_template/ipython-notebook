@@ -97,10 +97,11 @@ def action(mode):
         return
 
     elif mode == 'start':
-        if os.path.exists(DAEMON_FILE) and time.time() - os.path.getmtime(DAEMON_FILE) < 30:
-            # if we just tried to start then called again, wait a bit before checking
-            # on process
-            time.sleep(15)
+        if os.path.exists(DAEMON_FILE) and time.time() - os.path.getmtime(DAEMON_FILE) < 60:
+            # If we just tried to start then called again, wait a bit before checking
+            # on process.  Note that this should never happen, since local_hub doesn't
+            # call this script repeatedly.
+            time.sleep(10)
 
         info = is_daemon_running()
         if info:
@@ -123,10 +124,11 @@ def action(mode):
         tries = 0
         pid = 0
         #sys.stderr.write("getting pid...\n"); sys.stderr.flush()
+        wait = 1
         while not pid:
             tries += 1
             #sys.stderr.write("tries... %s\n"%tries); sys.stderr.flush()
-            if tries >= 50:
+            if tries >= 20:
                 print json.dumps({"error":"Failed to find pid of subprocess."})
                 sys.exit(1)
 
@@ -144,8 +146,9 @@ def action(mode):
                 else:
                     pid = p
             if not pid:
-                time.sleep(.2)
-                continue
+                time.sleep(wait)
+                wait *= 1.2
+                wait = min(wait, 10)
 
         s = json.dumps({'base':base, 'port':port, 'pid':pid})
         print s

@@ -44,12 +44,12 @@ SALVUS_HOME=process.cwd()
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
 # Anti DOS parameters:
-# If a client sends a burst of messages, we space handling them out by this many milliseconds:.
-MESG_QUEUE_INTERVAL_MS  = 50
-#MESG_QUEUE_INTERVAL_MS  = 20
+# If a client sends a burst of messages, we space handling them out by this many milliseconds:
+# (this even includes keystrokes when using the terminal)
+MESG_QUEUE_INTERVAL_MS  = 0
 # If a client sends a burst of messages, we discard all but the most recent this many of them:
 #MESG_QUEUE_MAX_COUNT    = 25
-MESG_QUEUE_MAX_COUNT    = 150
+MESG_QUEUE_MAX_COUNT    = 60
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
 MESG_QUEUE_MAX_SIZE_MB  = 7
 
@@ -1437,7 +1437,7 @@ class Client extends EventEmitter
             @remember_me_failed("invalid remember_me cookie")
             return
         hash = generate_hash(x[0], x[1], x[2], x[3])
-        winston.debug("checking for remember_me cookie with hash='#{hash}'")
+        winston.debug("checking for remember_me cookie with hash='#{hash.slice(0,10)}'") # don't put all in log -- could be dangerous
         @remember_me_db.get
             key         : hash
             #consistency : cql.types.consistencies.one
@@ -2641,6 +2641,10 @@ class Client extends EventEmitter
                     @push_to_client(resp)
 
     mesg_project_exec: (mesg) =>
+        if mesg.command == "ipython-notebook"
+            # we just drop these messages, which are from old non-updated clients (since we haven't
+            # written code yet to not allow them to connect -- TODO!).
+            return
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
@@ -2779,6 +2783,11 @@ class Client extends EventEmitter
             if not mesg.message?
                 # in case the message itself is invalid -- is possible
                 @error_to_client(id:mesg.id, error:"message must be defined")
+                return
+
+            if mesg.message.event == 'project_exec' and mesg.message.command == "ipython-notebook"
+                # we just drop these messages, which are from old non-updated clients (since we haven't
+                # written code yet to not allow them to connect -- TODO!).
                 return
 
             # It's extremely useful if the local hub has a way to distinguish between different clients who are
@@ -2954,12 +2963,22 @@ class Client extends EventEmitter
                             # send an email to the user -- async, not blocking user.
                             # TODO: this can take a while -- we need to take some action
                             # if it fails, e.g., change a setting in the projects table!
-                            send_email
+                            if @account_settings?
+                                fullname = "#{@account_settings.first_name} #{@account_settings.last_name}"
+                                subject  = "#{fullname} has invited you to SageMathCloud"
+                            else
+                                fullname = ""
+                                subject  = "SageMathCloud invitation"
+                            opts =
                                 to      : email_address
-                                subject : "SageMathCloud Invitation"
+                                bcc     : 'invites@sagemath.com'
+                                from    : "SageMathCloud <invites@sagemath.com>"
+                                subject : subject
                                 body    : email.replace("https://cloud.sagemath.com", "Sign up at https://cloud.sagemath.com using the email address #{email_address}.")
                                 cb      : (err) =>
                                     winston.debug("send_email to #{email_address} -- done -- err={misc.to_json(err)}")
+
+                            send_email(opts)
 
                 ], cb)
 
@@ -4525,7 +4544,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @project = bup_server.get_project(@project_id)
 
     dbg: (m) =>
-        winston.debug("local_hub(#{@project_id}): #{misc.to_json(m)}")
+        #winston.debug("local_hub(#{@project_id}): #{misc.to_json(m)}")
 
     close: (cb) =>
         @dbg("close")
@@ -5074,7 +5093,7 @@ class Project
             multi_response : false
             timeout : 15
             cb      : undefined
-        @dbg("call")
+        #@dbg("call")
         @_fixpath(opts.mesg)
         opts.mesg.project_id = @project_id
         @local_hub.call(opts)
@@ -6174,14 +6193,13 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
 
 
 
-
-
                 ---
                 """
 
             send_email
                 subject : 'SageMathCloud password reset confirmation'
                 body    : body
+                from    : 'SageMath Help <help@sagemath.com>'
                 to      : mesg.email_address
                 cb      : (err) ->
                     if err

@@ -32,6 +32,7 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 
 nodemailer   = require("nodemailer")
 sgTransport  = require('nodemailer-sendgrid-transport')
+# sendgrid API: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 
 misc         = require('misc')
 {defaults, required} = misc
@@ -44,9 +45,10 @@ exports.send_email = send_email = (opts={}) ->
     opts = defaults opts,
         subject : required
         body    : required
-        from    : 'SageMath Help <help@sagemath.com>'
+        from    : 'SageMath Inc. <office@sagemath.com>'
         to      : required
         cc      : ''
+        bcc     : ''
         verbose : true
         cb      : undefined
 
@@ -91,6 +93,7 @@ exports.send_email = send_email = (opts={}) ->
                 text    : opts.body
                 subject : opts.subject
                 cc      : opts.cc
+                bcc     : opts.bcc
             email_server.sendMail email, (err, res) =>
                 dbg("sendMail to #{opts.to} done...; got err=#{misc.to_json(err)} and res=#{misc.to_json(res)}")
                 if err
