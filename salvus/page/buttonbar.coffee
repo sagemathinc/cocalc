@@ -809,8 +809,50 @@ exports.commands =
                          f(x) = b * x + sin(a * x)
                          plot(f, (x, -5, 5)).show()
                      """
-
-    julia:
+        magics:
+            insert : "magics()"
+        mode_typeset:
+            insert : "%typeset_mode True"
+        mode_auto:
+            insert : "%auto"
+        mode_cython:
+            insert : "%cython"
+        mode_default_mode:
+            insert : "%default_mode mode_name"
+        mode_exercise:
+            insert : "%exercise"
+        mode_gap:
+            insert : "%gap"
+        mode_gp:
+            insert : "%gp"
+        mode_hide:
+            insert : "%hide"
+        mode_html:
+            insert : "%html"
+        mode_julia:
+            insert : "%julia"
+        mode_javascript:
+            insert : "%javascript\n/* Use print(...) for output */"
+        mode_md:
+            insert : "%md"
+        mode_python:
+            insert : "%python"
+        mode_r:
+            insert : "%r"
+        mode_scilab:
+            insert : "%scilab"
+        mode_sh:
+            wrap:
+                left  : "%sh "
+                right : ""
+        mode_time:
+            wrap:
+                left  : "%time "
+                right : ""
+        mode_timeit:
+            wrap:
+                left  : "%timeit "
+                right : ""
         comment:
             wrap:
                 left : "# "
@@ -1144,6 +1186,82 @@ initialize_sage_python_r_toolbar = () ->
     """
 
     codebar  = $(".salvus-editor-codeedit-buttonbar")
+
+    # -- modes (this isn't really code so weird to put here)
+    system_bar = make_bar("salvus-editor-codeedit-buttonbar-system")
+
+    mode_list = ["Modes", "Sage Worksheet Modes",
+        [
+            ["General"],
+            ["Auto execute cell on startup", "#mode_auto"],
+            ["Hide input (or double click output)", "#mode_hide"],
+            ["Set default mode", "#mode_default_mode"],
+            ["Typeset output", "#mode_typeset"],
+            ["Timing"],
+            ["Benchmark code repeatedly", "#mode_timeit"],
+            ["Time code once", "#mode_time"],
+            ["Language modes"],
+            ["Cython", "#mode_cython"],
+            ["Gap", "#mode_gap"],
+            ["PARI/GP", "#mode_gp"],
+            ["HTML", "#mode_html"],
+            ["Javascript", "#mode_javascript"],
+            ["Julia", "#mode_julia"],
+            ["Markdown", "#mode_md"],
+            ["Python", "#mode_python"],
+            ["R", "#mode_r"],
+        ]]
+    add_menu(system_bar, mode_list)
+
+    help_list = ["<i class='fa fa-question-circle'></i> Help", "Sage Worksheet Help",
+        [
+            ["General help", "#help"],
+            ["Magic mode commands", "#magics"]
+        ]]
+    add_menu(system_bar, help_list)
+    ## MAYBE ADD THESE in another menu:
+    #axiom
+    #capture
+    #coffeescript
+    #command
+    #file
+    #fork
+    #fortran
+    #fricas
+    #gap3
+    #giac
+    #go
+    #hideall
+    #javascript
+    #kash
+    #lie
+    #lisp
+    #load
+    #macaulay2
+    #maxima
+    #octave
+    #pandoc
+    #perl
+    #prun
+    #reset
+    #ruby
+    #runfile
+    #sage0
+    #script
+    #singular
+    #typeset_mode
+    #var
+    #wiki
+    #mode_list = ["More", "More Sage Worksheet Modes",
+    #    [
+    #      ["Axiom", "#mode_axiom"],
+    #      ["Scilab", "#mode_scilab"],
+    #      ["Shell script", "#mode_sh"],
+    #      []
+    #    ]]
+    #add_menu(system_bar, mode_list)
+    codebar.append(system_bar)
+
     # -- python specific --
     pybar    = make_bar("salvus-editor-codeedit-buttonbar-python")
     add_icon(pybar, "<i class='fa'>#</i>", "#comment", "Comment selected text")
@@ -1158,7 +1276,7 @@ initialize_sage_python_r_toolbar = () ->
             ["Tuple", "#tuple"],
             ["Properties"],
             ["Length", "#len"]
-        ]]
+           ]]
     add_menu(pybar, py_control)
 
     # structured dropdown menu data: button text, title info, list of ["button, "#id", "title help (optional)"]
@@ -1176,21 +1294,18 @@ initialize_sage_python_r_toolbar = () ->
         ]]
     add_menu(pybar, py_control)
 
-    py_func = ["Functions", "Define Functions",
+    py_func = ["Program", "Define Functions and Classes",
            [
+            ["Functions"],
             ["Function", "#function", "Define a Python function"],
             ["Lambda", "#lambda", "A Python lambda function"]
-        ]]
-
-    add_menu(pybar, py_func)
-
-    py_classes = ["Classes", "Define Classes",
-           [
+            ["Classes"],
             ["Class", "#simple_class", "Define a simple class"],
             ["Class with inheritence", "#class_inheritence", "A class that inherits from other classes"]
         ]]
 
-    add_menu(pybar, py_classes)
+    add_menu(pybar, py_func)
+
     codebar.append(pybar)
 
     # -- Cython specific
@@ -1304,7 +1419,6 @@ initialize_sage_python_r_toolbar = () ->
     add_menu(sagebar, sage_graphs)
     add_menu(sagebar, sage_nt)
     add_menu(sagebar, sage_rings)
-    add_icon(sagebar, "<i class='fa fa-question-circle'></i> Help", "#help", "Help")
 
     codebar.append(sagebar)
 
