@@ -1437,7 +1437,7 @@ class Client extends EventEmitter
             @remember_me_failed("invalid remember_me cookie")
             return
         hash = generate_hash(x[0], x[1], x[2], x[3])
-        winston.debug("checking for remember_me cookie with hash='#{hash}'")
+        winston.debug("checking for remember_me cookie with hash='#{hash.slice(0,10)}'") # don't put all in log -- could be dangerous
         @remember_me_db.get
             key         : hash
             #consistency : cql.types.consistencies.one

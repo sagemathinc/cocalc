@@ -766,9 +766,9 @@ class JupyterNotebook
             @set_nb(@doc.live())
 
     info: () =>
-        t = "<h3>The Jupyter Notebook</h3>"
+        t = "<h3><i class='fa fa-question-circle'></i> About <a href='https://jupyter.org/' target='_blank'>Jupyter Notebook</a></h3>"
         t += "<h4>Enhanced with SageMathCloud Sync</h4>"
-        t += "You are editing this document using the Jupyter Notebook enhanced with realtime synchronization."
+        t += "You are editing this document using the Jupyter Notebook enhanced with realtime synchronization and history logging."
         t += "<h4>Use Sage by pasting this into a cell</h4>"
         t += "<pre>%load_ext sage</pre>"
         #t += "<h4>Connect to this Jupyter kernel in a terminal</h4>"
