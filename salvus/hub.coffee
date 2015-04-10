@@ -44,9 +44,9 @@ SALVUS_HOME=process.cwd()
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
 # Anti DOS parameters:
-# If a client sends a burst of messages, we space handling them out by this many milliseconds:.
-MESG_QUEUE_INTERVAL_MS  = 150
-#MESG_QUEUE_INTERVAL_MS  = 20
+# If a client sends a burst of messages, we space handling them out by this many milliseconds:
+# (this even includes keystrokes when using the terminal)
+MESG_QUEUE_INTERVAL_MS  = 15
 # If a client sends a burst of messages, we discard all but the most recent this many of them:
 #MESG_QUEUE_MAX_COUNT    = 25
 MESG_QUEUE_MAX_COUNT    = 60
