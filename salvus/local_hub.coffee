@@ -221,11 +221,12 @@ restart_console_server = (cb) ->   # cb(err)
         (cb) ->
             dbg("restart console server")
             misc_node.execute_code
-                command     : "console_server restart"
-                timeout     : 10
-                err_on_exit : true
-                bash        : true
-                cb          : cb
+                command        : "console_server restart"
+                timeout        : 10
+                ulimit_timeout : false   # very important -- so doesn't kill consoles after 10 seconds!
+                err_on_exit    : true
+                bash           : true
+                cb             : cb
         (cb) ->
             dbg("wait a little to see if #{port_file} appears, and if so read it and return port")
             f = (cb) ->
@@ -515,11 +516,12 @@ exports.restart_sage_server = restart_sage_server = (cb) ->
     _restarting_sage_server = true
     dbg("restarting the daemon")
     misc_node.execute_code
-        command     : "sage_server stop; sage_server start"
-        timeout     : 30
-        err_on_exit : true
-        bash        : true
-        cb          : (err) ->
+        command        : "sage_server stop; sage_server start"
+        timeout        : 30
+        ulimit_timeout : false   # very important -- so doesn't kill consoles after 30 seconds of cpu!
+        err_on_exit    : true
+        bash           : true
+        cb             : (err) ->
             _restarting_sage_server = false
             _restarted_sage_server = new Date()
             cb(err)
@@ -2172,6 +2174,7 @@ jupyter_port = (socket, mesg) ->
         err_on_exit : true
         bash        : false
         timeout     : 60
+        ulimit_timeout : false   # very important -- so doesn't kill consoles after 60 seconds cputime!
         cb          : (err, out) ->
             if not err
                 try
