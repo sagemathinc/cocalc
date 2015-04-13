@@ -64,7 +64,6 @@ class STRIPE
     update_customer: (cb) =>
         salvus_client.stripe_get_customer
             cb : (err, resp) =>
-                log("stripe_get_customer #{err}, #{misc.to_json(resp)}")
                 if err or not resp.stripe_publishable_key
                     $("#smc-billing-tab span").text("Billing is not yet available.")
                     $(".smc-nonfree").hide()
@@ -390,9 +389,15 @@ class STRIPE
     new_card: (cb) =>   # cb?(true if created card; otherwise false)
         log("new_card")
         dialog = templates.find(".smc-stripe-new-card").clone()
+
         btn = dialog.find(".btn-submit")
         dialog.find(".smc-stripe-form-name").val(require('account').account_settings.fullname())
         dialog.find(".smc-stripe-credit-card-number").focus()
+
+        f = () =>
+            dialog.find(".smc-stripe-form-country").chosen()
+        setTimeout(f,1)
+
         submit = (do_it) =>
             if not do_it
                 cb?(do_it)
