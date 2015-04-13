@@ -61,6 +61,10 @@ Install with 100GB disk with 32GB /, 10GB /tmp, and /usr/local a ZFS dedup,compr
         apt-get update && apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof  tk-dev
 
 
+# Ubuntu add and resource-wasting-on-every-ssh crap:
+
+put `exit 0` at the beginning of `/etc/update-motd.d/50-landscape-sysinfo`
+
 # JAVA
 
 Add to /etc/sources.list:
@@ -257,7 +261,22 @@ Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before 
 # R Kernel support for Jupyter (see https://github.com/IRkernel/IRkernel)
 
     sudo su
-    umask 022 && mkdir -p /usr/local/share/jupyter/kernels/ir/ && echo '{ "language": "r", "argv": [ "R", "-e", "IRkernel::main()", "—args", "{connection_file}" ], "display_name": "R" }'  > /usr/local/share/jupyter/kernels/ir/kernel.json
+    umask 022
+    # and make this file:  /usr/local/share/jupyter/kernels/ir/kernel.json
+
+{
+ "language": "r",
+ "argv": [
+  "R",
+  "-e",
+  "IRkernel::main()",
+  "--args",
+  "{connection_file}"
+ ],
+ "display_name": "R"
+}
+    
+
 
 
 # POLYMAKE system-wide
