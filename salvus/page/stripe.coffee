@@ -64,7 +64,7 @@ class STRIPE
     update_customer: (cb) =>
         salvus_client.stripe_get_customer
             cb : (err, resp) =>
-                #log("stripe_get_customer #{err}, #{misc.to_json(resp)}")
+                log("stripe_get_customer #{err}, #{misc.to_json(resp)}")
                 if err or not resp.stripe_publishable_key
                     $("#smc-billing-tab span").text("Billing is not yet available.")
                     $(".smc-nonfree").hide()

@@ -6741,7 +6741,7 @@ connect_to_database = (cb) ->
 
 bup_server = undefined
 init_bup_server = (cb) ->
-    winston.debug("creating bup server global client")
+    winston.debug("init_bup_server: creating bup server global client")
     require('bup_server').global_client
         database : database
         cb       : (err, x) ->
@@ -6755,12 +6755,14 @@ init_bup_server = (cb) ->
 #############################################
 # Billing settings
 # How to set in cqlsh:
-#    update key_value set value='"..."' where key='"stripe_publishable_key"' and name='"global_admin_settings"';
-#    update key_value set value='"..."' where key='"stripe_secret_key"' and name='"global_admin_settings"';
+#    update key_value set value='"..."' where key='"stripe_publishable_key"' and name='global_admin_settings';
+#    update key_value set value='"..."' where key='"stripe_secret_key"' and name='global_admin_settings';
 #############################################
 stripe  = undefined
 init_stripe = (cb) ->
-    winston.debug("init_stripe")
+    dbg = (m) ->
+        winston.debug("init_stripe: #{m}")
+    dbg()
 
     billing_settings = {}
 
@@ -6771,14 +6773,20 @@ init_stripe = (cb) ->
                 key : 'stripe_secret_key'
                 cb  : (err, secret_key) ->
                     if err
+                        dbg("error getting stripe_secret_key")
                         cb(err)
                     else
+                        if secret_key
+                            dbg("go stripe secret_key")
+                        else
+                            dbg("invalid secret_key")
                         stripe = require("stripe")(secret_key)
                         cb()
         (cb) ->
             d.get
                 key : 'stripe_publishable_key'
                 cb  : (err, value) ->
+                    dbg("stripe_publishable_key #{err}, #{value}")
                     if err
                         cb(err)
                     else
@@ -6786,9 +6794,9 @@ init_stripe = (cb) ->
                         cb()
     ], (err) ->
         if err
-            winston.debug("error initializing stripe: #{err}")
+            dbg("error initializing stripe: #{err}")
         else
-            winston.debug("successfully initialized stripe api")
+            dbg("successfully initialized stripe api")
         cb?(err)
     )
 
