@@ -112,7 +112,7 @@ class STRIPE
     render_cards_and_subscriptions: () =>
         @render_cards()
         @render_subscriptions()
-        if @customer.cards.data.length > 0
+        if @customer.sources.data.length > 0
             @element.find("a[href=#new-subscription]").removeClass("disabled")
         else
             @element.find("a[href=#new-subscription]").addClass("disabled")
@@ -148,7 +148,7 @@ class STRIPE
             @set_card_as_default(card, elt.find("a[href=#set-as-default]"))
             return false
 
-        if @customer.default_card == card.id
+        if @customer.default_source == card.id
             elt.find("a[href=#set-as-default]").addClass("btn-primary").removeClass('btn-default').addClass('disabled')
 
         return elt
@@ -159,7 +159,7 @@ class STRIPE
         bootbox.confirm m, (result) =>
             if result
                 elt.icon_spin(start:true)
-                salvus_client.stripe_set_default_card
+                salvus_client.stripe_set_default_source
                     card_id : card.id
                     cb      : (err) =>
                         if err
@@ -183,7 +183,7 @@ class STRIPE
         m = "<h4 style='color:red;font-weight:bold'><i class='fa fa-trash-o'></i>  Delete Payment Method</h4>  Are you sure you want to remove this <b>#{card.brand}</b> payment method?<br><br>"
         bootbox.confirm m, (result) =>
             if result
-                salvus_client.stripe_delete_card
+                salvus_client.stripe_delete_source
                     card_id : card.id
                     cb      : (err) =>
                         if err
@@ -201,14 +201,14 @@ class STRIPE
 
     # this does not query the server -- it uses the last cached/known result.
     has_a_billing_method: () =>
-        return @customer?.cards? and @customer.cards.data.length > 0
+        return @customer?.sources? and @customer.sources.data.length > 0
 
     render_cards: () =>
         log("render_cards")
-        if not @customer?.cards?
+        if not @customer?.sources?
             # nothing to do
             return
-        cards = @customer.cards
+        cards = @customer.sources
         panel = @element.find(".smc-stripe-cards-panel").show()
         elt_cards = panel.find(".smc-stripe-page-cards")
         elt_cards.empty()
@@ -294,7 +294,7 @@ class STRIPE
         log("render_subscriptions")
         subscriptions = @customer.subscriptions
         panel = @element.find(".smc-stripe-subscriptions-panel")
-        if subscriptions.data.length == 0 and @customer.cards.data.length == 0
+        if subscriptions.data.length == 0 and @customer.sources.data.length == 0
             # no way to pay and no subscriptions yet -- don't show
             panel.hide()
             return
@@ -359,6 +359,9 @@ class STRIPE
             hide   : '.smc-stripe-charge-hide-details'
             target : '.smc-stripe-charge-details'
 
+        # TODO: use the source attribute (see https://stripe.com/docs/upgrades?since=2015-01-11#api-changelog) to
+        # also render which card (etc.) the charge was made to.
+
         return elt
 
     render_charges: () =>
@@ -407,7 +410,7 @@ class STRIPE
                             response = _response
                             cb()
                 (cb) =>
-                    salvus_client.stripe_create_card
+                    salvus_client.stripe_create_source
                         token : response.id
                         cb    : cb
             ], (err) =>

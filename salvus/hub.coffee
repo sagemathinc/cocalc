@@ -3689,7 +3689,7 @@ class Client extends EventEmitter
             @push_to_client(resp)
 
     # create a payment method (credit card) in stripe for this user
-    mesg_stripe_create_card: (mesg) =>
+    mesg_stripe_create_source: (mesg) =>
         if not @ensure_fields(mesg, 'token')
             return
         @stripe_get_customer_id mesg.id, (err, customer_id) =>
@@ -3741,33 +3741,33 @@ class Client extends EventEmitter
                 )
             else
                 # add card to existing stripe customer
-                stripe.customers.createCard customer_id, {card:mesg.token}, (err, card) =>
+                stripe.customers.createSource customer_id, {card:mesg.token}, (err, card) =>
                     if err
                         @stripe_error_to_client(id:mesg.id, error:err)
                     else
                         @success_to_client(id:mesg.id)
 
     # delete a payment method for this user
-    mesg_stripe_delete_card: (mesg) =>
+    mesg_stripe_delete_source: (mesg) =>
         if not @ensure_fields(mesg, 'card_id')
             return
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 return
-            stripe.customers.deleteCard customer_id, mesg.card_id, (err, confirmation) =>
+            stripe.customers.deleteSource customer_id, mesg.card_id, (err, confirmation) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
                     @success_to_client(id:mesg.id)
 
     # set a payment method for this user to be the default
-    mesg_stripe_set_default_card: (mesg) =>
+    mesg_stripe_set_default_source: (mesg) =>
         if not @ensure_fields(mesg, 'card_id')
             return
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 return
-            stripe.customers.update customer_id, {default_card:mesg.card_id}, (err, confirmation) =>
+            stripe.customers.update customer_id, {default_source:mesg.card_id}, (err, confirmation) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
@@ -3775,7 +3775,7 @@ class Client extends EventEmitter
 
 
     # modify a payment method
-    mesg_stripe_update_card: (mesg) =>
+    mesg_stripe_update_source: (mesg) =>
         if not @ensure_fields(mesg, 'card_id info')
             return
         if mesg.info.metadata?
@@ -3784,7 +3784,7 @@ class Client extends EventEmitter
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 return
-            stripe.customers.updateCard customer_id, mesg.card_id, mesg.info, (err, confirmation) =>
+            stripe.customers.updateSource customer_id, mesg.card_id, mesg.info, (err, confirmation) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
