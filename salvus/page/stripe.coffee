@@ -395,7 +395,16 @@ class STRIPE
         dialog.find(".smc-stripe-credit-card-number").focus()
 
         f = () =>
-            dialog.find(".smc-stripe-form-country").chosen()
+            state_shown = false
+            state_group = dialog.find(".smc-stripe-form-group-state")
+            country = dialog.find(".smc-stripe-form-country").chosen().change () =>
+                if country.val() == "United States"
+                    state_group.show()
+                    if not state_shown
+                        setTimeout((()=>dialog.find(".smc-stripe-form-state").chosen()), 1)
+                        state_shown = true
+                else
+                    state_group.hide()
         setTimeout(f,1)
 
         submit = (do_it) =>
@@ -407,6 +416,18 @@ class STRIPE
             btn.icon_spin(start:true).addClass('disabled')
             response = undefined
             async.series([
+                (cb) =>
+                    c = dialog.find(".smc-stripe-form-country").val()
+                    s = dialog.find(".smc-stripe-form-state").val()
+                    z = dialog.find(".smc-stripe-form-zip").val()
+                    if not c
+                        cb("Please select your billing country.")
+                    else if c == "United States" and not s
+                        cb("Please enter your billing state.")
+                    else if c == "United States" and s == "WA" and not z
+                        cb("Please enter your billing zip code.")
+                    else
+                        cb()
                 (cb) =>
                     Stripe.card.createToken form, (status, _response) =>
                         if status != 200
