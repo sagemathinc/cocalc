@@ -1352,7 +1352,8 @@ class Project(object):
         if not os.path.exists(ARCHIVE_PATH):
             raise RuntimeError("Create/mount the directory %s"%ARCHIVE_PATH)
 
-        if len(os.listdir(os.path.join(self.bup_path,'refs','heads'))) > 0:
+        heads = os.path.join(self.bup_path,'refs','heads')
+        if os.path.exists(heads) and len(os.listdir(heads)) > 0:
             # There has been at least one save/commit, so we
             # at least check that bup repo ls works on the current branch.
             try:
