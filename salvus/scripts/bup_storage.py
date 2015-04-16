@@ -1354,7 +1354,7 @@ class Project(object):
 
         # at least check that bup repo ls works.
         try:
-            self.cmd(["/usr/bin/bup", "ls", self.branch+"/latest"])
+            self.cmd(["/usr/bin/bup", "ls", self.branch+"/latest"], verbose=0)
         except Exception, mesg:
             raise RuntimeError("basic bup consistency test failed -- %s"%mesg)
 
@@ -1394,14 +1394,33 @@ class Project(object):
         if not os.path.exists(PROJECT_ARCHIVE_PATH):
             raise RuntimeError("Create/mount the directory %s"%PROJECT_ARCHIVE_PATH)
 
+def archive_all(*args,**kwds):
+    # Must use this by typing
+    #   bup_storage.py archive_all ""
+    # since I can't get var args parsing to work.
+    log("archive_all")
+    v = os.listdir(BUP_PATH)
+    v.sort()
+    i = 1
+    t0 = time.time()
+    for project_id in v:
+        if i > 1:
+            avg = (time.time()-t0)/(i-1)
+            est = int((len(v)-(i-1))*avg)
+            est = "%s seconds"%est
+        else:
+            est = "unknown"
+        log("%s/%s: %s   (est time remaining: %s)"%(i,len(v),project_id,est))
+        i += 1
+        Project(project_id=project_id).archive()
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Bup-backed SMC project storage system")
     subparsers = parser.add_subparsers(help='sub-command help')
 
     parser.add_argument("--zpool", help="the ZFS pool that has bup/projects in it", dest="zpool", default=ZPOOL, type=str)
-
-    parser.add_argument("project_id", help="project id -- most subcommand require this", type=str)
 
     parser_init = subparsers.add_parser('init', help='init project repo and directory')
     parser_init.set_defaults(func=lambda args: project.init())
@@ -1639,14 +1658,25 @@ if __name__ == "__main__":
     parser_checkout.add_argument("--branch", dest="branch", help="branch to checkout (default: whatever current branch is)", type=str, default='')
     parser_checkout.set_defaults(func=lambda args: project.checkout(snapshot=args.snapshot, branch=args.branch))
 
+    parser_archive_all = subparsers.add_parser('archive_all',
+              help="archive every project hosted on this machine")
+    parser_archive_all.set_defaults(func=archive_all)
+
+    parser.add_argument("project_id", help="project id's -- most subcommands require this", type=str, default="")
+
     args = parser.parse_args()
 
     t0 = time.time()
     ZPOOL = args.zpool
-    project = Project(project_id  = args.project_id)
+    print args
     try:
-        args.func(args)
-    except:
+        if len(args.project_id) > 0:
+            project = Project(project_id  = args.project_id)
+            args.func(args)
+        else:
+            args.func(args)
+    except Exception, mesg:
+        log("exception - %s"%mesg)
         sys.exit(1)
     finally:
         log("total time: %s seconds"%(time.time()-t0))
