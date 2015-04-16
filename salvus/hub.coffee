@@ -134,6 +134,7 @@ winston = require('winston')            # logging -- https://github.com/flatiron
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
+
 # defaults
 # TEMPORARY until we flesh out the account types
 DEFAULTS =
@@ -6809,6 +6810,14 @@ exports.start_server = start_server = (cb) ->
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     http_server = undefined
+    
+    # Log anything that blocks the CPU for more than 10ms -- see https://github.com/tj/node-blocked
+    blocked = require('blocked')
+    blocked (ms) ->
+        # record that something blocked for over 10ms
+        winston.debug("BLOCKED for #{ms}ms")
+
+
     async.series([
         (cb) ->
             winston.debug("Connecting to the database.")
