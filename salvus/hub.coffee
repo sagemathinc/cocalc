@@ -6318,8 +6318,10 @@ get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
 # Blobs
 ########################################
 
-MAX_BLOB_SIZE = 12000000
-MAX_BLOB_SIZE_HUMAN = "12MB"
+# See note below about 12MB taking 26s once in production -- until that gets fixed, this must be kept small.
+# The drawback is that large images can't be rendered, etc.
+MAX_BLOB_SIZE = 3000000
+MAX_BLOB_SIZE_HUMAN = "3MB"
 
 blobs = {}
 
@@ -6388,9 +6390,10 @@ save_blob = (opts) ->
                 dbg("nothing to store -- done.")
                 opts.cb(false, ttl)
             else
-                dbg("store blob in the database with new ttl")
+                dbg("storing blob of length #{opts.value.length} in the database with new ttl...")
                 if not opts.ttl?
                     opts.ttl = 0
+                # TODO: on a 12MB blob, I recorded this blocking for 26s in production!
                 db.set
                     uuid  : opts.uuid
                     value : opts.value
@@ -6810,7 +6813,7 @@ exports.start_server = start_server = (cb) ->
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     http_server = undefined
-    
+
     # Log anything that blocks the CPU for more than 10ms -- see https://github.com/tj/node-blocked
     blocked = require('blocked')
     blocked (ms) ->
