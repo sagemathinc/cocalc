@@ -1662,13 +1662,12 @@ if __name__ == "__main__":
               help="archive every project hosted on this machine")
     parser_archive_all.set_defaults(func=archive_all)
 
-    parser.add_argument("project_id", help="project id's -- most subcommands require this", type=str, default="")
+    parser.add_argument("project_id", help="project id's -- most subcommands require this", type=str)
 
     args = parser.parse_args()
 
     t0 = time.time()
     ZPOOL = args.zpool
-    print args
     try:
         if len(args.project_id) > 0:
             project = Project(project_id  = args.project_id)
