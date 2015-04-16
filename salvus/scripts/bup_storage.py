@@ -1352,11 +1352,13 @@ class Project(object):
         if not os.path.exists(ARCHIVE_PATH):
             raise RuntimeError("Create/mount the directory %s"%ARCHIVE_PATH)
 
-        # at least check that bup repo ls works.
-        try:
-            self.cmd(["/usr/bin/bup", "ls", self.branch+"/latest"], verbose=0)
-        except Exception, mesg:
-            raise RuntimeError("basic bup consistency test failed -- %s"%mesg)
+        if len(os.listdir(os.path.join(self.bup_path,'refs','heads'))) > 0:
+            # There has been at least one save/commit, so we
+            # at least check that bup repo ls works on the current branch.
+            try:
+                self.cmd(["/usr/bin/bup", "ls", self.branch+"/latest"], verbose=0)
+            except Exception, mesg:
+                raise RuntimeError("basic bup consistency test failed -- %s"%mesg)
 
         target = os.path.join(ARCHIVE_PATH, "%s.tar"%self.project_id)
         containing_path, path = os.path.split(self.bup_path)
@@ -1390,9 +1392,6 @@ class Project(object):
         #self.chown(self.project_mnt)
         return {'status':'ok', 'time_s':t0-time.time()}
 
-    def archive_project(self):
-        if not os.path.exists(PROJECT_ARCHIVE_PATH):
-            raise RuntimeError("Create/mount the directory %s"%PROJECT_ARCHIVE_PATH)
 
 def archive_all(*args,**kwds):
     # Must use this by typing
