@@ -1435,13 +1435,14 @@ def archive_all(fast_io=False):
         log("%s/%s: %s   (est time remaining: %s)"%(i,len(v),project_id,est))
         i += 1
         try:
+            t1 = time.time()
             r = Project(project_id=project_id).archive()
             if r.get('action') == "tar":
                 log(r)
                 if not fast_io:
                     # TODO: this is probably only necessary because of ZFS -- remove when we
                     # go all ext4...
-                    s = 0.1 + (time.time() - t0)/2
+                    s = 0.1 + (time.time() - t1)/2
                     log("sleeping %s seconds to let slow IO catch up"%s)
                     time.sleep(s)
         except Exception, mesg:
