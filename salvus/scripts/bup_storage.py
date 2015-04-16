@@ -1373,14 +1373,16 @@ class Project(object):
 
         containing_path, path = os.path.split(self.bup_path)
         os.chdir(containing_path)
+        target0 = os.path.join(ARCHIVE_PATH, ".%s.tar"%self.project_id)
         try:
-            self.cmd(['tar', '-cf', target,
+            self.cmd(['tar', '-cf', target0,
                   '--exclude', "%s/cache"%path,
                   path])
-        except:
+            shutil.move(target0, target)
+        finally:
             # don't leave a half-crap tarball around
-            os.unlink(target)
-            raise
+            if os.path.exists(target0):
+                os.unlink(target0)
         return {'filename':target, 'status':'ok', 'time_s':t0-time.time(), 'action':'tar'}
 
     def dearchive(self):
@@ -1408,7 +1410,7 @@ class Project(object):
         return {'status':'ok', 'time_s':t0-time.time()}
 
 
-def archive_all(*args,**kwds):
+def archive_all(fast_io=False):
     # Must use this by typing
     #   bup_storage.py archive_all ""
     # since I can't get var args parsing to work.
@@ -1436,9 +1438,16 @@ def archive_all(*args,**kwds):
             r = Project(project_id=project_id).archive()
             if r.get('action') == "tar":
                 log(r)
+                if not fast_io:
+                    # TODO: this is probably only necessary because of ZFS -- remove when we
+                    # go all ext4...
+                    s = 0.1 + (time.time() - t0)/2
+                    log("sleeping %s seconds to let slow IO catch up"%s)
+                    time.sleep(s)
         except Exception, mesg:
             fail[project_id] = mesg
     result = {'total_s':time.time()-t0}
+
     if len(fail) > 0:
         result['status'] = 'fail'
         result['fail'] = fail
@@ -1685,7 +1694,7 @@ if __name__ == "__main__":
     parser_checkout.add_argument("--branch", dest="branch", help="branch to checkout (default: whatever current branch is)", type=str, default='')
     parser_checkout.set_defaults(func=lambda args: project.checkout(snapshot=args.snapshot, branch=args.branch))
 
-    def do_archive_all(self):
+    def do_archive_all():
         try:
             print json.dumps(archive_all())
         except Exception, mesg:
@@ -1694,7 +1703,8 @@ if __name__ == "__main__":
 
     parser_archive_all = subparsers.add_parser('archive_all',
               help="archive every project hosted on this machine")
-    parser_archive_all.set_defaults(func=do_archive_all)
+    parser_archive_all.add_argument("--fast_io", dest="fast_io", help="don't pause between each archiving", default=False, action="store_const", const=True)
+    parser_archive_all.set_defaults(func=lambda args : archive_all(fast_io=args.fast_io))
 
     parser.add_argument("project_id", help="project id's -- most subcommands require this", type=str)
 
