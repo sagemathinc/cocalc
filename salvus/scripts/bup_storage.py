@@ -90,7 +90,7 @@ USE_BUP_WATCH = False
 # script will be run via sudo, it is useful to minimize what it is able to do, e.g.,
 # there is no reason it should have easy command-line options to overwrite any file
 # on the system with arbitrary content.
-UNSAFE_MODE=False
+UNSAFE_MODE=True
 
 import argparse, base64, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd, codecs, re
 from subprocess import Popen, PIPE
@@ -260,7 +260,10 @@ class Project(object):
         self.touch_file            = os.path.join(self.bup_path, "conf", "touch")
         self.save_log              = os.path.join(self.bup_path, "conf", "save_log.json")
         self.HEAD                  = "%s/HEAD"%self.bup_path
-        self.branch = open(self.HEAD).read().split('/')[-1].strip() if os.path.exists(self.HEAD) else 'master'
+        if os.path.exists(self.HEAD):
+            self.branch = open(self.HEAD).read().split('/')[-1].strip()
+        else:
+            self.branch = 'master'
 
     def cmd(self, *args, **kwds):
         os.environ['BUP_DIR'] = self.bup_path
@@ -1352,6 +1355,13 @@ class Project(object):
         if not os.path.exists(ARCHIVE_PATH):
             raise RuntimeError("Create/mount the directory %s"%ARCHIVE_PATH)
 
+        target = os.path.join(ARCHIVE_PATH, "%s.tar"%self.project_id)
+        if os.path.exists(target):
+            # check to see if the target is already up to date.
+            if os.path.getmtime(target) >= self.last_touch_time():
+                # archive is already newer than the last touch time, so nothing to do.
+                return {'filename':target, 'status':'ok', 'note':'repo has not changed since last archive', 'action':'nothing'}
+
         heads = os.path.join(self.bup_path,'refs','heads')
         if os.path.exists(heads) and len(os.listdir(heads)) > 0:
             # There has been at least one save/commit, so we
@@ -1361,13 +1371,17 @@ class Project(object):
             except Exception, mesg:
                 raise RuntimeError("basic bup consistency test failed -- %s"%mesg)
 
-        target = os.path.join(ARCHIVE_PATH, "%s.tar"%self.project_id)
         containing_path, path = os.path.split(self.bup_path)
         os.chdir(containing_path)
-        self.cmd(['tar', '-cf', target,
+        try:
+            self.cmd(['tar', '-cf', target,
                   '--exclude', "%s/cache"%path,
                   path])
-        return {'filename':target, 'status':'ok', 'time_s':t0-time.time()}
+        except:
+            # don't leave a half-crap tarball around
+            os.unlink(target)
+            raise
+        return {'filename':target, 'status':'ok', 'time_s':t0-time.time(), 'action':'tar'}
 
     def dearchive(self):
         """
@@ -1403,17 +1417,33 @@ def archive_all(*args,**kwds):
     v.sort()
     i = 1
     t0 = time.time()
+    fail = {}
     for project_id in v:
         if i > 1:
             avg = (time.time()-t0)/(i-1)
             est = int((len(v)-(i-1))*avg)
-            est = "%s seconds"%est
+            if est < 60:
+                est = "%s seconds"%est
+            else:
+                minutes = est//60
+                hours = minutes//60
+                est = "%s hours and %s minutes"%(hours, minutes-hours*60)
         else:
             est = "unknown"
         log("%s/%s: %s   (est time remaining: %s)"%(i,len(v),project_id,est))
         i += 1
-        Project(project_id=project_id).archive()
-
+        try:
+            r = Project(project_id=project_id).archive()
+            if r.get('action') == "tar":
+                log(r)
+        except Exception, mesg:
+            fail[project_id] = mesg
+    result = {'total_s':time.time()-t0}
+    if len(fail) > 0:
+        result['status'] = 'fail'
+        result['fail'] = fail
+    else:
+        result['status'] = 'ok'
 
 if __name__ == "__main__":
 
@@ -1640,10 +1670,7 @@ if __name__ == "__main__":
     parser_dearchive.set_defaults(func=lambda args: do_dearchive())
 
     if UNSAFE_MODE:
-        parser_archive = subparsers.add_parser('archive', help="*DANGEROUS*: Remove the user's files, leaving only the bup repo.")
-        parser_archive.set_defaults(func=lambda args: project.archive())
-
-        parser_destroy = subparsers.add_parser('destroy', help='**DANGEROUS**: Delete all traces of this project from this machine.')
+        parser_destroy = subparsers.add_parser('destroy', help='**DANGEROUS**: Delete all traces of live project from this machine (does not delete archive if there).')
         parser_destroy.set_defaults(func=lambda args: project.destroy())
 
     parser_snapshots = subparsers.add_parser('snapshots', help='output JSON list of snapshots of current branch')
@@ -1658,9 +1685,16 @@ if __name__ == "__main__":
     parser_checkout.add_argument("--branch", dest="branch", help="branch to checkout (default: whatever current branch is)", type=str, default='')
     parser_checkout.set_defaults(func=lambda args: project.checkout(snapshot=args.snapshot, branch=args.branch))
 
+    def do_archive_all(self):
+        try:
+            print json.dumps(archive_all())
+        except Exception, mesg:
+            print json.dumps({"error":str(mesg), 'status':'error'})
+            raise
+
     parser_archive_all = subparsers.add_parser('archive_all',
               help="archive every project hosted on this machine")
-    parser_archive_all.set_defaults(func=archive_all)
+    parser_archive_all.set_defaults(func=do_archive_all)
 
     parser.add_argument("project_id", help="project id's -- most subcommands require this", type=str)
 
