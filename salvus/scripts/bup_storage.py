@@ -110,6 +110,8 @@ BUP_PATH       = '/bup/bups'
 
 ARCHIVE_PATH = '/archive/'
 
+GS_BUCKET_NAME = 'smc-projects'
+
 # The path where project working files appear
 PROJECTS_PATH  = '/projects'
 
@@ -1342,8 +1344,6 @@ class Project(object):
             zip.close()
             return output.getvalue()
 
-
-
     def archive(self):
         """
         Create tar archive from the bup repo associated to this project.
@@ -1408,6 +1408,72 @@ class Project(object):
         self.cmd(['/usr/bin/bup', 'restore', '%s/latest/'%self.branch, '--outdir', self.project_mnt])
         #self.chown(self.project_mnt)
         return {'status':'ok', 'time_s':t0-time.time()}
+
+    def gs_stat(self):
+        """
+        Returns stat info as a JSON object, or empty object if there is no such object.
+        """
+        r = {}
+        key = None
+        try:
+            for x in self.cmd(['gsutil','stat', 'gs://%s/%s.tar'%(GS_BUCKET_NAME, self.project_id)], verbose=0).splitlines():
+                v = x.split(':')
+                if len(v) == 2:
+                    if v[0].startswith('\t\t') and key:
+                        r[key][v[0].strip()] = v[1].strip()
+                    else:
+                        key = v[0].strip()
+                        val = v[1].strip()
+                        if not val:
+                            val = {}
+                        r[key] = val
+            return r
+        except RuntimeError, mesg:
+            if "no url" in str(mesg).lower():
+                return {}
+            else:
+                raise
+
+    def gs_sync(self):
+        """
+        Synchronize Google Cloud Storage (gs), ARCHIVE_PATH tarball, and live
+        (bup repo, live files) on this machine.
+
+        Determines which is newer, then takes steps to synchronize the others
+
+          - live    : generate archive and copy to gcloud.
+          - gs      : copy to local archive, then extract to live
+          - archive : copy to google cloud storage
+        """
+        log = self._log("gs_sync")
+        t0 = time.time()
+
+    def mtimes(self):
+        """
+        Return modification times of live, google cloud storage, and archive.
+
+        NOTE: slow and perfect to do in parallel... (node.js rewrite?)
+        """
+        # Determine archive time.
+        archive = os.path.join(ARCHIVE_PATH, "%s.tar"%self.project_id)
+        if not os.path.exists(archive):
+            archive_mtime = 0
+        else:
+            archive_mtime = os.path.getmtime(archive)
+        log("archive_mtime=%s"%archive_mtime)
+
+        # Determine live time.
+        if os.path.exists(self.touch_file):
+            live_mtime = os.path.getmtime(self.touch_file)
+        else:
+            live_mtime = 0
+        log("live_mtime=%s"%live_mtime)
+
+        # Determine gcloud last write time using metadata.
+        gs_mtime = float(self.gs_stat().get("Metadata",{}).get('mtime','0'))
+        log("gs_mtime=%s"%gs_mtime)
+
+        return {'archive_mtime':archive_mtime, 'live_mtime':live_mtime, 'gs_mtime':gs_mtime}
 
 
 def archive_all(fast_io=False):
