@@ -1375,19 +1375,23 @@ class Project(object):
                 raise RuntimeError("basic bup consistency test failed -- %s"%mesg)
 
         containing_path, path = os.path.split(self.bup_path)
-        os.chdir(containing_path)
-        target0 = os.path.join(ARCHIVE_PATH, ".%s.tar"%self.project_id)
+        cwd = os.getcwd()
         try:
-            self.cmd(['tar', '-cf', target0,
-                  '--exclude', "%s/cache"%path,
-                  path])
-            shutil.move(target0, target)
-            os.utime(target, (mtime, mtime))  # set timestamp to last touch time
+            os.chdir(containing_path)
+            target0 = os.path.join(ARCHIVE_PATH, ".%s.tar"%self.project_id)
+            try:
+                self.cmd(['tar', '-cf', target0,
+                      '--exclude', "%s/cache"%path,
+                      path])
+                shutil.move(target0, target)
+                os.utime(target, (mtime, mtime))  # set timestamp to last touch time
+            finally:
+                # don't leave a half-crap tarball around
+                if os.path.exists(target0):
+                    os.unlink(target0)
+            return {'filename':target, 'status':'ok', 'time_s':time.time()-t0, 'action':'tar'}
         finally:
-            # don't leave a half-crap tarball around
-            if os.path.exists(target0):
-                os.unlink(target0)
-        return {'filename':target, 'status':'ok', 'time_s':time.time()-t0, 'action':'tar'}
+            os.chdir(cwd)
 
     def dearchive(self):
         """
@@ -1403,15 +1407,19 @@ class Project(object):
             raise RuntimeError("Missing source archive %s"%source)
 
         containing_path, path = os.path.split(self.bup_path)
-        os.chdir(containing_path)
-        log("extracting bup repository from tarball")
-        self.cmd(['tar', '-xf', source])
-        if os.path.exists(self.project_mnt):
-            log("removing existing project directory")
-            self.delete_project()
-        self.cmd(['/usr/bin/bup', 'restore', '%s/latest/'%self.branch, '--outdir', self.project_mnt])
-        #self.chown(self.project_mnt)
-        return {'status':'ok', 'time_s':t0-time.time()}
+        cwd = os.getcwd()
+        try:
+            os.chdir(containing_path)
+            log("extracting bup repository from tarball")
+            self.cmd(['tar', '-xf', source])
+            if os.path.exists(self.project_mnt):
+                log("removing existing project directory")
+                self.delete_project()
+            self.cmd(['/usr/bin/bup', 'restore', '%s/latest/'%self.branch, '--outdir', self.project_mnt])
+            #self.chown(self.project_mnt)
+            return {'status':'ok', 'time_s':t0-time.time()}
+        finally:
+            os.chdir(cwd)
 
     def gs_stat(self):
         """
@@ -1449,6 +1457,18 @@ class Project(object):
                   '-h', "x-goog-meta-mtime:%s"%int(round(os.path.getmtime(self.archive_path))),
                   'cp', self.archive_path, self.gs_path])
         log("upload time=%s"%(time.time()-t))
+
+    def gs_download_archive(self, mtime):
+        """
+        Download archive from google cloud storage to local.
+        """
+        log = self._log("gs_download_archive")
+        t = time.time()
+        log("downloading from google cloud storage")
+        self.cmd(['gsutil',
+                  'cp', self.gs_path, self.archive_path])
+        os.utime(self.archive_path, (mtime, mtime))
+        log("download time=%s"%(time.time()-t))
 
     def mtimes(self):
         """
@@ -1504,7 +1524,7 @@ class Project(object):
         newest_mtime = max(archive_mtime, live_mtime, gs_mtime)
         if not newest_mtime:
             log("nothing to do -- no data")
-            return
+            return {'status':'ok'}
 
         if archive_mtime == newest_mtime:
             log("archive is newest")
@@ -1529,13 +1549,54 @@ class Project(object):
             log("google cloud storage is newest")
             if gs_mtime > archive_mtime:
                 log("download from google cloud storage")
-                self.gs_download_archive()
+                self.gs_download_archive(gs_mtime)
                 archive_mtime = gs_mtime
             if archive_mtime > live_mtime:
                 log("extract to live")
                 self.dearchive()
                 live_mtime = archive_mtime
         log("after operations, mtime of archive=%s, live=%s, gs=%s"%(archive_mtime, live_mtime, gs_mtime))
+        return {'status':'ok'}
+
+def gs_sync_all():
+    # Must use this by typing
+    #   bup_storage.py gs_sync_all ""
+    # since I can't get var args parsing to work.
+    log("gs_sync_all")
+    v = os.listdir(BUP_PATH)
+    v.sort()
+    i = 1
+    t0 = time.time()
+    fail = {}
+    for project_id in v:
+        if i > 1:
+            avg = (time.time()-t0)/(i-1)
+            est = int((len(v)-(i-1))*avg)
+            if est < 60:
+                est = "%s seconds"%est
+            else:
+                minutes = est//60
+                hours = minutes//60
+                est = "%s hours and %s minutes"%(hours, minutes-hours*60)
+        else:
+            est = "unknown"
+        log("gs_sync_all -- %s/%s: %s   (est time remaining: %s)"%(i,len(v),project_id,est))
+        i += 1
+        try:
+            t1 = time.time()
+            r = Project(project_id=project_id).gs_sync()
+            log(r)
+        except Exception, mesg:
+            fail[project_id] = mesg
+    result = {'total_s':time.time()-t0}
+
+    if len(fail) > 0:
+        result['status'] = 'fail'
+        result['fail'] = fail
+    else:
+        result['status'] = 'ok'
+
+    return result
 
 def archive_all(fast_io=False):
     # Must use this by typing
@@ -1559,7 +1620,7 @@ def archive_all(fast_io=False):
                 est = "%s hours and %s minutes"%(hours, minutes-hours*60)
         else:
             est = "unknown"
-        log("%s/%s: %s   (est time remaining: %s)"%(i,len(v),project_id,est))
+        log("archive_all -- %s/%s: %s   (est time remaining: %s)"%(i,len(v),project_id,est))
         i += 1
         try:
             t1 = time.time()
@@ -1581,6 +1642,9 @@ def archive_all(fast_io=False):
         result['fail'] = fail
     else:
         result['status'] = 'ok'
+
+    return result
+
 
 if __name__ == "__main__":
 
@@ -1806,6 +1870,17 @@ if __name__ == "__main__":
        help="extract project from archive")
     parser_dearchive.set_defaults(func=lambda args: do_dearchive())
 
+    def do_gs_sync(*args, **kwds):
+        try:
+            print json.dumps(project.gs_sync())
+        except Exception, mesg:
+            print json.dumps({"error":str(mesg), 'status':'error'})
+            raise
+
+    parser_gs_sync = subparsers.add_parser('gs_sync',
+             help="sync project between live, google cloud, and archive")
+    parser_gs_sync.set_defaults(func=do_gs_sync)
+
     if UNSAFE_MODE:
         parser_destroy = subparsers.add_parser('destroy', help='**DANGEROUS**: Delete all traces of live project from this machine (does not delete archive if there).')
         parser_destroy.set_defaults(func=lambda args: project.destroy())
@@ -1833,6 +1908,18 @@ if __name__ == "__main__":
               help="archive every project hosted on this machine")
     parser_archive_all.add_argument("--fast_io", dest="fast_io", help="don't pause between each archiving", default=False, action="store_const", const=True)
     parser_archive_all.set_defaults(func=lambda args : archive_all(fast_io=args.fast_io))
+
+    def do_gs_sync_all(*args, **kwds):
+        try:
+            print json.dumps(gs_sync_all())
+        except Exception, mesg:
+            print json.dumps({"error":str(mesg), 'status':'error'})
+            raise
+    parser_gs_sync_all = subparsers.add_parser('gs_sync_all',
+              help="gs_sync every project hosted on this machine")
+    parser_gs_sync_all.set_defaults(func=do_gs_sync_all)
+
+
 
     parser.add_argument("project_id", help="project id's -- most subcommands require this", type=str)
 
