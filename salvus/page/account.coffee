@@ -1106,7 +1106,7 @@ $("a[href=#account-settings-tab]").click () ->
 
 
 ###
-# Sign Strategies -- show only configured buttons
+# Sign-in Strategies -- show only configured buttons
 ###
 
 $.get '/auth/strategies', (strategies, status) ->

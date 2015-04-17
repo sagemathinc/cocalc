@@ -1650,22 +1650,22 @@ message
 
 # card
 message
-    event   : 'stripe_create_card'
+    event   : 'stripe_create_source'
     id      : undefined
     token   : required
 
 message
-    event   : 'stripe_delete_card'
+    event   : 'stripe_delete_source'
     card_id : required
     id      : undefined
 
 message
-    event   : 'stripe_set_default_card'
+    event   : 'stripe_set_default_source'
     card_id : required
     id      : undefined
 
 message
-    event   : 'stripe_update_card'
+    event   : 'stripe_update_source'
     card_id : required
     info    : required                  # see https://stripe.com/docs/api/node#update_card, except we don't allow changing metadata
     id      : undefined
