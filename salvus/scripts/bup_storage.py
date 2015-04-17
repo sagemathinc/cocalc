@@ -1442,7 +1442,7 @@ def archive_all(fast_io=False):
                 if not fast_io:
                     # TODO: this is probably only necessary because of ZFS -- remove when we
                     # go all ext4...
-                    s = 0.1 + (time.time() - t1)/2
+                    s = 0.1 + (time.time() - t1)*2
                     log("sleeping %s seconds to let slow IO catch up"%s)
                     time.sleep(s)
         except Exception, mesg:
