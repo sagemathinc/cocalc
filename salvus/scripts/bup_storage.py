@@ -110,7 +110,7 @@ BUP_PATH       = '/bup/bups'
 
 ARCHIVE_PATH = '/archive/'
 
-GS_BUCKET_NAME = 'smc-projects'
+GS_BUCKET_NAME = 'smc-projects-devel'
 
 # The path where project working files appear
 PROJECTS_PATH  = '/projects'
@@ -254,6 +254,8 @@ class Project(object):
         self.username              = self.project_id.replace('-','')
         self.groupname             = self.username
         self.bup_path              = os.path.join(BUP_PATH, project_id)
+        self.archive_path          = os.path.join(ARCHIVE_PATH, "%s.tar"%self.project_id)
+        self.gs_path               = 'gs://%s/%s.tar'%(GS_BUCKET_NAME, self.project_id)  # google cloud storage
         self.conf_path             = os.path.join(self.bup_path, "conf")
         self.settings_path         = os.path.join(self.conf_path, "settings.json")
         self.replicas_path         = os.path.join(self.conf_path, "replicas.json")
@@ -472,7 +474,7 @@ class Project(object):
 
     def last_touch_time(self):
         if os.path.exists(self.touch_file):
-            return os.path.getmtime(self.touch_file)
+            return int(round(os.path.getmtime(self.touch_file)))
         else:
             return time.time() # now -- since could be just creating project
 
@@ -1230,7 +1232,7 @@ class Project(object):
         def get_file_mtime(name):
             try:
                 # use lstat instead of stat or getmtime so this works on broken symlinks!
-                return int(os.lstat(os.path.join(abspath, name)).st_mtime)
+                return int(round(os.lstat(os.path.join(abspath, name)).st_mtime))
             except:
                 # ?? This should never happen ??
                 return 0
@@ -1355,10 +1357,11 @@ class Project(object):
         if not os.path.exists(ARCHIVE_PATH):
             raise RuntimeError("Create/mount the directory %s"%ARCHIVE_PATH)
 
-        target = os.path.join(ARCHIVE_PATH, "%s.tar"%self.project_id)
+        target = self.archive_path
+        mtime = self.last_touch_time()
         if os.path.exists(target):
             # check to see if the target is already up to date.
-            if os.path.getmtime(target) >= self.last_touch_time():
+            if int(round(os.path.getmtime(target))) >= mtime:
                 # archive is already newer than the last touch time, so nothing to do.
                 return {'filename':target, 'status':'ok', 'note':'repo has not changed since last archive', 'action':'nothing'}
 
@@ -1379,11 +1382,12 @@ class Project(object):
                   '--exclude', "%s/cache"%path,
                   path])
             shutil.move(target0, target)
+            os.utime(target, (mtime, mtime))  # set timestamp to last touch time
         finally:
             # don't leave a half-crap tarball around
             if os.path.exists(target0):
                 os.unlink(target0)
-        return {'filename':target, 'status':'ok', 'time_s':t0-time.time(), 'action':'tar'}
+        return {'filename':target, 'status':'ok', 'time_s':time.time()-t0, 'action':'tar'}
 
     def dearchive(self):
         """
@@ -1416,7 +1420,7 @@ class Project(object):
         r = {}
         key = None
         try:
-            for x in self.cmd(['gsutil','stat', 'gs://%s/%s.tar'%(GS_BUCKET_NAME, self.project_id)], verbose=0).splitlines():
+            for x in self.cmd(['gsutil','stat', self.gs_path], verbose=0).splitlines():
                 v = x.split(':')
                 if len(v) == 2:
                     if v[0].startswith('\t\t') and key:
@@ -1434,10 +1438,53 @@ class Project(object):
             else:
                 raise
 
+    def gs_upload_archive(self):
+        """
+        Upload archive to google cloud storage, assuming archive exists
+        """
+        log = self._log("gs_upload_archive")
+        t = time.time()
+        log("uploading to google cloud storage")
+        self.cmd(['gsutil',
+                  '-h', "x-goog-meta-mtime:%s"%int(round(os.path.getmtime(self.archive_path))),
+                  'cp', self.archive_path, self.gs_path])
+        log("upload time=%s"%(time.time()-t))
+
+    def mtimes(self):
+        """
+        Return modification times of live, google cloud storage, and archive.
+
+        NOTE: slow and perfect to do in parallel... (node.js rewrite?)
+        """
+        log = self._log("mtimes")
+        t0 = time.time()
+
+        # Determine archive time.
+        archive = os.path.join(ARCHIVE_PATH, "%s.tar"%self.project_id)
+        if not os.path.exists(archive):
+            archive_mtime = 0
+        else:
+            archive_mtime = int(round(os.path.getmtime(archive)))
+        log("archive_mtime=%s"%archive_mtime)
+
+        # Determine live time.
+        if os.path.exists(self.touch_file):
+            live_mtime = int(round(os.path.getmtime(self.touch_file)))
+        else:
+            live_mtime = 0
+        log("live_mtime=%s"%live_mtime)
+
+        # Determine gcloud last write time using metadata.
+        gs_mtime = int(round(float(self.gs_stat().get("Metadata",{}).get('mtime','0'))))
+        log("gs_mtime=%s"%gs_mtime)
+
+        log("total time=%s"%(time.time()-t0))
+        return {'archive_mtime':archive_mtime, 'live_mtime':live_mtime, 'gs_mtime':gs_mtime}
+
     def gs_sync(self):
         """
-        Synchronize Google Cloud Storage (gs), ARCHIVE_PATH tarball, and live
-        (bup repo, live files) on this machine.
+        Synchronize Google Cloud Storage (gs), ARCHIVE_PATH tarball, and live bup
+        repo on this machine.
 
         Determines which is newer, then takes steps to synchronize the others
 
@@ -1448,33 +1495,47 @@ class Project(object):
         log = self._log("gs_sync")
         t0 = time.time()
 
-    def mtimes(self):
-        """
-        Return modification times of live, google cloud storage, and archive.
+        # get last modification times for each
+        mtimes = self.mtimes()
+        archive_mtime = mtimes['archive_mtime']
+        live_mtime    = mtimes['live_mtime']
+        gs_mtime      = mtimes['gs_mtime']
 
-        NOTE: slow and perfect to do in parallel... (node.js rewrite?)
-        """
-        # Determine archive time.
-        archive = os.path.join(ARCHIVE_PATH, "%s.tar"%self.project_id)
-        if not os.path.exists(archive):
-            archive_mtime = 0
-        else:
-            archive_mtime = os.path.getmtime(archive)
-        log("archive_mtime=%s"%archive_mtime)
+        newest_mtime = max(archive_mtime, live_mtime, gs_mtime)
+        if not newest_mtime:
+            log("nothing to do -- no data")
+            return
 
-        # Determine live time.
-        if os.path.exists(self.touch_file):
-            live_mtime = os.path.getmtime(self.touch_file)
-        else:
-            live_mtime = 0
-        log("live_mtime=%s"%live_mtime)
-
-        # Determine gcloud last write time using metadata.
-        gs_mtime = float(self.gs_stat().get("Metadata",{}).get('mtime','0'))
-        log("gs_mtime=%s"%gs_mtime)
-
-        return {'archive_mtime':archive_mtime, 'live_mtime':live_mtime, 'gs_mtime':gs_mtime}
-
+        if archive_mtime == newest_mtime:
+            log("archive is newest")
+            if archive_mtime > live_mtime:
+                log("extract to live")
+                self.dearchive()
+                live_mtime = archive_mtime
+            if archive_mtime > gs_mtime:
+                log("upload to google cloud storage")
+                self.gs_upload_archive()
+                gs_mtime = archive_mtime
+        elif live_mtime == newest_mtime:
+            log("live is newest")
+            if live_mtime > archive_mtime:
+                log("make an archive")
+                self.archive()
+                archive_mtime = live_mtime
+            if live_mtime > gs_mtime:
+                self.gs_upload_archive()
+                gs_mtime = live_mtime
+        elif gs_mtime == newest_mtime:
+            log("google cloud storage is newest")
+            if gs_mtime > archive_mtime:
+                log("download from google cloud storage")
+                self.gs_download_archive()
+                archive_mtime = gs_mtime
+            if archive_mtime > live_mtime:
+                log("extract to live")
+                self.dearchive()
+                live_mtime = archive_mtime
+        log("after operations, mtime of archive=%s, live=%s, gs=%s"%(archive_mtime, live_mtime, gs_mtime))
 
 def archive_all(fast_io=False):
     # Must use this by typing
