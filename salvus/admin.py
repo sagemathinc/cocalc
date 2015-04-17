@@ -1522,7 +1522,7 @@ class Monitor(object):
         ans = []
         for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=30).iteritems():
             d = {'host':k[0], 'service':'disk_usage'}
-            percent = int(v.get('stdout','100').split()[0].strip().strip('%'))
+            percent = int((' ' + v.get('stdout','100')).split()[0].strip().strip('%'))
             d['percent'] = percent
             if percent > disk_threshold:
                 d['status'] = 'down'
