@@ -198,7 +198,7 @@ class Project(object):
             if not os.path.exists(self.project_path):
                 btrfs(['subvolume', 'snapshot', source, self.project_path])
             else:
-                cmd(["rsync", "-axvH", "--delete", "--update", source+"/", self.project_path+"/"])
+                cmd(["rsync", "-axvH", "--update", source+"/", self.project_path+"/"])
 
         t = os.path.join(self.project_path, '.snapshots')
         if not os.path.exists(t):
@@ -240,6 +240,12 @@ class Project(object):
         # sync gs with local snapshots
         self.gs_put_sync()
 
+    def delete_snapshot(self, snapshot):
+        target = os.path.join(self.snapshot_path, snapshot)
+        btrfs(['subvolume', 'delete', target])
+        # sync with gs
+        self.gs_put_sync()
+
     def close(self):
         # delete snapshots
         for x in self.snapshot_ls():
@@ -253,6 +259,12 @@ class Project(object):
         if os.path.exists(self.project_path):
             btrfs(['subvolume','delete', self.project_path])
 
+    def destroy(self):
+        # delete locally
+        self.close()
+        # delete from the cloud
+        gsutil(['rm', '-R', self.gs_path])
+
 if __name__ == "__main__":
 
     import argparse
@@ -260,18 +272,28 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(help='sub-command help')
 
     parser_open = subparsers.add_parser('open', help='')
-    parser_open.add_argument("--quota", help="quota in MB", dest="quota", default=0, type=int)
+    parser_open.add_argument("--quota", help="quota in MB", default=0, type=int)
     parser_open.add_argument("project_id", help="", type=str)
     parser_open.set_defaults(func=lambda args: Project(args.project_id, quota=args.quota).open())
 
     parser_close = subparsers.add_parser('close', help='')
-    parser_close.add_argument("project_id", help="deletes this project locally (not from GCS)", type=str)
+    parser_close.add_argument("--max", help="maximum number of snapshots", dest="max", default=0, type=int)
+    parser_close.add_argument("project_id", help="close this project removing all files from this local host (does NOT save first)", type=str)
     parser_close.set_defaults(func=lambda args: Project(args.project_id).close())
 
+    parser_destroy = subparsers.add_parser('destroy', help='')
+    parser_destroy.add_argument("project_id", help="completely destroy this project **EVERYWHERE** -- can't be undone", type=str)
+    parser_destroy.set_defaults(func=lambda args: Project(args.project_id).destroy())
+
     parser_save = subparsers.add_parser('save', help='')
-    parser_save.add_argument("--max", help="maximum number of snapshots", dest="max", default=0, type=int)
+    parser_save.add_argument("--max", help="maximum number of snapshots", default=0, type=int)
     parser_save.add_argument("project_id", help="", type=str)
     parser_save.set_defaults(func=lambda args: Project(args.project_id, max=args.max).save())
+
+    parser_delete_snapshot = subparsers.add_parser('delete_snapshot', help='delete a particular snapshot')
+    parser_delete_snapshot.add_argument("snapshot", help="snapshot to delete", type=str)
+    parser_delete_snapshot.add_argument("project_id", help="", type=str)
+    parser_delete_snapshot.set_defaults(func=lambda args: Project(args.project_id).delete_snapshot(args.snapshot))
 
     args = parser.parse_args()
     args.func(args)
