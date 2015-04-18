@@ -61,6 +61,10 @@ Install with 100GB disk with 32GB /, 10GB /tmp, and /usr/local a ZFS dedup,compr
         apt-get update && apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof  tk-dev
 
 
+# Ubuntu add and resource-wasting-on-every-ssh crap:
+
+put `exit 0` at the beginning of `/etc/update-motd.d/50-landscape-sysinfo`
+
 # JAVA
 
 Add to /etc/sources.list:
@@ -132,7 +136,12 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
 # Additional packages (mainly for users, not building).
 
 
-    apt-get install  libmed1 libhdf5-openmpi-7 gmsh dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin npm coffeescript  coffeescript-doc lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev yi php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3 gpicview python-pip python3-pip libzmq3-dev
+    apt-get install  libmed1 libhdf5-openmpi-7 gmsh dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin npm coffeescript  coffeescript-doc lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev yi php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3 gpicview python-pip libedit-dev lrzip
+
+
+# Python3-related packages of interest
+
+    apt-get install python3-pip libzmq3-dev python3-pandas  python3-matplotlib python3-numpy python3-xlrd python3-nose bpython3 diveintopython3 libpython3-dev python3-dev python3-aeidon python3-alabaster python3-anyjson python3-astropy python3-audioread python3-args python3-babel python3-bottle python3-bs4 python3-bsddb3 python3-celery python3-changelog python3-cherrypy3 python3-crypto python3-cryptography python3-csb python3-cssutils python3-dateutil python3-decorator python3-defer python3-distutils-extra python3-django python3-django-xmlrpc python3-django-tables2 python3-django-model-utils python3-django-jsonfield python3-django-filters python3-dns python3-dnsq python3-doc python3-docutils python3-ecdsa python3-empy python3-examples python3-expiringdict python3-extras python3-feedparser python3-fftw3 python3-flake8 python3-flask python3-flask-sqlalchemy python3-flask-script python3-flask-principal python3-fysom python3-gdal python3-genshi python3-geoip python3-gmpy2 python3-gnupg python3-greenlet python3-gsw python3-h5py python3-httplib2 python3-icalendar python3-idna python3-ipy python3-jinja2 python3-jsmin python3-lesscpy python3-levenshtein python3-linop python3-mako python3-mia python3-misaka python3-mockito python3-mock python3-mpi4py python3-mpmath python3-msgpack python3-nose2 python3-nose2-cov python3-nine python3-numexpr python3-numpy python3-oauth python3-openssl python3-pandas python3-paramiko python3-pandocfilters python3-patsy python3-pep8 python3-persistent python3-pexpect python3-pil python3-pyasn1 python3-progressbar python3-potr python3-ply python3-pkginfo python3-pygraph python3-pygments python3-pyscss python3-pyramid python3-pyro4 python3-rdflib python3-releases python3-rsa python3-scipy python3-shortuuid python3-simplejson python3-skimage python3-six python3-sphinx python3-sphere python3-sqlalchemy python3-tables python3-testtools python3-urllib3 python3-venv python3-virtualenv python3-werkzeug python3-xlrd python3-xlsxwriter python3-yaml python3-zmq
 
 
 # SAGE
@@ -220,21 +229,22 @@ Check http://primesieve.org/build.html for the latest version.
     sudo pip3 install --upgrade ipython
     sudo ipython3 kernelspec install-self
 
-    Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option in so that python3 can start with the sage -sh environment set.
+Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before "-m" so that python3 can start with the sage -sh environment set.
 
 # IJULIA
 
-        umask 022
         sudo su
-        export JULIA_PKGDIR=/usr/local/share/julia/site/
-        julia
+        umask 022; export JULIA_PKGDIR=/usr/local/share/julia/site/; julia
+
         julia> Pkg.init()
         julia> Pkg.add("IJulia")
 
         # this copy may change when ipython dir changes
  		cp -rv "/root/.sage/ipython-2.3.0.p0/kernels/julia 0.3" "/usr/local/share/jupyter/kernels/julia 0.3"
 
-        Make sure the json file is this:
+        Make sure the json file is this (it should be, with no change):
+
+        vi "/usr/local/share/jupyter/kernels/julia 0.3/kernel.json"
 
         {
           "display_name": "Julia 0.3.7",
@@ -251,7 +261,22 @@ Check http://primesieve.org/build.html for the latest version.
 # R Kernel support for Jupyter (see https://github.com/IRkernel/IRkernel)
 
     sudo su
-    umask 022 && mkdir -p /usr/local/share/jupyter/kernels/ir/ && echo '{ "language": "r", "argv": [ "R", "-e", "IRkernel::main()", "—args", "{connection_file}" ], "display_name": "R" }'  > /usr/local/share/jupyter/kernels/ir/kernel.json
+    umask 022
+    # and make this file:  /usr/local/share/jupyter/kernels/ir/kernel.json
+
+{
+ "language": "r",
+ "argv": [
+  "R",
+  "-e",
+  "IRkernel::main()",
+  "--args",
+  "{connection_file}"
+ ],
+ "display_name": "R"
+}
+
+
 
 
 # POLYMAKE system-wide
@@ -353,6 +378,12 @@ In /etc/sysctl.conf, put:
     umask 022 && cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/ && texhash
 
 
+# System-wide Python pip packages
+
+    sudo su
+    umask 022
+    pip install twitter
+    pip3 install twitter
 
 """
 
@@ -436,7 +467,8 @@ NODE_MODULES = [
     'marked',
     'node-sass',    # transspiller for *.sass to *.css (rootfile is page/index.sass)
     'http-proxy',   # https://github.com/nodejitsu/node-http-proxy
-    'stripe'        # for billing -- https://github.com/stripe/stripe-node
+    'stripe',       # for billing -- https://github.com/stripe/stripe-node
+    'blocked'       # checking for blocking
     ]
 
 # this is for the python in the /home/salvus/... place, not the system-wide or sage python!
@@ -526,7 +558,8 @@ SAGE_PIP_PACKAGES = [
     'plink',
     'spherogram',
     'FXrays',
-    'snappy'
+    'snappy',
+    'twitter'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}

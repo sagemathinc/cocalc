@@ -64,7 +64,6 @@ class STRIPE
     update_customer: (cb) =>
         salvus_client.stripe_get_customer
             cb : (err, resp) =>
-                #log("stripe_get_customer #{err}, #{misc.to_json(resp)}")
                 if err or not resp.stripe_publishable_key
                     $("#smc-billing-tab span").text("Billing is not yet available.")
                     $(".smc-nonfree").hide()
@@ -112,7 +111,7 @@ class STRIPE
     render_cards_and_subscriptions: () =>
         @render_cards()
         @render_subscriptions()
-        if @customer.cards.data.length > 0
+        if @customer.sources.data.length > 0
             @element.find("a[href=#new-subscription]").removeClass("disabled")
         else
             @element.find("a[href=#new-subscription]").addClass("disabled")
@@ -148,7 +147,7 @@ class STRIPE
             @set_card_as_default(card, elt.find("a[href=#set-as-default]"))
             return false
 
-        if @customer.default_card == card.id
+        if @customer.default_source == card.id
             elt.find("a[href=#set-as-default]").addClass("btn-primary").removeClass('btn-default').addClass('disabled')
 
         return elt
@@ -159,7 +158,7 @@ class STRIPE
         bootbox.confirm m, (result) =>
             if result
                 elt.icon_spin(start:true)
-                salvus_client.stripe_set_default_card
+                salvus_client.stripe_set_default_source
                     card_id : card.id
                     cb      : (err) =>
                         if err
@@ -183,7 +182,7 @@ class STRIPE
         m = "<h4 style='color:red;font-weight:bold'><i class='fa fa-trash-o'></i>  Delete Payment Method</h4>  Are you sure you want to remove this <b>#{card.brand}</b> payment method?<br><br>"
         bootbox.confirm m, (result) =>
             if result
-                salvus_client.stripe_delete_card
+                salvus_client.stripe_delete_source
                     card_id : card.id
                     cb      : (err) =>
                         if err
@@ -201,14 +200,14 @@ class STRIPE
 
     # this does not query the server -- it uses the last cached/known result.
     has_a_billing_method: () =>
-        return @customer?.cards? and @customer.cards.data.length > 0
+        return @customer?.sources? and @customer.sources.data.length > 0
 
     render_cards: () =>
         log("render_cards")
-        if not @customer?.cards?
+        if not @customer?.sources?
             # nothing to do
             return
-        cards = @customer.cards
+        cards = @customer.sources
         panel = @element.find(".smc-stripe-cards-panel").show()
         elt_cards = panel.find(".smc-stripe-page-cards")
         elt_cards.empty()
@@ -294,7 +293,7 @@ class STRIPE
         log("render_subscriptions")
         subscriptions = @customer.subscriptions
         panel = @element.find(".smc-stripe-subscriptions-panel")
-        if subscriptions.data.length == 0 and @customer.cards.data.length == 0
+        if subscriptions.data.length == 0 and @customer.sources.data.length == 0
             # no way to pay and no subscriptions yet -- don't show
             panel.hide()
             return
@@ -359,6 +358,9 @@ class STRIPE
             hide   : '.smc-stripe-charge-hide-details'
             target : '.smc-stripe-charge-details'
 
+        # TODO: use the source attribute (see https://stripe.com/docs/upgrades?since=2015-01-11#api-changelog) to
+        # also render which card (etc.) the charge was made to.
+
         return elt
 
     render_charges: () =>
@@ -387,9 +389,24 @@ class STRIPE
     new_card: (cb) =>   # cb?(true if created card; otherwise false)
         log("new_card")
         dialog = templates.find(".smc-stripe-new-card").clone()
+
         btn = dialog.find(".btn-submit")
         dialog.find(".smc-stripe-form-name").val(require('account').account_settings.fullname())
         dialog.find(".smc-stripe-credit-card-number").focus()
+
+        f = () =>
+            state_shown = false
+            state_group = dialog.find(".smc-stripe-form-group-state")
+            country = dialog.find(".smc-stripe-form-country").chosen().change () =>
+                if country.val() == "United States"
+                    state_group.show()
+                    if not state_shown
+                        setTimeout((()=>dialog.find(".smc-stripe-form-state").chosen()), 1)
+                        state_shown = true
+                else
+                    state_group.hide()
+        setTimeout(f,1)
+
         submit = (do_it) =>
             if not do_it
                 cb?(do_it)
@@ -400,6 +417,18 @@ class STRIPE
             response = undefined
             async.series([
                 (cb) =>
+                    c = dialog.find(".smc-stripe-form-country").val()
+                    s = dialog.find(".smc-stripe-form-state").val()
+                    z = dialog.find(".smc-stripe-form-zip").val()
+                    if not c
+                        cb("Please select your billing country.")
+                    else if c == "United States" and not s
+                        cb("Please enter your billing state.")
+                    else if c == "United States" and s == "WA" and not z
+                        cb("Please enter your billing zip code.")
+                    else
+                        cb()
+                (cb) =>
                     Stripe.card.createToken form, (status, _response) =>
                         if status != 200
                             cb(_response.error.message)
@@ -407,7 +436,7 @@ class STRIPE
                             response = _response
                             cb()
                 (cb) =>
-                    salvus_client.stripe_create_card
+                    salvus_client.stripe_create_source
                         token : response.id
                         cb    : cb
             ], (err) =>

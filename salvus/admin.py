@@ -1514,15 +1514,15 @@ class Monitor(object):
         print s
         return json.loads(s)
 
-    def disk_usage(self, hosts='all', disk_threshold=90):
+    def disk_usage(self, hosts='all', disk_threshold=95):
         """
-        Verify that no disk is more than disk_threshold (=90%).
+        Verify that no disk is more than disk_threshold (=disk_threshold%).
         """
-        cmd = "df --output=pcent |sort -n |tail -1"
+        cmd = "df --output=pcent,source |grep -v fuse | sort -n|tail -1"
         ans = []
         for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=30).iteritems():
             d = {'host':k[0], 'service':'disk_usage'}
-            percent = int(v.get('stdout','100').strip().strip('%'))
+            percent = int((' ' + v.get('stdout','100')).split()[0].strip().strip('%'))
             d['percent'] = percent
             if percent > disk_threshold:
                 d['status'] = 'down'

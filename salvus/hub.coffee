@@ -44,12 +44,12 @@ SALVUS_HOME=process.cwd()
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
 # Anti DOS parameters:
-# If a client sends a burst of messages, we space handling them out by this many milliseconds:.
-MESG_QUEUE_INTERVAL_MS  = 50
-#MESG_QUEUE_INTERVAL_MS  = 20
+# If a client sends a burst of messages, we space handling them out by this many milliseconds:
+# (this even includes keystrokes when using the terminal)
+MESG_QUEUE_INTERVAL_MS  = 0
 # If a client sends a burst of messages, we discard all but the most recent this many of them:
 #MESG_QUEUE_MAX_COUNT    = 25
-MESG_QUEUE_MAX_COUNT    = 150
+MESG_QUEUE_MAX_COUNT    = 60
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
 MESG_QUEUE_MAX_SIZE_MB  = 7
 
@@ -133,6 +133,7 @@ winston = require('winston')            # logging -- https://github.com/flatiron
 # Set the log level
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+
 
 # defaults
 # TEMPORARY until we flesh out the account types
@@ -1437,7 +1438,7 @@ class Client extends EventEmitter
             @remember_me_failed("invalid remember_me cookie")
             return
         hash = generate_hash(x[0], x[1], x[2], x[3])
-        winston.debug("checking for remember_me cookie with hash='#{hash}'")
+        winston.debug("checking for remember_me cookie with hash='#{hash.slice(0,10)}'") # don't put all in log -- could be dangerous
         @remember_me_db.get
             key         : hash
             #consistency : cql.types.consistencies.one
@@ -2641,6 +2642,10 @@ class Client extends EventEmitter
                     @push_to_client(resp)
 
     mesg_project_exec: (mesg) =>
+        if mesg.command == "ipython-notebook"
+            # we just drop these messages, which are from old non-updated clients (since we haven't
+            # written code yet to not allow them to connect -- TODO!).
+            return
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
@@ -2779,6 +2784,11 @@ class Client extends EventEmitter
             if not mesg.message?
                 # in case the message itself is invalid -- is possible
                 @error_to_client(id:mesg.id, error:"message must be defined")
+                return
+
+            if mesg.message.event == 'project_exec' and mesg.message.command == "ipython-notebook"
+                # we just drop these messages, which are from old non-updated clients (since we haven't
+                # written code yet to not allow them to connect -- TODO!).
                 return
 
             # It's extremely useful if the local hub has a way to distinguish between different clients who are
@@ -2954,12 +2964,22 @@ class Client extends EventEmitter
                             # send an email to the user -- async, not blocking user.
                             # TODO: this can take a while -- we need to take some action
                             # if it fails, e.g., change a setting in the projects table!
-                            send_email
+                            if @account_settings?
+                                fullname = "#{@account_settings.first_name} #{@account_settings.last_name}"
+                                subject  = "#{fullname} has invited you to SageMathCloud"
+                            else
+                                fullname = ""
+                                subject  = "SageMathCloud invitation"
+                            opts =
                                 to      : email_address
-                                subject : "SageMathCloud Invitation"
+                                bcc     : 'invites@sagemath.com'
+                                from    : "SageMathCloud <invites@sagemath.com>"
+                                subject : subject
                                 body    : email.replace("https://cloud.sagemath.com", "Sign up at https://cloud.sagemath.com using the email address #{email_address}.")
                                 cb      : (err) =>
                                     winston.debug("send_email to #{email_address} -- done -- err={misc.to_json(err)}")
+
+                            send_email(opts)
 
                 ], cb)
 
@@ -3670,7 +3690,7 @@ class Client extends EventEmitter
             @push_to_client(resp)
 
     # create a payment method (credit card) in stripe for this user
-    mesg_stripe_create_card: (mesg) =>
+    mesg_stripe_create_source: (mesg) =>
         if not @ensure_fields(mesg, 'token')
             return
         @stripe_get_customer_id mesg.id, (err, customer_id) =>
@@ -3722,33 +3742,33 @@ class Client extends EventEmitter
                 )
             else
                 # add card to existing stripe customer
-                stripe.customers.createCard customer_id, {card:mesg.token}, (err, card) =>
+                stripe.customers.createSource customer_id, {card:mesg.token}, (err, card) =>
                     if err
                         @stripe_error_to_client(id:mesg.id, error:err)
                     else
                         @success_to_client(id:mesg.id)
 
     # delete a payment method for this user
-    mesg_stripe_delete_card: (mesg) =>
+    mesg_stripe_delete_source: (mesg) =>
         if not @ensure_fields(mesg, 'card_id')
             return
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 return
-            stripe.customers.deleteCard customer_id, mesg.card_id, (err, confirmation) =>
+            stripe.customers.deleteSource customer_id, mesg.card_id, (err, confirmation) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
                     @success_to_client(id:mesg.id)
 
     # set a payment method for this user to be the default
-    mesg_stripe_set_default_card: (mesg) =>
+    mesg_stripe_set_default_source: (mesg) =>
         if not @ensure_fields(mesg, 'card_id')
             return
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 return
-            stripe.customers.update customer_id, {default_card:mesg.card_id}, (err, confirmation) =>
+            stripe.customers.update customer_id, {default_source:mesg.card_id}, (err, confirmation) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
@@ -3756,7 +3776,7 @@ class Client extends EventEmitter
 
 
     # modify a payment method
-    mesg_stripe_update_card: (mesg) =>
+    mesg_stripe_update_source: (mesg) =>
         if not @ensure_fields(mesg, 'card_id info')
             return
         if mesg.info.metadata?
@@ -3765,7 +3785,7 @@ class Client extends EventEmitter
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 return
-            stripe.customers.updateCard customer_id, mesg.card_id, mesg.info, (err, confirmation) =>
+            stripe.customers.updateSource customer_id, mesg.card_id, mesg.info, (err, confirmation) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
@@ -4525,7 +4545,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @project = bup_server.get_project(@project_id)
 
     dbg: (m) =>
-        winston.debug("local_hub(#{@project_id}): #{misc.to_json(m)}")
+        #winston.debug("local_hub(#{@project_id}): #{misc.to_json(m)}")
 
     close: (cb) =>
         @dbg("close")
@@ -5074,7 +5094,7 @@ class Project
             multi_response : false
             timeout : 15
             cb      : undefined
-        @dbg("call")
+        #@dbg("call")
         @_fixpath(opts.mesg)
         opts.mesg.project_id = @project_id
         @local_hub.call(opts)
@@ -6174,14 +6194,13 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
 
 
 
-
-
                 ---
                 """
 
             send_email
                 subject : 'SageMathCloud password reset confirmation'
                 body    : body
+                from    : 'SageMath Help <help@sagemath.com>'
                 to      : mesg.email_address
                 cb      : (err) ->
                     if err
@@ -6299,8 +6318,10 @@ get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
 # Blobs
 ########################################
 
-MAX_BLOB_SIZE = 12000000
-MAX_BLOB_SIZE_HUMAN = "12MB"
+# See note below about 12MB taking 26s once in production -- until that gets fixed, this must be kept small.
+# The drawback is that large images can't be rendered, etc.
+MAX_BLOB_SIZE = 1000000
+MAX_BLOB_SIZE_HUMAN = "1MB"
 
 blobs = {}
 
@@ -6369,9 +6390,10 @@ save_blob = (opts) ->
                 dbg("nothing to store -- done.")
                 opts.cb(false, ttl)
             else
-                dbg("store blob in the database with new ttl")
+                dbg("storing #{opts.value.length/1000}KB blob in the database with new ttl...")
                 if not opts.ttl?
                     opts.ttl = 0
+                # TODO: on a 12MB blob, I recorded this blocking for 26s in production!
                 db.set
                     uuid  : opts.uuid
                     value : opts.value
@@ -6723,7 +6745,7 @@ connect_to_database = (cb) ->
 
 bup_server = undefined
 init_bup_server = (cb) ->
-    winston.debug("creating bup server global client")
+    winston.debug("init_bup_server: creating bup server global client")
     require('bup_server').global_client
         database : database
         cb       : (err, x) ->
@@ -6737,12 +6759,14 @@ init_bup_server = (cb) ->
 #############################################
 # Billing settings
 # How to set in cqlsh:
-#    update key_value set value='"..."' where key='"stripe_publishable_key"' and name='"global_admin_settings"';
-#    update key_value set value='"..."' where key='"stripe_secret_key"' and name='"global_admin_settings"';
+#    update key_value set value='"..."' where key='"stripe_publishable_key"' and name='global_admin_settings';
+#    update key_value set value='"..."' where key='"stripe_secret_key"' and name='global_admin_settings';
 #############################################
 stripe  = undefined
 init_stripe = (cb) ->
-    winston.debug("init_stripe")
+    dbg = (m) ->
+        winston.debug("init_stripe: #{m}")
+    dbg()
 
     billing_settings = {}
 
@@ -6753,14 +6777,20 @@ init_stripe = (cb) ->
                 key : 'stripe_secret_key'
                 cb  : (err, secret_key) ->
                     if err
+                        dbg("error getting stripe_secret_key")
                         cb(err)
                     else
+                        if secret_key
+                            dbg("go stripe secret_key")
+                        else
+                            dbg("invalid secret_key")
                         stripe = require("stripe")(secret_key)
                         cb()
         (cb) ->
             d.get
                 key : 'stripe_publishable_key'
                 cb  : (err, value) ->
+                    dbg("stripe_publishable_key #{err}, #{value}")
                     if err
                         cb(err)
                     else
@@ -6768,9 +6798,9 @@ init_stripe = (cb) ->
                         cb()
     ], (err) ->
         if err
-            winston.debug("error initializing stripe: #{err}")
+            dbg("error initializing stripe: #{err}")
         else
-            winston.debug("successfully initialized stripe api")
+            dbg("successfully initialized stripe api")
         cb?(err)
     )
 
@@ -6783,6 +6813,14 @@ exports.start_server = start_server = (cb) ->
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     http_server = undefined
+
+    # Log anything that blocks the CPU for more than 10ms -- see https://github.com/tj/node-blocked
+    blocked = require('blocked')
+    blocked (ms) ->
+        # record that something blocked for over 10ms
+        winston.debug("BLOCKED for #{ms}ms")
+
+
     async.series([
         (cb) ->
             winston.debug("Connecting to the database.")

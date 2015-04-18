@@ -138,22 +138,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 </button>
                 <h3><i class="fa fa-user"> </i>  Invite Collaborators via Email</h3>
             </div>
-            <h5 style="margin-left:2ex" class="lighten">One or more email addresses</h5>
-            <div class="center">
-                <form>
-                    <input type="text" style="width:80%; background-color: #f8f8f8;" name="new-filename" value="" class="form-control">
-                </form>
-            </div>
-            <!--<div class="lighten" style="
+            <div class="modal-body">
+                <h5  class="lighten">One or more email addresses</h5>
+                <div class="center">
+                    <form>
+                        <input type="text" style="width:80%; background-color: #f8f8f8;" name="new-filename" value="" class="form-control">
+                    </form>
+                </div>
+                <!--<div class="lighten" style="
 margin-left: 2em;
 margin-right: 2em;
 ">Users must have access to that given email account in order to collaborate on the project (also, invitations expire after 7 days).
 </div>-->
-            <h5 style="margin-left:2ex">Message</h5>
-            <div class="center">
-                <form>
-                    <textarea style="width:80%; background-color: #f8f8f8;" rows="8">            </textarea>
-                </form>
+                <h5>Message</h5>
+                <div class="center">
+                    <form>
+                        <textarea class="form-control" style="background-color: #f8f8f8;" rows="8">            </textarea>
+                    </form>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-primary btn-submit btn-lg"><i class="fa fa-thumbs-up-o"> </i> Send Invitation</button>
@@ -869,11 +871,10 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                             <div class="col-sm-8">
                                                 <span class="smc-project-location hide">(loading...)</span>
                                                 <select class="smc-project-location-select form-control">
-                                                    <option value="dc0">Seattle-1 (free, limited network, slower cpu)</option>
-                                                    <option value="dc1">Seattle-2 (free, limited network, slower cpu)</option>
-                                                    <option value="dc2">Google us-central1-a (free, limited network)</option>
-                                                    <option class="smc-nonfree hide" value="dc5">Google us-central1-f (nonfree, fast cpu)</option>
-                                                    <option class="smc-nonfree hide" value="dc6">Google europe-west1-c (nonfree, fast cpu)</option>
+                                                    <option value="dc0">Free US 1...</option>
+                                                    <option value="dc1">Free US 2...</option>
+                                                    <option class="smc-nonfree hide" value="dc5">Non-free US...</option>
+                                                    <option class="smc-nonfree hide" value="dc6">Non-free Europe...</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -1270,20 +1271,18 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                     <div class="checkbox well" style="font-size:13pt">
                         <label>
                             <input type="checkbox" class="smc-move-project-dialog-pay-checkbox"> I agree to pay <span class="smc-move-project-dialog-monthly-price">$10</span>/month for a subscription to run this project in a non-free data center.
-                            <span style="color:red">*</span>
                         </label>
                     </div>
                 </div>
                 <hr>
                 <ul class="lighten">
                     <li>
-                        Your project may be unavailable for a few minutes while your files are copied.
+                        Your project will be unavailable for a few minutes while your files are copied.
                     </li>
                     <li class='hide smc-move-project-dialog-free'>
                         The target data center only runs free projects, which compete for limited resources on slower computers.
                     <li class="hide smc-move-project-dialog-free">
-                        You agree to only use free projects for <em><strong>non-commercial purposes</strong></em>,
-                        e.g., academic research.
+                        You agree to only use free projects for <em><strong>academic or non-commercial purposes</strong></em>.
                     </li>
                     <li class="hide smc-move-project-dialog-free">
                         Network access, cpu time and other quotas are severely restricted for free projects.

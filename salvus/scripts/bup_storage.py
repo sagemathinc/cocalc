@@ -3,7 +3,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014, 2015, William Stein
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -90,7 +90,7 @@ USE_BUP_WATCH = False
 # script will be run via sudo, it is useful to minimize what it is able to do, e.g.,
 # there is no reason it should have easy command-line options to overwrite any file
 # on the system with arbitrary content.
-UNSAFE_MODE=False
+UNSAFE_MODE=True
 
 import argparse, base64, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd, codecs, re
 from subprocess import Popen, PIPE
@@ -108,20 +108,24 @@ ZPOOL          = 'bup'   # must have ZPOOL/bups and ZPOOL/projects filesystems
 # The path where bup repos are stored
 BUP_PATH       = '/bup/bups'
 
+ARCHIVE_PATH = '/archive/'
+
+GS_BUCKET_NAME = 'smc-projects-devel'
+
 # The path where project working files appear
 PROJECTS_PATH  = '/projects'
 
 # Default account settings
 
 DEFAULT_SETTINGS = {
-    'disk'       : 2000,     # default disk in megabytes
+    'disk'       : 3000,     # default disk in megabytes
     'scratch'    : 15000,    # default disk quota on /scratch
     'memory'     : 2,        # memory in gigabytes
     'cpu_shares' : 256,
     'cores'      : 1,
     'login_shell': '/bin/bash',
-    'mintime'    : int(60*60*1.5),  # default = 1.5 hours idle (no save) time before kill
-    'inode'      : 200000,  # not used with ZFS
+    'mintime'    : int(60*60),  # default = hour idle (no save) time before kill
+    'inode'      : 200000,      # not used with ZFS
     'network'    : False
 }
 
@@ -250,6 +254,8 @@ class Project(object):
         self.username              = self.project_id.replace('-','')
         self.groupname             = self.username
         self.bup_path              = os.path.join(BUP_PATH, project_id)
+        self.archive_path          = os.path.join(ARCHIVE_PATH, "%s.tar"%self.project_id)
+        self.gs_path               = 'gs://%s/%s.tar'%(GS_BUCKET_NAME, self.project_id)  # google cloud storage
         self.conf_path             = os.path.join(self.bup_path, "conf")
         self.settings_path         = os.path.join(self.conf_path, "settings.json")
         self.replicas_path         = os.path.join(self.conf_path, "replicas.json")
@@ -258,7 +264,10 @@ class Project(object):
         self.touch_file            = os.path.join(self.bup_path, "conf", "touch")
         self.save_log              = os.path.join(self.bup_path, "conf", "save_log.json")
         self.HEAD                  = "%s/HEAD"%self.bup_path
-        self.branch = open(self.HEAD).read().split('/')[-1].strip() if os.path.exists(self.HEAD) else 'master'
+        if os.path.exists(self.HEAD):
+            self.branch = open(self.HEAD).read().split('/')[-1].strip()
+        else:
+            self.branch = 'master'
 
     def cmd(self, *args, **kwds):
         os.environ['BUP_DIR'] = self.bup_path
@@ -465,7 +474,7 @@ class Project(object):
 
     def last_touch_time(self):
         if os.path.exists(self.touch_file):
-            return os.path.getmtime(self.touch_file)
+            return int(round(os.path.getmtime(self.touch_file)))
         else:
             return time.time() # now -- since could be just creating project
 
@@ -524,7 +533,7 @@ class Project(object):
     def num_procs(self):
         return len(self.pids())
 
-    def archive(self):
+    def delete_project(self):
         """
         Remove the user's files, leaving only the bup repo.
 
@@ -534,7 +543,7 @@ class Project(object):
         maybe when one deletes a project, and we want to keep it around for a while for archival
         purposes, just in case.
         """
-        log = self._log("archive")
+        log = self._log("delete_project")
         self.stop()
         self.umount_snapshots()
         log("removing users files")
@@ -543,9 +552,9 @@ class Project(object):
 
     def destroy(self):
         """
-        *VERY DANGEROUS.*  Delete all traces of this project from this machine.
+        *VERY DANGEROUS.*  Delete all traces of this project from the ZFS pool.
         """
-        self.archive()
+        self.delete_project()
         shutil.rmtree(self.bup_path)
 
     def exclude(self, prefix, prog='rsync'):
@@ -1223,7 +1232,7 @@ class Project(object):
         def get_file_mtime(name):
             try:
                 # use lstat instead of stat or getmtime so this works on broken symlinks!
-                return int(os.lstat(os.path.join(abspath, name)).st_mtime)
+                return int(round(os.lstat(os.path.join(abspath, name)).st_mtime))
             except:
                 # ?? This should never happen ??
                 return 0
@@ -1337,6 +1346,305 @@ class Project(object):
             zip.close()
             return output.getvalue()
 
+    def archive(self):
+        """
+        Create tar archive from the bup repo associated to this project.
+
+        Verifies that the bup repo at least shows the directory listing for
+        master, or gives an error otherwise.
+        """
+        t0 = time.time()
+        if not os.path.exists(ARCHIVE_PATH):
+            raise RuntimeError("Create/mount the directory %s"%ARCHIVE_PATH)
+
+        target = self.archive_path
+        mtime = self.last_touch_time()
+        if os.path.exists(target):
+            # check to see if the target is already up to date.
+            if int(round(os.path.getmtime(target))) >= mtime:
+                # archive is already newer than the last touch time, so nothing to do.
+                return {'filename':target, 'status':'ok', 'note':'repo has not changed since last archive', 'action':'nothing'}
+
+        heads = os.path.join(self.bup_path,'refs','heads')
+        if os.path.exists(heads) and len(os.listdir(heads)) > 0:
+            # There has been at least one save/commit, so we
+            # at least check that bup repo ls works on the current branch.
+            try:
+                self.cmd(["/usr/bin/bup", "ls", self.branch+"/latest"], verbose=0)
+            except Exception, mesg:
+                raise RuntimeError("basic bup consistency test failed -- %s"%mesg)
+
+        containing_path, path = os.path.split(self.bup_path)
+        cwd = os.getcwd()
+        try:
+            os.chdir(containing_path)
+            target0 = os.path.join(ARCHIVE_PATH, ".%s.tar"%self.project_id)
+            try:
+                self.cmd(['tar', '-cf', target0,
+                      '--exclude', "%s/cache"%path,
+                      path])
+                shutil.move(target0, target)
+                os.utime(target, (mtime, mtime))  # set timestamp to last touch time
+            finally:
+                # don't leave a half-crap tarball around
+                if os.path.exists(target0):
+                    os.unlink(target0)
+            return {'filename':target, 'status':'ok', 'time_s':time.time()-t0, 'action':'tar'}
+        finally:
+            os.chdir(cwd)
+
+    def dearchive(self):
+        """
+        Extract project from archive tar file.
+
+           - extracts bup repo from tarball
+           - extracts projects/project_id from bup repo
+        """
+        log = self._log("dearchive")
+        t0 = time.time()
+        source = os.path.join(ARCHIVE_PATH, "%s.tar"%self.project_id)
+        if not os.path.exists(source):
+            raise RuntimeError("Missing source archive %s"%source)
+
+        containing_path, path = os.path.split(self.bup_path)
+        cwd = os.getcwd()
+        try:
+            os.chdir(containing_path)
+            log("extracting bup repository from tarball")
+            self.cmd(['tar', '-xf', source])
+            if os.path.exists(self.project_mnt):
+                log("removing existing project directory")
+                self.delete_project()
+            self.cmd(['/usr/bin/bup', 'restore', '%s/latest/'%self.branch, '--outdir', self.project_mnt])
+            #self.chown(self.project_mnt)
+            return {'status':'ok', 'time_s':t0-time.time()}
+        finally:
+            os.chdir(cwd)
+
+    def gs_stat(self):
+        """
+        Returns stat info as a JSON object, or empty object if there is no such object.
+        """
+        r = {}
+        key = None
+        try:
+            for x in self.cmd(['gsutil','stat', self.gs_path], verbose=0).splitlines():
+                v = x.split(':')
+                if len(v) == 2:
+                    if v[0].startswith('\t\t') and key:
+                        r[key][v[0].strip()] = v[1].strip()
+                    else:
+                        key = v[0].strip()
+                        val = v[1].strip()
+                        if not val:
+                            val = {}
+                        r[key] = val
+            return r
+        except RuntimeError, mesg:
+            if "no url" in str(mesg).lower():
+                return {}
+            else:
+                raise
+
+    def gs_upload_archive(self):
+        """
+        Upload archive to google cloud storage, assuming archive exists
+        """
+        log = self._log("gs_upload_archive")
+        t = time.time()
+        log("uploading to google cloud storage")
+        self.cmd(['gsutil',
+                  '-h', "x-goog-meta-mtime:%s"%int(round(os.path.getmtime(self.archive_path))),
+                  'cp', self.archive_path, self.gs_path])
+        log("upload time=%s"%(time.time()-t))
+
+    def gs_download_archive(self, mtime):
+        """
+        Download archive from google cloud storage to local.
+        """
+        log = self._log("gs_download_archive")
+        t = time.time()
+        log("downloading from google cloud storage")
+        self.cmd(['gsutil',
+                  'cp', self.gs_path, self.archive_path])
+        os.utime(self.archive_path, (mtime, mtime))
+        log("download time=%s"%(time.time()-t))
+
+    def mtimes(self):
+        """
+        Return modification times of live, google cloud storage, and archive.
+
+        NOTE: slow and perfect to do in parallel... (node.js rewrite?)
+        """
+        log = self._log("mtimes")
+        t0 = time.time()
+
+        # Determine archive time.
+        archive = os.path.join(ARCHIVE_PATH, "%s.tar"%self.project_id)
+        if not os.path.exists(archive):
+            archive_mtime = 0
+        else:
+            archive_mtime = int(round(os.path.getmtime(archive)))
+        log("archive_mtime=%s"%archive_mtime)
+
+        # Determine live time.
+        if os.path.exists(self.touch_file):
+            live_mtime = int(round(os.path.getmtime(self.touch_file)))
+        else:
+            live_mtime = 0
+        log("live_mtime=%s"%live_mtime)
+
+        # Determine gcloud last write time using metadata.
+        gs_mtime = int(round(float(self.gs_stat().get("Metadata",{}).get('mtime','0'))))
+        log("gs_mtime=%s"%gs_mtime)
+
+        log("total time=%s"%(time.time()-t0))
+        return {'archive_mtime':archive_mtime, 'live_mtime':live_mtime, 'gs_mtime':gs_mtime}
+
+    def gs_sync(self):
+        """
+        Synchronize Google Cloud Storage (gs), ARCHIVE_PATH tarball, and live bup
+        repo on this machine.
+
+        Determines which is newer, then takes steps to synchronize the others
+
+          - live    : generate archive and copy to gcloud.
+          - gs      : copy to local archive, then extract to live
+          - archive : copy to google cloud storage
+        """
+        log = self._log("gs_sync")
+        t0 = time.time()
+
+        # get last modification times for each
+        mtimes = self.mtimes()
+        archive_mtime = mtimes['archive_mtime']
+        live_mtime    = mtimes['live_mtime']
+        gs_mtime      = mtimes['gs_mtime']
+
+        newest_mtime = max(archive_mtime, live_mtime, gs_mtime)
+        if not newest_mtime:
+            log("nothing to do -- no data")
+            return {'status':'ok'}
+
+        if archive_mtime == newest_mtime:
+            log("archive is newest")
+            if archive_mtime > live_mtime:
+                log("extract to live")
+                self.dearchive()
+                live_mtime = archive_mtime
+            if archive_mtime > gs_mtime:
+                log("upload to google cloud storage")
+                self.gs_upload_archive()
+                gs_mtime = archive_mtime
+        elif live_mtime == newest_mtime:
+            log("live is newest")
+            if live_mtime > archive_mtime:
+                log("make an archive")
+                self.archive()
+                archive_mtime = live_mtime
+            if live_mtime > gs_mtime:
+                self.gs_upload_archive()
+                gs_mtime = live_mtime
+        elif gs_mtime == newest_mtime:
+            log("google cloud storage is newest")
+            if gs_mtime > archive_mtime:
+                log("download from google cloud storage")
+                self.gs_download_archive(gs_mtime)
+                archive_mtime = gs_mtime
+            if archive_mtime > live_mtime:
+                log("extract to live")
+                self.dearchive()
+                live_mtime = archive_mtime
+        log("after operations, mtime of archive=%s, live=%s, gs=%s"%(archive_mtime, live_mtime, gs_mtime))
+        return {'status':'ok'}
+
+def gs_sync_all():
+    # Must use this by typing
+    #   bup_storage.py gs_sync_all ""
+    # since I can't get var args parsing to work.
+    log("gs_sync_all")
+    v = os.listdir(BUP_PATH)
+    v.sort()
+    i = 1
+    t0 = time.time()
+    fail = {}
+    for project_id in v:
+        if i > 1:
+            avg = (time.time()-t0)/(i-1)
+            est = int((len(v)-(i-1))*avg)
+            if est < 60:
+                est = "%s seconds"%est
+            else:
+                minutes = est//60
+                hours = minutes//60
+                est = "%s hours and %s minutes"%(hours, minutes-hours*60)
+        else:
+            est = "unknown"
+        log("gs_sync_all -- %s/%s: %s   (est time remaining: %s)"%(i,len(v),project_id,est))
+        i += 1
+        try:
+            t1 = time.time()
+            r = Project(project_id=project_id).gs_sync()
+            log(r)
+        except Exception, mesg:
+            fail[project_id] = mesg
+    result = {'total_s':time.time()-t0}
+
+    if len(fail) > 0:
+        result['status'] = 'fail'
+        result['fail'] = fail
+    else:
+        result['status'] = 'ok'
+
+    return result
+
+def archive_all(fast_io=False):
+    # Must use this by typing
+    #   bup_storage.py archive_all ""
+    # since I can't get var args parsing to work.
+    log("archive_all")
+    v = os.listdir(BUP_PATH)
+    v.sort()
+    i = 1
+    t0 = time.time()
+    fail = {}
+    for project_id in v:
+        if i > 1:
+            avg = (time.time()-t0)/(i-1)
+            est = int((len(v)-(i-1))*avg)
+            if est < 60:
+                est = "%s seconds"%est
+            else:
+                minutes = est//60
+                hours = minutes//60
+                est = "%s hours and %s minutes"%(hours, minutes-hours*60)
+        else:
+            est = "unknown"
+        log("archive_all -- %s/%s: %s   (est time remaining: %s)"%(i,len(v),project_id,est))
+        i += 1
+        try:
+            t1 = time.time()
+            r = Project(project_id=project_id).archive()
+            if r.get('action') == "tar":
+                log(r)
+                if not fast_io:
+                    # TODO: this is probably only necessary because of ZFS -- remove when we
+                    # go all ext4...
+                    s = 0.1 + (time.time() - t1)*2
+                    log("sleeping %s seconds to let slow IO catch up"%s)
+                    time.sleep(s)
+        except Exception, mesg:
+            fail[project_id] = mesg
+    result = {'total_s':time.time()-t0}
+
+    if len(fail) > 0:
+        result['status'] = 'fail'
+        result['fail'] = fail
+    else:
+        result['status'] = 'ok'
+
+    return result
+
 
 if __name__ == "__main__":
 
@@ -1344,8 +1652,6 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(help='sub-command help')
 
     parser.add_argument("--zpool", help="the ZFS pool that has bup/projects in it", dest="zpool", default=ZPOOL, type=str)
-
-    parser.add_argument("project_id", help="project id -- most subcommand require this", type=str)
 
     parser_init = subparsers.add_parser('init', help='init project repo and directory')
     parser_init.set_defaults(func=lambda args: project.init())
@@ -1396,6 +1702,7 @@ if __name__ == "__main__":
             project.copy_path(*args, **kwds)
         except Exception, mesg:
             print json.dumps({"error":str(mesg)})
+            raise
         else:
             print json.dumps({"ok":True})
     parser_copy_path = subparsers.add_parser('copy_path', help='copy a path from one project to another')
@@ -1433,6 +1740,7 @@ if __name__ == "__main__":
                 ans[x] = project.remote_is_ready(remote=remote, port=port)
         except Exception, mesg:
             print json.dumps({"error":str(mesg)})
+            raise
         else:
             print json.dumps(ans)
 
@@ -1447,6 +1755,7 @@ if __name__ == "__main__":
             project.mkdir(*args, **kwds)
         except Exception, mesg:
             print json.dumps({"error":str(mesg)})
+            raise
         else:
             print json.dumps({"ok":True})
     parser_mkdir = subparsers.add_parser('mkdir', help='make a path in a project')
@@ -1459,6 +1768,7 @@ if __name__ == "__main__":
             print json.dumps(project.directory_listing(*args, **kwds))
         except Exception, mesg:
             print json.dumps({"error":str(mesg)})
+            raise
     parser_directory_listing = subparsers.add_parser('directory_listing', help='list files (and info about them) in a directory in the project')
     parser_directory_listing.add_argument("--path", help="relative path in project", dest="path", default='', type=str)
     parser_directory_listing.add_argument("--hidden", help="if given, show hidden files",
@@ -1478,6 +1788,8 @@ if __name__ == "__main__":
             print json.dumps({'base64':base64.b64encode(project.read_file(path, maxsize))})
         except Exception, mesg:
             print json.dumps({"error":str(mesg)})
+            raise
+
     parser_read_file = subparsers.add_parser('read_file',
                      help="read a file/directory from disk; outputs {'base64':'..content in base64..'}; use directory.zip to get directory/ as a zip")
     parser_read_file.add_argument("--path", help="relative path of a file/directory in project (required)", dest="path", type=str)
@@ -1536,11 +1848,41 @@ if __name__ == "__main__":
     parser_tag.set_defaults(func=lambda args: project.tag(tag=args.tag, delete=args.delete))
 
 
-    if UNSAFE_MODE:
-        parser_archive = subparsers.add_parser('archive', help="*DANGEROUS*: Remove the user's files, leaving only the bup repo.")
-        parser_archive.set_defaults(func=lambda args: project.archive())
+    def do_archive():
+        try:
+            print json.dumps(project.archive())    # {'filename':'%s/project_id.tar'%ARCHIVE_PATH, 'status':'ok'}
+        except Exception, mesg:
+            print json.dumps({"error":str(mesg), 'status':'error'})
+            raise
 
-        parser_destroy = subparsers.add_parser('destroy', help='**DANGEROUS**: Delete all traces of this project from this machine.')
+    parser_archive = subparsers.add_parser('archive',
+             help="creates single archive file containing the bup repo associated to this project")
+    parser_archive.set_defaults(func=lambda args: do_archive())
+
+    def do_dearchive():
+        try:
+            print json.dumps(project.dearchive())    # {status':'ok'}
+        except Exception, mesg:
+            print json.dumps({"error":str(mesg), 'status':'error'})
+            raise
+
+    parser_dearchive = subparsers.add_parser('dearchive',
+       help="extract project from archive")
+    parser_dearchive.set_defaults(func=lambda args: do_dearchive())
+
+    def do_gs_sync(*args, **kwds):
+        try:
+            print json.dumps(project.gs_sync())
+        except Exception, mesg:
+            print json.dumps({"error":str(mesg), 'status':'error'})
+            raise
+
+    parser_gs_sync = subparsers.add_parser('gs_sync',
+             help="sync project between live, google cloud, and archive")
+    parser_gs_sync.set_defaults(func=do_gs_sync)
+
+    if UNSAFE_MODE:
+        parser_destroy = subparsers.add_parser('destroy', help='**DANGEROUS**: Delete all traces of live project from this machine (does not delete archive if there).')
         parser_destroy.set_defaults(func=lambda args: project.destroy())
 
     parser_snapshots = subparsers.add_parser('snapshots', help='output JSON list of snapshots of current branch')
@@ -1555,11 +1897,45 @@ if __name__ == "__main__":
     parser_checkout.add_argument("--branch", dest="branch", help="branch to checkout (default: whatever current branch is)", type=str, default='')
     parser_checkout.set_defaults(func=lambda args: project.checkout(snapshot=args.snapshot, branch=args.branch))
 
+    def do_archive_all():
+        try:
+            print json.dumps(archive_all())
+        except Exception, mesg:
+            print json.dumps({"error":str(mesg), 'status':'error'})
+            raise
+
+    parser_archive_all = subparsers.add_parser('archive_all',
+              help="archive every project hosted on this machine")
+    parser_archive_all.add_argument("--fast_io", dest="fast_io", help="don't pause between each archiving", default=False, action="store_const", const=True)
+    parser_archive_all.set_defaults(func=lambda args : archive_all(fast_io=args.fast_io))
+
+    def do_gs_sync_all(*args, **kwds):
+        try:
+            print json.dumps(gs_sync_all())
+        except Exception, mesg:
+            print json.dumps({"error":str(mesg), 'status':'error'})
+            raise
+    parser_gs_sync_all = subparsers.add_parser('gs_sync_all',
+              help="gs_sync every project hosted on this machine")
+    parser_gs_sync_all.set_defaults(func=do_gs_sync_all)
+
+
+
+    parser.add_argument("project_id", help="project id's -- most subcommands require this", type=str)
+
     args = parser.parse_args()
 
     t0 = time.time()
     ZPOOL = args.zpool
-    project = Project(project_id  = args.project_id)
-    args.func(args)
-    log("total time: %s seconds"%(time.time()-t0))
+    try:
+        if len(args.project_id) > 0:
+            project = Project(project_id  = args.project_id)
+            args.func(args)
+        else:
+            args.func(args)
+    except Exception, mesg:
+        log("exception - %s"%mesg)
+        sys.exit(1)
+    finally:
+        log("total time: %s seconds"%(time.time()-t0))
 

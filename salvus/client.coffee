@@ -2233,40 +2233,40 @@ class exports.Connection extends EventEmitter
                         customer               : mesg.customer
                     opts.cb(undefined, resp)
 
-    stripe_create_card: (opts) =>
+    stripe_create_source: (opts) =>
         opts = defaults opts,
             token : required
             cb    : required
         @call
-            message     : message.stripe_create_card(token: opts.token)
+            message     : message.stripe_create_source(token: opts.token)
             error_event : true
             cb          : opts.cb
 
-    stripe_delete_card: (opts) =>
+    stripe_delete_source: (opts) =>
         opts = defaults opts,
             card_id : required
             cb    : required
         @call
-            message     : message.stripe_delete_card(card_id: opts.card_id)
+            message     : message.stripe_delete_source(card_id: opts.card_id)
             error_event : true
             cb          : opts.cb
 
-    stripe_update_card: (opts) =>
+    stripe_update_source: (opts) =>
         opts = defaults opts,
             card_id : required
-            info    : required    # see https://stripe.com/docs/api/node#update_card
+            info    : required
             cb      : required
         @call
-            message     : message.stripe_update_card(card_id: opts.card_id, info:opts.info)
+            message     : message.stripe_update_source(card_id: opts.card_id, info:opts.info)
             error_event : true
             cb          : opts.cb
 
-    stripe_set_default_card: (opts) =>
+    stripe_set_default_source: (opts) =>
         opts = defaults opts,
             card_id : required
             cb    : required
         @call
-            message     : message.stripe_set_default_card(card_id: opts.card_id)
+            message     : message.stripe_set_default_source(card_id: opts.card_id)
             error_event : true
             cb          : opts.cb
 

@@ -283,6 +283,7 @@ exports.execute_code = execute_code = (opts) ->
         args       : []
         path       : undefined   # defaults to home directory; where code is executed from
         timeout    : 10          # timeout in *seconds*
+        ulimit_timeout : true    # if set, use ulimit to ensure a cpu timeout -- don't use when launching a daemon!
         err_on_exit: true        # if true, then a nonzero exit code will result in cb(error_message)
         max_output : undefined   # bound on size of stdout and stderr; further output ignored
         bash       : false       # if true, ignore args and evaluate command as a bash command
@@ -330,7 +331,7 @@ exports.execute_code = execute_code = (opts) ->
             if not opts.bash
                 c()
                 return
-            if opts.timeout?
+            if opts.timeout? and opts.ulimit_timeout
                 # This ensures that everything involved with this
                 # command really does die no matter what; it's
                 # better than killing from outside, since it gets

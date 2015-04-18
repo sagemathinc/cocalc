@@ -87,7 +87,7 @@ Editor for files in a project
                             <a href="#interrupt" class="btn btn-warning" data-toggle="tooltip" data-placement="bottom" title="Interrupt the running Sage process."><i class="fa fa-stop"></i> <span class="hidden-sm">Stop</span></a>
                             <a href="#kill" class="btn btn-warning" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process."><i class="fa fa-refresh"></i> <span class="hidden-sm">Restart</span></a>
                             <a href="#tab" class="btn btn-info"  data-toggle="tooltip" data-placement="bottom" title="Tab completion."> <i class="fa fa-step-forward"></i><span class="hidden-sm"> Tab</span></a>
-                            <a href="#new-html" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert a new text cell."> <i class="fa fa-paragraph"></i>
+                            <a href="#new-html" class="hide btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert a new text cell."> <i class="fa fa-paragraph"></i>
                                 <span class="hidden-sm">Text</span>
                             </a>
 
@@ -103,8 +103,8 @@ Editor for files in a project
                     <a href="#undo" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Undo"><i class="fa fa-undo"></i></a>
                     <a href="#redo" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Redo"><i class="fa fa-repeat"></i></a>
                     <a href="#autoindent" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Autoindent selected text"><i class="fa fa-magic"></i></a>
-                    <a href="#shift-left" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text left"><i class="fa fa-outdent"></i></a>
-                    <a href="#shift-right" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text right"><i class="fa fa-indent"></i></a>
+                    <a href="#shift-left" class="hidden-sm btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text left"><i class="fa fa-outdent"></i></a>
+                    <a href="#shift-right" class="hidden-sm btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text right"><i class="fa fa-indent"></i></a>
                     <a href="#search" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Search"><i class="fa fa-search"></i></a>
                     <!-- <a href="#prev" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Previous"><i class="fa fa-chevron-up"></i></a>
                     <a href="#next" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Next"><i class="fa fa-chevron-down"></i></a>-->
@@ -120,17 +120,14 @@ Editor for files in a project
                     <a href="#print" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
                 </span>
 
-                <span class="salvus-editor-save-group">
-                    <a href="#save" class="hidden-xs btn btn-success" data-toggle="tooltip" data-placement="bottom" title="Save file to disk (file is constantly sync'd with server).">
+                <span class="btn-group">
+                    <a href="#save" class="hidden-xs btn btn-success salvus-editor-save-group" data-toggle="tooltip" data-placement="bottom" title="Save file to disk (file is constantly sync'd with server).">
                         <i class="fa fa-save"></i>
                         <span class="hidden-sm">Save</span>
                     </a>
-                </span>
-
-                <span class="hidden-xs">
-                    <a href="#history" class="btn btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
+                    <a href="#history" class="hidden-xs btn btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
                         <i class="fa fa-history"></i>
-                        <span class="hidden-sm">History</span>
+                        <span class="hidden-sm">Log</span>
                     </a>
                 </span>
 
@@ -474,7 +471,7 @@ Editor for files in a project
                 <a href="#save" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Save .ipynb file to disk (file is constantly sync'd with server)."> <i class="fa fa-save"></i> Save</a>
                 <a href="#history" class="btn btn-sm btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
                         <i class="fa fa-history"></i>
-                        <span class="hidden-sm">History</span>
+                        <span class="hidden-sm">Log</span>
                 </a>
                 <a href="#reload" class="btn  btn-sm btn-warning" data-toggle="tooltip" data-placement="bottom" title="Reload this Notebook; use if the IPython server is killed or restarted on another port"> <i class="fa fa-refresh"></i> Reload</a>
                 <a href="#publish" class="btn btn-primary btn-sm" data-toggle="tooltip" data-placement="bottom" title="Publish this notebook for anybody to see"> <i class="fa fa-refresh fa-spin hide"> </i> <i class="fa fa-share-square-o"></i> Publish</a>

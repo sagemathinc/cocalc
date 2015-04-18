@@ -28,24 +28,24 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
     <meta name="author" content="William Stein">
 
     <!-- Primus: websockets -->
-    <script type="text/javascript" src="static/primus/primus-engine.min.js?version=1424357058"></script>
+    <script type="text/javascript" src="/static/primus/primus-engine.min.js?version=1424357058"></script>
 
-    <link rel="stylesheet" href="static/jquery/jquery-ui/css/humanity/jquery-ui.css">
+    <link rel="stylesheet" href="/static/jquery/jquery-ui/css/humanity/jquery-ui.css">
 
-    <link href="static/bootstrap-3.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <link href="static/font-awesome/css/font-awesome.min.css" rel="stylesheet">
-    <link href="static/bootstrap-switch/bootstrap-switch.css" rel="stylesheet">
+    <link href="/static/bootstrap-3.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+    <link href="/static/bootstrap-switch/bootstrap-switch.css" rel="stylesheet">
 
 
 
-    <link rel="stylesheet" type="text/css" href="static/jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css">
-    <link href="static/pnotify/jquery.pnotify.default.css" media="all" rel="stylesheet" type="text/css" />
-    <link href="static/pnotify/jquery.pnotify.default.icons.css" media="all" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="/static/jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css">
+    <link href="/static/pnotify/jquery.pnotify.default.css" media="all" rel="stylesheet" type="text/css" />
+    <link href="/static/pnotify/jquery.pnotify.default.icons.css" media="all" rel="stylesheet" type="text/css" />
 
-    <link rel="stylesheet" href="static/jquery/plugins/dropzone/css/dropzone.css">
+    <link rel="stylesheet" href="/static/jquery/plugins/dropzone/css/dropzone.css">
 
     <!-- Salvus stylesheet -->
-    <link href="static/index.css" rel="stylesheet">
+    <link href="/static/index.css" rel="stylesheet">
 
 
     <!-- favicons -->
@@ -79,45 +79,49 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
 	<!-- ****** faviconit.com favicons ****** -->
 
     <!-- Jquery -->
-    <script type="text/javascript" src="static/jquery/jquery.min.js"></script>
-    <script type="text/javascript" src="static/jquery/jquery-ui/js/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="/static/jquery/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/jquery/jquery-ui/js/jquery-ui.min.js"></script>
 
 
     <!-- Hack to make jQuery UI work on mobile devices: http://touchpunch.furf.com/ -->
-    <script type="text/javascript" src="static/jquery/plugins/jquery.ui.touch-punch.min.js"></script>
+    <script type="text/javascript" src="/static/jquery/plugins/jquery.ui.touch-punch.min.js"></script>
 
     <!-- Hack to make jQuery hide and show not break with Bootstrap 3 -->
-    <script type="text/javascript" src="static/jquery/plugins/bootstrap_hide_show.js"></script>
+    <script type="text/javascript" src="/static/jquery/plugins/bootstrap_hide_show.js"></script>
 
     <!-- Countdown timer jQuery plugin -->
     <!--  I've removed this, since it is badly written in that even when not used, it burns CPU.
-    <script type="text/javascript" src="static/jquery/plugins/countdown/jquery.countdown.min.js"></script>
-    <link rel="stylesheet" href="static/jquery/plugins/countdown/jquery.countdown.css">
+    <script type="text/javascript" src="/static/jquery/plugins/countdown/jquery.countdown.min.js"></script>
+    <link rel="stylesheet" href="/static/jquery/plugins/countdown/jquery.countdown.css">
     -->
 
     <!-- Timeago jQuery plugin -->
-    <script type="text/javascript" src="static/jquery/plugins/jquery.timeago.min.js"></script>
+    <script type="text/javascript" src="/static/jquery/plugins/jquery.timeago.min.js"></script>
 
     <!-- Scroll into view plugin -->
-    <script type="text/javascript" src="static/jquery/plugins/jquery.scrollintoview.min.js"></script>
+    <script type="text/javascript" src="/static/jquery/plugins/jquery.scrollintoview.min.js"></script>
 
     <!-- Highlight jQuery plugin: http://bartaz.github.io/sandbox.js/jquery.highlight.html -->
-    <script type="text/javascript" src="static/jquery/plugins/jquery.highlight.min.js"></script>
+    <script type="text/javascript" src="/static/jquery/plugins/jquery.highlight.min.js"></script>
 
     <!-- Caret Position jQuery plugin -->
-    <script type="text/javascript" src="static/jquery/plugins/caret/jquery.caret.js"></script>
+    <script type="text/javascript" src="/static/jquery/plugins/caret/jquery.caret.js"></script>
+
+    <!-- Chosen dropdown menu select with search -->
+    <link href="/static/jquery/plugins/chosen/chosen.css" rel="stylesheet">
+    <script type="text/javascript" src="/static/jquery/plugins/chosen/chosen.jquery.min.js"></script>
 
     <!-- Activity spinner -->
-    <script type="text/javascript" src="static/spin/spin.min.js"></script>
+    <script type="text/javascript" src="/static/spin/spin.min.js"></script>
 
     <!-- Bootstrap -->
-    <script type="text/javascript" src="static/bootstrap-3.3.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/static/bootstrap-3.3.0/js/bootstrap.min.js"></script>
 
     <!-- Bootbox: usable dialogs for bootstrap -->
-    <script type="text/javascript" src="static/bootbox/bootbox.min.js"></script>
+    <script type="text/javascript" src="/static/bootbox/bootbox.min.js"></script>
 
     <!-- Bootstrap switch: https://github.com/nostalgiaz/bootstrap-switch -->
-    <script type="text/javascript" src="static/bootstrap-switch/bootstrap-switch.min.js"></script>
+    <script type="text/javascript" src="/static/bootstrap-switch/bootstrap-switch.min.js"></script>
 
     <script type="text/x-mathjax-config">
     MathJax.Hub.Config({
@@ -158,95 +162,95 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
        showProcessingMessages: false
     });
     </script>
-    <script type="text/javascript" src="static/mathjax/MathJax.js"></script>
+    <script type="text/javascript" src="/static/mathjax/MathJax.js"></script>
 
     <!-- JSON Editor -->
 
     <!--
-    <link rel="stylesheet" type="text/css" href="static/jsoneditor/jsoneditor.css">
-    <script type="text/javascript" src="static/jsoneditor/jsoneditor.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/jsoneditor/jsoneditor.css">
+    <script type="text/javascript" src="/static/jsoneditor/jsoneditor.min.js"></script>
     -->
 
     <!-- Bootstrap Colorpicker Plugin -->
-    <script type="text/javascript" src="static/jquery/plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.js"></script>
+    <script type="text/javascript" src="/static/jquery/plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.js"></script>
 
     <!-- Raphael SVG support: we may want this at some point; provides nice interactive printable graphics using SVG
-<script type="text/javascript" src="static/raphael/raphael-min.js"></script>
-<script type="text/javascript" src="static/raphael/raphael-svg-import.js"></script>
+<script type="text/javascript" src="/static/raphael/raphael-min.js"></script>
+<script type="text/javascript" src="/static/raphael/raphael-svg-import.js"></script>
 -->
 
     <!-- Pnotify: Notification framework from http://pinesframework.org/pnotify -->
-    <script type="text/javascript" src="static/pnotify/jquery.pnotify.min.js"></script>
+    <script type="text/javascript" src="/static/pnotify/jquery.pnotify.min.js"></script>
 
     <!-- XTerm terminal emulator -->
-    <script type="text/javascript" src="static/term/term.min.js"></script>
-    <script type="text/javascript" src="static/term/color_themes.js"></script>
+    <script type="text/javascript" src="/static/term/term.min.js"></script>
+    <script type="text/javascript" src="/static/term/color_themes.js"></script>
 
     <!-- 3D Transforms jQuery Plugin: http://ricostacruz.com/jquery.transit/ -->
     <!--
-    <script type="text/javascript" src="static/jquery/plugins/jquery.transit.min.js"></script>
+    <script type="text/javascript" src="/static/jquery/plugins/jquery.transit.min.js"></script>
     -->
 
     <!-- Dropzone for file upload -->
-    <script type="text/javascript" src="static/jquery/plugins/dropzone/dropzone.min.js"></script>
+    <script type="text/javascript" src="/static/jquery/plugins/dropzone/dropzone.min.js"></script>
 
     <!-- LaTeX support -->
-    <script type="text/javascript" src="static/latex/latex-log-parser.js"></script>
+    <script type="text/javascript" src="/static/latex/latex-log-parser.js"></script>
 
     <!-- D3 data visualization -->
-    <script type="text/javascript" src="static/d3/d3.v3.min.js"></script>
+    <script type="text/javascript" src="/static/d3/d3.v3.min.js"></script>
     <!--
-    <script type="text/javascript" src="static/d3/d3.layout.cloud.js"></script>
+    <script type="text/javascript" src="/static/d3/d3.layout.cloud.js"></script>
     -->
 
     <!-- Datetime picker -->
-    <script type="text/javascript" src="static/datetimepicker/bootstrap-datetimepicker.min.js"></script>
-    <link rel="stylesheet" href="static/datetimepicker/bootstrap-datetimepicker.min.css">
+    <script type="text/javascript" src="/static/datetimepicker/bootstrap-datetimepicker.min.js"></script>
+    <link rel="stylesheet" href="/static/datetimepicker/bootstrap-datetimepicker.min.css">
 
     <!-- Rangy -->
     <!--
-    <script type="text/javascript" src="static/rangy-1.3/rangy.min.js"></script>
+    <script type="text/javascript" src="/static/rangy-1.3/rangy.min.js"></script>
     -->
 
     <!-- Make html look nice -->
-    <script type="text/javascript" src="static/jsbeautify/beautify-html.min.js"></script>
+    <script type="text/javascript" src="/static/jsbeautify/beautify-html.min.js"></script>
 
     <!-- Make html into markdown -->
-    <script type="text/javascript" src="static/remarked/reMarked.min.js"></script>
+    <script type="text/javascript" src="/static/remarked/reMarked.min.js"></script>
 
     <!-- CODEMIRROR -->
 
-    <link rel="stylesheet" href="static/codemirror-extra/mode/mediawiki/mediawiki.css">
+    <link rel="stylesheet" href="/static/codemirror-extra/mode/mediawiki/mediawiki.css">
 
-    <link rel="stylesheet" href="static/codemirror-5.0/lib/codemirror.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/twilight.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/vibrant-ink.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/night.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/cobalt.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/neat.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/erlang-dark.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/lesser-dark.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/elegant.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/monokai.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/ambiance-mobile.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/ambiance.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/rubyblue.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/solarized.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/blackboard.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/xq-dark.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/eclipse.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/3024-day.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/3024-night.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/base16-light.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/base16-dark.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/the-matrix.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/paraiso-dark.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/paraiso-light.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/theme/tomorrow-night-eighties.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/addon/dialog/dialog.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/addon/fold/foldgutter.css">
-    <link rel="stylesheet" href="static/codemirror-5.0/addon/hint/show-hint.css">
-    <script src="static/codemirror-5.0/codemirror.min.js"></script>
+    <link rel="stylesheet" href="/static/codemirror-5.0/lib/codemirror.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/twilight.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/vibrant-ink.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/night.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/cobalt.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/neat.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/erlang-dark.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/lesser-dark.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/elegant.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/monokai.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/ambiance-mobile.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/ambiance.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/rubyblue.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/solarized.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/blackboard.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/xq-dark.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/eclipse.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/3024-day.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/3024-night.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/base16-light.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/base16-dark.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/the-matrix.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/paraiso-dark.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/paraiso-light.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/theme/tomorrow-night-eighties.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/addon/dialog/dialog.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/addon/fold/foldgutter.css">
+    <link rel="stylesheet" href="/static/codemirror-5.0/addon/hint/show-hint.css">
+    <script src="/static/codemirror-5.0/codemirror.min.js"></script>
 
     <!-- end codemirror -->
 
@@ -267,8 +271,8 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
 
 
     <!-- LOAD THIS LAST: The Salvus library and its Node.js dependencies -->
-    <script type="text/javascript" src="static/salvus_base_url.js"></script>
-    <script type="text/javascript" src="static/salvus-__SALVUS_VERSION__.min.js"></script>
-    <script type="text/javascript" src="static/index-__SALVUS_VERSION__.min.js"></script>
+    <script type="text/javascript" src="/static/salvus_base_url.js"></script>
+    <script type="text/javascript" src="/static/salvus-__SALVUS_VERSION__.min.js"></script>
+    <script type="text/javascript" src="/static/index-__SALVUS_VERSION__.min.js"></script>
 
 </head>

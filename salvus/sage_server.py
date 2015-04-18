@@ -1536,7 +1536,7 @@ def serve_connection(conn):
     conn.send_json(desc)
     session(conn=conn)
 
-def serve(port, host):
+def serve(port, host, extra_imports=False):
     #log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -1570,6 +1570,7 @@ def serve(port, host):
         # import because of library interacts.
         log("import sage...")
         import sage.all
+        log("imported sage.")
 
         # Monkey patch the html command.
         import sage.interacts.library
@@ -1583,14 +1584,16 @@ def serve(port, host):
         sage.misc.latex.latex.eval = sage_salvus.latex0
 
         # Plot, integrate, etc., -- so startup time of worksheets is minimal.
-
-        for cmd in ['from sage.all import *',
-                    'from sage.calculus.predefined import x',
-                    'import scipy',
+        cmds = ['from sage.all import *',
+                'from sage.calculus.predefined import x',
+                'import pylab']
+        if extra_imports:
+            cmds.extend(['import scipy',
                     'import sympy',
-                    'import pylab',
                     "plot(sin).save('%s/a.png'%os.environ['SAGEMATHCLOUD'], figsize=2)",
-                    'integrate(sin(x**2),x)']:
+                    'integrate(sin(x**2),x)'])
+        tm0 = time.time()
+        for cmd in cmds:
             log(cmd)
             exec cmd in namespace
 
