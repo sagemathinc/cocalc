@@ -25,9 +25,12 @@
 #  - compression
 #  - delete old
 
-PROJECTS  = '/projects'
-SNAPSHOTS = '/projects/.snapshots'
-BUCKET    = 'gs://smc-gb-storage'
+PROJECTS     = '/projects'
+SNAPSHOTS    = '/projects/.snapshots'
+BUCKET       = 'gs://smc-gb-storage'
+SMC_TEMPLATE = '/projects/sagemathcloud'  # subvolume template for .sagemathcloud
+
+TO        = "-to-"
 
 import os, signal, time
 from subprocess import Popen, PIPE
@@ -94,6 +97,7 @@ class Project(object):
         self.gs_path       = os.path.join(BUCKET, project_id)
         self.project_path  = os.path.join(PROJECTS, project_id)
         self.snapshot_path = os.path.join(SNAPSHOTS, project_id)
+        self.smc_path      = os.path.join(self.project_path, '.sagemathcloud')
 
     def gs_ls(self):
         # list contents of google cloud storage for this project
@@ -101,34 +105,46 @@ class Project(object):
         if 'matched no objects' in s:
             return []
         else:
-            i = len(path)
+            i = len(self.gs_path)
             return list(sorted([x[i+1:] for x in s.splitlines()]))
 
     def gs_get(self, stream):
+        if TO in stream:
+            dest = stream.split(TO)[1]
+        else:
+            dest = stream
+        if os.path.exists(os.path.join(self.snapshot_path, dest)):
+            # already have it
+            return
         target = os.path.join(self.tmp_path, stream)
         try:
             gsutil(['cp', os.path.join(self.gs_path, stream), target])
-            gsutil(['receive', '-f', target, self.snapshot_path])
+            btrfs (['receive', '-f', target, self.snapshot_path])
         finally:
             if os.path.exists(target):
-                os.path.unlink(target)
+                os.unlink(target)
 
     def gs_rm(self, stream):
         gsutil(['rm', os.path.join(self.gs_path, stream)])
 
-    def gs_put(self, snapshot1, snapshot2=None):
+    def gs_put(self, stream):
+        if TO in stream:
+            snapshot1, snapshot2 = stream.split(TO)
+        else:
+            snapshot1 = stream; snapshot2 = None
         try:
+            log("snapshot1=%s, snapshot2=%s", snapshot1, snapshot2)
             if snapshot2 is None:
                 name = snapshot1
                 target = os.path.join(self.tmp_path, name)
                 btrfs (['send', os.path.join(self.snapshot_path, snapshot1), '-f', target])
             else:
-                name ='%s-%s'%(snapshot1, snapshot2)
+                name ='%s%s%s'%(snapshot1, TO, snapshot2)
                 target = os.path.join(self.tmp_path, name)
                 btrfs (['send', '-p', os.path.join(self.snapshot_path, snapshot1), os.path.join(self.snapshot_path, snapshot2), '-f', target])
-            gsutil(['cp', target, os.path.join(self.gs_path, snapshot1)])
+            gsutil(['cp', target, os.path.join(self.gs_path, stream)])
         finally:
-            is os.path.exists(target):
+            if os.path.exists(target):
                 os.unlink(target)
 
     def snapshot_ls(self):
@@ -143,12 +159,12 @@ class Project(object):
 
         # get a list of all streams in GCS
         gs = self.gs_ls()
-        gs_snapshots = sum([x.split('-') for x in gs], [])
-        log('gs_ls: %s', gs)
+        gs_snapshots = sum([x.split(TO) for x in gs], [])
+        log('gs_snapshots: %s', gs_snapshots)
 
         # get a list of snapshots we have
         local_snapshots = self.snapshot_ls()
-        log('snapshots: %s', snapshots)
+        log('local_snapshots: %s', local_snapshots)
 
         # determine newest local snapshot that is also in GCS
         if len(local_snapshots) > 0:
@@ -157,13 +173,16 @@ class Project(object):
             while i >= 1:
                 if local_snapshots[i] not in x:
                     i -= 1
+                else:
+                    break
             newest_local = local_snapshots[i]
         else:
             newest_local = "" # infinitely old
 
+        log("newest_local = %s", newest_local)
         # download all streams from GCS that start >= newest_local
         for stream in gs:
-            if newest_local == "" or stream.split('-')[0] >= newest_local:
+            if newest_local == "" or stream.split(TO)[0] >= newest_local:
                 self.gs_get(stream)
 
         # delete extra snapshots we no longer need
@@ -172,13 +191,20 @@ class Project(object):
         # make live equal the newest snapshot
         v = self.snapshot_ls()
         if len(v) == 0:
-            btrfs(['subvolume', 'create', self.project_path])
+            if not os.path.exists(self.project_path):
+                btrfs(['subvolume', 'create', self.project_path])
         else:
             source = os.path.join(self.snapshot_path, v[-1])
             if not os.path.exists(self.project_path):
                 btrfs(['subvolume', 'snapshot', source, self.project_path])
             else:
-                cmd("rsync", "-axvH", "--delete", "--update", source+"/", self.project_path+"/")
+                cmd(["rsync", "-axvH", "--delete", "--update", source+"/", self.project_path+"/"])
+
+        t = os.path.join(self.project_path, '.snapshots')
+        if not os.path.exists(t):
+            cmd(["ln", "-s", self.snapshot_path, t])
+        if not os.path.exists(self.smc_path):
+            btrfs(['subvolume', 'snapshot', SMC_TEMPLATE, self.smc_path])
 
     def delete_old_snapshots(self):
         #TODO
@@ -186,9 +212,10 @@ class Project(object):
 
     def gs_put_sync(self):
         v = self.snapshot_ls()
+        print v
         local = [v[0]]
         for i in range(0,len(v)-1):
-            local.append("%s-%s"%(v[i],v[i+1]))
+            local.append("%s%s%s"%(v[i], TO, v[i+1]))
         local_streams = set(local)
         remote_streams = set(self.gs_ls())
         to_delete = [stream for stream in remote_streams if stream not in local_streams]
@@ -198,6 +225,7 @@ class Project(object):
         for stream in to_put:
             self.gs_put(stream)
 
+        print "to_delete=", to_delete
         for stream in to_delete:
             self.gs_rm(stream)
 
@@ -212,6 +240,19 @@ class Project(object):
         # sync gs with local snapshots
         self.gs_put_sync()
 
+    def close(self):
+        # delete snapshots
+        for x in self.snapshot_ls():
+            btrfs(['subvolume', 'delete', os.path.join(self.snapshot_path, x)])
+        if os.path.exists(self.snapshot_path):
+            btrfs(['subvolume','delete', self.snapshot_path])
+        # delete .sagemathcloud
+        if os.path.exists(self.smc_path):
+            btrfs(['subvolume','delete', self.smc_path])
+        # delete live
+        if os.path.exists(self.project_path):
+            btrfs(['subvolume','delete', self.project_path])
+
 if __name__ == "__main__":
 
     import argparse
@@ -223,10 +264,14 @@ if __name__ == "__main__":
     parser_open.add_argument("project_id", help="", type=str)
     parser_open.set_defaults(func=lambda args: Project(args.project_id, quota=args.quota).open())
 
-    parser_open = subparsers.add_parser('save', help='')
-    parser_open.add_argument("--max", help="maximum number of snapshots", dest="max", default=0, type=int)
-    parser_open.add_argument("project_id", help="", type=str)
-    parser_open.set_defaults(func=lambda args: Project(args.project_id, max=args.max).save())
+    parser_close = subparsers.add_parser('close', help='')
+    parser_close.add_argument("project_id", help="deletes this project locally (not from GCS)", type=str)
+    parser_close.set_defaults(func=lambda args: Project(args.project_id).close())
+
+    parser_save = subparsers.add_parser('save', help='')
+    parser_save.add_argument("--max", help="maximum number of snapshots", dest="max", default=0, type=int)
+    parser_save.add_argument("project_id", help="", type=str)
+    parser_save.set_defaults(func=lambda args: Project(args.project_id, max=args.max).save())
 
     args = parser.parse_args()
     args.func(args)
