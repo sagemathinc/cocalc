@@ -22,8 +22,19 @@
 ###############################################################################
 
 # TODO:
-#  - compression
-#  - delete old
+#
+#  - [x] compression of files: mount with mount -o compress-force=lzo,noatime /dev/sdb /projects
+#  - [x] compression of streams: lrz or lz4?
+#  - [ ] time option to save
+#  - [ ] start migrating projects
+#  - [ ] download all needed files from GCS before receiving them, so can get them in parallel.
+#  - [ ] (1:00?) delete excessive snapshots: ???
+#  - [ ] (0:20?) instructions for making/mounting filesystem
+#  - [ ] (2:00?) carry over all functionality *needed* from bup_storage.py
+#
+# MAYBE:
+#  - support 3 tiers of storage: /projects/ssd, /projects/hdd, /projects/ssd-local
+#
 
 PROJECTS     = '/projects'
 SNAPSHOTS    = '/projects/.snapshots'
@@ -82,6 +93,34 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
         if timeout:
             signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
 
+def thread_map(callable, inputs):
+    """
+    Computing [callable(args) for args in inputs]
+    in parallel using len(inputs) separate *threads*.
+
+    If an exception is raised by any thread, a RuntimeError exception
+    is instead raised.
+    """
+    print "Doing the following in parallel:\n%s"%('\n'.join([str(x) for x in inputs]))
+    from threading import Thread
+    class F(Thread):
+        def __init__(self, x):
+            self._x = x
+            Thread.__init__(self)
+            self.start()
+        def run(self):
+            try:
+                self.result = callable(self._x)
+                self.fail = False
+            except Exception, msg:
+                self.result = msg
+                self.fail = True
+    results = [F(x) for x in inputs]
+    for f in results: f.join()
+    e = [f.result for f in results if f.fail]
+    if e: raise RuntimeError(e)
+    return [f.result for f in results]
+
 def btrfs(args, **kwds):
     return cmd(['btrfs']+args, **kwds)
 
@@ -93,7 +132,7 @@ class Project(object):
         self.project_id    = project_id
         self.quota         = quota
         self.max           = max
-        self.tmp_path      = '/tmp/'  # todo --use tmpfile module!  CRITICAL
+        self.tmp_path      = '/projects/tmp/'  # todo --use tmpfile module!  CRITICAL
         self.gs_path       = os.path.join(BUCKET, project_id)
         self.project_path  = os.path.join(PROJECTS, project_id)
         self.snapshot_path = os.path.join(SNAPSHOTS, project_id)
@@ -108,21 +147,45 @@ class Project(object):
             i = len(self.gs_path)
             return list(sorted([x[i+1:] for x in s.splitlines()]))
 
-    def gs_get(self, stream):
-        if TO in stream:
-            dest = stream.split(TO)[1]
-        else:
-            dest = stream
-        if os.path.exists(os.path.join(self.snapshot_path, dest)):
-            # already have it
+    def gs_get(self, streams):
+        targets = []
+        sources = []
+        for stream in streams:
+            if TO in stream:
+                dest = stream.split(TO)[1]
+            else:
+                dest = stream
+            if os.path.exists(os.path.join(self.snapshot_path, dest)):
+                # already have it
+                continue
+            else:
+                sources.append(os.path.join(self.gs_path, stream))
+            targets.append(os.path.join(self.tmp_path, stream))
+        if len(sources) == 0:
             return
-        target = os.path.join(self.tmp_path, stream)
         try:
-            gsutil(['cp', os.path.join(self.gs_path, stream), target])
-            btrfs (['receive', '-f', target, self.snapshot_path])
-        finally:
-            if os.path.exists(target):
+            # Get all the streams we need (in parallel).
+            # We parallelize at two levels because just using gsutil -m cp with say 100 or so
+            # inputs causes it to HANG every time.  On the other hand, using thread_map for
+            # everything quickly uses up all RAM on the computer.  The following is a tradeoff.
+            # Also, doing one at a time is ridiculously slow.
+            s = max(15, min(50, len(sources)//5))
+            def f(v):
+                if len(v) > 0:
+                    return gsutil(['-m', 'cp'] + v +[self.tmp_path])
+            thread_map(f, [sources[s*i:s*(i+1)] for i in range(len(sources)//s + 1)])
+
+            # apply them all
+            for target in targets:
+                cmd("cat %s | lz4c -d | btrfs receive %s"%(target, self.snapshot_path))
                 os.unlink(target)
+        finally:
+            for target in targets:
+                if os.path.exists(target):
+                    try:
+                        os.unlink(target)
+                    except:
+                        pass
 
     def gs_rm(self, stream):
         gsutil(['rm', os.path.join(self.gs_path, stream)])
@@ -137,11 +200,17 @@ class Project(object):
             if snapshot2 is None:
                 name = snapshot1
                 target = os.path.join(self.tmp_path, name)
-                btrfs (['send', os.path.join(self.snapshot_path, snapshot1), '-f', target])
+                #btrfs (['send', os.path.join(self.snapshot_path, snapshot1), '-f', target])
+                # with integrated compression:
+                cmd("btrfs send '%s' | lz4c > %s"%(os.path.join(self.snapshot_path, snapshot1), target))
             else:
                 name ='%s%s%s'%(snapshot1, TO, snapshot2)
                 target = os.path.join(self.tmp_path, name)
-                btrfs (['send', '-p', os.path.join(self.snapshot_path, snapshot1), os.path.join(self.snapshot_path, snapshot2), '-f', target])
+                #btrfs (['send', '-p', os.path.join(self.snapshot_path, snapshot1), os.path.join(self.snapshot_path, snapshot2), '-f', target])
+                # with integrated compression:
+                cmd("btrfs send -p %s %s | lz4c > %s"%(os.path.join(self.snapshot_path, snapshot1),
+                                   os.path.join(self.snapshot_path, snapshot2), target))
+
             gsutil(['cp', target, os.path.join(self.gs_path, stream)])
         finally:
             if os.path.exists(target):
@@ -180,10 +249,8 @@ class Project(object):
             newest_local = "" # infinitely old
 
         log("newest_local = %s", newest_local)
-        # download all streams from GCS that start >= newest_local
-        for stream in gs:
-            if newest_local == "" or stream.split(TO)[0] >= newest_local:
-                self.gs_get(stream)
+        # download all streams from GCS with start >= newest_local
+        self.gs_get([stream for stream in gs if newest_local == "" or stream.split(TO)[0] >= newest_local])
 
         # delete extra snapshots we no longer need
         # TODO
@@ -229,9 +296,13 @@ class Project(object):
         for stream in to_delete:
             self.gs_rm(stream)
 
-    def save(self):
+    def save(self, timestamp="", persist=False):
+        if not timestamp:
+            timestamp = time.strftime("%Y-%m-%d-%H%M%S")
         # figure out what to call the snapshot
-        target = os.path.join(self.snapshot_path, time.strftime("%Y-%m-%d-%H%M%S"))
+        target = os.path.join(self.snapshot_path, timestamp)
+        if persist:
+            target += "-persist"
         log('creating snapshot %s', target)
         # create the snapshot
         btrfs(['subvolume', 'snapshot', '-r', self.project_path, target])
@@ -287,8 +358,11 @@ if __name__ == "__main__":
 
     parser_save = subparsers.add_parser('save', help='')
     parser_save.add_argument("--max", help="maximum number of snapshots", default=0, type=int)
+    parser_save.add_argument("--timestamp", help="optional timestamp in the form %Y-%m-%d-%H%M%S", default="", type=str)
+    parser_save.add_argument("--persist", help="if given, won't automatically delete",
+                             default=False, action="store_const", const=True)
     parser_save.add_argument("project_id", help="", type=str)
-    parser_save.set_defaults(func=lambda args: Project(args.project_id, max=args.max).save())
+    parser_save.set_defaults(func=lambda args: Project(args.project_id, max=args.max).save(timestamp=args.timestamp, persist=args.persist))
 
     parser_delete_snapshot = subparsers.add_parser('delete_snapshot', help='delete a particular snapshot')
     parser_delete_snapshot.add_argument("snapshot", help="snapshot to delete", type=str)
