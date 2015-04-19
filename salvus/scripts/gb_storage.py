@@ -37,6 +37,10 @@
 #  - support 3 tiers of storage: /projects/ssd, /projects/hdd, /projects/ssd-local
 #
 
+# mount -o compress=lzo /dev/sdb /projects
+# btrfs subvolume create /projects/sagemathcloud
+# rsync -LrxvH /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
+
 PROJECTS     = '/projects'
 SNAPSHOTS    = '/projects/.snapshots'
 BUCKET       = 'gs://smc-gb-storage'
@@ -46,9 +50,6 @@ TO        = "-to-"
 
 import os, shutil, signal, tempfile, time
 from subprocess import Popen, PIPE
-
-if not os.path.exists(SNAPSHOTS):
-    btrfs(['subvolume', 'create', SNAPSHOTS])
 
 def log(s, *args):
     print s%args
@@ -125,6 +126,9 @@ def thread_map(callable, inputs):
 def btrfs(args, **kwds):
     return cmd(['btrfs']+args, **kwds)
 
+if not os.path.exists(SNAPSHOTS):
+    btrfs(['subvolume', 'create', SNAPSHOTS])
+
 def gsutil(args, **kwds):
     return cmd(['gsutil']+args, **kwds)
 
@@ -171,20 +175,20 @@ class Project(object):
         targets = []
         sources = []
         tmp_path = tempfile.mkdtemp()
-        for stream in streams:
-            if TO in stream:
-                dest = stream.split(TO)[1]
-            else:
-                dest = stream
-            if os.path.exists(os.path.join(self.snapshot_path, dest)):
-                # already have it
-                continue
-            else:
-                sources.append(os.path.join(self.gs_path, self.gs_version(), stream))
-            targets.append(os.path.join(tmp_path, stream))
-        if len(sources) == 0:
-            return
         try:
+            for stream in streams:
+                if TO in stream:
+                    dest = stream.split(TO)[1]
+                else:
+                    dest = stream
+                if os.path.exists(os.path.join(self.snapshot_path, dest)):
+                    # already have it
+                    continue
+                else:
+                    sources.append(os.path.join(self.gs_path, self.gs_version(), stream))
+                targets.append(os.path.join(tmp_path, stream))
+            if len(sources) == 0:
+                return
             # Get all the streams we need (in parallel).
             # We parallelize at two levels because just using gsutil -m cp with say 100 or so
             # inputs causes it to HANG every time.  On the other hand, using thread_map for
@@ -357,24 +361,36 @@ class Project(object):
             if 'No URLs matched' not in str(mesg):
                 raise
 
-    def migrate(self):
-        cmd("gsutil cp gs://smc-projects/%s.tar . && ls -lh %s.tar"%(self.project_id, self.project_id))
-        cmd("tar xf %s.tar"%self.project_id)
-        os.unlink("%s.tar"%self.project_id)
-        self.open()
-        tmp_dirs = [self.project_id]
-        if len(self.snapshot_ls()) == 0:
-            # new migration
-            cmd("bup -d %s restore --outdir=%s/ master/latest/"%(self.project_id, self.project_path))
+    def migrate(self, update=False):
+        if not update:
+            try:
+                cmd("gsutil ls %s"%self.gs_path)
+                log("already migrated")
+                return
+            except:
+                pass
         else:
-            # udpate existing migrated.
-            cmd("bup -d %s restore --outdir=%s-out/ master/latest/"%(self.project_id, self.project_id))
-            cmd("rsync -axH --delete %s-out/ %s/"%(self.project_id, self.project_path))
-            tmp_dirs.append("%s-out"%self.project_id)
-        self.save(timestamp=cmd("bup -d %s ls master/|tail -2|head -1"%self.project_id).strip())
-        for x in tmp_dirs:
-            log("removing %s"%x)
-            shutil.rmtree(x)
+            raise NotImplementedError
+        try:
+            tmp_dirs = []
+            cmd("gsutil cp gs://smc-projects/%s.tar . && ls -lh %s.tar"%(self.project_id, self.project_id))
+            cmd("tar xf %s.tar"%self.project_id)
+            os.unlink("%s.tar"%self.project_id)
+            self.open()
+            tmp_dirs.append(self.project_id)
+            if len(self.snapshot_ls()) == 0:
+                # new migration
+                cmd("bup -d %s restore --outdir=%s/ master/latest/"%(self.project_id, self.project_path))
+            else:
+                # udpate existing migrated.
+                cmd("bup -d %s restore --outdir=%s-out/ master/latest/"%(self.project_id, self.project_id))
+                cmd("rsync -axH --delete %s-out/ %s/"%(self.project_id, self.project_path))
+                tmp_dirs.append("%s-out"%self.project_id)
+            self.save(timestamp=cmd("bup -d %s ls master/|tail -2|head -1"%self.project_id).strip())
+        finally:
+            for x in tmp_dirs:
+                log("removing %s"%x)
+                shutil.rmtree(x)
 
 if __name__ == "__main__":
 
