@@ -85,9 +85,9 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
             else:
                 raise RuntimeError(x)
         if verbose>=2:
-            log(("(%s seconds): %s"%(time.time()-t, x))[:500])
+            log("(%s seconds): %s", time.time()-t, x[:500])
         elif verbose >= 1:
-            log("(%s seconds)"%(time.time()-t))
+            log("(%s seconds)", time.time()-t)
         return x.strip()
     except IOError:
         return mesg
@@ -285,6 +285,7 @@ class Project(object):
             cmd(["ln", "-s", self.snapshot_path, t])
         if not os.path.exists(self.smc_path):
             btrfs(['subvolume', 'snapshot', SMC_TEMPLATE, self.smc_path])
+            # TODO: need to chown SMC_TEMPLATE so user can actually use it.
 
         self.gs_put_sync()
 
@@ -361,7 +362,20 @@ class Project(object):
             if 'No URLs matched' not in str(mesg):
                 raise
 
-    def migrate(self, update=False):
+    def deduplicate(self):
+        """
+        Deduplicate the live filesystem.
+
+        Uses https://github.com/markfasheh/duperemove
+
+        I tested this on an SSD on a 16GB project with three sage installs,
+        and it took 1.5 hours, and saved about 4GB.  So this isn't something
+        to just use lightly, or possibly ever.
+        """
+        # we use os.system, since the output is very verbose...
+        os.system("duperemove -h -d -r '%s'/*"%self.project_path)
+
+    def migrate(self, update=False, source='gsutil'):
         if not update:
             try:
                 cmd("gsutil ls %s"%self.gs_path)
@@ -373,9 +387,12 @@ class Project(object):
             raise NotImplementedError
         try:
             tmp_dirs = []
-            cmd("gsutil cp gs://smc-projects/%s.tar . && ls -lh %s.tar"%(self.project_id, self.project_id))
-            cmd("tar xf %s.tar"%self.project_id)
-            os.unlink("%s.tar"%self.project_id)
+            if source == 'gsutil':
+                cmd("gsutil cp gs://smc-projects/%s.tar . && ls -lh %s.tar"%(self.project_id, self.project_id))
+                cmd("tar xf %s.tar"%self.project_id)
+                os.unlink("%s.tar"%self.project_id)
+            else:
+                cmd("tar xf %s/%s.tar"%(source, self.project_id))
             self.open()
             tmp_dirs.append(self.project_id)
             if len(self.snapshot_ls()) == 0:
@@ -430,8 +447,13 @@ if __name__ == "__main__":
     parser_delete_snapshot.set_defaults(func=lambda args: Project(args.project_id).delete_snapshot(args.snapshot))
 
     parser_migrate = subparsers.add_parser('migrate', help='migrate project to new format')
+    parser_migrate.add_argument("--source", help="path to directory of project_id.tar bup repos or 'gsutil'", default="gsutil", type=str)
     parser_migrate.add_argument("project_id", help="", type=str)
-    parser_migrate.set_defaults(func=lambda args: Project(args.project_id).migrate())
+    parser_migrate.set_defaults(func=lambda args: Project(args.project_id).migrate(source=args.source))
+
+    parser_deduplicate = subparsers.add_parser('deduplicate', help='deduplicate live project')
+    parser_deduplicate.add_argument("project_id", help="", type=str)
+    parser_deduplicate.set_defaults(func=lambda args: Project(args.project_id).deduplicate())
 
     args = parser.parse_args()
     args.func(args)
