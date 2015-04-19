@@ -138,14 +138,34 @@ class Project(object):
         self.snapshot_path = os.path.join(SNAPSHOTS, project_id)
         self.smc_path      = os.path.join(self.project_path, '.sagemathcloud')
 
+    def base_creation_time(self):
+        try:
+            return self._base_creation_time
+        except:
+            v = self.snapshot_ls()
+            if len(v) == 0:
+                # set from newest on GCS
+                i = len(self.gs_path) + 1
+                a = [x[i:] for x in sorted(gsutil(['ls', self.gs_path]).splitlines())]
+                self._base_creation_time = a[-1].strip('/')
+            else:
+                s = cmd("btrfs subvolume show %s|grep Creation"%os.path.join(self.snapshot_path, v[0]))
+                i = s.find(":")
+                self._base_creation_time = s[i+1:].strip().replace(' ','-').replace(':','')
+            return self._base_creation_time
+
     def gs_ls(self):
         # list contents of google cloud storage for this project
-        s = gsutil(['ls', self.gs_path], ignore_errors=True)
-        if 'matched no objects' in s:
-            return []
-        else:
-            i = len(self.gs_path)
-            return list(sorted([x[i+1:] for x in s.splitlines()]))
+        try:
+            p = os.path.join(self.gs_path, self.base_creation_time())
+            s = gsutil(['ls', p], ignore_errors=False)
+            i = len(p) + 1
+            return list(sorted([x[i:] for x in s.splitlines()]))
+        except Exception, mesg:
+            if 'matched no objects' in str(mesg):
+                return []
+            else:
+                raise
 
     def gs_get(self, streams):
         targets = []
@@ -159,7 +179,7 @@ class Project(object):
                 # already have it
                 continue
             else:
-                sources.append(os.path.join(self.gs_path, stream))
+                sources.append(os.path.join(self.gs_path, self.base_creation_time(), stream))
             targets.append(os.path.join(self.tmp_path, stream))
         if len(sources) == 0:
             return
@@ -188,7 +208,7 @@ class Project(object):
                         pass
 
     def gs_rm(self, stream):
-        gsutil(['rm', os.path.join(self.gs_path, stream)])
+        gsutil(['rm', os.path.join(self.gs_path, self.base_creation_time(), stream)])
 
     def gs_put(self, stream):
         if TO in stream:
@@ -210,8 +230,9 @@ class Project(object):
                 # with integrated compression:
                 cmd("btrfs send -p %s %s | lz4c > %s"%(os.path.join(self.snapshot_path, snapshot1),
                                    os.path.join(self.snapshot_path, snapshot2), target))
+                #cmd("btrfs send %s | lz4c > %s"%(os.path.join(self.snapshot_path, snapshot2), target))
 
-            gsutil(['cp', target, os.path.join(self.gs_path, stream)])
+            gsutil(['cp', target, os.path.join(self.gs_path, self.base_creation_time(), stream)])
         finally:
             if os.path.exists(target):
                 os.unlink(target)
@@ -252,9 +273,6 @@ class Project(object):
         # download all streams from GCS with start >= newest_local
         self.gs_get([stream for stream in gs if newest_local == "" or stream.split(TO)[0] >= newest_local])
 
-        # delete extra snapshots we no longer need
-        # TODO
-
         # make live equal the newest snapshot
         v = self.snapshot_ls()
         if len(v) == 0:
@@ -273,26 +291,30 @@ class Project(object):
         if not os.path.exists(self.smc_path):
             btrfs(['subvolume', 'snapshot', SMC_TEMPLATE, self.smc_path])
 
+        self.gs_put_sync()
+
     def delete_old_snapshots(self):
         #TODO
         return
 
     def gs_put_sync(self):
         v = self.snapshot_ls()
-        print v
-        local = [v[0]]
-        for i in range(0,len(v)-1):
-            local.append("%s%s%s"%(v[i], TO, v[i+1]))
-        local_streams = set(local)
+        if len(v) == 0:
+            local_streams = set([])
+        else:
+            local = [v[0]]
+            for i in range(0,len(v)-1):
+                local.append("%s%s%s"%(v[i], TO, v[i+1]))
+            local_streams = set(local)
         remote_streams = set(self.gs_ls())
         to_delete = [stream for stream in remote_streams if stream not in local_streams]
         to_put    = [stream for stream in local_streams if stream not in remote_streams]
 
-        # TODO: this should be done in parallel
+        # TODO: MAYBE this should be done in parallel -- though it is a save, so not time critical.
+        # And doing it in parallel could thrash io and waste RAM.
         for stream in to_put:
             self.gs_put(stream)
 
-        print "to_delete=", to_delete
         for stream in to_delete:
             self.gs_rm(stream)
 
@@ -308,6 +330,8 @@ class Project(object):
         btrfs(['subvolume', 'snapshot', '-r', self.project_path, target])
         # delete old snapshots
         self.delete_old_snapshots()
+        # ensure subvolume written to disk
+        cmd("sync")
         # sync gs with local snapshots
         self.gs_put_sync()
 
@@ -334,7 +358,11 @@ class Project(object):
         # delete locally
         self.close()
         # delete from the cloud
-        gsutil(['rm', '-R', self.gs_path])
+        try:
+            gsutil(['rm', '-R', self.gs_path])
+        except Exception, mesg:
+            if 'No URLs matched' not in str(mesg):
+                raise
 
 if __name__ == "__main__":
 
