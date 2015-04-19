@@ -25,9 +25,10 @@
 #
 #  - [x] compression of files: mount with mount -o compress-force=lzo,noatime /dev/sdb /projects
 #  - [x] compression of streams: lrz or lz4?
-#  - [ ] time option to save
+#  - [x] time option to save
+#  - [x] download all needed files from GCS before receiving them, so can get them in parallel.
+#  - [x] proper temporary directory
 #  - [ ] start migrating projects
-#  - [ ] download all needed files from GCS before receiving them, so can get them in parallel.
 #  - [ ] (1:00?) delete excessive snapshots: ???
 #  - [ ] (0:20?) instructions for making/mounting filesystem
 #  - [ ] (2:00?) carry over all functionality *needed* from bup_storage.py
@@ -43,7 +44,7 @@ SMC_TEMPLATE = '/projects/sagemathcloud'  # subvolume template for .sagemathclou
 
 TO        = "-to-"
 
-import os, signal, time
+import os, shutil, signal, tempfile, time
 from subprocess import Popen, PIPE
 
 if not os.path.exists(SNAPSHOTS):
@@ -132,32 +133,31 @@ class Project(object):
         self.project_id    = project_id
         self.quota         = quota
         self.max           = max
-        self.tmp_path      = '/projects/tmp/'  # todo --use tmpfile module!  CRITICAL
-        self.gs_path       = os.path.join(BUCKET, project_id)
+        self.gs_path       = os.path.join(BUCKET, project_id, 'v0')
         self.project_path  = os.path.join(PROJECTS, project_id)
         self.snapshot_path = os.path.join(SNAPSHOTS, project_id)
         self.smc_path      = os.path.join(self.project_path, '.sagemathcloud')
 
-    def base_creation_time(self):
+    def gs_version(self):
         try:
-            return self._base_creation_time
+            return self._gs_version
         except:
             v = self.snapshot_ls()
             if len(v) == 0:
                 # set from newest on GCS
                 i = len(self.gs_path) + 1
                 a = [x[i:] for x in sorted(gsutil(['ls', self.gs_path]).splitlines())]
-                self._base_creation_time = a[-1].strip('/')
+                self._gs_version = a[-1].strip('/')
             else:
                 s = cmd("btrfs subvolume show %s|grep Creation"%os.path.join(self.snapshot_path, v[0]))
                 i = s.find(":")
-                self._base_creation_time = s[i+1:].strip().replace(' ','-').replace(':','')
-            return self._base_creation_time
+                self._gs_version = s[i+1:].strip().replace(' ','-').replace(':','')
+            return self._gs_version
 
     def gs_ls(self):
         # list contents of google cloud storage for this project
         try:
-            p = os.path.join(self.gs_path, self.base_creation_time())
+            p = os.path.join(self.gs_path, self.gs_version())
             s = gsutil(['ls', p], ignore_errors=False)
             i = len(p) + 1
             return list(sorted([x[i:] for x in s.splitlines()]))
@@ -170,6 +170,7 @@ class Project(object):
     def gs_get(self, streams):
         targets = []
         sources = []
+        tmp_path = tempfile.mkdtemp()
         for stream in streams:
             if TO in stream:
                 dest = stream.split(TO)[1]
@@ -179,8 +180,8 @@ class Project(object):
                 # already have it
                 continue
             else:
-                sources.append(os.path.join(self.gs_path, self.base_creation_time(), stream))
-            targets.append(os.path.join(self.tmp_path, stream))
+                sources.append(os.path.join(self.gs_path, self.gs_version(), stream))
+            targets.append(os.path.join(tmp_path, stream))
         if len(sources) == 0:
             return
         try:
@@ -192,7 +193,7 @@ class Project(object):
             s = max(15, min(50, len(sources)//5))
             def f(v):
                 if len(v) > 0:
-                    return gsutil(['-m', 'cp'] + v +[self.tmp_path])
+                    return gsutil(['-q', '-m', 'cp'] + v +[tmp_path])
             thread_map(f, [sources[s*i:s*(i+1)] for i in range(len(sources)//s + 1)])
 
             # apply them all
@@ -200,42 +201,32 @@ class Project(object):
                 cmd("cat %s | lz4c -d | btrfs receive %s"%(target, self.snapshot_path))
                 os.unlink(target)
         finally:
-            for target in targets:
-                if os.path.exists(target):
-                    try:
-                        os.unlink(target)
-                    except:
-                        pass
+            shutil.rmtree(tmp_path)
 
     def gs_rm(self, stream):
-        gsutil(['rm', os.path.join(self.gs_path, self.base_creation_time(), stream)])
+        gsutil(['rm', os.path.join(self.gs_path, self.gs_version(), stream)])
 
     def gs_put(self, stream):
         if TO in stream:
             snapshot1, snapshot2 = stream.split(TO)
         else:
             snapshot1 = stream; snapshot2 = None
+        tmp_path = tempfile.mkdtemp()
         try:
             log("snapshot1=%s, snapshot2=%s", snapshot1, snapshot2)
             if snapshot2 is None:
                 name = snapshot1
-                target = os.path.join(self.tmp_path, name)
-                #btrfs (['send', os.path.join(self.snapshot_path, snapshot1), '-f', target])
-                # with integrated compression:
+                target = os.path.join(tmp_path, name)
                 cmd("btrfs send '%s' | lz4c > %s"%(os.path.join(self.snapshot_path, snapshot1), target))
             else:
                 name ='%s%s%s'%(snapshot1, TO, snapshot2)
-                target = os.path.join(self.tmp_path, name)
-                #btrfs (['send', '-p', os.path.join(self.snapshot_path, snapshot1), os.path.join(self.snapshot_path, snapshot2), '-f', target])
-                # with integrated compression:
+                target = os.path.join(tmp_path, name)
                 cmd("btrfs send -p %s %s | lz4c > %s"%(os.path.join(self.snapshot_path, snapshot1),
                                    os.path.join(self.snapshot_path, snapshot2), target))
-                #cmd("btrfs send %s | lz4c > %s"%(os.path.join(self.snapshot_path, snapshot2), target))
 
-            gsutil(['cp', target, os.path.join(self.gs_path, self.base_creation_time(), stream)])
+            gsutil(['-q', '-m', 'cp', target, os.path.join(self.gs_path, self.gs_version(), stream)])
         finally:
-            if os.path.exists(target):
-                os.unlink(target)
+            shutil.rmtree(tmp_path)
 
     def snapshot_ls(self):
         if not os.path.exists(self.snapshot_path):
@@ -328,8 +319,10 @@ class Project(object):
         log('creating snapshot %s', target)
         # create the snapshot
         btrfs(['subvolume', 'snapshot', '-r', self.project_path, target])
-        # delete old snapshots
         self.delete_old_snapshots()
+        self.sync()
+
+    def sync(self):
         # ensure subvolume written to disk
         cmd("sync")
         # sync gs with local snapshots
@@ -364,6 +357,25 @@ class Project(object):
             if 'No URLs matched' not in str(mesg):
                 raise
 
+    def migrate(self):
+        cmd("gsutil cp gs://smc-projects/%s.tar . && ls -lh %s.tar"%(self.project_id, self.project_id))
+        cmd("tar xf %s.tar"%self.project_id)
+        os.unlink("%s.tar"%self.project_id)
+        self.open()
+        tmp_dirs = [self.project_id]
+        if len(self.snapshot_ls()) == 0:
+            # new migration
+            cmd("bup -d %s restore --outdir=%s/ master/latest/"%(self.project_id, self.project_path))
+        else:
+            # udpate existing migrated.
+            cmd("bup -d %s restore --outdir=%s-out/ master/latest/"%(self.project_id, self.project_id))
+            cmd("rsync -axH --delete %s-out/ %s/"%(self.project_id, self.project_path))
+            tmp_dirs.append("%s-out"%self.project_id)
+        self.save(timestamp=cmd("bup -d %s ls master/|tail -2|head -1"%self.project_id).strip())
+        for x in tmp_dirs:
+            log("removing %s"%x)
+            shutil.rmtree(x)
+
 if __name__ == "__main__":
 
     import argparse
@@ -392,10 +404,18 @@ if __name__ == "__main__":
     parser_save.add_argument("project_id", help="", type=str)
     parser_save.set_defaults(func=lambda args: Project(args.project_id, max=args.max).save(timestamp=args.timestamp, persist=args.persist))
 
+    parser_sync = subparsers.add_parser('sync', help='')
+    parser_sync.add_argument("project_id", help="sync project with GCS, without first saving a new snapshot", type=str)
+    parser_sync.set_defaults(func=lambda args: Project(args.project_id).sync())
+
     parser_delete_snapshot = subparsers.add_parser('delete_snapshot', help='delete a particular snapshot')
     parser_delete_snapshot.add_argument("snapshot", help="snapshot to delete", type=str)
     parser_delete_snapshot.add_argument("project_id", help="", type=str)
     parser_delete_snapshot.set_defaults(func=lambda args: Project(args.project_id).delete_snapshot(args.snapshot))
+
+    parser_migrate = subparsers.add_parser('migrate', help='migrate project to new format')
+    parser_migrate.add_argument("project_id", help="", type=str)
+    parser_migrate.set_defaults(func=lambda args: Project(args.project_id).migrate())
 
     args = parser.parse_args()
     args.func(args)
