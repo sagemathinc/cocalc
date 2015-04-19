@@ -37,9 +37,13 @@
 #  - support 3 tiers of storage: /projects/ssd, /projects/hdd, /projects/ssd-local
 #
 
-# mount -o compress=lzo /dev/sdb /projects
-# btrfs subvolume create /projects/sagemathcloud
-# rsync -LrxvH /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
+"""
+mkfs.btrfs /dev/sdb
+mount -o compress=lzo /dev/sdb /projects
+btrfs subvolume create /projects/sagemathcloud
+rsync -LrxvH /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
+
+"""
 
 PROJECTS     = '/projects'
 SNAPSHOTS    = '/projects/.snapshots'
@@ -284,8 +288,11 @@ class Project(object):
         if not os.path.exists(t):
             cmd(["ln", "-s", self.snapshot_path, t])
         if not os.path.exists(self.smc_path):
-            btrfs(['subvolume', 'snapshot', SMC_TEMPLATE, self.smc_path])
-            # TODO: need to chown SMC_TEMPLATE so user can actually use it.
+            if not os.path.exists(SMC_TEMPLATE):
+                log("WARNING: skipping creating %s since %s doesn't exist"%(self.smc_path, SMC_TEMPLATE))
+            else:
+                btrfs(['subvolume', 'snapshot', SMC_TEMPLATE, self.smc_path])
+                # TODO: need to chown SMC_TEMPLATE so user can actually use it.
 
         self.gs_put_sync()
 
@@ -393,8 +400,8 @@ class Project(object):
                 os.unlink("%s.tar"%self.project_id)
             else:
                 cmd("tar xf %s/%s.tar"%(source, self.project_id))
-            self.open()
             tmp_dirs.append(self.project_id)
+            self.open()
             if len(self.snapshot_ls()) == 0:
                 # new migration
                 cmd("bup -d %s restore --outdir=%s/ master/latest/"%(self.project_id, self.project_path))
@@ -408,6 +415,7 @@ class Project(object):
             for x in tmp_dirs:
                 log("removing %s"%x)
                 shutil.rmtree(x)
+            self.close()
 
 if __name__ == "__main__":
 
