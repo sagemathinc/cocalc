@@ -52,7 +52,7 @@ SMC_TEMPLATE = '/projects/sagemathcloud'  # subvolume template for .sagemathclou
 
 TO        = "-to-"
 
-import os, re, shutil, signal, tempfile, time
+import os, re, shutil, signal, tempfile, time, uuid
 from subprocess import Popen, PIPE
 
 def log(s, *args):
@@ -138,6 +138,12 @@ def gsutil(args, **kwds):
 
 class Project(object):
     def __init__(self, project_id, quota=0, max=0):
+        try:
+            u = uuid.UUID(project_id)
+            assert u.get_version() == 4
+            project_id = str(u)  # leaving off dashes still makes a valid uuid in python
+        except (AssertionError, ValueError):
+            raise RuntimeError("invalid project uuid='%s'"%project_id)
         self.project_id    = project_id
         self.quota         = quota
         self.max           = max
@@ -392,7 +398,7 @@ class Project(object):
 
     def exclude(self, prefix, prog='rsync'):
         eprefix = re.escape(prefix)
-        excludes = ['.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots', '.trash']
+        excludes = ['core', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots', '.trash']
         exclude_rxs = []
         if prog == 'rsync':
             excludes.append('*.sage-backup')
