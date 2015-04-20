@@ -3185,6 +3185,80 @@ class GlobalClient
             opts.cb?(err, quotas)
         )
 
+    # returns sorted-by-last-edited list of objects (with newest first)
+    #    {last_edited:?, project_id:?,  server_id:?, ssh:?}
+    # where server_id is the id of the best server where the project is.
+    ###
+        x={};s=require('bup_server').global_client(keyspace:'devel', cb:(err,c)->console.log("err=",err);x.c=c;x.c.overview_projects(cb:(e,v)->console.log("DONE",e);x.v=v))
+    ###
+    overview_projects: (opts) =>
+        opts = defaults opts,
+            bad_servers : undefined  # array: don't allow any of these in server_id -- if hit, choose an alternative location
+            cb          : required
+        dbg = (m) => winston.debug("project_dump: #{m}")
+        if opts.bad_servers?
+            bad_servers = {}
+            for x in opts.bad_servers
+                bad_servers[x] = true
+            dbg("bad_servers = #{misc.to_json(bad_servers)}")
+        projects = undefined
+        async.series([
+            (cb) =>
+                dbg("querying database for projects...")
+                @database.select
+                    table     : 'projects'
+                    columns   : ['project_id', 'last_edited', 'bup_location', 'bup_last_save']
+                    objectify : true
+                    stream    : true
+                    cb        : (err, r) =>
+                        if err
+                            cb(err); return
+                        console.log(r)
+                        dbg("got #{r.length} projects; now processing")
+                        if bad_servers?
+                            for x in r
+                                if bad_servers[x.bup_location]
+                                    if x.bup_last_save?
+                                        for k in misc.keys(x.bup_last_save)
+                                            if not bad_servers[k]
+                                                x.bup_location = k
+                                                break
+                        r.sort (a,b) =>
+                            if a.last_edited < b.last_edited
+                                return 1
+                            else if a.last_edited > b.last_edited
+                                return -1
+                            else
+                                return 0
+                        projects = ({last_edited:misc.date_to_snapshot_format(x.last_edited), project_id:x.project_id, server_id:x.bup_location} for x in r)
+                        dbg("done processing projects (phase 1)")
+                        cb()
+            (cb) =>
+                dbg("query database for ssh targets")
+                @database.select
+                    table : 'storage_servers'
+                    columns : ['server_id', 'ssh']
+                    objectify : false
+                    cb        : (err, s) =>
+                        if err
+                            cb(err); return
+                        servers = {}
+                        for x in s
+                            servers[x[0]] = x[1]
+                        dbg("now re-processing projects")
+                        for project in projects
+                            project.ssh = servers[project.server_id]
+                        cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, projects)
+        )
+
+
+
+
 
 ###########################
 ## Client -- code below mainly sets up a connection to a given storage server
