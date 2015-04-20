@@ -1,4 +1,4 @@
-NTHREADS = 3
+NTHREADS = 8
 
 misc_node = require('misc_node')
 misc = require('misc')
@@ -52,7 +52,7 @@ async.series([
         total = todo.length
         migrate = (project_id, cb) ->
             i += 1
-            log("migrating #{i}/#{total}: #{project_id}")
+            log("migrating #{i}/#{total}: #{project_id} (success=#{success.length}, fail=#{error.length})")
             misc_node.execute_code
                 command : '/home/salvus/salvus/salvus/scripts/gb_storage.py'
                 path    : '/tmp'
@@ -66,11 +66,12 @@ async.series([
                         error.push(project_id)
                         log("ERROR migrating #{project_id} -- #{err}")
                     else
+                        log("SUCCESS migrating #{project_id}")
                         success.push(project_id)
                     cb()
         async.mapLimit(todo, NTHREADS, migrate, cb)
     ], (err) ->
         log("DONE!")
-        log("#{errors.length} errors")
+        log("#{error.length} errors")
         log("#{success.length} successes")
     )

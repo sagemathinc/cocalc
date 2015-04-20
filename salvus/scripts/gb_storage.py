@@ -52,7 +52,7 @@ SMC_TEMPLATE = '/projects/sagemathcloud'  # subvolume template for .sagemathclou
 
 TO        = "-to-"
 
-import os, shutil, signal, tempfile, time
+import os, re, shutil, signal, tempfile, time
 from subprocess import Popen, PIPE
 
 def log(s, *args):
@@ -192,7 +192,7 @@ class Project(object):
                     sources.append(os.path.join(self.gs_path, self.gs_version(), stream))
                 targets.append(os.path.join(tmp_path, stream))
             if len(sources) == 0:
-                return
+                return sources
             # Get all the streams we need (in parallel).
             # We parallelize at two levels because just using gsutil -m cp with say 100 or so
             # inputs causes it to HANG every time.  On the other hand, using thread_map for
@@ -208,6 +208,8 @@ class Project(object):
             for target in targets:
                 cmd("cat %s | lz4c -d | btrfs receive %s"%(target, self.snapshot_path))
                 os.unlink(target)
+
+            return sources
         finally:
             shutil.rmtree(tmp_path)
 
@@ -242,6 +244,11 @@ class Project(object):
         else:
             return list(sorted(cmd(['ls', self.snapshot_path]).splitlines()))
 
+    def create_snapshot_link(self):
+        t = os.path.join(self.project_path, '.snapshots')
+        if not os.path.exists(t):
+            cmd(["ln", "-s", self.snapshot_path, t])
+
     def open(self):
         if not os.path.exists(self.snapshot_path):
             btrfs(['subvolume', 'create', self.snapshot_path])
@@ -270,7 +277,8 @@ class Project(object):
 
         log("newest_local = %s", newest_local)
         # download all streams from GCS with start >= newest_local
-        self.gs_get([stream for stream in gs if newest_local == "" or stream.split(TO)[0] >= newest_local])
+        missing_streams = [stream for stream in gs if newest_local == "" or stream.split(TO)[0] >= newest_local]
+        downloaded = self.gs_get(missing_streams)
 
         # make live equal the newest snapshot
         v = self.snapshot_ls()
@@ -282,11 +290,11 @@ class Project(object):
             if not os.path.exists(self.project_path):
                 btrfs(['subvolume', 'snapshot', source, self.project_path])
             else:
-                cmd(["rsync", "-axvH", "--update", source+"/", self.project_path+"/"])
+                if len(downloaded) > 0:
+                    # only do this if we actually got something new from gs.
+                    cmd(["rsync", "-axH", "--update", source+"/", self.project_path+"/"])
 
-        t = os.path.join(self.project_path, '.snapshots')
-        if not os.path.exists(t):
-            cmd(["ln", "-s", self.snapshot_path, t])
+        self.create_snapshot_link()
         if not os.path.exists(self.smc_path):
             if not os.path.exists(SMC_TEMPLATE):
                 log("WARNING: skipping creating %s since %s doesn't exist"%(self.smc_path, SMC_TEMPLATE))
@@ -382,6 +390,24 @@ class Project(object):
         # we use os.system, since the output is very verbose...
         os.system("duperemove -h -d -r '%s'/*"%self.project_path)
 
+    def exclude(self, prefix, prog='rsync'):
+        eprefix = re.escape(prefix)
+        excludes = ['.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots', '.trash']
+        exclude_rxs = []
+        if prog == 'rsync':
+            excludes.append('*.sage-backup')
+        else: # prog == 'bup'
+            exclude_rxs.append(r'.*\.sage\-backup')
+
+        for i,x in enumerate(exclude_rxs):
+            # escape the prefix for the regexs
+            ex_len = len(re.escape(x))
+            exclude_rxs[i] = re.escape(os.path.join(prefix, x))
+            exclude_rxs[i] = exclude_rxs[i][:-ex_len]+x
+
+        return ['--exclude=%s'%os.path.join(prefix, x) for x in excludes] + ['--exclude-rx=%s'%x for x in exclude_rxs]
+
+
     def migrate(self, update=False, source='gsutil'):
         if not update:
             try:
@@ -401,6 +427,7 @@ class Project(object):
             else:
                 cmd("tar xf %s/%s.tar"%(source, self.project_id))
             tmp_dirs.append(self.project_id)
+            cmd("bup -d %s ls master/latest"%self.project_id) # error out immediately if bup repo no good
             self.open()
             if len(self.snapshot_ls()) == 0:
                 # new migration
@@ -416,6 +443,23 @@ class Project(object):
                 log("removing %s"%x)
                 shutil.rmtree(x)
             self.close()
+
+    def migrate_live(self, hostname, port=22, close=False, verbose=False):
+        try:
+            self.open()
+            if ':' in hostname:
+                remote = hostname
+            else:
+                remote = "%s:/projects/%s"%(hostname, self.project_id)
+            s = "rsync -%szaxH --max-size=50G --delete-excluded --delete --ignore-errors %s -e 'ssh -o StrictHostKeyChecking=no -p %s' %s/ %s/ </dev/null"%('v' if verbose else '', ' '.join(self.exclude('')), port, remote, self.project_path)
+            log(s)
+            if not os.system(s):
+                log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
+            self.create_snapshot_link()  # rsync deletes this
+            self.save()
+        finally:
+            if close:
+                self.close()
 
 if __name__ == "__main__":
 
@@ -454,14 +498,24 @@ if __name__ == "__main__":
     parser_delete_snapshot.add_argument("project_id", help="", type=str)
     parser_delete_snapshot.set_defaults(func=lambda args: Project(args.project_id).delete_snapshot(args.snapshot))
 
+    parser_deduplicate = subparsers.add_parser('deduplicate', help='deduplicate live project (WARNING: could take hours!)')
+    parser_deduplicate.add_argument("project_id", help="", type=str)
+    parser_deduplicate.set_defaults(func=lambda args: Project(args.project_id).deduplicate())
+
     parser_migrate = subparsers.add_parser('migrate', help='migrate project to new format')
     parser_migrate.add_argument("--source", help="path to directory of project_id.tar bup repos or 'gsutil'", default="gsutil", type=str)
     parser_migrate.add_argument("project_id", help="", type=str)
     parser_migrate.set_defaults(func=lambda args: Project(args.project_id).migrate(source=args.source))
 
-    parser_deduplicate = subparsers.add_parser('deduplicate', help='deduplicate live project')
-    parser_deduplicate.add_argument("project_id", help="", type=str)
-    parser_deduplicate.set_defaults(func=lambda args: Project(args.project_id).deduplicate())
+    parser_migrate_live = subparsers.add_parser('migrate_live', help='')
+    parser_migrate_live.add_argument("--port", help="path to directory of project_id.tar bup repos or 'gsutil'", default=22, type=int)
+    parser_migrate_live.add_argument("--verbose", default=False, action="store_const", const=True)
+    parser_migrate_live.add_argument("--close", help="if given, close project after updating (default: DON'T CLOSE)",
+                                     default=False, action="store_const", const=True)
+    parser_migrate_live.add_argument("hostname", help="hostname[:path]", type=str)
+    parser_migrate_live.add_argument("project_id", help="", type=str)
+    parser_migrate_live.set_defaults(func=lambda args: Project(args.project_id).migrate_live(
+            hostname=args.hostname, port=args.port, close=args.close, verbose=args.verbose))
 
     args = parser.parse_args()
     args.func(args)
