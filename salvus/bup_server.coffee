@@ -3322,6 +3322,10 @@ x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log(
                     i += 1
                     elapsed = misc.walltime() - t; avg = elapsed/i; remaining = (projects.length-i)*avg/60
                     dbg("#{i}/#{projects.length}: time left = #{remaining}m")
+                    if not project.ssh?
+                        dbg("WARNING -- skipping projects with no location for now...")
+                        cb()
+                        return
                     cmd = "time sudo /home/salvus/salvus/salvus/scripts/gb_storage.py migrate_live --close --port=2222 #{project.ssh[-1].split(':')[0]} #{project.project_id}"
                     dbg(cmd)
                     misc_node.execute_code

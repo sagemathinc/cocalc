@@ -452,7 +452,9 @@ class Project(object):
 
     def migrate_live(self, hostname, port=22, close=False, verbose=False):
         try:
-            self.open()
+            if not os.path.exists(self.project_path):
+                # for migrate, definitely only open if not already open
+                self.open()
             if ':' in hostname:
                 remote = hostname
             else:
