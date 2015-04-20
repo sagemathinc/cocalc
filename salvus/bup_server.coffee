@@ -3194,6 +3194,7 @@ class GlobalClient
     overview_projects: (opts) =>
         opts = defaults opts,
             bad_servers : undefined  # array: don't allow any of these in server_id -- if hit, choose an alternative location
+            limit       : undefined
             cb          : required
         dbg = (m) => winston.debug("project_dump: #{m}")
         if opts.bad_servers?
@@ -3208,6 +3209,7 @@ class GlobalClient
                 @database.select
                     table     : 'projects'
                     columns   : ['project_id', 'last_edited', 'bup_location', 'bup_last_save']
+                    limit     : opts.limit
                     objectify : true
                     stream    : true
                     cb        : (err, r) =>
@@ -3258,9 +3260,85 @@ class GlobalClient
                 opts.cb(undefined, projects)
         )
 
+    # **one off code for migrating to google cloud storage**
+    # For each project not migrated to google cloud storage, migrate it by rsyncing from live.
+    # This should work on all projects, and *will* terminate on any errors.
+    ###
+db = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.240.97.10'], username:'hub', password:require('fs').readFileSync('data/secrets/cassandra/hub').toString().trim(), cb:console.log)
+x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log("err=",err);x.c=c;x.c.migrate_missing(query_limit:20000, test_limit:4, cb:(e)->console.log("DONE",e)))
 
+x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log("err=",err);x.c=c;x.c.migrate_missing(test_limit:4, cb:(e)->console.log("DONE",e)))
 
+x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log("err=",err);x.c=c;x.c.migrate_missing(cb:(e)->console.log("DONE",e)))
+    ###
+    migrate_missing: (opts) =>
+        opts = defaults opts,
+            limit : 8  # number to do at once in parallel
+            test_limit : undefined # if given, only migrate first this many projects.
+            query_limit : undefined
+            cb    : undefined
+        dbg = (m) => winston.debug("migrate_missing: #{m}")
+        projects = undefined
+        done     = {}
+        async.series([
+            (cb) =>
+                async.parallel([
+                    (cb) =>
+                        dbg("getting overview of projects")
+                        @overview_projects
+                            bad_servers : ['0985aa3e-c5e9-400e-8faa-32e7d5399dab']
+                            limit       : opts.query_limit
+                            cb          : (err, x) =>
+                                if err
+                                    cb(err)
+                                else
+                                    dbg("got #{projects.length} projects")
+                                    projects = x
+                                    cb()
+                    (cb) =>
+                        dbg("getting list of migrated projects")
+                        misc_node.execute_code
+                            command : "gsutil"
+                            args    : ['ls', 'gs://smc-gb-storage']
+                            timeout : 300
+                            cb      : (err, output) =>
+                                if err
+                                    cb(err)
+                                else
+                                    for x in output.stdout.split('\n')
+                                        done[x.split('/')[3]] = true
+                                    dbg("got #{misc.len(done)} migrated projects")
+                                    cb()
+                ], cb)
+            (cb) =>
+                dbg("determine subset of non-migrated projects")
+                projects = (x for x in projects when not done[x.project_id])
+                if opts.test_limit
+                    projects = projects.slice(0, opts.test_limit)
+                dbg("#{projects.length} projects remain to be migrated")
+                i = 0
+                t = misc.walltime()
+                f = (project, cb) =>
+                    i += 1
+                    elapsed = misc.walltime() - t; avg = elapsed/i; remaining = (projects.length-i)*avg/60
+                    dbg("#{i}/#{projects.length}: time left = #{remaining}m")
+                    cmd = "time sudo /home/salvus/salvus/salvus/scripts/gb_storage.py migrate_live --close --port=2222 #{project.ssh[-1].split(':')[0]} #{project.project_id}"
+                    dbg(cmd)
+                    misc_node.execute_code
+                        command : cmd
+                        timeout : 5000
+                        cb      : (err, output) =>
+                            dbg(misc.to_json(output))
+                            cb(err)
+                async.mapLimit(projects, opts.limit, f, cb)
+        ], (err) =>
+            dbg("DONE!, err=#{err}")
+            opts.cb?(err)
+        )
 
+    # **one off code for migrating to google cloud storage**
+    # For each project modified recently, update it in google cloud storage
+    migrate_update_recent: (opts) =>
 
 ###########################
 ## Client -- code below mainly sets up a connection to a given storage server

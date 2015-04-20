@@ -985,9 +985,12 @@ exports.remove_c_comments = (s) ->
 
 
 exports.date_to_snapshot_format = (d) ->
+    if not d?
+        d = 0
     if typeof(d) == "number"
         d = new Date(d)
     s = d.toJSON()
     s = s.replace('T','-').replace(/:/g, '')
     i = s.lastIndexOf('.')
     return s.slice(0,i)
+
