@@ -3213,7 +3213,6 @@ class GlobalClient
                     cb        : (err, r) =>
                         if err
                             cb(err); return
-                        console.log(r)
                         dbg("got #{r.length} projects; now processing")
                         if bad_servers?
                             for x in r
@@ -3230,7 +3229,10 @@ class GlobalClient
                                 return -1
                             else
                                 return 0
-                        projects = ({last_edited:misc.date_to_snapshot_format(x.last_edited), project_id:x.project_id, server_id:x.bup_location} for x in r)
+                        projects = r  # to save memory (also why we process in place below)
+                        for i in [0...projects.length]
+                            x = projects[i]
+                            projects[i] = {last_edited:misc.date_to_snapshot_format(x.last_edited), project_id:x.project_id, server_id:x.bup_location}
                         dbg("done processing projects (phase 1)")
                         cb()
             (cb) =>
