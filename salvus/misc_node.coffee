@@ -700,6 +700,10 @@ exports.is_file_readonly = (opts) ->
                 readonly = output.stdout.length == 0
                 opts.cb(undefined, readonly)
 
+# like in sage, a quick way to save/load JSON-able objects to disk; blocking and not compressed.
+exports.saveSync = (obj, filename) ->
+    fs.writeFileSync(filename, JSON.stringify(obj))
 
-
+exports.loadSync = (filename) ->
+    JSON.parse(fs.readFileSync(filename).toString())
 
