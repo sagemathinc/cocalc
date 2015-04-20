@@ -88,7 +88,7 @@ cloud12  {'hostname':'compute12dc0',  'vcpus':compute_cpu,   'ram':compute_ram_m
 cloud13  {'hostname':'compute13dc0',  'vcpus':compute_cpu,   'ram':compute_ram_med, 'base':base, 'disk':'/dev/zvol/ssd/compute13dc0', 'vnc':13100}
 cloud14  {'hostname':'compute14dc0',  'vcpus':compute_cpu,   'ram':compute_ram_med, 'base':base, 'disk':'/dev/zvol/ssd/compute14dc0', 'vnc':13100}
 cloud15  {'hostname':'compute15dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute15dc0', 'vnc':13100}
-cloud16  {'hostname':'compute16dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute16dc0', 'vnc':13100}
+#cloud16  {'hostname':'compute16dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute16dc0', 'vnc':13100}
 cloud17  {'hostname':'compute17dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute17dc0', 'vnc':13100}
 cloud18  {'hostname':'compute18dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute18dc0', 'vnc':13100}
 cloud19  {'hostname':'compute19dc0',  'vcpus':compute_cpu,   'ram':compute_ram,     'base':base, 'disk':'/dev/zvol/ssd/compute19dc0', 'vnc':13100}
