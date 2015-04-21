@@ -3379,7 +3379,7 @@ x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log(
                         else
                             dbg("got #{projects.length} projects")
                             projects = (project for project in x when project.last_edited >= oldest)
-                            dbg("of these, #{projects.length} projects are at most #{opts.max_age_h} hours old")
+                            dbg("of these, #{projects.length} projects are new")
                             cb()
             (cb) =>
                 if opts.test_limit

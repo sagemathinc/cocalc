@@ -161,11 +161,11 @@ class Project(object):
                 # set from newest on GCS
                 i = len(self.gs_path) + 1
                 a = [x[i:] for x in sorted(gsutil(['ls', self.gs_path]).splitlines())]
-                self._gs_version = a[-1].strip('/')
+                return a[-1].strip('/')  # do *NOT* cache -- not safe to do so.
             else:
                 s = cmd("btrfs subvolume show %s|grep Creation"%os.path.join(self.snapshot_path, v[0]))
                 i = s.find(":")
-                self._gs_version = s[i+1:].strip().replace(' ','-').replace(':','')
+                self._gs_version = s[i+1:].strip().replace(' ','-').replace(':','')  # safe to cache.
             return self._gs_version
 
     def gs_ls(self):
@@ -255,7 +255,7 @@ class Project(object):
         if not os.path.exists(t):
             cmd(["ln", "-s", self.snapshot_path, t])
 
-    def open(self):
+    def open(self, allow_broken=False):  # allow_broken = due to bugs during initial migration--delete after fix
         if not os.path.exists(self.snapshot_path):
             btrfs(['subvolume', 'create', self.snapshot_path])
 
@@ -284,7 +284,14 @@ class Project(object):
         log("newest_local = %s", newest_local)
         # download all streams from GCS with start >= newest_local
         missing_streams = [stream for stream in gs if newest_local == "" or stream.split(TO)[0] >= newest_local]
-        downloaded = self.gs_get(missing_streams)
+
+        try:
+            downloaded = self.gs_get(missing_streams)
+        except RuntimeError, mesg:
+            if not allow_broken:
+                raise
+            else:
+                log("WARNING: some streams failed! -- %s"%mesg)
 
         # make live equal the newest snapshot
         v = self.snapshot_ls()
@@ -454,7 +461,7 @@ class Project(object):
         try:
             if not os.path.exists(self.project_path):
                 # for migrate, definitely only open if not already open
-                self.open()
+                self.open(allow_broken=True)
             if ':' in hostname:
                 remote = hostname
             else:
