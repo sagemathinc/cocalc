@@ -3357,10 +3357,14 @@ x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log(
             test_limit  : undefined # if given, only migrate first this many projects.
             query_limit : undefined
             max_age_h   : 24   # max age of projects to update, in hours
+            oldest      : undefined # if given, take all projects with time at least this, ignoring max_age_h
             cb          : undefined
         dbg = (m) => winston.debug("migrate_missing: #{m}")
         projects = undefined
-        oldest   = (new Date() - 0) - opts.max_age_h*60*60*1000
+        if opts.oldest
+            oldest = opts.oldest - 0
+        else
+            oldest   = (new Date() - 0) - opts.max_age_h*60*60*1000
         errors = {}
         async.series([
             (cb) =>
@@ -3410,6 +3414,36 @@ x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log(
             dbg("ERRORS: #{misc.to_json(errors)}")
             opts.cb?(err)
         )
+
+    migrate_update_recent_loop: (opts) =>
+        opts = defaults opts,
+            limit       : 10
+            max_age_h   : 5   # start auto-update loop with all projects from this long ago.
+            sleep_m     : 10   # how long in minutes to sleep between each update loop
+            cb          : undefined
+        cycle = 0
+        oldest = new Date() - opts.max_age_h*60*60*1000
+        f = () =>
+            cycle += 1
+            winston.debug("CYCLE: #{cycle}")
+            last_start = new Date() - 0
+            winston.debug("running update to get everything from #{(new Date() - oldest)/1000/60/60} hours ago")
+            @migrate_update_recent
+                oldest : oldest
+                limit  : opts.limit
+                cb     : (err) =>
+                    winston.debug("Finished cycle #{cycle}")
+                    if err
+                        winston.debug("migrate_update_recent_loop ERROR: #{err}")
+                        opts.cb?(err)
+                    else
+                        oldest = last_start
+                        winston.debug("sleeping #{opts.sleep_m} minutes before looping again...")
+                        setTimeout(f, opts.sleep_m*60*1000)
+        f()
+
+
+
 
 ###########################
 ## Client -- code below mainly sets up a connection to a given storage server
