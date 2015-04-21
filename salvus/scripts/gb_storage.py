@@ -135,7 +135,7 @@ def gsutil(args, **kwds):
 class Project(object):
     def __init__(self,
                  project_id,                  # v4 uuid string
-                 btrfs_mnt     = '/projects', # btrfs filesystem mount
+                 btrfs_mnt,                   # btrfs filesystem mount
                  bucket        = '',          # google cloud storage bucket (won't use gs/disable close if not given)
                  quota         = 0,           # MB btrfs disk quota to impose on project
                  max_snapshots = 0            # maximum number of snapshots to keep
@@ -203,6 +203,7 @@ class Project(object):
         targets = []
         sources = []
         tmp_path = tempfile.mkdtemp()
+        gs_version = self.gs_version()
         try:
             for stream in streams:
                 if TO in stream:
@@ -213,7 +214,7 @@ class Project(object):
                     # already have it
                     continue
                 else:
-                    sources.append(os.path.join(self.gs_path, self.gs_version(), stream))
+                    sources.append(os.path.join(self.gs_path, gs_version, stream))
                 targets.append(os.path.join(tmp_path, stream))
             if len(sources) == 0:
                 return sources
@@ -222,11 +223,11 @@ class Project(object):
             # inputs causes it to HANG every time.  On the other hand, using thread_map for
             # everything quickly uses up all RAM on the computer.  The following is a tradeoff.
             # Also, doing one at a time is ridiculously slow.
-            s = max(15, min(50, len(sources)//5))
+            chunk_size = max(15, min(50, len(sources)//5))
             def f(v):
                 if len(v) > 0:
                     return gsutil(['-q', '-m', 'cp'] + v +[tmp_path])
-            thread_map(f, [sources[s*i:s*(i+1)] for i in range(len(sources)//s + 1)])
+            thread_map(f, [sources[chunk_size*i:chunk_size*(i+1)] for i in range(len(sources)//chunk_size + 1)])
 
             # apply them all
             for target in targets:
@@ -350,12 +351,6 @@ class Project(object):
         self.create_snapshot_link()
         self.create_smc_path()
 
-        # TODO: right now this spends a lot of time uploading everything back using the
-        # new btrfs uuid's.
-        # But be careful fixing this!  Fix may be just be to remove, but carefully test by
-        # open/change/save/close/open/etc.!
-        self.gs_sync()
-
     def delete_old_snapshots(self):
         #TODO
         return
@@ -384,7 +379,7 @@ class Project(object):
         for stream in to_delete:
             self.gs_rm(stream)
 
-    def save(self, timestamp="", persist=False):
+    def save(self, timestamp="", persist=False):  # persist=never automatically delete
         if not timestamp:
             timestamp = time.strftime("%Y-%m-%d-%H%M%S")
         # figure out what to call the snapshot
@@ -533,10 +528,10 @@ if __name__ == "__main__":
                     kwds[k] = getattr(args, k)
         return Project(**kwds)
 
-    parser.add_argument("--btrfs", help="BTRFS mountpoint [default: /projects]",
-                        dest="btrfs", default="/projects", type=str)
-    parser.add_argument("--bucket", help="Google Cloud storage bucket [default: ''=do not use google]",
-                        dest='bucket', default='', type=str)
+    parser.add_argument("--btrfs", help="BTRFS mountpoint [default: /projects or $SMC_BTRFS if set]",
+                        dest="btrfs", default=os.environ.get("SMC_BTRFS","/projects"), type=str)
+    parser.add_argument("--bucket", help="Google Cloud storage bucket [default: $SMC_BUCKET or ''=do not use google]",
+                        dest='bucket', default=os.environ.get("SMC_BUCKET",""), type=str)
 
     parser_open = subparsers.add_parser('open', help='')
     parser_open.add_argument("--quota", help="quota in MB", default=0, type=int)
@@ -560,7 +555,7 @@ if __name__ == "__main__":
     parser_save.add_argument("--persist", help="if given, won't automatically delete",
                              default=False, action="store_const", const=True)
     parser_save.add_argument("project_id", help="", type=str)
-    parser_save.set_defaults(func=lambda args: project().save(timestamp=args.timestamp, persist=args.persist))
+    parser_save.set_defaults(func=lambda args: project(args).save(timestamp=args.timestamp, persist=args.persist))
 
     parser_sync = subparsers.add_parser('sync', help='')
     parser_sync.add_argument("project_id", help="sync project with GCS, without first saving a new snapshot", type=str)
