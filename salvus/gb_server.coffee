@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2015, William Stein
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -22,14 +22,17 @@
 
 #################################################################
 #
-# bup_server -- a node.js program that provides a TCP server
-# that is used by the hubs to organize project storage
+# gb_server -- a node.js program that provides a TCP server
+# that is used by the hubs to organize project storage using
+# [G]oogle Cloud storage and [B]trfs.
 #
-#  (c) William Stein, 2014
+# ** This replaces bup_server, which is deprecated. **
+#
+#  (c) William Stein, 2015
 #
 #  Interactive use:
 #
-#     x={};s=require('bup_server').global_client(cb:(err,c)->x.c=c;x.p=x.c.get_project('0069cdc2-3baa-4561-9c9e-17cb08e9b849'))
+#     x={};s=require('gb_server').global_client(cb:(err,c)->x.c=c;x.p=x.c.get_project('0069cdc2-3baa-4561-9c9e-17cb08e9b849'))
 #
 #################################################################
 
@@ -62,13 +65,12 @@ STORAGE_SERVERS_UPDATE_INTERVAL_S = 60*3  # How frequently (in seconds)  to quer
 
 IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds.
 
-ZPOOL = if process.env.BUP_POOL? then process.env.BUP_POOL else 'bup'
+BTRFS = if process.env.SMC_BTRFS? then process.env.SMC_BTRFS else 'projects'
 
-#console.log("ZPOOL=",ZPOOL)
-CONF = "/bup/conf"
+CONF = os.path.join(BTRFS, 'conf')
 fs.exists CONF, (exists) ->
     if exists
-        # only makes sense to do this on server nodes...
+        # it only makes sense to do this on storage server nodes...
         fs.chmod(CONF, 0o700)     # just in case...
 
 DATA = 'data'
@@ -78,20 +80,20 @@ DATA = 'data'
 ## server-side: Storage server code
 ###########################
 
-bup_storage = (opts) =>
+gb_storage = (opts) =>
     opts = defaults opts,
         args    : required
         timeout : TIMEOUT
         cb      : required
-    winston.debug("bup_storage: running #{misc.to_json(opts.args)}")
+    winston.debug("gb_storage: running #{misc.to_json(opts.args)}")
     misc_node.execute_code
         command : "sudo"
-        args    : ["/usr/local/bin/bup_storage.py", "--zpool", ZPOOL].concat(opts.args)
+        args    : ["/usr/local/bin/gb_storage.py", "--btrfs", BTRFS].concat(opts.args)
         timeout : opts.timeout
         bash    : false
         path    : process.cwd()
         cb      : (err, output) =>
-            winston.debug("bup_storage: finished running #{misc.to_json(opts.args)} -- #{err}")
+            winston.debug("gb_storage: finished running #{misc.to_json(opts.args)} -- #{err}")
             if err
                 if output?.stderr
                     opts.cb(output.stderr)
@@ -126,8 +128,8 @@ class Project
             args.push(a)
         args.push(@project_id)
 
-        @dbg("exec", opts.args, "executing bup_storage.py script")
-        bup_storage
+        @dbg("exec", opts.args, "executing gb_storage.py script")
+        gb_storage
             args    : args
             timeout : opts.timeout
             cb      : opts.cb
@@ -577,7 +579,7 @@ start_server = (cb) ->
 
 c=require('cassandra');x={};d=new c.Salvus(hosts:['10.1.11.2'], keyspace:'salvus', username:'salvus', password:fs.readFileSync('/home/salvus/salvus/salvus/data/secrets/cassandra/salvus').toString().trim(),consistency:1,cb:((e,d)->console.log(e);x.d=d))
 
-require('bup_server').global_client(database:x.d, cb:(e,c)->x.e=e;x.c=c)
+require('gb_server').global_client(database:x.d, cb:(e,c)->x.e=e;x.c=c)
 
 (x.c.register_server(host:"10.1.#{i}.5",dc:0,cb:console.log) for i in [10..21])
 
@@ -597,7 +599,7 @@ class GlobalProject
     get_location_pref: (cb) =>   # cb(err, server_id)
         @database.select_one
             table   : "projects"
-            columns : ["bup_location"]
+            columns : ["gb_location"]
             where   : {project_id : @project_id}
             cb      : (err, result) =>
                 if err
@@ -608,7 +610,7 @@ class GlobalProject
     set_location_pref: (server_id, cb) =>
         @database.update
             table : "projects"
-            set   : {bup_location : server_id}
+            set   : {gb_location : server_id}
             where   : {project_id : @project_id}
             cb      : cb
 
@@ -959,7 +961,7 @@ class GlobalProject
             opts.cb?(undefined)
             return
 
-        # put this here -- we don't even want to *try* more frequently than MIN_SAVE_INTERVAL_S, in case of save bup repo being broken (?)
+        # put this here -- we don't even want to *try* more frequently than MIN_SAVE_INTERVAL_S, in case of save gb repo being broken (?)
         @_last_save = misc.walltime()
 
 
@@ -1017,7 +1019,7 @@ class GlobalProject
                                         errors.push("replication to #{s} failed -- #{x.error}")
                             @set_last_save
                                 last_save        : last_save
-                                bup_repo_size_kb : r.bup_repo_size_kb
+                                gb_repo_size_kb : r.gb_repo_size_kb
                                 cb               : cb
                         else
                             cb(err)
@@ -1035,7 +1037,7 @@ class GlobalProject
         opts = defaults opts,
             destructive : false
             snapshots   : true   # whether to sync snapshots -- if false, only syncs live files
-            union       : false  # if true, sync's by making the files and bup repo the union of that on all replicas -- this is for *REPAIR*
+            union       : false  # if true, sync's by making the files and gb repo the union of that on all replicas -- this is for *REPAIR*
             timeout     : TIMEOUT
             cb          : undefined
 
@@ -1206,7 +1208,7 @@ class GlobalProject
     ###
     verify that it's possible to copy files between server_id from/to the given remote servers
 
-        x={};s=require('bup_server').global_client(cb:(err,c)->x.c=c;x.p=x.c.get_project('3702601d-9fbc-4e4e-b7ab-c10a79e34d3b'))
+        x={};s=require('gb_server').global_client(cb:(err,c)->x.c=c;x.p=x.c.get_project('3702601d-9fbc-4e4e-b7ab-c10a79e34d3b'))
 
         x.p.all_remotes_are_ready(cb:(e,a)->console.log("DONE!",e,a);x.a=a)
 
@@ -1653,12 +1655,12 @@ class GlobalProject
     set_last_save: (opts) =>
         opts = defaults opts,
             last_save : required    # map  {server_id:timestamp, ...}
-            bup_repo_size_kb : undefined  # if given, should be int
+            gb_repo_size_kb : undefined  # if given, should be int
             allow_delete : false
             cb        : undefined
         async.series([
             (cb) =>
-                s = "UPDATE projects SET bup_last_save[?]=? WHERE project_id=?"
+                s = "UPDATE projects SET gb_last_save[?]=? WHERE project_id=?"
                 f = (server_id, cb) =>
                     if not opts.last_save[server_id] and not opts.allow_delete
                         winston.debug("refusing to delete last_save entry! -- #{@project_id}, #{server_id}")
@@ -1674,10 +1676,10 @@ class GlobalProject
                 winston.debug("#{misc.keys(opts.last_save)}")
                 async.map(misc.keys(opts.last_save), f, cb)
             (cb) =>
-                if opts.bup_repo_size_kb?
+                if opts.gb_repo_size_kb?
                     @database.update
                         table   : "projects"
-                        set     : {bup_repo_size_kb : opts.bup_repo_size_kb}
+                        set     : {gb_repo_size_kb : opts.gb_repo_size_kb}
                         where   : {project_id : @project_id}
                         cb      : cb
                 else
@@ -1691,7 +1693,7 @@ class GlobalProject
         @database.select
             table : 'projects'
             where : {project_id:@project_id}
-            columns : ['bup_last_save']
+            columns : ['gb_last_save']
             cb      : (err, result) =>
                 if err
                     opts.cb(err)
@@ -1713,7 +1715,7 @@ class GlobalProject
                 @database.select
                     table   : 'projects'
                     where   : {project_id:@project_id}
-                    columns : ['bup_last_save']
+                    columns : ['gb_last_save']
                     consistency : cql.types.consistencies.localQuorum
                     cb      : (err, r) =>
                         if err or not r? or r.length == 0
@@ -1854,7 +1856,7 @@ class GlobalProject
         )
 
     # mount a remote project (or directory in one) so that it is accessible in this project
-    # NOTE: Neither project has to be running; however, both must have a defined master "bup_location".
+    # NOTE: Neither project has to be running; however, both must have a defined master "gb_location".
 
     # WARNING: This is valid at the time when mounted.  However, if the remote project moves
     # *and* the client is restarted, it will loose the interval timer state
@@ -2133,8 +2135,8 @@ class GlobalClient
         dbg = (m) -> winston.debug("decommission_server(#{opts.server_id}): #{m}")
         dbg()
         projects = undefined
-        delete_bup_locations = []
-        delete_bup_last_saves = []
+        delete_gb_locations = []
+        delete_gb_last_saves = []
 
         async.series([
             (cb) =>
@@ -2186,7 +2188,7 @@ class GlobalClient
                 t = misc.walltime()
                 @database.select
                     table     : 'projects'
-                    columns   : ['project_id', 'bup_location', 'bup_last_save']
+                    columns   : ['project_id', 'gb_location', 'gb_last_save']
                     objectify : true
                     stream    : true
                     #limit     : 1000  # for testing.
@@ -2202,42 +2204,42 @@ class GlobalClient
                 dbg("for every project on this server, remove the references to it in the database")
                 # figure out what we plan to do
                 for project in projects
-                    if project.bup_location == opts.server_id
-                        delete_bup_locations.push(project.project_id)
-                    if project.bup_last_save?[opts.server_id]
-                        delete_bup_last_saves.push(project.project_id)
-                dbg("#{delete_bup_locations.length} bup_locations")
-                dbg("#{delete_bup_last_saves.length} bup_last_saves")
+                    if project.gb_location == opts.server_id
+                        delete_gb_locations.push(project.project_id)
+                    if project.gb_last_save?[opts.server_id]
+                        delete_gb_last_saves.push(project.project_id)
+                dbg("#{delete_gb_locations.length} gb_locations")
+                dbg("#{delete_gb_last_saves.length} gb_last_saves")
                 cb()
             (cb) =>
                 # TODO NO!!!!!
                 cb("no!!!")
-                dbg("delete #{delete_bup_locations.length} bup_locations, so projects last run on this server -- doing this in one very big query")
+                dbg("delete #{delete_gb_locations.length} gb_locations, so projects last run on this server -- doing this in one very big query")
                 i = 0
                 f = (project_id, cb) =>
                     i += 1
                     if i % 50 == 0
-                        dbg("#{i}/#{delete_bup_locations.length}: deleting bup_location for project #{project_id}")
+                        dbg("#{i}/#{delete_gb_locations.length}: deleting gb_location for project #{project_id}")
                     @database.update
                         table : 'projects'
                         set   :
-                            bup_location : undefined
+                            gb_location : undefined
                         where :
                             project_id : project_id
                         cb      : cb
-                async.mapLimit(delete_bup_locations, opts.limit, f, cb)
+                async.mapLimit(delete_gb_locations, opts.limit, f, cb)
             (cb) =>
-                dbg("delete #{delete_bup_last_saves.length} bup_last_saves (#{opts.limit} at once), so projects with one replica on this server")
+                dbg("delete #{delete_gb_last_saves.length} gb_last_saves (#{opts.limit} at once), so projects with one replica on this server")
                 i = 0
                 f = (project_id, cb) =>
                     i += 1
                     if i % 50 == 0
-                        dbg("#{i}/#{delete_bup_last_saves.length}: deleting bup_last_save for project #{project_id}")
+                        dbg("#{i}/#{delete_gb_last_saves.length}: deleting gb_last_save for project #{project_id}")
                     @database.cql
-                        query : 'UPDATE projects SET bup_last_save[?]=null WHERE project_id=?'
+                        query : 'UPDATE projects SET gb_last_save[?]=null WHERE project_id=?'
                         vals  : [opts.server_id, project_id]
                         cb    : cb
-                async.mapLimit(delete_bup_last_saves, opts.limit, f, cb)
+                async.mapLimit(delete_gb_last_saves, opts.limit, f, cb)
             (cb) =>
                 dbg("remove entry in the storage_servers table corresponding to this server")
                 @database.delete
@@ -2323,7 +2325,7 @@ class GlobalClient
         dbg = (m) => winston.info("push_servers_files: #{m}")
         dbg('starting... logged')
         errors = {}
-        file = "#{DATA}/bup_servers"
+        file = "#{DATA}/gb_servers"
         async.series([
             (cb) =>
                 dbg("updating")
@@ -2542,11 +2544,11 @@ class GlobalClient
         opts = defaults opts,
             project_id : required
             cb         : required
-        winston.debug("project_location(#{opts.project_id}): get current bup project location from database")
+        winston.debug("project_location(#{opts.project_id}): get current gb project location from database")
         @database.select_one
             table     : 'projects'
             where     : {project_id : opts.project_id}
-            columns   : ['bup_location']
+            columns   : ['gb_location']
             objectify : false
             cb        : (err, result) =>
                 if err
@@ -2577,7 +2579,7 @@ class GlobalClient
                         cb         : opts.cb
             return
 
-        bup_location = undefined
+        gb_location = undefined
         project      = undefined
         works        = undefined
         status       = undefined
@@ -2587,17 +2589,17 @@ class GlobalClient
                 @project_location
                     project_id : opts.project_id
                     cb         : (err, result) =>
-                        bup_location = result
+                        gb_location = result
                         cb(err)
             (cb) =>
-                if not bup_location?
+                if not gb_location?
                     dbg("no current location")
                     cb()
                 else
-                    dbg("there is current location (=#{bup_location}) and project is working at current location, use it")
+                    dbg("there is current location (=#{gb_location}) and project is working at current location, use it")
                     @project
                         project_id : opts.project_id
-                        server_id  : bup_location
+                        server_id  : gb_location
                         cb         : (err, _project) =>
                             if not err
                                 project = _project
@@ -2636,7 +2638,7 @@ class GlobalClient
                 for x in status
                     if x.error?
                         errors[x.replica_id] = x.error
-                v = (x.replica_id for x in status when not x.error? and x.status?.bup in ['working', 'uninitialized'])
+                v = (x.replica_id for x in status when not x.error? and x.status?.gb in ['working', 'uninitialized'])
 
                 prefer = opts.prefer; prefer_not = opts.prefer_not
                 if prefer? or prefer_not?
@@ -2673,7 +2675,7 @@ class GlobalClient
                                 cb : (err) =>
                                     if not err
                                         project = _project
-                                        bup_location = replica_id
+                                        gb_location = replica_id
                                         works = true
                                     else
                                         errors[replica_id] = err
@@ -2681,12 +2683,12 @@ class GlobalClient
                                     cb()
                 async.mapSeries(status, f, (err) => cb())
             (cb) =>
-                if works and project? and bup_location?
-                    dbg("succeeded at opening the project at #{bup_location} -- now recording this in DB")
+                if works and project? and gb_location?
+                    dbg("succeeded at opening the project at #{gb_location} -- now recording this in DB")
                     @database.update
                         table : 'projects'
                         where : {project_id   : opts.project_id}
-                        set   : {bup_location : bup_location}
+                        set   : {gb_location : gb_location}
                         cb    : cb
                 else
                     cb("unable to open project anywhere")
@@ -2797,7 +2799,7 @@ class GlobalClient
         dbg("querying database....")
         @database.select
             table     : 'projects'
-            columns   : ['project_id', 'bup_location', 'bup_last_save']
+            columns   : ['project_id', 'gb_location', 'gb_last_save']
             objectify : true
             stream    : true
             cb        : (err, projects) =>
@@ -2807,13 +2809,13 @@ class GlobalClient
                     fs.writeFile(opts.filename, JSON.stringify(projects), opts.cb)
 
     ###
-    For every project, check that the bup_last_save times are all the same,
+    For every project, check that the gb_last_save times are all the same,
     so that everything is fully replicated.
     If not, replicate from the current location (or newest) out to others.
 
     CODE in console to use this:
 
-        x={};require('bup_server').global_client(cb:(e,c)->x.c=c; x.c.repair(dryrun:true, cb:(e,projects)->console.log("DONE",e,"NUM=",projects?.length);x.projects=projects))
+        x={};require('gb_server').global_client(cb:(e,c)->x.c=c; x.c.repair(dryrun:true, cb:(e,projects)->console.log("DONE",e,"NUM=",projects?.length);x.projects=projects))
         x.projects.length
 
         status=[];x.c.repair(limit:3, status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
@@ -2838,7 +2840,7 @@ class GlobalClient
                 dbg("querying database....")
                 @database.select
                     table     : 'projects'
-                    columns   : ['project_id', 'bup_location', 'bup_last_save']
+                    columns   : ['project_id', 'gb_location', 'gb_last_save']
                     objectify : true
                     stream    : true
                     cb        : (err, r) =>
@@ -2860,25 +2862,25 @@ class GlobalClient
                                 if i%5000 == 0
                                     dbg("checked #{i}/#{r.length} projects...")
                                 i += 1
-                                if not project.bup_last_save? or misc.len(project.bup_last_save) == 0
+                                if not project.gb_last_save? or misc.len(project.gb_last_save) == 0
                                     continue
                                 times = {}
-                                for _, tm of project.bup_last_save
+                                for _, tm of project.gb_last_save
                                     times[tm] = true
                                 times = misc.keys(times)
                                 if times.length > 1
                                     # at least one replica must be out of date
-                                    if project.bup_location?
+                                    if project.gb_location?
                                         # choose the running location rather than newest, just in case.
                                         # should usually be the same, but might not be in case of split brain, etc.
-                                        project.source_id = project.bup_location
-                                        t = project.bup_last_save[project.bup_location]
+                                        project.source_id = project.gb_location
+                                        t = project.gb_last_save[project.gb_location]
                                         project.timestamp = t
                                     else
                                         times.sort()
                                         t = times[times.length-1]
                                         # choose any location with that time
-                                        for server_id, tm of project.bup_last_save
+                                        for server_id, tm of project.gb_last_save
                                             if "#{tm}" == t   # t is an map key so a string.
                                                 project.source_id = server_id
                                                 project.timestamp = tm
@@ -2886,7 +2888,7 @@ class GlobalClient
                                         if not project.source_id?  # should be impossible
                                             cb("BUG -- project.source_id didn't get set -- #{misc.to_json(project)}")
                                             return
-                                    project.targets = (server_id for server_id, tm of project.bup_last_save when "#{tm}" != t)
+                                    project.targets = (server_id for server_id, tm of project.gb_last_save when "#{tm}" != t)
                                     dbg("found out of sync project: #{misc.to_json(project)}")
                                     projects.push(project)
                             cb()
@@ -2964,14 +2966,14 @@ class GlobalClient
                     opts.cb?()
         )
 
-    repair_bup_location: (opts) =>
+    repair_gb_location: (opts) =>
         opts = defaults opts,
             limit       : 20           # number to do in parallel
             timeout     : TIMEOUT
             cb          : required    # cb(err, errors)
         if not @servers?
             opts.cb?("@servers not yet initialized"); return
-        dbg = (m) => winston.debug("GlobalClient.repair_bup_location(...): #{m}")
+        dbg = (m) => winston.debug("GlobalClient.repair_gb_location(...): #{m}")
         dbg()
         projects = []
         async.series([
@@ -2979,7 +2981,7 @@ class GlobalClient
                 dbg("querying database....")
                 @database.select
                     table     : 'projects'
-                    columns   : ['project_id', 'bup_location', 'bup_last_save']
+                    columns   : ['project_id', 'gb_location', 'gb_last_save']
                     objectify : true
                     stream    : true
                     cb        : (err, r) =>
@@ -2987,21 +2989,21 @@ class GlobalClient
                             cb(err)
                         else
                             dbg("got #{r.length} records")
-                            dbg("checking through each project to see which don't have bup_location set")
+                            dbg("checking through each project to see which don't have gb_location set")
                             i = 0
                             for project in r
                                 if i%5000 == 0
                                     dbg("checked #{i}/#{r.length} projects...")
                                 i += 1
-                                if project.bup_location or not project.bup_last_save? or misc.len(project.bup_last_save) == 0
+                                if project.gb_location or not project.gb_last_save? or misc.len(project.gb_last_save) == 0
                                     continue
-                                bup_location = undefined
+                                gb_location = undefined
                                 newest_date = undefined
-                                for server_id, date of project.bup_last_save
-                                    if not bup_location or date >= newest_date
-                                        bup_location = server_id
+                                for server_id, date of project.gb_last_save
+                                    if not gb_location or date >= newest_date
+                                        gb_location = server_id
                                         newest_date = date
-                                projects.push({project_id:project.project_id, bup_location:bup_location})
+                                projects.push({project_id:project.project_id, gb_location:gb_location})
                             console.log(projects)
                             cb()
             (cb) =>
@@ -3013,7 +3015,7 @@ class GlobalClient
                     @database.update
                         table : 'projects'
                         set   :
-                            bup_location : project.bup_location
+                            gb_location : project.gb_location
                         where :
                             project_id : project.project_id
                         cb    : cb
@@ -3086,7 +3088,7 @@ class GlobalClient
                 dbg("querying database for all projects with any data")
                 @database.select
                     table     : 'projects'
-                    columns   : ['project_id', 'bup_last_save']
+                    columns   : ['project_id', 'gb_last_save']
                     objectify : true
                     stream    : true
                     cb        : (err, r) =>
@@ -3101,7 +3103,7 @@ class GlobalClient
                                     return 1
                                 else
                                     return 0
-                            projects = (x.project_id for x in r when x.bup_last_save? and misc.len(x.bup_last_save) > 0)
+                            projects = (x.project_id for x in r when x.gb_last_save? and misc.len(x.gb_last_save) > 0)
                             cb()
             (cb) =>
                 if opts.dryrun
@@ -3138,56 +3140,11 @@ class GlobalClient
                     opts.cb?()
         )
 
-    # one-time throw-away code... but keep since could be useful to adapt!
-    set_quotas: (opts) =>
-        opts = defaults opts,
-            limit    : 5           # number to do in parallel
-            errors   : required    # map where errors are stored as they happen
-            stop     : 99999999    # stop a
-            dryrun   : true
-            cb       : required    # cb(err, quotas)
-        dbg = (m) => winston.debug("GlobalClient.set_quotas: #{m}")
-        dbg()
-        errors = {}
-        quotas = {}
-        async.series([
-            (cb) =>
-                fs.readFile "use-bups", (err, data) =>
-                    if err
-                        cb(err)
-                    else
-                        for x in data.toString().split('\n')
-                            v = x.split('\t')
-                            if v.length >= 2
-                                a = v[0]
-                                a.slice(0, a.length-2)
-                                usage = parseInt(a)
-                                project_id = v[1].trim()
-                                quotas[project_id] = Math.min(20000, Math.max(3*Math.round(usage), 5000))
-                        cb()
-            (cb) =>
-                if opts.dryrun
-                    cb(); return
-                i = 0
-                f = (project_id, cb) =>
-                    i += 1
-                    dbg("setting quota for project #{project_id} -- #{i}/#{misc.len(quotas)}")
-                    @get_project(project_id).set_settings
-                        disk : quotas[project_id]
-                        cb   : (err) =>
-                            if err
-                                opts.errors[project_id] = err
-                            cb(err)
-                async.mapLimit(misc.keys(quotas).slice(0,opts.stop), opts.limit, f, (err) => cb())
-        ], (err) =>
-            opts.cb?(err, quotas)
-        )
-
     # returns sorted-by-last-edited list of objects (with newest first)
     #    {last_edited:?, project_id:?,  server_id:?, ssh:?}
     # where server_id is the id of the best server where the project is.
     ###
-        x={};s=require('bup_server').global_client(keyspace:'devel', cb:(err,c)->console.log("err=",err);x.c=c;x.c.overview_projects(cb:(e,v)->console.log("DONE",e);x.v=v))
+        x={};s=require('gb_server').global_client(keyspace:'devel', cb:(err,c)->console.log("err=",err);x.c=c;x.c.overview_projects(cb:(e,v)->console.log("DONE",e);x.v=v))
     ###
     overview_projects: (opts) =>
         opts = defaults opts,
@@ -3207,7 +3164,7 @@ class GlobalClient
                 dbg("querying database for projects...")
                 @database.select
                     table     : 'projects'
-                    columns   : ['project_id', 'last_edited', 'bup_location', 'bup_last_save']
+                    columns   : ['project_id', 'last_edited', 'gb_location', 'gb_last_save']
                     limit     : opts.limit
                     objectify : true
                     stream    : true
@@ -3217,11 +3174,11 @@ class GlobalClient
                         dbg("got #{r.length} projects; now processing")
                         if bad_servers?
                             for x in r
-                                if bad_servers[x.bup_location]
-                                    if x.bup_last_save?
-                                        for k in misc.keys(x.bup_last_save)
+                                if bad_servers[x.gb_location]
+                                    if x.gb_last_save?
+                                        for k in misc.keys(x.gb_last_save)
                                             if not bad_servers[k]
-                                                x.bup_location = k
+                                                x.gb_location = k
                                                 break
                         r.sort (a,b) =>
                             if a.last_edited < b.last_edited
@@ -3237,7 +3194,7 @@ class GlobalClient
                             f = (x) -> x
                         for i in [0...projects.length]
                             x = projects[i]
-                            projects[i] = {last_edited:f(x.last_edited), project_id:x.project_id, server_id:x.bup_location}
+                            projects[i] = {last_edited:f(x.last_edited), project_id:x.project_id, server_id:x.gb_location}
                         dbg("done processing projects (phase 1)")
                         cb()
             (cb) =>
@@ -3262,185 +3219,6 @@ class GlobalClient
             else
                 opts.cb(undefined, projects)
         )
-
-    # **one off code for migrating to google cloud storage**
-    # For each project not migrated to google cloud storage, migrate it by rsyncing from live.
-    # This should work on all projects, and *will* terminate on any errors.
-    ###
-db = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.240.97.10'], username:'hub', password:require('fs').readFileSync('data/secrets/cassandra/hub').toString().trim(), cb:console.log)
-x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log("err=",err);x.c=c;x.c.migrate_missing(query_limit:20000, test_limit:4, cb:(e)->console.log("DONE",e)))
-
-x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log("err=",err);x.c=c;x.c.migrate_missing(cb:(e)->console.log("DONE",e)))
-    ###
-    migrate_missing: (opts) =>
-        opts = defaults opts,
-            limit : 8  # number to do at once in parallel
-            test_limit : undefined # if given, only migrate first this many projects.
-            query_limit : undefined
-            cb    : undefined
-        dbg = (m) => winston.debug("migrate_missing: #{m}")
-        projects = undefined
-        done     = {}
-        async.series([
-            (cb) =>
-                async.parallel([
-                    (cb) =>
-                        dbg("getting overview of projects")
-                        @overview_projects
-                            bad_servers : ['0985aa3e-c5e9-400e-8faa-32e7d5399dab']
-                            limit       : opts.query_limit
-                            cb          : (err, x) =>
-                                if err
-                                    cb(err)
-                                else
-                                    dbg("got #{projects.length} projects")
-                                    projects = x
-                                    cb()
-                    (cb) =>
-                        dbg("getting list of migrated projects")
-                        misc_node.execute_code
-                            command : "gsutil"
-                            args    : ['ls', 'gs://smc-gb-storage']
-                            timeout : 300
-                            cb      : (err, output) =>
-                                if err
-                                    cb(err)
-                                else
-                                    for x in output.stdout.split('\n')
-                                        done[x.split('/')[3]] = true
-                                    dbg("got #{misc.len(done)} migrated projects")
-                                    cb()
-                ], cb)
-            (cb) =>
-                dbg("determine subset of non-migrated projects")
-                projects = (x for x in projects when not done[x.project_id])
-                if opts.test_limit
-                    projects = projects.slice(0, opts.test_limit)
-                dbg("#{projects.length} projects remain to be migrated")
-                i = 0
-                t = misc.walltime()
-                f = (project, cb) =>
-                    i += 1
-                    elapsed = misc.walltime() - t; avg = elapsed/i; remaining = (projects.length-i)*avg/60
-                    dbg("#{i}/#{projects.length}: time left = #{remaining}m")
-                    if not project.ssh?
-                        dbg("WARNING -- skipping projects with no location for now...")
-                        cb()
-                        return
-                    cmd = "time sudo /home/salvus/salvus/salvus/scripts/gb_storage.py migrate_live --close --port=2222 #{project.ssh[-1].split(':')[0]} #{project.project_id}"
-                    dbg(cmd)
-                    misc_node.execute_code
-                        command : cmd
-                        timeout : 5000
-                        cb      : (err, output) =>
-                            dbg(misc.to_json(output))
-                            cb(err)
-                async.mapLimit(projects, opts.limit, f, cb)
-        ], (err) =>
-            dbg("DONE!, err=#{err}")
-            opts.cb?(err)
-        )
-
-    # **one off code for migrating to google cloud storage**
-    # For each project modified recently, update it in google cloud storage
-    ###
-db = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.240.97.10'], username:'hub', password:require('fs').readFileSync('data/secrets/cassandra/hub').toString().trim(), cb:console.log)
-x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log("err=",err);x.c=c;x.c.migrate_update_recent(query_limit:60000, test_limit:4, max_age_h:24, cb:(e)->console.log("DONE",e)))
-
-x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log("err=",err);x.c=c;x.c.migrate_update_recent(max_age_h:1, cb:(e)->console.log("DONE",e)))
-    ###
-    migrate_update_recent: (opts) =>
-        opts = defaults opts,
-            limit       : 10  # number to do at once in parallel
-            test_limit  : undefined # if given, only migrate first this many projects.
-            query_limit : undefined
-            max_age_h   : 24   # max age of projects to update, in hours
-            oldest      : undefined # if given, take all projects with time at least this, ignoring max_age_h
-            cb          : undefined
-        dbg = (m) => winston.debug("migrate_missing: #{m}")
-        projects = undefined
-        if opts.oldest
-            oldest = opts.oldest - 0
-        else
-            oldest   = (new Date() - 0) - opts.max_age_h*60*60*1000
-        errors = {}
-        async.series([
-            (cb) =>
-                dbg("getting overview of projects")
-                @overview_projects
-                    bad_servers  : ['0985aa3e-c5e9-400e-8faa-32e7d5399dab']
-                    limit        : opts.query_limit
-                    convert_time : false
-                    cb           : (err, x) =>
-                        if err
-                            cb(err)
-                        else
-                            dbg("got #{projects.length} projects")
-                            projects = (project for project in x when project.last_edited >= oldest)
-                            dbg("of these, #{projects.length} projects are new")
-                            cb()
-            (cb) =>
-                if opts.test_limit
-                    projects = projects.slice(0, opts.test_limit)
-                dbg("#{projects.length} projects to be updaed")
-                i = 0
-                t = misc.walltime()
-                f = (project, cb) =>
-                    i += 1
-                    elapsed = misc.walltime() - t; avg = elapsed/i; remaining = (projects.length-i)*avg/60
-                    dbg("#{i}/#{projects.length}: time left = #{remaining}m")
-                    if not project.ssh?
-                        errors[project.project_id] = "project has no location WHAT THE HECK!"
-                        dbg(misc.to_json(errors))
-                        return
-                    try
-                        misc_node.execute_code
-                            command : '/home/salvus/salvus/salvus/scripts/gb_storage.py'
-                            args    : ['migrate_live', '--port=2222', project.ssh[-1].split(':')[0], project.project_id]
-                            timeout : 5000
-                            cb      : (err, output) =>
-                                dbg(misc.to_json(output))
-                                cb(err)
-                    catch err
-                        error = "Error running code! #{err}"
-                        errors[project.project_id] = error
-                        dbg(misc.to_json(errors))
-                        cb()
-                async.mapLimit(projects, opts.limit, f, cb)
-        ], (err) =>
-            dbg("DONE!, err=#{err}")
-            dbg("ERRORS: #{misc.to_json(errors)}")
-            opts.cb?(err)
-        )
-
-    migrate_update_recent_loop: (opts) =>
-        opts = defaults opts,
-            limit       : 10
-            max_age_h   : 5   # start auto-update loop with all projects from this long ago.
-            sleep_m     : 10   # how long in minutes to sleep between each update loop
-            cb          : undefined
-        cycle = 0
-        oldest = new Date() - opts.max_age_h*60*60*1000
-        f = () =>
-            cycle += 1
-            winston.debug("CYCLE: #{cycle}")
-            last_start = new Date() - 0
-            winston.debug("running update to get everything from #{(new Date() - oldest)/1000/60/60} hours ago")
-            @migrate_update_recent
-                oldest : oldest
-                limit  : opts.limit
-                cb     : (err) =>
-                    winston.debug("Finished cycle #{cycle}")
-                    if err
-                        winston.debug("migrate_update_recent_loop ERROR: #{err}")
-                        opts.cb?(err)
-                    else
-                        oldest = last_start
-                        winston.debug("sleeping #{opts.sleep_m} minutes before looping again...")
-                        setTimeout(f, opts.sleep_m*60*1000)
-        f()
-
-
 
 
 ###########################

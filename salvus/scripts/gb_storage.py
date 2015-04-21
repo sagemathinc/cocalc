@@ -23,34 +23,33 @@
 
 # TODO:
 #
-#  - [x] compression of files: mount with mount -o compress-force=lzo,noatime /dev/sdb /projects
-#  - [x] compression of streams: lrz or lz4?
-#  - [x] time option to save
-#  - [x] download all needed files from GCS before receiving them, so can get them in parallel.
-#  - [x] proper temporary directory
-#  - [ ] start migrating projects
+#  - [ ] (3:00?) carry over all functionality *needed* from bup_storage.py
 #  - [ ] (1:00?) delete excessive snapshots: ???
-#  - [ ] (0:20?) instructions for making/mounting filesystem
-#  - [ ] (2:00?) carry over all functionality *needed* from bup_storage.py
+#  - [ ] (1:00?) delete old versions of streams
 #
 # MAYBE:
 #  - support 3 tiers of storage: /projects/ssd, /projects/hdd, /projects/ssd-local
 #
 
 """
+
+GS = [G]oogle Cloud Storage / [B]trfs - based project storage system
+
 mkfs.btrfs /dev/sdb
 mount -o compress=lzo /dev/sdb /projects
 btrfs subvolume create /projects/sagemathcloud
 rsync -LrxvH /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
 
+Worry about tmp, e.g.,
+
+    btrfs su create /projects/tmp
+    chmod a+rwx /projects/tmp    # wrong.
+    mount -o bind /projects/tmp /tmp/
+
 """
 
-PROJECTS     = '/projects'
-SNAPSHOTS    = '/projects/.snapshots'
-BUCKET       = 'gs://smc-gb-storage'
-SMC_TEMPLATE = '/projects/sagemathcloud'  # subvolume template for .sagemathcloud
-
-TO        = "-to-"
+# used in naming streams -- changing this would break all existing data...
+TO           = "-to-"
 
 import os, re, shutil, signal, tempfile, time, uuid
 from subprocess import Popen, PIPE
@@ -130,29 +129,44 @@ def thread_map(callable, inputs):
 def btrfs(args, **kwds):
     return cmd(['btrfs']+args, **kwds)
 
-if not os.path.exists(SNAPSHOTS):
-    btrfs(['subvolume', 'create', SNAPSHOTS])
-
 def gsutil(args, **kwds):
     return cmd(['gsutil']+args, **kwds)
 
 class Project(object):
-    def __init__(self, project_id, quota=0, max=0):
+    def __init__(self,
+                 project_id,                  # v4 uuid string
+                 btrfs         = '/projects', # btrfs filesystem mount
+                 bucket        = '',          # google cloud storage bucket (won't use gs/disable close if not given)
+                 quota         = 0,           # MB btrfs disk quota to impose on project
+                 max_snapshots = 0            # maximum number of snapshots to keep
+                ):
         try:
             u = uuid.UUID(project_id)
             assert u.get_version() == 4
             project_id = str(u)  # leaving off dashes still makes a valid uuid in python
         except (AssertionError, ValueError):
             raise RuntimeError("invalid project uuid='%s'"%project_id)
+        self.btrfs         = btrfs
+        if not os.path.exists(self.btrfs):
+            raise RuntimeError("mount point %s doesn't exist"%self.btrfs)
         self.project_id    = project_id
         self.quota         = quota
-        self.max           = max
-        self.gs_path       = os.path.join(BUCKET, project_id, 'v0')
-        self.project_path  = os.path.join(PROJECTS, project_id)
-        self.snapshot_path = os.path.join(SNAPSHOTS, project_id)
+        self.max_snapshots = max_snapshots
+        if bucket:
+            self.gs_path       = os.path.join('gs://%s'%bucket, project_id, 'v0')
+        else:
+            self.gs_path   = None
+        self.project_path  = os.path.join(btrfs, project_id)
+        snapshots = os.path.join(btrfs, ".snapshots")
+        if not os.path.exists(snapshots):
+            btrfs(['subvolume', 'create', snapshots])
+        self.snapshot_path = os.path.join(snapshots, project_id)
         self.smc_path      = os.path.join(self.project_path, '.sagemathcloud')
 
+
     def gs_version(self):
+        if not self.gs_path:
+            return ''
         try:
             return self._gs_version
         except:
@@ -169,6 +183,8 @@ class Project(object):
             return self._gs_version
 
     def gs_ls(self):
+        if not self.gs_path:
+            return []
         # list contents of google cloud storage for this project
         try:
             p = os.path.join(self.gs_path, self.gs_version())
@@ -182,6 +198,8 @@ class Project(object):
                 raise
 
     def gs_get(self, streams):
+        if not self.gs_path:
+            raise RuntimeError("can't get since no gs bucket defined")
         targets = []
         sources = []
         tmp_path = tempfile.mkdtemp()
@@ -220,9 +238,13 @@ class Project(object):
             shutil.rmtree(tmp_path)
 
     def gs_rm(self, stream):
+        if not self.gs_path:
+            raise RuntimeError("can't remove since no gs bucket defined")
         gsutil(['rm', os.path.join(self.gs_path, self.gs_version(), stream)])
 
     def gs_put(self, stream):
+        if not self.gs_path:
+            raise RuntimeError("can't put since no gs bucket defined")
         if TO in stream:
             snapshot1, snapshot2 = stream.split(TO)
         else:
@@ -255,9 +277,32 @@ class Project(object):
         if not os.path.exists(t):
             cmd(["ln", "-s", self.snapshot_path, t])
 
-    def open(self, allow_broken=False):  # allow_broken = due to bugs during initial migration--delete after fix
+    def create_smc_path(self):
+        if not os.path.exists(self.smc_path):
+            smc_template = os.path.join(self.btrfs, "sagemathcloud")
+            if not os.path.exists(smc_template):
+                log("WARNING: skipping creating %s since %s doesn't exist"%(self.smc_path, smc_template))
+            else:
+                btrfs(['subvolume', 'snapshot', smc_template, self.smc_path])
+                # TODO: need to chown smc_template so user can actually use it.
+                # TODO: need a command to *update* smc_path contents
+
+    def open(self, allow_broken=False):
+        # allow_broken is due only to bugs during initial migration--delete after fix
+
+        if os.path.exists(self.project_path):
+            log("open: already open -- not doing anything")
+            return
+
         if not os.path.exists(self.snapshot_path):
             btrfs(['subvolume', 'create', self.snapshot_path])
+
+        if not self.gs_path:
+            # no google cloud storage configured, so just
+            btrfs(['subvolume', 'create', self.project_path])
+            self.create_snapshot_link()
+            self.create_smc_path()
+            return
 
         # get a list of all streams in GCS
         gs = self.gs_ls()
@@ -293,35 +338,32 @@ class Project(object):
             else:
                 log("WARNING: some streams failed! -- %s"%mesg)
 
-        # make live equal the newest snapshot
+        # make self.project_path equal the newest snapshot
         v = self.snapshot_ls()
         if len(v) == 0:
             if not os.path.exists(self.project_path):
                 btrfs(['subvolume', 'create', self.project_path])
         else:
             source = os.path.join(self.snapshot_path, v[-1])
-            if not os.path.exists(self.project_path):
-                btrfs(['subvolume', 'snapshot', source, self.project_path])
-            else:
-                if len(downloaded) > 0:
-                    # only do this if we actually got something new from gs.
-                    cmd(["rsync", "-axH", "--update", source+"/", self.project_path+"/"])
+            btrfs(['subvolume', 'snapshot', source, self.project_path])
 
         self.create_snapshot_link()
-        if not os.path.exists(self.smc_path):
-            if not os.path.exists(SMC_TEMPLATE):
-                log("WARNING: skipping creating %s since %s doesn't exist"%(self.smc_path, SMC_TEMPLATE))
-            else:
-                btrfs(['subvolume', 'snapshot', SMC_TEMPLATE, self.smc_path])
-                # TODO: need to chown SMC_TEMPLATE so user can actually use it.
+        self.create_smc_path()
 
-        self.gs_put_sync()
+        # TODO: right now this spends a lot of time uploading everything back using the
+        # new btrfs uuid's.
+        # But be careful fixing this!  Fix may be just be to remove, but carefully test by
+        # open/change/save/close/open/etc.!
+        self.gs_sync()
 
     def delete_old_snapshots(self):
         #TODO
         return
 
-    def gs_put_sync(self):
+    def gs_sync(self):
+        if not self.gs_path:
+            raise RuntimeError("can't remove since no gs bucket defined")
+        cmd("sync")
         v = self.snapshot_ls()
         if len(v) == 0:
             local_streams = set([])
@@ -353,19 +395,15 @@ class Project(object):
         # create the snapshot
         btrfs(['subvolume', 'snapshot', '-r', self.project_path, target])
         self.delete_old_snapshots()
-        self.sync()
-
-    def sync(self):
-        # ensure subvolume written to disk
-        cmd("sync")
-        # sync gs with local snapshots
-        self.gs_put_sync()
+        if self.gs_path:
+            self.gs_sync()
 
     def delete_snapshot(self, snapshot):
         target = os.path.join(self.snapshot_path, snapshot)
         btrfs(['subvolume', 'delete', target])
         # sync with gs
-        self.gs_put_sync()
+        if self.gs_path:
+            self.gs_sync()
 
     def close(self):
         # delete snapshots
@@ -403,7 +441,7 @@ class Project(object):
         # we use os.system, since the output is very verbose...
         os.system("duperemove -h -d -r '%s'/*"%self.project_path)
 
-    def exclude(self, prefix, prog='rsync'):
+    def _exclude(self, prefix, prog='rsync'):
         eprefix = re.escape(prefix)
         excludes = ['core', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots', '.trash']
         exclude_rxs = []
@@ -466,7 +504,7 @@ class Project(object):
                 remote = hostname
             else:
                 remote = "%s:/projects/%s"%(hostname, self.project_id)
-            s = "rsync -%szaxH --max-size=50G --delete-excluded --delete --ignore-errors %s -e 'ssh -o StrictHostKeyChecking=no -p %s' %s/ %s/ </dev/null"%('v' if verbose else '', ' '.join(self.exclude('')), port, remote, self.project_path)
+            s = "rsync -%szaxH --max-size=50G --delete-excluded --delete --ignore-errors %s -e 'ssh -o StrictHostKeyChecking=no -p %s' %s/ %s/ </dev/null"%('v' if verbose else '', ' '.join(self._exclude('')), port, remote, self.project_path)
             log(s)
             if not os.system(s):
                 log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
@@ -476,25 +514,38 @@ class Project(object):
             if close:
                 self.close()
 
+                
 if __name__ == "__main__":
 
     import argparse
-    parser = argparse.ArgumentParser(description="BTRFS-GoogleCloudStorage backed project storage subsystem")
+    parser = argparse.ArgumentParser(description="GS = [G]oogle Cloud Storage / [B]trfs - based project storage system")
     subparsers = parser.add_subparsers(help='sub-command help')
+
+    def project():
+        kwds = {}
+        for k in ['quota', 'project_id', 'btrfs', 'bucket', 'max_snapshots']:
+            if hasattr(args, k):
+                kwds[k] = args.__getitem__(k)
+        return Project(**kwds)
+
+    parser.add_argument("--btrfs", help="BTRFS mountpoint [default: /projects]",
+                        dest="btrfs", default="/projects", type=str)
+    parser.add_argument("--bucket", help="Google Cloud storage bucket [default: ''=do not use google]",
+                        dest='bucket', default='', type=str)
 
     parser_open = subparsers.add_parser('open', help='')
     parser_open.add_argument("--quota", help="quota in MB", default=0, type=int)
     parser_open.add_argument("project_id", help="", type=str)
-    parser_open.set_defaults(func=lambda args: Project(args.project_id, quota=args.quota).open())
+    parser_open.set_defaults(func=lambda: project().open())
 
     parser_close = subparsers.add_parser('close', help='')
     parser_close.add_argument("--max", help="maximum number of snapshots", dest="max", default=0, type=int)
     parser_close.add_argument("project_id", help="close this project removing all files from this local host (does NOT save first)", type=str)
-    parser_close.set_defaults(func=lambda args: Project(args.project_id).close())
+    parser_close.set_defaults(func=lambda: project().close())
 
     parser_destroy = subparsers.add_parser('destroy', help='')
     parser_destroy.add_argument("project_id", help="completely destroy this project **EVERYWHERE** -- can't be undone", type=str)
-    parser_destroy.set_defaults(func=lambda args: Project(args.project_id).destroy())
+    parser_destroy.set_defaults(func=lambda : project().destroy())
 
     parser_save = subparsers.add_parser('save', help='')
     parser_save.add_argument("--max", help="maximum number of snapshots", default=0, type=int)
@@ -502,25 +553,25 @@ if __name__ == "__main__":
     parser_save.add_argument("--persist", help="if given, won't automatically delete",
                              default=False, action="store_const", const=True)
     parser_save.add_argument("project_id", help="", type=str)
-    parser_save.set_defaults(func=lambda args: Project(args.project_id, max=args.max).save(timestamp=args.timestamp, persist=args.persist))
+    parser_save.set_defaults(func=lambda args: project().save(timestamp=args.timestamp, persist=args.persist))
 
     parser_sync = subparsers.add_parser('sync', help='')
     parser_sync.add_argument("project_id", help="sync project with GCS, without first saving a new snapshot", type=str)
-    parser_sync.set_defaults(func=lambda args: Project(args.project_id).sync())
+    parser_sync.set_defaults(func=lambda : project().gs_sync())
 
     parser_delete_snapshot = subparsers.add_parser('delete_snapshot', help='delete a particular snapshot')
     parser_delete_snapshot.add_argument("snapshot", help="snapshot to delete", type=str)
     parser_delete_snapshot.add_argument("project_id", help="", type=str)
-    parser_delete_snapshot.set_defaults(func=lambda args: Project(args.project_id).delete_snapshot(args.snapshot))
+    parser_delete_snapshot.set_defaults(func=lambda args: project().delete_snapshot(args.snapshot))
 
     parser_deduplicate = subparsers.add_parser('deduplicate', help='deduplicate live project (WARNING: could take hours!)')
     parser_deduplicate.add_argument("project_id", help="", type=str)
-    parser_deduplicate.set_defaults(func=lambda args: Project(args.project_id).deduplicate())
+    parser_deduplicate.set_defaults(func=lambda : project().deduplicate())
 
     parser_migrate = subparsers.add_parser('migrate', help='migrate project to new format')
     parser_migrate.add_argument("--source", help="path to directory of project_id.tar bup repos or 'gsutil'", default="gsutil", type=str)
     parser_migrate.add_argument("project_id", help="", type=str)
-    parser_migrate.set_defaults(func=lambda args: Project(args.project_id).migrate(source=args.source))
+    parser_migrate.set_defaults(func=lambda args: project().migrate(source=args.source))
 
     parser_migrate_live = subparsers.add_parser('migrate_live', help='')
     parser_migrate_live.add_argument("--port", help="path to directory of project_id.tar bup repos or 'gsutil'", default=22, type=int)
@@ -529,7 +580,7 @@ if __name__ == "__main__":
                                      default=False, action="store_const", const=True)
     parser_migrate_live.add_argument("hostname", help="hostname[:path]", type=str)
     parser_migrate_live.add_argument("project_id", help="", type=str)
-    parser_migrate_live.set_defaults(func=lambda args: Project(args.project_id).migrate_live(
+    parser_migrate_live.set_defaults(func=lambda args: project().migrate_live(
             hostname=args.hostname, port=args.port, close=args.close, verbose=args.verbose))
 
     args = parser.parse_args()
