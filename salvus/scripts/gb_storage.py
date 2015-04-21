@@ -135,7 +135,7 @@ def gsutil(args, **kwds):
 class Project(object):
     def __init__(self,
                  project_id,                  # v4 uuid string
-                 btrfs         = '/projects', # btrfs filesystem mount
+                 btrfs_mnt     = '/projects', # btrfs filesystem mount
                  bucket        = '',          # google cloud storage bucket (won't use gs/disable close if not given)
                  quota         = 0,           # MB btrfs disk quota to impose on project
                  max_snapshots = 0            # maximum number of snapshots to keep
@@ -146,9 +146,9 @@ class Project(object):
             project_id = str(u)  # leaving off dashes still makes a valid uuid in python
         except (AssertionError, ValueError):
             raise RuntimeError("invalid project uuid='%s'"%project_id)
-        self.btrfs         = btrfs
-        if not os.path.exists(self.btrfs):
-            raise RuntimeError("mount point %s doesn't exist"%self.btrfs)
+        self.btrfs_mnt     = btrfs_mnt
+        if not os.path.exists(self.btrfs_mnt):
+            raise RuntimeError("mount point %s doesn't exist"%self.btrfs_mnt)
         self.project_id    = project_id
         self.quota         = quota
         self.max_snapshots = max_snapshots
@@ -156,8 +156,8 @@ class Project(object):
             self.gs_path       = os.path.join('gs://%s'%bucket, project_id, 'v0')
         else:
             self.gs_path   = None
-        self.project_path  = os.path.join(btrfs, project_id)
-        snapshots = os.path.join(btrfs, ".snapshots")
+        self.project_path  = os.path.join(self.btrfs_mnt, project_id)
+        snapshots = os.path.join(self.btrfs_mnt, ".snapshots")
         if not os.path.exists(snapshots):
             btrfs(['subvolume', 'create', snapshots])
         self.snapshot_path = os.path.join(snapshots, project_id)
@@ -279,7 +279,7 @@ class Project(object):
 
     def create_smc_path(self):
         if not os.path.exists(self.smc_path):
-            smc_template = os.path.join(self.btrfs, "sagemathcloud")
+            smc_template = os.path.join(self.btrfs_mnt, "sagemathcloud")
             if not os.path.exists(smc_template):
                 log("WARNING: skipping creating %s since %s doesn't exist"%(self.smc_path, smc_template))
             else:
@@ -405,7 +405,9 @@ class Project(object):
         if self.gs_path:
             self.gs_sync()
 
-    def close(self):
+    def close(self, force=False):
+        if not force and not self.gs_path:
+            raise RuntimeError("refusing to close since you do not have google cloud storage configured, and project would just get deleted")
         # delete snapshots
         for x in self.snapshot_ls():
             btrfs(['subvolume', 'delete', os.path.join(self.snapshot_path, x)])
@@ -514,18 +516,21 @@ class Project(object):
             if close:
                 self.close()
 
-                
+
 if __name__ == "__main__":
 
     import argparse
     parser = argparse.ArgumentParser(description="GS = [G]oogle Cloud Storage / [B]trfs - based project storage system")
     subparsers = parser.add_subparsers(help='sub-command help')
 
-    def project():
+    def project(args):
         kwds = {}
         for k in ['quota', 'project_id', 'btrfs', 'bucket', 'max_snapshots']:
             if hasattr(args, k):
-                kwds[k] = args.__getitem__(k)
+                if k == 'btrfs':
+                    kwds['btrfs_mnt'] = getattr(args, k)
+                else:
+                    kwds[k] = getattr(args, k)
         return Project(**kwds)
 
     parser.add_argument("--btrfs", help="BTRFS mountpoint [default: /projects]",
@@ -536,16 +541,18 @@ if __name__ == "__main__":
     parser_open = subparsers.add_parser('open', help='')
     parser_open.add_argument("--quota", help="quota in MB", default=0, type=int)
     parser_open.add_argument("project_id", help="", type=str)
-    parser_open.set_defaults(func=lambda: project().open())
+    parser_open.set_defaults(func=lambda args: project(args).open())
 
     parser_close = subparsers.add_parser('close', help='')
     parser_close.add_argument("--max", help="maximum number of snapshots", dest="max", default=0, type=int)
+    parser_close.add_argument("--force", help="force close even if google cloud storage not configured (so project lost)",
+                             default=False, action="store_const", const=True)
     parser_close.add_argument("project_id", help="close this project removing all files from this local host (does NOT save first)", type=str)
-    parser_close.set_defaults(func=lambda: project().close())
+    parser_close.set_defaults(func=lambda args: project(args).close(force=args.force))
 
     parser_destroy = subparsers.add_parser('destroy', help='')
     parser_destroy.add_argument("project_id", help="completely destroy this project **EVERYWHERE** -- can't be undone", type=str)
-    parser_destroy.set_defaults(func=lambda : project().destroy())
+    parser_destroy.set_defaults(func=lambda args: project(args).destroy())
 
     parser_save = subparsers.add_parser('save', help='')
     parser_save.add_argument("--max", help="maximum number of snapshots", default=0, type=int)
@@ -557,21 +564,21 @@ if __name__ == "__main__":
 
     parser_sync = subparsers.add_parser('sync', help='')
     parser_sync.add_argument("project_id", help="sync project with GCS, without first saving a new snapshot", type=str)
-    parser_sync.set_defaults(func=lambda : project().gs_sync())
+    parser_sync.set_defaults(func=lambda args: project(args).gs_sync())
 
     parser_delete_snapshot = subparsers.add_parser('delete_snapshot', help='delete a particular snapshot')
     parser_delete_snapshot.add_argument("snapshot", help="snapshot to delete", type=str)
     parser_delete_snapshot.add_argument("project_id", help="", type=str)
-    parser_delete_snapshot.set_defaults(func=lambda args: project().delete_snapshot(args.snapshot))
+    parser_delete_snapshot.set_defaults(func=lambda args: project(args).delete_snapshot(args.snapshot))
 
     parser_deduplicate = subparsers.add_parser('deduplicate', help='deduplicate live project (WARNING: could take hours!)')
     parser_deduplicate.add_argument("project_id", help="", type=str)
-    parser_deduplicate.set_defaults(func=lambda : project().deduplicate())
+    parser_deduplicate.set_defaults(func=lambda args: project(args).deduplicate())
 
     parser_migrate = subparsers.add_parser('migrate', help='migrate project to new format')
     parser_migrate.add_argument("--source", help="path to directory of project_id.tar bup repos or 'gsutil'", default="gsutil", type=str)
     parser_migrate.add_argument("project_id", help="", type=str)
-    parser_migrate.set_defaults(func=lambda args: project().migrate(source=args.source))
+    parser_migrate.set_defaults(func=lambda args: project(args).migrate(source=args.source))
 
     parser_migrate_live = subparsers.add_parser('migrate_live', help='')
     parser_migrate_live.add_argument("--port", help="path to directory of project_id.tar bup repos or 'gsutil'", default=22, type=int)
@@ -580,7 +587,7 @@ if __name__ == "__main__":
                                      default=False, action="store_const", const=True)
     parser_migrate_live.add_argument("hostname", help="hostname[:path]", type=str)
     parser_migrate_live.add_argument("project_id", help="", type=str)
-    parser_migrate_live.set_defaults(func=lambda args: project().migrate_live(
+    parser_migrate_live.set_defaults(func=lambda args: project(args).migrate_live(
             hostname=args.hostname, port=args.port, close=args.close, verbose=args.verbose))
 
     args = parser.parse_args()
