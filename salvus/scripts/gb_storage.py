@@ -61,11 +61,14 @@ TO      = "-to-"
 # appended to end of snapshot name to make it persistent (never automatically deleted)
 PERSIST = "-persist"
 
-import hashlib, os, re, shutil, signal, tempfile, time, uuid
+import hashlib, json, os, re, shutil, signal, sys, tempfile, time, uuid
 from subprocess import Popen, PIPE
 
 def log(s, *args):
-    print s%args
+    if args:
+        s = s%args
+    sys.stderr.write(str(s)+'\n')
+    sys.stderr.flush()
 
 def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
     if isinstance(s, list):
@@ -139,6 +142,37 @@ def thread_map(callable, inputs):
 def btrfs(args, **kwds):
     return cmd(['btrfs']+args, **kwds)
 
+def btrfs_subvolume_id(subvolume):
+    a = btrfs(['subvolume', 'show', subvolume])
+    i = a.find('Object ID:')
+    a = a[i:]
+    i = a.find('\n')
+    return int(a[:i].split(':')[1].strip())
+
+def btrfs_subvolume_usage(subvolume, allow_rescan=True):
+    """
+    Returns the space used by this subvolume in megabytes.
+    """
+    # first sync so that the qgroup numbers are correct
+    # "To get accurate information, you must issue a sync before using the qgroup show command."
+    # from https://btrfs.wiki.kernel.org/index.php/Quota_support#Known_issues
+    btrfs(['filesystem', 'sync', subvolume])
+    # now get all usage information (no way to restrict)
+    a = btrfs(['qgroup', 'show', subvolume])
+    # and filter out what we want.
+    i = a.find("\n0/%s"%btrfs_subvolume_id(subvolume))
+    a = a[i:].strip()
+    i = a.find('\n')
+    v = a[:i].split()
+    usage = float(v[1])/1000000
+    # exclusive = float(v[2])/1000000  # not reliable, esp with snapshot deletion.
+    if allow_rescan and usage < 0:
+        # suspicious!
+        btrfs(['quota', 'rescan', subvolume])
+        time.sleep(1)
+        return btrfs_subvolume_usage(subvolume, allow_rescan=False)
+    return usage
+
 def gsutil(args, **kwds):
     return cmd(['gsutil']+args, **kwds)
 
@@ -154,9 +188,9 @@ def gs_ls(path):
 
 class Project(object):
     def __init__(self,
-                 project_id,                  # v4 uuid string
-                 btrfs,                   # btrfs filesystem mount
-                 bucket        = '',          # google cloud storage bucket (won't use gs/disable close if not given)
+                 project_id,          # v4 uuid string
+                 btrfs,               # btrfs filesystem mount
+                 bucket        = '',  # google cloud storage bucket (won't use gs/disable close if not given)
                 ):
         try:
             u = uuid.UUID(project_id)
@@ -188,7 +222,7 @@ class Project(object):
         self.uid = n if n>65537 else n+65537   # 65534 used by linux for user sync, etc.
         self.username = self.project_id.replace('-','')
 
-    def log(self, name=""):
+    def _log(self, name=""):
         def f(s='', *args):
             log("Project(project_id=%s).%s(...): "%(self.project_id, name) + s, *args)
         return f
@@ -217,7 +251,7 @@ class Project(object):
         return len(self.pids())
 
     def killall(self, grace_s=0.5, max_tries=10):
-        log = self.log('killall')
+        log = self._log('killall')
         log("killing all processes by user with id %s"%self.uid)
         # we use both kill and pkill -- pkill seems better in theory, but I've definitely seen it get ignored.
         for i in range(max_tries):
@@ -231,7 +265,6 @@ class Project(object):
             self.cmd(['/usr/bin/killall', '-9', '-u', self.username], ignore_errors=True)
             self.cmd(['/usr/bin/pkill', '-9', '-u', self.uid], ignore_errors=True)
         log("WARNING: failed to kill all procs after %s tries"%MAX_TRIES)
-
 
     def gs_version(self):
         if not self.gs_path:
@@ -249,7 +282,6 @@ class Project(object):
             else:
                 # set from newest on GCS; don't cache, since could subsequently change, e.g., on save.
                 v = gs_ls(self.gs_path)
-                self._have_old_versions = len(v) > 1
                 return v[-1] if v else ''
 
     def delete_old_versions(self):
@@ -263,19 +295,10 @@ class Project(object):
             gsutil(['rm', '-R', p])
 
     def gs_ls(self):
+        # list contents of google cloud storage for this project
         if not self.gs_path:
             return []
-        # list contents of google cloud storage for this project
-        try:
-            p = os.path.join(self.gs_path, self.gs_version())
-            s = gsutil(['ls', p], ignore_errors=False)
-            i = len(p) + 1
-            return list(sorted([x[i:] for x in s.splitlines()]))
-        except Exception, mesg:
-            if 'matched no objects' in str(mesg):
-                return []
-            else:
-                raise
+        return gs_ls(os.path.join(self.gs_path, self.gs_version()))
 
     def gs_get(self, streams):
         if not self.gs_path:
@@ -373,8 +396,13 @@ class Project(object):
                 # TODO: need to chown smc_template so user can actually use it.
                 # TODO: need a command to *update* smc_path contents
 
+
     def quota(self, quota=0):  # quota in megabytes
         btrfs(['qgroup', 'limit', '%sm'%quota if quota else 'none', self.project_path])
+
+    def create_project_path(self):
+        btrfs(['subvolume', 'create', self.project_path])
+        os.chown(self.project_path, self.uid, self.uid)
 
     def open(self):
         if os.path.exists(self.project_path):
@@ -388,8 +416,7 @@ class Project(object):
 
         if not self.gs_path:
             # no google cloud storage configured, so just
-            btrfs(['subvolume', 'create', self.project_path])
-            os.chown(self.project_path, self.uid, self.uid)
+            self.create_project_path()
             self.create_snapshot_link()
             self.create_smc_path()
             self.create_user()
@@ -427,7 +454,7 @@ class Project(object):
         v = self.snapshot_ls()
         if len(v) == 0:
             if not os.path.exists(self.project_path):
-                btrfs(['subvolume', 'create', self.project_path])
+                self.create_project_path()
         else:
             source = os.path.join(self.snapshot_path, v[-1])
             btrfs(['subvolume', 'snapshot', source, self.project_path])
@@ -435,6 +462,50 @@ class Project(object):
         self.create_snapshot_link()
         self.create_smc_path()
         self.create_user()
+
+    def start(self):
+        self.open()
+        self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
+
+    def stop(self):
+        self.killall()
+        self.delete_user()
+
+    def btrfs_status(self):
+        return btrfs_subvolume_usage(self.project_path)
+
+    def status(self, running=False, stop_on_error=True):
+        log = self._log("status")
+        if running:
+            s = {}
+        else:
+            s = {'username':self.username, 'uid':self.uid}
+            s['load'] = [float(a.strip(',')) for a in os.popen('uptime').read().split()[-3:]]
+
+        if not os.path.exists(self.project_path) or self.username not in open('/etc/passwd').read():  # TODO: can be done better
+            s['running'] = False
+            return s
+
+        s['btrfs'] = self.btrfs_status()
+        try:
+            t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30)
+            t = json.loads(t)
+            s.update(t)
+            s['running'] = bool(t.get('local_hub.pid',False))
+            return s
+        except Exception, msg:
+            log("Error getting status -- %s"%msg)
+            # Original comment: important to actually let error propogate so that bup_server gets an error and knows things are
+            # messed up, namely there is a user created, but the status command isn't working at all.  In this
+            # case bup_server will know to try to kill this.
+            if stop_on_error:
+                # ** Actually, in practice sometimes the caller doesn't know
+                # to kill this project.   So we explicitly toss in a stop below,
+                # which will clean things up completely. **
+                self.stop()
+                return self.status(running=running, stop_on_error=False)  # try again
+            else:
+                raise
 
     def delete_old_snapshots(self, max_snapshots):
         v = self.snapshot_ls()
@@ -447,6 +518,8 @@ class Project(object):
         #   - take all max_snapshots/2 newest snapshots
         #   - take equally spaced remaining max_snapshots/2 snapshots
         # Note that the code below might leave a few extra snapshots.
+        # Maybe https://pypi.python.org/pypi/btrfs-sxbackup/0.5.4 has
+        # some better ideas!
         if max_snapshots == 0:
             delete = [s for s in v if not s.endswith(PERSIST)]
         else:
@@ -472,7 +545,6 @@ class Project(object):
     def gs_sync(self):
         if not self.gs_path:
             raise RuntimeError("can't remove since no gs bucket defined")
-        cmd("sync")
         v = self.snapshot_ls()
         if len(v) == 0:
             local_streams = set([])
@@ -516,9 +588,8 @@ class Project(object):
             self.delete_old_snapshots(max_snapshots)
         if self.gs_path:
             self.gs_sync()
-        if hasattr(self, '_have_old_versions') and self._have_old_versions:
-            # safe since we successfully saved
-            self.delete_old_versions()
+        # safe since we successfully saved project
+        self.delete_old_versions()
 
     def delete_snapshot(self, snapshot):
         target = os.path.join(self.snapshot_path, snapshot)
@@ -665,9 +736,14 @@ if __name__ == "__main__":
     def f(subparser, function):
         def g(args):
             special = [k for k in args.__dict__.keys() if k not in ['project_id', 'btrfs', 'bucket', 'func']]
+            out = []
             for project_id in args.project_id:
                 kwds = dict([(k,getattr(args, k)) for k in special])
-                getattr(Project(project_id=project_id, btrfs=args.btrfs, bucket=args.bucket), function)(**kwds)
+                out.append(getattr(Project(project_id=project_id, btrfs=args.btrfs, bucket=args.bucket), function)(**kwds))
+            if len(out) == 1:
+                print json.dumps(out[0])
+            else:
+                print json.dumps(out)
         subparser.add_argument("project_id", help="UUID of project", type=str, nargs="+")
         subparser.set_defaults(func=g)
 
@@ -680,6 +756,14 @@ if __name__ == "__main__":
 
     # open a project
     f(subparsers.add_parser('open', help='Open project'), 'open')
+
+    # start project running
+    f(subparsers.add_parser('start', help='Start project running (open and start daemon)'), 'start')
+
+    parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
+    parser_status.add_argument("--running", help="if given only return running part of status (easier to compute)",
+                                   dest="running", default=False, action="store_const", const=True)
+    f(parser_status, 'status')
 
     # set quota
     parser_quota = subparsers.add_parser('quota', help='Set the quota')
@@ -698,6 +782,10 @@ if __name__ == "__main__":
     # kill all processes by UNIX user for project
     parser_killall = subparsers.add_parser('killall', help='Kill all processes by this user')
     f(parser_killall, 'killall')
+
+    # kill all processes and delete unix user.
+    parser_stop = subparsers.add_parser('stop', help='Kill all processes and delete user')
+    f(parser_stop, 'stop')
 
     # close project -- deletes all local files
     parser_close = subparsers.add_parser('close',
