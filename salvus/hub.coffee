@@ -6318,10 +6318,8 @@ get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
 # Blobs
 ########################################
 
-# See note below about 12MB taking 26s once in production -- until that gets fixed, this must be kept small.
-# The drawback is that large images can't be rendered, etc.
-MAX_BLOB_SIZE = 1000000
-MAX_BLOB_SIZE_HUMAN = "1MB"
+MAX_BLOB_SIZE = 15000000
+MAX_BLOB_SIZE_HUMAN = "15B"
 
 blobs = {}
 
