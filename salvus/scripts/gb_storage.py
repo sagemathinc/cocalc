@@ -35,8 +35,11 @@
 
 GS = [G]oogle Cloud Storage / [B]trfs - based project storage system
 
+
 mkfs.btrfs /dev/sdb
 mount -o compress=lzo /dev/sdb /projects
+btrfs quota enable /projects/
+
 btrfs subvolume create /projects/sagemathcloud
 rsync -LrxvH /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
 
@@ -137,8 +140,6 @@ class Project(object):
                  project_id,                  # v4 uuid string
                  btrfs_mnt,                   # btrfs filesystem mount
                  bucket        = '',          # google cloud storage bucket (won't use gs/disable close if not given)
-                 quota         = 0,           # MB btrfs disk quota to impose on project
-                 max_snapshots = 0            # maximum number of snapshots to keep
                 ):
         try:
             u = uuid.UUID(project_id)
@@ -150,8 +151,6 @@ class Project(object):
         if not os.path.exists(self.btrfs_mnt):
             raise RuntimeError("mount point %s doesn't exist"%self.btrfs_mnt)
         self.project_id    = project_id
-        self.quota         = quota
-        self.max_snapshots = max_snapshots
         if bucket:
             self.gs_path       = os.path.join('gs://%s'%bucket, project_id, 'v0')
         else:
@@ -288,9 +287,10 @@ class Project(object):
                 # TODO: need to chown smc_template so user can actually use it.
                 # TODO: need a command to *update* smc_path contents
 
-    def open(self, allow_broken=False):
-        # allow_broken is due only to bugs during initial migration--delete after fix
+    def set_quota(self, quota_mb=0):
+        btrfs(['qgroup', 'limit', '%sm'%quota_mb if quota_mb else 'none', self.project_path])
 
+    def open(self):
         if os.path.exists(self.project_path):
             log("open: already open -- not doing anything")
             return
@@ -331,13 +331,7 @@ class Project(object):
         # download all streams from GCS with start >= newest_local
         missing_streams = [stream for stream in gs if newest_local == "" or stream.split(TO)[0] >= newest_local]
 
-        try:
-            downloaded = self.gs_get(missing_streams)
-        except RuntimeError, mesg:
-            if not allow_broken:
-                raise
-            else:
-                log("WARNING: some streams failed! -- %s"%mesg)
+        downloaded = self.gs_get(missing_streams)
 
         # make self.project_path equal the newest snapshot
         v = self.snapshot_ls()
@@ -351,7 +345,7 @@ class Project(object):
         self.create_snapshot_link()
         self.create_smc_path()
 
-    def delete_old_snapshots(self):
+    def delete_old_snapshots(self, max_snapshots):
         #TODO
         return
 
@@ -379,7 +373,7 @@ class Project(object):
         for stream in to_delete:
             self.gs_rm(stream)
 
-    def save(self, timestamp="", persist=False):  # persist=never automatically delete
+    def save(self, timestamp="", persist=False, max_snapshots=0):  # persist=never automatically delete
         if not timestamp:
             timestamp = time.strftime("%Y-%m-%d-%H%M%S")
         # figure out what to call the snapshot
@@ -389,7 +383,8 @@ class Project(object):
         log('creating snapshot %s', target)
         # create the snapshot
         btrfs(['subvolume', 'snapshot', '-r', self.project_path, target])
-        self.delete_old_snapshots()
+        if max_snapshots:
+            self.delete_old_snapshots(max_snapshots)
         if self.gs_path:
             self.gs_sync()
 
@@ -496,7 +491,7 @@ class Project(object):
         try:
             if not os.path.exists(self.project_path):
                 # for migrate, definitely only open if not already open
-                self.open(allow_broken=True)
+                self.open()
             if ':' in hostname:
                 remote = hostname
             else:
@@ -520,7 +515,7 @@ if __name__ == "__main__":
 
     def project(args):
         kwds = {}
-        for k in ['quota', 'project_id', 'btrfs', 'bucket', 'max_snapshots']:
+        for k in ['project_id', 'btrfs', 'bucket']:
             if hasattr(args, k):
                 if k == 'btrfs':
                     kwds['btrfs_mnt'] = getattr(args, k)
@@ -534,12 +529,15 @@ if __name__ == "__main__":
                         dest='bucket', default=os.environ.get("SMC_BUCKET",""), type=str)
 
     parser_open = subparsers.add_parser('open', help='')
-    parser_open.add_argument("--quota", help="quota in MB", default=0, type=int)
     parser_open.add_argument("project_id", help="", type=str)
     parser_open.set_defaults(func=lambda args: project(args).open())
 
+    parser_quota = subparsers.add_parser('quota', help='')
+    parser_quota.add_argument("quota", help="quota in MB (or 0 for no quota).", type=int)
+    parser_quota.add_argument("project_id", help="", type=str)
+    parser_quota.set_defaults(func=lambda args: project(args).set_quota(args.quota))
+
     parser_close = subparsers.add_parser('close', help='')
-    parser_close.add_argument("--max", help="maximum number of snapshots", dest="max", default=0, type=int)
     parser_close.add_argument("--force", help="force close even if google cloud storage not configured (so project lost)",
                              default=False, action="store_const", const=True)
     parser_close.add_argument("project_id", help="close this project removing all files from this local host (does NOT save first)", type=str)
@@ -550,12 +548,12 @@ if __name__ == "__main__":
     parser_destroy.set_defaults(func=lambda args: project(args).destroy())
 
     parser_save = subparsers.add_parser('save', help='')
-    parser_save.add_argument("--max", help="maximum number of snapshots", default=0, type=int)
+    parser_save.add_argument("--max_snapshots", help="maximum number of snapshots", default=0, type=int)
     parser_save.add_argument("--timestamp", help="optional timestamp in the form %Y-%m-%d-%H%M%S", default="", type=str)
     parser_save.add_argument("--persist", help="if given, won't automatically delete",
                              default=False, action="store_const", const=True)
     parser_save.add_argument("project_id", help="", type=str)
-    parser_save.set_defaults(func=lambda args: project(args).save(timestamp=args.timestamp, persist=args.persist))
+    parser_save.set_defaults(func=lambda args: project(args).save(timestamp=args.timestamp, max_snapshots=args.max_snapshots, persist=args.persist))
 
     parser_sync = subparsers.add_parser('sync', help='')
     parser_sync.add_argument("project_id", help="sync project with GCS, without first saving a new snapshot", type=str)
