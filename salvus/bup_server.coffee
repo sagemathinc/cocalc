@@ -2038,7 +2038,7 @@ class GlobalClient
             database : undefined   # connection to cassandra database
             keyspace : undefined
             cb       : required   # cb(err, @) -- called when initialized
-
+        winston.debug("making new GlobalClient")
         if not opts.database? and not opts.keyspace?
             opts.cb("one of database or keyspace must be specified")
             return
@@ -3392,6 +3392,7 @@ x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log(
                     if not project.ssh?
                         errors[project.project_id] = "project has no location WHAT THE HECK!"
                         dbg(misc.to_json(errors))
+                        cb()
                         return
                     try
                         misc_node.execute_code

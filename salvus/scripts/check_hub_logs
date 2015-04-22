@@ -21,7 +21,7 @@ def count(f, s, lines):
     return n
 
 def check(num):
-    strings = [('cql ERROR:',num), ('PoolConnectionError',num), ('debug: Uncaught exception:',num), ('There may have been an error creating your account',num)]
+    strings = [('cql ERROR:',num), ('PoolConnectionError',num), ('debug: Uncaught exception:',num), ('There may have been an error creating your account',num), ("here was an error signing you in",num)]
 
     for f in sorted(os.listdir(LOGS)):
         if f.startswith('hub-') and f.endswith('.log'):

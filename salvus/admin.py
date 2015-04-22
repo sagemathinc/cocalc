@@ -1458,6 +1458,7 @@ class Monitor(object):
         this = int(socket.gethostname()[5:]) # 'cloud[m]'
         v = []
         for n in range(1,8) + range(10,22):  # hard coded to our HARDWARE
+            if n == 16: continue  # host is dead
             if n == this:
                 if this == 3: # monitor runs on 10 and 3
                     other = '10'
@@ -1522,7 +1523,7 @@ class Monitor(object):
         ans = []
         for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=30).iteritems():
             d = {'host':k[0], 'service':'disk_usage'}
-            percent = int((' ' + v.get('stdout','100')).split()[0].strip().strip('%'))
+            percent = int((v.get('stdout','100') + ' 0').split()[0].strip().strip('%'))
             d['percent'] = percent
             if percent > disk_threshold:
                 d['status'] = 'down'
