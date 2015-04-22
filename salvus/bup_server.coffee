@@ -2040,7 +2040,7 @@ class GlobalClient
             database : undefined   # connection to cassandra database
             keyspace : undefined
             cb       : required   # cb(err, @) -- called when initialized
-
+        winston.debug("making new GlobalClient")
         if not opts.database? and not opts.keyspace?
             opts.cb("one of database or keyspace must be specified")
             return
@@ -3184,6 +3184,266 @@ class GlobalClient
         ], (err) =>
             opts.cb?(err, quotas)
         )
+
+    # returns sorted-by-last-edited list of objects (with newest first)
+    #    {last_edited:?, project_id:?,  server_id:?, ssh:?}
+    # where server_id is the id of the best server where the project is.
+    ###
+        x={};s=require('bup_server').global_client(keyspace:'devel', cb:(err,c)->console.log("err=",err);x.c=c;x.c.overview_projects(cb:(e,v)->console.log("DONE",e);x.v=v))
+    ###
+    overview_projects: (opts) =>
+        opts = defaults opts,
+            bad_servers : undefined  # array: don't allow any of these in server_id -- if hit, choose an alternative location
+            limit       : undefined
+            convert_time : true
+            cb          : required
+        dbg = (m) => winston.debug("project_dump: #{m}")
+        if opts.bad_servers?
+            bad_servers = {}
+            for x in opts.bad_servers
+                bad_servers[x] = true
+            dbg("bad_servers = #{misc.to_json(bad_servers)}")
+        projects = undefined
+        async.series([
+            (cb) =>
+                dbg("querying database for projects...")
+                @database.select
+                    table     : 'projects'
+                    columns   : ['project_id', 'last_edited', 'bup_location', 'bup_last_save']
+                    limit     : opts.limit
+                    objectify : true
+                    stream    : true
+                    cb        : (err, r) =>
+                        if err
+                            cb(err); return
+                        dbg("got #{r.length} projects; now processing")
+                        if bad_servers?
+                            for x in r
+                                if bad_servers[x.bup_location]
+                                    if x.bup_last_save?
+                                        for k in misc.keys(x.bup_last_save)
+                                            if not bad_servers[k]
+                                                x.bup_location = k
+                                                break
+                        r.sort (a,b) =>
+                            if a.last_edited < b.last_edited
+                                return 1
+                            else if a.last_edited > b.last_edited
+                                return -1
+                            else
+                                return 0
+                        projects = r  # to save memory (also why we process in place below)
+                        if opts.convert_time
+                            f = misc.date_to_snapshot_format
+                        else
+                            f = (x) -> x
+                        for i in [0...projects.length]
+                            x = projects[i]
+                            projects[i] = {last_edited:f(x.last_edited), project_id:x.project_id, server_id:x.bup_location}
+                        dbg("done processing projects (phase 1)")
+                        cb()
+            (cb) =>
+                dbg("query database for ssh targets")
+                @database.select
+                    table : 'storage_servers'
+                    columns : ['server_id', 'ssh']
+                    objectify : false
+                    cb        : (err, s) =>
+                        if err
+                            cb(err); return
+                        servers = {}
+                        for x in s
+                            servers[x[0]] = x[1]
+                        dbg("now re-processing projects")
+                        for project in projects
+                            project.ssh = servers[project.server_id]
+                        cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, projects)
+        )
+
+    # **one off code for migrating to google cloud storage**
+    # For each project not migrated to google cloud storage, migrate it by rsyncing from live.
+    # This should work on all projects, and *will* terminate on any errors.
+    ###
+db = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.240.97.10'], username:'hub', password:require('fs').readFileSync('data/secrets/cassandra/hub').toString().trim(), cb:console.log)
+x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log("err=",err);x.c=c;x.c.migrate_missing(query_limit:20000, test_limit:4, cb:(e)->console.log("DONE",e)))
+
+x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log("err=",err);x.c=c;x.c.migrate_missing(cb:(e)->console.log("DONE",e)))
+    ###
+    migrate_missing: (opts) =>
+        opts = defaults opts,
+            limit : 8  # number to do at once in parallel
+            test_limit : undefined # if given, only migrate first this many projects.
+            query_limit : undefined
+            cb    : undefined
+        dbg = (m) => winston.debug("migrate_missing: #{m}")
+        projects = undefined
+        done     = {}
+        async.series([
+            (cb) =>
+                async.parallel([
+                    (cb) =>
+                        dbg("getting overview of projects")
+                        @overview_projects
+                            bad_servers : ['0985aa3e-c5e9-400e-8faa-32e7d5399dab']
+                            limit       : opts.query_limit
+                            cb          : (err, x) =>
+                                if err
+                                    cb(err)
+                                else
+                                    dbg("got #{projects.length} projects")
+                                    projects = x
+                                    cb()
+                    (cb) =>
+                        dbg("getting list of migrated projects")
+                        misc_node.execute_code
+                            command : "gsutil"
+                            args    : ['ls', 'gs://smc-gb-storage']
+                            timeout : 300
+                            cb      : (err, output) =>
+                                if err
+                                    cb(err)
+                                else
+                                    for x in output.stdout.split('\n')
+                                        done[x.split('/')[3]] = true
+                                    dbg("got #{misc.len(done)} migrated projects")
+                                    cb()
+                ], cb)
+            (cb) =>
+                dbg("determine subset of non-migrated projects")
+                projects = (x for x in projects when not done[x.project_id])
+                if opts.test_limit
+                    projects = projects.slice(0, opts.test_limit)
+                dbg("#{projects.length} projects remain to be migrated")
+                i = 0
+                t = misc.walltime()
+                f = (project, cb) =>
+                    i += 1
+                    elapsed = misc.walltime() - t; avg = elapsed/i; remaining = (projects.length-i)*avg/60
+                    dbg("#{i}/#{projects.length}: time left = #{remaining}m")
+                    if not project.ssh?
+                        dbg("WARNING -- skipping projects with no location for now...")
+                        cb()
+                        return
+                    cmd = "time sudo /home/salvus/salvus/salvus/scripts/gb_storage.py migrate_live --close --port=2222 #{project.ssh[-1].split(':')[0]} #{project.project_id}"
+                    dbg(cmd)
+                    misc_node.execute_code
+                        command : cmd
+                        timeout : 5000
+                        cb      : (err, output) =>
+                            dbg(misc.to_json(output))
+                            cb(err)
+                async.mapLimit(projects, opts.limit, f, cb)
+        ], (err) =>
+            dbg("DONE!, err=#{err}")
+            opts.cb?(err)
+        )
+
+    # **one off code for migrating to google cloud storage**
+    # For each project modified recently, update it in google cloud storage
+    ###
+db = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.240.97.10'], username:'hub', password:require('fs').readFileSync('data/secrets/cassandra/hub').toString().trim(), cb:console.log)
+x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log("err=",err);x.c=c;x.c.migrate_update_recent(query_limit:60000, test_limit:4, max_age_h:24, cb:(e)->console.log("DONE",e)))
+
+x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log("err=",err);x.c=c;x.c.migrate_update_recent(max_age_h:1, cb:(e)->console.log("DONE",e)))
+    ###
+    migrate_update_recent: (opts) =>
+        opts = defaults opts,
+            limit       : 10  # number to do at once in parallel
+            test_limit  : undefined # if given, only migrate first this many projects.
+            query_limit : undefined
+            max_age_h   : 24   # max age of projects to update, in hours
+            oldest      : undefined # if given, take all projects with time at least this, ignoring max_age_h
+            cb          : undefined
+        dbg = (m) => winston.debug("migrate_missing: #{m}")
+        projects = undefined
+        if opts.oldest
+            oldest = opts.oldest - 0
+        else
+            oldest   = (new Date() - 0) - opts.max_age_h*60*60*1000
+        errors = {}
+        async.series([
+            (cb) =>
+                dbg("getting overview of projects")
+                @overview_projects
+                    bad_servers  : ['0985aa3e-c5e9-400e-8faa-32e7d5399dab']
+                    limit        : opts.query_limit
+                    convert_time : false
+                    cb           : (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("got #{projects.length} projects")
+                            projects = (project for project in x when project.last_edited >= oldest)
+                            dbg("of these, #{projects.length} projects are new")
+                            cb()
+            (cb) =>
+                if opts.test_limit
+                    projects = projects.slice(0, opts.test_limit)
+                dbg("#{projects.length} projects to be updaed")
+                i = 0
+                t = misc.walltime()
+                f = (project, cb) =>
+                    i += 1
+                    elapsed = misc.walltime() - t; avg = elapsed/i; remaining = (projects.length-i)*avg/60
+                    dbg("#{i}/#{projects.length}: time left = #{remaining}m")
+                    if not project.ssh?
+                        errors[project.project_id] = "project has no location WHAT THE HECK!"
+                        dbg(misc.to_json(errors))
+                        cb()
+                        return
+                    try
+                        misc_node.execute_code
+                            command : '/home/salvus/salvus/salvus/scripts/gb_storage.py'
+                            args    : ['migrate_live', '--port=2222', project.ssh[-1].split(':')[0], project.project_id]
+                            timeout : 5000
+                            cb      : (err, output) =>
+                                dbg(misc.to_json(output))
+                                cb(err)
+                    catch err
+                        error = "Error running code! #{err}"
+                        errors[project.project_id] = error
+                        dbg(misc.to_json(errors))
+                        cb()
+                async.mapLimit(projects, opts.limit, f, cb)
+        ], (err) =>
+            dbg("DONE!, err=#{err}")
+            dbg("ERRORS: #{misc.to_json(errors)}")
+            opts.cb?(err)
+        )
+
+    migrate_update_recent_loop: (opts) =>
+        opts = defaults opts,
+            limit       : 10
+            max_age_h   : 5   # start auto-update loop with all projects from this long ago.
+            sleep_m     : 10   # how long in minutes to sleep between each update loop
+            cb          : undefined
+        cycle = 0
+        oldest = new Date() - opts.max_age_h*60*60*1000
+        f = () =>
+            cycle += 1
+            winston.debug("CYCLE: #{cycle}")
+            last_start = new Date() - 0
+            winston.debug("running update to get everything from #{(new Date() - oldest)/1000/60/60} hours ago")
+            @migrate_update_recent
+                oldest : oldest
+                limit  : opts.limit
+                cb     : (err) =>
+                    winston.debug("Finished cycle #{cycle}")
+                    if err
+                        winston.debug("migrate_update_recent_loop ERROR: #{err}")
+                        opts.cb?(err)
+                    else
+                        oldest = last_start
+                        winston.debug("sleeping #{opts.sleep_m} minutes before looping again...")
+                        setTimeout(f, opts.sleep_m*60*1000)
+        f()
+
+
 
 
 ###########################

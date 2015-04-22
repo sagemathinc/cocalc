@@ -61,7 +61,7 @@
 
 # DC0:RAC0   cloud16
 10.1.16.1 dc0 kvm-host              cloud16
-10.1.16.5 dc0  kvm        compute-2     compute16dc0
+#10.1.16.5 dc0  kvm        compute-2     compute16dc0
 
 # DC0:RAC0   cloud17
 10.1.17.1 dc0 kvm-host              cloud17

@@ -1,0 +1,1 @@
+cd .. && . salvus-env && ./make_coffee && time sudo coffee migrate/go2.coffee

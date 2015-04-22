@@ -28,6 +28,5 @@ for i in range(10,22):
         host = 'cloud%s'%i
         port = 2222
     print host, port
-    cmd2("rsync -axvH -e 'ssh -o StrictHostKeyChecking=no -p %s' --bwlimit 100 --exclude='*/cache/' --delete root@%s:/bup/bups/ %s/%s/"%(port, host, target, target_dir))
+    cmd2("rsync -axvH -e 'ssh -o StrictHostKeyChecking=no -p %s' --bwlimit=1000 --exclude='*/cache/' --delete root@%s:/bup/bups/ %s/%s/"%(port, host, target, target_dir))
     cmd2("cd %s && mkdir -p ls-lt && time ls -lt --time-style=full-iso %s |grep -v ^total > ls-lt/%s"%(target, target_dir, target_dir))
-    import time; time.sleep(600)
