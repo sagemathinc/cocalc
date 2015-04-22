@@ -37,7 +37,7 @@ GS = [G]oogle Cloud Storage / [B]trfs - based project storage system
 
 
 mkfs.btrfs /dev/sdb
-mount -o compress=lzo /dev/sdb /projects
+mount -o compress-force=lzo,noatime /dev/sdb /projects
 btrfs quota enable /projects/
 
 btrfs subvolume create /projects/sagemathcloud
@@ -56,7 +56,10 @@ For dedup support:
 """
 
 # used in naming streams -- changing this would break all existing data...
-TO           = "-to-"
+TO      = "-to-"
+
+# appended to end of snapshot name to make it persistent (never automatically deleted)
+PERSIST = "-persist"
 
 import hashlib, os, re, shutil, signal, tempfile, time, uuid
 from subprocess import Popen, PIPE
@@ -185,15 +188,50 @@ class Project(object):
         self.uid = n if n>65537 else n+65537   # 65534 used by linux for user sync, etc.
         self.username = self.project_id.replace('-','')
 
+    def log(self, name=""):
+        def f(s='', *args):
+            log("Project(project_id=%s).%s(...): "%(self.project_id, name) + s, *args)
+        return f
+
+    def cmd(self, *args, **kwds):
+        log("Project(project_id=%s).cmd(...): ", self.project_id)
+        return cmd(*args, **kwds)
+
+    ###
+    # Users Management
+    ###
+
     def create_user(self, login_shell='/bin/bash'):
         cmd(['/usr/sbin/groupadd', '-g', self.uid, '-o', self.username], ignore_errors=True)
         cmd(['/usr/sbin/useradd',  '-u', self.uid, '-g', self.uid, '-o', self.username,
                   '-d', self.project_path, '-s', login_shell], ignore_errors=True)
 
     def delete_user(self):
-        username = self.username()
-        cmd(['/usr/sbin/userdel',  username], ignore_errors=True)
-        cmd(['/usr/sbin/groupdel', username], ignore_errors=True)
+        cmd(['/usr/sbin/userdel',  self.username], ignore_errors=True)
+        cmd(['/usr/sbin/groupdel', self.username], ignore_errors=True)
+
+    def pids(self):
+        return [int(x) for x in self.cmd(['pgrep', '-u', self.uid], ignore_errors=True).replace('ERROR','').split()]
+
+    def num_procs(self):
+        return len(self.pids())
+
+    def killall(self, grace_s=0.5, max_tries=10):
+        log = self.log('killall')
+        log("killing all processes by user with id %s"%self.uid)
+        # we use both kill and pkill -- pkill seems better in theory, but I've definitely seen it get ignored.
+        for i in range(max_tries):
+            n = self.num_procs()
+            log("kill attempt left %s procs"%n)
+            if n == 0:
+                return
+            self.cmd(['/usr/bin/killall', '-u', self.username], ignore_errors=True)
+            self.cmd(['/usr/bin/pkill', '-u', self.uid], ignore_errors=True)
+            time.sleep(grace_s)
+            self.cmd(['/usr/bin/killall', '-9', '-u', self.username], ignore_errors=True)
+            self.cmd(['/usr/bin/pkill', '-9', '-u', self.uid], ignore_errors=True)
+        log("WARNING: failed to kill all procs after %s tries"%MAX_TRIES)
+
 
     def gs_version(self):
         if not self.gs_path:
@@ -211,6 +249,7 @@ class Project(object):
             else:
                 # set from newest on GCS; don't cache, since could subsequently change, e.g., on save.
                 v = gs_ls(self.gs_path)
+                self._have_old_versions = len(v) > 1
                 return v[-1] if v else ''
 
     def delete_old_versions(self):
@@ -340,6 +379,7 @@ class Project(object):
     def open(self):
         if os.path.exists(self.project_path):
             log("open: already open -- not doing anything")
+            self.create_user()
             return
 
         if not os.path.exists(self.snapshot_path):
@@ -352,6 +392,7 @@ class Project(object):
             os.chown(self.project_path, self.uid, self.uid)
             self.create_snapshot_link()
             self.create_smc_path()
+            self.create_user()
             return
 
         # get a list of all streams in GCS
@@ -393,6 +434,7 @@ class Project(object):
         os.chown(self.project_path, self.uid, self.uid)
         self.create_snapshot_link()
         self.create_smc_path()
+        self.create_user()
 
     def delete_old_snapshots(self, max_snapshots):
         v = self.snapshot_ls()
@@ -401,21 +443,29 @@ class Project(object):
             return
 
         # Really stupid algorithm for now:
+        #   - keep all persistent snapshots
         #   - take all max_snapshots/2 newest snapshots
         #   - take equally spaced remaining max_snapshots/2 snapshots
         # Note that the code below might leave a few extra snapshots.
+        if max_snapshots == 0:
+            delete = [s for s in v if not s.endswith(PERSIST)]
+        else:
+            n = max(1, max_snapshots//2)
+            keep = v[-n:]
+            s = max(1, len(v)//2 // n)
+            i = 0
+            while i < len(v)-n:
+                keep.append(v[i])
+                i += s
+            # keep persistent snapshots
+            for s in v:
+                if s.endswith(PERSIST):
+                    keep.append(s)
+            keep = list(sorted(set(keep)))
+            log("keeping these snapshots: %s", keep)
+            delete = list(sorted(set(v).difference(keep)))
+            log("deleting these snapshots: %s", delete)
 
-        n = max(1, max_snapshots//2)
-        keep = v[-n:]
-        s = max(1, len(v)//2 // n)
-        i = 0
-        while i < len(v)-n:
-            keep.append(v[i])
-            i += s
-        keep.sort()
-        log("keeping these snapshots: %s", keep)
-        delete = list(set(v).difference(keep))
-        log("deleting these snapshots: %s", delete)
         for snapshot in delete:
             btrfs(['subvolume', 'delete', os.path.join(self.snapshot_path, snapshot)])
 
@@ -443,20 +493,32 @@ class Project(object):
         for stream in to_delete:
             self.gs_rm(stream)
 
-    def save(self, timestamp="", persist=False, max_snapshots=0):  # persist=never automatically delete
+    def save(self, timestamp="", persist=False, max_snapshots=0, dedup=False):
+        """
+        - persist =  make snapshot that we never automatically delete
+        - timestamp = make snapshot with that time
+        - max_snapshot - trim old snapshots
+        - dedup = run dedup before making the snapshot (dedup potentially saves a *lot* of space in size of stored files, but could take an hour!)
+        """
         if not timestamp:
             timestamp = time.strftime("%Y-%m-%d-%H%M%S")
         # figure out what to call the snapshot
         target = os.path.join(self.snapshot_path, timestamp)
         if persist:
-            target += "-persist"
+            target += PERSIST
         log('creating snapshot %s', target)
+        # dedup first
+        if dedup:
+            self.dedup()
         # create the snapshot
         btrfs(['subvolume', 'snapshot', '-r', self.project_path, target])
         if max_snapshots:
             self.delete_old_snapshots(max_snapshots)
         if self.gs_path:
             self.gs_sync()
+        if hasattr(self, '_have_old_versions') and self._have_old_versions:
+            # safe since we successfully saved
+            self.delete_old_versions()
 
     def delete_snapshot(self, snapshot):
         target = os.path.join(self.snapshot_path, snapshot)
@@ -468,6 +530,10 @@ class Project(object):
     def close(self, force=False):
         if not force and not self.gs_path:
             raise RuntimeError("refusing to close since you do not have google cloud storage configured, and project would just get deleted")
+        # kill all processes by user, since they may lock removing subvolumes
+        self.killall()
+        # delete unix user -- no longer needed
+        self.delete_user()
         # remove quota, since certain operations below may fail at quota
         self.quota(0)
         # delete snapshot subvolumes
@@ -493,20 +559,20 @@ class Project(object):
             if 'No URLs matched' not in str(mesg):
                 raise
 
-    def deduplicate(self):
+    def dedup(self, verbose=False):
         """
         Deduplicate the live filesystem.
 
         Uses https://github.com/markfasheh/duperemove
-
-        I tested this on an SSD on a 16GB project with three sage installs,
-        and it took 1.5 hours, and saved about 4GB.  So this isn't something
-        to just use lightly, or possibly ever.
         """
         # we use os.system, since the output is very verbose...
-        c = "duperemove -h -d -r '%s'/*"%self.project_path
+        c = "duperemove -h -d -r '%s'/* "%self.project_path
+        if not verbose:
+            c += "| tail -10"
         log(c)
+        t0 = time.time()
         os.system(c)
+        log("finished dedup (%s seconds)", time.time()-t0)
 
     def _exclude(self, prefix, prog='rsync'):
         eprefix = re.escape(prefix)
@@ -620,44 +686,66 @@ if __name__ == "__main__":
     parser_quota.add_argument("quota", help="quota in MB (or 0 for no quota).", type=int)
     f(parser_quota, 'quota')
 
+    # create UNIX user for project
     parser_create_user = subparsers.add_parser('create_user', help='Create the user')
     parser_create_user.add_argument("--login_shell", help="", type=str, default='/bin/bash')
     f(parser_create_user, 'create_user')
 
+    # delete UNIX user for project
     parser_delete_user = subparsers.add_parser('delete_user', help='Delete the user')
     f(parser_delete_user, 'delete_user')
 
+    # kill all processes by UNIX user for project
+    parser_killall = subparsers.add_parser('killall', help='Kill all processes by this user')
+    f(parser_killall, 'killall')
+
+    # close project -- deletes all local files
     parser_close = subparsers.add_parser('close',
                      help='Close this project removing all files from this local host (does *NOT* save first)')
     parser_close.add_argument("--force",
-                              help="force close even if google cloud storage not configured (so project lost)",
+                              help="force close even if GCS not configured (so project lost)",
                               default=False, action="store_const", const=True)
     f(parser_close, 'close')
 
+    # destroy project -- delete local files **and** files in Google cloud storage.
     parser_destroy = subparsers.add_parser('destroy',
                      help='Completely destroy this project **EVERYWHERE** (including cloud storage)')
     f(parser_destroy, 'destroy')
 
-    parser_save = subparsers.add_parser('save', help='')
-    parser_save.add_argument("--max_snapshots", help="maximum number of snapshots", default=0, type=int)
+    # save project
+    parser_save = subparsers.add_parser('save', help='snapshot project, delete old snapshots, sync with GCS')
+    parser_save.add_argument("--max_snapshots", help="maximum number of snapshots (if given may delete some snapshots)", default=0, type=int)
     parser_save.add_argument("--timestamp", help="optional timestamp in the form %Y-%m-%d-%H%M%S", default="", type=str)
     parser_save.add_argument("--persist", help="if given, won't automatically delete",
                              default=False, action="store_const", const=True)
+    parser_save.add_argument("--dedup", help="run dedup before making the snapshot -- can take a LONG time, but saves a lot on snapshots stored in GCS",
+                             default=False, action="store_const", const=True)
     f(parser_save, 'save')
 
+    # delete old snapshots in project
     parser_delete_old_snapshots = subparsers.add_parser('delete_old_snapshots', help='')
     parser_delete_old_snapshots.add_argument("max_snapshots", help="maximum number of snapshots", type=int)
     f(parser_delete_old_snapshots, 'delete_old_snapshots')
 
+    # sync project with GCS.
     parser_sync = subparsers.add_parser('sync', help='sync project with GCS, without first saving a new snapshot')
     f(parser_sync, 'gs_sync')
 
+    # delete a particular snapshot
     parser_delete_snapshot = subparsers.add_parser('delete_snapshot', help='delete a particular snapshot')
     parser_delete_snapshot.add_argument("snapshot", help="snapshot to delete", type=str)
     f(parser_delete_snapshot, 'delete_snapshot')
 
-    parser_deduplicate = subparsers.add_parser('deduplicate', help='deduplicate live project (WARNING: could take hours!)')
-    f(parser_deduplicate, 'deduplicate')
+    # delete the older versions of project from GCS, which get left in case
+    # project is opened on a new machine, where the btrfs uuid's are different.
+    f(subparsers.add_parser('delete_old_versions',
+                            help='Delete all old versions from Google cloud storage'), 'delete_old_versions')
+
+    # dedup contents of project -- might save disk space
+    parser_dedup = subparsers.add_parser('dedup',
+                            help='dedup live project (WARNING: could take a long time)')
+    parser_dedup.add_argument("--verbose", default=False, action="store_const", const=True)
+    f(parser_dedup, 'dedup')
 
     #parser_migrate = subparsers.add_parser('migrate', help='migrate project to new format')
     #parser_migrate.add_argument("--source", help="path to directory of project_id.tar bup repos or 'gsutil'", default="gsutil", type=str)
@@ -672,7 +760,7 @@ if __name__ == "__main__":
     #f(parser_migrate_live, 'migrate_live')
 
     # open a project
-    f(subparsers.add_parser('delete_old_versions', help='Delete all old versions from Google cloud storage'), 'delete_old_versions')
+
 
 
     args = parser.parse_args()
