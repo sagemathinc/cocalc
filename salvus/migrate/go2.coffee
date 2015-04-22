@@ -1,1 +1,5 @@
-db = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.240.97.10'], username:'hub', password:require('fs').readFileSync('data/secrets/cassandra/hub').toString().trim(), cb:(() -> x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log("err=",err);x.c=c;x.c.migrate_update_recent_loop(limit:8, max_age_h:24*9, cb:(e)->console.log("DONE",e)))))
+db = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.240.97.10'], username:'hub', password:require('fs').readFileSync('data/secrets/cassandra/hub').toString().trim())
+
+f = () ->
+    s=require('bup_server').global_client(database:db, cb:(err,c)->console.log("err=",err);c.migrate_update_recent_loop(limit:4, max_age_h:4, cb:(e)->console.log("DONE",e)))
+setTimeout(f, 5000)
