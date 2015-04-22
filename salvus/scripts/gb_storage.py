@@ -58,7 +58,7 @@ For dedup support:
 # used in naming streams -- changing this would break all existing data...
 TO           = "-to-"
 
-import os, re, shutil, signal, tempfile, time, uuid
+import hashlib, os, re, shutil, signal, tempfile, time, uuid
 from subprocess import Popen, PIPE
 
 def log(s, *args):
@@ -176,6 +176,24 @@ class Project(object):
         self.snapshot_path = os.path.join(snapshots, project_id)
         self.smc_path      = os.path.join(self.project_path, '.sagemathcloud')
 
+        # We take the sha-512 of the uuid just to make it harder to force a collision.  Thus even if a
+        # user could somehow generate an account id of their choosing, this wouldn't help them get the
+        # same uid as another user.
+        # 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
+        n = int(hashlib.sha512(self.project_id).hexdigest()[:8], 16)  # up to 2^32
+        n /= 2  # up to 2^31
+        self.uid = n if n>65537 else n+65537   # 65534 used by linux for user sync, etc.
+        self.username = self.project_id.replace('-','')
+
+    def create_user(self, login_shell='/bin/bash'):
+        cmd(['/usr/sbin/groupadd', '-g', self.uid, '-o', self.username], ignore_errors=True)
+        cmd(['/usr/sbin/useradd',  '-u', self.uid, '-g', self.uid, '-o', self.username,
+                  '-d', self.project_path, '-s', login_shell], ignore_errors=True)
+
+    def delete_user(self):
+        username = self.username()
+        cmd(['/usr/sbin/userdel',  username], ignore_errors=True)
+        cmd(['/usr/sbin/groupdel', username], ignore_errors=True)
 
     def gs_version(self):
         if not self.gs_path:
@@ -296,10 +314,14 @@ class Project(object):
         else:
             return list(sorted(cmd(['ls', self.snapshot_path]).splitlines()))
 
+    def chown(self, path):
+        cmd(["chown", "%s:%s"%(self.uid, self.uid), '-R', path])
+
     def create_snapshot_link(self):
         t = os.path.join(self.project_path, '.snapshots')
         if not os.path.exists(t):
             cmd(["ln", "-s", self.snapshot_path, t])
+            os.chown(t, self.uid, self.uid)
 
     def create_smc_path(self):
         if not os.path.exists(self.smc_path):
@@ -308,6 +330,7 @@ class Project(object):
                 log("WARNING: skipping creating %s since %s doesn't exist"%(self.smc_path, smc_template))
             else:
                 btrfs(['subvolume', 'snapshot', smc_template, self.smc_path])
+                self.chown(self.smc_path)
                 # TODO: need to chown smc_template so user can actually use it.
                 # TODO: need a command to *update* smc_path contents
 
@@ -321,10 +344,12 @@ class Project(object):
 
         if not os.path.exists(self.snapshot_path):
             btrfs(['subvolume', 'create', self.snapshot_path])
+            os.chown(self.snapshot_path, self.uid, self.uid)
 
         if not self.gs_path:
             # no google cloud storage configured, so just
             btrfs(['subvolume', 'create', self.project_path])
+            os.chown(self.project_path, self.uid, self.uid)
             self.create_snapshot_link()
             self.create_smc_path()
             return
@@ -365,7 +390,7 @@ class Project(object):
         else:
             source = os.path.join(self.snapshot_path, v[-1])
             btrfs(['subvolume', 'snapshot', source, self.project_path])
-
+        os.chown(self.project_path, self.uid, self.uid)
         self.create_snapshot_link()
         self.create_smc_path()
 
@@ -594,6 +619,13 @@ if __name__ == "__main__":
     parser_quota = subparsers.add_parser('quota', help='Set the quota')
     parser_quota.add_argument("quota", help="quota in MB (or 0 for no quota).", type=int)
     f(parser_quota, 'quota')
+
+    parser_create_user = subparsers.add_parser('create_user', help='Create the user')
+    parser_create_user.add_argument("--login_shell", help="", type=str, default='/bin/bash')
+    f(parser_create_user, 'create_user')
+
+    parser_delete_user = subparsers.add_parser('delete_user', help='Delete the user')
+    f(parser_delete_user, 'delete_user')
 
     parser_close = subparsers.add_parser('close',
                      help='Close this project removing all files from this local host (does *NOT* save first)')
