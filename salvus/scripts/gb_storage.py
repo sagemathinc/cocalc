@@ -25,7 +25,7 @@
 #
 #  - [ ] (3:00?) carry over all functionality *needed* from bup_storage.py
 #  - [ ] (1:00?) delete excessive snapshots: ???
-#  - [ ] (1:00?) delete old versions of streams
+#  - [x] (1:00?) delete old versions of streams
 #
 # MAYBE:
 #  - support 3 tiers of storage: /projects/ssd, /projects/hdd, /projects/ssd-local
@@ -48,6 +48,10 @@ Worry about tmp, e.g.,
     btrfs su create /projects/tmp
     chmod a+rwx /projects/tmp    # wrong.
     mount -o bind /projects/tmp /tmp/
+
+For dedup support:
+
+    cd /tmp && rm -rf duperemove && git clone https://github.com/markfasheh/duperemove && cd duperemove && sudo make install && rm -rf /tmp/duperemove
 
 """
 
@@ -366,8 +370,29 @@ class Project(object):
         self.create_smc_path()
 
     def delete_old_snapshots(self, max_snapshots):
-        #TODO
-        return
+        v = self.snapshot_ls()
+        if len(v) <= max_snapshots:
+            # nothing to do
+            return
+
+        # Really stupid algorithm for now:
+        #   - take all max_snapshots/2 newest snapshots
+        #   - take equally spaced remaining max_snapshots/2 snapshots
+        # Note that the code below might leave a few extra snapshots.
+
+        n = max(1, max_snapshots//2)
+        keep = v[-n:]
+        s = max(1, len(v)//2 // n)
+        i = 0
+        while i < len(v)-n:
+            keep.append(v[i])
+            i += s
+        keep.sort()
+        log("keeping these snapshots: %s", keep)
+        delete = list(set(v).difference(keep))
+        log("deleting these snapshots: %s", delete)
+        for snapshot in delete:
+            btrfs(['subvolume', 'delete', os.path.join(self.snapshot_path, snapshot)])
 
     def gs_sync(self):
         if not self.gs_path:
@@ -454,7 +479,9 @@ class Project(object):
         to just use lightly, or possibly ever.
         """
         # we use os.system, since the output is very verbose...
-        os.system("duperemove -h -d -r '%s'/*"%self.project_path)
+        c = "duperemove -h -d -r '%s'/*"%self.project_path
+        log(c)
+        os.system(c)
 
     def _exclude(self, prefix, prog='rsync'):
         eprefix = re.escape(prefix)
@@ -585,6 +612,10 @@ if __name__ == "__main__":
     parser_save.add_argument("--persist", help="if given, won't automatically delete",
                              default=False, action="store_const", const=True)
     f(parser_save, 'save')
+
+    parser_delete_old_snapshots = subparsers.add_parser('delete_old_snapshots', help='')
+    parser_delete_old_snapshots.add_argument("max_snapshots", help="maximum number of snapshots", type=int)
+    f(parser_delete_old_snapshots, 'delete_old_snapshots')
 
     parser_sync = subparsers.add_parser('sync', help='sync project with GCS, without first saving a new snapshot')
     f(parser_sync, 'gs_sync')
