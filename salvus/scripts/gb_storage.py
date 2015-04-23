@@ -489,7 +489,7 @@ class Project(object):
 
     def open(self):
         if os.path.exists(self.project_path):
-            log("open: already open -- not doing anything")
+            log("open: already open")
             self.create_user()
             return
 
@@ -505,7 +505,7 @@ class Project(object):
             os.chown(self.snapshot_path, self.uid, self.uid)
 
         if not self.gs_path:
-            # no google cloud storage configured, so just
+            # no google cloud storage configured
             self.create_project_path()
             self.create_snapshot_link()
             self.create_smc_path()
@@ -768,10 +768,9 @@ class Project(object):
 
         - path = relative path in project; *must* resolve to be under PROJECTS_PATH/project_id or get an error.
         """
-        project_path = self.project_path
-        abspath = os.path.abspath(os.path.join(project_path, path))
-        if not abspath.startswith(project_path):
-            raise RuntimeError("path (=%s) must be contained in project path %s"%(path, project_path))
+        abspath = os.path.abspath(os.path.join(self.project_path, path))
+        if not abspath.startswith(self.project_path):
+            raise RuntimeError("path (=%s) must be contained in project path %s"%(path, self.project_path))
         def get_file_mtime(name):
             try:
                 # use lstat instead of stat or getmtime so this works on broken symlinks!
@@ -829,6 +828,75 @@ class Project(object):
         result['files'] = [files[name] for name in sorted_names]
         return result
 
+    def read_file(self, path, maxsize):
+        """
+        path = relative path/filename in project
+
+        It:
+
+        - *must* resolve to be under PROJECTS_PATH/project_id or get an error
+        - it must have size in bytes less than the given limit
+        - to download the directory blah/foo, request blah/foo.zip
+
+        Returns base64-encoded file as an object:
+
+            {'base64':'... contents ...'}
+
+        or {'error':"error message..."} in case of an error.
+        """
+        abspath = os.path.abspath(os.path.join(self.project_path, path))
+        base, ext = os.path.splitext(abspath)
+        if not abspath.startswith(self.project_path):
+            raise RuntimeError("path (=%s) must be contained in project path %s"%(path, self.project_path))
+        if not os.path.exists(abspath):
+            if ext != '.zip':
+                raise RuntimeError("path (=%s) does not exist"%path)
+            else:
+                if os.path.exists(base) and os.path.isdir(base):
+                    abspath = os.path.splitext(abspath)[0]
+                else:
+                    raise RuntimeError("path (=%s) does not exist and neither does %s"%(path, base))
+
+        filename = os.path.split(abspath)[-1]
+        if os.path.isfile(abspath):
+            # a regular file
+            # TODO: compress the file before base64 encoding (and corresponding decompress in hub before sending to client)
+            size = os.lstat(abspath).st_size
+            if size > maxsize:
+                raise RuntimeError("path (=%s) must be at most %s bytes, but it is %s bytes"%(path, maxsize, size))
+            content = open(abspath).read()
+        else:
+            # a zip file in memory from a directory tree
+            # REFERENCES:
+            #   - http://stackoverflow.com/questions/1855095/how-to-create-a-zip-archive-of-a-directory
+            #   - https://support.google.com/accounts/answer/6135882
+            import zipfile
+            from cStringIO import StringIO
+            output  = StringIO()
+            relroot = os.path.abspath(os.path.join(abspath, os.pardir))
+
+            size = 0
+            zip = zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED, False)
+            for root, dirs, files in os.walk(abspath):
+                # add directory (needed for empty dirs)
+                zip.write(root, os.path.relpath(root, relroot))
+                for file in files:
+                    filename = os.path.join(root, file)
+                    if os.path.isfile(filename): # regular files only
+                        size += os.lstat(filename).st_size
+                        if size > maxsize:
+                            raise RuntimeError("path (=%s) must be at most %s bytes, but it is at least %s bytes"%(path, maxsize, size))
+                        arcname = os.path.join(os.path.relpath(root, relroot), file)
+                        zip.write(filename, arcname)
+
+            # Mark the files as having been created on Windows so that
+            # Unix permissions are not inferred as 0000.
+            for zfile in zip.filelist:
+                zfile.create_system = 0
+            zip.close()
+            content = output.getvalue()
+        import base64
+        return {'base64':base64.b64encode(content)}
 
     def migrate(self, update=False, source='gsutil'):
         if not update:
@@ -905,13 +973,21 @@ if __name__ == "__main__":
         def g(args):
             special = [k for k in args.__dict__.keys() if k not in ['project_id', 'btrfs', 'bucket', 'func']]
             out = []
+            errors = False
             for project_id in args.project_id:
                 kwds = dict([(k,getattr(args, k)) for k in special])
-                out.append(getattr(Project(project_id=project_id, btrfs=args.btrfs, bucket=args.bucket), function)(**kwds))
+                try:
+                    result = getattr(Project(project_id=project_id, btrfs=args.btrfs, bucket=args.bucket), function)(**kwds)
+                except Exception, mesg:
+                    errors = True
+                    result = {'error':str(mesg), 'project_id':project_id}
+                out.append(result)
             if len(out) == 1:
                 print json.dumps(out[0])
             else:
                 print json.dumps(out)
+            if errors:
+                sys.exit(1)
         subparser.add_argument("project_id", help="UUID of project", type=str, nargs="+")
         subparser.set_defaults(func=g)
 
@@ -1031,6 +1107,13 @@ if __name__ == "__main__":
                                    dest="limit", default=-1, type=int)
 
     f(parser_directory_listing, 'directory_listing')
+
+    parser_read_file = subparsers.add_parser('read_file',
+         help="read a file/directory; outputs {'base64':'..content..'}; use directory.zip to get directory/ as a zip")
+    parser_read_file.add_argument("path", help="relative path of a file/directory in project (required)", type=str)
+    parser_read_file.add_argument("--maxsize", help="maximum file size in bytes to read (bigger causes error)",
+                                   dest="maxsize", default=3000000, type=int)
+    f(parser_read_file, 'read_file')
 
     args = parser.parse_args()
     args.func(args)

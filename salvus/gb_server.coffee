@@ -3625,7 +3625,7 @@ class ClientProject
             maxsize : 3000000
             timeout : TIMEOUT
             cb      : required   # cb(err, Buffer)
-        param =  ["--path", opts.path, "--maxsize", opts.maxsize]
+        param =  [opts.path, "--maxsize", opts.maxsize]
         @action
             action  : 'read_file'
             param   : param
