@@ -61,6 +61,8 @@ TO      = "-to-"
 # appended to end of snapshot name to make it persistent (never automatically deleted)
 PERSIST = "-persist"
 
+UID_WHITELIST = "/root/smc-iptables/uid_whitelist"
+
 import hashlib, json, os, re, shutil, signal, sys, tempfile, time, uuid
 from subprocess import Popen, PIPE
 
@@ -173,10 +175,7 @@ def btrfs_subvolume_usage(subvolume, allow_rescan=True):
         return btrfs_subvolume_usage(subvolume, allow_rescan=False)
     return usage
 
-def gsutil(args, **kwds):
-    return cmd(['gsutil']+args, **kwds)
-
-def gs_ls(path):
+def gs_ls_nocache(path):
     i = len(path) + 1
     try:
         return [x[i:].strip('/') for x in sorted(gsutil(['ls', path]).splitlines())]
@@ -185,6 +184,31 @@ def gs_ls(path):
             return []
         else:
             raise
+
+# We cache the recursive listing until gsutil is called again, which is the only likely
+# way that the listing would change -- this is a short running script, run once for
+# each operation.  Doing "gsutil ls" has major latency (e.g., nearly a second).
+gs_ls_cache = {}
+def gs_ls(path):
+    v = path.split('/')
+    project_id = v[3]  # gs://smc-gb-storage-?/project_id/....
+    if project_id not in gs_ls_cache:
+        # refresh the cache
+        try:
+            gs_ls_cache[project_id] = gsutil(['ls', '/'.join(v[:4]) + "/**"], verbose=0).splitlines()
+        except Exception, mesg:
+            if 'matched no objects' in str(mesg):
+                gs_ls_cache[project_id] = []
+            else:
+                raise
+    i = len(path) + 1
+    r = list(sorted(set([x[i:].split('/')[0] for x in gs_ls_cache[project_id] if x.startswith(path)])))
+    log("gs_ls('%s') = %s"%(path, r))
+    return r
+
+def gsutil(args, **kwds):
+    gs_ls_cache.clear()
+    return cmd(['gsutil']+args, **kwds)
 
 class Project(object):
     def __init__(self,
@@ -291,7 +315,7 @@ class Project(object):
         versions = gs_ls(self.gs_path)
         for path in versions[:-1]:
             p = os.path.join(self.gs_path, path)
-            log("Deleting %s", p)
+            log("Deleting old version %s", p)
             gsutil(['rm', '-R', p])
 
     def gs_ls(self):
@@ -344,7 +368,7 @@ class Project(object):
     def gs_rm(self, stream):
         if not self.gs_path:
             raise RuntimeError("can't remove since no gs bucket defined")
-        gsutil(['rm', os.path.join(self.gs_path, self.gs_version(), stream)])
+        gsutil(['rm', '-R', os.path.join(self.gs_path, self.gs_version(), stream)])
 
     def gs_put(self, stream):
         if not self.gs_path:
@@ -397,8 +421,73 @@ class Project(object):
                 # TODO: need a command to *update* smc_path contents
 
 
-    def quota(self, quota=0):  # quota in megabytes
-        btrfs(['qgroup', 'limit', '%sm'%quota if quota else 'none', self.project_path])
+    def disk_quota(self, quota=0):  # quota in megabytes
+        if os.path.exists(self.project_path):
+            btrfs(['qgroup', 'limit', '%sm'%quota if quota else 'none', self.project_path])
+
+    def compute_quota(self, cores, memory, cpu_shares):
+        """
+        cores      - limit on number of cores
+        memory     - gigabytes of RAM
+        cpu_shares - determines relative share of cpu (e.g., 256=most users)
+        """
+        if cores <= 0:
+            cfs_quota = -1  # no limit
+        else:
+            cfs_quota = int(100000*cores)
+
+        self.cmd(["cgcreate", "-g", "memory,cpu:%s"%self.username])
+        open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sG"%memory)
+        open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(str(cpu_shares))
+        open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write(str(cfs_quota))
+
+        z = "\n%s  cpu,memory  %s\n"%(self.username, self.username)
+        cur = open("/etc/cgrules.conf").read() if os.path.exists("/etc/cgrules.conf") else ''
+
+        if z not in cur:
+            open("/etc/cgrules.conf",'a').write(z)
+            try:
+                pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
+                self.cmd(["cgclassify"] + pids, ignore_errors=True)
+                # ignore cgclassify errors, since processes come and go, etc.
+            except:
+                pass  # ps returns an error code if there are NO processes at all
+
+    def network_access(self, allow=True):
+        # open firewall whitelist for user if they have network access
+        restart_firewall = False
+        if not os.path.exists(UID_WHITELIST):
+            try:
+                open(UID_WHITELIST,'w').close()
+            except Exception, err:
+                log(err)
+        whitelisted_users = set([x.strip() for x in open(UID_WHITELIST).readlines()])
+        uid = str(self.uid)
+        if allow and uid not in whitelisted_users:
+            # add to whitelist and restart
+            whitelisted_users.add(uid)
+            restart_firewall = True
+        elif not network and uid in whitelisted_users:
+            # remove from whitelist and restart
+            whitelisted_users.remove(uid)
+            restart_firewall = True
+        if restart_firewall:
+            # THERE is a potential race condition here!  I would prefer to
+            # instead have files with names the
+            # uid's in a subdirectory, or something...
+            a = open(UID_WHITELIST,'w')
+            a.write('\n'.join(whitelisted_users)+'\n')
+            a.close()
+            self.cmd(['/root/smc-iptables/restart.sh'])
+
+    def cgclassify(self):
+        try:
+            pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
+            self.cmd(["cgclassify"] + pids, ignore_errors=True)
+            # ignore cgclassify errors, since processes come and go, etc.":
+        except:
+            # ps returns an error code if there are NO processes at all (a common condition).
+            pids = []
 
     def create_project_path(self):
         btrfs(['subvolume', 'create', self.project_path])
@@ -482,8 +571,12 @@ class Project(object):
             s = {'username':self.username, 'uid':self.uid}
             s['load'] = [float(a.strip(',')) for a in os.popen('uptime').read().split()[-3:]]
 
-        if not os.path.exists(self.project_path) or self.username not in open('/etc/passwd').read():  # TODO: can be done better
-            s['running'] = False
+        if not os.path.exists(self.project_path):
+            s['status'] = 'closed'
+            return s
+
+        if self.username not in open('/etc/passwd').read():  # TODO: can be done better
+            s['status'] = 'stopped'
             return s
 
         s['btrfs'] = self.btrfs_status()
@@ -491,7 +584,10 @@ class Project(object):
             t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30)
             t = json.loads(t)
             s.update(t)
-            s['running'] = bool(t.get('local_hub.pid',False))
+            if bool(t.get('local_hub.pid',False)):
+                s['status'] = 'running'
+            else:
+                s['status'] = 'opened'
             return s
         except Exception, msg:
             log("Error getting status -- %s"%msg)
@@ -598,15 +694,18 @@ class Project(object):
         if self.gs_path:
             self.gs_sync()
 
-    def close(self, force=False):
+    def close(self, force=False, nosave=False):
         if not force and not self.gs_path:
             raise RuntimeError("refusing to close since you do not have google cloud storage configured, and project would just get deleted")
+        # save and upload a snapshot first?
+        if not nosave:
+            self.save()
         # kill all processes by user, since they may lock removing subvolumes
         self.killall()
         # delete unix user -- no longer needed
         self.delete_user()
         # remove quota, since certain operations below may fail at quota
-        self.quota(0)
+        self.disk_quota(0)
         # delete snapshot subvolumes
         for x in self.snapshot_ls():
             btrfs(['subvolume', 'delete', os.path.join(self.snapshot_path, x)])
@@ -765,10 +864,17 @@ if __name__ == "__main__":
                                    dest="running", default=False, action="store_const", const=True)
     f(parser_status, 'status')
 
-    # set quota
-    parser_quota = subparsers.add_parser('quota', help='Set the quota')
-    parser_quota.add_argument("quota", help="quota in MB (or 0 for no quota).", type=int)
-    f(parser_quota, 'quota')
+    # disk quota
+    parser_disk_quota = subparsers.add_parser('disk_quota', help='set the disk quota')
+    parser_disk_quota.add_argument("disk_quota", help="disk_quota in MB (or 0 for no disk_quota).", type=int)
+    f(parser_disk_quota, 'disk_quota')
+
+    # compute quota
+    parser_compute_quota = subparsers.add_parser('compute_quota', help='Set the compute quotas')
+    parser_compute_quota.add_argument("cores", help="number of cores (default: 0=no limit)", type=int, default=0)
+    parser_compute_quota.add_argument("memory", help="gigabytes of RAM (0=no limit)", type=int, default=0)
+    parser_compute_quota.add_argument("cpu_shares", help="relative share of cpu (default: 256)", type=int, default=256)
+    f(parser_compute_quota, 'compute_quota')
 
     # create UNIX user for project
     parser_create_user = subparsers.add_parser('create_user', help='Create the user')
@@ -792,6 +898,9 @@ if __name__ == "__main__":
                      help='Close this project removing all files from this local host (does *NOT* save first)')
     parser_close.add_argument("--force",
                               help="force close even if GCS not configured (so project lost)",
+                              default=False, action="store_const", const=True)
+    parser_close.add_argument("--nosave",
+                              help="do not save a snapshot before close (will loose all data since last save)",
                               default=False, action="store_const", const=True)
     f(parser_close, 'close')
 
@@ -834,21 +943,6 @@ if __name__ == "__main__":
                             help='dedup live project (WARNING: could take a long time)')
     parser_dedup.add_argument("--verbose", default=False, action="store_const", const=True)
     f(parser_dedup, 'dedup')
-
-    #parser_migrate = subparsers.add_parser('migrate', help='migrate project to new format')
-    #parser_migrate.add_argument("--source", help="path to directory of project_id.tar bup repos or 'gsutil'", default="gsutil", type=str)
-    #f(parser_migrate, 'migrate')
-#
-    #parser_migrate_live = subparsers.add_parser('migrate_live', help='')
-    #parser_migrate_live.add_argument("--port", help="path to directory of project_id.tar bup repos or 'gsutil'", default=22, type=int)
-    #parser_migrate_live.add_argument("--verbose", default=False, action="store_const", const=True)
-    #parser_migrate_live.add_argument("--close", help="if given, close project after updating (default: DON'T CLOSE)",
-    #                                 default=False, action="store_const", const=True)
-    #parser_migrate_live.add_argument("hostname", help="hostname[:path]", type=str)
-    #f(parser_migrate_live, 'migrate_live')
-
-    # open a project
-
 
 
     args = parser.parse_args()
