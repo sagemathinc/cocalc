@@ -113,6 +113,24 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
         if timeout:
             signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
 
+def check_uuid(u):
+    try:
+        import uuid # this import takes over 0.1s
+        assert uuid.UUID(u).get_version() == 4
+    except (AssertionError, ValueError), mesg:
+        raise RuntimeError("invalid uuid (='%s')"%u)
+
+
+def uid(project_id):
+    # We take the sha-512 of the uuid just to make it harder to force a collision.  Thus even if a
+    # user could somehow generate an account id of their choosing, this wouldn't help them get the
+    # same uid as another user.
+    # 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
+    n = int(hashlib.sha512(project_id).hexdigest()[:8], 16)  # up to 2^32
+    n /= 2  # up to 2^31
+    return n if n>65537 else n+65537   # 65534 used by linux for user sync, etc.
+
+
 def thread_map(callable, inputs):
     """
     Computing [callable(args) for args in inputs]
@@ -232,15 +250,8 @@ class Project(object):
             btrfs(['subvolume', 'create', snapshots])
         self.snapshot_path = os.path.join(snapshots, project_id)
         self.smc_path      = os.path.join(self.project_path, '.sagemathcloud')
-
-        # We take the sha-512 of the uuid just to make it harder to force a collision.  Thus even if a
-        # user could somehow generate an account id of their choosing, this wouldn't help them get the
-        # same uid as another user.
-        # 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
-        n = int(hashlib.sha512(self.project_id).hexdigest()[:8], 16)  # up to 2^32
-        n /= 2  # up to 2^31
-        self.uid = n if n>65537 else n+65537   # 65534 used by linux for user sync, etc.
-        self.username = self.project_id.replace('-','')
+        self.uid           = uid(self.project_id)
+        self.username      = self.project_id.replace('-','')
 
     def _log(self, name=""):
         def f(s='', *args):
@@ -494,11 +505,7 @@ class Project(object):
             return
 
         # more carefully check uuid validity before actually making the project
-        try:
-            import uuid # this import takes over 0.1s
-            assert uuid.UUID(self.project_id).get_version() == 4
-        except (AssertionError, ValueError):
-            raise RuntimeError("invalid project uuid")
+        check_uuid(self.project_id)
 
         if not os.path.exists(self.snapshot_path):
             btrfs(['subvolume', 'create', self.snapshot_path])
@@ -745,22 +752,11 @@ class Project(object):
         os.system(c)
         log("finished dedup (%s seconds)", time.time()-t0)
 
-    def _exclude(self, prefix, prog='rsync'):
-        eprefix = re.escape(prefix)
-        excludes = ['core', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots', '.trash']
-        exclude_rxs = []
-        if prog == 'rsync':
-            excludes.append('*.sage-backup')
-        else: # prog == 'bup'
-            exclude_rxs.append(r'.*\.sage\-backup')
-
-        for i,x in enumerate(exclude_rxs):
-            # escape the prefix for the regexs
-            ex_len = len(re.escape(x))
-            exclude_rxs[i] = re.escape(os.path.join(prefix, x))
-            exclude_rxs[i] = exclude_rxs[i][:-ex_len]+x
-
-        return ['--exclude=%s'%os.path.join(prefix, x) for x in excludes] + ['--exclude-rx=%s'%x for x in exclude_rxs]
+    def _exclude(self, prefix=''):
+        return ['--exclude=%s'%os.path.join(prefix, x) for x in
+                ['core', '.sage/cache', '.sage/temp', '.npm',
+                 '.sagemathcloud', '.node-gyp', '.cache', '.forever',
+                 '.snapshots', '.trash', '*.sage-backup']]
 
     def directory_listing(self, path, hidden=True, time=True, start=0, limit=-1):
         """
@@ -860,7 +856,8 @@ class Project(object):
         filename = os.path.split(abspath)[-1]
         if os.path.isfile(abspath):
             # a regular file
-            # TODO: compress the file before base64 encoding (and corresponding decompress in hub before sending to client)
+            # TODO: compress the file before base64 encoding (and corresponding decompress
+            # in hub before sending to client)
             size = os.lstat(abspath).st_size
             if size > maxsize:
                 raise RuntimeError("path (=%s) must be at most %s bytes, but it is %s bytes"%(path, maxsize, size))
@@ -897,6 +894,86 @@ class Project(object):
             content = output.getvalue()
         import base64
         return {'base64':base64.b64encode(content)}
+
+
+    def copy_path(self,
+                  path,                   # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
+                  target_hostname = 'localhost', # list of hostnames (foo or foo:port) to copy files to
+                  target_project_id = "",      # project_id of destination for files; must be open on destination machine
+                  target_path     = "",   # path into project; if "", defaults to path above.
+                  overwrite_newer = False,# if True, newer files in target are copied over (otherwise, uses rsync's --update)
+                  delete          = False,# if True, delete files in dest path not in source, **including** newer files
+                  timeout         = None,
+                  bwlimit         = None
+                 ):
+        """
+        Copy a path (directory or file) from one project to another.
+
+        WARNING: btrfs projects mountpoint assumed same on target machine.
+        """
+        log = self._log("copy_path")
+
+        if not target_path:
+            target_path = path
+
+        # check that both UUID's are valid -- these will raise exception if there is a problem.
+        if not target_project_id:
+            target_project_id = self.project_id
+
+        check_uuid(target_project_id)
+
+        # parse out target rsync port, if necessary
+        if ':' in target_hostname:
+            target_hostname, target_port = target_hostname.split(':')
+        else:
+            target_port = '22'
+
+        # determine canonical absolute path to source
+        src_abspath = os.path.abspath(os.path.join(self.project_path, path))
+        if not src_abspath.startswith(self.project_path):
+            raise RuntimeError("source path (=%s) must be contained in project_path (=%s)"%(
+                    path, self.project_path))
+
+        # determine canonical absolute path to target
+        target_project_path = os.path.join(self.btrfs, target_project_id)
+        target_abspath = os.path.abspath(os.path.join(target_project_path, target_path))
+        if not target_abspath.startswith(target_project_path):
+            raise RuntimeError("target path (=%s) must be contained in target project path (=%s)"%(
+                    target_path, target_project_path))
+
+        if os.path.isdir(src_abspath):
+            src_abspath    += '/'
+            target_abspath += '/'
+
+        # handle options
+        options = []
+        if not overwrite_newer:
+            options.append("--update")
+        if delete:
+            # IMPORTANT: newly created files will be deleted even if overwrite_newer is True
+            options.append("--delete")
+        if bwlimit:
+            options.extend(["--bwlimit", bwlimit])
+        if timeout:
+            options.extend(["--timeout", timeout])
+
+        u = uid(target_project_id)
+        try:
+            # do the rsync
+            v = (['rsync'] + options +
+                     ['-zaxs',   # compressed, archive mode (so leave symlinks, etc.), don't cross filesystem boundaries
+                      '--chown=%s:%s'%(u,u),
+                      "--ignore-errors"] +
+                     self._exclude('') +
+                     ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%target_port,
+                      src_abspath,
+                      "%s:%s"%(target_hostname, target_abspath),
+                     ])
+            self.cmd(v)
+        except Exception, mesg:
+            log("rsync error: %s", mesg)
+            raise
+
 
     def migrate(self, update=False, source='gsutil'):
         if not update:
@@ -1114,6 +1191,21 @@ if __name__ == "__main__":
     parser_read_file.add_argument("--maxsize", help="maximum file size in bytes to read (bigger causes error)",
                                    dest="maxsize", default=3000000, type=int)
     f(parser_read_file, 'read_file')
+
+    parser_copy_path = subparsers.add_parser('copy_path', help='copy a path from one project to another')
+    parser_copy_path.add_argument("--target_hostname", help="hostname of target machine for copy (default: localhost)",
+                                  dest="target_hostname", default='localhost', type=str)
+    parser_copy_path.add_argument("--target_project_id", help="id of target project (default: this project)",
+                                   dest="target_project_id", default="", type=str)
+    parser_copy_path.add_argument("--path", help="relative path or filename in project",
+                                  dest="path", default='', type=str)
+    parser_copy_path.add_argument("--target_path", help="relative path into target project (defaults to --path)",
+                                   dest="target_path", default='', type=str)
+    parser_copy_path.add_argument("--overwrite_newer", help="if given, newer files in target are copied over",
+                                   dest="overwrite_newer", default=False, action="store_const", const=True)
+    parser_copy_path.add_argument("--delete", help="if given, delete files in dest path not in source",
+                                   dest="delete", default=False, action="store_const", const=True)
+    f(parser_copy_path, 'copy_path')
 
     args = parser.parse_args()
     args.func(args)
