@@ -63,7 +63,7 @@ PERSIST = "-persist"
 
 UID_WHITELIST = "/root/smc-iptables/uid_whitelist"
 
-import hashlib, json, os, re, shutil, signal, sys, tempfile, time, uuid
+import hashlib, json, os, re, shutil, signal, sys, tempfile, time
 from subprocess import Popen, PIPE
 
 def log(s, *args):
@@ -216,11 +216,7 @@ class Project(object):
                  btrfs,               # btrfs filesystem mount
                  bucket        = '',  # google cloud storage bucket (won't use gs/disable close if not given)
                 ):
-        try:
-            u = uuid.UUID(project_id)
-            assert u.get_version() == 4
-            project_id = str(u)  # leaving off dashes still makes a valid uuid in python
-        except (AssertionError, ValueError):
+        if len(project_id) != 36:
             raise RuntimeError("invalid project uuid='%s'"%project_id)
         self.btrfs     = btrfs
         if not os.path.exists(self.btrfs):
@@ -497,6 +493,13 @@ class Project(object):
             self.create_user()
             return
 
+        # more carefully check uuid validity before actually making the project
+        try:
+            import uuid # this import takes over 0.1s
+            assert uuid.UUID(self.project_id).get_version() == 4
+        except (AssertionError, ValueError):
+            raise RuntimeError("invalid project uuid")
+
         if not os.path.exists(self.snapshot_path):
             btrfs(['subvolume', 'create', self.snapshot_path])
             os.chown(self.snapshot_path, self.uid, self.uid)
@@ -759,6 +762,74 @@ class Project(object):
 
         return ['--exclude=%s'%os.path.join(prefix, x) for x in excludes] + ['--exclude-rx=%s'%x for x in exclude_rxs]
 
+    def directory_listing(self, path, hidden=True, time=True, start=0, limit=-1):
+        """
+        Return in JSON-format, listing of files in the given path.
+
+        - path = relative path in project; *must* resolve to be under PROJECTS_PATH/project_id or get an error.
+        """
+        project_path = self.project_path
+        abspath = os.path.abspath(os.path.join(project_path, path))
+        if not abspath.startswith(project_path):
+            raise RuntimeError("path (=%s) must be contained in project path %s"%(path, project_path))
+        def get_file_mtime(name):
+            try:
+                # use lstat instead of stat or getmtime so this works on broken symlinks!
+                return int(round(os.lstat(os.path.join(abspath, name)).st_mtime))
+            except:
+                # ?? This should never happen, but maybe if race condition. ??
+                return 0
+
+        def get_file_size(name):
+            try:
+                # same as above; use instead of os.path....
+                return os.lstat(os.path.join(abspath, name)).st_size
+            except:
+                return -1
+
+
+        listdir = os.listdir(abspath)
+        result = {}
+        if not hidden:
+            listdir = [x for x in listdir if not x.startswith('.')]
+
+        # Get list of (name, timestamp) pairs
+        all = [(name, get_file_mtime(name)) for name in listdir]
+
+        if time:
+            # sort by time first with bigger times first, then by filename in normal order
+            def f(a,b):
+                if a[1] > b[1]:
+                    return -1
+                elif a[1] < b[1]:
+                    return 0
+                else:
+                    return cmp(a[0], b[0])
+            all.sort(f)
+        else:
+            all.sort()  # usual sort is fine
+
+        # Limit and convert to objects
+        all = all[start:]
+        if limit > 0 and len(all) > limit:
+            result['more'] = True
+            all = all[:limit]
+
+        files = dict([(name, {'name':name, 'mtime':mtime}) for name, mtime in all])
+        sorted_names = [x[0] for x in all]
+
+        # Fill in other OS information about each file
+        #for obj in result:
+        for name, info in files.iteritems():
+            if os.path.isdir(os.path.join(abspath, name)):
+                info['isdir'] = True
+            else:
+                info['size'] = get_file_size(name)
+
+        result['files'] = [files[name] for name in sorted_names]
+        return result
+
+
     def migrate(self, update=False, source='gsutil'):
         if not update:
             try:
@@ -947,6 +1018,19 @@ if __name__ == "__main__":
     parser_dedup.add_argument("--verbose", default=False, action="store_const", const=True)
     f(parser_dedup, 'dedup')
 
+    # directory listing
+    parser_directory_listing = subparsers.add_parser('directory_listing', help='list files (and info about them) in a directory in the project')
+    parser_directory_listing.add_argument("--path", help="relative path in project", dest="path", default='', type=str)
+    parser_directory_listing.add_argument("--hidden", help="if given, show hidden files",
+                                   dest="hidden", default=False, action="store_const", const=True)
+    parser_directory_listing.add_argument("--time", help="if given, sort by time with newest first",
+                                   dest="time", default=False, action="store_const", const=True)
+    parser_directory_listing.add_argument("--start", help="return only part of listing starting with this position (default: 0)",
+                                   dest="start", default=0, type=int)
+    parser_directory_listing.add_argument("--limit", help="if given, only return this many directory entries (default: -1)",
+                                   dest="limit", default=-1, type=int)
+
+    f(parser_directory_listing, 'directory_listing')
 
     args = parser.parse_args()
     args.func(args)
