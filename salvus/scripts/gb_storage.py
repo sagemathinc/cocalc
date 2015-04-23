@@ -453,8 +453,9 @@ class Project(object):
             except:
                 pass  # ps returns an error code if there are NO processes at all
 
-    def network_access(self, allow=True):
+    def network(self, ban=False):
         # open firewall whitelist for user if they have network access
+        allow = not ban
         restart_firewall = False
         if not os.path.exists(UID_WHITELIST):
             try:
@@ -467,7 +468,7 @@ class Project(object):
             # add to whitelist and restart
             whitelisted_users.add(uid)
             restart_firewall = True
-        elif not network and uid in whitelisted_users:
+        elif not allow and uid in whitelisted_users:
             # remove from whitelist and restart
             whitelisted_users.remove(uid)
             restart_firewall = True
@@ -875,6 +876,11 @@ if __name__ == "__main__":
     parser_compute_quota.add_argument("--memory", help="megabytes of RAM (default: 1000) int", type=int, default=1)
     parser_compute_quota.add_argument("--cpu_shares", help="relative share of cpu (default: 256) int", type=int, default=256)
     f(parser_compute_quota, 'compute_quota')
+
+    parser_network = subparsers.add_parser('network', help='allow or ban network access for this user')
+    parser_network.add_argument("--ban", help="if given ban access to network (otherwise grant access)",
+                                   dest="ban", default=False, action="store_const", const=True)
+    f(parser_network, 'network')
 
     # create UNIX user for project
     parser_create_user = subparsers.add_parser('create_user', help='Create the user')
