@@ -1069,17 +1069,17 @@ if __name__ == "__main__":
         subparser.set_defaults(func=g)
 
     # optional arguments to all subcommands
-    parser.add_argument("--btrfs", help="BTRFS mountpoint [default: /projects or $SMC_BTRFS if set]",
+    parser.add_argument("--btrfs", help="btrfs mountpoint [default: /projects or $SMC_BTRFS if set]",
                         dest="btrfs", default=os.environ.get("SMC_BTRFS","/projects"), type=str)
     parser.add_argument("--bucket",
-                        help="Google Cloud storage bucket [default: $SMC_BUCKET or ''=do not use google cloud storage]",
+                        help="google cloud storage bucket [default: $SMC_BUCKET or ''=do not use google cloud storage]",
                         dest='bucket', default=os.environ.get("SMC_BUCKET",""), type=str)
 
     # open a project
     f(subparsers.add_parser('open', help='Open project'), 'open')
 
     # start project running
-    f(subparsers.add_parser('start', help='Start project running (open and start daemon)'), 'start')
+    f(subparsers.add_parser('start', help='start project running (open and start daemon)'), 'start')
 
     parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
     parser_status.add_argument("--running", help="if given only return running part of status (easier to compute)",
@@ -1087,12 +1087,12 @@ if __name__ == "__main__":
     f(parser_status, 'status')
 
     # disk quota
-    parser_disk_quota = subparsers.add_parser('disk_quota', help='set the disk quota')
+    parser_disk_quota = subparsers.add_parser('disk_quota', help='set disk quota')
     parser_disk_quota.add_argument("disk_quota", help="disk_quota in MB (or 0 for no disk_quota).", type=int)
     f(parser_disk_quota, 'disk_quota')
 
     # compute quota
-    parser_compute_quota = subparsers.add_parser('compute_quota', help='Set the compute quotas')
+    parser_compute_quota = subparsers.add_parser('compute_quota', help='set compute quotas')
     parser_compute_quota.add_argument("--cores", help="number of cores (default: 1) float", type=float, default=1)
     parser_compute_quota.add_argument("--memory", help="megabytes of RAM (default: 1000) int", type=int, default=1)
     parser_compute_quota.add_argument("--cpu_shares", help="relative share of cpu (default: 256) int", type=int, default=256)
@@ -1103,28 +1103,28 @@ if __name__ == "__main__":
                                    dest="ban", default=False, action="store_const", const=True)
     f(parser_network, 'network')
 
-    # create UNIX user for project
-    parser_create_user = subparsers.add_parser('create_user', help='Create the user')
+    # create Linux user for project
+    parser_create_user = subparsers.add_parser('create_user', help='create Linux user')
     parser_create_user.add_argument("--login_shell", help="", type=str, default='/bin/bash')
     f(parser_create_user, 'create_user')
 
-    # delete UNIX user for project
-    parser_delete_user = subparsers.add_parser('delete_user', help='Delete the user')
+    # delete Linux user for project
+    parser_delete_user = subparsers.add_parser('delete_user', help='delete Linux user')
     f(parser_delete_user, 'delete_user')
 
-    # kill all processes by UNIX user for project
-    parser_killall = subparsers.add_parser('killall', help='Kill all processes by this user')
+    # kill all processes by Linux user for project
+    parser_killall = subparsers.add_parser('killall', help='kill all processes by this user')
     f(parser_killall, 'killall')
 
     # kill all processes and delete unix user.
-    parser_stop = subparsers.add_parser('stop', help='Kill all processes and delete user')
+    parser_stop = subparsers.add_parser('stop', help='kill all processes and delete user')
     f(parser_stop, 'stop')
 
     # close project -- deletes all local files
     parser_close = subparsers.add_parser('close',
-                     help='Close this project removing all files from this local host (does *NOT* save first)')
+                     help='close this project removing all files from this local host (does *NOT* save first)')
     parser_close.add_argument("--force",
-                              help="force close even if GCS not configured (so project lost)",
+                              help="force close even if google cloud storage not configured (so project lost)",
                               default=False, action="store_const", const=True)
     parser_close.add_argument("--nosave",
                               help="do not save a snapshot before close (will loose all data since last save)",
@@ -1133,26 +1133,26 @@ if __name__ == "__main__":
 
     # destroy project -- delete local files **and** files in Google cloud storage.
     parser_destroy = subparsers.add_parser('destroy',
-                     help='Completely destroy this project **EVERYWHERE** (including cloud storage)')
+                     help='DANGEROUS -- completely destroy this project **EVERYWHERE** (including cloud storage)')
     f(parser_destroy, 'destroy')
 
     # save project
-    parser_save = subparsers.add_parser('save', help='snapshot project, delete old snapshots, sync with GCS')
+    parser_save = subparsers.add_parser('save', help='snapshot project, delete old snapshots, sync with google cloud storage')
     parser_save.add_argument("--max_snapshots", help="maximum number of snapshots (if given may delete some snapshots)", default=0, type=int)
     parser_save.add_argument("--timestamp", help="optional timestamp in the form %Y-%m-%d-%H%M%S", default="", type=str)
     parser_save.add_argument("--persist", help="if given, won't automatically delete",
                              default=False, action="store_const", const=True)
-    parser_save.add_argument("--dedup", help="run dedup before making the snapshot -- can take a LONG time, but saves a lot on snapshots stored in GCS",
+    parser_save.add_argument("--dedup", help="run dedup before making the snapshot -- can take a LONG time, but saves a lot on snapshots stored in google cloud storage",
                              default=False, action="store_const", const=True)
     f(parser_save, 'save')
 
     # delete old snapshots in project
-    parser_delete_old_snapshots = subparsers.add_parser('delete_old_snapshots', help='')
+    parser_delete_old_snapshots = subparsers.add_parser('delete_old_snapshots', help='delete some snapshots, mainly by deleting older ones')
     parser_delete_old_snapshots.add_argument("max_snapshots", help="maximum number of snapshots", type=int)
     f(parser_delete_old_snapshots, 'delete_old_snapshots')
 
-    # sync project with GCS.
-    parser_sync = subparsers.add_parser('sync', help='sync project with GCS, without first saving a new snapshot')
+    # sync project with google cloud storage.
+    parser_sync = subparsers.add_parser('sync', help='sync project with google cloud storage, without first saving a new snapshot')
     f(parser_sync, 'gs_sync')
 
     # delete a particular snapshot
@@ -1160,10 +1160,10 @@ if __name__ == "__main__":
     parser_delete_snapshot.add_argument("snapshot", help="snapshot to delete", type=str)
     f(parser_delete_snapshot, 'delete_snapshot')
 
-    # delete the older versions of project from GCS, which get left in case
+    # delete the older versions of project from google cloud storage, which get left in case
     # project is opened on a new machine, where the btrfs uuid's are different.
     f(subparsers.add_parser('delete_old_versions',
-                            help='Delete all old versions from Google cloud storage'), 'delete_old_versions')
+                            help='delete all old versions from Google cloud storage'), 'delete_old_versions')
 
     # dedup contents of project -- might save disk space
     parser_dedup = subparsers.add_parser('dedup',
