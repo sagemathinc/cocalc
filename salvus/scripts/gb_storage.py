@@ -427,8 +427,8 @@ class Project(object):
 
     def compute_quota(self, cores, memory, cpu_shares):
         """
-        cores      - limit on number of cores
-        memory     - gigabytes of RAM
+        cores      - number of cores (float)
+        memory     - megabytes of RAM (int)
         cpu_shares - determines relative share of cpu (e.g., 256=most users)
         """
         if cores <= 0:
@@ -437,7 +437,7 @@ class Project(object):
             cfs_quota = int(100000*cores)
 
         self.cmd(["cgcreate", "-g", "memory,cpu:%s"%self.username])
-        open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sG"%memory)
+        open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sM"%memory)
         open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(str(cpu_shares))
         open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write(str(cfs_quota))
 
@@ -871,9 +871,9 @@ if __name__ == "__main__":
 
     # compute quota
     parser_compute_quota = subparsers.add_parser('compute_quota', help='Set the compute quotas')
-    parser_compute_quota.add_argument("cores", help="number of cores (default: 0=no limit)", type=int, default=0)
-    parser_compute_quota.add_argument("memory", help="gigabytes of RAM (0=no limit)", type=int, default=0)
-    parser_compute_quota.add_argument("cpu_shares", help="relative share of cpu (default: 256)", type=int, default=256)
+    parser_compute_quota.add_argument("--cores", help="number of cores (default: 1) float", type=float, default=1)
+    parser_compute_quota.add_argument("--memory", help="megabytes of RAM (default: 1000) int", type=int, default=1)
+    parser_compute_quota.add_argument("--cpu_shares", help="relative share of cpu (default: 256) int", type=int, default=256)
     f(parser_compute_quota, 'compute_quota')
 
     # create UNIX user for project
