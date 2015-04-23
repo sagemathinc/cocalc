@@ -454,32 +454,29 @@ class Project(object):
                 pass  # ps returns an error code if there are NO processes at all
 
     def network(self, ban=False):
-        # open firewall whitelist for user if they have network access
-        allow = not ban
-        restart_firewall = False
+        """
+        Open or ban outgoing network for user.
+        """
+        # Change the appropriate iptables firewall rule
+        self.cmd(["iptables", "-v", "-I", "OUTPUT", "-m", "owner",
+                  "--uid-owner", self.uid, "-j", "DROP" if ban else "ACCEPT"])
+        # Rest of this just edits the uid whitelist file so that if/when
+        # the system-wide firewall is restarted (e.g. to add/remove entries, at
+        # least until I fix it so that that restart isn't required), then
+        # this user will have the correct network access state.
+        change_whitelist = False
         if not os.path.exists(UID_WHITELIST):
-            try:
-                open(UID_WHITELIST,'w').close()
-            except Exception, err:
-                log(err)
+            open(UID_WHITELIST,'w').close()
         whitelisted_users = set([x.strip() for x in open(UID_WHITELIST).readlines()])
         uid = str(self.uid)
-        if allow and uid not in whitelisted_users:
-            # add to whitelist and restart
+        if not ban and uid not in whitelisted_users:
             whitelisted_users.add(uid)
-            restart_firewall = True
-        elif not allow and uid in whitelisted_users:
-            # remove from whitelist and restart
+            change_whitelist = True
+        elif ban and uid in whitelisted_users:
             whitelisted_users.remove(uid)
-            restart_firewall = True
-        if restart_firewall:
-            # THERE is a potential race condition here!  I would prefer to
-            # instead have files with names the
-            # uid's in a subdirectory, or something...
-            a = open(UID_WHITELIST,'w')
-            a.write('\n'.join(whitelisted_users)+'\n')
-            a.close()
-            self.cmd(['/root/smc-iptables/restart.sh'])
+            change_whitelist = True
+        if change_whitelist:
+            open(UID_WHITELIST,'w').write('\n'.join(whitelisted_users)+'\n')
 
     def cgclassify(self):
         try:
