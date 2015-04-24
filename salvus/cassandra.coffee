@@ -501,7 +501,9 @@ class exports.Cassandra extends EventEmitter
                     x = val
                     op = '=='
                 else
-                    assert(val?, "val must be defined -- there's a bug somewhere: _where(#{to_json(where_key)}, #{to_json(vals)}, #{to_json(json)})")
+                    # DO **NOT** enable this except for very specific debugging, and then disable it.  The time to construct the
+                    # string below could be huge.  e.g., saving BLOBS = 25 seconds!
+                    # assert(val?, "val must be defined -- there's a bug somewhere: _where(#{to_json(where_key)}, #{to_json(vals)}, #{to_json(json)})")
                     x = val[op]
                 if x?
                     if key in json
