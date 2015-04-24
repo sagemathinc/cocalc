@@ -39,6 +39,7 @@ GS = [G]oogle Cloud Storage / [B]trfs - based project storage system
 mkfs.btrfs /dev/sdb
 mount -o compress-force=lzo,noatime /dev/sdb /projects
 btrfs quota enable /projects/
+chmod og-rw /projects && chmod og+x /projects
 
 btrfs subvolume create /projects/sagemathcloud
 rsync -LrxvH /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
@@ -63,13 +64,18 @@ PERSIST = "-persist"
 
 UID_WHITELIST = "/root/smc-iptables/uid_whitelist"
 
-import hashlib, json, os, re, shutil, signal, sys, tempfile, time
+TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
+
+import hashlib, json, os, re, shutil, signal, stat, sys, tempfile, time
 from subprocess import Popen, PIPE
 
 def log(s, *args):
     if args:
-        s = s%args
-    sys.stderr.write(str(s)+'\n')
+        try:
+            s = str(s%args)
+        except Exception, mesg:
+            s = str(mesg) + str(s)
+    sys.stderr.write(s+'\n')
     sys.stderr.flush()
 
 def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
@@ -210,17 +216,18 @@ gs_ls_cache = {}
 def gs_ls(path):
     v = path.split('/')
     project_id = v[3]  # gs://smc-gb-storage-?/project_id/....
-    if project_id not in gs_ls_cache:
+    key = project_id+v[2]
+    if key not in gs_ls_cache:
         # refresh the cache
         try:
-            gs_ls_cache[project_id] = gsutil(['ls', '/'.join(v[:4]) + "/**"], verbose=0).splitlines()
+            gs_ls_cache[key] = gsutil(['ls', '/'.join(v[:4]) + "/**"], verbose=0).splitlines()
         except Exception, mesg:
             if 'matched no objects' in str(mesg):
-                gs_ls_cache[project_id] = []
+                gs_ls_cache[key] = []
             else:
                 raise
     i = len(path) + 1
-    r = list(sorted(set([x[i:].split('/')[0] for x in gs_ls_cache[project_id] if x.startswith(path)])))
+    r = list(sorted(set([x[i:].split('/')[0] for x in gs_ls_cache[key] if x.startswith(path)])))
     log("gs_ls('%s') = %s"%(path, r))
     return r
 
@@ -232,7 +239,8 @@ class Project(object):
     def __init__(self,
                  project_id,          # v4 uuid string
                  btrfs,               # btrfs filesystem mount
-                 bucket        = '',  # google cloud storage bucket (won't use gs/disable close if not given)
+                 bucket        = '',  # google cloud storage bucket (won't use gs/disable close if not given); start with gs://
+                 archive       = '',  # if given path in filesystem or google cloud storage bucket destination for incremental tar archives.
                 ):
         if len(project_id) != 36:
             raise RuntimeError("invalid project uuid='%s'"%project_id)
@@ -241,9 +249,10 @@ class Project(object):
             raise RuntimeError("mount point %s doesn't exist"%self.btrfs)
         self.project_id    = project_id
         if bucket:
-            self.gs_path       = os.path.join('gs://%s'%bucket, project_id, 'v0')
+            self.gs_path   = os.path.join(bucket, project_id, 'v0')
         else:
             self.gs_path   = None
+        self._archive  = archive
         self.project_path  = os.path.join(self.btrfs, project_id)
         snapshots = os.path.join(self.btrfs, ".snapshots")
         if not os.path.exists(snapshots):
@@ -405,7 +414,7 @@ class Project(object):
         if not os.path.exists(self.snapshot_path):
             return []
         else:
-            return list(sorted(cmd(['ls', self.snapshot_path]).splitlines()))
+            return list(sorted(cmd(['ls', self.snapshot_path], verbose=1).splitlines()))
 
     def chown(self, path):
         cmd(["chown", "%s:%s"%(self.uid, self.uid), '-R', path])
@@ -669,15 +678,16 @@ class Project(object):
         for stream in to_delete:
             self.gs_rm(stream)
 
-    def save(self, timestamp="", persist=False, max_snapshots=0, dedup=False):
+    def save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True):
         """
         - persist =  make snapshot that we never automatically delete
         - timestamp = make snapshot with that time
         - max_snapshot - trim old snapshots
         - dedup = run dedup before making the snapshot (dedup potentially saves a *lot* of space in size of stored files, but could take an hour!)
+        - archive = save new incremental tar archive file
         """
         if not timestamp:
-            timestamp = time.strftime("%Y-%m-%d-%H%M%S")
+            timestamp = time.strftime(TIMESTAMP_FORMAT)
         # figure out what to call the snapshot
         target = os.path.join(self.snapshot_path, timestamp)
         if persist:
@@ -694,6 +704,8 @@ class Project(object):
             self.gs_sync()
         # safe since we successfully saved project
         self.delete_old_versions()
+        if archive:
+            self.archive()
 
     def delete_snapshot(self, snapshot):
         target = os.path.join(self.snapshot_path, snapshot)
@@ -758,11 +770,67 @@ class Project(object):
                  '.sagemathcloud', '.node-gyp', '.cache', '.forever',
                  '.snapshots', '.trash', '*.sage-backup']]
 
+    def _archive_newer(self, files, archive_path):
+        v = [x for x in sorted(files) if x.endswith('.tar.bz2')]
+        if len(v) > 0:
+            inc = '.incremental'
+            newer = ['--newer', '@%s'%time.mktime(time.strptime(v[-1].split('.')[0], TIMESTAMP_FORMAT))]
+        else:
+            inc = ''
+            newer = []
+        archive = os.path.join(archive_path, '%s%s.tar.bz2'%(time.strftime(TIMESTAMP_FORMAT),inc))
+        return newer, archive
+
+    def archive(self):
+        """
+        If self._archive (archive= option to constructor) is nonempty and
+        does not start with gs://, then:
+
+            Create self.archive/project_id/timestamp.tar.bz2, excluding things that probably
+            shouldn't be in the tarball.  Use this for archival purposes and so user can
+            download a backup of their project.
+
+        If self.archive starts with gs://, then:
+
+            Do the same as above, except in the given Google cloud storage bucket.
+        """
+        log = self._log('archive')
+        if not self._archive:
+            log('archive: skipping since no archive path set')
+            return
+        archive_path = os.path.join(self._archive, self.project_id)
+        log("to %s", archive_path)
+        if archive_path.startswith('gs://'):
+            log("google cloud storage")
+            newer, archive = self._archive_newer(gs_ls(archive_path), archive_path)
+            try:
+                tmp_path = tempfile.mkdtemp()
+                local = os.path.join(tmp_path, 'a.tar.bz2')
+                self.cmd(['tar', '-jcf', local]  + newer + self._exclude('') + [self.project_id])
+                gsutil(['-q', '-m', 'cp'] + [local] + [archive])
+                os.unlink(local)
+            finally:
+                shutil.rmtree(tmp_path)
+        else:
+            log("local filesystem")
+            if not os.path.exists(archive_path):
+                os.makedirs(archive_path)
+            # very important that the archive path is not world readable...
+            os.chmod(self._archive, stat.S_IRWXU)
+            newer, archive = self._archive_newer(os.listdir(archive_path), archive_path)
+            try:
+                os.chdir(self.btrfs)
+                self.cmd(['tar', '-jcf', archive]  + newer + self._exclude('') + [self.project_id])
+                return {'path':archive, 'size':os.lstat(archive).st_size}
+            finally:
+                os.chdir(cur)
+
     def directory_listing(self, path, hidden=True, time=True, start=0, limit=-1):
         """
         Return in JSON-format, listing of files in the given path.
 
-        - path = relative path in project; *must* resolve to be under PROJECTS_PATH/project_id or get an error.
+        - path = relative path in project; *must* resolve to be
+          under PROJECTS_PATH/project_id or get an error.
         """
         abspath = os.path.abspath(os.path.join(self.project_path, path))
         if not abspath.startswith(self.project_path):
@@ -1046,16 +1114,18 @@ if __name__ == "__main__":
 
     # This is a generic parser for all subcommands that operate on a collection of projects.
     # It's ugly, but it massively reduces the amount of code.
-    def f(subparser, function):
+    def f(subparser):
+        function = subparser.prog.split()[-1]
         def g(args):
-            special = [k for k in args.__dict__.keys() if k not in ['project_id', 'btrfs', 'bucket', 'func']]
+            special = [k for k in args.__dict__.keys() if k not in ['project_id', 'btrfs', 'bucket', 'func', 'archive']]
             out = []
             errors = False
             for project_id in args.project_id:
                 kwds = dict([(k,getattr(args, k)) for k in special])
                 try:
-                    result = getattr(Project(project_id=project_id, btrfs=args.btrfs, bucket=args.bucket), function)(**kwds)
+                    result = getattr(Project(project_id=project_id, btrfs=args.btrfs, bucket=args.bucket, archive=args.archive), function)(**kwds)
                 except Exception, mesg:
+                    # raise #-- for debugging
                     errors = True
                     result = {'error':str(mesg), 'project_id':project_id}
                 out.append(result)
@@ -1071,54 +1141,65 @@ if __name__ == "__main__":
     # optional arguments to all subcommands
     parser.add_argument("--btrfs", help="btrfs mountpoint [default: /projects or $SMC_BTRFS if set]",
                         dest="btrfs", default=os.environ.get("SMC_BTRFS","/projects"), type=str)
+
     parser.add_argument("--bucket",
-                        help="google cloud storage bucket [default: $SMC_BUCKET or ''=do not use google cloud storage]",
+                        help="read/write google cloud storage bucket gs://... [default: $SMC_BUCKET or ''=do not use google cloud storage]",
                         dest='bucket', default=os.environ.get("SMC_BUCKET",""), type=str)
 
+    # if enabled, we make incremental tar archives on every save operation and
+    # upload them to this bucket.  These are made directly using tar on the filesystem,
+    # so (1) aren't impacted if btrfs streams were corrupted for some reason, and
+    # (2) no snapshots are deleted, so this provides a good way to recover in case
+    # of major user error, while not providing normal access.  The bucket used below
+    # should be a Google nearline bucket.
+    parser.add_argument("--archive",
+                        help="tar archive target -- make incremental tar archive on all saves (filesystem path or write/listing-only google cloud storage bucket) [default: $SMC_ARCHIVE or ''=do not use]",
+                        dest='archive', default=os.environ.get("SMC_ARCHIVE",""), type=str)
+
     # open a project
-    f(subparsers.add_parser('open', help='Open project'), 'open')
+    f(subparsers.add_parser('open', help='Open project'))
 
     # start project running
-    f(subparsers.add_parser('start', help='start project running (open and start daemon)'), 'start')
+    f(subparsers.add_parser('start', help='start project running (open and start daemon)'))
 
     parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
     parser_status.add_argument("--running", help="if given only return running part of status (easier to compute)",
                                    dest="running", default=False, action="store_const", const=True)
-    f(parser_status, 'status')
+    f(parser_status)
 
     # disk quota
     parser_disk_quota = subparsers.add_parser('disk_quota', help='set disk quota')
     parser_disk_quota.add_argument("disk_quota", help="disk_quota in MB (or 0 for no disk_quota).", type=int)
-    f(parser_disk_quota, 'disk_quota')
+    f(parser_disk_quota)
 
     # compute quota
     parser_compute_quota = subparsers.add_parser('compute_quota', help='set compute quotas')
     parser_compute_quota.add_argument("--cores", help="number of cores (default: 1) float", type=float, default=1)
     parser_compute_quota.add_argument("--memory", help="megabytes of RAM (default: 1000) int", type=int, default=1)
     parser_compute_quota.add_argument("--cpu_shares", help="relative share of cpu (default: 256) int", type=int, default=256)
-    f(parser_compute_quota, 'compute_quota')
+    f(parser_compute_quota)
 
     parser_network = subparsers.add_parser('network', help='allow or ban network access for this user')
     parser_network.add_argument("--ban", help="if given ban access to network (otherwise grant access)",
                                    dest="ban", default=False, action="store_const", const=True)
-    f(parser_network, 'network')
+    f(parser_network)
 
     # create Linux user for project
     parser_create_user = subparsers.add_parser('create_user', help='create Linux user')
     parser_create_user.add_argument("--login_shell", help="", type=str, default='/bin/bash')
-    f(parser_create_user, 'create_user')
+    f(parser_create_user)
 
     # delete Linux user for project
     parser_delete_user = subparsers.add_parser('delete_user', help='delete Linux user')
-    f(parser_delete_user, 'delete_user')
+    f(parser_delete_user)
 
     # kill all processes by Linux user for project
     parser_killall = subparsers.add_parser('killall', help='kill all processes by this user')
-    f(parser_killall, 'killall')
+    f(parser_killall)
 
     # kill all processes and delete unix user.
     parser_stop = subparsers.add_parser('stop', help='kill all processes and delete user')
-    f(parser_stop, 'stop')
+    f(parser_stop)
 
     # close project -- deletes all local files
     parser_close = subparsers.add_parser('close',
@@ -1129,12 +1210,12 @@ if __name__ == "__main__":
     parser_close.add_argument("--nosave",
                               help="do not save a snapshot before close (will loose all data since last save)",
                               default=False, action="store_const", const=True)
-    f(parser_close, 'close')
+    f(parser_close)
 
     # destroy project -- delete local files **and** files in Google cloud storage.
     parser_destroy = subparsers.add_parser('destroy',
                      help='DANGEROUS -- completely destroy this project **EVERYWHERE** (including cloud storage)')
-    f(parser_destroy, 'destroy')
+    f(parser_destroy)
 
     # save project
     parser_save = subparsers.add_parser('save', help='snapshot project, delete old snapshots, sync with google cloud storage')
@@ -1144,32 +1225,32 @@ if __name__ == "__main__":
                              default=False, action="store_const", const=True)
     parser_save.add_argument("--dedup", help="run dedup before making the snapshot -- can take a LONG time, but saves a lot on snapshots stored in google cloud storage",
                              default=False, action="store_const", const=True)
-    f(parser_save, 'save')
+    f(parser_save)
 
     # delete old snapshots in project
     parser_delete_old_snapshots = subparsers.add_parser('delete_old_snapshots', help='delete some snapshots, mainly by deleting older ones')
     parser_delete_old_snapshots.add_argument("max_snapshots", help="maximum number of snapshots", type=int)
-    f(parser_delete_old_snapshots, 'delete_old_snapshots')
+    f(parser_delete_old_snapshots)
 
     # sync project with google cloud storage.
     parser_sync = subparsers.add_parser('sync', help='sync project with google cloud storage, without first saving a new snapshot')
-    f(parser_sync, 'gs_sync')
+    f(parser_sync)
 
     # delete a particular snapshot
     parser_delete_snapshot = subparsers.add_parser('delete_snapshot', help='delete a particular snapshot')
     parser_delete_snapshot.add_argument("snapshot", help="snapshot to delete", type=str)
-    f(parser_delete_snapshot, 'delete_snapshot')
+    f(parser_delete_snapshot)
 
     # delete the older versions of project from google cloud storage, which get left in case
     # project is opened on a new machine, where the btrfs uuid's are different.
     f(subparsers.add_parser('delete_old_versions',
-                            help='delete all old versions from Google cloud storage'), 'delete_old_versions')
+                            help='delete all old versions from Google cloud storage'))
 
     # dedup contents of project -- might save disk space
     parser_dedup = subparsers.add_parser('dedup',
                             help='dedup live project (WARNING: could take a long time)')
     parser_dedup.add_argument("--verbose", default=False, action="store_const", const=True)
-    f(parser_dedup, 'dedup')
+    f(parser_dedup)
 
     # directory listing
     parser_directory_listing = subparsers.add_parser('directory_listing', help='list files (and info about them) in a directory in the project')
@@ -1183,14 +1264,14 @@ if __name__ == "__main__":
     parser_directory_listing.add_argument("--limit", help="if given, only return this many directory entries (default: -1)",
                                    dest="limit", default=-1, type=int)
 
-    f(parser_directory_listing, 'directory_listing')
+    f(parser_directory_listing)
 
     parser_read_file = subparsers.add_parser('read_file',
          help="read a file/directory; outputs {'base64':'..content..'}; use directory.zip to get directory/ as a zip")
     parser_read_file.add_argument("path", help="relative path of a file/directory in project (required)", type=str)
     parser_read_file.add_argument("--maxsize", help="maximum file size in bytes to read (bigger causes error)",
                                    dest="maxsize", default=3000000, type=int)
-    f(parser_read_file, 'read_file')
+    f(parser_read_file)
 
     parser_copy_path = subparsers.add_parser('copy_path', help='copy a path from one project to another')
     parser_copy_path.add_argument("--target_hostname", help="hostname of target machine for copy (default: localhost)",
@@ -1205,7 +1286,9 @@ if __name__ == "__main__":
                                    dest="overwrite_newer", default=False, action="store_const", const=True)
     parser_copy_path.add_argument("--delete", help="if given, delete files in dest path not in source",
                                    dest="delete", default=False, action="store_const", const=True)
-    f(parser_copy_path, 'copy_path')
+    f(parser_copy_path)
+
+    f(subparsers.add_parser('archive', help='create archive tarball of the project'))
 
     args = parser.parse_args()
     args.func(args)
