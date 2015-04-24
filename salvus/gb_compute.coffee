@@ -2362,8 +2362,8 @@ class GlobalClient
     register_server: (opts) =>
         opts = defaults opts,
             host         : required
-            dc           : 0             # 0, 1, 2, .etc.
-            experimental : false   # if true, don't allocate new projects here
+            dc           : required  # 0, 1, 2, .etc.
+            experimental : false     # if true, don't allocate new projects here
             timeout      : 30
             cb     : undefined
         dbg = (m) => winston.debug("GlobalClient.register_server(#{opts.host}, #{opts.dc}): #{m}")
@@ -2375,6 +2375,7 @@ class GlobalClient
                 path    : process.cwd()
                 timeout : opts.timeout
                 args    : ['-o', 'StrictHostKeyChecking=no', opts.host, "cat #{path}"]
+                verbose : 0
                 cb      : (err, output) =>
                     if err
                         cb(err)
@@ -2392,7 +2393,6 @@ class GlobalClient
 
         where =
             server_id : undefined
-            dummy     : true
 
         async.series([
             (cb) =>

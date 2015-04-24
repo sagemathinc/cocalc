@@ -553,7 +553,7 @@ CREATE TABLE storage_servers (
 
 CREATE TABLE compute_servers (
     server_id     uuid PRIMARY KEY,
-    host          inet,
+    host          varchar,
     port          int,
     dc            int,
     health        float,
