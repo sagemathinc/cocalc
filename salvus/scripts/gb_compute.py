@@ -46,7 +46,7 @@ rsync -LrxvH /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcl
 
 Worry about tmp, e.g.,
 
-    btrfs su create /projects/tmp
+    btrfs subvolume create /projects/tmp
     chmod a+rwx /projects/tmp    # wrong.
     mount -o bind /projects/tmp /tmp/
 

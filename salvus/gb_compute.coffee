@@ -23,8 +23,9 @@
 #################################################################
 #
 # gb_server -- a node.js program that provides a TCP server
-# that is used by the hubs to organize project storage using
-# [G]oogle Cloud storage and [B]trfs.
+# that is used by the hubs to organize compute nodes that
+# get their projects from [G]oogle Cloud storage and store and
+# snapshot them using [B]trfs.
 #
 # ** This replaces bup_server, which is deprecated. **
 #
@@ -32,7 +33,7 @@
 #
 #  Interactive use:
 #
-#     x={};s=require('gb_server').global_client(cb:(err,c)->x.c=c;x.p=x.c.get_project('0069cdc2-3baa-4561-9c9e-17cb08e9b849'))
+#     x={};require('gb_compute').global_client(keyspace:'devel',cb:(e,c)->console.log(e);x.c=c;x.p=x.c.get_project('0069cdc2-3baa-4561-9c9e-17cb08e9b849'))
 #
 #################################################################
 
@@ -61,39 +62,40 @@ TIMEOUT = 60*60
 # ignored until this much time elapses *and* an interesting file changes.
 MIN_SAVE_INTERVAL_S = 60*10 # 10 minutes
 
-STORAGE_SERVERS_UPDATE_INTERVAL_S = 60*3  # How frequently (in seconds)  to query the database for the list of storage servers
+# How frequently (in seconds)  to query the database for the list of compute servers
+COMPUTE_SERVERS_UPDATE_INTERVAL_S = 60*3
 
 IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds.
 
 BTRFS = if process.env.SMC_BTRFS? then process.env.SMC_BTRFS else 'projects'
 
-CONF = os.path.join(BTRFS, 'conf')
+CONF = BTRFS + '/conf'
 fs.exists CONF, (exists) ->
     if exists
-        # it only makes sense to do this on storage server nodes...
+        # it only makes sense to do this on compute server nodes...
         fs.chmod(CONF, 0o700)     # just in case...
 
 DATA = 'data'
 
 
 ###########################
-## server-side: Storage server code
+## server-side: Compute server code
 ###########################
 
-gb_storage = (opts) =>
+gb_compute = (opts) =>
     opts = defaults opts,
         args    : required
         timeout : TIMEOUT
         cb      : required
-    winston.debug("gb_storage: running #{misc.to_json(opts.args)}")
+    winston.debug("gb_compute: running #{misc.to_json(opts.args)}")
     misc_node.execute_code
         command : "sudo"
-        args    : ["/usr/local/bin/gb_storage.py", "--btrfs", BTRFS].concat(opts.args)
+        args    : ["/usr/local/bin/gb_compute.py", "--btrfs", BTRFS].concat(opts.args)
         timeout : opts.timeout
         bash    : false
         path    : process.cwd()
         cb      : (err, output) =>
-            winston.debug("gb_storage: finished running #{misc.to_json(opts.args)} -- #{err}")
+            winston.debug("gb_compute: finished running #{misc.to_json(opts.args)} -- #{err}")
             if err
                 if output?.stderr
                     opts.cb(output.stderr)
@@ -103,7 +105,7 @@ gb_storage = (opts) =>
                 opts.cb(undefined, if output.stdout then misc.from_json(output.stdout) else undefined)
 
 
-# A single project from the point of view of the storage server -- this runs on the compute machine
+# A single project from the point of view of the compute server -- this runs on the compute machine
 class Project
     constructor: (opts) ->
         opts = defaults opts,
@@ -128,8 +130,8 @@ class Project
             args.push(a)
         args.push(@project_id)
 
-        @dbg("exec", opts.args, "executing gb_storage.py script")
-        gb_storage
+        @dbg("exec", opts.args, "executing gb_compute.py script")
+        gb_compute
             args    : args
             timeout : opts.timeout
             cb      : opts.cb
@@ -330,9 +332,9 @@ get_project = (project_id) ->
     return projects[project_id]
 
 handle_mesg = (socket, mesg) ->
-    winston.debug("storage_server: handling '#{misc.to_safe_str(mesg)}'")
+    winston.debug("compute_server: handling '#{misc.to_safe_str(mesg)}'")
     id = mesg.id
-    if mesg.event == 'storage'
+    if mesg.event == 'compute'
         if mesg.action == 'server_id'
             mesg.server_id = SERVER_ID
             socket.write_mesg('json', mesg)
@@ -570,7 +572,7 @@ start_server = (cb) ->
 
 
 ###########################
-## GlobalClient -- client for working with *all* storage/compute servers
+## GlobalClient -- client for working with *all* compute servers
 ###########################
 
 ###
@@ -1230,8 +1232,7 @@ class GlobalProject
                             ans[server_id] = bad_servers
                         cb()
         @database.select
-            table   : "storage_servers"
-            where   : {dummy:true}
+            table   : "compute_servers"
             columns : ['server_id']
             cb      : (err, remotes) =>
                 if err
@@ -1264,8 +1265,7 @@ class GlobalProject
                 else
                     dbg("get list of all servers")
                     @database.select
-                        table   : "storage_servers"
-                        where   : {dummy:true}
+                        table   : "compute_servers"
                         columns : ['server_id']
                         cb      : (err, remotes) =>
                             if err
@@ -1455,7 +1455,7 @@ class GlobalProject
                     resp = undefined
                     async.parallel([
                         (cb) =>
-                             @database.storage_server_ssh
+                             @database.compute_server_ssh
                                  server_id : project.client.server_id
                                  cb        : (err, r) =>
                                      # NOTE: non-fatal -- in case of db error, we just don't provide ssh info in status.
@@ -1638,7 +1638,7 @@ class GlobalProject
                 else
                     cb()
             (cb) =>
-                @global_client.storage_server
+                @global_client.compute_server
                     server_id : opts.server_id
                     cb        : (err, s) =>
                         if err
@@ -2011,12 +2011,11 @@ class GlobalProject
 
 
 
-
-
-
-
 global_client_cache = {}
 
+#
+# x={};gb_server.global_client(keyspace:'devel',cb:(e,c)->console.log(e);x.c=c)
+#
 exports.global_client = (opts) ->
     opts = defaults opts,
         database : undefined  # one of database or keyspace must be specified
@@ -2078,10 +2077,10 @@ class GlobalClient
         ], (err) =>
             if not err
                 f = () =>
-                    setInterval(@_update, 1000*STORAGE_SERVERS_UPDATE_INTERVAL_S)  # update regularly
+                    setInterval(@_update, 1000*COMPUTE_SERVERS_UPDATE_INTERVAL_S)  # update regularly
                 # wait a random amount of time before starting the update interval, so that the database
                 # doesn't get hit all at once over few minutes, when we start a large number of hubs at once.
-                setTimeout(f, Math.random()*1000*STORAGE_SERVERS_UPDATE_INTERVAL_S)
+                setTimeout(f, Math.random()*1000*COMPUTE_SERVERS_UPDATE_INTERVAL_S)
 
                 opts.cb(undefined, @)
             else
@@ -2142,12 +2141,11 @@ class GlobalClient
             (cb) =>
                 dbg("reduce chances of project startup on this server via the database")
                 @database.update
-                    table : 'storage_servers'
+                    table : 'compute_servers'
                     set   :
                         experimental : true
                         health       : 0
                     where :
-                        dummy : true
                         server_id : opts.server_id
                     cb : cb
             (cb) =>
@@ -2241,12 +2239,11 @@ class GlobalClient
                         cb    : cb
                 async.mapLimit(delete_gb_last_saves, opts.limit, f, cb)
             (cb) =>
-                dbg("remove entry in the storage_servers table corresponding to this server")
+                dbg("remove entry in the compute_servers table corresponding to this server")
                 @database.delete
-                    table : 'storage_servers'
+                    table : 'compute_servers'
                     where :
                         server_id : opts.server_id
-                        dummy     : true
                     cb : cb
         ], (err) =>
             if err
@@ -2265,7 +2262,7 @@ class GlobalClient
         projects = []
         async.series([
             (cb) =>
-                @storage_server
+                @compute_server
                     server_id : opts.server_id
                     cb        : (err, _server) =>
                         server = _server
@@ -2291,16 +2288,14 @@ class GlobalClient
 
     _update: (cb) =>
         dbg = (m) => winston.debug("GlobalClient._update: #{m}")
-        #dbg("updating list of available storage servers...")
+        #dbg("updating list of available compute servers...")
         @database.select
-            table     : 'storage_servers'
+            table     : 'compute_servers'
             columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret', 'experimental']
             objectify : true
-            where     : {dummy:true}
             cb        : (err, results) =>
                 if err
                     cb?(err); return
-                #dbg("got #{results.length} storage servers")
                 # parse result
                 @servers = {by_dc:{}, by_id:{}, by_host:{}}
                 x = {}
@@ -2325,7 +2320,7 @@ class GlobalClient
         dbg = (m) => winston.info("push_servers_files: #{m}")
         dbg('starting... logged')
         errors = {}
-        file = "#{DATA}/gb_servers"
+        file = "#{DATA}/gb_compute_servers"
         async.series([
             (cb) =>
                 dbg("updating")
@@ -2371,8 +2366,8 @@ class GlobalClient
             experimental : false   # if true, don't allocate new projects here
             timeout      : 30
             cb     : undefined
-        dbg = (m) => winston.debug("GlobalClient.add_storage_server(#{opts.host}, #{opts.dc}): #{m}")
-        dbg("adding storage server to the database by grabbing server_id files, etc.")
+        dbg = (m) => winston.debug("GlobalClient.register_server(#{opts.host}, #{opts.dc}): #{m}")
+        dbg("adding compute server to the database by grabbing server_id files, etc.")
         get_file = (path, cb) =>
             dbg("get_file: #{path}")
             misc_node.execute_code
@@ -2414,7 +2409,7 @@ class GlobalClient
             (cb) =>
                 dbg("update database")
                 @database.update
-                    table : 'storage_servers'
+                    table : 'compute_servers'
                     set   : set
                     where : where
                     cb    : cb
@@ -2426,7 +2421,7 @@ class GlobalClient
             dc        : -1       # -1 = default, works from anywhere;  0 = use from dc0,  1 = use from dc1, etc.
             address   : required #  host[:port] to use when connecting from the given dc.
             cb        : undefined
-        query = "UPDATE storage_servers SET ssh[?]=? WHERE dummy=true and server_id=?"
+        query = "UPDATE compute_servers SET ssh[?]=? WHERE server_id=?"
         args  = [opts.dc, opts.address, opts.server_id]
         @database.cql
             query       : query
@@ -2442,9 +2437,9 @@ class GlobalClient
             dc        : -1        # 0, 1, 2, etc., or -1 to connect from anywhere, albeit less efficiently.
             cb        : required  # cb(err, 'address[:port]' if some address known; otherwise undefined)
         @database.select_one
-            table   : 'storage_servers'
+            table   : 'compute_servers'
             columns : ['ssh']
-            where   : {dummy:true, server_id:opts.server_id}
+            where   : {server_id:opts.server_id}
             cb      : (err, result) =>
                 if err
                     opts.cb(err)
@@ -2462,10 +2457,10 @@ class GlobalClient
             server_id : required
             cb        : required  # cb(err, dc)   where dc = 0,1,2,3, etc.
         @database.select_one
-            table   : 'storage_servers'
+            table   : 'compute_servers'
             columns : ['dc']
             consistency : 1
-            where   : {dummy:true, server_id:opts.server_id}
+            where   : {server_id:opts.server_id}
             cb      : (err, result) =>
                 if err
                     opts.cb(err)
@@ -2489,10 +2484,10 @@ class GlobalClient
         if s.length == 0
             opts.cb?(); return
         @database.select
-            table     : 'storage_servers'
+            table     : 'compute_servers'
             columns   : ['server_id', 'health']
             objectify : true
-            where     : {dummy:true, server_id:{'in':s}}
+            where     : {server_id:{'in':s}}
             cb        : (err, results) =>
                 if err
                     opts.cb?(err)
@@ -2511,14 +2506,13 @@ class GlobalClient
                         else
                             result.health = (result.health + 0)/2.0
                     @database.update
-                        table : 'storage_servers'
-                        #set   : {health:{value:result.health,hint:'float'}}
+                        table : 'compute_servers'
                         set   : {health:result.health}
-                        where : {dummy:true, server_id:result.server_id}
+                        where : {server_id:result.server_id}
                         cb    : cb
                 async.map(results, f, (err) => opts.cb?(err))
 
-    storage_server: (opts) =>
+    compute_server: (opts) =>
         opts = defaults opts,
             server_id : required
             cb        : required
@@ -2538,7 +2532,7 @@ class GlobalClient
         if not s.secret?
             opts.cb("no secret token known for #{opts.server_id}")
             return
-        opts.cb(undefined, storage_server_client(host:s.host, port:s.port, secret:s.secret, server_id:opts.server_id))
+        opts.cb(undefined, compute_server_client(host:s.host, port:s.port, secret:s.secret, server_id:opts.server_id))
 
     project_location: (opts) =>
         opts = defaults opts,
@@ -2569,7 +2563,7 @@ class GlobalClient
 
         if opts.server_id?
             dbg("open on a specified client")
-            @storage_server
+            @compute_server
                 server_id : opts.server_id
                 cb        : (err, s) =>
                     if err
@@ -3200,7 +3194,7 @@ class GlobalClient
             (cb) =>
                 dbg("query database for ssh targets")
                 @database.select
-                    table : 'storage_servers'
+                    table : 'compute_servers'
                     columns : ['server_id', 'ssh']
                     objectify : false
                     cb        : (err, s) =>
@@ -3222,7 +3216,7 @@ class GlobalClient
 
 
 ###########################
-## Client -- code below mainly sets up a connection to a given storage server
+## Client -- code below mainly sets up a connection to a given compute server
 ###########################
 
 
@@ -3242,10 +3236,10 @@ class Client
 
     dbg: (f, args, m) =>
         if @verbose
-            winston.debug("storage Client(#{@host}:#{@port}).#{f}(#{misc.to_json(args)}): #{m}")
+            winston.debug("gb_server Client(#{@host}:#{@port}).#{f}(#{misc.to_json(args)}): #{m}")
 
     connect: (cb) =>
-        dbg = (m) => winston.debug("Storage client (#{@host}:#{@port}): #{m}")
+        dbg = (m) => winston.debug("gb_torage client (#{@host}:#{@port}): #{m}")
         dbg()
         async.series([
             (cb) =>
@@ -3269,7 +3263,7 @@ class Client
 
 
     mesg: (project_id, action, param) =>
-        mesg = message.storage
+        mesg = message.compute
             id         : uuid.v4()
             project_id : project_id
             action     : action
@@ -3378,14 +3372,14 @@ class Client
 
 client_cache = {}
 
-storage_server_client = (opts) ->
+compute_server_client = (opts) ->
     opts = defaults opts,
         host      : required
         port      : required
         secret    : required
         server_id : required
         verbose   : true
-    dbg = (m) -> winston.debug("storage_server_client(#{opts.host}:#{opts.port}): #{m}")
+    dbg = (m) -> winston.debug("compute_server_client(#{opts.host}:#{opts.port}): #{m}")
     dbg()
     key = opts.host + opts.port + opts.secret
     C = client_cache[key]
@@ -3399,7 +3393,7 @@ class ClientProject
         @dbg("constructor",[],"")
 
     dbg: (f, args, m) =>
-        winston.debug("storage ClientProject(#{@project_id}).#{f}(#{misc.to_json(args)}): #{m}")
+        winston.debug("compute ClientProject(#{@project_id}).#{f}(#{misc.to_json(args)}): #{m}")
 
     action: (opts) =>
         opts = defaults opts,
@@ -3736,12 +3730,12 @@ client_project = (opts) ->
 
 program.usage('[start/stop/restart/status] [options]')
 
-    .option('--pidfile [string]', 'store pid in this file', String, "#{CONF}/bup_server.pid")
-    .option('--logfile [string]', 'write log to this file', String, "#{CONF}/bup_server.log")
-    .option('--portfile [string]', 'write port number to this file', String, "#{CONF}/bup_server.port")
-    .option('--server_id_file [string]', 'file in which server_id is stored', String, "#{CONF}/bup_server_id")
-    .option('--servers_file [string]', 'contains JSON mapping {uuid:hostname,...} for all servers', String, "#{CONF}/bup_servers")
-    .option('--secret_file [string]', 'write secret token to this file', String, "#{CONF}/bup_server.secret")
+    .option('--pidfile [string]', 'store pid in this file', String, "#{CONF}/gb_compute.pid")
+    .option('--logfile [string]', 'write log to this file', String, "#{CONF}/gb_compute.log")
+    .option('--portfile [string]', 'write port number to this file', String, "#{CONF}/gb_compute.port")
+    .option('--server_id_file [string]', 'file in which server_id is stored', String, "#{CONF}/gb_compute_id")
+    .option('--servers_file [string]', 'contains JSON mapping {uuid:hostname,...} for all servers', String, "#{CONF}/gb_compute_servers")
+    .option('--secret_file [string]', 'write secret token to this file', String, "#{CONF}/gb_compute.secret")
 
     .option('--debug [string]', 'logging debug level (default: "" -- no debugging output)', String, 'debug')
     .option('--replication [string]', 'replication factor (default: 2)', String, '2')
@@ -3776,6 +3770,6 @@ main = () ->
         winston.debug("BUG ****************************************************************************")
     daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
-if program._name.split('.')[0] == 'bup_server'
+if program._name.split('.')[0] == 'gb_compute'
     main()
 

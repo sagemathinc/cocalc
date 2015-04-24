@@ -1344,6 +1344,7 @@ message
     id        : undefined
     uuids     : required     # list of sha1 hashes of blobs stored in the blobstore
 
+# DEPRECATED -- used by bup_server
 message
     event      : 'storage'
     action     : required    # open, save, snapshot, latest_snapshot, close
@@ -1356,6 +1357,13 @@ message
     id         : undefined
     projects   : undefined   # for response
 
+# Message for actions using a compute server    
+message
+    event      : 'compute'
+    action     : required    # open, save, snapshot, latest_snapshot, close
+    project_id : undefined
+    param      : undefined
+    id         : undefined
 
 
 ###########################################################

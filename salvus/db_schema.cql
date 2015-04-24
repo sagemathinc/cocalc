@@ -535,6 +535,7 @@ CREATE TABLE banned_email_addresses (
     dummy         boolean
 );
 
+/* storage_servers = deprecated part of bup_server stuff. */
 CREATE TABLE storage_servers (
     dummy         boolean,
     server_id     uuid,
@@ -548,6 +549,18 @@ CREATE TABLE storage_servers (
     PRIMARY KEY(dummy, server_id)
 );
 
+
+
+CREATE TABLE compute_servers (
+    server_id     uuid PRIMARY KEY,
+    host          inet,
+    port          int,
+    dc            int,
+    health        float,
+    secret        varchar,
+    experimental  boolean,      /* if true ignored this host when assigning hosts for a project */
+    ssh           map<int, varchar>,   /*  dc -> 'address:port' when connecting *from* that dc; use dc=-1 for connecting from the greater internet */
+);
 
 
 /* Billing */
