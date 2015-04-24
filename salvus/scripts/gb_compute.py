@@ -184,7 +184,7 @@ def btrfs_subvolume_usage(subvolume, allow_rescan=True):
     # from https://btrfs.wiki.kernel.org/index.php/Quota_support#Known_issues
     btrfs(['filesystem', 'sync', subvolume])
     # now get all usage information (no way to restrict)
-    a = btrfs(['qgroup', 'show', subvolume])
+    a = btrfs(['qgroup', 'show', subvolume], verbose=0)
     # and filter out what we want.
     i = a.find("\n0/%s"%btrfs_subvolume_id(subvolume))
     a = a[i:].strip()
@@ -583,45 +583,28 @@ class Project(object):
     def btrfs_status(self):
         return btrfs_subvolume_usage(self.project_path)
 
-    def status(self, running=False, stop_on_error=True):
+    def status(self):
         log = self._log("status")
-        if running:
-            s = {}
-        else:
-            s = {'username':self.username, 'uid':self.uid}
-            s['load'] = [float(a.strip(',')) for a in os.popen('uptime').read().split()[-3:]]
+        s = {'username':self.username, 'uid':self.uid}
+        s['load'] = [float(a.strip(',')) for a in os.popen('uptime').read().split()[-3:]]
 
         if not os.path.exists(self.project_path):
-            s['status'] = 'closed'
+            s['state'] = 'closed'
             return s
 
         if self.username not in open('/etc/passwd').read():  # TODO: can be done better
-            s['status'] = 'stopped'
+            s['state'] = 'stopped'
             return s
 
         s['btrfs'] = self.btrfs_status()
-        try:
-            t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30)
-            t = json.loads(t)
-            s.update(t)
-            if bool(t.get('local_hub.pid',False)):
-                s['status'] = 'running'
-            else:
-                s['status'] = 'opened'
-            return s
-        except Exception, msg:
-            log("Error getting status -- %s"%msg)
-            # Original comment: important to actually let error propogate so that bup_server gets an error and knows things are
-            # messed up, namely there is a user created, but the status command isn't working at all.  In this
-            # case bup_server will know to try to kill this.
-            if stop_on_error:
-                # ** Actually, in practice sometimes the caller doesn't know
-                # to kill this project.   So we explicitly toss in a stop below,
-                # which will clean things up completely. **
-                self.stop()
-                return self.status(running=running, stop_on_error=False)  # try again
-            else:
-                raise
+        t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30)
+        t = json.loads(t)
+        s.update(t)
+        if bool(t.get('local_hub.pid',False)):
+            s['state'] = 'running'
+        else:
+            s['state'] = 'opened'
+        return s
 
     def delete_old_snapshots(self, max_snapshots):
         v = self.snapshot_ls()
@@ -709,6 +692,7 @@ class Project(object):
         self.delete_old_versions()
         if archive:
             self.archive()
+        return {'timestamp':timestamp}
 
     def delete_snapshot(self, snapshot):
         target = os.path.join(self.snapshot_path, snapshot)
@@ -1187,8 +1171,6 @@ if __name__ == "__main__":
     f(subparsers.add_parser('start', help='start project running (open and start daemon)'))
 
     parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
-    parser_status.add_argument("--running", help="if given only return running part of status (easier to compute)",
-                                   dest="running", default=False, action="store_const", const=True)
     f(parser_status)
 
     # disk quota
@@ -1317,6 +1299,20 @@ if __name__ == "__main__":
                     help="compression format -- 'lz4' (default), 'gz' or 'bz2'",
                     default="lz4",dest="compression")
     f(parser_archive)
+
+    parser_settings = subparsers.add_parser('settings', help='set settings for project (combines several other subcommands)')
+    parser_settings.add_argument("--memory", dest="memory", help="memory settings in gigabytes",
+                               type=int, default=None)
+    parser_settings.add_argument("--cpu_shares", dest="cpu_shares", help="shares of the cpu",
+                               type=int, default=None)
+    parser_settings.add_argument("--cores", dest="cores", help="max number of cores (may be float)",
+                               type=float, default=None)
+    parser_settings.add_argument("--disk", dest="disk", help="working disk space in megabytes",
+                                 type=int, default=None)
+    parser_settings.add_argument("--network", dest="network", help="whether or not project has external network access",
+                                 type=str, default=None)
+    f(parser_settings)
+
 
     args = parser.parse_args()
     args.func(args)

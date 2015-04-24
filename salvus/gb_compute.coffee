@@ -105,7 +105,7 @@ gb_compute = (opts) =>
                 opts.cb(undefined, if output.stdout then misc.from_json(output.stdout) else undefined)
 
 
-# A single project from the point of view of the compute server -- this runs on the compute machine
+# A single project from the point of view of the compute server -- this runs on a compute machine
 class Project
     constructor: (opts) ->
         opts = defaults opts,
@@ -270,9 +270,7 @@ class Project
             when "get_state"
                 @get_state
                     cb : opts.cb
-
             else
-
                 dbg("Doing action #{opts.action} that involves executing script")
                 args = [opts.action]
                 if opts.param? and opts.param != 'force'
@@ -289,21 +287,16 @@ class Project
             cb : required
 
         if @state?
-            if @state not in ['starting', 'stopping', 'restarting']   # stopped, running, saving, error
-                winston.debug("get_state -- confirming running status")
+            if @state not in ['starting', 'stopping', 'restarting', 'saving']   # closed, stopped, opened, running, error
+                @dbg("get_state", '', "confirming running status")
                 @_action
                     action : 'status'
-                    param  : '--running'
                     cb     : (err, status) =>
                         winston.debug("get_state -- confirming based on status=#{misc.to_json(status)}")
                         if err
                             @state = 'error'
-                        else if status.running
-                            # set @state to a running state: either 'saving' or 'running'
-                            if @state != 'saving'
-                                @state = 'running'
                         else
-                            @state = 'stopped'
+                            @state = status.state
                         opts.cb(undefined, @state)
             else
                 winston.debug("get_state -- trusting running status since @state=#{@state}")
@@ -318,10 +311,8 @@ class Project
                 @dbg("get_state",'',"basing on status=#{misc.to_json(status)}")
                 if err
                     @state = 'error'
-                else if status.running
-                    @state = 'running'
                 else
-                    @state = 'stopped'
+                    @state = status.state
                 opts.cb(undefined, @state)
 
 
@@ -448,6 +439,7 @@ projects_running_on_server = (cb) ->     # cb(err, projects)
                             c()
             async.map(uids, f, cb)
     ], (err) =>
+        dbg("running projects: #{misc.to_json(projects)}")
         cb(err, projects)
     )
 
@@ -611,8 +603,8 @@ class GlobalProject
 
     set_location_pref: (server_id, cb) =>
         @database.update
-            table : "projects"
-            set   : {gb_location : server_id}
+            table   : "projects"
+            set     : {gb_location : server_id}
             where   : {project_id : @project_id}
             cb      : cb
 
@@ -659,23 +651,6 @@ class GlobalProject
                 opts.cb(undefined, {server_id:server_id, dc:dc, running:running})
         )
 
-    # starts project if necessary, waits until it is running, and
-    # gets the hostname port where the local hub is serving.
-    xxx_local_hub_address: (opts) =>
-        opts = defaults opts,
-            timeout : 30
-            cb : required      # cb(err, {host:hostname, port:port, status:status, server_id:server_id})
-        dbg = (m) => winston.info("local_hub_address(#{@project_id}): #{m}")
-        if @_local_hub_address_queue?
-            @_local_hub_address_queue.push(opts.cb)
-        else
-           @_local_hub_address_queue = [opts.cb]
-           @_local_hub_address
-               timeout : opts.timeout
-               cb      : (err, r) =>
-                   for cb in @_local_hub_address_queue
-                       cb(err, r)
-                   delete @_local_hub_address_queue
 
     local_hub_address: (opts) =>
         opts = defaults opts,
@@ -859,6 +834,8 @@ class GlobalProject
             (cb) =>
                 if not server_id?  # already running
                     cb(); return
+                cb(); return
+                # TODO -- deal with settings properly
                 dbg("get current non-default settings from the database and set before starting project")
                 @get_settings
                     cb : (err, settings) =>
@@ -955,37 +932,34 @@ class GlobalProject
 
     save: (opts) =>
         opts = defaults opts,
-            cb : undefined
+            force : false
+            cb    : undefined
         dbg = (m) => winston.debug("GlobalProject.save(#{@project_id}): #{m}")
         # if we just saved this project, return immediately -- note: THIS IS "CLIENT" side, but there is a similar guard on the actual compute node
-        if @_last_save? and misc.walltime() - @_last_save < MIN_SAVE_INTERVAL_S
+        if not opts.force and @_last_save? and misc.walltime() - @_last_save < MIN_SAVE_INTERVAL_S
             dbg("we just saved this project recently")
             opts.cb?(undefined)
             return
 
-        # put this here -- we don't even want to *try* more frequently than MIN_SAVE_INTERVAL_S, in case of save gb repo being broken (?)
+        # put this here -- we don't even want to *try* more frequently than MIN_SAVE_INTERVAL_S
         @_last_save = misc.walltime()
 
-
-        need_to_save = false
+        need_to_save = true
         project      = undefined
         server_id    = undefined
-        targets      = undefined
         errors       = []
         async.series([
             (cb) =>
-                dbg("figure out where/if project is running")
-                @sync_topology
-                    cb : (err, resp) =>
+                dbg("get location where project open")
+                @get_host_where_running
+                    cb : (err, s) =>
                         if err
-                            cb(err); return
-                        server_id = resp.host.server_id
-                        if @state?[server_id] == 'saving'
-                            dbg("already saving -- nothing to do")
-                            cb()
+                            cb(err)
                         else
-                            need_to_save = true
-                            targets = resp.targets
+                            server_id = s
+                            if @state?[server_id] == 'saving'
+                                dbg("already saving -- nothing to do")
+                                need_to_save = false
                             cb()
             (cb) =>
                 if not need_to_save
@@ -1000,28 +974,15 @@ class GlobalProject
                     cb(); return
                 dbg("save the project and sync")
                 project.save
-                    targets : misc.keys(targets)
-                    cb      : (err, result) =>
+                    cb : (err, result) =>
                         r = result?.result
                         dbg("RESULT = #{misc.to_json(result)}")
-                        if not err and r? and r.timestamp? and r.files_saved > 0
+                        if not err and r? and r.timestamp?
                             dbg("record info about saving #{r.files_saved} files in database")
                             last_save = {}
-                            last_save[server_id] = new Date(r.timestamp*1000)
-                            if r.sync?
-                                for x in r.sync
-                                    if x.host == '' # special case - the server hosting the project
-                                        s = server_id
-                                    else
-                                        s = targets[x.host]
-                                    if not x.error?
-                                        last_save[s] = new Date(r.timestamp*1000)
-                                    else
-                                        # this replication failed
-                                        errors.push("replication to #{s} failed -- #{x.error}")
+                            last_save[server_id] = new Date(r.timestamp)
                             @set_last_save
                                 last_save        : last_save
-                                gb_repo_size_kb : r.gb_repo_size_kb
                                 cb               : cb
                         else
                             cb(err)
@@ -1654,10 +1615,9 @@ class GlobalProject
 
     set_last_save: (opts) =>
         opts = defaults opts,
-            last_save : required    # map  {server_id:timestamp, ...}
-            gb_repo_size_kb : undefined  # if given, should be int
-            allow_delete : false
-            cb        : undefined
+            last_save       : required    # map  {server_id:timestamp, ...}
+            allow_delete    : false
+            cb              : undefined
         async.series([
             (cb) =>
                 s = "UPDATE projects SET gb_last_save[?]=? WHERE project_id=?"
@@ -1675,15 +1635,6 @@ class GlobalProject
                             cb          : cb
                 winston.debug("#{misc.keys(opts.last_save)}")
                 async.map(misc.keys(opts.last_save), f, cb)
-            (cb) =>
-                if opts.gb_repo_size_kb?
-                    @database.update
-                        table   : "projects"
-                        set     : {gb_repo_size_kb : opts.gb_repo_size_kb}
-                        where   : {project_id : @project_id}
-                        cb      : cb
-                else
-                    cb()
         ], (err) -> opts.cb?(err))
 
 
@@ -2520,7 +2471,7 @@ class GlobalClient
             opts.cb?("@servers not yet initialized"); return
 
         if not @servers.by_id[opts.server_id]?
-            opts.cb("server #{opts.server_id} unknown")
+            opts.cb("server #{misc.to_json(opts.server_id)} unknown")
             return
         s = @servers.by_id[opts.server_id]
         if not s.host?
@@ -3391,6 +3342,7 @@ compute_server_client = (opts) ->
 class ClientProject
     constructor: (@client, @project_id) ->
         @dbg("constructor",[],"")
+        @_settings = {}
 
     dbg: (f, args, m) =>
         winston.debug("compute ClientProject(#{@project_id}).#{f}(#{misc.to_json(args)}): #{m}")
@@ -3493,12 +3445,8 @@ class ClientProject
     save: (opts) =>
         opts = defaults opts,
             timeout    : TIMEOUT
-            targets    : undefined    # undefined or a list of ip addresses
             cb         : undefined
         opts.action = 'save'
-        if opts.targets?
-            opts.param = "--targets=#{opts.targets.join(',')}"
-        delete opts.targets
         @action(opts)
 
     init: (opts) =>
@@ -3518,19 +3466,20 @@ class ClientProject
             cb(err, resp?.result)
         @action(opts)
 
+    # TODO: deprecate
     settings: (opts) =>
         opts = defaults opts,
-            timeout    : TIMEOUT
-            memory     : undefined
-            cpu_shares : undefined   # fair is 256, not 1 !!!!
-            cores      : undefined
-            disk       : undefined
-            scratch    : undefined
-            inode      : undefined
-            mintime    : undefined
-            login_shell: undefined
-            network    : undefined
-            cb         : undefined
+            timeout     : TIMEOUT
+            memory      : undefined
+            cpu_shares  : undefined   # fair is 256, not 1 !!!!
+            cores       : undefined
+            disk        : undefined
+            scratch     : undefined
+            inode       : undefined
+            mintime     : undefined
+            login_shell : undefined
+            network     : undefined
+            cb          : undefined
 
         param = []
         for x in ['memory', 'cpu_shares', 'cores', 'disk', 'scratch', 'inode', 'mintime', 'login_shell', 'network']
