@@ -67,7 +67,9 @@ COMPUTE_SERVERS_UPDATE_INTERVAL_S = 60*3
 
 IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds.
 
-BTRFS = if process.env.SMC_BTRFS? then process.env.SMC_BTRFS else 'projects'
+BTRFS   = if process.env.SMC_BTRFS? then process.env.SMC_BTRFS else 'projects'
+BUCKET  = process.env.SMC_BUCKET
+ARCHIVE = process.env.SMC_ARCHIVE
 
 CONF = BTRFS + '/conf'
 fs.exists CONF, (exists) ->
@@ -90,7 +92,7 @@ gb_compute = (opts) =>
     winston.debug("gb_compute: running #{misc.to_json(opts.args)}")
     misc_node.execute_code
         command : "sudo"
-        args    : ["/usr/local/bin/gb_compute.py", "--btrfs", BTRFS].concat(opts.args)
+        args    : ["/usr/local/bin/gb_compute.py", "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE].concat(opts.args)
         timeout : opts.timeout
         bash    : false
         path    : process.cwd()
@@ -589,6 +591,9 @@ x.c.push_servers_files(cb:console.log)
 class GlobalProject
     constructor: (@project_id, @global_client) ->
         @database = @global_client.database
+
+    dbg: (m) =>
+        winston.debug("GlobalProject('#{@project_id}'): #{m}")
 
     get_location_pref: (cb) =>   # cb(err, server_id)
         @database.select_one
@@ -1453,22 +1458,70 @@ class GlobalProject
         opts = defaults opts,
             force : false
             cb    : undefined
-        @get_host_where_running
-            cb : (err, server_id) =>
-                if err
-                    opts.cb?(err)
-                else if not server_id?
-                    opts.cb?() # not running anywhere -- nothing to stop
-                else
-                    @project
-                        server_id : server_id
-                        cb        : (err, project) =>
-                            if err
-                                opts.cb?(err)
-                            else
-                                project.stop
-                                    force : opts.force
-                                    cb    : opts.cb
+        @dbg("stop")
+        @get_location_pref (err, server_id) =>
+            @dbg("stop: got err=#{err}, server_id=#{server_id}")
+            if err or not server_id?
+                opts.cb?(err)
+            else
+                @project
+                    server_id : server_id
+                    cb        : (err, project) =>
+                        if err
+                            opts.cb?(err)
+                        else
+                            project.stop
+                                force : opts.force
+                                cb    : opts.cb
+
+    close: (opts) =>
+        opts = defaults opts,
+            nosave : false  # don't do a save first before closing
+            force  : false  # force close even if google cloud storage not configured (so project lost)
+            cb     : undefined
+        @dbg("close")
+        @get_location_pref (err, server_id) =>
+            @dbg("close location pref: got err=#{err}, server_id=#{server_id}")
+            if err or not server_id?
+                opts.cb?(err)
+            else
+                @project
+                    server_id : server_id
+                    cb        : (err, project) =>
+                        if err
+                            opts.cb?(err)
+                        else
+                            project.close
+                                force  : opts.force
+                                nosave : opts.nosave
+                                cb     : opts.cb
+
+    open: (opts) =>
+        opts = defaults opts,
+            cb : undefined
+        @dbg("open")
+        server_id = undefined
+        async.series([
+            (cb) =>
+                @get_location_pref (err, s) =>
+                    if err
+                        cb(err)
+                    else
+                        if not s
+                            # TODO: choose more wisely, e.g., considering health/load, etc.
+                            server_id = misc.random_choice(misc.keys(@global_client.servers.by_id))
+                        else
+                            server_id = s
+                        cb()
+            (cb) =>
+                @project
+                    server_id : server_id
+                    cb        : (err, project) =>
+                        if err
+                            cb?(err)
+                        else
+                            project.open(cb:cb)
+        ], opts.cb)
 
     # change the location preference for the next start, and attempts to stop
     # if running somewhere now.
@@ -1636,7 +1689,6 @@ class GlobalProject
                 winston.debug("#{misc.keys(opts.last_save)}")
                 async.map(misc.keys(opts.last_save), f, cb)
         ], (err) -> opts.cb?(err))
-
 
     get_last_save: (opts) =>
         opts = defaults opts,
@@ -3434,6 +3486,27 @@ class ClientProject
         delete opts.force
         @action(opts)
 
+    close: (opts) =>
+        opts = defaults opts,
+            timeout    : TIMEOUT
+            nosave     : false
+            force      : false
+            cb         : undefined
+        opts.action = 'close'
+        if opts.force
+            opts.param = '--force'
+        delete opts.force
+        if opts.nosave
+            opts.param = '--nosave'
+        delete opts.nosave
+        @action(opts)
+
+    open: (opts) =>
+        opts = defaults opts,
+            timeout    : TIMEOUT
+            cb         : undefined
+        opts.action = 'open'
+        @action(opts)
 
     restart: (opts) =>
         opts = defaults opts,

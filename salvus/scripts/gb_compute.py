@@ -145,7 +145,7 @@ def thread_map(callable, inputs):
     If an exception is raised by any thread, a RuntimeError exception
     is instead raised.
     """
-    print "Doing the following in parallel:\n%s"%('\n'.join([str(x) for x in inputs]))
+    log("Doing the following in parallel:\n%s", '\n'.join([str(x) for x in inputs]))
     from threading import Thread
     class F(Thread):
         def __init__(self, x):
@@ -579,6 +579,10 @@ class Project(object):
     def stop(self):
         self.killall()
         self.delete_user()
+
+    def restart(self):
+        self.stop()
+        self.start()
 
     def btrfs_status(self):
         return btrfs_subvolume_usage(self.project_path)
@@ -1204,8 +1208,9 @@ if __name__ == "__main__":
     f(parser_killall)
 
     # kill all processes and delete unix user.
-    parser_stop = subparsers.add_parser('stop', help='kill all processes and delete user')
-    f(parser_stop)
+    f(subparsers.add_parser('stop', help='kill all processes and delete user'))
+
+    f(subparsers.add_parser('restart', help='kill all processes and delete user then recreate and restart everything'))
 
     # close project -- deletes all local files
     parser_close = subparsers.add_parser('close',
