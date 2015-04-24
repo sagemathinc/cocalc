@@ -421,9 +421,12 @@ class Project(object):
 
     def create_snapshot_link(self):
         t = os.path.join(self.project_path, '.snapshots')
-        if not os.path.exists(t):
-            cmd(["ln", "-s", self.snapshot_path, t])
-            os.chown(t, self.uid, self.uid)
+        try:
+            os.unlink(t)
+        except:
+            pass
+        cmd(["ln", "-s", self.snapshot_path, t])
+        os.chown(t, self.uid, self.uid)
 
     def create_smc_path(self):
         if not os.path.exists(self.smc_path):
@@ -770,23 +773,24 @@ class Project(object):
                  '.sagemathcloud', '.node-gyp', '.cache', '.forever',
                  '.snapshots', '.trash', '*.sage-backup']]
 
-    def _archive_newer(self, files, archive_path):
-        v = [x for x in sorted(files) if x.endswith('.tar.bz2')]
-        if len(v) > 0:
+    def _archive_newer(self, files, archive_path, compression):
+        files.sort()
+        if len(files) > 0:
             inc = '.incremental'
-            newer = ['--newer', '@%s'%time.mktime(time.strptime(v[-1].split('.')[0], TIMESTAMP_FORMAT))]
+            newer = ['--newer', '@%s'%time.mktime(time.strptime(files[-1].split('.')[0], TIMESTAMP_FORMAT))]
         else:
             inc = ''
             newer = []
-        archive = os.path.join(archive_path, '%s%s.tar.bz2'%(time.strftime(TIMESTAMP_FORMAT),inc))
+        archive = os.path.join(archive_path, '%s%s.tar.%s'%(
+                    time.strftime(TIMESTAMP_FORMAT),inc, compression))
         return newer, archive
 
-    def archive(self):
+    def archive(self, compression='lz4'):
         """
         If self._archive (archive= option to constructor) is nonempty and
         does not start with gs://, then:
 
-            Create self.archive/project_id/timestamp.tar.bz2, excluding things that probably
+            Create self.archive/project_id/timestamp.tar.lz4 (or bz2 or gz), excluding things that probably
             shouldn't be in the tarball.  Use this for archival purposes and so user can
             download a backup of their project.
 
@@ -800,13 +804,32 @@ class Project(object):
             return
         archive_path = os.path.join(self._archive, self.project_id)
         log("to %s", archive_path)
+
+        use_pipe = False
+        if compression == 'bz2':
+            opts = '-jcf'
+        elif compression == 'gz':
+            opts = '-zcf'
+        elif compression == 'lz4':
+            opts = '-cf'
+            use_pipe = True
+        else:
+            raise RuntimeError("compression (='%s') must be one of 'lz4', 'gz', 'bz2'"%compression)
+
+        def create_tarball(newer, target):
+            more_opts = newer + self._exclude('') + [self.project_id]
+            if use_pipe:
+                self.cmd("tar %s - %s | %s > %s"%(opts, ' '.join(more_opts), compression, target))
+            else:
+                self.cmd(['tar', opts, target]  + more_opts)
+
         if archive_path.startswith('gs://'):
             log("google cloud storage")
-            newer, archive = self._archive_newer(gs_ls(archive_path), archive_path)
+            newer, archive = self._archive_newer(gs_ls(archive_path), archive_path, compression)
             try:
                 tmp_path = tempfile.mkdtemp()
-                local = os.path.join(tmp_path, 'a.tar.bz2')
-                self.cmd(['tar', '-jcf', local]  + newer + self._exclude('') + [self.project_id])
+                local = os.path.join(tmp_path, 'a.tar.%s'%compression)
+                create_tarball(newer, local)
                 gsutil(['-q', '-m', 'cp'] + [local] + [archive])
                 os.unlink(local)
             finally:
@@ -817,10 +840,11 @@ class Project(object):
                 os.makedirs(archive_path)
             # very important that the archive path is not world readable...
             os.chmod(self._archive, stat.S_IRWXU)
-            newer, archive = self._archive_newer(os.listdir(archive_path), archive_path)
+            newer, archive = self._archive_newer(os.listdir(archive_path), archive_path, compression)
             try:
+                cur = os.curdir
                 os.chdir(self.btrfs)
-                self.cmd(['tar', '-jcf', archive]  + newer + self._exclude('') + [self.project_id])
+                create_tarball(newer, archive)
                 return {'path':archive, 'size':os.lstat(archive).st_size}
             finally:
                 os.chdir(cur)
@@ -1288,7 +1312,11 @@ if __name__ == "__main__":
                                    dest="delete", default=False, action="store_const", const=True)
     f(parser_copy_path)
 
-    f(subparsers.add_parser('archive', help='create archive tarball of the project'))
+    parser_archive = subparsers.add_parser('archive', help='create archive tarball of the project')
+    parser_archive.add_argument("--compression",
+                    help="compression format -- 'lz4' (default), 'gz' or 'bz2'",
+                    default="lz4",dest="compression")
+    f(parser_archive)
 
     args = parser.parse_args()
     args.func(args)
