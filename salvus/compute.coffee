@@ -100,11 +100,12 @@ class ComputeServerClient
         else
             opts.cb("database or keyspace must be specified")
 
+    dbg: (method) =>
+        (m) => winston.debug("ComputeServerClient.#{method}: #{m}")
+
     ###
     # get info about server and add to database
-
          require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);s.add_server(host:'localhost', cb:(e)->console.log("done",e)))
-
     ###
     add_server: (opts) =>
         opts = defaults opts,
@@ -113,8 +114,8 @@ class ComputeServerClient
             experimental : false     # if true, don't allocate new projects here
             timeout      : 30
             cb           : undefined
-        dbg = (m) => winston.debug("GlobalClient.register_server(#{opts.host}, #{opts.dc}): #{m}")
-        dbg("adding compute server to the database by grabbing server_id files, etc.")
+        dbg = @dbg("add_server(#{opts.host})")
+        dbg("adding compute server to the database by grabbing conf files, etc.")
 
         get_file = (path, cb) =>
             dbg("get_file: #{path}")
@@ -133,14 +134,10 @@ class ComputeServerClient
                         cb(undefined, output.stdout)
 
         set =
-            host         : opts.host
             dc           : opts.dc
             port         : undefined
             secret       : undefined
             experimental : opts.experimental
-
-        where =
-            server_id : undefined
 
         async.series([
             (cb) =>
@@ -148,10 +145,6 @@ class ComputeServerClient
                     (cb) =>
                         get_file program.port_file, (err, port) =>
                             set.port = parseInt(port); cb(err)
-                    (cb) =>
-                        get_file program.server_id_file, (err, server_id) =>
-                            where.server_id = server_id
-                            cb(err)
                     (cb) =>
                         get_file program.secret_file, (err, secret) =>
                             set.secret = secret
@@ -162,22 +155,67 @@ class ComputeServerClient
                 @database.update
                     table : 'compute_servers'
                     set   : set
-                    where : where
+                    where : {host:opts.host}
                     cb    : cb
         ], (err) => opts.cb?(err))
 
 
-    # compute server id's and health/load info
+    # compute servers health/load info
     servers: (opts) =>
         opts = defaults opts,
             cb       : required
 
+
+    # get a socket connection to a particular compute server
+    socket: (opts) =>
+        opts = defaults opts,
+            host : required
+            cb   : required
+        dbg = @dbg("socket(#{opts.host})")
+
+        if not @_socket_cache?
+            @_socket_cache = {}
+        socket = @_socket_cache[opts.host]
+        if socket?
+            opts.cb(undefined, socket)
+            return
+        info = undefined
+        async.series([
+            (cb) =>
+                dbg("getting port and secret...")
+                @database.select_one
+                    table     : 'compute_servers'
+                    columns   : ['port', 'secret']
+                    where     : {host: opts.host}
+                    objectify : true
+                    cb        : (err, x) =>
+                        info = x; cb(err)
+            (cb) =>
+                dbg("connecting to #{opts.host}:#{info.port}...")
+                misc_node.connect_to_locked_socket
+                    host    : opts.host
+                    port    : info.port
+                    token   : info.secret
+                    timeout : 15
+                    cb      : (err, socket) =>
+                        if err
+                            dbg("failed to connect: #{err}")
+                            cb(err)
+                        else
+                            dbg("successfully connected")
+                            @_socket_cache[opts.host] = socket
+                            misc_node.enable_mesg(socket)
+                            cb()
+        ], (err) =>
+            opts.cb(err, @_socket_cache[opts.host])
+        )
+
     # send message to a server and get back result
     call: (opts) =>
         opts = defaults opts,
-            server_id : required
-            mesg      : undefined
-            cb        : required
+            host : required
+            mesg : undefined
+            cb   : required
 
 
 client_project_cache = {}
@@ -313,7 +351,6 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--logfile [string]',        'write log to this file', String, "#{CONF}/compute.log")
 
     .option('--port_file [string]',      'write port number to this file', String, "#{CONF}/compute.port")
-    .option('--server_id_file [string]', 'file in which server_id is stored', String, "#{CONF}/compute.id")
     .option('--secret_file [string]',    'write secret token to this file', String, "#{CONF}/compute.secret")
 
     .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
@@ -331,34 +368,6 @@ if not program.address
         program.address = require('os').networkInterfaces().eth1?[0].address  # my laptop vm...
     if not program.address  # useless
         program.address = '127.0.0.1'
-
-SERVER_ID = undefined
-
-init_server_id = (cb) ->
-    dbg = (m) -> winston.debug("init_server_id: #{m}")
-    dbg()
-    file = program.server_id_file
-    fs.exists file, (exists) ->
-        if not exists
-            dbg("file '#{file}' does not exist, writing...")
-            SERVER_ID = uuid.v4()
-            fs.writeFile file, SERVER_ID, (err) ->
-                if err
-                    dbg("Error writing server_id file!")
-                    cb(err)
-                else
-                    dbg("Wrote new SERVER_ID =#{SERVER_ID}")
-                    cb()
-        else
-            dbg("file '#{file}' exists, reading...")
-            fs.readFile file, (err, data) ->
-                if err
-                    dbg("error reading #{err}")
-                    cb(err)
-                else
-                    dbg("read file")
-                    SERVER_ID = data.toString()
-                    cb()
 
 secret_token = undefined
 read_secret_token = (cb) ->
@@ -458,7 +467,7 @@ start_tcp_server = (cb) ->
 
 start_server = (cb) ->
     winston.debug("start_server")
-    async.series [init_server_id, read_secret_token, start_tcp_server], (err) ->
+    async.series [read_secret_token, start_tcp_server], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
         else

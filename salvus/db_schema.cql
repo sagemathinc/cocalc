@@ -552,13 +552,12 @@ CREATE TABLE storage_servers (
 
 
 CREATE TABLE compute_servers (
-    server_id     uuid PRIMARY KEY,
-    host          varchar,
+    host          varchar PRIMARY KEY,
     port          int,
     dc            int,
     health        float,
     secret        varchar,
-    experimental  boolean,      /* if true ignored this host when assigning hosts for a project */
+    experimental  boolean,             /* if true ignored this host when assigning hosts for a project */
     ssh           map<int, varchar>,   /*  dc -> 'address:port' when connecting *from* that dc; use dc=-1 for connecting from the greater internet */
 );
 
