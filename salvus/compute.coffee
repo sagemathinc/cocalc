@@ -318,7 +318,14 @@ class ProjectClient
                     action     : opts.action
                     args       : opts.args
             timeout : opts.timeout
-            cb      : opts.cb
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    if resp.error?
+                        opts.cb(resp.error)
+                    else
+                        opts.cb(undefined, resp)
 
     ###
        The state of the project, which is one of:
@@ -346,11 +353,17 @@ class ProjectClient
     open: (opts) =>
         opts = defaults opts,
             cb     : required
+        @_action
+            action : "open"
+            cb     : opts.cb
 
     # start local_hub daemon running (must be opened somewhere)
     start: (opts) =>
         opts = defaults opts,
             cb     : required
+        @_action
+            action : "start"
+            cb     : opts.cb
 
     # kill everything and remove project from this compute node  (must be opened somewhere)
     close: (opts) =>
@@ -358,38 +371,73 @@ class ProjectClient
             force  : false
             nosave : false
             cb     : required
+        args = []
+        if opts.force
+            args.push('--force')
+        if opts.nosave
+            args.push('--nosave')
+        @_action
+            action : "close"
+            args   : args
+            cb     : opts.cb
 
     # move project from one compute node to another one
     move: (opts) =>
         opts = defaults opts,
             target : required
             cb     : required
+        @_action
+            action : "close"
+            args   : ['--target', opts.target]
+            cb     : opts.cb
 
     # kill all processes, then start
     restart: (opts) =>
         opts = defaults opts,
             cb     : required
+        @_action
+            action : "restart"
+            cb     : opts.cb
 
     # kill all processes
     stop: (opts) =>
         opts = defaults opts,
             cb     : required
+        @_action
+            action : "stop"
+            cb     : opts.cb
 
     # create snapshot, save incrementals to cloud storage
     save: (opts) =>
         opts = defaults opts,
+            max_snapshots : 100
             cb     : required
+        @_action
+            action : "start"
+            args   : ['--max_snapshots', opts.max_snapshots]
+            cb     : opts.cb
 
     # project location and listening port
     address: (opts) =>
         opts = defaults opts,
             cb     : required
+        @status
+            cb     : (err, status) =>
+                if err
+                    opts.cb(err)
+                else
+                    if status.state != 'running'
+                        opts.cb("not running")
+                    else
+                        opts.cb(undefined, {host:@host, port:status['local_hub.port'], secret_token:status.secret_token})
 
     # information about project (ports, state, etc.)
     status: (opts) =>
         opts = defaults opts,
             cb     : required
-
+        @_action
+            action : "status"
+            cb     : opts.cb
 
     # copy a path using rsync from one project to another
     copy_path: (opts) =>
@@ -401,13 +449,58 @@ class ProjectClient
             timeout           : undefined
             bwlimit           : undefined
             cb                : required
+        args = ["--target_project_id", opts.target_project_id,
+                "--targt_path", opts.target_path]
+        if opts.overwrite_newer
+            args.push('--overwrite_newer')
+        if opts.delete
+            args.push('--delete')
+        if opts.timeout
+            args.push('--timeout')
+            args.push(opts.timeout)
+        if opts.bwlimit
+            args.push('--bwlimit')
+            args.push(opts.bwlimit)
+        @_action
+            action : 'copy_path'
+            args   : args
+            cb     : opts.cb
+
+    directory_listing: (opts) =>
+        opts = defaults opts,
+            path      : ''
+            hidden    : false
+            time      : false        # sort by timestamp, with newest first?
+            start     : 0
+            limit     : -1
+            cb        : required
+        args = []
+        if opts.hidden
+            args.push("--hidden")
+        if opts.time
+            args.push("--time")
+        for k in ['path', 'start', 'limit']
+            args.push("--#{k}"); args.push(opts[k])
+        @_action
+            action : 'directory_listing'
+            args   : args
+            cb     : opts.cb
 
     # read a file or directory from disk
     read_file: (opts) =>
         opts = defaults opts,
             path    : required
             maxsize : 3000000    # maximum file size in bytes to read
-            cb      : required
+            cb      : required   # cb(err, Buffer)
+        args =  [opts.path, "--maxsize", opts.maxsize]
+        @_action
+            action  : 'read_file'
+            args    : args
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, new Buffer(resp.base64, 'base64'))
 
     # set various quotas
     set_quotas: (opts) =>
@@ -418,6 +511,35 @@ class ProjectClient
             cpu_shares   : undefined
             network      : undefined
             cb           : required
+        async.parallel([
+            (cb) =>
+                if opts.network?
+                    @_action
+                        action : 'network'
+                        args   : if opts.network then [] else ['--ban']
+                        cb     : cb
+                else
+                    cb()
+            (cb) =>
+                if opts.disk_quota?
+                    @_action
+                        action : 'disk_quota'
+                        args   : [args.disk_quota]
+                        cb     : cb
+                else
+                    cb()
+            (cb) =>
+                if opts.cores? or opts.memory? or opts.cpu_shares?
+                    args = []
+                    for s in ['cores', 'memory', 'cpu_shares']
+                        if opts[s]?
+                            args.push("--#{s}"); args.push(opts[s])
+                    @_action
+                        action : 'compute_quota'
+                        args   : args
+                        cb     : cb
+        ], opts.cb)
+
 
 
 #################################################################

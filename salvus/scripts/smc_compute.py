@@ -1309,20 +1309,6 @@ if __name__ == "__main__":
                     default="lz4",dest="compression")
     f(parser_archive)
 
-    parser_settings = subparsers.add_parser('settings', help='set settings for project (combines several other subcommands)')
-    parser_settings.add_argument("--memory", dest="memory", help="memory settings in gigabytes",
-                               type=int, default=None)
-    parser_settings.add_argument("--cpu_shares", dest="cpu_shares", help="shares of the cpu",
-                               type=int, default=None)
-    parser_settings.add_argument("--cores", dest="cores", help="max number of cores (may be float)",
-                               type=float, default=None)
-    parser_settings.add_argument("--disk", dest="disk", help="working disk space in megabytes",
-                                 type=int, default=None)
-    parser_settings.add_argument("--network", dest="network", help="whether or not project has external network access",
-                                 type=str, default=None)
-    f(parser_settings)
-
-
     args = parser.parse_args()
     args.func(args)
 
