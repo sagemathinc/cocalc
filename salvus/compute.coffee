@@ -202,9 +202,15 @@ class ComputeServerClient
                             dbg("failed to connect: #{err}")
                             cb(err)
                         else
-                            dbg("successfully connected")
                             @_socket_cache[opts.host] = socket
                             misc_node.enable_mesg(socket)
+                            socket.id = uuid.v4()
+                            dbg("successfully connected -- socket #{socket.id}")
+                            socket.on 'close', () =>
+                                dbg("socket #{socket.id} closed")
+                                if @_socket_cache[opts.host].id == socket.id
+                                    delete @_socket_cache[opts.host]
+                                socket.removeAllListeners()
                             cb()
         ], (err) =>
             opts.cb(err, @_socket_cache[opts.host])

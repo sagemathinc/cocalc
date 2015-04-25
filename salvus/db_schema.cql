@@ -262,9 +262,7 @@ CREATE TABLE projects (
 
      last_edited      timestamp,     /* timestamp of last modification of the project */
 
-     gb_location     uuid,           /* location of open project using gb-based storage system */
-     gb_last_save    map<uuid, timestamp>,
-     gb_size_kb      int,            /* last known size of project in kilobytes = 1000 bytes */
+     compute_server   varchar,        /* hostname of compute server where this project is opened */
 
      /* bup = deprecated */
      bup_location     uuid,         /* location using new bup-based storage system */
