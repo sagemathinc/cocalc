@@ -1523,8 +1523,8 @@ class GlobalProject
                             project.open(cb:cb)
         ], opts.cb)
 
-    # change the location preference for the next start, and attempts to stop
-    # if running somewhere now.
+    # change the location preference for the next start,
+    # and attempts to stop if running somewhere now.
     move: (opts) =>
         opts = defaults opts,
             target : undefined

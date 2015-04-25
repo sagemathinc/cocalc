@@ -169,7 +169,7 @@ def btrfs(args, **kwds):
     return cmd(['btrfs']+args, **kwds)
 
 def btrfs_subvolume_id(subvolume):
-    a = btrfs(['subvolume', 'show', subvolume])
+    a = btrfs(['subvolume', 'show', subvolume], verbose=0)
     i = a.find('Object ID:')
     a = a[i:]
     i = a.find('\n')
