@@ -140,7 +140,7 @@ class Project
 
     action: (opts) =>
         opts = defaults opts,
-            action  : required    # sync, save, etc.
+            action  : required    # save, etc.
             timeout : TIMEOUT
             param   : undefined   # if given, should be an array or string
             cb      : undefined   # cb?(err)
@@ -333,9 +333,6 @@ handle_mesg = (socket, mesg) ->
             socket.write_mesg('json', mesg)
         else
             t = misc.walltime()
-            if mesg.action == 'sync'
-                if not mesg.param?
-                    mesg.param = []
             project = get_project(mesg.project_id)
             project.action
                 action : mesg.action
@@ -877,64 +874,6 @@ class GlobalProject
                     dbg("project not running anywhere, so start it somewhere")
                     @start(opts)
 
-    sync_topology: (opts) =>
-        opts = defaults opts,
-            cb        : required   # (err, {host:{dc:n, server_id:server_id, running:true or false}, targets:{'ip_address:port':target_id, ...}})
-        dbg = (m) => winston.debug("GlobalProject.sync_topology(): #{m}")
-
-        resp = {host:{}, targets:{}}
-        async.series([
-            (cb) =>
-                dbg("get host, data center, and if project is running")
-                @get_running_location_and_dc
-                    cb : (err, x) =>
-                        if err
-                            cb(err)
-                        else
-                            resp.host = x
-                            cb()
-            (cb) =>
-                dbg("get the targets for replication")
-                @get_hosts
-                    cb : (err, t) =>
-                        v = (x for x in t when x != resp.host.server_id)
-                        dbg("sync_targets = #{misc.to_json(v)}")
-                        f = (target_id, cb) =>
-                            @global_client.get_external_ssh
-                                server_id : target_id
-                                dc        : resp.host.dc
-                                cb        : (err, addr) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        resp.targets[addr] = target_id
-                                        cb()
-                        async.map v, f, (err) =>
-                            dbg("sync_targets --> #{misc.to_json(resp.targets)}")
-                            cb(err)
-        ], (err) =>
-            if err
-                opts.cb(err)
-            else
-                opts.cb(undefined, resp)
-        )
-
-    # Determine the hostname:port to use when making an ssh connection from the
-    # machine currently hosting this project to some other machine (given by its server_id).
-    # (similar to sync_topology above)
-    # **NOT DONE**
-    ssh_address: (opts) =>
-        opts = defaults opts,
-            server_id : required   # target machine's id
-            cb        : required   # (err, {address:?, port:?})
-
-        dbg = (m) => winston.debug("GlobalProject.ssh_address(#{opts.server_id}): #{m}")
-
-        host_server_id = undefined
-        async.series([
-            (cb) =>
-        ])
-
     save: (opts) =>
         opts = defaults opts,
             force : false
@@ -998,79 +937,6 @@ class GlobalProject
                 opts.cb?(errors)
             else
                 opts.cb?()
-        )
-
-
-    sync: (opts) =>
-        opts = defaults opts,
-            destructive : false
-            snapshots   : true   # whether to sync snapshots -- if false, only syncs live files
-            union       : false  # if true, sync's by making the files and gb repo the union of that on all replicas -- this is for *REPAIR*
-            timeout     : TIMEOUT
-            cb          : undefined
-
-        dbg = (m) => winston.debug("GlobalProject.sync(#{@project_id}): #{m}")
-
-        project   = undefined
-        targets   = undefined
-        server_id = undefined
-        result    = undefined
-        errors    = []
-        async.series([
-            (cb) =>
-                dbg("figure out where/if project is running")
-                @sync_topology
-                    cb : (err, resp) =>
-                        if err
-                            cb(err); return
-                        server_id = resp.host.server_id
-                        targets   = resp.targets
-                        cb()
-            (cb) =>
-                dbg("get the project itself")
-                @project
-                    server_id : server_id
-                    cb        : (err, p) =>
-                        project = p; cb(err)
-            (cb) =>
-                dbg("do the sync")
-                tm = cassandra.now()
-                project.sync
-                    targets     : misc.keys(targets)
-                    union       : opts.union
-                    destructive : opts.destructive
-                    snapshots   : opts.snapshots
-                    timeout     : opts.timeout
-                    cb          : (err, x) =>
-                        if err
-                            cb(err)
-                        else
-                            r = x.result
-                            if not r?
-                                cb()
-                                return
-                            dbg("record info about syncing in database")
-                            last_save = {}
-                            last_save[server_id] = tm
-                            for x in r
-                                if x.host == '' # special case - the server hosting the project
-                                    s = server_id
-                                else
-                                    s = targets[x.host]
-                                if not x.error?
-                                    last_save[s] = tm
-                                else
-                                    errors.push(x.error)
-                            @set_last_save
-                                last_save : last_save
-                                cb        : cb
-        ], (err) =>
-            if err
-                opts.cb?(err)
-            else if errors.length > 0
-                opts.cb?(errors)
-            else
-                opts.cb?(undefined, result)
         )
 
     # make a directory in this project
@@ -1394,7 +1260,7 @@ class GlobalProject
                     cb                : cb
         ], (err) => opts.cb?(err))
 
-    # if some project is actually running, return it; otherwise undefined
+    # if some project is actually running, return host; otherwise undefined
     running_project: (opts) =>
         opts = defaults opts,
             cb : required   # (err, project)
@@ -2808,80 +2674,7 @@ class GlobalClient
                 else
                     fs.writeFile(opts.filename, JSON.stringify(projects), opts.cb)
 
-    sync_union: (opts) =>
-        opts = defaults opts,
-            limit       : 5           # number to do in parallel
-            timeout     : TIMEOUT
-            dryrun      : false       # if true, just return the projects that need sync; don't actually sync
-            status      : []
-            projects     : undefined   # if given, do sync on exactly these projects and no others
-            cb          : required    # cb(err, errors)
-        dbg = (m) => winston.debug("GlobalClient.sync_union: #{m}")
-        dbg()
-        projects = []
-        errors = {}
-        async.series([
-            (cb) =>
-                if opts.projects?
-                    projects = opts.projects
-                    cb()
-                    return
-                dbg("querying database for all projects with any data")
-                @database.select
-                    table     : 'projects'
-                    columns   : ['project_id', 'gb_last_save']
-                    objectify : true
-                    stream    : true
-                    cb        : (err, r) =>
-                        if err
-                            cb(err)
-                        else
-                            dbg("got #{r.length} records")
-                            r.sort (a,b) ->
-                                if a.project_id < b.project_id
-                                    return -1
-                                else if a.project_id > b.project_id
-                                    return 1
-                                else
-                                    return 0
-                            projects = (x.project_id for x in r when x.gb_last_save? and misc.len(x.gb_last_save) > 0)
-                            cb()
-            (cb) =>
-                if opts.dryrun
-                    cb(); return
-                i = 0
-                j = 0
-                f = (project_id, cb) =>
-                    i += 1
-                    dbg("*** syncing project #{i}/#{projects.length} ***: #{project_id}")
-                    s = {'status':'running...', project_id:project_id}
-                    opts.status.push(s)
-                    @get_project(project_id).sync
-                        union : true
-                        cb    : (err) =>
-                            j += 1
-                            dbg("*** got result #{j}/#{projects.length} for #{project_id}: #{err}")
-                            s['status'] = 'done'
-                            if err
-                                errors[project_id] = err
-                                s['error'] = err
-                            cb()
-                dbg("#{projects.length} projects need to be sync'd")
-                async.mapLimit(projects, opts.limit, f, (err) => cb())
-
-        ], (err) =>
-            if err
-                opts.cb?(err)
-            else if misc.len(errors) > 0
-                opts.cb?(errors)
-            else
-                if opts.dryrun
-                    opts.cb?(undefined, projects)
-                else
-                    opts.cb?()
-        )
-
-    # returns sorted-by-last-edited list of objects (with newest first)
+   # returns sorted-by-last-edited list of objects (with newest first)
     #    {last_edited:?, project_id:?,  server_id:?, ssh:?}
     # where server_id is the id of the best server where the project is.
     ###
@@ -3307,31 +3100,6 @@ class ClientProject
             timeout : opts.timeout
             action  : 'settings'
             param   : param
-            cb      : opts.cb
-
-    sync: (opts) =>
-        opts = defaults opts,
-            targets     : required   # array of hostnames (not server id's!) to sync to
-            timeout     : TIMEOUT
-            destructive : false
-            snapshots   : true   # whether to sync snapshots -- if false, only syncs live files
-            union       : false  # if true, sync's by making the files and bup repo the union of that on all replicas -- this is for *REPAIR*
-            cb          : undefined
-        if opts.targets.length == 0  # trivial special case
-            opts.cb?()
-            return
-        params = []
-        params.push("--targets=#{opts.targets.join(',')}")
-        if opts.snapshots
-            params.push('--snapshots')
-        if opts.destructive
-            params.push('--destructive')
-        if opts.union
-            params.push('--union')
-        @action
-            action  : 'sync'
-            param   : params
-            timeout : opts.timeout
             cb      : opts.cb
 
     mkdir: (opts) =>

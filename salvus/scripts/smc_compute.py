@@ -596,8 +596,9 @@ class Project(object):
             s['state'] = 'closed'
             return s
 
-        if self.username not in open('/etc/passwd').read():  # TODO: can be done better
-            s['state'] = 'stopped'
+        if self.username not in open('/etc/passwd').read():
+            # if the path exists the user should exist; if it doesn't, something is corrupt
+            s['state'] = 'error'
             return s
 
         s['btrfs'] = self.btrfs_status()
