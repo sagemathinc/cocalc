@@ -1,4 +1,0 @@
-#!/bin/sh
-
-cd $SALVUS_ROOT
-node node_modules/gb_compute.js $@

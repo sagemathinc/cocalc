@@ -22,7 +22,7 @@
 
 #################################################################
 #
-# gb_server -- a node.js program that provides a TCP server
+# smc_compute -- a node.js program that provides a TCP server
 # that is used by the hubs to organize compute nodes that
 # get their projects from [G]oogle Cloud storage and store and
 # snapshot them using [B]trfs.
@@ -33,7 +33,7 @@
 #
 #  Interactive use:
 #
-#     x={};require('gb_compute').global_client(keyspace:'devel',cb:(e,c)->console.log(e);x.c=c;x.p=x.c.get_project('0069cdc2-3baa-4561-9c9e-17cb08e9b849'))
+#     x={};require('smc_compute').global_client(keyspace:'devel',cb:(e,c)->console.log(e);x.c=c;x.p=x.c.get_project('0069cdc2-3baa-4561-9c9e-17cb08e9b849'))
 #
 #################################################################
 
@@ -84,20 +84,20 @@ DATA = 'data'
 ## server-side: Compute server code
 ###########################
 
-gb_compute = (opts) =>
+smc_compute = (opts) =>
     opts = defaults opts,
         args    : required
         timeout : TIMEOUT
         cb      : required
-    winston.debug("gb_compute: running #{misc.to_json(opts.args)}")
+    winston.debug("smc_compute: running #{misc.to_json(opts.args)}")
     misc_node.execute_code
         command : "sudo"
-        args    : ["/usr/local/bin/gb_compute.py", "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE].concat(opts.args)
+        args    : ["/usr/local/bin/smc_compute.py", "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE].concat(opts.args)
         timeout : opts.timeout
         bash    : false
         path    : process.cwd()
         cb      : (err, output) =>
-            winston.debug("gb_compute: finished running #{misc.to_json(opts.args)} -- #{err}")
+            winston.debug("smc_compute: finished running #{misc.to_json(opts.args)} -- #{err}")
             if err
                 if output?.stderr
                     opts.cb(output.stderr)
@@ -132,8 +132,8 @@ class Project
             args.push(a)
         args.push(@project_id)
 
-        @dbg("exec", opts.args, "executing gb_compute.py script")
-        gb_compute
+        @dbg("exec", opts.args, "executing smc_compute.py script")
+        smc_compute
             args    : args
             timeout : opts.timeout
             cb      : opts.cb
@@ -575,7 +575,7 @@ start_server = (cb) ->
 
 c=require('cassandra');x={};d=new c.Salvus(hosts:['10.1.11.2'], keyspace:'salvus', username:'salvus', password:fs.readFileSync('/home/salvus/salvus/salvus/data/secrets/cassandra/salvus').toString().trim(),consistency:1,cb:((e,d)->console.log(e);x.d=d))
 
-require('gb_server').global_client(database:x.d, cb:(e,c)->x.e=e;x.c=c)
+require('smc_compute').global_client(keyspace:'devel', database:x.d, cb:(e,c)->x.e=e;x.c=c)
 
 (x.c.register_server(host:"10.1.#{i}.5",dc:0,cb:console.log) for i in [10..21])
 
@@ -1176,7 +1176,7 @@ class GlobalProject
     ###
     verify that it's possible to copy files between server_id from/to the given remote servers
 
-        x={};s=require('gb_server').global_client(cb:(err,c)->x.c=c;x.p=x.c.get_project('3702601d-9fbc-4e4e-b7ab-c10a79e34d3b'))
+        x={};s=require('smc_compute').global_client(cb:(err,c)->x.c=c;x.p=x.c.get_project('3702601d-9fbc-4e4e-b7ab-c10a79e34d3b'))
 
         x.p.all_remotes_are_ready(cb:(e,a)->console.log("DONE!",e,a);x.a=a)
 
@@ -2017,7 +2017,7 @@ class GlobalProject
 global_client_cache = {}
 
 #
-# x={};gb_server.global_client(keyspace:'devel',cb:(e,c)->console.log(e);x.c=c)
+# x={};smc_compute.global_client(keyspace:'devel',cb:(e,c)->console.log(e);x.c=c)
 #
 exports.global_client = (opts) ->
     opts = defaults opts,
@@ -2323,7 +2323,7 @@ class GlobalClient
         dbg = (m) => winston.info("push_servers_files: #{m}")
         dbg('starting... logged')
         errors = {}
-        file = "#{DATA}/gb_compute_servers"
+        file = "#{DATA}/smc_compute_servers"
         async.series([
             (cb) =>
                 dbg("updating")
@@ -2399,16 +2399,19 @@ class GlobalClient
 
         async.series([
             (cb) =>
-                get_file program.portfile, (err, port) =>
-                    set.port = parseInt(port); cb(err)
-            (cb) =>
-                get_file program.server_id_file, (err, server_id) =>
-                    where.server_id = server_id
-                    cb(err)
-            (cb) =>
-                get_file program.secret_file, (err, secret) =>
-                    set.secret = secret
-                    cb(err)
+                async.parallel([
+                    (cb) =>
+                        get_file program.portfile, (err, port) =>
+                            set.port = parseInt(port); cb(err)
+                    (cb) =>
+                        get_file program.server_id_file, (err, server_id) =>
+                            where.server_id = server_id
+                            cb(err)
+                    (cb) =>
+                        get_file program.secret_file, (err, secret) =>
+                            set.secret = secret
+                            cb(err)
+                ], cb)
             (cb) =>
                 dbg("update database")
                 @database.update
@@ -2805,265 +2808,6 @@ class GlobalClient
                 else
                     fs.writeFile(opts.filename, JSON.stringify(projects), opts.cb)
 
-    ###
-    For every project, check that the gb_last_save times are all the same,
-    so that everything is fully replicated.
-    If not, replicate from the current location (or newest) out to others.
-
-    CODE in console to use this:
-
-        x={};require('gb_server').global_client(cb:(e,c)->x.c=c; x.c.repair(dryrun:true, cb:(e,projects)->console.log("DONE",e,"NUM=",projects?.length);x.projects=projects))
-        x.projects.length
-
-        status=[];x.c.repair(limit:3, status:status,dryrun:false,cb:(e,projects)->console.log("DONE",e);x.projects=projects)
-
-    ###
-    repair: (opts) =>
-        opts = defaults opts,
-            limit       : 20           # number to do in parallel
-            destructive : false
-            timeout     : TIMEOUT
-            dryrun      : false       # if true, just return the projects that need sync; don't actually sync
-            status      : []
-            cb          : required    # cb(err, errors)
-        if not @servers?
-            opts.cb?("@servers not yet initialized"); return
-        dbg = (m) => winston.debug("GlobalClient.repair(...): #{m}")
-        dbg()
-        projects = []
-        errors = {}
-        async.series([
-            (cb) =>
-                dbg("querying database....")
-                @database.select
-                    table     : 'projects'
-                    columns   : ['project_id', 'gb_location', 'gb_last_save']
-                    objectify : true
-                    stream    : true
-                    cb        : (err, r) =>
-                        if err
-                            cb(err)
-                        else
-                            dbg("got #{r.length} records")
-                            dbg("sorting them by id")
-                            r.sort (a,b) ->
-                                if a.project_id < b.project_id
-                                    return -1
-                                else if a.project_id > b.project_id
-                                    return 1
-                                else
-                                    return 0
-                            dbg("checking through each project to see if any replica is out of sync")
-                            i = 0
-                            for project in r
-                                if i%5000 == 0
-                                    dbg("checked #{i}/#{r.length} projects...")
-                                i += 1
-                                if not project.gb_last_save? or misc.len(project.gb_last_save) == 0
-                                    continue
-                                times = {}
-                                for _, tm of project.gb_last_save
-                                    times[tm] = true
-                                times = misc.keys(times)
-                                if times.length > 1
-                                    # at least one replica must be out of date
-                                    if project.gb_location?
-                                        # choose the running location rather than newest, just in case.
-                                        # should usually be the same, but might not be in case of split brain, etc.
-                                        project.source_id = project.gb_location
-                                        t = project.gb_last_save[project.gb_location]
-                                        project.timestamp = t
-                                    else
-                                        times.sort()
-                                        t = times[times.length-1]
-                                        # choose any location with that time
-                                        for server_id, tm of project.gb_last_save
-                                            if "#{tm}" == t   # t is an map key so a string.
-                                                project.source_id = server_id
-                                                project.timestamp = tm
-                                                break
-                                        if not project.source_id?  # should be impossible
-                                            cb("BUG -- project.source_id didn't get set -- #{misc.to_json(project)}")
-                                            return
-                                    project.targets = (server_id for server_id, tm of project.gb_last_save when "#{tm}" != t)
-                                    dbg("found out of sync project: #{misc.to_json(project)}")
-                                    projects.push(project)
-                            cb()
-            (cb) =>
-                if opts.dryrun
-                    cb(); return
-                i = 0
-                j = 0
-                f = (project, cb) =>
-                    i += 1
-                    dbg("*** syncing project #{i}/#{projects.length} ***: #{project.project_id}")
-                    s = {'status':'running...', project:project}
-                    opts.status.push(s)
-                    source_id = undefined
-                    async.series([
-                        (cb) =>
-                            # Ensure that we open the project where it is currently
-                            # opened, if it is currently opened.   We do not just
-                            # use project.source_id, since it is possible (but very unlikely)
-                            # that the project moved between when we did the above database query
-                            # and when we actually sync out the project.
-                            @project_location
-                                project_id : project.project_id
-                                cb         : (err, result) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        if result?
-                                            source_id = result
-                                        else
-                                            source_id = project.source_id
-                                        cb()
-                        (cb) =>
-                            @project
-                                project_id : project.project_id
-                                server_id  : source_id
-                                cb         : (err, p) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        p.sync
-                                            targets     : (@servers.by_id[server_id].host for server_id in project.targets)
-                                            timeout     : opts.timeout
-                                            destructive : opts.destructive
-                                            snapshots   : true
-                                            cb          : cb
-                        (cb) =>
-                            # success -- update database
-                            last_save = {}
-                            for server_id in project.targets
-                                last_save[server_id] = project.timestamp
-                            @get_project(project.project_id).set_last_save
-                                last_save : last_save
-                                cb        : cb
-                    ], (err) =>
-                        j += 1
-                        dbg("*** got result #{j}/#{projects.length} for #{project.project_id}: #{err}")
-                        s['status'] = 'done'
-                        if err
-                            s['error'] = err
-                        cb(err)
-                    )
-
-                dbg("#{projects.length} projects need to be sync'd")
-                async.mapLimit(projects, opts.limit, f, (err) => cb())
-        ], (err) =>
-            if err
-                opts.cb?(err)
-            else if misc.len(errors) > 0
-                opts.cb?(errors)
-            else
-                if opts.dryrun
-                    opts.cb?(undefined, projects)
-                else
-                    opts.cb?()
-        )
-
-    repair_gb_location: (opts) =>
-        opts = defaults opts,
-            limit       : 20           # number to do in parallel
-            timeout     : TIMEOUT
-            cb          : required    # cb(err, errors)
-        if not @servers?
-            opts.cb?("@servers not yet initialized"); return
-        dbg = (m) => winston.debug("GlobalClient.repair_gb_location(...): #{m}")
-        dbg()
-        projects = []
-        async.series([
-            (cb) =>
-                dbg("querying database....")
-                @database.select
-                    table     : 'projects'
-                    columns   : ['project_id', 'gb_location', 'gb_last_save']
-                    objectify : true
-                    stream    : true
-                    cb        : (err, r) =>
-                        if err
-                            cb(err)
-                        else
-                            dbg("got #{r.length} records")
-                            dbg("checking through each project to see which don't have gb_location set")
-                            i = 0
-                            for project in r
-                                if i%5000 == 0
-                                    dbg("checked #{i}/#{r.length} projects...")
-                                i += 1
-                                if project.gb_location or not project.gb_last_save? or misc.len(project.gb_last_save) == 0
-                                    continue
-                                gb_location = undefined
-                                newest_date = undefined
-                                for server_id, date of project.gb_last_save
-                                    if not gb_location or date >= newest_date
-                                        gb_location = server_id
-                                        newest_date = date
-                                projects.push({project_id:project.project_id, gb_location:gb_location})
-                            console.log(projects)
-                            cb()
-            (cb) =>
-                i = 0
-                f = (project, cb) =>
-                    i += 1
-                    if i%50 == 0
-                        console.log("#{i}/#{projects.length}")
-                    @database.update
-                        table : 'projects'
-                        set   :
-                            gb_location : project.gb_location
-                        where :
-                            project_id : project.project_id
-                        cb    : cb
-                async.mapLimit(projects, opts.limit, f, cb)
-        ], (err) => opts.cb?(err)
-        )
-
-    # I used this function to delete all deprecated content from columns in the projects table.
-    # This is *IMPORTANT* since queries on any column pull the whole document,
-    # and can easily timeout if the record is big for stupid reasons!
-    delete_old_project_columns: (opts) =>
-        opts = defaults opts,
-            limit       : 5           # number to do in parallel
-            cb          : required    # cb(err, errors)
-        dbg = (m) => winston.debug("GlobalClient.delete_old_project_columns(): #{m}")
-        dbg()
-        projects = []
-        async.series([
-            (cb) =>
-                dbg("querying database....")
-                @database.select
-                    table       : 'projects'
-                    columns     : ['project_id']
-                    objectify   : false
-                    stream      : true
-                    cb          : (err, r) =>
-                        if err
-                            cb(err)
-                        else
-                            dbg("got #{r.length} records")
-                            projects = (x[0] for x in r)
-                            projects.sort()
-                            #console.log("projects = ", projects)
-                            cb()
-            (cb) =>
-                dbg("deleting columns")
-                i = 0
-                f = (project_id, cb) =>
-                    i += 1
-                    if i % 100 == 0
-                        console.log(i, projects.length)
-                    query = "update projects set last_migrate2_error =null, last_migrate3_error=null, last_migrated=null, last_migrated2=null, last_migrated3=null, last_replication_error=null, last_snapshot=null, errors_zfs=null,  locations=null, modified_files=null where project_id=?"
-                    @database.cql
-                        query       : query
-                        vals        : [project_id]
-                        consistency : 1
-                        cb          : cb
-                async.mapLimit(projects, opts.limit, f, (err) -> cb(err))
-        ], opts.cb)
-
-
     sync_union: (opts) =>
         opts = defaults opts,
             limit       : 5           # number to do in parallel
@@ -3141,7 +2885,7 @@ class GlobalClient
     #    {last_edited:?, project_id:?,  server_id:?, ssh:?}
     # where server_id is the id of the best server where the project is.
     ###
-        x={};s=require('gb_server').global_client(keyspace:'devel', cb:(err,c)->console.log("err=",err);x.c=c;x.c.overview_projects(cb:(e,v)->console.log("DONE",e);x.v=v))
+        x={};s=require('smc_compute').global_client(keyspace:'devel', cb:(err,c)->console.log("err=",err);x.c=c;x.c.overview_projects(cb:(e,v)->console.log("DONE",e);x.v=v))
     ###
     overview_projects: (opts) =>
         opts = defaults opts,
@@ -3239,7 +2983,7 @@ class Client
 
     dbg: (f, args, m) =>
         if @verbose
-            winston.debug("gb_server Client(#{@host}:#{@port}).#{f}(#{misc.to_json(args)}): #{m}")
+            winston.debug("smc_compute Client(#{@host}:#{@port}).#{f}(#{misc.to_json(args)}): #{m}")
 
     connect: (cb) =>
         dbg = (m) => winston.debug("gb_torage client (#{@host}:#{@port}): #{m}")
@@ -3752,12 +3496,12 @@ client_project = (opts) ->
 
 program.usage('[start/stop/restart/status] [options]')
 
-    .option('--pidfile [string]', 'store pid in this file', String, "#{CONF}/gb_compute.pid")
-    .option('--logfile [string]', 'write log to this file', String, "#{CONF}/gb_compute.log")
-    .option('--portfile [string]', 'write port number to this file', String, "#{CONF}/gb_compute.port")
-    .option('--server_id_file [string]', 'file in which server_id is stored', String, "#{CONF}/gb_compute_id")
-    .option('--servers_file [string]', 'contains JSON mapping {uuid:hostname,...} for all servers', String, "#{CONF}/gb_compute_servers")
-    .option('--secret_file [string]', 'write secret token to this file', String, "#{CONF}/gb_compute.secret")
+    .option('--pidfile [string]', 'store pid in this file', String, "#{CONF}/smc_compute.pid")
+    .option('--logfile [string]', 'write log to this file', String, "#{CONF}/smc_compute.log")
+    .option('--portfile [string]', 'write port number to this file', String, "#{CONF}/smc_compute.port")
+    .option('--server_id_file [string]', 'file in which server_id is stored', String, "#{CONF}/smc_compute_id")
+    .option('--servers_file [string]', 'contains JSON mapping {uuid:hostname,...} for all servers', String, "#{CONF}/smc_compute_servers")
+    .option('--secret_file [string]', 'write secret token to this file', String, "#{CONF}/smc_compute.secret")
 
     .option('--debug [string]', 'logging debug level (default: "" -- no debugging output)', String, 'debug')
     .option('--replication [string]', 'replication factor (default: 2)', String, '2')
@@ -3792,6 +3536,6 @@ main = () ->
         winston.debug("BUG ****************************************************************************")
     daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
-if program._name.split('.')[0] == 'gb_compute'
+if program._name.split('.')[0] == 'smc_compute'
     main()
 

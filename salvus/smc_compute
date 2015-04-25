@@ -1,0 +1,4 @@
+#!/bin/sh
+
+cd $SALVUS_ROOT
+node node_modules/smc_compute.js $@
