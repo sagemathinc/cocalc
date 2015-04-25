@@ -2150,6 +2150,11 @@ class Client extends EventEmitter
 
     mesg_log_client_error: (mesg) =>
         winston.debug("log_client_error: #{misc.to_json(mesg.error)}")
+        if mesg.error.indexOf("There was an error signing you in (Timeout after 15 seconds).  Please refresh your browser") != -1
+            winston.debug("TODO: trying temporary workaround to restart database server when getting sign in error.  TEMPORARY!!! TODO!!!")
+            database.connect()
+            return
+
         now = cass.now()
         if not mesg.type?
             mesg.type = "error"
