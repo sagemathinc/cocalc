@@ -216,13 +216,49 @@ class ComputeServerClient
             opts.cb(err, @_socket_cache[opts.host])
         )
 
-    # send message to a server and get back result
+    ###
+    Send message to a server and get back result:
+
+    x={};require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s;x.s.call(host:'localhost',mesg:{event:'ping'},cb:console.log))
+    ###
     call: (opts) =>
         opts = defaults opts,
-            host : required
-            mesg : undefined
-            cb   : required
+            host    : required
+            mesg    : undefined
+            timeout : 15
+            cb      : required
 
+        dbg = @dbg("call(#{opts.host})")
+        dbg("(hub --> compute) #{misc.to_safe_str(opts.mesg)}")
+        socket = undefined
+        resp = undefined
+        if not opts.mesg.id?
+            opts.mesg.id = uuid.v4()
+        async.series([
+            (cb) =>
+                @socket
+                    host : opts.host
+                    cb   : (err, s) =>
+                        socket = s; cb(err)
+            (cb) =>
+                socket.write_mesg 'json', opts.mesg, (err) =>
+                    if err
+                        cb("error writing to socket -- #{err}")
+                    else
+                        dbg("waiting to receive response")
+                        socket.recv_mesg
+                            type    : 'json'
+                            id      : opts.mesg.id
+                            timeout : opts.timeout
+                            cb      : (mesg) =>
+                                @dbg("got response -- #{misc.to_safe_str(mesg)}")
+                                if mesg.event == 'error'
+                                    cb(mesg.error)
+                                else
+                                    delete mesg.id
+                                    resp = mesg
+                                    cb()
+        ], (err) => opts.cb(err, resp))
 
 client_project_cache = {}
 exports.client_project = (project_id) ->
@@ -409,11 +445,17 @@ read_secret_token = (cb) ->
 
 handle_mesg = (socket, mesg) ->
     dbg = (m) => winston.debug("handle_mesg: #{m}")
-    dbg("handling '#{misc.to_safe_str(mesg)}'")
-    id = mesg.id
-    #switch mesg.event
-    #    else
-    socket.write_mesg('json', message.error(id:id, error:"unknown event type: '#{mesg.event}'"))
+    dbg("(hub -> compute)': #{misc.to_safe_str(mesg)}'")
+
+    switch mesg.event
+        when 'ping'
+            resp = message.pong()
+        else
+            resp = message.error(error:"unknown event type: '#{mesg.event}'")
+
+    resp.id = mesg.id
+    dbg("(hub -> compute)': #{misc.to_safe_str(resp)}'")
+    socket.write_mesg('json', resp)
 
 start_tcp_server = (cb) ->
     dbg = (m) -> winston.debug("tcp_server: #{m}")
