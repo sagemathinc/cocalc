@@ -65,12 +65,15 @@ ARCHIVE = process.env.SMC_ARCHIVE
 x={};require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s)
 ###
 compute_server_cache = undefined
-exports.compute_server = (opts) ->
+exports.compute_server = compute_server = (opts) ->
     opts = defaults opts,
         database : undefined
         keyspace : undefined
         cb       : required
-    new ComputeServerClient(opts)
+    if compute_server_cache?
+        opts.cb(undefined, compute_server_cache)
+    else
+        new ComputeServerClient(opts)
 
 class ComputeServerClient
     constructor: (opts) ->
@@ -80,6 +83,7 @@ class ComputeServerClient
             cb       : required
         if opts.database?
             @database = opts.database
+            compute_server_cache = @
             opts.cb(undefined, @)
         else if opts.keyspace?
             fs.readFile "#{process.cwd()}/data/secrets/cassandra/hub", (err, password) =>
@@ -96,6 +100,7 @@ class ComputeServerClient
                         if err
                             opts.cb(err)
                         else
+                            compute_server_cache = @
                             opts.cb(undefined, @)
         else
             opts.cb("database or keyspace must be specified")
@@ -159,12 +164,10 @@ class ComputeServerClient
                     cb    : cb
         ], (err) => opts.cb?(err))
 
-
     # compute servers health/load info
     servers: (opts) =>
         opts = defaults opts,
             cb       : required
-
 
     # get a socket connection to a particular compute server
     socket: (opts) =>
@@ -260,16 +263,62 @@ class ComputeServerClient
                                     cb()
         ], (err) => opts.cb(err, resp))
 
-client_project_cache = {}
-exports.client_project = (project_id) ->
-    if not client_project_cache[project_id]?
-        client_project_cache[project_id] = new ProjectClient(project_id:project_id)
-    return client_project_cache[project_id]
+    ###
+    Get a project:
+        x={};require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:'20257d4e-387c-4b94-a987-5d89a3149a00',cb:(e,p)->console.log(e);x.p=p))
+    ###
+    project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        if not @_project_cache?
+            @_project_cache = {}
+        p = @_project_cache[opts.project_id]
+        if p?
+            opts.cb(undefined, p)
+        else
+            new ProjectClient
+                project_id     : opts.project_id
+                compute_server : @
+                cb             : (err, project) =>
+                    if err
+                        opts.cb(err)
+                    else
+                        @_project_cache[opts.project_id] = project
+                        opts.cb(undefined, project)
 
 class ProjectClient
     constructor: (opts) ->
         opts = defaults opts,
-            project_id : required
+            project_id     : required
+            compute_server : required
+            cb             : required
+        @project_id = opts.project_id
+        @compute_server = opts.compute_server
+        @host = 'localhost'  # todo
+        @dbg('constructor')()
+        opts.cb(undefined, @)
+
+    dbg: (method) =>
+        (m) => winston.debug("ProjectClient(#{@project_id},#{@host}).#{method}: #{m}")
+
+    action: (opts) =>
+        opts = defaults opts,
+            action  : required
+            args    : undefined
+            timeout : 15
+            cb      : required
+        dbg = @dbg("action")
+        dbg("action=#{opts.action}; params=#{misc.to_safe_str(opts.params)}")
+        @compute_server.call
+            host : @host
+            mesg :
+                message.compute
+                    project_id : @project_id
+                    action     : opts.action
+                    args       : opts.args
+            timeout : opts.timeout
+            cb      : opts.cb
 
     # open project files on some node
     open: (opts) =>
@@ -362,6 +411,32 @@ class ProjectClient
 # Server code -- runs on the compute server
 #
 #################################################################
+
+TIMEOUT = 60*60
+
+smc_compute = (opts) =>
+    opts = defaults opts,
+        args    : required
+        timeout : TIMEOUT
+        cb      : required
+    winston.debug("smc_compute: running #{misc.to_json(opts.args)}")
+    misc_node.execute_code
+        command : "sudo"
+        args    : ["/usr/local/bin/smc_compute.py", "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE].concat(opts.args)
+        timeout : opts.timeout
+        bash    : false
+        path    : process.cwd()
+        cb      : (err, output) =>
+            winston.debug("smc_compute: finished running #{misc.to_json(opts.args)} -- #{err}")
+            if err
+                if output?.stderr
+                    opts.cb(output.stderr)
+                else
+                    opts.cb(err)
+            else
+                opts.cb(undefined, if output.stdout then misc.from_json(output.stdout) else undefined)
+
+
 class ComputeServer
     constructor: () ->
         @projects = {}
@@ -370,9 +445,16 @@ class ComputeServer
     project_command: (opts) =>
         opts = defaults opts,
             project_id : required
-            command    : required
-            args       : required
+            action     : required
+            args       : undefined
             cb         : required
+        args = [opts.action]
+        if opts.args?
+            args = args.concat(opts.args)
+        args.push(opts.project_id)
+        smc_compute
+            args : args
+            cb   : opts.cb
 
     # get state of a project on this node
     project_state: (opts) =>
@@ -443,23 +525,37 @@ read_secret_token = (cb) ->
             fs.chmod(program.secret_file, 0o600, cb)
     ], cb)
 
+compute_server = undefined
 handle_mesg = (socket, mesg) ->
     dbg = (m) => winston.debug("handle_mesg: #{m}")
     dbg("(hub -> compute)': #{misc.to_safe_str(mesg)}'")
 
-    switch mesg.event
-        when 'ping'
-            resp = message.pong()
-        else
-            resp = message.error(error:"unknown event type: '#{mesg.event}'")
-
-    resp.id = mesg.id
-    dbg("(hub -> compute)': #{misc.to_safe_str(resp)}'")
-    socket.write_mesg('json', resp)
+    f = (cb) ->
+        switch mesg.event
+            when 'compute'
+                compute_server.project_command
+                    project_id : mesg.project_id
+                    action     : mesg.action
+                    args       : mesg.args
+                    cb         : (err, resp) ->
+                        if err
+                            cb(message.error(error:err))
+                        else
+                            cb(resp)
+            when 'ping'
+                cb(message.pong())
+            else
+                cb(message.error(error:"unknown event type: '#{mesg.event}'"))
+    f (resp) ->
+        resp.id = mesg.id
+        dbg("(hub -> compute)': #{misc.to_safe_str(resp)}'")
+        socket.write_mesg('json', resp)
 
 start_tcp_server = (cb) ->
     dbg = (m) -> winston.debug("tcp_server: #{m}")
     dbg("start")
+
+    compute_server = new ComputeServer()
 
     server = net.createServer (socket) ->
         dbg("received connection")

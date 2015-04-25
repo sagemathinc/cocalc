@@ -1357,14 +1357,14 @@ message
     id         : undefined
     projects   : undefined   # for response
 
-# Message for actions using a compute server    
+# Message for actions using a compute server
 message
     event      : 'compute'
-    action     : required    # open, save, snapshot, latest_snapshot, close
     project_id : undefined
-    param      : undefined
+    action     : required    # open, save, ...
+    args       : undefined
+    param      : undefined   # deprecate
     id         : undefined
-
 
 ###########################################################
 #

@@ -254,10 +254,7 @@ class Project(object):
             self.gs_path   = None
         self._archive  = archive
         self.project_path  = os.path.join(self.btrfs, project_id)
-        snapshots = os.path.join(self.btrfs, ".snapshots")
-        if not os.path.exists(snapshots):
-            btrfs(['subvolume', 'create', snapshots])
-        self.snapshot_path = os.path.join(snapshots, project_id)
+        self.snapshot_path = os.path.join(self.btrfs, ".snapshots", project_id)
         self.smc_path      = os.path.join(self.project_path, '.sagemathcloud')
         self.uid           = uid(self.project_id)
         self.username      = self.project_id.replace('-','')
@@ -420,6 +417,9 @@ class Project(object):
         cmd(["chown", "%s:%s"%(self.uid, self.uid), '-R', path])
 
     def create_snapshot_link(self):
+        snapshots = os.path.join(self.btrfs, ".snapshots")
+        if not os.path.exists(self.snapshots):
+            btrfs(['subvolume', 'create', snapshots])
         t = os.path.join(self.project_path, '.snapshots')
         try:
             os.unlink(t)
@@ -597,8 +597,7 @@ class Project(object):
             return s
 
         if self.username not in open('/etc/passwd').read():
-            # if the path exists the user should exist; if it doesn't, something is corrupt
-            s['state'] = 'error'
+            s['state'] = 'opened'
             return s
 
         s['btrfs'] = self.btrfs_status()
@@ -1138,13 +1137,17 @@ if __name__ == "__main__":
                 try:
                     result = getattr(Project(project_id=project_id, btrfs=args.btrfs, bucket=args.bucket, archive=args.archive), function)(**kwds)
                 except Exception, mesg:
-                    # raise #-- for debugging
+                    raise #-- for debugging
                     errors = True
                     result = {'error':str(mesg), 'project_id':project_id}
                 out.append(result)
             if len(out) == 1:
+                if not out[0]:
+                    out[0] = {}
                 print json.dumps(out[0])
             else:
+                if not out:
+                    out = {}
                 print json.dumps(out)
             if errors:
                 sys.exit(1)
