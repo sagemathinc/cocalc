@@ -302,7 +302,7 @@ class ProjectClient
     dbg: (method) =>
         (m) => winston.debug("ProjectClient(#{@project_id},#{@host}).#{method}: #{m}")
 
-    action: (opts) =>
+    _action: (opts) =>
         opts = defaults opts,
             action  : required
             args    : undefined
@@ -319,6 +319,28 @@ class ProjectClient
                     args       : opts.args
             timeout : opts.timeout
             cb      : opts.cb
+
+    ###
+       The state of the project, which is one of:
+       closed, opened, running,
+       opening, starting, restarting, stopping
+       error
+
+    x={};require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:'20257d4e-387c-4b94-a987-5d89a3149a00',cb:(e,p)->console.log(e);x.p=p; x.p.state(cb:console.log)))
+
+
+    ###
+
+    state: (opts) =>
+        opts = defaults opts,
+            cb     : required
+        @_action
+            action : "state"
+            cb     : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, resp.state)
 
     # open project files on some node
     open: (opts) =>
@@ -365,14 +387,6 @@ class ProjectClient
 
     # information about project (ports, state, etc.)
     status: (opts) =>
-        opts = defaults opts,
-            cb     : required
-
-    # the state of the project, which is one of:
-    #   closed, opened, running,
-    #   opening, starting, restarting, stopping
-    #   error
-    state: (opts) =>
         opts = defaults opts,
             cb     : required
 
@@ -441,7 +455,7 @@ class ComputeServer
     constructor: () ->
         @projects = {}
 
-    # run a command for a project (error if not allowed now due to state)
+    # run a command for a project
     project_command: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -461,7 +475,13 @@ class ComputeServer
         opts = defaults opts,
             project_id : required
             cb         : required
-
+        smc_compute
+            args : ['status', opts.project_id]
+            cb   : (err, r) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, r['state'])
 
 ###########################
 ## Command line interface
@@ -533,15 +553,24 @@ handle_mesg = (socket, mesg) ->
     f = (cb) ->
         switch mesg.event
             when 'compute'
-                compute_server.project_command
-                    project_id : mesg.project_id
-                    action     : mesg.action
-                    args       : mesg.args
-                    cb         : (err, resp) ->
-                        if err
-                            cb(message.error(error:err))
-                        else
-                            cb(resp)
+                if mesg.action == 'state'
+                    compute_server.project_state
+                        project_id : mesg.project_id
+                        cb         : (err, state) ->
+                            if err
+                                cb(message.error(error:err))
+                            else
+                                cb({state:state})
+                else
+                    compute_server.project_command
+                        project_id : mesg.project_id
+                        action     : mesg.action
+                        args       : mesg.args
+                        cb         : (err, resp) ->
+                            if err
+                                cb(message.error(error:err))
+                            else
+                                cb(resp)
             when 'ping'
                 cb(message.pong())
             else
