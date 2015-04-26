@@ -346,13 +346,17 @@ class ComputeServerClient
     project: (opts) =>
         opts = defaults opts,
             project_id : required
-            open       : false    # if true, only returns after ensuring project is opened on some host (which may take minutes)
+            opened     : false    # if true, only returns after ensuring project is opened on some host (which may take minutes)
+            running    : false    # if true, ensures project is started before returning
             cb         : required
         if not @_project_cache?
             @_project_cache = {}
         p = @_project_cache[opts.project_id]
+        state = undefined
+        dbg = @dbg("project(#{opts.project_id}, open=#{opts.opened}, start=#{opts.running})")
         async.series([
             (cb) =>
+                dbg("get project")
                 if p?
                     cb()
                 else
@@ -367,14 +371,25 @@ class ComputeServerClient
                                 @_project_cache[opts.project_id] = project
                                 cb()
             (cb) =>
-                if not opts.open
+                if not (opts.opened or opts.running)
                     cb()
                 else
+                    dbg("ensure at least opened")
                     p.state
-                        cb : (err, state) =>
-                            if err or state.state != 'closed' and state.state != 'closing'
+                        cb : (err, s) =>
+                            if err
                                 cb(err)
                                 return
+                            state = s.state
+                            if state == 'opening'
+                                p.once 'opened', () =>
+                                    state = 'opened'
+                                    cb()
+                                return
+                            if state != 'closed' and state != 'closing'
+                                cb(err)
+                                return
+                            # Finally deal with case of closed or closing.
                             # This is tricky: in close state, we request open and wait
                             # for project to open; in closing state, we wait until closed
                             # then request open and wait until open.
@@ -387,11 +402,47 @@ class ComputeServerClient
                                             p.once 'opened', () =>
                                                 # TODO: some danger that this will never happen, e.g., in case
                                                 # of socket disconnect while waiting.
+                                                state = 'opened'
                                                 cb()
-                            if state.state == 'closed'
+                            if state == 'closed'
                                 f()
-                            else if state.state == 'closing'
+                            else
                                 p.once 'closed', () =>
+                                    f()
+            (cb) =>
+                if not opts.running
+                    cb()
+                else
+                    p.state
+                        cb : (err, s) =>
+                            if err
+                                cb(err)
+                                return
+                            state = s.state
+                            if state == 'starting'
+                                p.once 'running', () =>
+                                    cb()
+                                return
+                            if state != 'opened' and state != 'stopping'
+                                cb(err)
+                                return
+                            # This is tricky: in close state, we request open and wait
+                            # for project to open; in closing state, we wait until closed
+                            # then request open and wait until open.
+                            f = () =>
+                                p.start
+                                    cb : (err) =>
+                                        if err
+                                            cb(err)
+                                        else
+                                            p.once 'running', () =>
+                                                # TODO: some danger that this will never happen, e.g., in case
+                                                # of socket disconnect while waiting.
+                                                cb()
+                            if state == 'opened'
+                                f()
+                            else
+                                p.once 'opened', () =>
                                     f()
         ], (err) =>
             if err
@@ -592,7 +643,7 @@ class ProjectClient extends EventEmitter
                     dbg("getting other project and ensuring that it is already opened")
                     @compute_server.project
                         project_id : opts.target_project_id
-                        open       : true
+                        opened     : true
                         cb         : (err, target_project) =>
                             if err
                                 dbg("error ")
