@@ -231,10 +231,21 @@ class ComputeServerClient
                     cb    : cb
         ], (err) => opts.cb?(err))
 
-    # compute servers health/load info
-    servers: (opts) =>
+    # choose a random host for a project from the available compute_servers
+    random_host: (opts) =>
         opts = defaults opts,
             cb       : required
+        @database.select
+            table     : 'compute_servers'
+            columns   : ['host', 'experimental']
+            objectify : true
+            cb        : (err, s) =>
+                if err
+                    opts.cb(err)
+                else
+                    v = (x.host for x in s when not x.experimental)
+                    opts.cb(undefined, misc.random_choice(v))
+
 
     # get a socket connection to a particular compute server
     socket: (opts) =>
@@ -286,7 +297,7 @@ class ComputeServerClient
                                     if mesg.event == 'project_state_update'
                                         winston.debug("state_update #{misc.to_json(mesg)}")
                                         p = @_project_cache[mesg.project_id]
-                                        if p?
+                                        if p? and p.host == opts.host  # ignore updates from wrong host
                                             p._state      = mesg.state
                                             p._state_time = new Date()
                                             p.emit(p._state, p)
@@ -466,11 +477,57 @@ class ProjectClient extends EventEmitter
             cb             : required
         @project_id = opts.project_id
         @compute_server = opts.compute_server
-        @host = 'localhost'  # todo
         @_state = undefined
         @_state_time = undefined
         @dbg('constructor')()
-        opts.cb(undefined, @)
+        @update_host
+            cb : (err) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, @)
+
+    update_host: (opts) =>
+        opts = defaults opts,
+            cb : required
+        host = undefined
+        dbg = @dbg("update_host")
+        t = misc.mswalltime()
+        async.series([
+            (cb) =>
+                @compute_server.database.select
+                    table   : 'projects'
+                    columns : ['compute_server']
+                    where   :
+                        project_id : @project_id
+                    cb      : (err, result) =>
+                        if err
+                            cb(err)
+                        else
+                            if result.length == 1 and result[0][0]
+                                host = result[0][0]
+                            cb()
+            (cb) =>
+                if host?
+                    cb()
+                else
+                    @compute_server.random_host
+                        cb : (err, h) =>
+                            if err
+                                cb(err)
+                            else
+                                host = h
+                                @compute_server.database.update
+                                    table : 'projects'
+                                    set   : {compute_server : @host}
+                                    where : {project_id : @project_id}
+                                    cb    : cb
+        ], (err) =>
+            dbg("time=#{misc.mswalltime(t)}ms")
+            if not err
+                @host = host
+            opts.cb(err)
+        )
 
     dbg: (method) =>
         (m) => winston.debug("ProjectClient(#{@project_id},#{@host}).#{method}: #{m}")
@@ -483,22 +540,26 @@ class ProjectClient extends EventEmitter
             cb      : required
         dbg = @dbg("action")
         dbg("action=#{opts.action}; params=#{misc.to_safe_str(opts.params)}")
-        @compute_server.call
-            host : @host
-            mesg :
-                message.compute
-                    project_id : @project_id
-                    action     : opts.action
-                    args       : opts.args
-            timeout : opts.timeout
-            cb      : (err, resp) =>
+        @update_host
+            cb : (err) =>
                 if err
-                    opts.cb(err)
-                else
-                    if resp.error?
-                        opts.cb(resp.error)
-                    else
-                        opts.cb(undefined, resp)
+                    opts.cb(err); return
+                @compute_server.call
+                    host : @host
+                    mesg :
+                        message.compute
+                            project_id : @project_id
+                            action     : opts.action
+                            args       : opts.args
+                    timeout : opts.timeout
+                    cb      : (err, resp) =>
+                        if err
+                            opts.cb(err)
+                        else
+                            if resp.error?
+                                opts.cb(resp.error)
+                            else
+                                opts.cb(undefined, resp)
 
     ###
        The state of the project, which is one of:
@@ -565,10 +626,12 @@ class ProjectClient extends EventEmitter
             nosave : false
             cb     : required
         args = []
+        dbg = @dbg("close")
         if opts.force
             args.push('--force')
         if opts.nosave
             args.push('--nosave')
+        dbg("force=#{opts.force}; nosave=#{opts.nosave}")
         @_action
             action : "close"
             args   : args
@@ -595,7 +658,7 @@ class ProjectClient extends EventEmitter
     # create snapshot, save incrementals to cloud storage
     save: (opts) =>
         opts = defaults opts,
-            max_snapshots : 100
+            max_snapshots : 60
             cb     : required
         @_action
             action : "save"
