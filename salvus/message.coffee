@@ -112,12 +112,6 @@ message
     project_id    : undefined
     state         : undefined
 
-message
-    event         : 'project_get_local_state'
-    id            : undefined
-    project_id    : undefined
-    state         : undefined
-
 #
 
 # client --> hub

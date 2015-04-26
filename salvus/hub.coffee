@@ -1125,14 +1125,14 @@ init_http_proxy_server = () =>
                 if host?
                     cb()
                 else
-                    bup_server.project
+                    compute_server.project
                         project_id : project_id
                         cb         : (err, project) ->
-                            dbg("first bup_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
+                            dbg("first compute_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
                             if err
                                 cb(err)
                             else
-                                host = project.client.host
+                                host = project.host
                                 cb()
             (cb) ->
                 # determine the port
@@ -1150,10 +1150,10 @@ init_http_proxy_server = () =>
                         port = port_number
                         cb()
                 else if type == 'raw'
-                    bup_server.project
+                    compute_server.project
                         project_id : project_id
                         cb         : (err, project) ->
-                            dbg("second bup_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
+                            dbg("second compute_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
                             if err
                                 cb(err)
                             else
@@ -1163,7 +1163,7 @@ init_http_proxy_server = () =>
                                         if err
                                             cb(err)
                                         else if not status['raw.port']?
-                                            cb("raw port not available")
+                                            cb("raw port not available -- project might not be opened or running")
                                         else
                                             port = status['raw.port']
                                             cb()
@@ -1324,21 +1324,25 @@ init_http_proxy_server = () =>
                     # that has the file -- (right now this is implemented
                     # via sending/receiving JSON messages and using base64
                     # encoding, but that could change).
-                    project = bup_server.get_project(project_id)
-                    project.read_file
-                        path    : path
-                        maxsize : 40000000   # 40MB for now
-                        cb      : (err, data) ->
+                    compute_server.project
+                        project_id : project_id
+                        cb         : (err, project) ->
                             if err
-                                cb(err)
-                            else
-                                if query.download?
-                                    res.setHeader('Content-disposition', 'attachment')
-                                filename = path.slice(path.lastIndexOf('/') + 1)
-                                res.write(data)
-                                res.end()
-                                is_public = true
-                                cb()
+                                cb(err); return
+                            project.read_file
+                                path    : path
+                                maxsize : 40000000   # 40MB for now
+                                cb      : (err, data) ->
+                                    if err
+                                        cb(err)
+                                    else
+                                        if query.download?
+                                            res.setHeader('Content-disposition', 'attachment')
+                                        filename = path.slice(path.lastIndexOf('/') + 1)
+                                        res.write(data)
+                                        res.end()
+                                        is_public = true
+                                        cb()
             ], (err) ->
                 cb(err, is_public)
         )
@@ -2482,13 +2486,12 @@ class Client extends EventEmitter
             if err
                 return
             else
-                project.local_hub.project.status
-                    cb   : (err, status) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            if status?
-                                delete status.secret_token
+                project.local_hub.status (err, status) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        if status?
+                            delete status.secret_token
                             @push_to_client(message.project_status(id:mesg.id, status:status))
 
 
@@ -2498,26 +2501,11 @@ class Client extends EventEmitter
             if err
                 return
             else
-                project.local_hub.project.get_state
-                    cb   : (err, state) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
+                project.local_hub.state (err, state) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
                             @push_to_client(message.project_get_state(id:mesg.id, state:state))
-
-    mesg_project_get_local_state: (mesg) =>
-        winston.debug("mesg_project_get_local_state")
-        @get_project mesg, 'read', (err, project) =>
-            if err
-                return
-            else
-                project.local_hub.project.get_local_state
-                    cb   : (err, state) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            @push_to_client(message.project_get_local_state(id:mesg.id, state:state))
-
 
     mesg_update_project_data: (mesg) =>
         winston.debug("mesg_update_project_data")
@@ -2663,10 +2651,10 @@ class Client extends EventEmitter
             if err
                 return
             project.local_hub.restart (err) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.success(id:mesg.id))
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
 
     mesg_close_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
@@ -2753,16 +2741,20 @@ class Client extends EventEmitter
 
             (cb) =>
                 # do the copy
-                project = bup_server.get_project(mesg.src_project_id)
-                project.copy_path
-                    path            : mesg.src_path
-                    project_id      : mesg.target_project_id
-                    target_path     : mesg.target_path
-                    overwrite_newer : mesg.overwrite_newer
-                    delete_missing  : mesg.delete_missing
-                    timeout         : mesg.timeout
-                    cb              : cb
-
+                compute_server.project
+                    project_id : mesg.src_project_id
+                    cb         : (err, project) =>
+                        if err
+                            cb(err); return
+                        else
+                            project.copy_path
+                                path              : mesg.src_path
+                                target_project_id : mesg.target_project_id
+                                target_path       : mesg.target_path
+                                overwrite_newer   : mesg.overwrite_newer
+                                delete_missing    : mesg.delete_missing
+                                timeout           : mesg.timeout
+                                cb                : cb
         ], (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
@@ -2811,8 +2803,8 @@ class Client extends EventEmitter
                 f = () =>
                     # record that project is active in the database
                     database.touch_project(project_id : project.project_id)
-                    # snapshot project and rsync it out to replicas, if enough time has passed.
-                    project.local_hub?.project.save()
+                    # snapshot/save project if enough time has passed.
+                    project.local_hub.save () => # don't care
                 setTimeout(f, 10000)  # 10 seconds later, possibly replicate.
 
             # Record eaching opening of a file in the database log
@@ -3079,21 +3071,27 @@ class Client extends EventEmitter
         else if not misc.is_valid_uuid_string(mesg.project_id)
             @error_to_client(id:mesg.id, error:"invalid project_id")
         else
-            bup_server.get_project(mesg.project_id).set_settings
-                memory     : mesg.memory
-                cpu_shares : mesg.cpu_shares
-                cores      : mesg.cores
-                disk       : mesg.disk
-                scratch    : mesg.scratch
-                inode      : mesg.inode
-                mintime    : mesg.mintime
-                login_shell: mesg.login_shell
-                network    : mesg.network
-                cb         : (err) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:"problem setting quota -- #{err}")
-                    else
-                        @push_to_client(message.success(id:mesg.id))
+            project = undefined
+            async.series([
+                (cb) =>
+                    compute_server.project
+                        project_id : mesg.project_id
+                        cb         : (err, p) =>
+                            project = p; cb(err)
+                (cb) =>
+                    project.set_quota
+                        disk_quota : mesg.disk
+                        cores      : mesg.cores
+                        memory     : mesg.memory
+                        cpu_shares : mesg.cpu_shares
+                        network    : mesg.network
+                        cb         : cb
+            ], (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:"problem setting project quota -- #{err}")
+                else
+                    @push_to_client(message.success(id:mesg.id))
+            )
 
     mesg_set_account_creation_token: (mesg) =>
         if not @user_is_in_group('admin')
@@ -3158,9 +3156,18 @@ class Client extends EventEmitter
                         setTimeout((()=>delete @_public_project_cache[opts.project_id]), CACHE_PROJECT_PUBLIC_MS)
                         if @path_is_in_public_paths(opts.path, paths)
                             # yes
-                            if not project?
-                                x.project = bup_server.get_project(opts.project_id)
-                            opts.cb(undefined, x.project)
+                            if project?
+                                x.project = project
+                                opts.cb(undefined, x.project)
+                            else
+                                compute_server.project
+                                    project_id : opts.project_id
+                                    cb         : (err, p) =>
+                                        if err
+                                            opts.cb(err)
+                                        else
+                                            x.project = p
+                                            opts.cb(undefined, x.project)
                         else
                             # no
                             opts.cb("path #{opts.path} of project #{opts.project_id} is not public")
@@ -3168,9 +3175,17 @@ class Client extends EventEmitter
             # first check if path is public using the cache; if not, will try again not using cache
             x = @_public_project_cache?[opts.project_id]
             if x? and @path_is_in_public_paths(opts.path, x.paths)  # cache sufficient to conclude path is public
-                if not x.project?
-                    x.project = bup_server.get_project(opts.project_id)
-                opts.cb(undefined, x.project)
+                if x.project?
+                    opts.cb(undefined, x.project)
+                else
+                    compute_server.project
+                        project_id : opts.project_id
+                        cb         : (err, p) =>
+                            if err
+                                opts.cb(err)
+                            else
+                                x.project = p
+                                opts.cb(undefined, x.project)
             else
                 # At this point opts.path isn't in the list in the cache or cache is empty.
                 # We try querying database, since cache isn't good enough to decide.
@@ -4542,26 +4557,75 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @_multi_response = {}
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
-        @project = bup_server.get_project(@project_id)
+
+    project: (cb) =>
+        if @_project?
+            cb(undefined, @_project)
+        else
+            compute_server.project
+                project_id : @project_id
+                cb         : (err, project) =>
+                    if err
+                        cb(err)
+                    else
+                        @_project = project
+                        cb(undefined, project)
 
     dbg: (m) =>
-        #winston.debug("local_hub(#{@project_id}): #{misc.to_json(m)}")
-
-    close: (cb) =>
-        @dbg("close")
-        @project.close(cb:cb)
+        # only enable when debugging
+        winston.debug("local_hub(#{@project_id}): #{misc.to_json(m)}")
 
     move: (opts) =>
         opts = defaults opts,
             target : undefined
             cb     : undefined          # cb(err, {host:hostname})
         @dbg("move")
-        @project.move(opts)
+        @project (err, project) =>
+            if err
+                cb?(err)
+            else
+                project.move(opts)
 
     restart: (cb) =>
         @dbg("restart")
         @free_resources()
-        @project.restart(cb:cb)
+        @project (err, project) =>
+            if err
+                cb(err)
+            else
+                project.restart(cb:cb)
+
+    close: (cb) =>
+        @dbg("close: stop the project and delete from disk (but leave in cloud storage)")
+        @project (err, project) =>
+            if err
+                cb(err)
+            else
+                project.ensure_closed(cb:cb)
+
+    save: (cb) =>
+        @dbg("save: save a snapshot of the project")
+        @project (err, project) =>
+            if err
+                cb(err)
+            else
+                project.save(cb:cb)
+
+    status: (cb) =>
+        @dbg("status: get status of a project")
+        @project (err, project) =>
+            if err
+                cb(err)
+            else
+                project.status(cb:cb)
+
+    state: (cb) =>
+        @dbg("state: get state of a project")
+        @project (err, project) =>
+            if err
+                cb(err)
+            else
+                project.state(cb:cb)
 
     free_resources: () =>
         @dbg("free_resources")
@@ -4684,16 +4748,21 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             connect_to_a_local_hub
                 port         : @address.port
                 host         : @address.host
-                secret_token : @address.status.secret_token
+                secret_token : @address.secret_token
                 cb           : cb
         socket = undefined
         async.series([
             (cb) =>
                 if not @address?
                     @dbg("get address of a working local hub")
-                    @project.local_hub_address
-                        cb : (err, address) =>
-                            @address = address; cb(err)
+                    @project (err, project) =>
+                        if err
+                            cb(err)
+                        else
+                            @dbg("get address")
+                            project.address
+                                cb : (err, address) =>
+                                    @address = address; cb(err)
                 else
                     cb()
             (cb) =>
@@ -4703,10 +4772,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         socket = _socket
                         cb()
                     else
-                        # failed so get address of a working local hub
-                        @project.local_hub_address
-                            cb : (err, address) =>
-                                @address = address; cb(err)
+                        @dbg("failed so get address of a working local hub")
+                        @project (err, project) =>
+                            if err
+                                cb(err)
+                            else
+                                @dbg("get address")
+                                project.address
+                                    cb : (err, address) =>
+                                        @address = address; cb(err)
             (cb) =>
                 if not socket?
                     @dbg("still don't have our connection -- try again")
@@ -4931,11 +5005,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             timeout : 30
             cb      : opts.cb
 
-    killall: (cb) =>
-        @dbg("killall: kill processes running on a local hub (including the local hub itself)")
-        @project.stop(cb:cb)
-
-
     # Read a file from a project into memory on the hub.  This is
     # used, e.g., for client-side editing, worksheets, etc.  This does
     # not pull the file from the database; instead, it loads it live
@@ -5119,10 +5188,17 @@ class Project
         opts = defaults opts,
             cb : undefined
         @dbg("delete_project")
-        database.delete_project
-            project_id : @project_id
-            cb         : opts.cb
-        @local_hub.killall()  # might as well do this to conserve resources
+        async.series([
+            (cb) =>
+                database.delete_project
+                    project_id : @project_id
+                    cb         : cb
+            (cb) =>
+                # this frees up disk space but doesn't permanently
+                # delete project from cloud storage (that needs to
+                # be implemented as a different step using destroy).
+                @local_hub.close(cb:cb)
+        ], opts.cb)
 
     move_project: (opts) =>
         opts = defaults opts,
@@ -6741,17 +6817,18 @@ connect_to_database = (cb) ->
                         database = _db
                         cb()
 
-bup_server = undefined
-init_bup_server = (cb) ->
-    winston.debug("init_bup_server: creating bup server global client")
-    require('bup_server').global_client
+# client for compute servers
+compute_server = undefined
+init_compute_server = (cb) ->
+    winston.debug("init_compute_server: creating compute_server client")
+    require('compute').compute_server
         database : database
         cb       : (err, x) ->
             if not err
-                winston.debug("bup server created")
+                winston.debug("compute server created")
             else
-                winston.debug("ERROR creating bup server -- #{err}")
-            bup_server = x
+                winston.debug("FATAL ERROR creating compute server -- #{err}")
+            compute_server = x
             cb?(err)
 
 #############################################
@@ -6833,9 +6910,9 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             init_stripe(cb)
         (cb) ->
-            init_bup_server(cb)
+            init_compute_server(cb)
         (cb) ->
-            # proxy server and http server, etc. relies on bup server having been created
+            # proxy server and http server, etc. relies on compute_server having been created
             init_express_http_server (err, server) ->
                 http_server = server
                 cb(err)

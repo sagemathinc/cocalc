@@ -2103,22 +2103,6 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(false, resp.state)
 
-    project_get_local_state: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required     # cb(err, utc_seconds_epoch)
-        @call
-            message:
-                message.project_get_local_state
-                    project_id : opts.project_id
-            cb : (err, resp) ->
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(false, resp.state)
-
     #################################################
     # Project Server Control
     #################################################

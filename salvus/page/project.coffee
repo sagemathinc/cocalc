@@ -1845,7 +1845,7 @@ class ProjectPage
                 t.addClass('project-directory-link')
                 t.find(".project-file-name").text(obj.name)
                 date = undefined
-                if path == ".snapshots/master" and obj.name.length == '2014-04-04-061502'.length
+                if path == ".snapshots" and obj.name.length == '2014-04-04-061502'.length
                     date = misc.parse_bup_timestamp(obj.name)
                     t.find(".project-file-name").text(date)
                 else if obj.mtime
@@ -2125,7 +2125,7 @@ class ProjectPage
         async.series([
             (cb) =>
                 if path.slice(0,'.snapshots/'.length) == '.snapshots/'
-                    dest = "/projects/#{@project.project_id}/" + path.slice('.snapshots/master/2014-04-06-052506/'.length)
+                    dest = "/projects/#{@project.project_id}/" + path.slice('.snapshots/2014-04-06-052506/'.length)
                 else
                     dest = path
                 if isdir   # so the file goes *into* the destination folder
@@ -2252,7 +2252,7 @@ class ProjectPage
                             cb(err)
             (cb) =>
                 if path.slice(0,'.snapshots/'.length) == '.snapshots/'
-                    dest = path.slice('.snapshots/master/2014-04-06-052506/'.length)
+                    dest = path.slice('.snapshots/2014-04-06-052506/'.length)
                 else
                     dest = path
                 dialog.find(".salvus-project-copy-src-path").val(path)
@@ -2310,7 +2310,7 @@ class ProjectPage
         async.series([
             (cb) =>
                 if path.slice(0,'.snapshots/'.length) == '.snapshots/'
-                    dest = path.slice('.snapshots/master/2014-04-06-052506/'.length)
+                    dest = path.slice('.snapshots/2014-04-06-052506/'.length)
                 else
                     dest = path
                 dialog.find(".move-file-src").val(path)
@@ -3535,7 +3535,7 @@ class ProjectPage
             return
         @_update_local_status_link_lock = true
         timer = setTimeout((()=>delete @_update_local_status_link_lock), 30000)  # ensure don't lock forever
-        salvus_client.project_get_local_state
+        salvus_client.project_get_state
             project_id : @project.project_id
             cb         : (err, state) =>
                 delete @_update_local_status_link_lock
@@ -3560,7 +3560,7 @@ class ProjectPage
 
     # browse to the snapshot viewer.
     visit_snapshot: () =>
-        @current_path = ['.snapshots', 'master']
+        @current_path = ['.snapshots']
         @display_tab("project-file-listing")
         @update_file_list_tab()
 

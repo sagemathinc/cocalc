@@ -439,7 +439,6 @@ class Project(object):
                 # TODO: need to chown smc_template so user can actually use it.
                 # TODO: need a command to *update* smc_path contents
 
-
     def disk_quota(self, quota=0):  # quota in megabytes
         if os.path.exists(self.project_path):
             btrfs(['qgroup', 'limit', '%sm'%quota if quota else 'none', self.project_path])
@@ -581,7 +580,10 @@ class Project(object):
         self.delete_user()
 
     def restart(self):
+        log = self._log("restart")
+        log("first stop")
         self.stop()
+        log("then start")
         self.start()
 
     def btrfs_status(self):
@@ -603,7 +605,7 @@ class Project(object):
 
         if os.path.exists(os.path.join(self.smc_path, 'status')):
             try:
-                t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30)
+                t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=15)
                 t = json.loads(t)
                 s.update(t)
                 if bool(t.get('local_hub.pid',False)):
@@ -670,15 +672,25 @@ class Project(object):
         for stream in to_delete:
             self.gs_rm(stream)
 
-    def save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True):
+    def save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0):
         """
         - persist =  make snapshot that we never automatically delete
         - timestamp = make snapshot with that time
         - max_snapshot - trim old snapshots
         - dedup = run dedup before making the snapshot (dedup potentially saves a *lot* of space in size of stored files, but could take an hour!)
         - archive = save new incremental tar archive file
+        - min_interval = error if there is a snapshot that is younger than this many MINUTES (default: 0=disabled); ignored if timestamp is explicitly provided
         """
         if not timestamp:
+            if min_interval:
+                # check if too soon
+                v = self.snapshot_ls()
+                if len(v) > 0:
+                    newest = v[-1]
+                    age    = (time.time() - time.mktime(time.strptime(v[-1], TIMESTAMP_FORMAT)))/60.0
+                    if age  < min_interval:
+                        raise RuntimeError("there is a %sm old snapshot, which is younger than min_interval(=%sm)"%(age, min_interval))
+
             timestamp = time.strftime(TIMESTAMP_FORMAT)
         # figure out what to call the snapshot
         target = os.path.join(self.snapshot_path, timestamp)
@@ -734,7 +746,7 @@ class Project(object):
 
     def destroy(self):
         # delete locally
-        self.close()
+        self.close(force=True, nosave=True)
         # delete from the cloud
         try:
             gsutil(['rm', '-R', self.gs_path])
@@ -808,10 +820,19 @@ class Project(object):
 
         def create_tarball(newer, target):
             more_opts = newer + self._exclude('') + [self.project_id]
-            if use_pipe:
-                self.cmd("tar %s - %s | %s > %s"%(opts, ' '.join(more_opts), compression, target))
-            else:
-                self.cmd(['tar', opts, target]  + more_opts)
+            try:
+                CUR = os.curdir
+                os.chdir(self.btrfs)
+                if use_pipe:
+                    s = self.cmd("tar %s - %s | %s > %s"%(opts, ' '.join(more_opts), compression, target))
+                    # we check by looking at output since pipes don't propogate
+                    # error status (and we're not using bash) -- see http://stackoverflow.com/questions/1550933/catching-error-codes-in-a-shell-pipe
+                    if 'Exiting with failure status due to previous errors' in s:
+                        raise RuntimeError("error creating archive tarball -- %s"%s)
+                else:
+                    self.cmd(['tar', opts, target]  + more_opts)
+            finally:
+                os.chdir(CUR)
 
         if archive_path.startswith('gs://'):
             log("google cloud storage")
@@ -984,7 +1005,7 @@ class Project(object):
                   target_project_id = "",      # project_id of destination for files; must be open on destination machine
                   target_path     = "",   # path into project; if "", defaults to path above.
                   overwrite_newer = False,# if True, newer files in target are copied over (otherwise, uses rsync's --update)
-                  delete          = False,# if True, delete files in dest path not in source, **including** newer files
+                  delete_missing  = False,# if True, delete files in dest path not in source, **including** newer files
                   timeout         = None,
                   bwlimit         = None
                  ):
@@ -1031,7 +1052,7 @@ class Project(object):
         options = []
         if not overwrite_newer:
             options.append("--update")
-        if delete:
+        if delete_missing:
             # IMPORTANT: newly created files will be deleted even if overwrite_newer is True
             options.append("--delete")
         if bwlimit:
@@ -1231,7 +1252,7 @@ if __name__ == "__main__":
 
     # destroy project -- delete local files **and** files in Google cloud storage.
     parser_destroy = subparsers.add_parser('destroy',
-                     help='DANGEROUS -- completely destroy this project **EVERYWHERE** (including cloud storage)')
+                     help='DANGEROUS -- completely destroy this project (almost) **EVERYWHERE** (including cloud storage, though not from incremental tarball archive)')
     f(parser_destroy)
 
     # save project
@@ -1242,6 +1263,7 @@ if __name__ == "__main__":
                              default=False, action="store_const", const=True)
     parser_save.add_argument("--dedup", help="run dedup before making the snapshot -- can take a LONG time, but saves a lot on snapshots stored in google cloud storage",
                              default=False, action="store_const", const=True)
+    parser_save.add_argument("--min_interval", help="fail if there is a snapshot that is younger than this many MINUTES", default=0, type=int)
     f(parser_save)
 
     # delete old snapshots in project
@@ -1301,8 +1323,8 @@ if __name__ == "__main__":
                                    dest="target_path", default='', type=str)
     parser_copy_path.add_argument("--overwrite_newer", help="if given, newer files in target are copied over",
                                    dest="overwrite_newer", default=False, action="store_const", const=True)
-    parser_copy_path.add_argument("--delete", help="if given, delete files in dest path not in source",
-                                   dest="delete", default=False, action="store_const", const=True)
+    parser_copy_path.add_argument("--delete_missing", help="if given, delete files in dest path not in source",
+                                   dest="delete_missing", default=False, action="store_const", const=True)
     f(parser_copy_path)
 
     parser_archive = subparsers.add_parser('archive', help='create archive tarball of the project')

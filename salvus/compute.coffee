@@ -35,7 +35,7 @@ STATES =
         stable   : true
         to       :
             open : 'opening'
-        commands : ['open', 'move', 'status']
+        commands : ['open', 'move', 'status', 'destroy']
 
     opened:
         desc: 'All files and snapshots are ready to use and the project user has been created, but local hub is not running.'
@@ -150,12 +150,15 @@ class ComputeServerClient
             database : undefined
             keyspace : undefined
             cb       : required
+        dbg = @dbg("constructor")
         @_project_cache = {}
         if opts.database?
+            dbg("using database")
             @database = opts.database
             compute_server_cache = @
             opts.cb(undefined, @)
         else if opts.keyspace?
+            dbg("using keyspace '#{opts.keyspace}'")
             fs.readFile "#{process.cwd()}/data/secrets/cassandra/hub", (err, password) =>
                 if err
                     winston.debug("warning: no password file -- will only work if there is no password set.")
@@ -168,15 +171,17 @@ class ComputeServerClient
                     password    : password.toString().trim()
                     cb          : (err) =>
                         if err
+                            dbg("error getting database -- #{err}")
                             opts.cb(err)
                         else
+                            dbg("got database")
                             compute_server_cache = @
                             opts.cb(undefined, @)
         else
             opts.cb("database or keyspace must be specified")
 
     dbg: (method) =>
-        (m) => winston.debug("ComputeServerClient.#{method}: #{m}")
+        return (m) => winston.debug("ComputeServerClient.#{method}: #{m}")
 
     ###
     # get info about server and add to database
@@ -238,15 +243,20 @@ class ComputeServerClient
     random_host: (opts) =>
         opts = defaults opts,
             cb       : required
+        dbg = @dbg("random_host")
+        dbg("querying database")
         @database.select
             table     : 'compute_servers'
             columns   : ['host', 'experimental']
             objectify : true
             cb        : (err, s) =>
                 if err
+                    dbg("error querying database for servers -- #{err}")
                     opts.cb(err)
                 else
+                    # TODO: take into account load, health, etc.
                     v = (x.host for x in s when not x.experimental)
+                    dbg("got compute servers: #{misc.to_json(v)}")
                     opts.cb(undefined, misc.random_choice(v))
 
 
@@ -396,22 +406,38 @@ class ProjectClient extends EventEmitter
         @compute_server = opts.compute_server
         @_state = undefined
         @_state_time = undefined
-        @dbg('constructor')()
+        dbg = @dbg('constructor')
+        dbg("getting project's host")
         @update_host
             cb : (err) =>
                 if err
+                    dbg("failed to create project getting host -- #{err}")
                     opts.cb(err)
                 else
+                    dbg("successfully created project on '#{@host}'")
                     opts.cb(undefined, @)
+
+        # Watch for state change to saving, which means that a save
+        # has started (possibly initiated by another hub).  We note
+        # that in the @_last_save variable so we don't even try
+        # to save until later.
+        @on 'saving', () =>
+            @_last_save = new Date()
+
+    dbg: (method) =>
+        (m) => winston.debug("ProjectClient(#{@project_id},#{@host}).#{method}: #{m}")
+
 
     update_host: (opts) =>
         opts = defaults opts,
             cb : required
         host = undefined
+        previous_host = @host
         dbg = @dbg("update_host")
         t = misc.mswalltime()
         async.series([
             (cb) =>
+                dbg("querying database for compute server")
                 @compute_server.database.select
                     table   : 'projects'
                     columns : ['compute_server']
@@ -419,35 +445,39 @@ class ProjectClient extends EventEmitter
                         project_id : @project_id
                     cb      : (err, result) =>
                         if err
+                            dbg("error querying database -- #{err}")
                             cb(err)
                         else
                             if result.length == 1 and result[0][0]
+                                dbg("got host='#{host}'")
                                 host = result[0][0]
                             cb()
             (cb) =>
                 if host?
                     cb()
                 else
+                    dbg("assigning random host")
                     @compute_server.random_host
                         cb : (err, h) =>
                             if err
+                                dbg("error assigning random host -- #{err}")
                                 cb(err)
                             else
                                 host = h
+                                dbg("chose random host #{host}")
                                 @compute_server.database.update
                                     table : 'projects'
                                     set   : {compute_server : @host}
                                     where : {project_id : @project_id}
                                     cb    : cb
         ], (err) =>
-            dbg("time=#{misc.mswalltime(t)}ms")
             if not err
                 @host = host
-            opts.cb(err)
+                if host != previous_host
+                    dbg("host changed from #{previous_host} to #{host}")
+            dbg("time=#{misc.mswalltime(t)}ms")
+            opts.cb(err, host)
         )
-
-    dbg: (method) =>
-        (m) => winston.debug("ProjectClient(#{@project_id},#{@host}).#{method}: #{m}")
 
     _action: (opts) =>
         opts = defaults opts,
@@ -455,12 +485,15 @@ class ProjectClient extends EventEmitter
             args    : undefined
             timeout : 30
             cb      : required
-        dbg = @dbg("action")
+        dbg = @dbg("_action")
         dbg("action=#{opts.action}; params=#{misc.to_safe_str(opts.params)}")
+        dbg("first update host to use the right compute server")
         @update_host
             cb : (err) =>
                 if err
+                    dbg("error updating host #{err}")
                     opts.cb(err); return
+                dbg("calling compute server at '#{@host}'")
                 @compute_server.call
                     host : @host
                     mesg :
@@ -471,40 +504,40 @@ class ProjectClient extends EventEmitter
                     timeout : opts.timeout
                     cb      : (err, resp) =>
                         if err
+                            dbg("error calling compute server")
                             opts.cb(err)
                         else
+                            dbg("got response #{misc.to_safe_str(resp)}")
                             if resp.error?
                                 opts.cb(resp.error)
                             else
                                 opts.cb(undefined, resp)
 
     ###
-       The state of the project, which is one of:
-       closed, opened, running,
-       closing, opening, starting, restarting, stopping
-       error
-
     x={};require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:'20257d4e-387c-4b94-a987-5d89a3149a00',cb:(e,p)->console.log(e);x.p=p; x.p.state(cb:console.log)))
-
-
     ###
 
     # STATE/STATUS info
     state: (opts) =>
         opts = defaults opts,
-            force  : false
+            force  : false   # don't use local cached or value obtaine
             cb     : required
+        dbg = @dbg("state(force:#{opts.force})")
         if opts.force or (not @_state? or not @_state_time?)
+            dbg("calling remote server for state")
             @_action
                 action : "state"
                 cb     : (err, resp) =>
                     if err
+                        dbg("problem getting state -- #{err}")
                         opts.cb(err)
                     else
+                        dbg("got state='#{@_state}'")
                         @_state      = resp.state
                         @_state_time = resp.time
                         opts.cb(undefined, resp)
         else
+            dbg("getting state='#{@_state}' from cache")
             x =
                 state : @_state
                 time  : @_state_time
@@ -514,6 +547,7 @@ class ProjectClient extends EventEmitter
     status: (opts) =>
         opts = defaults opts,
             cb     : required
+        @dbg("status")()
         @_action
             action : "status"
             cb     : opts.cb
@@ -524,6 +558,7 @@ class ProjectClient extends EventEmitter
     open: (opts) =>
         opts = defaults opts,
             cb     : required
+        @dbg("open")()
         @_action
             action : "open"
             cb     : opts.cb
@@ -532,18 +567,58 @@ class ProjectClient extends EventEmitter
     start: (opts) =>
         opts = defaults opts,
             cb     : required
+        @dbg("start")()
         @_action
             action : "start"
             cb     : opts.cb
 
-    # kill everything and remove project from this compute node  (must be opened somewhere)
+    # restart project -- must be opened or running
+    restart: (opts) =>
+        opts = defaults opts,
+            cb     : required
+        dbg = @dbg("restart")
+        dbg("get state")
+        @state
+            cb : (err, s) =>
+                if err
+                    dbg("error getting state - #{err}")
+                    opts.cb(err)
+                    return
+                dbg("got state '#{s.state}'")
+                if s.state == 'opened'
+                    dbg("just start it")
+                    @start(cb: opts.cb)
+                    return
+                else if s.state == 'running'
+                    dbg("stop it")
+                    @stop
+                        cb : (err) =>
+                            if err
+                                opts.cb(err)
+                                return
+                            # return to caller since the once below
+                            # can take a long time.
+                            opts.cb()
+                            # wait however long for stop to finish, then
+                            # issue a start
+                            @once 'opened', () =>
+                                # now we can start it again
+                                @start
+                                    cb : (err) =>
+                                        dbg("start finished -- #{err}")
+                else
+                    opts.cb("may only restart when state is opened or running")
+
+
+    # kill everything and remove project from this compute
+    # node  (must be opened somewhere)
     close: (opts) =>
         opts = defaults opts,
             force  : false
             nosave : false
             cb     : required
         args = []
-        dbg = @dbg("close")
+        dbg = @dbg("close(force:#{opts.force},nosave:#{opts.nosave})")
         if opts.force
             args.push('--force')
         if opts.nosave
@@ -556,43 +631,52 @@ class ProjectClient extends EventEmitter
 
     ensure_opened_or_running: (opts) =>
         opts = defaults opts,
-            cb     : required
+            cb     : required   # cb(err, state='opened' or 'running')
         state = undefined
+        dbg = @dbg("ensure_opened_or_running")
         async.series([
             (cb) =>
+                dbg("get state")
                 @state
                     cb : (err, s) =>
                         if err
                             cb(err); return
                         state = s.state
+                        dbg("got state #{state}")
                         if STATES[state].stable
                             cb()
                         else
-                            # wait for a stable state
+                            dbg("wait for a stable state")
                             @once 'stable', (s) =>
                                 state = s
+                                dbg("got stable state #{state}")
                                 cb()
             (cb) =>
                 if state == 'running' or state == 'opened'
                     cb()
                 else if state == 'closed'
+                    dbg("opening")
                     @open
                         cb : (err) =>
                             if err
                                 cb(err)
                             else
                                 @once 'opened', () =>
+                                    dbg("it opened")
+                                    state = 'opened'
                                     cb()
                 else
                     cb("bug -- state=#{state} should be stable but isn't known")
-        ], (err) => opts.cb(err))
+        ], (err) => opts.cb(err, state))
 
     ensure_running: (opts) =>
         opts = defaults opts,
             cb     : required
         state = undefined
+        dbg = @dbg("ensure_running")
         async.series([
             (cb) =>
+                dbg("get the state")
                 @state
                     cb : (err, s) =>
                         if err
@@ -601,12 +685,13 @@ class ProjectClient extends EventEmitter
                         if STATES[state].stable
                             cb()
                         else
-                            # wait for a stable state
+                            dbg("wait for a stable state")
                             @once 'stable', (s) =>
                                 state = s
                                 cb()
             (cb) =>
                 f = () =>
+                    dbg("start running")
                     @start
                         cb : (err) =>
                             if err
@@ -618,26 +703,29 @@ class ProjectClient extends EventEmitter
                 else if state == 'opened'
                     f()
                 else if state == 'closed'
+                    dbg("open first")
                     @open
                         cb : (err) =>
                             if err
                                 cb(err)
                             else
                                 @once 'opened', () =>
+                                    dbg("project opened; now start running")
                                     f()
                 else
                     cb("bug -- state=#{state} should be stable but isn't known")
         ], (err) => opts.cb(err))
-
 
     ensure_closed: (opts) =>
         opts = defaults opts,
             force  : false
             nosave : false
             cb     : required
+        dbg = @dbg("ensure_closed(force:#{opts.force},nosave:#{opts.nosave})")
         state = undefined
         async.series([
             (cb) =>
+                dbg("get state")
                 @state
                     cb : (err, s) =>
                         if err
@@ -646,13 +734,16 @@ class ProjectClient extends EventEmitter
                         if STATES[state].stable
                             cb()
                         else
-                            # wait for a stable state
+                            dbg("wait for a stable state")
                             @once 'stable', (s) =>
                                 state = s
                                 cb()
             (cb) =>
                 f = () =>
+                    dbg("close project")
                     @close
+                        force  : opts.force
+                        nosave : opts.nosave
                         cb : (err) =>
                             if err
                                 cb(err)
@@ -663,11 +754,13 @@ class ProjectClient extends EventEmitter
                 else if state == 'opened'
                     f()
                 else if state == 'running'
+                    dbg("is running so first stop it")
                     @stop
                         cb : (err) =>
                             if err
                                 cb(err)
                             else
+                                dbg("now wait for it to be done stopping")
                                 @once 'opened', () =>
                                     f()
                 else
@@ -675,58 +768,114 @@ class ProjectClient extends EventEmitter
         ], (err) => opts.cb(err))
 
 
-
     # move project from one compute node to another one
     move: (opts) =>
         opts = defaults opts,
             target : required  # hostname of a compute server
             cb     : required
+        dbg = @dbg("move(target:'#{opts.target}')")
         async.series([
             (cb) =>
+                dbg("first ensure it is closed/deleted from current host")
                 @ensure_closed
                     cb   : cb
             (cb) =>
+                dbg("update database with new project location")
                 @compute_server.database.update
                     table : 'projects'
                     set   : {compute_server : opts.target}
                     where : {project_id : @project_id}
                     cb    : cb
             (cb) =>
+                dbg("open on new host")
                 @host = opts.target
                 @open(cb:cb)
         ], opts.cb)
 
-    # kill all processes
+    destroy: (opts) =>
+        opts = defaults opts,
+            cb     : required
+        dbg = @dbg("destroy")
+        dbg("permanently delete everything about this projects -- complete destruction...")
+        async.series([
+            (cb) =>
+                dbg("first ensure project is closed, forcing and not saving")
+                @ensure_closed
+                    force  : true
+                    nosave : true
+                    cb     : cb
+            (cb) =>
+                dbg("now remove project from btrfs stream storage too")
+                @host = undefined
+                @_action
+                    action : "destroy"
+                    cb     : cb
+        ], (err) => opts.cb(err))
+
     stop: (opts) =>
         opts = defaults opts,
             cb     : required
+        @dbg("stop")("will kill all processes")
         @_action
             action : "stop"
             cb     : opts.cb
 
-    # create snapshot, save incrementals to cloud storage
     save: (opts) =>
         opts = defaults opts,
             max_snapshots : 60
+            min_interval  : 10  # fail if there is a snapshot that is younger than this many MINUTES (use 0 to disable)
             cb     : required
+        dbg = @dbg("save(max_snapshots:#{opts.max_snapshots}, min_interval:#{opts.min_interval})")
+        dbg("")
+        # Do a client-side test to see if we have saved recently; much faster
+        # than going server side trying and failing.
+        if opts.min_interval and @_last_save and (new Date() - @_last_save) < 1000*60*opts.min_interval
+            dbg("already saved")
+            opts.cb("already saved within min_interval")
+            return
+        last_save_attempt = new Date()
+        dbg('doing actual save')
         @_action
             action : "save"
-            args   : ['--max_snapshots', opts.max_snapshots]
-            cb     : opts.cb
+            args   : ['--max_snapshots', opts.max_snapshots, '--min_interval', opts.min_interval]
+            cb     : (err, resp) =>
+                if not err
+                    @_last_save = last_save_attempt
+                opts.cb(err, resp)
 
-    # project location and listening port
     address: (opts) =>
         opts = defaults opts,
             cb : required
-        @status
-            cb : (err, status) =>
-                if err
-                    opts.cb(err)
-                else
-                    if status.state != 'running'
-                        opts.cb("not running")
-                    else
-                        opts.cb(undefined, {host:@host, port:status['local_hub.port'], secret_token:status.secret_token})
+        dbg = @dbg("address")
+        dbg("get project location and listening port -- will open and start project if necessary")
+        address = undefined
+        async.series([
+            (cb) =>
+                dbg("first ensure project is running")
+                @ensure_running(cb:cb)
+            (cb) =>
+                dbg("now get the status")
+                @status
+                    cb : (err, status) =>
+                        if err
+                            cb(err)
+                        else
+                            if status.state != 'running'
+                                dbg("something went wrong and not running ?!")
+                                cb("not running")
+                            else
+                                dbg("status includes info about address...")
+                                address =
+                                    host         : @host
+                                    port         : status['local_hub.port']
+                                    secret_token : status.secret_token
+                                cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, address)
+        )
 
     # copy a path using rsync from one project to another
     copy_path: (opts) =>
@@ -735,7 +884,7 @@ class ProjectClient extends EventEmitter
             target_project_id : ""
             target_path       : ""        # path into project; if "", defaults to path above.
             overwrite_newer   : false     # if true, newer files in target are copied over (otherwise, uses rsync's --update)
-            delete            : false     # if true, delete files in dest path not in source, **including** newer files
+            delete_missing    : false     # if true, delete files in dest path not in source, **including** newer files
             timeout           : 5*60
             bwlimit           : undefined
             cb                : required
@@ -747,12 +896,12 @@ class ProjectClient extends EventEmitter
                 "--target_path", opts.target_path]
         if opts.overwrite_newer
             args.push('--overwrite_newer')
-        if opts.delete
-            args.push('--delete')
+        if opts.delete_missing
+            args.push('--delete_missing')
         if opts.bwlimit
             args.push('--bwlimit')
             args.push(opts.bwlimit)
-        dbg("args=#{misc.to_json(args)}")
+        dbg("created args=#{misc.to_json(args)}")
         target_project = undefined
         async.series([
             (cb) =>
@@ -807,6 +956,7 @@ class ProjectClient extends EventEmitter
             start     : 0
             limit     : -1
             cb        : required
+        dbg = @dbg("directory_listing")
         args = []
         if opts.hidden
             args.push("--hidden")
@@ -814,17 +964,19 @@ class ProjectClient extends EventEmitter
             args.push("--time")
         for k in ['path', 'start', 'limit']
             args.push("--#{k}"); args.push(opts[k])
+        dbg("get listing of files using options #{misc.to_json(args)}")
         @_action
             action : 'directory_listing'
             args   : args
             cb     : opts.cb
 
-    # read a file or directory from disk
     read_file: (opts) =>
         opts = defaults opts,
             path    : required
             maxsize : 3000000    # maximum file size in bytes to read
             cb      : required   # cb(err, Buffer)
+        dbg = @dbg("read_file(path:'#{opts.path}')")
+        dbg("read a file or directory from disk")  # directories get zip'd
         args =  [opts.path, "--maxsize", opts.maxsize]
         @_action
             action  : 'read_file'
@@ -835,7 +987,6 @@ class ProjectClient extends EventEmitter
                 else
                     opts.cb(undefined, new Buffer(resp.base64, 'base64'))
 
-    # set various quotas
     set_quota: (opts) =>
         opts = defaults opts,
             disk_quota   : undefined
@@ -845,7 +996,7 @@ class ProjectClient extends EventEmitter
             network      : undefined
             cb           : required
         dbg = @dbg("set_quota")
-        dbg()
+        dbg("set various quotas")
         async.parallel([
             (cb) =>
                 if opts.network?
@@ -929,8 +1080,10 @@ class Project
         @_state_time = new Date()
         @_state_listeners = {}
 
+        @_last = {}  # last time a giving action was initiated
+
     dbg: (method) =>
-        (m) => winston.debug("Project.#{method}: #{m}")
+        return (m) => winston.debug("Project.#{method}: #{m}")
 
     add_listener: (socket) =>
         if not @_state_listeners[socket.id]?
@@ -939,7 +1092,6 @@ class Project
                 delete @_state_listeners[socket.id]
             @dbg("add_listener")(socket.id)
 
-    #
     _update_state_listeners: () =>
         dbg = @dbg("_update_state_listeners")
         mesg = message.project_state_update
@@ -956,11 +1108,13 @@ class Project
             action     : required
             args       : undefined
             cb         : required
+        dbg = @dbg("_command(action:'#{opts.action}')")
+        @_last[opts.action] = new Date()
         args = [opts.action]
         if opts.args?
             args = args.concat(opts.args)
         args.push(@project_id)
-        #winston.debug("_command: opts=#{misc.to_json(opts)}, #{misc.to_json(args)}")
+        dbg("args=#{misc.to_json(args)}")
         smc_compute
             args : args
             cb   : opts.cb
@@ -1002,10 +1156,10 @@ class Project
                         @_state = next_state  # change state
                         @_state_time = new Date()
                         @_update_state_listeners()
-                        @_command      # launch the command
+                        @_command      # launch the command: this might take a long time
                             action : opts.action
                             args   : opts.args
-                            cb     : (err, resp) =>
+                            cb     : (err, ignored) =>
                                 # finished command -- will transition to new state as result
                                 if err
                                     dbg("state change command ERROR -- #{err}")
@@ -1044,6 +1198,7 @@ class Project
     state: (opts) =>
         opts = defaults opts,
             cb : required
+        @dbg("state")()
         f = (cb) =>
             if @_state?
                 cb()
@@ -1091,9 +1246,8 @@ read_secret_token = (cb) ->
     ], cb)
 
 handle_mesg = (socket, mesg) ->
-    dbg = (m) => winston.debug("handle_mesg: #{m}")
-    dbg("(hub -> compute)': #{misc.to_safe_str(mesg)}'")
-    #dbg("(hub -> compute)': #{misc.to_json(mesg)}'")
+    dbg = (m) => winston.debug("handle_mesg(hub -> compute, id=#{mesg.id}): #{m}")
+    dbg(misc.to_safe_str(mesg))
 
     f = (cb) ->
         switch mesg.event
@@ -1112,6 +1266,7 @@ handle_mesg = (socket, mesg) ->
                             else
                                 cb(x)
                 else
+                    dbg("running command")
                     p.command
                         action     : mesg.action
                         args       : mesg.args
@@ -1126,7 +1281,7 @@ handle_mesg = (socket, mesg) ->
                 cb(message.error(error:"unknown event type: '#{mesg.event}'"))
     f (resp) ->
         resp.id = mesg.id
-        dbg("(compute -> hub)': #{misc.to_safe_str(resp)}'")
+        dbg("resp = '#{misc.to_safe_str(resp)}'")
         socket.write_mesg('json', resp)
 
 start_tcp_server = (cb) ->
@@ -1144,23 +1299,26 @@ start_tcp_server = (cb) ->
                 misc_node.enable_mesg(socket)
                 socket.on 'mesg', (type, mesg) ->
                     if type == "json"   # other types ignored -- we only deal with json
-                        dbg("received mesg #{misc.to_safe_str(mesg)}")
+                        dbg("(socket id=#{socket.id}) -- received  #{misc.to_safe_str(mesg)}")
                         try
                             handle_mesg(socket, mesg)
                         catch e
                             dbg(new Error().stack)
-                            winston.error("ERROR: '#{e}' handling message '#{misc.to_safe_str(mesg)}'")
+                            winston.error("ERROR(socket id=#{socket.id}): '#{e}' handling message '#{misc.to_safe_str(mesg)}'")
 
     get_port = (c) ->
+        dbg("get_port")
         if program.port
             c()
         else
-            # attempt once to use the same port as in port file, if there is one
+            dbg("attempt once to use the same port as in port file, if there is one")
             fs.exists program.port_file, (exists) ->
                 if not exists
+                    dbg("no port file so choose new port")
                     program.port = 0
                     c()
                 else
+                    dbg("port file exists, so read")
                     fs.readFile program.port_file, (err, data) ->
                         if err
                             program.port = 0
