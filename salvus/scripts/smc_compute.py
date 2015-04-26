@@ -418,7 +418,7 @@ class Project(object):
 
     def create_snapshot_link(self):
         snapshots = os.path.join(self.btrfs, ".snapshots")
-        if not os.path.exists(self.snapshots):
+        if not os.path.exists(snapshots):
             btrfs(['subvolume', 'create', snapshots])
         t = os.path.join(self.project_path, '.snapshots')
         try:
@@ -596,18 +596,20 @@ class Project(object):
             s['state'] = 'closed'
             return s
 
+        s['state'] = 'opened'
         if self.username not in open('/etc/passwd').read():
-            s['state'] = 'opened'
             return s
 
         s['btrfs'] = self.btrfs_status()
-        t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30)
-        t = json.loads(t)
-        s.update(t)
-        if bool(t.get('local_hub.pid',False)):
-            s['state'] = 'running'
-        else:
-            s['state'] = 'opened'
+        if os.path.exists(os.path.join(self.smc_path, 'status')):
+            try:
+                t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30)
+                t = json.loads(t)
+                s.update(t)
+                if bool(t.get('local_hub.pid',False)):
+                    s['state'] = 'running'
+            except Exception, err:
+                log("error running status command -- %s", err)
         return s
 
     def delete_old_snapshots(self, max_snapshots):

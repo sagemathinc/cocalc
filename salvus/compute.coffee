@@ -32,51 +32,51 @@
 STATES =
     closed:
         desc     : 'None of the files, users, etc. for this project are on the compute server.'
-        from     : ['closing']
-        to       : ['opening']
+        to       :
+            open : 'opening'
         commands : ['open', 'move']
 
     opened:
         desc: 'All files and snapshots are ready to use and the project user has been created, but local hub is not running.'
-        from     : ['opening']
-        to       : ['starting']
-        commands : ['start', 'close', 'save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas']
+        to       :
+            start : 'starting'
+            close : 'closing'
+            save  : 'saving'
+        commands : ['start', 'close', 'save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota']
 
     running:
         desc     : 'The project is opened and ready to be used.'
-        from     : ['starting']
-        to       : ['stopping']
-        commands : ['stop', 'save', 'address', 'copy_path', 'directory_listing', 'read_file', 'set_quotas']
+        to       :
+            stop : 'stopping'
+            save : 'saving'
+        commands : ['stop', 'save', 'address', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota']
 
     saving:
         desc     : 'The project is being snapshoted and saved to cloud storage.'
-        from     : ['opened', 'running']
-        to       : ['opened', 'running']
-        commands : ['address', 'copy_path', 'directory_listing', 'read_file', 'set_quotas']
+        to       : {}
+        commands : ['address', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota']
 
     closing:
         desc     : 'The project is in the process of being closed, so the latest changes are being uploaded, everything is stopping, the files will be removed from this computer.'
-        from     : ['opened']
-        to       : ['closed']
+        to       : {}
         commands : []
 
     opening:
         desc     : 'The project is being opened, so all files and snapshots are being downloaded, the user is being created, etc.'
-        from     : ['closed']
-        to       :   ['opened']
+        to       : {}
         commands : []
 
     starting:
         desc     : 'The project is starting up and getting ready to be used.'
-        from     : ['opened']
-        to       : ['running']
-        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas']
+        to       :
+            save : 'saving'
+        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota']
 
     stopping:
         desc     : 'All processes associated to the project are being killed.'
-        from     : ['running']
-        to       : ['opened']
-        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas']
+        to       :
+            save : 'saving'
+        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota']
 
 ###
 Here's a picture of the finite state machine:
@@ -462,7 +462,7 @@ class ProjectClient
             target : required
             cb     : required
         @_action
-            action : "close"
+            action : "move"
             args   : ['--target', opts.target]
             cb     : opts.cb
 
@@ -480,7 +480,7 @@ class ProjectClient
             max_snapshots : 100
             cb     : required
         @_action
-            action : "start"
+            action : "save"
             args   : ['--max_snapshots', opts.max_snapshots]
             cb     : opts.cb
 
@@ -639,8 +639,12 @@ get_project = (project_id) ->
 
 class Project
     constructor: (@project_id) ->
+        @_state = undefined
 
-    command: (opts) =>
+    dbg: (method) =>
+        (m) => winston.debug("Project.#{method}: #{m}")
+
+    _command: (opts) =>
         opts = defaults opts,
             action     : required
             args       : undefined
@@ -653,16 +657,91 @@ class Project
             args : args
             cb   : opts.cb
 
+    command: (opts) =>
+        opts = defaults opts,
+            action     : required
+            args       : undefined
+            cb         : required
+        dbg = @dbg("command(action=#{opts.action})")
+        state = undefined
+        state_info = undefined
+        resp = undefined
+        async.series([
+            (cb) =>
+                dbg("get state")
+                @state
+                    cb: (err, s) =>
+                        state = s.state
+                        cb(err)
+            (cb) =>
+                state_info = STATES[state]
+                if not state_info?
+                    cb("bug / internal error -- unknown state '#{misc.to_json(state)}'")
+                    return
+                i = state_info.commands.indexOf(opts.action)
+                if i == -1
+                    cb("command #{opts.action} not allowed in state #{state}")
+                else
+                    next_state = state_info.to[opts.action]
+                    if next_state?
+                        dbg("next_state: #{next_state} -- launching")
+                        # This action causes state change and could take a while,
+                        # so we (1) change state, (2) launch the command, (3)
+                        # respond immediately that it's started.
+                        @_state = next_state  # change state
+                        @_state_time = new Date()
+                        @_command      # launch the command
+                            action : opts.action
+                            args   : opts.arg
+                            cb     : (err, resp) =>
+                                # finished command -- will transition to new state as result
+                                if err
+                                    dbg("state change command ERROR -- #{err}")
+                                else
+                                    dbg("state change command success -- #{misc.to_safe_str(resp)}")
+                                @_update_state()
+                        resp = {state:next_state}
+                        cb()
+                    else
+                        # Fairly quick action that doesn't involve state change
+                        @_command
+                            action : opts.action
+                            args   : opts.arg
+                            cb     : (err, r) =>
+                                resp = r; cb(err)
+        ], (err) => opts.cb(err, resp))
+
+    _update_state: () =>
+        dbg = @dbg("_update_state")
+        dbg("state likely changed -- determined what it changed to")
+        @_command
+            action : 'status'
+            cb     : (err, r) =>
+                if err
+                    dbg("error getting status -- #{err}")
+                else
+                    @_state = r['state']
+                    @_state_time = new Date()
+                    dbg("got new state -- #{@_state}")
+
     state: (opts) =>
         opts = defaults opts,
             cb         : required
-        smc_compute
-            args : ['status', @project_id]
-            cb   : (err, r) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, r['state'])
+        if not @_state?
+            @_command
+                action : 'status'
+                cb     : (err, r) =>
+                    if err
+                        opts.cb(err)
+                    else
+                        @_state = r['state']
+                        @_state_time = new Date()
+                        opts.cb(undefined, @_state)
+        else
+            x =
+                state : @_state
+                time  : (new Date() - @_state_time)/1000
+            opts.cb(undefined, x)
 
 secret_token = undefined
 read_secret_token = (cb) ->
