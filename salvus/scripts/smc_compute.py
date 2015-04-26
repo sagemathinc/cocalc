@@ -450,15 +450,15 @@ class Project(object):
         memory     - megabytes of RAM (int)
         cpu_shares - determines relative share of cpu (e.g., 256=most users)
         """
-        if cores <= 0:
-            cfs_quota = -1  # no limit
-        else:
-            cfs_quota = int(100000*cores)
+        cfs_quota = int(100000*cores)
 
         self.cmd(["cgcreate", "-g", "memory,cpu:%s"%self.username])
-        open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sM"%memory)
-        open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(str(cpu_shares))
-        open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write(str(cfs_quota))
+        if memory:
+            open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sM"%memory)
+        if cpu_shares:
+            open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(str(cpu_shares))
+        if cfs_quota:
+            open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write(str(cfs_quota))
 
         z = "\n%s  cpu,memory  %s\n"%(self.username, self.username)
         cur = open("/etc/cgrules.conf").read() if os.path.exists("/etc/cgrules.conf") else ''
@@ -1185,14 +1185,14 @@ if __name__ == "__main__":
 
     # disk quota
     parser_disk_quota = subparsers.add_parser('disk_quota', help='set disk quota')
-    parser_disk_quota.add_argument("disk_quota", help="disk_quota in MB (or 0 for no disk_quota).", type=int)
+    parser_disk_quota.add_argument("quota", help="quota in MB (or 0 for no disk_quota).", type=int)
     f(parser_disk_quota)
 
     # compute quota
     parser_compute_quota = subparsers.add_parser('compute_quota', help='set compute quotas')
-    parser_compute_quota.add_argument("--cores", help="number of cores (default: 1) float", type=float, default=1)
-    parser_compute_quota.add_argument("--memory", help="megabytes of RAM (default: 1000) int", type=int, default=1)
-    parser_compute_quota.add_argument("--cpu_shares", help="relative share of cpu (default: 256) int", type=int, default=256)
+    parser_compute_quota.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
+    parser_compute_quota.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
+    parser_compute_quota.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
     f(parser_compute_quota)
 
     parser_network = subparsers.add_parser('network', help='allow or ban network access for this user')

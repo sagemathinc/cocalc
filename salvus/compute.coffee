@@ -42,19 +42,19 @@ STATES =
             start : 'starting'
             close : 'closing'
             save  : 'saving'
-        commands : ['start', 'close', 'save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota', 'status']
+        commands : ['start', 'close', 'save', 'copy_path', 'directory_listing', 'read_file', 'network', 'disk_quota', 'compute_quota', 'status']
 
     running:
         desc     : 'The project is opened and ready to be used.'
         to       :
             stop : 'stopping'
             save : 'saving'
-        commands : ['stop', 'save', 'address', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota', 'status']
+        commands : ['stop', 'save', 'address', 'copy_path', 'directory_listing', 'read_file', 'network', 'disk_quota', 'compute_quota', 'status']
 
     saving:
         desc     : 'The project is being snapshoted and saved to cloud storage.'
         to       : {}
-        commands : ['address', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota', 'status']
+        commands : ['address', 'copy_path', 'directory_listing', 'read_file', 'network', 'disk_quota', 'compute_quota', 'status']
 
     closing:
         desc     : 'The project is in the process of being closed, so the latest changes are being uploaded, everything is stopping, the files will be removed from this computer.'
@@ -70,13 +70,13 @@ STATES =
         desc     : 'The project is starting up and getting ready to be used.'
         to       :
             save : 'saving'
-        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota', 'status']
+        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'network', 'disk_quota', 'compute_quota', 'status']
 
     stopping:
         desc     : 'All processes associated to the project are being killed.'
         to       :
             save : 'saving'
-        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota', 'status']
+        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'network', 'disk_quota', 'compute_quota', 'status']
 
 ###
 Here's a picture of the finite state machine:
@@ -282,13 +282,16 @@ class ComputeServerClient
                                     delete @_socket_cache[opts.host]
                                 socket.removeAllListeners()
                             socket.on 'mesg', (type, mesg) =>
-                                if type == 'json' and mesg.event == 'project_state_update'
-                                    winston.debug("state_update #{misc.to_json(mesg)}")
-                                    p = @_project_cache[mesg.project_id]
-                                    if p?
-                                        p._state      = mesg.state
-                                        p._state_time = new Date()
-                                        p.emit(p._state, p)
+                                if type == 'json'
+                                    if mesg.event == 'project_state_update'
+                                        winston.debug("state_update #{misc.to_json(mesg)}")
+                                        p = @_project_cache[mesg.project_id]
+                                        if p?
+                                            p._state      = mesg.state
+                                            p._state_time = new Date()
+                                            p.emit(p._state, p)
+                                    else
+                                        winston.debug("mesg (hub <- compute): #{misc.to_json(mesg)}")
                             cb()
         ], (err) =>
             opts.cb(err, @_socket_cache[opts.host])
@@ -324,20 +327,24 @@ class ComputeServerClient
                     if err
                         cb("error writing to socket -- #{err}")
                     else
-                        dbg("waiting to receive response")
+                        dbg("waiting to receive response with id #{opts.mesg.id}")
                         socket.recv_mesg
                             type    : 'json'
                             id      : opts.mesg.id
                             timeout : opts.timeout
                             cb      : (mesg) =>
-                                @dbg("got response -- #{misc.to_safe_str(mesg)}")
+                                dbg("got response -- #{misc.to_safe_str(mesg)}")
                                 if mesg.event == 'error'
+                                    dbg("error = #{mesg.error}")
                                     cb(mesg.error)
                                 else
                                     delete mesg.id
                                     resp = mesg
+                                    dbg("success: resp=#{misc.to_safe_str(resp)}")
                                     cb()
-        ], (err) => opts.cb(err, resp))
+        ], (err) =>
+            opts.cb(err, resp)
+        )
 
     ###
     Get a project:
@@ -713,7 +720,7 @@ class ProjectClient extends EventEmitter
                     opts.cb(undefined, new Buffer(resp.base64, 'base64'))
 
     # set various quotas
-    set_quotas: (opts) =>
+    set_quota: (opts) =>
         opts = defaults opts,
             disk_quota   : undefined
             cores        : undefined
@@ -721,25 +728,31 @@ class ProjectClient extends EventEmitter
             cpu_shares   : undefined
             network      : undefined
             cb           : required
+        dbg = @dbg("set_quota")
+        dbg()
         async.parallel([
             (cb) =>
                 if opts.network?
+                    dbg("network quota")
                     @_action
                         action : 'network'
                         args   : if opts.network then [] else ['--ban']
-                        cb     : cb
+                        cb     : (err) =>
+                            cb(err)
                 else
                     cb()
             (cb) =>
                 if opts.disk_quota?
+                    dbg("disk quota")
                     @_action
                         action : 'disk_quota'
-                        args   : [args.disk_quota]
+                        args   : [opts.disk_quota]
                         cb     : cb
                 else
                     cb()
             (cb) =>
                 if opts.cores? or opts.memory? or opts.cpu_shares?
+                    dbg("compute quota")
                     args = []
                     for s in ['cores', 'memory', 'cpu_shares']
                         if opts[s]?
@@ -748,7 +761,12 @@ class ProjectClient extends EventEmitter
                         action : 'compute_quota'
                         args   : args
                         cb     : cb
-        ], opts.cb)
+                else
+                    cb()
+        ], (err) =>
+            dbg("done setting quotas")
+            opts.cb(err)
+        )
 
 
 
@@ -799,9 +817,11 @@ class Project
         (m) => winston.debug("Project.#{method}: #{m}")
 
     add_listener: (socket) =>
-        @_state_listeners[socket.id] = socket
-        socket.on 'close', () =>
-            delete @_state_listeners[socket.id]
+        if not @_state_listeners[socket.id]?
+            @_state_listeners[socket.id] = socket
+            socket.on 'close', () =>
+                delete @_state_listeners[socket.id]
+            @dbg("add_listener")(socket.id)
 
     #
     _update_state_listeners: () =>
@@ -966,7 +986,6 @@ handle_mesg = (socket, mesg) ->
                 p = get_project(mesg.project_id)
                 dbg("got project")
                 p.add_listener(socket)
-                dbg("added listener")
                 if mesg.action == 'state'
                     dbg("getting state")
                     p.state
@@ -991,7 +1010,7 @@ handle_mesg = (socket, mesg) ->
                 cb(message.error(error:"unknown event type: '#{mesg.event}'"))
     f (resp) ->
         resp.id = mesg.id
-        dbg("(hub -> compute)': #{misc.to_safe_str(resp)}'")
+        dbg("(compute -> hub)': #{misc.to_safe_str(resp)}'")
         socket.write_mesg('json', resp)
 
 start_tcp_server = (cb) ->
