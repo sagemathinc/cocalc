@@ -32,12 +32,14 @@
 STATES =
     closed:
         desc     : 'None of the files, users, etc. for this project are on the compute server.'
+        stable   : true
         to       :
             open : 'opening'
         commands : ['open', 'move', 'status']
 
     opened:
         desc: 'All files and snapshots are ready to use and the project user has been created, but local hub is not running.'
+        stable   : true
         to       :
             start : 'starting'
             close : 'closing'
@@ -46,6 +48,7 @@ STATES =
 
     running:
         desc     : 'The project is opened and ready to be used.'
+        stable   : true
         to       :
             stop : 'stopping'
             save : 'saving'
@@ -301,6 +304,8 @@ class ComputeServerClient
                                             p._state      = mesg.state
                                             p._state_time = new Date()
                                             p.emit(p._state, p)
+                                            if STATES[mesg.state].is_stable
+                                                p.emit('stable', mesg.state)
                                     else
                                         winston.debug("mesg (hub <- compute): #{misc.to_json(mesg)}")
                             cb()
@@ -364,110 +369,22 @@ class ComputeServerClient
     project: (opts) =>
         opts = defaults opts,
             project_id : required
-            opened     : false    # if true, only returns after ensuring project is opened on some host (which may take minutes)
-            running    : false    # if true, ensures project is started before returning
             cb         : required
         if not @_project_cache?
             @_project_cache = {}
         p = @_project_cache[opts.project_id]
-        state = undefined
-        dbg = @dbg("project(#{opts.project_id}, open=#{opts.opened}, start=#{opts.running})")
-        async.series([
-            (cb) =>
-                dbg("get project")
-                if p?
-                    cb()
-                else
-                    new ProjectClient
-                        project_id     : opts.project_id
-                        compute_server : @
-                        cb             : (err, project) =>
-                            p = project
-                            if err
-                                cb(err)
-                            else
-                                @_project_cache[opts.project_id] = project
-                                cb()
-            (cb) =>
-                if not (opts.opened or opts.running)
-                    cb()
-                else
-                    dbg("ensure at least opened")
-                    p.state
-                        cb : (err, s) =>
-                            if err
-                                cb(err)
-                                return
-                            state = s.state
-                            if state == 'opening'
-                                p.once 'opened', () =>
-                                    state = 'opened'
-                                    cb()
-                                return
-                            if state != 'closed' and state != 'closing'
-                                cb(err)
-                                return
-                            # Finally deal with case of closed or closing.
-                            # This is tricky: in close state, we request open and wait
-                            # for project to open; in closing state, we wait until closed
-                            # then request open and wait until open.
-                            f = () =>
-                                p.open
-                                    cb : (err) =>
-                                        if err
-                                            cb(err)
-                                        else
-                                            p.once 'opened', () =>
-                                                # TODO: some danger that this will never happen, e.g., in case
-                                                # of socket disconnect while waiting.
-                                                state = 'opened'
-                                                cb()
-                            if state == 'closed'
-                                f()
-                            else
-                                p.once 'closed', () =>
-                                    f()
-            (cb) =>
-                if not opts.running
-                    cb()
-                else
-                    p.state
-                        cb : (err, s) =>
-                            if err
-                                cb(err)
-                                return
-                            state = s.state
-                            if state == 'starting'
-                                p.once 'running', () =>
-                                    cb()
-                                return
-                            if state != 'opened' and state != 'stopping'
-                                cb(err)
-                                return
-                            # This is tricky: in close state, we request open and wait
-                            # for project to open; in closing state, we wait until closed
-                            # then request open and wait until open.
-                            f = () =>
-                                p.start
-                                    cb : (err) =>
-                                        if err
-                                            cb(err)
-                                        else
-                                            p.once 'running', () =>
-                                                # TODO: some danger that this will never happen, e.g., in case
-                                                # of socket disconnect while waiting.
-                                                cb()
-                            if state == 'opened'
-                                f()
-                            else
-                                p.once 'opened', () =>
-                                    f()
-        ], (err) =>
-            if err
-                opts.cb(err)
-            else
-                opts.cb(undefined, p)
-        )
+        if p?
+            opts.cb(undefined, p)
+        else
+            new ProjectClient
+                project_id     : opts.project_id
+                compute_server : @
+                cb             : (err, project) =>
+                    if err
+                        opts.cb(err)
+                    else
+                        @_project_cache[opts.project_id] = project
+                        opts.cb(undefined, project)
 
 class ProjectClient extends EventEmitter
     constructor: (opts) ->
@@ -637,15 +554,147 @@ class ProjectClient extends EventEmitter
             args   : args
             cb     : opts.cb
 
+    ensure_opened_or_running: (opts) =>
+        opts = defaults opts,
+            cb     : required
+        state = undefined
+        async.series([
+            (cb) =>
+                @state
+                    cb : (err, s) =>
+                        if err
+                            cb(err); return
+                        state = s.state
+                        if STATES[state].stable
+                            cb()
+                        else
+                            # wait for a stable state
+                            @once 'stable', (s) =>
+                                state = s
+                                cb()
+            (cb) =>
+                if state == 'running' or state == 'opened'
+                    cb()
+                else if state == 'closed'
+                    @open
+                        cb : (err) =>
+                            if err
+                                cb(err)
+                            else
+                                @once 'opened', () =>
+                                    cb()
+                else
+                    cb("bug -- state=#{state} should be stable but isn't known")
+        ], (err) => opts.cb(err))
+
+    ensure_running: (opts) =>
+        opts = defaults opts,
+            cb     : required
+        state = undefined
+        async.series([
+            (cb) =>
+                @state
+                    cb : (err, s) =>
+                        if err
+                            cb(err); return
+                        state = s.state
+                        if STATES[state].stable
+                            cb()
+                        else
+                            # wait for a stable state
+                            @once 'stable', (s) =>
+                                state = s
+                                cb()
+            (cb) =>
+                f = () =>
+                    @start
+                        cb : (err) =>
+                            if err
+                                cb(err)
+                            else
+                                @once 'running', () => cb()
+                if state == 'running'
+                    cb()
+                else if state == 'opened'
+                    f()
+                else if state == 'closed'
+                    @open
+                        cb : (err) =>
+                            if err
+                                cb(err)
+                            else
+                                @once 'opened', () =>
+                                    f()
+                else
+                    cb("bug -- state=#{state} should be stable but isn't known")
+        ], (err) => opts.cb(err))
+
+
+    ensure_closed: (opts) =>
+        opts = defaults opts,
+            force  : false
+            nosave : false
+            cb     : required
+        state = undefined
+        async.series([
+            (cb) =>
+                @state
+                    cb : (err, s) =>
+                        if err
+                            cb(err); return
+                        state = s.state
+                        if STATES[state].stable
+                            cb()
+                        else
+                            # wait for a stable state
+                            @once 'stable', (s) =>
+                                state = s
+                                cb()
+            (cb) =>
+                f = () =>
+                    @close
+                        cb : (err) =>
+                            if err
+                                cb(err)
+                            else
+                                @once 'closed', () => cb()
+                if state == 'closed'
+                    cb()
+                else if state == 'opened'
+                    f()
+                else if state == 'running'
+                    @stop
+                        cb : (err) =>
+                            if err
+                                cb(err)
+                            else
+                                @once 'opened', () =>
+                                    f()
+                else
+                    cb("bug -- state=#{state} should be stable but isn't known")
+        ], (err) => opts.cb(err))
+
+
+
     # move project from one compute node to another one
     move: (opts) =>
         opts = defaults opts,
-            target : required
+            target : required  # hostname of a compute server
             cb     : required
-        @_action
-            action : "move"
-            args   : ['--target', opts.target]
-            cb     : opts.cb
+        async.series([
+            (cb) =>
+                @ensure_closed
+                    cb   : cb
+            (cb) =>
+                @compute_server.database.update
+                    table : 'projects'
+                    set   : {compute_server : opts.target}
+                    where : {project_id : @project_id}
+                    cb    : cb
+            (cb) =>
+                @host = opts.target
+                @open(cb:cb)
+        ], opts.cb)
 
     # kill all processes
     stop: (opts) =>
@@ -713,16 +762,20 @@ class ProjectClient extends EventEmitter
                     dbg("getting other project and ensuring that it is already opened")
                     @compute_server.project
                         project_id : opts.target_project_id
-                        opened     : true
                         cb         : (err, target_project) =>
                             if err
                                 dbg("error ")
                                 cb(err)
                             else
-                                dbg("got other project on #{target_project.host}")
-                                args.push("--target_hostname")
-                                args.push(target_project.host)
-                                cb()
+                                target_project.ensure_opened_or_running
+                                    cb : (err) =>
+                                        if err
+                                            cb(err)
+                                        else
+                                            dbg("got other project on #{target_project.host}")
+                                            args.push("--target_hostname")
+                                            args.push(target_project.host)
+                                            cb()
             (cb) =>
                 dbg("doing the actual copy")
                 @_action
