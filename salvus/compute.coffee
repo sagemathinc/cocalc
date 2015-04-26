@@ -106,6 +106,8 @@ uuid      = require('node-uuid')
 cassandra = require('cassandra')
 cql       = require("cassandra-driver")
 
+{EventEmitter} = require('events')
+
 # Set the log level
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
@@ -286,6 +288,7 @@ class ComputeServerClient
                                     if p?
                                         p._state      = mesg.state
                                         p._state_time = new Date()
+                                        p.emit(p._state, p)
                             cb()
         ], (err) =>
             opts.cb(err, @_socket_cache[opts.host])
@@ -304,7 +307,8 @@ class ComputeServerClient
             cb      : required
 
         dbg = @dbg("call(#{opts.host})")
-        dbg("(hub --> compute) #{misc.to_safe_str(opts.mesg)}")
+        #dbg("(hub --> compute) #{misc.to_json(opts.mesg)}")
+        #dbg("(hub --> compute) #{misc.to_safe_str(opts.mesg)}")
         socket = undefined
         resp = undefined
         if not opts.mesg.id?
@@ -342,24 +346,61 @@ class ComputeServerClient
     project: (opts) =>
         opts = defaults opts,
             project_id : required
+            open       : false    # if true, only returns after ensuring project is opened on some host (which may take minutes)
             cb         : required
         if not @_project_cache?
             @_project_cache = {}
         p = @_project_cache[opts.project_id]
-        if p?
-            opts.cb(undefined, p)
-        else
-            new ProjectClient
-                project_id     : opts.project_id
-                compute_server : @
-                cb             : (err, project) =>
-                    if err
-                        opts.cb(err)
-                    else
-                        @_project_cache[opts.project_id] = project
-                        opts.cb(undefined, project)
+        async.series([
+            (cb) =>
+                if p?
+                    cb()
+                else
+                    new ProjectClient
+                        project_id     : opts.project_id
+                        compute_server : @
+                        cb             : (err, project) =>
+                            p = project
+                            if err
+                                cb(err)
+                            else
+                                @_project_cache[opts.project_id] = project
+                                cb()
+            (cb) =>
+                if not opts.open
+                    cb()
+                else
+                    p.state
+                        cb : (err, state) =>
+                            if err or state.state != 'closed' and state.state != 'closing'
+                                cb(err)
+                                return
+                            # This is tricky: in close state, we request open and wait
+                            # for project to open; in closing state, we wait until closed
+                            # then request open and wait until open.
+                            f = () =>
+                                p.open
+                                    cb : (err) =>
+                                        if err
+                                            cb(err)
+                                        else
+                                            p.once 'opened', () =>
+                                                # TODO: some danger that this will never happen, e.g., in case
+                                                # of socket disconnect while waiting.
+                                                cb()
+                            if state.state == 'closed'
+                                f()
+                            else if state.state == 'closing'
+                                p.once 'closed', () =>
+                                    f()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, p)
+        )
 
-class ProjectClient
+class ProjectClient extends EventEmitter
     constructor: (opts) ->
         opts = defaults opts,
             project_id     : required
@@ -380,7 +421,7 @@ class ProjectClient
         opts = defaults opts,
             action  : required
             args    : undefined
-            timeout : 15
+            timeout : 30
             cb      : required
         dbg = @dbg("action")
         dbg("action=#{opts.action}; params=#{misc.to_safe_str(opts.params)}")
@@ -520,29 +561,69 @@ class ProjectClient
     # copy a path using rsync from one project to another
     copy_path: (opts) =>
         opts = defaults opts,
-            target_project_id : required
+            path              : ""
+            target_project_id : ""
             target_path       : ""        # path into project; if "", defaults to path above.
             overwrite_newer   : false     # if true, newer files in target are copied over (otherwise, uses rsync's --update)
             delete            : false     # if true, delete files in dest path not in source, **including** newer files
-            timeout           : undefined
+            timeout           : 5*60
             bwlimit           : undefined
             cb                : required
-        args = ["--target_project_id", opts.target_project_id,
-                "--targt_path", opts.target_path]
+        dbg = @dbg("copy_path")
+        if not opts.target_project_id
+            opts.target_project_id = @project_id
+        args = ["--path", opts.path,
+                "--target_project_id", opts.target_project_id,
+                "--target_path", opts.target_path]
         if opts.overwrite_newer
             args.push('--overwrite_newer')
         if opts.delete
             args.push('--delete')
-        if opts.timeout
-            args.push('--timeout')
-            args.push(opts.timeout)
         if opts.bwlimit
             args.push('--bwlimit')
             args.push(opts.bwlimit)
-        @_action
-            action : 'copy_path'
-            args   : args
-            cb     : opts.cb
+        dbg("args=#{misc.to_json(args)}")
+        target_project = undefined
+        async.series([
+            (cb) =>
+                if opts.target_project_id == @project_id
+                    cb()
+                else
+                    dbg("getting other project and ensuring that it is already opened")
+                    @compute_server.project
+                        project_id : opts.target_project_id
+                        open       : true
+                        cb         : (err, target_project) =>
+                            if err
+                                dbg("error ")
+                                cb(err)
+                            else
+                                dbg("got other project on #{target_project.host}")
+                                args.push("--target_hostname")
+                                args.push(target_project.host)
+                                cb()
+            (cb) =>
+                dbg("doing the actual copy")
+                @_action
+                    action  : 'copy_path'
+                    args    : args
+                    timeout : opts.timeout
+                    cb      : cb
+            (cb) =>
+                if target_project?
+                    dbg("target is another project, so saving that project (if possible)")
+                    target_project.save (err) =>
+                        if err
+                            #  NON-fatal: this could happen, e.g, if already saving...  very slightly dangerous.
+                            dbg("warning: can't save target project -- #{err}")
+                        cb()
+                else
+                    cb()
+        ], (err) =>
+            if err
+                dbg("error -- #{err}")
+            opts.cb(err)
+        )
 
     directory_listing: (opts) =>
         opts = defaults opts,
@@ -641,6 +722,7 @@ smc_compute = (opts) =>
         bash    : false
         path    : process.cwd()
         cb      : (err, output) =>
+            #winston.debug(misc.to_json(output))
             winston.debug("smc_compute: finished running #{misc.to_json(opts.args)} -- #{err}")
             if err
                 if output?.stderr
@@ -691,6 +773,7 @@ class Project
         if opts.args?
             args = args.concat(opts.args)
         args.push(@project_id)
+        #winston.debug("_command: opts=#{misc.to_json(opts)}, #{misc.to_json(args)}")
         smc_compute
             args : args
             cb   : opts.cb
@@ -700,7 +783,7 @@ class Project
             action     : required
             args       : undefined
             cb         : required
-        dbg = @dbg("command(action=#{opts.action})")
+        dbg = @dbg("command(action=#{opts.action}, args=#{misc.to_json(opts.args)})")
         state = undefined
         state_info = undefined
         resp = undefined
@@ -709,8 +792,11 @@ class Project
                 dbg("get state")
                 @state
                     cb: (err, s) =>
-                        state = s.state
-                        cb(err)
+                        if err
+                            cb(err)
+                        else
+                            state = s.state
+                            cb()
             (cb) =>
                 state_info = STATES[state]
                 if not state_info?
@@ -731,7 +817,7 @@ class Project
                         @_update_state_listeners()
                         @_command      # launch the command
                             action : opts.action
-                            args   : opts.arg
+                            args   : opts.args
                             cb     : (err, resp) =>
                                 # finished command -- will transition to new state as result
                                 if err
@@ -745,7 +831,7 @@ class Project
                         # Fairly quick action that doesn't involve state change
                         @_command
                             action : opts.action
-                            args   : opts.arg
+                            args   : opts.args
                             cb     : (err, r) =>
                                 resp = r; cb(err)
         ], (err) => opts.cb(err, resp))
@@ -820,6 +906,7 @@ read_secret_token = (cb) ->
 handle_mesg = (socket, mesg) ->
     dbg = (m) => winston.debug("handle_mesg: #{m}")
     dbg("(hub -> compute)': #{misc.to_safe_str(mesg)}'")
+    #dbg("(hub -> compute)': #{misc.to_json(mesg)}'")
 
     f = (cb) ->
         switch mesg.event

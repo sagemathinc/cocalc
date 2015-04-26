@@ -597,7 +597,7 @@ class Project(object):
 
         s['state'] = 'opened'
         s['btrfs'] = self.btrfs_status()
-        
+
         if self.username not in open('/etc/passwd').read():
             return s
 
