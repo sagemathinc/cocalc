@@ -589,18 +589,18 @@ class Project(object):
 
     def status(self):
         log = self._log("status")
-        s = {'username':self.username, 'uid':self.uid}
-        s['load'] = [float(a.strip(',')) for a in os.popen('uptime').read().split()[-3:]]
+        s = {}
 
         if not os.path.exists(self.project_path):
             s['state'] = 'closed'
             return s
 
         s['state'] = 'opened'
+        s['btrfs'] = self.btrfs_status()
+        
         if self.username not in open('/etc/passwd').read():
             return s
 
-        s['btrfs'] = self.btrfs_status()
         if os.path.exists(os.path.join(self.smc_path, 'status')):
             try:
                 t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30)

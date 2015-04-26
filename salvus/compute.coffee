@@ -34,7 +34,7 @@ STATES =
         desc     : 'None of the files, users, etc. for this project are on the compute server.'
         to       :
             open : 'opening'
-        commands : ['open', 'move']
+        commands : ['open', 'move', 'status']
 
     opened:
         desc: 'All files and snapshots are ready to use and the project user has been created, but local hub is not running.'
@@ -42,41 +42,41 @@ STATES =
             start : 'starting'
             close : 'closing'
             save  : 'saving'
-        commands : ['start', 'close', 'save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota']
+        commands : ['start', 'close', 'save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota', 'status']
 
     running:
         desc     : 'The project is opened and ready to be used.'
         to       :
             stop : 'stopping'
             save : 'saving'
-        commands : ['stop', 'save', 'address', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota']
+        commands : ['stop', 'save', 'address', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota', 'status']
 
     saving:
         desc     : 'The project is being snapshoted and saved to cloud storage.'
         to       : {}
-        commands : ['address', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota']
+        commands : ['address', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota', 'status']
 
     closing:
         desc     : 'The project is in the process of being closed, so the latest changes are being uploaded, everything is stopping, the files will be removed from this computer.'
         to       : {}
-        commands : []
+        commands : ['status']
 
     opening:
         desc     : 'The project is being opened, so all files and snapshots are being downloaded, the user is being created, etc.'
         to       : {}
-        commands : []
+        commands : ['status']
 
     starting:
         desc     : 'The project is starting up and getting ready to be used.'
         to       :
             save : 'saving'
-        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota']
+        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota', 'status']
 
     stopping:
         desc     : 'All processes associated to the project are being killed.'
         to       :
             save : 'saving'
-        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota']
+        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas', 'network', 'disk_quota', 'compute_quota', 'status']
 
 ###
 Here's a picture of the finite state machine:
@@ -506,9 +506,9 @@ class ProjectClient
     # project location and listening port
     address: (opts) =>
         opts = defaults opts,
-            cb     : required
+            cb : required
         @status
-            cb     : (err, status) =>
+            cb : (err, status) =>
                 if err
                     opts.cb(err)
                 else
@@ -728,7 +728,7 @@ class Project
                         # respond immediately that it's started.
                         @_state = next_state  # change state
                         @_state_time = new Date()
-                        @_update_state_listeners()                        
+                        @_update_state_listeners()
                         @_command      # launch the command
                             action : opts.action
                             args   : opts.arg
