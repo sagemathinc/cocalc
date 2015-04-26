@@ -29,6 +29,70 @@
 #
 #################################################################
 
+STATES =
+    closed:
+        desc     : 'None of the files, users, etc. for this project are on the compute server.'
+        from     : ['closing']
+        to       : ['opening']
+        commands : ['open', 'move']
+
+    opened:
+        desc: 'All files and snapshots are ready to use and the project user has been created, but local hub is not running.'
+        from     : ['opening']
+        to       : ['starting']
+        commands : ['start', 'close', 'save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas']
+
+    running:
+        desc     : 'The project is opened and ready to be used.'
+        from     : ['starting']
+        to       : ['stopping']
+        commands : ['stop', 'save', 'address', 'copy_path', 'directory_listing', 'read_file', 'set_quotas']
+
+    saving:
+        desc     : 'The project is being snapshoted and saved to cloud storage.'
+        from     : ['opened', 'running']
+        to       : ['opened', 'running']
+        commands : ['address', 'copy_path', 'directory_listing', 'read_file', 'set_quotas']
+
+    closing:
+        desc     : 'The project is in the process of being closed, so the latest changes are being uploaded, everything is stopping, the files will be removed from this computer.'
+        from     : ['opened']
+        to       : ['closed']
+        commands : []
+
+    opening:
+        desc     : 'The project is being opened, so all files and snapshots are being downloaded, the user is being created, etc.'
+        from     : ['closed']
+        to       :   ['opened']
+        commands : []
+
+    starting:
+        desc     : 'The project is starting up and getting ready to be used.'
+        from     : ['opened']
+        to       : ['running']
+        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas']
+
+    stopping:
+        desc     : 'All processes associated to the project are being killed.'
+        from     : ['running']
+        to       : ['opened']
+        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'set_quotas']
+
+###
+Here's a picture of the finite state machine:
+
+                              --------- [stopping] <--------
+                             \|/                           |
+[closed] --> [opening] --> [opened] --> [starting] --> [running]
+                             /|\                          /|\
+                              |                            |
+                             \|/                          \|/
+                           [saving]                     [saving]
+
+
+###
+
+
 async     = require('async')
 winston   = require('winston')
 program   = require('commander')
@@ -330,7 +394,7 @@ class ProjectClient
     ###
        The state of the project, which is one of:
        closed, opened, running,
-       opening, starting, restarting, stopping
+       closing, opening, starting, restarting, stopping
        error
 
     x={};require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:'20257d4e-387c-4b94-a987-5d89a3149a00',cb:(e,p)->console.log(e);x.p=p; x.p.state(cb:console.log)))
@@ -338,6 +402,7 @@ class ProjectClient
 
     ###
 
+    # STATE/STATUS info
     state: (opts) =>
         opts = defaults opts,
             cb     : required
@@ -348,6 +413,16 @@ class ProjectClient
                     opts.cb(err)
                 else
                     opts.cb(undefined, resp.state)
+
+    # information about project (ports, state, etc.)
+    status: (opts) =>
+        opts = defaults opts,
+            cb     : required
+        @_action
+            action : "status"
+            cb     : opts.cb
+
+    # COMMANDS:
 
     # open project files on some node
     open: (opts) =>
@@ -391,14 +466,6 @@ class ProjectClient
             args   : ['--target', opts.target]
             cb     : opts.cb
 
-    # kill all processes, then start
-    restart: (opts) =>
-        opts = defaults opts,
-            cb     : required
-        @_action
-            action : "restart"
-            cb     : opts.cb
-
     # kill all processes
     stop: (opts) =>
         opts = defaults opts,
@@ -430,14 +497,6 @@ class ProjectClient
                         opts.cb("not running")
                     else
                         opts.cb(undefined, {host:@host, port:status['local_hub.port'], secret_token:status.secret_token})
-
-    # information about project (ports, state, etc.)
-    status: (opts) =>
-        opts = defaults opts,
-            cb     : required
-        @_action
-            action : "status"
-            cb     : opts.cb
 
     # copy a path using rsync from one project to another
     copy_path: (opts) =>
@@ -572,68 +631,38 @@ smc_compute = (opts) =>
             else
                 opts.cb(undefined, if output.stdout then misc.from_json(output.stdout) else undefined)
 
+projects_cache = {}
+get_project = (project_id) ->
+    if not projects_cache[project_id]?
+        projects_cache[project_id] = new Project(project_id)
+    return projects_cache[project_id]
 
-class ComputeServer
-    constructor: () ->
-        @projects = {}
+class Project
+    constructor: (@project_id) ->
 
-    # run a command for a project
-    project_command: (opts) =>
+    command: (opts) =>
         opts = defaults opts,
-            project_id : required
             action     : required
             args       : undefined
             cb         : required
         args = [opts.action]
         if opts.args?
             args = args.concat(opts.args)
-        args.push(opts.project_id)
+        args.push(@project_id)
         smc_compute
             args : args
             cb   : opts.cb
 
-    # get state of a project on this node
-    project_state: (opts) =>
+    state: (opts) =>
         opts = defaults opts,
-            project_id : required
             cb         : required
         smc_compute
-            args : ['status', opts.project_id]
+            args : ['status', @project_id]
             cb   : (err, r) =>
                 if err
                     opts.cb(err)
                 else
                     opts.cb(undefined, r['state'])
-
-###########################
-## Command line interface
-###########################
-
-CONF = BTRFS + '/conf'
-
-program.usage('[start/stop/restart/status] [options]')
-
-    .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")
-    .option('--logfile [string]',        'write log to this file', String, "#{CONF}/compute.log")
-
-    .option('--port_file [string]',      'write port number to this file', String, "#{CONF}/compute.port")
-    .option('--secret_file [string]',    'write secret token to this file', String, "#{CONF}/compute.secret")
-
-    .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
-
-    .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
-    .option('--address [string]',        'address to listen on (default: the tinc network if there, or eth1 if there, or 127.0.0.1)', String, '')
-
-    .parse(process.argv)
-
-program.port = parseInt(program.port)
-
-if not program.address
-    program.address = require('os').networkInterfaces().tun0?[0].address
-    if not program.address
-        program.address = require('os').networkInterfaces().eth1?[0].address  # my laptop vm...
-    if not program.address  # useless
-        program.address = '127.0.0.1'
 
 secret_token = undefined
 read_secret_token = (cb) ->
@@ -667,7 +696,6 @@ read_secret_token = (cb) ->
             fs.chmod(program.secret_file, 0o600, cb)
     ], cb)
 
-compute_server = undefined
 handle_mesg = (socket, mesg) ->
     dbg = (m) => winston.debug("handle_mesg: #{m}")
     dbg("(hub -> compute)': #{misc.to_safe_str(mesg)}'")
@@ -676,16 +704,14 @@ handle_mesg = (socket, mesg) ->
         switch mesg.event
             when 'compute'
                 if mesg.action == 'state'
-                    compute_server.project_state
-                        project_id : mesg.project_id
-                        cb         : (err, state) ->
+                    get_project(mesg.project_id).state
+                        cb : (err, state) ->
                             if err
                                 cb(message.error(error:err))
                             else
                                 cb({state:state})
                 else
-                    compute_server.project_command
-                        project_id : mesg.project_id
+                    get_project(mesg.project_id).command
                         action     : mesg.action
                         args       : mesg.args
                         cb         : (err, resp) ->
@@ -705,8 +731,6 @@ handle_mesg = (socket, mesg) ->
 start_tcp_server = (cb) ->
     dbg = (m) -> winston.debug("tcp_server: #{m}")
     dbg("start")
-
-    compute_server = new ComputeServer()
 
     server = net.createServer (socket) ->
         dbg("received connection")
@@ -769,6 +793,35 @@ start_server = (cb) ->
             winston.debug("Successfully started server.")
         cb?(err)
 
+###########################
+## Command line interface
+###########################
+
+CONF = BTRFS + '/conf'
+
+program.usage('[start/stop/restart/status] [options]')
+
+    .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")
+    .option('--logfile [string]',        'write log to this file', String, "#{CONF}/compute.log")
+
+    .option('--port_file [string]',      'write port number to this file', String, "#{CONF}/compute.port")
+    .option('--secret_file [string]',    'write secret token to this file', String, "#{CONF}/compute.secret")
+
+    .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
+
+    .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
+    .option('--address [string]',        'address to listen on (default: the tinc network if there, or eth1 if there, or 127.0.0.1)', String, '')
+
+    .parse(process.argv)
+
+program.port = parseInt(program.port)
+
+if not program.address
+    program.address = require('os').networkInterfaces().tun0?[0].address
+    if not program.address
+        program.address = require('os').networkInterfaces().eth1?[0].address  # my laptop vm...
+    if not program.address  # useless
+        program.address = '127.0.0.1'
 
 main = () ->
     if program.debug
