@@ -550,7 +550,13 @@ class ProjectClient extends EventEmitter
         @dbg("status")()
         @_action
             action : "status"
-            cb     : opts.cb
+            cb     : (err, status) =>
+                if err
+                    opts.cb(err)
+                else
+                    status.host = @host
+                    status.ssh = @host
+                    opts.cb(undefined, status)
 
     # COMMANDS:
 
@@ -1369,18 +1375,11 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
 
     .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
-    .option('--address [string]',        'address to listen on (default: the tinc network if there, or eth1 if there, or 127.0.0.1)', String, '')
+    .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
 
     .parse(process.argv)
 
 program.port = parseInt(program.port)
-
-if not program.address
-    program.address = require('os').networkInterfaces().tun0?[0].address
-    if not program.address
-        program.address = require('os').networkInterfaces().eth1?[0].address  # my laptop vm...
-    if not program.address  # useless
-        program.address = '127.0.0.1'
 
 main = () ->
     if program.debug

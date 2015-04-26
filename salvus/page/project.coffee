@@ -150,7 +150,6 @@ class ProjectPage
             #@update_linked_projects = @init_linked_projects()
 
             @init_move_project()
-            @set_location()
             @init_title_desc_edit()
             @init_mini_command_line()
             @init_settings_url()
@@ -373,13 +372,6 @@ class ProjectPage
             when 'search'
                 @chdir(segments.slice(1), true)
                 @display_tab("project-search")
-
-    set_location: () =>
-        if @project.bup_location?
-            x = @project.bup_location
-        else
-            x = "..."
-        @container.find(".project-location").text(x)
 
     window_resize: () =>
         if @current_tab.name == "project-file-listing"
@@ -1022,6 +1014,7 @@ class ProjectPage
                     else
                         usage.find(".salvus-zfs-quotas").hide()
 
+                    @container.find(".project-location").text(status.host)
                     if status.settings?
                         usage.find(".salvus-project-settings-cores").text(status.settings.cores)
                         usage.find(".salvus-project-settings-memory").text(status.settings.memory)
@@ -1037,19 +1030,22 @@ class ProjectPage
                             usage.find(".project-settings-network-access-checkbox").prop('checked', true);
                         else
                             @container.find(".salvus-network-blocked").show()
-                        if status.ssh
-                            @container.find(".project-settings-ssh").show()
-                            username = @project.project_id.replace(/-/g, '')
-                            v = status.ssh.split(':')
-                            if v.length > 1
-                                port = " -p #{v[1]} "
-                            else
-                                port = " "
-                            address = v[0]
-
-                            @container.find(".salvus-project-ssh").val("ssh#{port}#{username}@#{address}")
+                    if status.ssh?
+                        @container.find(".project-settings-ssh").show()
+                        username = @project.project_id.replace(/-/g, '')
+                        v = status.ssh.split(':')
+                        if v.length > 1
+                            port = " -p #{v[1]} "
                         else
-                            @container.find(".project-settings-ssh").addClass('lighten')
+                            port = " "
+                        address = v[0]
+                        if address.indexOf('.') == -1
+                            i = location.hostname.indexOf('.')
+                            if i != -1
+                                address = address + location.hostname.slice(i)
+                        @container.find(".salvus-project-ssh").val("ssh#{port}#{username}@#{address}")
+                    else
+                        @container.find(".project-settings-ssh").addClass('lighten')
 
                     usage.show()
 
@@ -3003,7 +2999,7 @@ class ProjectPage
             nonfree.hide()
         dialog.modal()
         submit = (do_it) =>
-            console.log("submit: do_it=#{do_it}")
+            #console.log("submit: do_it=#{do_it}")
             dialog.modal('hide')
             if not do_it
                 @set_project_location_select()
@@ -3021,7 +3017,6 @@ class ProjectPage
                         alert_message(timeout:60, type:"success", message:"Project '#{@project.title}' is now running at #{opts.desc}.")
                         @project.location = location
                         @project.datacenter = opts.target
-                        @set_location()
                         @set_project_location_select()
 
         dialog.find(".btn-close").click(()=>submit(false))
@@ -3145,7 +3140,6 @@ class ProjectPage
                     else
                         alert_message(timeout:60, type:"success", message:"Project '#{@project.title}' is now running on #{location.host}.")
                         @project.location = location
-                        @set_location()
     ###
 
     init_add_collaborators: () =>

@@ -255,6 +255,7 @@ class Project(object):
         self._archive  = archive
         self.project_path  = os.path.join(self.btrfs, project_id)
         self.snapshot_path = os.path.join(self.btrfs, ".snapshots", project_id)
+        self.snapshot_link = os.path.join(self.project_path, '.snapshots')
         self.smc_path      = os.path.join(self.project_path, '.sagemathcloud')
         self.uid           = uid(self.project_id)
         self.username      = self.project_id.replace('-','')
@@ -420,13 +421,27 @@ class Project(object):
         snapshots = os.path.join(self.btrfs, ".snapshots")
         if not os.path.exists(snapshots):
             btrfs(['subvolume', 'create', snapshots])
-        t = os.path.join(self.project_path, '.snapshots')
+        self.remove_snapshot_link()
+        t = self.snapshot_link
         try:
             os.unlink(t)
         except:
-            pass
+            try:
+                shutil.rmtree(t)
+            except:
+                pass
         cmd(["ln", "-s", self.snapshot_path, t])
         os.chown(t, self.uid, self.uid)
+
+    def remove_snapshot_link(self):
+        t = self.snapshot_link
+        try:
+            os.unlink(t)
+        except:
+            try:
+                shutil.rmtree(t)
+            except:
+                pass
 
     def create_smc_path(self):
         if not os.path.exists(self.smc_path):
@@ -438,6 +453,17 @@ class Project(object):
                 self.chown(self.smc_path)
                 # TODO: need to chown smc_template so user can actually use it.
                 # TODO: need a command to *update* smc_path contents
+
+    def remove_smc_path(self):
+        # do our best to remove the smc path
+        if os.path.exists(self.smc_path):
+            try:
+                btrfs(['subvolume','delete', self.smc_path])
+            except:
+                try:
+                    shutil.rmtree(self.smc_path)
+                except:
+                    pass
 
     def disk_quota(self, quota=0):  # quota in megabytes
         if os.path.exists(self.project_path):
@@ -573,11 +599,15 @@ class Project(object):
 
     def start(self):
         self.open()
+        self.create_snapshot_link()
+        self.create_smc_path()
         self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
 
     def stop(self):
         self.killall()
         self.delete_user()
+        self.remove_snapshot_link()
+        self.remove_smc_path()
 
     def restart(self):
         log = self._log("restart")
