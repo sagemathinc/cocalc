@@ -145,6 +145,7 @@ class ComputeServerClient
             database : undefined
             keyspace : undefined
             cb       : required
+        @_project_cache = {}
         if opts.database?
             @database = opts.database
             compute_server_cache = @
@@ -278,6 +279,13 @@ class ComputeServerClient
                                 if @_socket_cache[opts.host].id == socket.id
                                     delete @_socket_cache[opts.host]
                                 socket.removeAllListeners()
+                            socket.on 'mesg', (type, mesg) =>
+                                if type == 'json' and mesg.event == 'project_state_update'
+                                    winston.debug("state_update #{misc.to_json(mesg)}")
+                                    p = @_project_cache[mesg.project_id]
+                                    if p?
+                                        p._state      = mesg.state
+                                        p._state_time = new Date()
                             cb()
         ], (err) =>
             opts.cb(err, @_socket_cache[opts.host])
@@ -360,6 +368,8 @@ class ProjectClient
         @project_id = opts.project_id
         @compute_server = opts.compute_server
         @host = 'localhost'  # todo
+        @_state = undefined
+        @_state_time = undefined
         @dbg('constructor')()
         opts.cb(undefined, @)
 
@@ -405,14 +415,23 @@ class ProjectClient
     # STATE/STATUS info
     state: (opts) =>
         opts = defaults opts,
+            force  : false
             cb     : required
-        @_action
-            action : "state"
-            cb     : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, resp.state)
+        if opts.force or (not @_state? or not @_state_time?)
+            @_action
+                action : "state"
+                cb     : (err, resp) =>
+                    if err
+                        opts.cb(err)
+                    else
+                        @_state      = resp.state
+                        @_state_time = resp.time
+                        opts.cb(undefined, resp)
+        else
+            x =
+                state : @_state
+                time  : @_state_time
+            opts.cb(undefined, x)
 
     # information about project (ports, state, etc.)
     status: (opts) =>
@@ -639,10 +658,29 @@ get_project = (project_id) ->
 
 class Project
     constructor: (@project_id) ->
-        @_state = undefined
+        @_state      = undefined
+        @_state_time = new Date()
+        @_state_listeners = {}
 
     dbg: (method) =>
         (m) => winston.debug("Project.#{method}: #{m}")
+
+    add_listener: (socket) =>
+        @_state_listeners[socket.id] = socket
+        socket.on 'close', () =>
+            delete @_state_listeners[socket.id]
+
+    #
+    _update_state_listeners: () =>
+        dbg = @dbg("_update_state_listeners")
+        mesg = message.project_state_update
+            project_id : @project_id
+            state      : @_state
+            time       : @_state_time
+        dbg("send message to each listener that state has been updated = #{misc.to_safe_str(mesg)}")
+        for id, socket of @_state_listeners
+            dbg("sending mesg to socket #{id}")
+            socket.write_mesg('json', mesg)
 
     _command: (opts) =>
         opts = defaults opts,
@@ -690,6 +728,7 @@ class Project
                         # respond immediately that it's started.
                         @_state = next_state  # change state
                         @_state_time = new Date()
+                        @_update_state_listeners()                        
                         @_command      # launch the command
                             action : opts.action
                             args   : opts.arg
@@ -700,7 +739,7 @@ class Project
                                 else
                                     dbg("state change command success -- #{misc.to_safe_str(resp)}")
                                 @_update_state()
-                        resp = {state:next_state}
+                        resp = {state:next_state, time:new Date()}
                         cb()
                     else
                         # Fairly quick action that doesn't involve state change
@@ -711,37 +750,40 @@ class Project
                                 resp = r; cb(err)
         ], (err) => opts.cb(err, resp))
 
-    _update_state: () =>
+    _update_state: (cb) =>
         dbg = @dbg("_update_state")
         dbg("state likely changed -- determined what it changed to")
+        before = @_state
         @_command
             action : 'status'
             cb     : (err, r) =>
                 if err
                     dbg("error getting status -- #{err}")
+                    cb?(err)
                 else
-                    @_state = r['state']
-                    @_state_time = new Date()
-                    dbg("got new state -- #{@_state}")
+                    if r['state'] != before
+                        @_state = r['state']
+                        @_state_time = new Date()
+                        dbg("got new state -- #{@_state}")
+                        @_update_state_listeners()
+                    cb?()
 
     state: (opts) =>
         opts = defaults opts,
-            cb         : required
-        if not @_state?
-            @_command
-                action : 'status'
-                cb     : (err, r) =>
-                    if err
-                        opts.cb(err)
-                    else
-                        @_state = r['state']
-                        @_state_time = new Date()
-                        opts.cb(undefined, @_state)
-        else
-            x =
-                state : @_state
-                time  : (new Date() - @_state_time)/1000
-            opts.cb(undefined, x)
+            cb : required
+        f = (cb) =>
+            if @_state?
+                cb()
+            else
+                @_update_state(cb)
+        f (err) =>
+            if err
+                opts.cb(err)
+            else
+                x =
+                    state : @_state
+                    time  : @_state_time
+                opts.cb(undefined, x)
 
 secret_token = undefined
 read_secret_token = (cb) ->
@@ -782,15 +824,22 @@ handle_mesg = (socket, mesg) ->
     f = (cb) ->
         switch mesg.event
             when 'compute'
+                dbg("compute event")
+                p = get_project(mesg.project_id)
+                dbg("got project")
+                p.add_listener(socket)
+                dbg("added listener")
                 if mesg.action == 'state'
-                    get_project(mesg.project_id).state
-                        cb : (err, state) ->
+                    dbg("getting state")
+                    p.state
+                        cb : (err, x) ->
+                            dbg("state -- got #{err}, #{misc.to_safe_str(x)}")
                             if err
                                 cb(message.error(error:err))
                             else
-                                cb({state:state})
+                                cb(x)
                 else
-                    get_project(mesg.project_id).command
+                    p.command
                         action     : mesg.action
                         args       : mesg.args
                         cb         : (err, resp) ->

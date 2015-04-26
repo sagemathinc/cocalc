@@ -1366,6 +1366,13 @@ message
     param      : undefined   # deprecate
     id         : undefined
 
+message
+    event      : 'project_state_update'
+    project_id : required
+    state      : required
+    time       : required
+
+
 ###########################################################
 #
 # Direct messaging between browser client and local_hub,
