@@ -70,6 +70,10 @@ UID_WHITELIST = "/root/smc-iptables/uid_whitelist"
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 
+# This is the quota for the .sagemathcloud directory; must be
+# significantly bigger than that directory.
+SMC_TEMPLATE_QUOTA = '100m'
+
 import hashlib, json, os, re, shutil, signal, stat, sys, tempfile, time
 from subprocess import Popen, PIPE
 
@@ -461,10 +465,12 @@ class Project(object):
             if not os.path.exists(smc_template):
                 log("WARNING: skipping creating %s since %s doesn't exist"%(self.smc_path, smc_template))
             else:
+                log("creating %s", self.smc_path)
                 btrfs(['subvolume', 'snapshot', smc_template, self.smc_path])
+                # print "USAGE: ", btrfs_subvolume_usage(smc_template)
+                log("setting quota on %s to %s", self.smc_path, SMC_TEMPLATE_QUOTA)
+                btrfs(['qgroup', 'limit', SMC_TEMPLATE_QUOTA, self.smc_path])
                 self.chown(self.smc_path)
-                # TODO: need to chown smc_template so user can actually use it.
-                # TODO: need a command to *update* smc_path contents
         self.ensure_conf_files_exist()
 
     def ensure_conf_files_exist(self):
