@@ -1492,7 +1492,7 @@ message
 
 # client --> hub;  will result in an error if the user is not in the admin group.
 message
-    event        : 'project_set_quota'
+    event        : 'project_set_quotas'
     id           : undefined
     project_id   : required     # the id of the project's id to set.
     memory       : undefined    # RAM in megabytes

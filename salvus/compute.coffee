@@ -573,13 +573,13 @@ class ProjectClient extends EventEmitter
                     opts.cb(err)
                 else
                     @get_quotas
-                        cb : (err, quota) =>
+                        cb : (err, quotas) =>
                             if err
                                 opts.cb(err)
                             else
                                 status.host = @host
                                 status.ssh = @host
-                                status.settings = quota
+                                status.quotas = quotas
                                 opts.cb(undefined, status)
 
     # COMMANDS:
@@ -1062,7 +1062,7 @@ class ProjectClient extends EventEmitter
                             quotas[k] = misc.from_json(result[k])
                     opts.cb(undefined, quotas)
 
-    set_quota: (opts) =>
+    set_quotas: (opts) =>
         opts = defaults opts,
             disk_quota   : undefined
             cores        : undefined
@@ -1071,16 +1071,18 @@ class ProjectClient extends EventEmitter
             network      : undefined
             mintime      : undefined  # in seconds
             cb           : required
-        dbg = @dbg("set_quota")
+        dbg = @dbg("set_quotas")
         dbg("set various quotas")
         commands = undefined
         async.series([
             (cb) =>
+                dbg("get state")
                 @state
                     cb: (err, s) =>
                         if err
                             cb(err)
                         else
+                            dbg("state = #{s.state}")
                             commands = STATES[s.state].commands
                             cb()
             (cb) =>
@@ -1115,8 +1117,8 @@ class ProjectClient extends EventEmitter
                         else
                             cb()
                     (cb) =>
-                        if opts.cores? or opts.memory? or opts.cpu_shares?
-                            dbg("compute quota") and commands.indexOf('compute_quota') != -1
+                        if (opts.cores? or opts.memory? or opts.cpu_shares?) and commands.indexOf('compute_quota') != -1
+                            dbg("compute quota")
                             args = []
                             for s in ['cores', 'memory', 'cpu_shares']
                                 if opts[s]?
@@ -1147,7 +1149,7 @@ class ProjectClient extends EventEmitter
             (cb) =>
                 dbg("setting the quotas")
                 quotas.cb = cb
-                @set_quota(quotas)
+                @set_quotas(quotas)
         ], (err) => opts.cb(err))
 
 #################################################################

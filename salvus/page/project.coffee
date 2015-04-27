@@ -1008,17 +1008,17 @@ class ProjectPage
                     usage = @container.find(".project-disk_usage")
 
                     @container.find(".project-location").text(status.host)
-                    if status.settings?
-                        usage.find(".salvus-userquota-projects").text(status.settings.disk_quota)
+                    if status.quotas?
+                        usage.find(".salvus-userquota-projects").text(status.quotas.disk_quota)
                         usage.find(".salvus-userused-projects").text(Math.ceil(status.btrfs))
-                        usage.find(".salvus-project-settings-cores").text(status.settings.cores)
-                        if status.settings.cores == 1
+                        usage.find(".salvus-project-settings-cores").text(status.quotas.cores)
+                        if status.quotas.cores == 1
                             usage.find(".salvus-project-settings-cores-plural").hide()
                         else
                             usage.find(".salvus-project-settings-cores-plural").show()
                         usage.find(".salvus-project-settings-memory-used").text(Math.round(status.memory.rss/1000000*100)/100)
-                        usage.find(".salvus-project-settings-memory").text(Math.round(status.settings.memory/1000*100)/100)
-                        mintime = Math.round(status.settings.mintime/3600)
+                        usage.find(".salvus-project-settings-memory").text(Math.round(status.quotas.memory/1000*100)/100)
+                        mintime = Math.round(status.quotas.mintime/3600)
                         if mintime > 10000
                             mintime = "&infin;"
                             usage.find("project-settings-unlimited-timeout-checkbox").prop('checked', true);
@@ -1027,9 +1027,9 @@ class ProjectPage
                             usage.find(".salvus-project-settings-mintime-plural").hide()
                         else
                             usage.find(".salvus-project-settings-mintime-plural").show()
-                        usage.find(".salvus-project-settings-cpu_shares").text(Math.round(status.settings.cpu_shares/256))
-                        usage.find(".salvus-project-settings-network").text(status.settings.network)
-                        if status.settings.network
+                        usage.find(".salvus-project-settings-cpu_shares").text(Math.round(status.quotas.cpu_shares/256))
+                        usage.find(".salvus-project-settings-network").text(status.quotas.network)
+                        if status.quotas.network
                             @container.find(".salvus-network-blocked").hide()
                             usage.find(".project-settings-network-access-checkbox").prop('checked', true);
                         else
@@ -1097,7 +1097,7 @@ class ProjectPage
                     usage.find(".project-settings-unlimited-timeout").hide()
                     timeout = @container.find(".salvus-project-settings-mintime").text()
 
-                    salvus_client.project_set_quota
+                    salvus_client.project_set_quotas
                         project_id : @project.project_id
                         memory     : Math.round(parseFloat(@container.find(".salvus-project-settings-memory").text())*1000)   # see message.coffee for the units, etc., for all these settings
                         cpu_shares : Math.round(@container.find(".salvus-project-settings-cpu_shares").text() * 256)

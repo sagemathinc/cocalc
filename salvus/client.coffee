@@ -1339,7 +1339,7 @@ class exports.Connection extends EventEmitter
 
     # Set a quota parameter for a given project.
     # As of now, only user in the admin group can make these changes.
-    project_set_quota: (opts) =>
+    project_set_quotas: (opts) =>
         opts = defaults opts,
             project_id : required
             memory     : undefined    # see message.coffee for the units, etc., for all these settings
@@ -1353,7 +1353,7 @@ class exports.Connection extends EventEmitter
         delete opts.cb
 
         @call
-            message : message.project_set_quota(opts)
+            message : message.project_set_quotas(opts)
             cb      : (err, resp) =>
                 if err
                     cb?(err)

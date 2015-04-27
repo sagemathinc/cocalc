@@ -3071,7 +3071,7 @@ class Client extends EventEmitter
     user_is_in_group: (group) =>
         return @groups? and 'admin' in @groups
 
-    mesg_project_set_quota: (mesg) =>
+    mesg_project_set_quotas: (mesg) =>
         if not @user_is_in_group('admin')
             @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to set project quotas")
         else if not misc.is_valid_uuid_string(mesg.project_id)
@@ -3085,7 +3085,7 @@ class Client extends EventEmitter
                         cb         : (err, p) =>
                             project = p; cb(err)
                 (cb) =>
-                    project.set_quota
+                    project.set_quotas
                         disk_quota : mesg.disk
                         cores      : mesg.cores
                         memory     : mesg.memory
