@@ -1012,7 +1012,12 @@ class ProjectPage
                         usage.find(".salvus-userquota-projects").text(status.settings.disk_quota)
                         usage.find(".salvus-userused-projects").text(Math.ceil(status.btrfs))
                         usage.find(".salvus-project-settings-cores").text(status.settings.cores)
-                        usage.find(".salvus-project-settings-memory").text(status.settings.memory)
+                        if status.settings.cores == 1
+                            usage.find(".salvus-project-settings-cores-plural").hide()
+                        else
+                            usage.find(".salvus-project-settings-cores-plural").show()
+                        usage.find(".salvus-project-settings-memory-used").text(Math.round(status.memory.rss/1000000*100)/100)
+                        usage.find(".salvus-project-settings-memory").text(Math.round(status.settings.memory/1000*100)/100)
                         mintime = Math.round(status.settings.mintime/3600)
                         if mintime > 10000
                             mintime = "&infin;"
@@ -1094,7 +1099,7 @@ class ProjectPage
 
                     salvus_client.project_set_quota
                         project_id : @project.project_id
-                        memory     : Math.round(@container.find(".salvus-project-settings-memory").text())   # see message.coffee for the units, etc., for all these settings
+                        memory     : Math.round(parseFloat(@container.find(".salvus-project-settings-memory").text())*1000)   # see message.coffee for the units, etc., for all these settings
                         cpu_shares : Math.round(@container.find(".salvus-project-settings-cpu_shares").text() * 256)
                         cores      : Math.round(@container.find(".salvus-project-settings-cores").text())
                         disk       : Math.round(@container.find(".salvus-userquota-projects").text())

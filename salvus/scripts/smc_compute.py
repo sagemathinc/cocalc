@@ -653,13 +653,19 @@ class Project(object):
 
         if os.path.exists(os.path.join(self.smc_path, 'status')):
             try:
-                t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=15)
+                t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=10)
                 t = json.loads(t)
                 s.update(t)
                 if bool(t.get('local_hub.pid',False)):
                     s['state'] = 'running'
             except Exception, err:
                 log("error running status command -- %s", err)
+            try:
+                t = self.cmd(['su', '-', self.username, '-c', 'smem -ntu|tail -1'])
+                s['memory'] = dict(zip('count swap uss pss rss'.split(),
+                                       [int(x) for x in t.split()]))
+            except Exception, err:
+                log("error running memory command -- %s", err)
         return s
 
     def delete_old_snapshots(self, max_snapshots):

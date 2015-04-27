@@ -536,13 +536,15 @@ class ProjectClient extends EventEmitter
     # STATE/STATUS info
     state: (opts) =>
         opts = defaults opts,
-            force  : false   # don't use local cached or value obtaine
+            force  : false   # don't use local cached or value obtained
+            update : false   # make server recompute state (forces switch to stable state)
             cb     : required
         dbg = @dbg("state(force:#{opts.force})")
-        if opts.force or (not @_state? or not @_state_time?)
+        if opts.force or opts.update or (not @_state? or not @_state_time?)
             dbg("calling remote server for state")
             @_action
                 action : "state"
+                args   : if opts.update then ['--update']
                 cb     : (err, resp) =>
                     if err
                         dbg("problem getting state -- #{err}")
@@ -594,11 +596,22 @@ class ProjectClient extends EventEmitter
     # start local_hub daemon running (must be opened somewhere)
     start: (opts) =>
         opts = defaults opts,
-            cb     : required
-        @dbg("start")()
-        @_action
-            action : "start"
-            cb     : opts.cb
+            set_quotas : true   # if true, also sets all quotas (in parallel with start)
+            cb         : required
+        dbg = @dbg("start")
+        async.parallel([
+            (cb) =>
+                if opts.set_quotas
+                    dbg("setting all quotas")
+                    @set_all_quotas(cb:cb)
+                else
+                    cb()
+            (cb) =>
+                dbg("issuing the start command")
+                @_action
+                    action : "start"
+                    cb     : cb
+        ], (err) => opts.cb(err))
 
     # restart project -- must be opened or running
     restart: (opts) =>
@@ -1040,14 +1053,14 @@ class ProjectClient extends EventEmitter
                 if err
                     opts.cb(err)
                 else
-                    quota = {}
+                    quotas = {}
                     result = result[0]
                     for k, v of DEFAULT_SETTINGS
                         if not result?[k]?
-                            quota[k] = v
+                            quotas[k] = v
                         else
-                            quota[k] = misc.from_json(result[k])
-                    opts.cb(undefined, quota)
+                            quotas[k] = misc.from_json(result[k])
+                    opts.cb(undefined, quotas)
 
     set_quota: (opts) =>
         opts = defaults opts,
@@ -1060,55 +1073,82 @@ class ProjectClient extends EventEmitter
             cb           : required
         dbg = @dbg("set_quota")
         dbg("set various quotas")
-        async.parallel([
+        commands = undefined
+        async.series([
             (cb) =>
-                f = (key, cb) =>
-                    if not opts[key]? or key == 'cb'
-                        cb(); return
-                    dbg("updating quota for #{key} in the database")
-                    @compute_server.database.cql
-                        query : "UPDATE projects SET settings[?]=? WHERE project_id=?"
-                        vals  : [key, misc.to_json(opts[key]), @project_id]
-                        cb    : cb
-                async.map(misc.keys(opts), f, cb)
-            (cb) =>
-                if opts.network?
-                    dbg("network quota")
-                    @_action
-                        action : 'network'
-                        args   : if opts.network then [] else ['--ban']
-                        cb     : (err) =>
+                @state
+                    cb: (err, s) =>
+                        if err
                             cb(err)
-                else
-                    cb()
+                        else
+                            commands = STATES[s.state].commands
+                            cb()
             (cb) =>
-                if opts.disk_quota?
-                    dbg("disk quota")
-                    @_action
-                        action : 'disk_quota'
-                        args   : [opts.disk_quota]
-                        cb     : cb
-                else
-                    cb()
-            (cb) =>
-                if opts.cores? or opts.memory? or opts.cpu_shares?
-                    dbg("compute quota")
-                    args = []
-                    for s in ['cores', 'memory', 'cpu_shares']
-                        if opts[s]?
-                            args.push("--#{s}"); args.push(opts[s])
-                    @_action
-                        action : 'compute_quota'
-                        args   : args
-                        cb     : cb
-                else
-                    cb()
+                async.parallel([
+                    (cb) =>
+                        f = (key, cb) =>
+                            if not opts[key]? or key == 'cb'
+                                cb(); return
+                            dbg("updating quota for #{key} in the database")
+                            @compute_server.database.cql
+                                query : "UPDATE projects SET settings[?]=? WHERE project_id=?"
+                                vals  : [key, misc.to_json(opts[key]), @project_id]
+                                cb    : cb
+                        async.map(misc.keys(opts), f, cb)
+                    (cb) =>
+                        if opts.network? and commands.indexOf('network') != -1
+                            dbg("update network quota on project")
+                            @_action
+                                action : 'network'
+                                args   : if opts.network then [] else ['--ban']
+                                cb     : (err) =>
+                                    cb(err)
+                        else
+                            cb()
+                    (cb) =>
+                        if opts.disk_quota? and commands.indexOf('disk_quota') != -1
+                            dbg("disk quota")
+                            @_action
+                                action : 'disk_quota'
+                                args   : [opts.disk_quota]
+                                cb     : cb
+                        else
+                            cb()
+                    (cb) =>
+                        if opts.cores? or opts.memory? or opts.cpu_shares?
+                            dbg("compute quota") and commands.indexOf('compute_quota') != -1
+                            args = []
+                            for s in ['cores', 'memory', 'cpu_shares']
+                                if opts[s]?
+                                    args.push("--#{s}"); args.push(opts[s])
+                            @_action
+                                action : 'compute_quota'
+                                args   : args
+                                cb     : cb
+                        else
+                            cb()
+                ], cb)
         ], (err) =>
             dbg("done setting quotas")
             opts.cb(err)
         )
 
-
+    set_all_quotas: (opts) =>
+        opts = defaults opts,
+            cb : required
+        dbg = @dbg("set_all_quotas")
+        quotas = undefined
+        async.series([
+            (cb) =>
+                dbg("looking up quotas for this project")
+                @get_quotas
+                    cb : (err, x) =>
+                        quotas = x; cb(err)
+            (cb) =>
+                dbg("setting the quotas")
+                quotas.cb = cb
+                @set_quota(quotas)
+        ], (err) => opts.cb(err))
 
 #################################################################
 #
@@ -1270,10 +1310,11 @@ class Project
 
     state: (opts) =>
         opts = defaults opts,
-            cb : required
+            update : false
+            cb    : required
         @dbg("state")()
         f = (cb) =>
-            if @_state?
+            if not opts.update and @_state?
                 cb()
             else
                 @_update_state(cb)
@@ -1332,7 +1373,8 @@ handle_mesg = (socket, mesg) ->
                 if mesg.action == 'state'
                     dbg("getting state")
                     p.state
-                        cb : (err, x) ->
+                        update : mesg.args? and mesg.args.length > 0 and mesg.args[0] == '--update'
+                        cb    : (err, x) ->
                             dbg("state -- got #{err}, #{misc.to_safe_str(x)}")
                             if err
                                 cb(message.error(error:err))
@@ -1414,7 +1456,6 @@ start_tcp_server = (cb) ->
 
     get_port () ->
         listen(cb)
-
 
 start_server = (cb) ->
     winston.debug("start_server")

@@ -707,56 +707,105 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                 </div>
                             </div>
 
-                            <div class="panel panel-default salvus-project-settings-heading-well project-collaborators-box">
+                            <div class="panel panel-default project-settings-static salvus-project-settings-heading-well">
                                 <div class="panel-heading">
                                     <div class="panel-title">
-                                        <i class="fa fa-user"> </i>&nbsp;&nbsp; Collaborators
+                                        <i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Project usage and quotas
                                     </div>
                                 </div>
                                 <div class="panel-body">
-                                    <div class="row">
-                                        <div class="col-sm-4">
-                                        </div>
-                                        <div class="col-sm-8">
-                                            <div class="input-group">
-                                                <input type="search" class="project-add-collaborator-input form-control" placeholder="Search email addresses or names...">
-                                                <span class="input-group-btn">
-                                                    <button class="btn btn-default project-add-collaborator-button" type="button">
-                                                        <i class="fa fa-search project-collaborator-search-loaded"> </i>
-                                                        <i class="fa fa-spinner fa-spin project-collaborator-search-loading hide"> </i>
-                                                    </button>
-                                                </span>
-                                            </div>
+                                    <div class="smc-upgrade-project smc-freeonly hide">
+                                        <a href="#upgrade-project" class="btn btn-success pull-right" data-toggle="tooltip" data-placement="top" title="Upgrade this project ">
+                                            <i class="fa fa-star"> </i> Upgrade Project
+                                        </a>
+                                        <span class="smc-upgrade-project-free">Upgrade this project to get <a href="#upgrade-features">extra features</a>, including full network access. <span class="smc-upgrade-project-premium-quota hide">You are using <span class="smc-upgrade-project-used">...</span> out of <span class="smc-upgrade-project-available">...</span> premium projects. <span class="smc-upgrade-project-upgrade-plan">Upgrade your plan for more premium projects.</span></span></span>
+                                        <span class="smc-upgrade-project-premium hide">This is a premium project. <span class="smc-upgrade-project-downgrade hide">You can downgrade it if you want.
+                                            <a href="#downgrade-project" class="btn btn-danger pull-right" data-toggle="tooltip" data-placement="top" title="Upgrade this project ">
+                                                <i class="fa fa-star-o"> </i> Downgrade Project
+                                            </a>
+                                            </span>
+                                        </span>
 
-                                            <select multiple="multiple" class="project-add-collaborator-select form-control hide"></select>
-
-
-                                            <div class="project-add-noncloud-collaborator hide">
-                                                <a href="#add-noncloud-collaborator" style="margin-bottom: 1ex; margin-top: 1ex;" class="btn btn-primary btn-lg">
-                                                    <i class="fa fa-user"> </i> No matches.  Send Invitation...
-                                                </a>
-                                            </div>
-                                            <div class="project-add-collaborator hide">
-                                                <a href="#add-collaborator" style="margin-bottom: 1ex; display: inline-block;" class="btn btn-primary btn-lg" data-toggle="tooltip" data-placement="right" title="Add all selected users as collaborators on this project.">
-                                                    <i class="fa fa-plus"> </i>Add Selected
-                                                </a>
-                                                <!-- NOT TRUE YET, so don't claim it!<br>
-<span class="lighten">(To confirm identity, search for the user's email address; they <i>must</i> have access to that email account in order to collaborate on the project.)</span>-->
-                                            </div>
-                                            <br>
-                                            <!-- <a class="hide" href="#invite-friend">Didn't find who you were looking for?</a> -->
+                                        <div class="smc-upgrade-via-email-message hide">
+                                            Billing is not yet implemented.  In the meantime,
+                                            <span class="lighten"> email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> if you need us to raise a quota for <b><i>free</i></b>.
+                                                Include the following URL in your email:
+                                                <input class="form-control salvus-settings-url" >
+                                                and consider <a href="https://www.washington.edu/giving/make-a-gift/?page=make&code=SGEMCS" target="_blank">donating to the SageMathCloud Support Fund.</a>
+                                            </span>
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <span class="lighten">Collaborators can <b>modify anything</b> in this project, except <a href="#snapshot">snapshots</a>.  They can add other collaborators, but can't remove the owner.</span>
+                                    <div class="project-disk_usage">
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <a class="btn btn-warning btn-sm project-quota-edit hide pull-right" style="margin-bottom:10px"> <i class="fa fa-pencil"> </i>  Edit as Administrator </a>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12 project-collaborators-loading hide">
-                                            Loading collaborators... <i class="fa fa-spinner fa-spin"> </i>
+                                        <div class="row smc-nonfree hide">
+                                            <div class="col-sm-4 lighten">
+                                                Location
+                                                <span class="smc-project-moving hide">moving...<i class="fa fa-spinner fa-spin"></i></span>
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <span class="smc-project-location hide">(loading...)</span>
+                                                <select class="smc-project-location-select form-control">
+                                                    <option value="dc0">Free US 1...</option>
+                                                    <option value="dc1">Free US 2...</option>
+                                                    <option class="smc-nonfree hide" value="dc5">Non-free US...</option>
+                                                    <option class="smc-nonfree hide" value="dc6">Non-free Europe...</option>
+                                                </select>
+                                            </div>
                                         </div>
-                                        <div class="col-sm-12 well well-sm project-collaborators project-connections lighten">
+                                        <div class="row salvus-zfs-quotas">
+                                            <div class="col-sm-4 lighten">
+                                                Disk usage:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-userused-projects">(loading...)</span> MB</b> used of your <b><span class="salvus-userquota-projects"></span> MB</b> disk space
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                CPU cores:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-project-settings-cores">(loading...)</span> core<span class="salvus-project-settings-cores-plural">s</span></b>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                RAM memory:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-project-settings-memory-used">(loading...)</span> GB</b> used of your
+                                                <b><span class="salvus-project-settings-memory">(loading...)</span> GB</b> RAM cap
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                Timeout:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <span class="salvus-project-settings-mintime">(loading...)</span> hour<span class="salvus-project-settings-mintime-plural">s</span></b> of inactivity until project automatically stops <span class="lighten smc-project-location-free hide">(increase by moving to non-free data center)</span>
+                                            </div>
+                                        </div>
+                                        <div class="row hide">  <!-- hide due to being unclear -->
+                                            <div class="col-sm-4 lighten">
+                                                CPU share:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-project-settings-cpu_shares">(loading...)</span></b>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                External network access:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><input type="checkbox" class="project-settings-network-access-checkbox hide"> <span class="salvus-project-settings-network">(loading...)</span></b> <span class="lighten smc-project-location-free hide">(enable by moving to non-free data centers)</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -827,104 +876,56 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                     </div>
                     <div class="row">
                         <div class="col-sm-6">
-                            <div class="panel panel-default project-settings-static salvus-project-settings-heading-well">
+                            <div class="panel panel-default salvus-project-settings-heading-well project-collaborators-box">
                                 <div class="panel-heading">
                                     <div class="panel-title">
-                                        <i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Project usage and quotas
+                                        <i class="fa fa-user"> </i>&nbsp;&nbsp; Collaborators
                                     </div>
                                 </div>
                                 <div class="panel-body">
-                                    <div class="smc-upgrade-project smc-freeonly hide">
-                                        <a href="#upgrade-project" class="btn btn-success pull-right" data-toggle="tooltip" data-placement="top" title="Upgrade this project ">
-                                            <i class="fa fa-star"> </i> Upgrade Project
-                                        </a>
-                                        <span class="smc-upgrade-project-free">Upgrade this project to get <a href="#upgrade-features">extra features</a>, including full network access. <span class="smc-upgrade-project-premium-quota hide">You are using <span class="smc-upgrade-project-used">...</span> out of <span class="smc-upgrade-project-available">...</span> premium projects. <span class="smc-upgrade-project-upgrade-plan">Upgrade your plan for more premium projects.</span></span></span>
-                                        <span class="smc-upgrade-project-premium hide">This is a premium project. <span class="smc-upgrade-project-downgrade hide">You can downgrade it if you want.
-                                            <a href="#downgrade-project" class="btn btn-danger pull-right" data-toggle="tooltip" data-placement="top" title="Upgrade this project ">
-                                                <i class="fa fa-star-o"> </i> Downgrade Project
-                                            </a>
-                                            </span>
-                                        </span>
+                                    <div class="row">
+                                        <div class="col-sm-4">
+                                        </div>
+                                        <div class="col-sm-8">
+                                            <div class="input-group">
+                                                <input type="search" class="project-add-collaborator-input form-control" placeholder="Search email addresses or names...">
+                                                <span class="input-group-btn">
+                                                    <button class="btn btn-default project-add-collaborator-button" type="button">
+                                                        <i class="fa fa-search project-collaborator-search-loaded"> </i>
+                                                        <i class="fa fa-spinner fa-spin project-collaborator-search-loading hide"> </i>
+                                                    </button>
+                                                </span>
+                                            </div>
 
-                                        <div class="smc-upgrade-via-email-message hide">
-                                            Billing is not yet implemented.  In the meantime,
-                                            <span class="lighten"> email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> if you need us to raise a quota for <b><i>free</i></b>.
-                                                Include the following URL in your email:
-                                                <input class="form-control salvus-settings-url" >
-                                                and consider <a href="https://www.washington.edu/giving/make-a-gift/?page=make&code=SGEMCS" target="_blank">donating to the SageMathCloud Support Fund.</a>
-                                            </span>
+                                            <select multiple="multiple" class="project-add-collaborator-select form-control hide"></select>
+
+
+                                            <div class="project-add-noncloud-collaborator hide">
+                                                <a href="#add-noncloud-collaborator" style="margin-bottom: 1ex; margin-top: 1ex;" class="btn btn-primary btn-lg">
+                                                    <i class="fa fa-user"> </i> No matches.  Send Invitation...
+                                                </a>
+                                            </div>
+                                            <div class="project-add-collaborator hide">
+                                                <a href="#add-collaborator" style="margin-bottom: 1ex; display: inline-block;" class="btn btn-primary btn-lg" data-toggle="tooltip" data-placement="right" title="Add all selected users as collaborators on this project.">
+                                                    <i class="fa fa-plus"> </i>Add Selected
+                                                </a>
+                                                <!-- NOT TRUE YET, so don't claim it!<br>
+<span class="lighten">(To confirm identity, search for the user's email address; they <i>must</i> have access to that email account in order to collaborate on the project.)</span>-->
+                                            </div>
+                                            <br>
+                                            <!-- <a class="hide" href="#invite-friend">Didn't find who you were looking for?</a> -->
                                         </div>
                                     </div>
-                                    <div class="project-disk_usage">
-                                        <div class="row">
-                                            <div class="col-sm-4 lighten">
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <a class="btn btn-warning btn-sm project-quota-edit hide pull-right" style="margin-bottom:10px"> <i class="fa fa-pencil"> </i>  Edit as Administrator </a>
-                                            </div>
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <span class="lighten">Collaborators can <b>modify anything</b> in this project, except <a href="#snapshot">snapshots</a>.  They can add other collaborators, but can't remove the owner.</span>
                                         </div>
-                                        <div class="row smc-nonfree hide">
-                                            <div class="col-sm-4 lighten">
-                                                Location
-                                                <span class="smc-project-moving hide">moving...<i class="fa fa-spinner fa-spin"></i></span>
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <span class="smc-project-location hide">(loading...)</span>
-                                                <select class="smc-project-location-select form-control">
-                                                    <option value="dc0">Free US 1...</option>
-                                                    <option value="dc1">Free US 2...</option>
-                                                    <option class="smc-nonfree hide" value="dc5">Non-free US...</option>
-                                                    <option class="smc-nonfree hide" value="dc6">Non-free Europe...</option>
-                                                </select>
-                                            </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-12 project-collaborators-loading hide">
+                                            Loading collaborators... <i class="fa fa-spinner fa-spin"> </i>
                                         </div>
-                                        <div class="row salvus-zfs-quotas">
-                                            <div class="col-sm-4 lighten">
-                                                Disk usage:
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <b><span class="salvus-userused-projects">(loading...)</span> MB</b> used of your <b><span class="salvus-userquota-projects"></span> MB</b> disk space
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-sm-4 lighten">
-                                                CPU cores:
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <b><span class="salvus-project-settings-cores">(loading...)</span> core</b>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-sm-4 lighten">
-                                                RAM:
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <b><span class="salvus-project-settings-memory">(loading...)</span> GB</b> RAM 
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-sm-4 lighten">
-                                                Timeout:
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <span class="salvus-project-settings-mintime">(loading...)</span> hour<span class="salvus-project-settings-mintime-plural">s</span></b> of inactivity until project automatically stops <span class="lighten smc-project-location-free hide">(increase by moving to non-free data center)</span>
-                                            </div>
-                                        </div>
-                                        <div class="row hide">  <!-- hide due to being unclear -->
-                                            <div class="col-sm-4 lighten">
-                                                CPU share:
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <b><span class="salvus-project-settings-cpu_shares">(loading...)</span></b>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-sm-4 lighten">
-                                                External network access:
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <b><input type="checkbox" class="project-settings-network-access-checkbox hide"> <span class="salvus-project-settings-network">(loading...)</span></b> <span class="lighten smc-project-location-free hide">(enable by moving to non-free data centers)</span>
-                                            </div>
+                                        <div class="col-sm-12 well well-sm project-collaborators project-connections lighten">
                                         </div>
                                     </div>
                                 </div>
