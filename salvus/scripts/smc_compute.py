@@ -447,7 +447,6 @@ class Project(object):
             except:
                 pass
         cmd(["ln", "-s", self.snapshot_path, t])
-        os.chown(t, self.uid, self.uid)
 
     def remove_snapshot_link(self):
         t = self.snapshot_link
@@ -484,14 +483,7 @@ class Project(object):
 
     def remove_smc_path(self):
         # do our best to remove the smc path
-        if os.path.exists(self.smc_path):
-            try:
-                btrfs(['subvolume','delete', self.smc_path])
-            except:
-                try:
-                    shutil.rmtree(self.smc_path)
-                except:
-                    pass
+        self.delete_subvolume(self.smc_path)
 
     def disk_quota(self, quota=0):  # quota in megabytes
         if os.path.exists(self.project_path):
@@ -574,7 +566,8 @@ class Project(object):
 
         if not os.path.exists(self.snapshot_path):
             btrfs(['subvolume', 'create', self.snapshot_path])
-            os.chown(self.snapshot_path, self.uid, self.uid)
+            os.chown(self.snapshot_path, 0, self.uid)  # user = root; group = this project
+            os.chmod(self.snapshot_path, 0750)   # -rwxr-x--- = http://www.javascriptkit.com/script/script2/chmodcal3.shtml
 
         if not self.gs_path:
             # no google cloud storage configured
@@ -711,7 +704,7 @@ class Project(object):
             log("deleting these snapshots: %s", delete)
 
         for snapshot in delete:
-            btrfs(['subvolume', 'delete', os.path.join(self.snapshot_path, snapshot)])
+            self.delete_subvolume(os.path.join(self.snapshot_path, snapshot))
 
     def gs_sync(self):
         if not self.gs_path:
@@ -778,7 +771,7 @@ class Project(object):
 
     def delete_snapshot(self, snapshot):
         target = os.path.join(self.snapshot_path, snapshot)
-        btrfs(['subvolume', 'delete', target])
+        self.delete_subvolume(target)
         # sync with gs
         if self.gs_path:
             self.gs_sync()
@@ -797,16 +790,28 @@ class Project(object):
         self.disk_quota(0)
         # delete snapshot subvolumes
         for x in self.snapshot_ls():
-            btrfs(['subvolume', 'delete', os.path.join(self.snapshot_path, x)])
+            path = os.path.join(self.snapshot_path, x)
+            self.delete_subvolume(path)
         # delete subvolume that contains all the snapshots
         if os.path.exists(self.snapshot_path):
-            btrfs(['subvolume','delete', self.snapshot_path])
+            self.delete_subvolume(self.snapshot_path)
         # delete the ~/.sagemathcloud subvolume
         if os.path.exists(self.smc_path):
-            btrfs(['subvolume','delete', self.smc_path])
+            self.delete_subvolume(self.smc_path)
         # delete the project path volume
         if os.path.exists(self.project_path):
-            btrfs(['subvolume','delete', self.project_path])
+            self.delete_subvolume(self.project_path)
+
+    def delete_subvolume(self, path):
+        try:
+            btrfs(['subvolume', 'delete', path])
+        except Exception, mesg:
+            # should never happen...
+            log("problem deleting subvolume %s -- %s", path, mesg)
+            try:
+                shutil.rmtree(path)
+            except Exception, mesg:
+                log("further problem deleting subvolume %s via rmtree -- %s", path, mesg)
 
     def destroy(self):
         # delete locally
