@@ -42,7 +42,7 @@ btrfs quota enable /projects/
 chmod og-rw /projects && chmod og+x /projects
 
 btrfs subvolume create /projects/sagemathcloud
-rsync -LrxvH --delete /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
+sudo rsync -LrxvH --delete /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
 
 Worry about tmp, e.g.,
 
@@ -417,6 +417,14 @@ class Project(object):
     def chown(self, path):
         cmd(["chown", "%s:%s"%(self.uid, self.uid), '-R', path])
 
+    def ensure_file_exists(self, src, target):
+        target = os.path.abspath(target)
+        if not os.path.exists(target):
+            self.makedirs(os.path.split(target)[0])
+            shutil.copyfile(src, target)
+            if USERNAME == "root":
+                os.chown(target, self.uid, self.gid)
+
     def create_snapshot_link(self):
         snapshots = os.path.join(self.btrfs, ".snapshots")
         if not os.path.exists(snapshots):
@@ -453,6 +461,16 @@ class Project(object):
                 self.chown(self.smc_path)
                 # TODO: need to chown smc_template so user can actually use it.
                 # TODO: need a command to *update* smc_path contents
+        self.ensure_conf_files_exist()
+
+    def ensure_conf_files_exist(self):
+        for filename in ['.bashrc', '.bash_profile']:
+            target = os.path.join(self.project_path, filename)
+            if not os.path.exists(target):
+                source = os.path.join(self.smc_path, filename)
+                if os.path.exists(source):
+                    shutil.copyfile(source, target)
+                    os.chown(target, self.uid, self.uid)
 
     def remove_smc_path(self):
         # do our best to remove the smc path

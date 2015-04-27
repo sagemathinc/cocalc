@@ -911,6 +911,9 @@ class ProjectClient extends EventEmitter
         target_project = undefined
         async.series([
             (cb) =>
+                @ensure_opened_or_running
+                    cb : cb
+            (cb) =>
                 if opts.target_project_id == @project_id
                     cb()
                 else
@@ -963,18 +966,23 @@ class ProjectClient extends EventEmitter
             limit     : -1
             cb        : required
         dbg = @dbg("directory_listing")
-        args = []
-        if opts.hidden
-            args.push("--hidden")
-        if opts.time
-            args.push("--time")
-        for k in ['path', 'start', 'limit']
-            args.push("--#{k}"); args.push(opts[k])
-        dbg("get listing of files using options #{misc.to_json(args)}")
-        @_action
-            action : 'directory_listing'
-            args   : args
-            cb     : opts.cb
+        @ensure_opened_or_running
+            cb : (err) =>
+                if err
+                    opts.cb(err)
+                else
+                    args = []
+                    if opts.hidden
+                        args.push("--hidden")
+                    if opts.time
+                        args.push("--time")
+                    for k in ['path', 'start', 'limit']
+                        args.push("--#{k}"); args.push(opts[k])
+                    dbg("get listing of files using options #{misc.to_json(args)}")
+                    @_action
+                        action : 'directory_listing'
+                        args   : args
+                        cb     : opts.cb
 
     read_file: (opts) =>
         opts = defaults opts,
@@ -983,15 +991,19 @@ class ProjectClient extends EventEmitter
             cb      : required   # cb(err, Buffer)
         dbg = @dbg("read_file(path:'#{opts.path}')")
         dbg("read a file or directory from disk")  # directories get zip'd
-        args =  [opts.path, "--maxsize", opts.maxsize]
-        @_action
-            action  : 'read_file'
-            args    : args
-            cb      : (err, resp) =>
+        @ensure_opened_or_running
+            cb : (err) =>
                 if err
                     opts.cb(err)
                 else
-                    opts.cb(undefined, new Buffer(resp.base64, 'base64'))
+                    @_action
+                        action  : 'read_file'
+                        args    : [opts.path, "--maxsize", opts.maxsize]
+                        cb      : (err, resp) =>
+                            if err
+                                opts.cb(err)
+                            else
+                                opts.cb(undefined, new Buffer(resp.base64, 'base64'))
 
     set_quota: (opts) =>
         opts = defaults opts,
