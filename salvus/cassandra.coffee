@@ -438,23 +438,12 @@ class exports.Cassandra extends EventEmitter
 
     reconnect: (cb) =>
         winston.debug("reconnect to database server")
-        if not @conn? or not @conn.shutdown?
-            winston.debug("directly connecting")
-            @connect(cb)
-            return
-        winston.debug("reconnect to database server -- first shutting down")
-        @conn.shutdown (err) =>
-            winston.debug("reconnect to database server -- shutdown returned #{err}")
-            delete @conn
-            @connect(cb)
+        @connect(cb)
 
     connect: (cb) =>
         winston.debug("connect: connecting to the database server")
         console.log("connecting...")
         opts = @_opts
-        if @conn?
-            @conn.shutdown?()
-            delete @conn
         o =
             contactPoints         : opts.hosts
             keyspace              : opts.keyspace
@@ -466,7 +455,11 @@ class exports.Cassandra extends EventEmitter
                 connectTimeout    : opts.conn_timeout_ms
         if opts.username? and opts.password?
             o.authProvider = new cql.auth.PlainTextAuthProvider(opts.username, opts.password)
+         
+        if @conn?
+            old_conn = @conn 
         @conn = new Client(o)
+        old_conn?.shutdown?()
 
         if opts.verbose
             @conn.on 'log', (level, message) =>
@@ -501,7 +494,9 @@ class exports.Cassandra extends EventEmitter
                     x = val
                     op = '=='
                 else
-                    assert(val?, "val must be defined -- there's a bug somewhere: _where(#{to_json(where_key)}, #{to_json(vals)}, #{to_json(json)})")
+                    # DO **NOT** enable this except for very specific debugging, and then disable it.  The time to construct the
+                    # string below could be huge.  e.g., saving BLOBS = 25 seconds!
+                    # assert(val?, "val must be defined -- there's a bug somewhere: _where(#{to_json(where_key)}, #{to_json(vals)}, #{to_json(json)})")
                     x = val[op]
                 if x?
                     if key in json

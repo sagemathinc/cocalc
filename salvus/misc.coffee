@@ -219,7 +219,8 @@ exports.times_per_second = (f, max_time=5, max_loops=1000) ->
 exports.to_json = (x) ->
     JSON.stringify(x)
 
-# convert object x to a JSON string, removing any keys that have "pass" in them.
+# convert object x to a JSON string, removing any keys that have "pass" in them and
+# any values that are potentially big -- this is meant to only be used for loging.
 exports.to_safe_str = (x) ->
     obj = {}
     for key, value of x
@@ -233,7 +234,12 @@ exports.to_safe_str = (x) ->
         if sanitize
             obj[key] = '(unsafe)'
         else
-            obj[key] = x[key]
+            if typeof(value) == "object"
+                value = "[object]"  # many objects, e.g., buffers can block for seconds to JSON...
+            else if typeof(value) == "string"
+                value = exports.trunc(value,250) # long strings are not SAFE -- since JSON'ing them for logging blocks for seconds!
+            obj[key] = value
+
     x = exports.to_json(obj)
 
 # convert from a JSON string to Javascript
