@@ -42,7 +42,7 @@ btrfs quota enable /projects/
 chmod og-rw /projects && chmod og+x /projects
 
 btrfs subvolume create /projects/sagemathcloud
-rsync -LrxvH /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
+rsync -LrxvH --delete /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
 
 Worry about tmp, e.g.,
 
