@@ -468,7 +468,8 @@ NODE_MODULES = [
     'node-sass',    # transspiller for *.sass to *.css (rootfile is page/index.sass)
     'http-proxy',   # https://github.com/nodejitsu/node-http-proxy
     'stripe',       # for billing -- https://github.com/stripe/stripe-node
-    'blocked'       # checking for blocking
+    'blocked',      # checking for blocking
+    'sqlite3'
     ]
 
 # this is for the python in the /home/salvus/... place, not the system-wide or sage python!
