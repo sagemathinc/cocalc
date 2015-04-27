@@ -160,6 +160,7 @@ class ComputeServerClient
             cb       : required
         dbg = @dbg("constructor")
         @_project_cache = {}
+        @_project_cache_cb = {}
         if opts.database?
             dbg("using database")
             @database = opts.database
@@ -388,21 +389,29 @@ class ComputeServerClient
         opts = defaults opts,
             project_id : required
             cb         : required
-        if not @_project_cache?
-            @_project_cache = {}
         p = @_project_cache[opts.project_id]
         if p?
             opts.cb(undefined, p)
         else
+            # This v is so that if project is called again before the first
+            # call returns, then both calls get the same project back.
+            v = @_project_cache_cb[opts.project_id]
+            if v?
+                v.push(opts.cb)
+                return
+            v = @_project_cache_cb[opts.project_id] = [opts.cb]
             new ProjectClient
                 project_id     : opts.project_id
                 compute_server : @
                 cb             : (err, project) =>
-                    if err
-                        opts.cb(err)
-                    else
+                    delete @_project_cache_cb[opts.project_id]
+                    if not err
                         @_project_cache[opts.project_id] = project
-                        opts.cb(undefined, project)
+                    for cb in v
+                        if err
+                            cb(err)
+                        else
+                            cb(undefined, project)
 
 class ProjectClient extends EventEmitter
     constructor: (opts) ->
@@ -1034,7 +1043,7 @@ class ProjectClient extends EventEmitter
                     quota = {}
                     result = result[0]
                     for k, v of DEFAULT_SETTINGS
-                        if not result[k]?
+                        if not result?[k]?
                             quota[k] = v
                         else
                             quota[k] = misc.from_json(result[k])
