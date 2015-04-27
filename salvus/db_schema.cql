@@ -552,7 +552,7 @@ CREATE TABLE storage_servers (
 CREATE TABLE compute_servers (
     host          varchar PRIMARY KEY,
     port          int,
-    dc            int,
+    dc            varchar,
     health        float,
     secret        varchar,
     experimental  boolean,             /* if true ignored this host when assigning hosts for a project */

@@ -36,19 +36,23 @@
 GS = [G]oogle Cloud Storage / [B]trfs - based project storage system
 
 
-mkfs.btrfs /dev/sdb
-mount -o compress-force=lzo,noatime /dev/sdb /projects
-btrfs quota enable /projects/
-chmod og-rw /projects && chmod og+x /projects
+export DEV=/dev/sdX; export MOUNT=/projects
+mkfs.btrfs $DEV && mkdir -p $MOUNT && mount -o compress-force=lzo,noatime $DEV $MOUNT && btrfs quota enable $MOUNT && chmod og-rw $MOUNT && chmod og+x $MOUNT && btrfs subvolume create $MOUNT/conf && chown salvus. $MOUNT/conf && btrfs subvolume create $MOUNT/.snapshots
 
-btrfs subvolume create /projects/sagemathcloud
-sudo rsync -LrxvH --delete /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
+    btrfs subvolume create $MOUNT/sagemathcloud && sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/
 
 Worry about tmp, e.g.,
 
-    btrfs subvolume create /projects/tmp
-    chmod a+rwx /projects/tmp    # wrong.
-    mount -o bind /projects/tmp /tmp/
+    btrfs subvolume create $MOUNT/tmp && chmod 1777 $MOUNT/tmp && mount -o bind $MOUNT/tmp /tmp/
+
+Start compute server (as user salvus)
+
+    echo 'export SMC_BTRFS=/$MOUNT; export SMC_BUCKET=gs://smc-gb-storageXXX; export SMC_ARCHIVE=gs://smc-gb-archiveXXX' >> $HOME/.bashrc
+    source $HOME/.bashrc; cd ~/salvus/salvus; . salvus-env; ./compute start
+
+Database entry:
+
+    cd $MOUNT/conf && echo "update compute_servers set dc='us-central1-c', port=`cat compute.port`, secret='`cat compute.secret`' where host='`hostname`';"
 
 For dedup support:
 

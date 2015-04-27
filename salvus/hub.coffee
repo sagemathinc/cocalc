@@ -6893,6 +6893,8 @@ init_stripe = (cb) ->
 
 exports.start_server = start_server = (cb) ->
     # the order of init below is important
+
+    winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}")
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     http_server = undefined
@@ -6973,6 +6975,7 @@ add_user_to_project = (email_address, project_id, cb) ->
 #############################################
 # Process command line arguments
 #############################################
+
 program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
     .option('--proxy_port <n>', 'port that the proxy server listens on (default: 5001)', parseInt, 5001)
@@ -6991,7 +6994,6 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
 
-console.log(program._name)
 if program._name.slice(0,3) == 'hub'
     # run as a server/daemon (otherwise, is being imported as a library)
 
@@ -7020,6 +7022,6 @@ if program._name.slice(0,3) == 'hub'
                  console.log("User added to project.")
             process.exit()
     else
-        console.log("Running web server; pidfile=#{program.pidfile}")
+        console.log("Running web server; pidfile=#{program.pidfile}, port=#{program.port}")
         # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
         daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)

@@ -760,10 +760,19 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                         </div>
                                         <div class="row salvus-zfs-quotas">
                                             <div class="col-sm-4 lighten">
-                                                Disk usage:
+                                                Disk space:
                                             </div>
                                             <div class="col-sm-8">
                                                 <b><span class="salvus-userused-projects">(loading...)</span> MB</b> used of your <b><span class="salvus-userquota-projects"></span> MB</b> disk space
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                RAM memory:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-project-settings-memory-used">(loading...)</span> GB</b> used of your
+                                                <b><span class="salvus-project-settings-memory">(loading...)</span> GB</b> RAM memory
                                             </div>
                                         </div>
                                         <div class="row">
@@ -776,11 +785,10 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                         </div>
                                         <div class="row">
                                             <div class="col-sm-4 lighten">
-                                                RAM memory:
+                                                CPU share:
                                             </div>
                                             <div class="col-sm-8">
-                                                <b><span class="salvus-project-settings-memory-used">(loading...)</span> GB</b> used of your
-                                                <b><span class="salvus-project-settings-memory">(loading...)</span> GB</b> RAM cap
+                                                <b><span class="salvus-project-settings-cpu_shares">(loading...)</span></b>
                                             </div>
                                         </div>
                                         <div class="row">
@@ -788,15 +796,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                                 Timeout:
                                             </div>
                                             <div class="col-sm-8">
-                                                <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <span class="salvus-project-settings-mintime">(loading...)</span> hour<span class="salvus-project-settings-mintime-plural">s</span></b> of inactivity until project automatically stops <span class="lighten smc-project-location-free hide">(increase by moving to non-free data center)</span>
-                                            </div>
-                                        </div>
-                                        <div class="row hide">  <!-- hide due to being unclear -->
-                                            <div class="col-sm-4 lighten">
-                                                CPU share:
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <b><span class="salvus-project-settings-cpu_shares">(loading...)</span></b>
+                                                project automatically stops after <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <span class="salvus-project-settings-mintime">(loading...)</span> hour<span class="salvus-project-settings-mintime-plural">s</span></b> of non-interactive use <span class="lighten smc-project-location-free hide">(increase by moving to non-free data center)</span>
                                             </div>
                                         </div>
                                         <div class="row">

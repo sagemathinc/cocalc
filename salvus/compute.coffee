@@ -23,7 +23,7 @@
 DEFAULT_SETTINGS =
     disk_quota : 1000
     cores      : 1
-    memory     : 2
+    memory     : 1000
     cpu_shares : 256
     mintime    : 3600   # one hour
     network    : false
@@ -480,7 +480,7 @@ class ProjectClient extends EventEmitter
                                 cb(err)
                             else
                                 host = h
-                                dbg("chose random host #{host}")
+                                dbg("random host = #{host}")
                                 @compute_server.database.update
                                     table : 'projects'
                                     set   : {compute_server : @host}
@@ -561,7 +561,7 @@ class ProjectClient extends EventEmitter
                 time  : @_state_time
             opts.cb(undefined, x)
 
-    # information about project (ports, state, etc.)
+    # information about project (ports, state, etc. )
     status: (opts) =>
         opts = defaults opts,
             cb     : required
@@ -1056,7 +1056,7 @@ class ProjectClient extends EventEmitter
                     quotas = {}
                     result = result[0]
                     for k, v of DEFAULT_SETTINGS
-                        if not result?[k]?
+                        if not result?[k]
                             quotas[k] = v
                         else
                             quotas[k] = misc.from_json(result[k])

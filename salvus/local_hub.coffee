@@ -2413,36 +2413,6 @@ last_activity = undefined
 activity = () ->
     last_activity = misc.mswalltime()
 
-start_kill_monitor = (cb) ->
-    # Start a monitor that periodically checks for some sort of client-initiated hub activity.
-    # If there is none for program.timeout seconds, then all processes running as this user
-    # are killed (including this local hub, of course).
-    if not program.timeout or process.env['USER'].length != 32   # 32 = length of SMC accounts...
-        winston.info("Not setting kill monitor")
-        cb()
-        return
-
-    timeout = program.timeout*1000
-    winston.debug("Creating kill monitor to kill if idle for #{program.timeout} seconds")
-    activity()
-    kill_if_inactive = () ->
-        age = misc.mswalltime() - last_activity
-        winston.debug("kill_if_inactive: last activity #{age/1000} seconds ago")
-        if age >= timeout
-            # game over -- kill everything...
-            mesg = "Activity timeout hit: killing everything!"
-            console.log(mesg)
-            winston.debug(mesg)
-            misc_node.execute_code
-                command : "pkill"
-                args    : ['-9', '-u', process.env['USER']]
-                cb      : (err) ->
-                    # shouldn't get hit, since *everything* including this process, gets killed
-
-    # check every 30 seconds
-    setInterval(kill_if_inactive, 30000)
-    cb()
-
 # Truncate the ~/.sagemathcloud.log if it exceeds a certain length threshhold.
 SAGEMATHCLOUD_LOG_THRESH = 5000 # log grows to at most 50% more than this
 SAGEMATHCLOUD_LOG_FILE = process.env['HOME'] + '/.sagemathcloud.log'
@@ -2489,7 +2459,7 @@ start_log_truncate = (cb) ->
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
-    async.series [start_log_truncate, start_kill_monitor, start_tcp_server, start_raw_server], (err) ->
+    async.series [start_log_truncate, start_tcp_server, start_raw_server], (err) ->
         if err
             winston.debug("Error starting a server -- #{err}")
         else
@@ -2505,7 +2475,6 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--logfile [string]', 'write log to this file', String, abspath("#{DATA}/local_hub.log"))
     .option('--forever_logfile [string]', 'write forever log to this file', String, abspath("#{DATA}/forever_local_hub.log"))
     .option('--debug [string]', 'logging debug level (default: "debug"); "" for no debugging output)', String, 'debug')
-    .option('--timeout [number]', 'kill all processes if there is no activity for this many *seconds* (use 0 to disable, which is the default)', Number, 0)
     .parse(process.argv)
 
 if program._name.split('.')[0] == 'local_hub'
