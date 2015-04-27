@@ -6742,9 +6742,9 @@ connect_to_database = (cb) ->
                         reconnect = () ->
                             dbg("RECONNECTING to the database.")
                             database.connect()
-                        # We reset database connection every 2 hours.  
+                        # We reset database connection every 30 minutes.  
                         # This is to see how this correlates with it suddenly stopping working after days (maybe there is a leak?)   
-                        setInterval(reconnect, 1000*60*120)
+                        setInterval(reconnect, 1000*60*30)
                         cb()
 
 bup_server = undefined
