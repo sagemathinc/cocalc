@@ -1499,10 +1499,7 @@ message
     cpu_shares   : undefined    # fair sharing with everybody is 256, not 1 !!!
     cores        : undefined    # integer max number of cores user can use (>=1)
     disk         : undefined    # disk quota in megabytes
-    scratch      : undefined    # disk quota in megabytes
-    inode        : undefined    # not actually used, since ZFS doesn't have an inode quota
     mintime      : undefined    # time in **seconds** until idle projects are terminated
-    login_shell  : undefined    # not used right now (??)
     network      : undefined    # true or false; if true, full access to outside networ
 
 # client --> hub: admins can set a token that anybody creating an account must

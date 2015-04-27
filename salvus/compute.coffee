@@ -19,6 +19,14 @@
 #
 ###############################################################################
 
+# todo -- these should be in a table in the database.
+DEFAULT_SETTINGS =
+    disk_quota : 1000
+    cores      : 1
+    memory     : 2
+    cpu_shares : 256
+    mintime    : 3600   # one hour
+    network    : false
 
 #################################################################
 #
@@ -427,7 +435,6 @@ class ProjectClient extends EventEmitter
     dbg: (method) =>
         (m) => winston.debug("ProjectClient(#{@project_id},#{@host}).#{method}: #{m}")
 
-
     update_host: (opts) =>
         opts = defaults opts,
             cb : required
@@ -554,9 +561,15 @@ class ProjectClient extends EventEmitter
                 if err
                     opts.cb(err)
                 else
-                    status.host = @host
-                    status.ssh = @host
-                    opts.cb(undefined, status)
+                    @get_quotas
+                        cb : (err, quota) =>
+                            if err
+                                opts.cb(err)
+                            else
+                                status.host = @host
+                                status.ssh = @host
+                                status.settings = quota
+                                opts.cb(undefined, status)
 
     # COMMANDS:
 
@@ -1005,6 +1018,28 @@ class ProjectClient extends EventEmitter
                             else
                                 opts.cb(undefined, new Buffer(resp.base64, 'base64'))
 
+    get_quotas: (opts) =>
+        opts = defaults opts,
+            cb           : required
+        dbg = @dbg("get_quotas")
+        dbg("lookup project's quotas in the database")
+        @compute_server.database.select_one
+            table   : 'projects'
+            where   : {project_id : @project_id}
+            columns : ['settings']
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    quota = {}
+                    result = result[0]
+                    for k, v of DEFAULT_SETTINGS
+                        if not result[k]?
+                            quota[k] = v
+                        else
+                            quota[k] = misc.from_json(result[k])
+                    opts.cb(undefined, quota)
+
     set_quota: (opts) =>
         opts = defaults opts,
             disk_quota   : undefined
@@ -1012,10 +1047,21 @@ class ProjectClient extends EventEmitter
             memory       : undefined
             cpu_shares   : undefined
             network      : undefined
+            mintime      : undefined  # in seconds
             cb           : required
         dbg = @dbg("set_quota")
         dbg("set various quotas")
         async.parallel([
+            (cb) =>
+                f = (key, cb) =>
+                    if not opts[key]? or key == 'cb'
+                        cb(); return
+                    dbg("updating quota for #{key} in the database")
+                    @compute_server.database.cql
+                        query : "UPDATE projects SET settings[?]=? WHERE project_id=?"
+                        vals  : [key, misc.to_json(opts[key]), @project_id]
+                        cb    : cb
+                async.map(misc.keys(opts), f, cb)
             (cb) =>
                 if opts.network?
                     dbg("network quota")

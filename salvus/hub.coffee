@@ -3091,6 +3091,7 @@ class Client extends EventEmitter
                         memory     : mesg.memory
                         cpu_shares : mesg.cpu_shares
                         network    : mesg.network
+                        mintime    : mesg.mintime
                         cb         : cb
             ], (err) =>
                 if err

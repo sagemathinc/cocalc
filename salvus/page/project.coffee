@@ -1007,15 +1007,10 @@ class ProjectPage
 
                     usage = @container.find(".project-disk_usage")
 
-                    zfs = status.zfs
-                    if zfs? and misc.len(zfs) > 0
-                        for a in ["userquota-projects", "userquota-scratch", "userused-projects", "userused-scratch"]
-                            usage.find(".salvus-#{a}").text(Math.round(zfs[a]/1048576)) # 2^20, bytes to megabytes
-                    else
-                        usage.find(".salvus-zfs-quotas").hide()
-
                     @container.find(".project-location").text(status.host)
                     if status.settings?
+                        usage.find(".salvus-userquota-projects").text(status.settings.disk_quota)
+                        usage.find(".salvus-userused-projects").text(Math.ceil(status.btrfs))
                         usage.find(".salvus-project-settings-cores").text(status.settings.cores)
                         usage.find(".salvus-project-settings-memory").text(status.settings.memory)
                         mintime = Math.round(status.settings.mintime/3600)
@@ -1023,6 +1018,10 @@ class ProjectPage
                             mintime = "&infin;"
                             usage.find("project-settings-unlimited-timeout-checkbox").prop('checked', true);
                         usage.find(".salvus-project-settings-mintime").html(mintime)
+                        if mintime == 1
+                            usage.find(".salvus-project-settings-mintime-plural").hide()
+                        else
+                            usage.find(".salvus-project-settings-mintime-plural").show()
                         usage.find(".salvus-project-settings-cpu_shares").text(Math.round(status.settings.cpu_shares/256))
                         usage.find(".salvus-project-settings-network").text(status.settings.network)
                         if status.settings.network
@@ -1030,6 +1029,7 @@ class ProjectPage
                             usage.find(".project-settings-network-access-checkbox").prop('checked', true);
                         else
                             @container.find(".salvus-network-blocked").show()
+
                     if status.ssh?
                         @container.find(".project-settings-ssh").show()
                         username = @project.project_id.replace(/-/g, '')
@@ -1080,7 +1080,7 @@ class ProjectPage
             usage.find(".project-settings-network-access-checkbox").change () ->
                 usage.find(".salvus-project-settings-network").text($(this).prop("checked"))
             @container.find(".project-quota-edit").click () =>
-                quotalist = ['userquota-projects', 'userquota-scratch', 'project-settings-cores', 'project-settings-memory', 'project-settings-mintime', 'project-settings-cpu_shares']
+                quotalist = ['userquota-projects', 'project-settings-cores', 'project-settings-memory', 'project-settings-mintime', 'project-settings-cpu_shares']
 
                 # if currently editing...
                 if usage.find(".salvus-userquota-projects").attr("contenteditable") == "true"
@@ -1098,10 +1098,7 @@ class ProjectPage
                         cpu_shares : Math.round(@container.find(".salvus-project-settings-cpu_shares").text() * 256)
                         cores      : Math.round(@container.find(".salvus-project-settings-cores").text())
                         disk       : Math.round(@container.find(".salvus-userquota-projects").text())
-                        scratch    : Math.round(@container.find(".salvus-userquota-scratch").text())
-                        inode      : undefined
                         mintime    : (if timeout == "∞" then 3600 * 1000000 else Math.round(timeout) * 3600)
-                        login_shell: undefined
                         network    : @container.find(".salvus-project-settings-network").text()
                         cb         : (err, mesg) ->
                             if err

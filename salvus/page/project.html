@@ -465,7 +465,7 @@ margin-right: 2em;
                     <div class="project-file-listing-buttons">
                         <!-- Snapshots link -->
                         <div class="project-snapshot pull-right salvus-project-write-access" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
-                            <a href="#snapshot" data-toggle="tooltip" data-placement="bottom" title="Browse backups of your files." style="margin-left: 1ex;"><i class="fa fa-life-saver"> </i> <span style="font-size:14px">&nbsp;Backups</span><br></a>
+                            <a href="#snapshot" data-toggle="tooltip" data-placement="bottom" title="Browse snapshots of your files." style="margin-left: 1ex;"><i class="fa fa-life-saver"> </i> <span style="font-size:14px">&nbsp;Backups</span><br></a>
                         </div>
 
                         <!-- Trash can link -->
@@ -883,15 +883,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                                 Disk usage:
                                             </div>
                                             <div class="col-sm-8">
-                                                <b><span class="salvus-userused-projects">(loading...)</span> MB</b> used of your <b><span class="salvus-userquota-projects"></span> MB</b> file quota
-                                            </div>
-                                        </div>
-                                        <div class="row salvus-zfs-quotas">
-                                            <div class="col-sm-4 lighten">
-                                                <tt>/scratch</tt> disk usage:
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <b><span class="salvus-userused-scratch">(loading...)</span> MB</b> used of your <b><span class="salvus-userquota-scratch"></span> MB</b> file quota
+                                                <b><span class="salvus-userused-projects">(loading...)</span> MB</b> used of your <b><span class="salvus-userquota-projects"></span> MB</b> disk space quota (<a href="#snapshot">backups</a> count)
                                             </div>
                                         </div>
                                         <div class="row">
@@ -915,7 +907,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                                 Timeout:
                                             </div>
                                             <div class="col-sm-8">
-                                                <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <span class="salvus-project-settings-mintime">(loading...)</span> hours</b> of inactivity until project automatically stops <span class="lighten smc-project-location-free hide">(increase by moving to non-free data center)</span>
+                                                <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <span class="salvus-project-settings-mintime">(loading...)</span> hour<span class="salvus-project-settings-mintime-plural">s</span></b> of inactivity until project automatically stops <span class="lighten smc-project-location-free hide">(increase by moving to non-free data center)</span>
                                             </div>
                                         </div>
                                         <div class="row hide">  <!-- hide due to being unclear -->

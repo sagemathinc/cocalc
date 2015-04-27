@@ -1346,10 +1346,7 @@ class exports.Connection extends EventEmitter
             cpu_shares : undefined
             cores      : undefined
             disk       : undefined
-            scratch    : undefined
-            inode      : undefined
             mintime    : undefined
-            login_shell: undefined
             network    : undefined
             cb         : undefined
         cb = opts.cb
