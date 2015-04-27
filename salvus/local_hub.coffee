@@ -150,11 +150,7 @@ init_info_json = () ->
     v = process.env['HOME'].split('/')
     project_id = v[v.length-1]
     username   = project_id.replace(/-/g,'')
-    host       = require('os').networkInterfaces().tun0?[0].address
-    if not host?  # some testing setup not on the vpn
-        host = require('os').networkInterfaces().eth1?[0].address
-        if not host?
-            host = 'localhost'
+    host       = require('os').networkInterfaces().eth0?[0].address
     base_url   = ''
     port       = 22
     INFO =
@@ -2405,7 +2401,7 @@ start_raw_server = (cb) ->
 
             # NOTE: It is critical to only listen on the host interface (not localhost), since otherwise other users
             # on the same VM could listen in.   We firewall connections from the other VM hosts above
-            # port 1024, so this is safe without authentication.  That said, I plan to add some sort of auth (?) just in case.
+            # port 1024, so this is safe without authentication.  TODO: should we add some sort of auth (?) just in case?
             raw_server.listen port, info.location.host, (err) ->
                 winston.info("err = #{err}")
                 if err

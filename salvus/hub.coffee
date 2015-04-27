@@ -39,6 +39,8 @@
 #
 ##############################################################################
 
+DEBUG = true
+
 SALVUS_HOME=process.cwd()
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
@@ -1200,7 +1202,10 @@ init_http_proxy_server = () =>
 
         #buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
 
-        dbg = (m) -> winston.debug("http_proxy_server(#{req_url}): #{m}")
+        dbg = (m) ->
+            ## for low level debugging
+            if DEBUG
+                winston.debug("http_proxy_server(#{req_url}): #{m}")
         dbg('got request')
 
         cookies = new Cookies(req, res)
@@ -1685,8 +1690,9 @@ class Client extends EventEmitter
 
     handle_data_from_client: (data) =>
 
-        ##only uncommment this when doing low level debugging!
-        ##winston.debug("handle_data_from_client('#{misc.trunc(data.toString(),200)}')")
+        ## Only enable this when doing low level debugging -- performance impacts
+        if DEBUG
+            winston.debug("handle_data_from_client('#{misc.trunc(data.toString(),200)}')")
 
         # TODO: THIS IS A SIMPLE anti-DOS measure; it might be too
         # extreme... we shall see.  It prevents a number of attacks,
@@ -4572,8 +4578,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         cb(undefined, project)
 
     dbg: (m) =>
-        # only enable when debugging
-        winston.debug("local_hub(#{@project_id}): #{misc.to_json(m)}")
+        ## only enable when debugging
+        if DEBUG
+            winston.debug("local_hub(#{@project_id}): #{misc.to_json(m)}")
 
     move: (opts) =>
         opts = defaults opts,
