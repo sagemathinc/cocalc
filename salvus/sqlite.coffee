@@ -85,6 +85,8 @@ class SQLite
             opts.cb?(err, rows)
 
     _format: (x, cond) =>
+        if not cond or misc.len(cond) == 0
+            return {query:"", vals:[]}
         q = []
         vals = []
         for k, v of cond
@@ -161,11 +163,24 @@ class SQLite
             table : undefined
             where : {}
             cb    : undefined
+        w = @_where(opts.where)
+        @sql
+            query : "DELETE FROM #{opts.table} #{w.query}"
+            vals  : w.vals
+            cb    : opts.cb
 
     select: (opts={}) =>
         opts = defaults opts,
             table   : required    # string -- the table to query
-            columns : required    # list -- columns to extract
+            columns : undefined   # list -- columns to extract
             where   : undefined   # object -- conditions to impose; undefined = return everything
             cb      : required    # callback(error, results)
-
+        w = @_where(opts.where)
+        if opts.columns?
+            columns = opts.columns.join(',')
+        else
+            columns = '*'
+        @sql
+            query : "SELECT #{columns} FROM #{opts.table} #{w.query}"
+            vals  : w.vals
+            cb    : opts.cb
