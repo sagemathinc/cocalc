@@ -1008,15 +1008,17 @@ class ProjectPage
                     usage = @container.find(".project-disk_usage")
 
                     @container.find(".project-location").text(status.host)
+                    if status.btrfs?
+                        usage.find(".salvus-userused-projects").text(Math.ceil(status.btrfs))
+                    if status.memory?
+                        usage.find(".salvus-project-settings-memory-used").text(Math.round(status.memory.rss/1000000*100)/100)
                     if status.quotas?
                         usage.find(".salvus-userquota-projects").text(status.quotas.disk_quota)
-                        usage.find(".salvus-userused-projects").text(Math.ceil(status.btrfs))
                         usage.find(".salvus-project-settings-cores").text(status.quotas.cores)
                         if status.quotas.cores == 1
                             usage.find(".salvus-project-settings-cores-plural").hide()
                         else
                             usage.find(".salvus-project-settings-cores-plural").show()
-                        usage.find(".salvus-project-settings-memory-used").text(Math.round(status.memory.rss/1000000*100)/100)
                         usage.find(".salvus-project-settings-memory").text(Math.round(status.quotas.memory/1000*100)/100)
                         mintime = Math.round(status.quotas.mintime/3600)
                         if mintime > 10000
