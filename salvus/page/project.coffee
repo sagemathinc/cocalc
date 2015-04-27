@@ -3455,20 +3455,12 @@ class ProjectPage
                             cb(true)
                 (cb) =>
                     link.find("i").addClass('fa-spin')
-                    #link.icon_spin(start:true)
                     salvus_client.restart_project_server
                         project_id : @project.project_id
                         cb         : cb
                     # temporarily be more aggressive about getting status
                     for n in [1,2,5,8,10,15,18,20]
                         setTimeout(@update_local_status_link, n*1000)
-                (cb) =>
-                    link.find("i").removeClass('fa-spin')
-                    #link.icon_spin(false)
-                    #alert_message
-                    #    type    : "success"
-                    #    message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
-                    #    timeout : 5
             ])
             return false
 
@@ -3544,9 +3536,9 @@ class ProjectPage
                         @editor.resize_open_file_tabs()
                         if state.state in ['starting', 'stopping', 'saving', 'restarting']  # intermediate states -- update more often
                             setTimeout(@update_local_status_link, 3000)
-                            @container.find("a[href=#restart-project]").addClass("disabled")
+                            @container.find("a[href=#restart-project]").addClass("disabled").find("i").addClass('fa-spin')
                         else
-                            @container.find("a[href=#restart-project]").removeClass("disabled")
+                            @container.find("a[href=#restart-project]").removeClass("disabled").find("i").removeClass('fa-spin')
 
     init_local_status_link: () =>
         @update_local_status_link()
