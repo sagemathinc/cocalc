@@ -1596,12 +1596,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
         ##tm = misc.mswalltime()
         if opts.pad_bottom
             @pad_bottom_with_newlines(opts.pad_bottom)
-        if not opts.cm?
-            @_process_sage_updates(@editor.codemirror, opts.start, opts.stop)
-            if @editor._split_view
-                @_process_sage_updates(@editor.codemirror1, opts.start, opts.stop)
-        else
-            @_process_sage_updates(opts.cm, opts.start, opts.stop)
+        try
+            if not opts.cm?
+                @_process_sage_updates(@editor.codemirror, opts.start, opts.stop)
+                if @editor._split_view
+                    @_process_sage_updates(@editor.codemirror1, opts.start, opts.stop)
+            else
+                @_process_sage_updates(opts.cm, opts.start, opts.stop)
+        catch e
+            console.log("Error rendering worksheet", e)
         ##console.log("process_sage_updates(opts=#{misc.to_json({caller:opts.caller, start:opts.start, stop:opts.stop})}): time=#{misc.mswalltime(tm)}ms")
 
     _process_sage_updates: (cm, start, stop) =>
