@@ -311,6 +311,14 @@ class ComputeServerClient
                             dbg("successfully connected -- socket #{socket.id}")
                             socket.on 'close', () =>
                                 dbg("socket #{socket.id} closed")
+                                for _, p of @_project_cache
+                                    # tell every project whose state was set via a push event
+                                    # from this socket that the state is no longer known.
+                                    if p._socket_id == socket.id
+                                        delete p._state
+                                        delete p._state_time
+                                        delete p._state_set_by
+                                        delete p._socket_id
                                 if @_socket_cache[opts.host].id == socket.id
                                     delete @_socket_cache[opts.host]
                                 socket.removeAllListeners()
@@ -322,6 +330,7 @@ class ComputeServerClient
                                         if p? and p.host == opts.host  # ignore updates from wrong host
                                             p._state      = mesg.state
                                             p._state_time = new Date()
+                                            p._state_set_by = socket.id
                                             p.emit(p._state, p)
                                             if STATES[mesg.state].is_stable
                                                 p.emit('stable', mesg.state)
@@ -342,6 +351,7 @@ class ComputeServerClient
             host    : required
             mesg    : undefined
             timeout : 15
+            project : undefined
             cb      : required
 
         dbg = @dbg("call(#{opts.host})")
@@ -358,6 +368,8 @@ class ComputeServerClient
                     cb   : (err, s) =>
                         socket = s; cb(err)
             (cb) =>
+                if opts.project
+                    opts.project._socket_id = socket.id
                 socket.write_mesg 'json', opts.mesg, (err) =>
                     if err
                         cb("error writing to socket -- #{err}")
@@ -511,8 +523,9 @@ class ProjectClient extends EventEmitter
                     opts.cb(err); return
                 dbg("calling compute server at '#{@host}'")
                 @compute_server.call
-                    host : @host
-                    mesg :
+                    host    : @host
+                    project : @
+                    mesg    :
                         message.compute
                             project_id : @project_id
                             action     : opts.action
@@ -1242,7 +1255,7 @@ class Project
                     @_state      = results[0].state
                     @_state_time = new Date(results[0].state_time)
                     @_mintime    = results[0].mintime
-                    dbg("fetched project info from db: state=#{@_state}, state_time=#{@_state_time}, mintime=#{@_mintime}")
+                    dbg("fetched project info from db: state=#{@_state}, state_time=#{@_state_time}, mintime=#{@_mintime}s")
                     if not STATES[@_state]?.stable
                         dbg("updating non-stable state")
                         @_update_state (err) =>
@@ -1401,6 +1414,7 @@ class Project
             mintime : required
             cb      : required
         dbg = @dbg("mintime(mintime=#{opts.mintime})")
+        @_mintime = opts.mintime
         sqlite_db.update
             table : 'projects'
             set   : {mintime:    opts.mintime}
@@ -1521,6 +1535,57 @@ init_sqlite_db = (cb) ->
                     cb    : cb
     ], cb)
 
+# periodically check to see if any projects need to be killed
+kill_idle_projects = (cb) ->
+    dbg = (m) -> winston.debug("kill_idle_projects: #{m}")
+    all_projects = undefined
+    async.series([
+        (cb) ->
+            dbg("query database for all projects")
+            sqlite_db.select
+                table : 'projects'
+                columns : ['project_id', 'state_time', 'mintime']
+                where   :
+                    state : 'running'
+                cb      : (err, r) ->
+                    all_projects = r; cb(err)
+        (cb) ->
+            now = new Date() - 0
+            v = []
+            for p in all_projects
+                if not p.mintime
+                    continue
+                last_change = (now - p.state_time)/1000
+                dbg("project_id=#{p.project_id}, last_change=#{last_change}s ago, mintime=#{p.mintime}")
+                if p.mintime < last_change
+                    dbg("plan to kill project #{p.project_id}")
+                    v.push(p.project_id)
+            if v.length > 0
+                f = (project_id, cb) ->
+                    dbg("killing #{project_id}")
+                    get_project
+                        project_id : project_id
+                        cb         : (err, project) ->
+                            if err
+                                cb(err)
+                            else
+                                project.command
+                                    action : 'stop'
+                                    cb     : cb
+                async.map(v, f, cb)
+            else
+                dbg("nothing idle to kill")
+                cb()
+    ], (err) ->
+        if err
+            dbg("error killing idle -- #{err}")
+        cb?()
+    )
+
+init_mintime = (cb) ->
+    setInterval(kill_idle_projects, 60*1000)
+    kill_idle_projects(cb)
+
 start_tcp_server = (cb) ->
     dbg = (m) -> winston.debug("tcp_server: #{m}")
     dbg("start")
@@ -1581,7 +1646,7 @@ start_tcp_server = (cb) ->
 
 start_server = (cb) ->
     winston.debug("start_server")
-    async.series [read_secret_token, init_sqlite_db, start_tcp_server], (err) ->
+    async.series [read_secret_token, init_sqlite_db, init_mintime, start_tcp_server], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
         else
