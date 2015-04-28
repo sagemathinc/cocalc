@@ -1583,7 +1583,7 @@ kill_idle_projects = (cb) ->
     )
 
 init_mintime = (cb) ->
-    setInterval(kill_idle_projects, 60*1000)
+    setInterval(kill_idle_projects, 3*60*1000)
     kill_idle_projects(cb)
 
 start_tcp_server = (cb) ->
