@@ -43,7 +43,7 @@ STATES =
         stable   : true
         to       :
             open : 'opening'
-        commands : ['open', 'move', 'status', 'destroy']
+        commands : ['open', 'move', 'status', 'destroy', 'mintime']
 
     opened:
         desc: 'All files and snapshots are ready to use and the project user has been created, but local hub is not running.'
@@ -52,7 +52,7 @@ STATES =
             start : 'starting'
             close : 'closing'
             save  : 'saving'
-        commands : ['start', 'close', 'save', 'copy_path', 'directory_listing', 'read_file', 'network', 'disk_quota', 'compute_quota', 'status']
+        commands : ['start', 'close', 'save', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
     running:
         desc     : 'The project is opened and ready to be used.'
@@ -60,34 +60,34 @@ STATES =
         to       :
             stop : 'stopping'
             save : 'saving'
-        commands : ['stop', 'save', 'address', 'copy_path', 'directory_listing', 'read_file', 'network', 'disk_quota', 'compute_quota', 'status']
+        commands : ['stop', 'save', 'address', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
     saving:
         desc     : 'The project is being snapshoted and saved to cloud storage.'
         to       : {}
-        commands : ['address', 'copy_path', 'directory_listing', 'read_file', 'network', 'disk_quota', 'compute_quota', 'status']
+        commands : ['address', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
     closing:
         desc     : 'The project is in the process of being closed, so the latest changes are being uploaded, everything is stopping, the files will be removed from this computer.'
         to       : {}
-        commands : ['status']
+        commands : ['status', 'mintime']
 
     opening:
         desc     : 'The project is being opened, so all files and snapshots are being downloaded, the user is being created, etc.'
         to       : {}
-        commands : ['status']
+        commands : ['status', 'mintime']
 
     starting:
         desc     : 'The project is starting up and getting ready to be used.'
         to       :
             save : 'saving'
-        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'network', 'disk_quota', 'compute_quota', 'status']
+        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
     stopping:
         desc     : 'All processes associated to the project are being killed.'
         to       :
             save : 'saving'
-        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'network', 'disk_quota', 'compute_quota', 'status']
+        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
 ###
 Here's a picture of the finite state machine:
@@ -1108,6 +1108,16 @@ class ProjectClient extends EventEmitter
                         else
                             cb()
                     (cb) =>
+                        if opts.mintime? and commands.indexOf('mintime') != -1
+                            dbg("update mintime quota on project")
+                            @_action
+                                action : 'mintime'
+                                args   : [opts.mintime]
+                                cb     : (err) =>
+                                    cb(err)
+                        else
+                            cb()
+                    (cb) =>
                         if opts.disk_quota? and commands.indexOf('disk_quota') != -1
                             dbg("disk quota")
                             @_action
@@ -1183,22 +1193,65 @@ smc_compute = (opts) =>
             else
                 opts.cb(undefined, if output.stdout then misc.from_json(output.stdout) else undefined)
 
-projects_cache = {}
-get_project = (project_id) ->
-    if not projects_cache[project_id]?
-        projects_cache[project_id] = new Project(project_id)
-    return projects_cache[project_id]
+project_cache = {}
+project_cache_cb = {}
+get_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required
+    v = project_cache_cb[opts.project_id]
+    if v?
+        v.push(opts.cb)
+        return
+    v = project_cache_cb[opts.project_id] = [opts.cb]
+    new Project
+        project_id : opts.project_id
+        cb         : (err, project) ->
+            winston.debug("got project #{opts.project_id}")
+            delete project_cache_cb[opts.project_id]
+            if not err
+                project_cache[opts.project_id] = project
+            for cb in v
+                if err
+                    cb(err)
+                else
+                    cb(undefined, project)
 
 class Project
-    constructor: (@project_id) ->
-        @_state      = undefined
-        @_state_time = new Date()
+    constructor: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @project_id = opts.project_id
         @_state_listeners = {}
-
         @_last = {}  # last time a giving action was initiated
+        dbg = @dbg("constructor")
+        sqlite_db.select
+            table   : 'projects'
+            columns : ['state', 'state_time', 'mintime']
+            where   : {project_id : @project_id}
+            cb      : (err, results) =>
+                if err
+                    dbg("error -- #{err}")
+                    opts.cb(err); return
+                if results.length == 0
+                    dbg("nothing in db")
+                    @_state      = undefined
+                    @_state_time = new Date()
+                else
+                    @_state      = results[0].state
+                    @_state_time = new Date(results[0].state_time)
+                    @_mintime    = results[0].mintime
+                    dbg("fetched project info from db: state=#{@_state}, state_time=#{@_state_time}, mintime=#{@_mintime}")
+                    if not STATES[@_state]?.stable
+                        dbg("updating non-stable state")
+                        @_update_state (err) =>
+                            opts.cb(err, @)
+                        return
+                opts.cb(undefined, @)
 
     dbg: (method) =>
-        return (m) => winston.debug("Project.#{method}: #{m}")
+        return (m) => winston.debug("Project(#{@project_id}).#{method}: #{m}")
 
     add_listener: (socket) =>
         if not @_state_listeners[socket.id]?
@@ -1206,6 +1259,18 @@ class Project
             socket.on 'close', () =>
                 delete @_state_listeners[socket.id]
             @dbg("add_listener")(socket.id)
+
+    _update_state_db: (cb) =>
+        dbg = @dbg("_update_state_db")
+        dbg("new state=#{@_state}")
+        sqlite_db.update
+            table : 'projects'
+            set   :
+                state      : @_state
+                state_time : @_state_time - 0
+            where :
+                project_id : @project_id
+            cb : cb
 
     _update_state_listeners: () =>
         dbg = @dbg("_update_state_listeners")
@@ -1270,6 +1335,7 @@ class Project
                         # respond immediately that it's started.
                         @_state = next_state  # change state
                         @_state_time = new Date()
+                        @_update_state_db()
                         @_update_state_listeners()
                         @_command      # launch the command: this might take a long time
                             action : opts.action
@@ -1307,6 +1373,7 @@ class Project
                         @_state = r['state']
                         @_state_time = new Date()
                         dbg("got new state -- #{@_state}")
+                        @_update_state_db()
                         @_update_state_listeners()
                     cb?()
 
@@ -1328,6 +1395,21 @@ class Project
                     state : @_state
                     time  : @_state_time
                 opts.cb(undefined, x)
+
+    set_mintime: (opts) =>
+        opts = defaults opts,
+            mintime : required
+            cb      : required
+        dbg = @dbg("mintime(mintime=#{opts.mintime})")
+        sqlite_db.update
+            table : 'projects'
+            set   : {mintime:    opts.mintime}
+            where : {project_id: @project_id}
+            cb    : (err) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, {})
 
 secret_token = undefined
 read_secret_token = (cb) ->
@@ -1361,6 +1443,44 @@ read_secret_token = (cb) ->
             fs.chmod(program.secret_file, 0o600, cb)
     ], cb)
 
+handle_compute_mesg = (mesg, socket, cb) ->
+    dbg = (m) => winston.debug("handle_compute_mesg(hub -> compute, id=#{mesg.id}): #{m}")
+    p = undefined
+    resp = undefined
+    async.series([
+        (cb) ->
+            get_project
+                project_id : mesg.project_id
+                cb         : (err, _p) ->
+                    p = _p; cb(err)
+        (cb) ->
+            p.add_listener(socket)
+            if mesg.action == 'state'
+                dbg("getting state")
+                p.state
+                    update : mesg.args? and mesg.args.length > 0 and mesg.args[0] == '--update'
+                    cb    : (err, r) ->
+                        dbg("state -- got #{err}, #{misc.to_safe_str(r)}")
+                        resp = r; cb(err)
+            else if mesg.action == 'mintime'
+                p.set_mintime
+                    mintime : mesg.args[0]
+                    cb      : (err, r) ->
+                        resp = r; cb(err)
+            else
+                dbg("running command")
+                p.command
+                    action     : mesg.action
+                    args       : mesg.args
+                    cb         : (err, r) ->
+                        resp = r; cb(err)
+    ], (err) ->
+        if err
+            cb(message.error(error:err))
+        else
+            cb(resp)
+    )
+
 handle_mesg = (socket, mesg) ->
     dbg = (m) => winston.debug("handle_mesg(hub -> compute, id=#{mesg.id}): #{m}")
     dbg(misc.to_safe_str(mesg))
@@ -1368,30 +1488,7 @@ handle_mesg = (socket, mesg) ->
     f = (cb) ->
         switch mesg.event
             when 'compute'
-                dbg("compute event")
-                p = get_project(mesg.project_id)
-                dbg("got project")
-                p.add_listener(socket)
-                if mesg.action == 'state'
-                    dbg("getting state")
-                    p.state
-                        update : mesg.args? and mesg.args.length > 0 and mesg.args[0] == '--update'
-                        cb    : (err, x) ->
-                            dbg("state -- got #{err}, #{misc.to_safe_str(x)}")
-                            if err
-                                cb(message.error(error:err))
-                            else
-                                cb(x)
-                else
-                    dbg("running command")
-                    p.command
-                        action     : mesg.action
-                        args       : mesg.args
-                        cb         : (err, resp) ->
-                            if err
-                                cb(message.error(error:err))
-                            else
-                                cb(resp)
+                handle_compute_mesg(mesg, socket, cb)
             when 'ping'
                 cb(message.pong())
             else
@@ -1400,6 +1497,29 @@ handle_mesg = (socket, mesg) ->
         resp.id = mesg.id
         dbg("resp = '#{misc.to_safe_str(resp)}'")
         socket.write_mesg('json', resp)
+
+sqlite_db = undefined
+init_sqlite_db = (cb) ->
+    exists = undefined
+    async.series([
+        (cb) ->
+            fs.exists program.sqlite_file, (e) ->
+                exists = e
+                cb()
+        (cb) ->
+            require('sqlite').sqlite
+                filename : program.sqlite_file
+                cb       : (err, db) ->
+                    sqlite_db = db; cb(err)
+        (cb) ->
+            if exists
+                cb()
+            else
+                # initialize schema
+                sqlite_db.sql
+                    query : 'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_time INTEGER, mintime INTEGER)'
+                    cb    : cb
+    ], cb)
 
 start_tcp_server = (cb) ->
     dbg = (m) -> winston.debug("tcp_server: #{m}")
@@ -1461,7 +1581,7 @@ start_tcp_server = (cb) ->
 
 start_server = (cb) ->
     winston.debug("start_server")
-    async.series [read_secret_token, start_tcp_server], (err) ->
+    async.series [read_secret_token, init_sqlite_db, start_tcp_server], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
         else
@@ -1481,6 +1601,8 @@ program.usage('[start/stop/restart/status] [options]')
 
     .option('--port_file [string]',      'write port number to this file', String, "#{CONF}/compute.port")
     .option('--secret_file [string]',    'write secret token to this file', String, "#{CONF}/compute.secret")
+
+    .option('--sqlite_file [string]',    'store sqlite3 database here', String, "#{CONF}/compute.sqlite3")
 
     .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
 

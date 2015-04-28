@@ -90,7 +90,7 @@ class SQLite
         q = []
         vals = []
         for k, v of cond
-            q = ["#{k}=?"]
+            q.push("#{k}=?")
             vals.push(v)
         return {query:" #{x} #{q.join(',')}", vals:vals}
 
