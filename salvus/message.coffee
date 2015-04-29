@@ -47,8 +47,25 @@ message = (obj) ->
 #############################################
 
 message
-    event            : 'compute_server_status'
-    running_children : undefined    # list of child process names (e.g., 'sage_server', 'console_server', 'project_server') that are running
+    event : 'compute_server_status'
+    status : undefined    
+
+# Message for actions using a compute server
+message
+    event      : 'compute'
+    project_id : undefined
+    action     : required    # open, save, ...
+    args       : undefined
+    param      : undefined   # deprecate
+    id         : undefined
+
+message
+    event      : 'project_state_update'
+    project_id : required
+    state      : required
+    time       : required
+
+
 
 
 ############################################
@@ -1350,21 +1367,6 @@ message
     event      : 'projects_running_on_server'
     id         : undefined
     projects   : undefined   # for response
-
-# Message for actions using a compute server
-message
-    event      : 'compute'
-    project_id : undefined
-    action     : required    # open, save, ...
-    args       : undefined
-    param      : undefined   # deprecate
-    id         : undefined
-
-message
-    event      : 'project_state_update'
-    project_id : required
-    state      : required
-    time       : required
 
 
 ###########################################################
