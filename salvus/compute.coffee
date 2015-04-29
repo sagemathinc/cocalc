@@ -319,7 +319,7 @@ class ComputeServerClient
                                         delete p._state_time
                                         delete p._state_set_by
                                         delete p._socket_id
-                                if @_socket_cache[opts.host].id == socket.id
+                                if @_socket_cache[opts.host]?.id == socket.id
                                     delete @_socket_cache[opts.host]
                                 socket.removeAllListeners()
                             socket.on 'mesg', (type, mesg) =>
