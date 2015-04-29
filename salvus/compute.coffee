@@ -315,9 +315,7 @@ class ComputeServerClient
                                     # tell every project whose state was set via
                                     # this socket that the state is no longer known.
                                     if p._socket_id == socket.id
-                                        delete p._state
-                                        delete p._state_time
-                                        delete p._state_set_by
+                                        p.clear_state()
                                         delete p._socket_id
                                 if @_socket_cache[opts.host]?.id == socket.id
                                     delete @_socket_cache[opts.host]
@@ -434,8 +432,7 @@ class ProjectClient extends EventEmitter
             cb             : required
         @project_id = opts.project_id
         @compute_server = opts.compute_server
-        @_state = undefined
-        @_state_time = undefined
+        @clear_state()
         dbg = @dbg('constructor')
         dbg("getting project's host")
         @update_host
@@ -457,10 +454,16 @@ class ProjectClient extends EventEmitter
     dbg: (method) =>
         (m) => winston.debug("ProjectClient(#{@project_id},#{@host}).#{method}: #{m}")
 
+    clear_state: () =>
+        @dbg("clear_state")()
+        delete @_state
+        delete @_state_time
+        delete @_state_set_by
+
     update_host: (opts) =>
         opts = defaults opts,
             cb : required
-        host = undefined
+        host          = undefined
         previous_host = @host
         dbg = @dbg("update_host")
         t = misc.mswalltime()
@@ -478,8 +481,10 @@ class ProjectClient extends EventEmitter
                             cb(err)
                         else
                             if result.length == 1 and result[0][0]
-                                dbg("got host='#{host}'")
                                 host = result[0][0]
+                                dbg("got host='#{host}'")
+                            else
+                                dbg("no host assigned")
                             cb()
             (cb) =>
                 if host?
@@ -502,8 +507,10 @@ class ProjectClient extends EventEmitter
         ], (err) =>
             if not err
                 @host = host
+                dbg("henceforth using host=#{@host}")
                 if host != previous_host
-                    dbg("host changed from #{previous_host} to #{host}")
+                    @clear_state()
+                    dbg("HOST CHANGE: #{previous_host} --> #{host}")
             dbg("time=#{misc.mswalltime(t)}ms")
             opts.cb(err, host)
         )
