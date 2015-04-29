@@ -522,8 +522,10 @@ class Project(object):
         Open or ban outgoing network for user.
         """
         # Change the appropriate iptables firewall rule
-        self.cmd(["iptables", "-v", "-I", "OUTPUT", "-m", "owner",
-                  "--uid-owner", self.uid, "-j", "DROP" if ban else "ACCEPT"])
+        # This doesn't open up our whitelist, so is not sufficient.
+        #self.cmd(["iptables", "-v", "-I", "OUTPUT", "-m", "owner",
+        #         "--uid-owner", self.uid, "-j", "DROP" if ban else "ACCEPT"])
+
         # Rest of this just edits the uid whitelist file so that if/when
         # the system-wide firewall is restarted (e.g. to add/remove entries, at
         # least until I fix it so that that restart isn't required), then
@@ -541,6 +543,8 @@ class Project(object):
             change_whitelist = True
         if change_whitelist:
             open(UID_WHITELIST,'w').write('\n'.join(whitelisted_users)+'\n')
+        # we must do this since it opens up the whitelist too.
+        self.cmd("/root/smc-iptables/restart.sh")
 
     def cgclassify(self):
         try:
