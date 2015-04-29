@@ -315,11 +315,9 @@ class ComputeServerClient
                                     # tell every project whose state was set via
                                     # this socket that the state is no longer known.
                                     if p._socket_id == socket.id
-                                        delete p._state
-                                        delete p._state_time
-                                        delete p._state_set_by
+                                        p.clear_state()
                                         delete p._socket_id
-                                if @_socket_cache[opts.host].id == socket.id
+                                if @_socket_cache[opts.host]?.id == socket.id
                                     delete @_socket_cache[opts.host]
                                 socket.removeAllListeners()
                             socket.on 'mesg', (type, mesg) =>
@@ -434,8 +432,7 @@ class ProjectClient extends EventEmitter
             cb             : required
         @project_id = opts.project_id
         @compute_server = opts.compute_server
-        @_state = undefined
-        @_state_time = undefined
+        @clear_state()
         dbg = @dbg('constructor')
         dbg("getting project's host")
         @update_host
@@ -457,10 +454,17 @@ class ProjectClient extends EventEmitter
     dbg: (method) =>
         (m) => winston.debug("ProjectClient(#{@project_id},#{@host}).#{method}: #{m}")
 
+    clear_state: () =>
+        @dbg("clear_state")()
+        delete @_state
+        delete @_state_time
+        delete @_state_set_by
+
     update_host: (opts) =>
         opts = defaults opts,
             cb : required
-        host = undefined
+        host          = undefined
+        assigned      = undefined
         previous_host = @host
         dbg = @dbg("update_host")
         t = misc.mswalltime()
@@ -469,7 +473,7 @@ class ProjectClient extends EventEmitter
                 dbg("querying database for compute server")
                 @compute_server.database.select
                     table   : 'projects'
-                    columns : ['compute_server']
+                    columns : ['compute_server', 'compute_server_assigned']
                     where   :
                         project_id : @project_id
                     cb      : (err, result) =>
@@ -478,8 +482,18 @@ class ProjectClient extends EventEmitter
                             cb(err)
                         else
                             if result.length == 1 and result[0][0]
-                                dbg("got host='#{host}'")
-                                host = result[0][0]
+                                host     = result[0][0]
+                                assigned = result[0][1]
+                                if not assigned
+                                    assigned = new Date() - 0
+                                    @compute_server.database.update
+                                        table : 'projects'
+                                        set   :
+                                            compute_server_assigned : assigned
+                                        where : {project_id : @project_id}
+                                dbg("got host='#{host}' that was assigned #{assigned}")
+                            else
+                                dbg("no host assigned")
                             cb()
             (cb) =>
                 if host?
@@ -493,17 +507,23 @@ class ProjectClient extends EventEmitter
                                 cb(err)
                             else
                                 host = h
-                                dbg("random host = #{host}")
+                                assigned = new Date() - 0
+                                dbg("new host = #{host} assigned #{assigned}")
                                 @compute_server.database.update
                                     table : 'projects'
-                                    set   : {compute_server : @host}
+                                    set   :
+                                        compute_server          : @host
+                                        compute_server_assigned : assigned
                                     where : {project_id : @project_id}
                                     cb    : cb
         ], (err) =>
             if not err
-                @host = host
+                @host     = host
+                @assigned = assigned  # when host was assigned
+                dbg("henceforth using host=#{@host} that was assigned #{@assigned}")
                 if host != previous_host
-                    dbg("host changed from #{previous_host} to #{host}")
+                    @clear_state()
+                    dbg("HOST CHANGE: #{previous_host} --> #{host}")
             dbg("time=#{misc.mswalltime(t)}ms")
             opts.cb(err, host)
         )
@@ -605,6 +625,7 @@ class ProjectClient extends EventEmitter
         @dbg("open")()
         @_action
             action : "open"
+            args   : [@assigned]
             cb     : opts.cb
 
     # start local_hub daemon running (must be opened somewhere)
@@ -835,9 +856,12 @@ class ProjectClient extends EventEmitter
                     cb   : cb
             (cb) =>
                 dbg("update database with new project location")
+                @assigned = new Date() - 0
                 @compute_server.database.update
                     table : 'projects'
-                    set   : {compute_server : opts.target}
+                    set   :
+                        compute_server          : opts.target
+                        compute_server_assigned : @assigned
                     where : {project_id : @project_id}
                     cb    : cb
             (cb) =>
@@ -1327,6 +1351,7 @@ class Project
         dbg = @dbg("command(action=#{opts.action}, args=#{misc.to_json(opts.args)})")
         state = undefined
         state_info = undefined
+        assigned   = undefined
         resp = undefined
         async.series([
             (cb) =>
@@ -1340,6 +1365,12 @@ class Project
                             state = s.state
                             cb()
             (cb) =>
+                if opts.action == 'open'
+                    # When opening a project we have to also set
+                    # the time the project was assigned to this node, which is the first
+                    # argument to open.  We then remove that argument.
+                    assigned = opts.args[0]
+                    opts.args = []
                 state_info = STATES[state]
                 if not state_info?
                     err = "bug / internal error -- unknown state '#{misc.to_json(state)}'"
@@ -1371,8 +1402,17 @@ class Project
                                     dbg("state change command ERROR -- #{err}")
                                 else
                                     dbg("state change command success -- #{misc.to_safe_str(ignored)}")
+                                    if assigned?
+                                        # Project was just opened and opening is an allowed command.
+                                        # Set when this was done.
+                                        sqlite_db.update
+                                            table : 'projects'
+                                            set   : {assigned: assigned}
+                                            where : {project_id: @project_id}
+
                                 @_update_state (err2) =>
                                     opts.after_command_cb?(err or err2)
+
                         resp = {state:next_state, time:new Date()}
                         cb()
                     else
@@ -1382,6 +1422,35 @@ class Project
                             args   : opts.args
                             cb     : (err, r) =>
                                 resp = r; cb(err); opts.after_command_cb?(err)
+            (cb) =>
+                if assigned?
+                    # Project was just opened and opening is an allowed command.
+                    # Set when this assign happened, so we can return this as
+                    # part of the status in the future, which the global hubs use
+                    # to see whether the project on this node was some mess left behind
+                    # during auto-failover, or is legit.
+                    sqlite_db.update
+                        table : 'projects'
+                        set   : {assigned: assigned}
+                        where : {project_id: @project_id}
+                        cb    : cb
+                else
+                    cb()
+            (cb) =>
+                if opts.action == 'status'
+                    # additional info from database
+                    sqlite_db.select
+                        table   : 'projects'
+                        columns : ['assigned']
+                        where   : {project_id: @project_id}
+                        cb      : (err, result) =>
+                            if err
+                                cb(err)
+                            else
+                                resp.assigned = result[0].assigned
+                                cb()
+                else
+                    cb()
         ], (err) => opts.cb?(err, resp))
 
     _update_state: (cb) =>
@@ -1543,8 +1612,12 @@ init_sqlite_db = (cb) ->
                 cb()
             else
                 # initialize schema
+                #    project_id -- the id of the project
+                #    state -- opened, closed, etc.
+                #    state_time -- when switched to current state
+                #    assigned -- when project was first opened on this node.
                 sqlite_db.sql
-                    query : 'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_time INTEGER, mintime INTEGER)'
+                    query : 'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_time INTEGER, mintime INTEGER, assigned INTEGER)'
                     cb    : cb
     ], cb)
 

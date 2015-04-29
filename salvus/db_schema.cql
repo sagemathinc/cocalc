@@ -263,6 +263,7 @@ CREATE TABLE projects (
      last_edited      timestamp,     /* timestamp of last modification of the project */
 
      compute_server   varchar,        /* hostname of compute server where this project is opened */
+     compute_server_assigned timestamp,   /* when project was opened on this compute server (used as check for automatic failover) */
 
      /* bup = deprecated */
      bup_location     uuid,         /* location using new bup-based storage system */
