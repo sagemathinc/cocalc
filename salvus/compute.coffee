@@ -599,22 +599,52 @@ class ProjectClient extends EventEmitter
     status: (opts) =>
         opts = defaults opts,
             cb     : required
-        @dbg("status")()
-        @_action
-            action : "status"
-            cb     : (err, status) =>
-                if err
-                    opts.cb(err)
+        dbg = @dbg("status")
+        dbg()
+        status = undefined
+        async.series([
+            (cb) =>
+                dbg("get status from compute server")
+                @_action
+                    action : "status"
+                    cb     : (err, s) =>
+                        status = s; cb(err)
+            (cb) =>
+                if status.assigned and @assigned and (status.assigned != @assigned)
+                    dbg("timestamps when project assigned to this host do not match, so files left on host must be from past automatic failover -- delete them and start over")
+                    async.series([
+                        (cb) =>
+                            dbg("ensure closed")
+                            @ensure_closed
+                                force  : true
+                                nosave : true
+                                cb     : cb
+                        (cb) =>
+                            dbg("now get status again")
+                            @_action
+                                action : "status"
+                                cb     : (err, s) =>
+                                    status = s; cb(err)
+                    ], cb)
                 else
-                    @get_quotas
-                        cb : (err, quotas) =>
-                            if err
-                                opts.cb(err)
-                            else
-                                status.host = @host
-                                status.ssh = @host
-                                status.quotas = quotas
-                                opts.cb(undefined, status)
+                    cb()
+            (cb) =>
+                @get_quotas
+                    cb : (err, quotas) =>
+                        if err
+                            cb(err)
+                        else
+                            status.host = @host
+                            status.ssh = @host
+                            status.quotas = quotas
+                            cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, status)
+        )
+
 
     # COMMANDS:
 
