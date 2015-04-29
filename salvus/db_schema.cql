@@ -556,7 +556,6 @@ CREATE TABLE compute_servers (
     health        float,
     secret        varchar,
     experimental  boolean,             /* if true ignored this host when assigning hosts for a project */
-    ssh           map<int, varchar>,   /*  dc -> 'address:port' when connecting *from* that dc; use dc=-1 for connecting from the greater internet */
 );
 
 
