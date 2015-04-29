@@ -725,7 +725,7 @@ class ProjectClient extends EventEmitter
 
     ensure_running: (opts) =>
         opts = defaults opts,
-            cb     : required
+            cb : required
         state = undefined
         dbg = @dbg("ensure_running")
         async.series([
