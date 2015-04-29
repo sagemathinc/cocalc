@@ -1551,7 +1551,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         @close_on_action(elt)
 
     elt_at_mark: (mark) =>
-        elt = mark.replacedWith
+        elt = mark?.replacedWith
         if elt?
             return $(elt)
 
@@ -1596,12 +1596,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
         ##tm = misc.mswalltime()
         if opts.pad_bottom
             @pad_bottom_with_newlines(opts.pad_bottom)
-        if not opts.cm?
-            @_process_sage_updates(@editor.codemirror, opts.start, opts.stop)
-            if @editor._split_view
-                @_process_sage_updates(@editor.codemirror1, opts.start, opts.stop)
-        else
-            @_process_sage_updates(opts.cm, opts.start, opts.stop)
+        try
+            if not opts.cm?
+                @_process_sage_updates(@editor.codemirror, opts.start, opts.stop)
+                if @editor._split_view
+                    @_process_sage_updates(@editor.codemirror1, opts.start, opts.stop)
+            else
+                @_process_sage_updates(opts.cm, opts.start, opts.stop)
+        catch e
+            console.log("Error rendering worksheet", e)
         ##console.log("process_sage_updates(opts=#{misc.to_json({caller:opts.caller, start:opts.start, stop:opts.stop})}): time=#{misc.mswalltime(tm)}ms")
 
     _process_sage_updates: (cm, start, stop) =>
@@ -1679,7 +1682,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     if marks.length == 0
                         @mark_output_line(cm, line)
                     mark = cm.findMarksAt({line:line, ch:1})[0]
-                    window.x = x
                     f = (elt, mesg) =>
                         try
                             @process_output_mesg
@@ -1689,10 +1691,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
                             console.log(e.stack)
                             log("BUG: error rendering output: '#{mesg}' -- #{e}")
 
-                    if mark? and not mark.finish_editing? and mark.processed != x
+                    output = @elt_at_mark(mark)
+                    if mark? and output? and not mark.finish_editing? and mark.processed != x
                         # This is more complicated than you might think because past messages can
                         # be modified at any time -- it's not a linear stream.
-                        output = @elt_at_mark(mark)
                         # appearance of output shows output
                         output.removeClass('sagews-output-hide')
                         messages = x.split(MARKERS.output).slice(2) # skip output uuid

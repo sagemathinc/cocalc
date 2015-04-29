@@ -1515,7 +1515,7 @@ class Monitor(object):
         print s
         return json.loads(s)
 
-    def disk_usage(self, hosts='all', disk_threshold=95):
+    def disk_usage(self, hosts='all', disk_threshold=98):
         """
         Verify that no disk is more than disk_threshold (=disk_threshold%).
         """
