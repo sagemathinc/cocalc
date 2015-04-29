@@ -3343,7 +3343,7 @@ class Client extends EventEmitter
             (cb) =>
                 project.copy_path
                     path            : mesg.src_path
-                    project_id      : mesg.target_project_id
+                    target_project_id : mesg.target_project_id
                     target_path     : mesg.target_path
                     overwrite_newer : mesg.overwrite_newer
                     delete_missing  : mesg.delete_missing

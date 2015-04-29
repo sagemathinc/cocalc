@@ -1316,7 +1316,8 @@ class Project
         opts = defaults opts,
             action     : required
             args       : undefined
-            cb         : required
+            cb         : undefined
+            after_command_cb : undefined   # called after the command completes (even if it is long)
         dbg = @dbg("command(action=#{opts.action}, args=#{misc.to_json(opts.args)})")
         state = undefined
         state_info = undefined
@@ -1327,6 +1328,7 @@ class Project
                 @state
                     cb: (err, s) =>
                         if err
+                            opts.after_command_cb?(err)
                             cb(err)
                         else
                             state = s.state
@@ -1334,11 +1336,15 @@ class Project
             (cb) =>
                 state_info = STATES[state]
                 if not state_info?
-                    cb("bug / internal error -- unknown state '#{misc.to_json(state)}'")
+                    err = "bug / internal error -- unknown state '#{misc.to_json(state)}'"
+                    opts.after_command_cb?(err)
+                    cb(err)
                     return
                 i = state_info.commands.indexOf(opts.action)
                 if i == -1
-                    cb("command #{opts.action} not allowed in state #{state}")
+                    err = "command #{opts.action} not allowed in state #{state}"
+                    opts.after_command_cb?(err)
+                    cb(err)
                 else
                     next_state = state_info.to[opts.action]
                     if next_state?
@@ -1358,8 +1364,9 @@ class Project
                                 if err
                                     dbg("state change command ERROR -- #{err}")
                                 else
-                                    dbg("state change command success -- #{misc.to_safe_str(resp)}")
-                                @_update_state()
+                                    dbg("state change command success -- #{misc.to_safe_str(ignored)}")
+                                @_update_state (err2) =>
+                                    opts.after_command_cb?(err or err2)
                         resp = {state:next_state, time:new Date()}
                         cb()
                     else
@@ -1368,8 +1375,8 @@ class Project
                             action : opts.action
                             args   : opts.args
                             cb     : (err, r) =>
-                                resp = r; cb(err)
-        ], (err) => opts.cb(err, resp))
+                                resp = r; cb(err); opts.after_command_cb?(err)
+        ], (err) => opts.cb?(err, resp))
 
     _update_state: (cb) =>
         dbg = @dbg("_update_state")
@@ -1413,7 +1420,7 @@ class Project
         opts = defaults opts,
             mintime : required
             cb      : required
-        dbg = @dbg("mintime(mintime=#{opts.mintime})")
+        dbg = @dbg("mintime(mintime=#{opts.mintime}s)")
         @_mintime = opts.mintime
         sqlite_db.update
             table : 'projects'
@@ -1556,7 +1563,7 @@ kill_idle_projects = (cb) ->
                 if not p.mintime
                     continue
                 last_change = (now - p.state_time)/1000
-                dbg("project_id=#{p.project_id}, last_change=#{last_change}s ago, mintime=#{p.mintime}")
+                dbg("project_id=#{p.project_id}, last_change=#{last_change}s ago, mintime=#{p.mintime}s")
                 if p.mintime < last_change
                     dbg("plan to kill project #{p.project_id}")
                     v.push(p.project_id)
@@ -1570,8 +1577,11 @@ kill_idle_projects = (cb) ->
                                 cb(err)
                             else
                                 project.command
-                                    action : 'stop'
-                                    cb     : cb
+                                    action : 'save'
+                                    after_command_cb : (err) =>
+                                        project.command
+                                            action : 'stop'
+                                            cb     : cb
                 async.map(v, f, cb)
             else
                 dbg("nothing idle to kill")
@@ -1583,7 +1593,7 @@ kill_idle_projects = (cb) ->
     )
 
 init_mintime = (cb) ->
-    setInterval(kill_idle_projects, 60*1000)
+    setInterval(kill_idle_projects, 3*60*1000)
     kill_idle_projects(cb)
 
 start_tcp_server = (cb) ->
