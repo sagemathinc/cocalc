@@ -312,8 +312,8 @@ class ComputeServerClient
                             socket.on 'close', () =>
                                 dbg("socket #{socket.id} closed")
                                 for _, p of @_project_cache
-                                    # tell every project whose state was set via a push event
-                                    # from this socket that the state is no longer known.
+                                    # tell every project whose state was set via
+                                    # this socket that the state is no longer known.
                                     if p._socket_id == socket.id
                                         delete p._state
                                         delete p._state_time
@@ -351,7 +351,7 @@ class ComputeServerClient
             host    : required
             mesg    : undefined
             timeout : 15
-            project : undefined
+            project : required
             cb      : required
 
         dbg = @dbg("call(#{opts.host})")
@@ -368,8 +368,9 @@ class ComputeServerClient
                     cb   : (err, s) =>
                         socket = s; cb(err)
             (cb) =>
-                if opts.project
-                    opts.project._socket_id = socket.id
+                # record that this socket was used by the given project
+                # (so on close can invalidate info)
+                opts.project._socket_id = socket.id
                 socket.write_mesg 'json', opts.mesg, (err) =>
                     if err
                         cb("error writing to socket -- #{err}")
@@ -725,7 +726,7 @@ class ProjectClient extends EventEmitter
 
     ensure_running: (opts) =>
         opts = defaults opts,
-            cb     : required
+            cb : required
         state = undefined
         dbg = @dbg("ensure_running")
         async.series([
@@ -820,7 +821,6 @@ class ProjectClient extends EventEmitter
                 else
                     cb("bug -- state=#{state} should be stable but isn't known")
         ], (err) => opts.cb(err))
-
 
     # move project from one compute node to another one
     move: (opts) =>
@@ -1212,6 +1212,10 @@ get_project = (opts) ->
     opts = defaults opts,
         project_id : required
         cb         : required
+    project = project_cache[opts.project_id]
+    if project?
+        opts.cb(undefined, project)
+        return
     v = project_cache_cb[opts.project_id]
     if v?
         v.push(opts.cb)
@@ -1268,10 +1272,12 @@ class Project
 
     add_listener: (socket) =>
         if not @_state_listeners[socket.id]?
+            dbg = @dbg("add_listener")
+            dbg("adding #{socket.id}")
             @_state_listeners[socket.id] = socket
             socket.on 'close', () =>
+                dbg("closing #{socket.id} and removing listener")
                 delete @_state_listeners[socket.id]
-            @dbg("add_listener")(socket.id)
 
     _update_state_db: (cb) =>
         dbg = @dbg("_update_state_db")
@@ -1291,7 +1297,7 @@ class Project
             project_id : @project_id
             state      : @_state
             time       : @_state_time
-        dbg("send message to each listener that state has been updated = #{misc.to_safe_str(mesg)}")
+        dbg("send message to each of the #{@_state_listeners.length} listeners that the state has been updated = #{misc.to_safe_str(mesg)}")
         for id, socket of @_state_listeners
             dbg("sending mesg to socket #{id}")
             socket.write_mesg('json', mesg)

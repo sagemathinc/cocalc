@@ -5205,7 +5205,7 @@ class Project
                 # this frees up disk space but doesn't permanently
                 # delete project from cloud storage (that needs to
                 # be implemented as a different step using destroy).
-                @local_hub.close(cb:cb)
+                @local_hub.close(cb)
         ], opts.cb)
 
     move_project: (opts) =>
