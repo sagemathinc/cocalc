@@ -21,15 +21,6 @@
 #
 ###############################################################################
 
-# TODO:
-#
-#  - [ ] (3:00?) carry over all functionality *needed* from bup_storage.py
-#  - [ ] (1:00?) delete excessive snapshots: ???
-#  - [x] (1:00?) delete old versions of streams
-#
-# MAYBE:
-#  - support 3 tiers of storage: /projects/ssd, /projects/hdd, /projects/ssd-local
-#
 
 """
 
