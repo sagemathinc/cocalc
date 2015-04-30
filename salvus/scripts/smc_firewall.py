@@ -79,23 +79,47 @@ class Firewall(object):
     def iptables(self, args, **kwds):
         return cmd(['iptables','-v'] + args, **kwds)
 
+    def insert_rule(self, rule):
+        if not self.exists(rule):
+            log("insert_rule: %s", rule)
+            self.iptables(['-I'] + rule)
+
+    def append_rule(self, rule):
+        if not self.exists(rule):
+            log("append_rule: %s", rule)
+            self.iptables(['-A'] + rule)
+
+    def delete_rule(self, rule):
+        if not self.exists(rule):
+            log("delete_rule: %s", rule)
+            self.iptables(['-D'] + rule)
+
     def exists(self, rule):
         """
         Return true if the given rule exists already.
         """
         try:
-            print self.iptables(['-C'] + rule, verbose=0)
-            log("rule %s already exists", rule)
+            self.iptables(['-C'] + rule, verbose=0)
+            #log("rule %s already exists", rule)
             return True
         except:
-            log("rule %s does not exist", rule)
+            #log("rule %s does not exist", rule)
             return False
 
-    def flush(self):
+    def clear(self):
         """
-        Delete all firewall rules, making it completely open.
+        Remove all firewall rules, making everything completely open.
         """
         self.iptables(['-F'])
+
+    def show(self, names=False):
+        """
+        Show all firewall rules, making everything completely open.
+        """
+        if names:
+            os.system("iptables -v -L")
+        else:
+            os.system("iptables -v -n -L")
 
     def outgoing(self, whitelist_hosts='', whitelist_users='', blacklist_users=''):
         """
@@ -115,15 +139,15 @@ class Firewall(object):
             if v[0] == 'nameserver':
                 log("adding nameserver %s to whitelist", v[1])
                 whitelist.append(v[1])
-        whitelist = ', '.join(whitelist)
+        whitelist = ','.join(whitelist)
         log("whitelist: %s", whitelist)
 
         # Insert whitelist rule at the beginning of OUTPUT chain.
         # Anything that matches this will immediately be accepted to go out.
-        self.iptables(['-I', 'OUTPUT', '-d', whitelist, '-j', 'ACCEPT'])
+        self.insert_rule(['OUTPUT', '-d', whitelist, '-j', 'ACCEPT'])
 
         # Block all new outgoing connections that we didn't allow above.
-        self.iptables(['-A', 'OUTPUT', '-m', 'state', '--state', 'NEW', '-j', 'REJECT'])
+        self.append_rule(['OUTPUT', '-m', 'state', '--state', 'NEW', '-j', 'REJECT'])
 
     def outgoing_user(self, add='', remove=''):
         def rule(user):
@@ -131,18 +155,26 @@ class Firewall(object):
             return ['OUTPUT', '-m', 'owner', '--uid-owner', user , '-j', 'ACCEPT']
         for user in remove.split(','):
             if user:
-                r = rule(user)
-                if self.exists(r):
-                    log("deleting rule %s", r)
-                    self.iptables(['-D'] + r)
+                self.delete_rule(rule(user))
         for user in add.split(','):
             if user:
-                r = rule(user)
-                if not self.exists(r):
-                    log("inserting rule %s", r)
-                    self.iptables(['-I'] + r)
+                self.insert_rule(rule(user))
 
-
+    def incoming(self, whitelist_hosts=''):
+        """
+        Allow any incoming ssh (port 22 tcp) connections.
+        Deny all other incoming traffic, except from the
+        explicitly given whitelist of machines.
+        """
+        # allow incoming ssh
+        self.insert_rule(['INPUT', '-p', 'tcp', '--dport', 22, '-j', 'ACCEPT'])
+        # allow incoming anything in the whitelist
+        self.insert_rule(['INPUT', '-s', whitelist_hosts, '-m', 'state', '--state', 'NEW,ESTABLISHED', '-j', 'ACCEPT'])
+        # loopback traffic: allow only ports
+        self.insert_rule(['INPUT', '-i', 'lo', '-j', 'ACCEPT'])
+        #self.insert_rule(['OUTPUT', '-o', 'lo', '-j', 'ACCEPT'])
+        # block everything else
+        self.append_rule(['INPUT', '-j', 'DROP'])
 
 if __name__ == "__main__":
 
@@ -150,7 +182,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SageMathCloud firewall control script")
     subparsers = parser.add_subparsers(help='sub-command help')
 
-    def fw(subparser):
+    def f(subparser):
         function = subparser.prog.split()[-1]
         def g(args):
             special = [k for k in args.__dict__.keys() if k not in ['func']]
@@ -168,13 +200,21 @@ if __name__ == "__main__":
                 sys.exit(1)
         subparser.set_defaults(func=g)
 
-    parser_fw_outgoing = subparsers.add_parser('outgoing', help='create firewall to block all outgoing traffic, except explicit whitelist)')
-    parser_fw_outgoing.add_argument('--whitelist_hosts',help="comma separated list of sites to whitelist (if empty doesn't block anything)", default='')
-    parser_fw_outgoing.add_argument('--whitelist_users',help="comma separated list of users to whitelist", default='')
-    parser_fw_outgoing.add_argument('--blacklist_users',help="comma separated list of users to remove from whitelist", default='')
-    fw(parser_fw_outgoing)
+    parser_outgoing = subparsers.add_parser('outgoing', help='create firewall to block all outgoing traffic, except explicit whitelist)')
+    parser_outgoing.add_argument('--whitelist_hosts',help="comma separated list of sites to whitelist (if empty doesn't block anything)", default='')
+    parser_outgoing.add_argument('--whitelist_users',help="comma separated list of users to whitelist", default='')
+    parser_outgoing.add_argument('--blacklist_users',help="comma separated list of users to remove from whitelist", default='')
+    f(parser_outgoing)
 
-    fw(subparsers.add_parser('flush', help='remove all rules'))
+    parser_incoming = subparsers.add_parser('incoming', help='create firewall to block all incoming traffic except ssh, except explicit whitelist')
+    parser_incoming.add_argument('--whitelist_hosts',help="comma separated list of sites to whitelist (should be the hub vm's)", default='')
+    f(parser_incoming)
+
+    f(subparsers.add_parser('clear', help='clear all rules'))
+
+    parser_show = subparsers.add_parser('show', help='show all rules')
+    parser_show.add_argument('--names',help="show hostnames (potentially expensive DNS lookup)", default=False, action="store_const", const=True)
+    f(parser_show)
 
     args = parser.parse_args()
     args.func(args)
