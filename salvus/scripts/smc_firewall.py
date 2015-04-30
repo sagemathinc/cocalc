@@ -139,15 +139,28 @@ class Firewall(object):
         else:
             os.system("iptables -v -n -L")
 
-    def outgoing(self, whitelist_hosts='', whitelist_users='', blacklist_users=''):
+    def outgoing(self, whitelist_hosts='', whitelist_hosts_file='', whitelist_users='', blacklist_users=''):
         """
         Block all outgoing traffic, except what is given
         in a specific whitelist and DNS.
         """
-        if whitelist_hosts:
-            self.outgoing_whitelist_hosts(whitelist_hosts)
         if whitelist_users or blacklist_users:
             self.outgoing_user(whitelist_users, blacklist_users)
+
+        if whitelist_hosts_file:
+            v = []
+            for x in open(whitelist_hosts_file).readlines():
+                i = x.find('#')
+                if i != -1:
+                    x = x[:i]
+                x = x.strip()
+                if x:
+                    v.append(x)
+            if len(v) > 0:
+                self.outgoing_whitelist_hosts(','.join(v))
+        if whitelist_hosts:
+            self.outgoing_whitelist_hosts(whitelist_hosts)
+
         # Block absolutely all outgoing traffic *from* lo to not loopback on same
         # machine: this is to make it so a project
         # can serve a network service listening on eth0 safely without having to worry
@@ -158,7 +171,7 @@ class Firewall(object):
         return {'status':'success'}
 
     def outgoing_whitelist_hosts(self, whitelist):
-        whitelist = [x.strip() for x in whitelist.split()]
+        whitelist = [x.strip() for x in whitelist.split(',')]
         # determine the ip addresses of our locally configured DNS servers
         for x in open("/etc/resolv.conf").readlines():
             v = x.split()
@@ -170,7 +183,8 @@ class Firewall(object):
 
         # Insert whitelist rule at the beginning of OUTPUT chain.
         # Anything that matches this will immediately be accepted to go out.
-        self.insert_rule(['OUTPUT', '-d', whitelist, '-j', 'ACCEPT'])
+        if whitelist:
+            self.insert_rule(['OUTPUT', '-d', whitelist, '-j', 'ACCEPT'])
 
         # Loopback traffic: allow all OUTGOING (so the rule below doesn't cause trouble);
         # needed, e.g., by Jupyter notebook and probably other services.
@@ -178,7 +192,6 @@ class Firewall(object):
 
         # Block all new outgoing connections that we didn't allow above.
         self.append_rule(['OUTPUT', '-m', 'state', '--state', 'NEW', '-j', 'REJECT'])
-
 
     def outgoing_user(self, add='', remove=''):
         def rule(user):
@@ -189,7 +202,10 @@ class Firewall(object):
                 self.delete_rule(rule(user), force=True)
         for user in add.split(','):
             if user:
-                self.insert_rule(rule(user), force=True)
+                try:
+                    self.insert_rule(rule(user), force=True)
+                except Exception, mesg:
+                    log("\nWARNING whitelisting user: %s\n", str(mesg).splitlines()[:-1])
 
     def incoming(self, whitelist_hosts='', whitelist_ports=''):
         """
@@ -239,7 +255,8 @@ if __name__ == "__main__":
         subparser.set_defaults(func=g)
 
     parser_outgoing = subparsers.add_parser('outgoing', help='create firewall to block all outgoing traffic, except explicit whitelist)')
-    parser_outgoing.add_argument('--whitelist_hosts',help="comma separated list of sites to whitelist (if empty doesn't block anything)", default='')
+    parser_outgoing.add_argument('--whitelist_hosts',help="comma separated list of sites to whitelist (not run if empty)", default='')
+    parser_outgoing.add_argument('--whitelist_hosts_file',help="filename of file with one line for each host (comments and blank lines are ignored)", default='')
     parser_outgoing.add_argument('--whitelist_users',help="comma separated list of users to whitelist", default='')
     parser_outgoing.add_argument('--blacklist_users',help="comma separated list of users to remove from whitelist", default='')
     f(parser_outgoing)

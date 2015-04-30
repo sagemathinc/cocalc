@@ -1309,6 +1309,13 @@ class ProjectClient extends EventEmitter
                                 action : 'network'
                                 args   : if opts.network then [] else ['--ban']
                                 cb     : (err) =>
+                                    if not err
+                                        sqlite_db.update  # record network state in database in case things get restarted.
+                                            table : 'projects'
+                                            set   :
+                                                network : opts.network
+                                            where :
+                                                project_id : opts.project_id
                                     cb(err)
                         else
                             cb()
@@ -1821,6 +1828,36 @@ handle_mesg = (socket, mesg) ->
         socket.write_mesg('json', resp)
 
 sqlite_db = undefined
+sqlite_db_set = (opts) ->
+    opts = defaults opts,
+        key   : required
+        value : required
+        cb    : required
+    sqlite_db.update
+        table : 'keyvalue'
+        set   :
+            value : misc.to_json(opts.value)
+        where :
+            key   : misc.to_json(opts.key)
+        cb    : opts.cb
+
+sqlite_db_get = (opts) ->
+    opts = defaults opts,
+        key : required
+        cb  : required
+    sqlite_db.select
+        table : 'keyvalue'
+        columns : ['value']
+        where :
+            key   : misc.to_json(opts.key)
+        cb    : (err, result) ->
+            if err
+                opts.cb(err)
+            else if result.length == 0
+                opts.cb(undefined, undefined)
+            else
+                opts.cb(undefined, misc.from_json(result[0][0]))
+
 init_sqlite_db = (cb) ->
     exists = undefined
     async.series([
@@ -1842,9 +1879,14 @@ init_sqlite_db = (cb) ->
                 #    state -- opened, closed, etc.
                 #    state_time -- when switched to current state
                 #    assigned -- when project was first opened on this node.
-                sqlite_db.sql
-                    query : 'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_time INTEGER, mintime INTEGER, assigned INTEGER, )'
-                    cb    : cb
+                f = (query, cb) ->
+                    sqlite_db.sql
+                        query : query
+                        cb    : cb
+                async.map([
+                    'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_time INTEGER, mintime INTEGER, assigned INTEGER, network BOOLEAN)',
+                    'CREATE TABLE keyvalue(key TEXT PRIMARY KEY, value TEXT)'
+                    ], f, cb)
     ], cb)
 
 # periodically check to see if any projects need to be killed
@@ -1959,6 +2001,8 @@ start_tcp_server = (cb) ->
     get_port () ->
         listen(cb)
 
+# Initialize basic information about this node once and for all.
+# So far, not much -- just number of processors.
 STATS = {}
 init_stats = (cb) =>
     misc_node.execute_code
@@ -1970,9 +2014,127 @@ init_stats = (cb) =>
                 STATS.nproc = parseInt(output.stdout)
                 cb()
 
+# Gets metadata from Google, or if that fails, from the local SQLITe database.  Saves
+# result in database for future use in case metadata fails.
+get_metadata = (opts) ->
+    opts = defaults opts,
+        key : required
+        cb  : required
+    value = undefined
+    key = "metadata-#{opts.key}"
+    async.series([
+        (cb) ->
+            dbg("query google metdata server for #{opts.key}")
+            misc_node.execute_code
+                command : "curl"
+                args    : ["http://metadata.google.internal/computeMetadata/v1/project/attributes/{opts.key}",
+                           '-H', 'Metadata-Flavor: Google']
+                cb      : (err, output) ->
+                    if err
+                        dbg("nonfatal error querying metadata -- #{err}")
+                        cb()
+                    else
+                        value = output.stdout
+                        cb()
+        (cb) ->
+            if value?
+                dbg("save to local database")
+                sqlite_db_set
+                    key   : key
+                    value : value
+                    cb    : cb
+            else
+                dbg("querying local database")
+                sqlite_db_get
+                    key   : key
+                    cb    : (err, result) ->
+                        if err
+                            cb(err)
+                        else
+                            value = result
+                            cb()
+    ], (err) ->
+        if err
+            opts.cb(err)
+        else
+            opts.cb(undefined, value)
+    )
+
+get_whitelisted_users = (opts) ->
+    opts = defaults opts,
+        cb : required
+    sqlite_db.select
+        table   : 'projects'
+        where   :
+            network : true
+        columns : ['project_id']
+        cb      : (err, results) ->
+            if err
+                cb(err)
+            else
+                cb(undefined, (x.project_id.replace(/-/g,'') for x in results))
+
+firewall = (opts) ->
+    opts = defaults opts,
+        command : required
+        args    : []
+        cb      : required
+    misc_node.execute_code
+        command : 'sudo'
+        args    : ["/usr/local/bin/smc_firewall.py", opts.command].concat(opts.args)
+        bash    : false
+        timeout : 30
+        path    : process.cwd()
+        cb      : opts.cb
+
+#
+# Initialize the iptables based firewall.  Must be run after sqlite db is initialized.
+init_firewall = (cb) ->
+    dbg = (m) -> winston.debug("init_firewall: #{m}")
+    incoming_whitelist_hosts = ''
+    outgoing_whitelist_hosts = 'sagemath.com'
+    whitelisted_users        = ''
+    async.series([
+        (cb) ->
+            async.parallel([
+                (cb) ->
+                    dbg("getting incoming_whitelist_hosts")
+                    get_metadata
+                        key : "incoming_whitelist_hosts"
+                        cb  : (err, w) ->
+                            incoming_whitelist_hosts = w
+                            cb(err)
+                (cb) ->
+                    dbg('getting whitelisted users')
+                    get_whitelisted_users
+                        cb  : (err, users) ->
+                            whitelisted_users = users.join(',')
+                            cb(err)
+            ], cb)
+        (cb) ->
+            dbg("clear existing firewall")
+            firewall
+                command : "clear"
+                cb      : cb
+        (cb) ->
+            dbg("starting firewall -- applying incoming rules")
+            firewall
+                command : "incoming"
+                args    : ["--whitelist_hosts", incoming_whitelist_hosts]
+                cb      : cb
+        (cb) ->
+            dbg("starting firewall -- applying outgoing rules")
+            firewall
+                command : "outgoing"
+                args    : ["--whitelist_hosts_file", "#{process.env.SALVUS_ROOT}/scripts/outgoing_whitelist_hosts",
+                           "--whitelist_users", whitelisted_users]
+                cb      : cb
+    ], cb)
+
+
 start_server = (cb) ->
     winston.debug("start_server")
-    async.series [init_stats, read_secret_token, init_sqlite_db, init_mintime, start_tcp_server], (err) ->
+    async.series [init_stats, read_secret_token, init_sqlite_db, init_firewall, init_mintime, start_tcp_server], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
         else
