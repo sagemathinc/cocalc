@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+SERVER_STATUS_TIMEOUT_S = 3
+
 # todo -- these should be in a table in the database.
 DEFAULT_SETTINGS =
     disk_quota : 1000
@@ -248,26 +250,56 @@ class ComputeServerClient
                     cb    : cb
         ], (err) => opts.cb?(err))
 
-    # choose a random host for a project from the available compute_servers
-    random_host: (opts) =>
+    # Choose a host from the available compute_servers according to some
+    # notion of load balancing (not really worked out yet)
+    assign_host: (opts) =>
         opts = defaults opts,
+            exclude  : []
             cb       : required
-        dbg = @dbg("random_host")
+        dbg = @dbg("assign_host")
         dbg("querying database")
-        @database.select
-            table     : 'compute_servers'
-            columns   : ['host', 'experimental']
-            objectify : true
-            cb        : (err, s) =>
+        @status
+            cb : (err, nodes) =>
                 if err
-                    dbg("error querying database for servers -- #{err}")
                     opts.cb(err)
                 else
-                    # TODO: take into account load, health, etc.
-                    v = (x.host for x in s when not x.experimental)
-                    dbg("got compute servers: #{misc.to_json(v)}")
-                    opts.cb(undefined, misc.random_choice(v))
-
+                    # Ignore any exclude nodes
+                    for host in opts.exclude
+                        delete nodes[host]
+                    # We want to choose the best (="least loaded?") working node.
+                    v = []
+                    for host, info of nodes
+                        if info.experimental
+                            continue
+                        v.push(info)
+                        info.host = host
+                        if info.error?
+                            info.score = 0
+                        else
+                            # 10 points if no load; 0 points if massive load
+                            info.score = Math.max(0, Math.round(10*(1 - info.load[0])))
+                            # 1 point for each Gigabyte of available RAM that won't
+                            # result in swapping if used
+                            info.score += Math.round(info.memory.MemAvailable/1000)
+                    if v.length == 0
+                        opts.cb("no hosts available")
+                        return
+                    # sort so highest scoring is first.
+                    v.sort (a,b) =>
+                        if a.score < b.score
+                            return 1
+                        else if a.score > b.score
+                            return -1
+                        else
+                            return 0
+                    dbg("scored host info = #{misc.to_json(([info.host,info.score] for info in v))}")
+                    # finally choose one of the hosts with the highest score at random.
+                    best_score = v[0].score
+                    i = 0
+                    while i < v.length and v[i].score == best_score
+                        i += 1
+                    w = v.slice(0,i)
+                    opts.cb(undefined, misc.random_choice(w).host)
 
     # get a socket connection to a particular compute server
     socket: (opts) =>
@@ -349,7 +381,7 @@ class ComputeServerClient
             host    : required
             mesg    : undefined
             timeout : 15
-            project : required
+            project : undefined
             cb      : required
 
         dbg = @dbg("call(#{opts.host})")
@@ -366,9 +398,10 @@ class ComputeServerClient
                     cb   : (err, s) =>
                         socket = s; cb(err)
             (cb) =>
-                # record that this socket was used by the given project
-                # (so on close can invalidate info)
-                opts.project._socket_id = socket.id
+                if opts.project?
+                    # record that this socket was used by the given project
+                    # (so on close can invalidate info)
+                    opts.project._socket_id = socket.id
                 socket.write_mesg 'json', opts.mesg, (err) =>
                     if err
                         cb("error writing to socket -- #{err}")
@@ -423,6 +456,54 @@ class ComputeServerClient
                             cb(err)
                         else
                             cb(undefined, project)
+
+    # get status information about compute servers
+    status: (opts) =>
+        opts = defaults opts,
+            hosts   : undefined   # list of hosts or undefined=all compute servers
+            timeout : SERVER_STATUS_TIMEOUT_S           # compute server must respond this quickly or {error:some sort of timeout error..}
+            cb      : required    # cb(err, {host1:status, host2:status2, ...})
+        dbg = @dbg('status')
+        result = {}
+        async.series([
+            (cb) =>
+                if opts.hosts?
+                    cb(); return
+                dbg("getting list of all compute server hostnames from database")
+                @database.select
+                    table     : 'compute_servers'
+                    columns   : ['host', 'experimental']
+                    objectify : true
+                    cb        : (err, s) =>
+                        if err
+                            cb(err)
+                        else
+                            for x in s
+                                result[x.host] = {experimental:x.experimental}
+                            dbg("got #{s.length} compute servers")
+                            cb()
+            (cb) =>
+                dbg("querying servers for their status")
+                f = (host, cb) =>
+                    @call
+                        host    : host
+                        mesg    : message.compute_server_status()
+                        timeout : opts.timeout
+                        cb      : (err, resp) =>
+                            if err
+                                result[host].error = err
+                            else
+                                if not resp?.status
+                                    result[host].error = "invalid response -- no status"
+                                else
+                                    for k, v of resp.status
+                                        result[host][k] = v
+                            cb()
+                async.map(misc.keys(result), f, cb)
+        ], (err) =>
+            opts.cb(err, result)
+        )
+
 
 class ProjectClient extends EventEmitter
     constructor: (opts) ->
@@ -499,8 +580,8 @@ class ProjectClient extends EventEmitter
                 if host?
                     cb()
                 else
-                    dbg("assigning random host")
-                    @compute_server.random_host
+                    dbg("assigning some host")
+                    @compute_server.assign_host
                         cb : (err, h) =>
                             if err
                                 dbg("error assigning random host -- #{err}")
@@ -599,22 +680,74 @@ class ProjectClient extends EventEmitter
     status: (opts) =>
         opts = defaults opts,
             cb     : required
-        @dbg("status")()
-        @_action
-            action : "status"
-            cb     : (err, status) =>
-                if err
-                    opts.cb(err)
+        dbg = @dbg("status")
+        dbg()
+        status = undefined
+        async.series([
+            (cb) =>
+                dbg("get status from compute server")
+                f = (cb) =>
+                    @_action
+                        action : "status"
+                        cb     : (err, s) =>
+                            if not err
+                                status = s
+                            cb(err)
+                # we retry getting status with exponential backoff until we hit max_time, which
+                # triggers failover of project to another node.
+                misc.retry_until_success
+                    f           : f
+                    start_delay : 500
+                    max_time    : 15000
+                    cb          : (err) =>
+                        if err
+                            m = "failed to get status -- project not working on #{@host} -- initiating automatic move to a new node -- #{err}"
+                            dbg(m)
+                            cb(m)
+                            # Now we actually initiate the failover, which could take a long time,
+                            # depending on how big the project is.
+                            @move
+                                force : true
+                                cb    : (err) =>
+                                    dbg("result of failover -- #{err}")
+                        else
+                            cb()
+            (cb) =>
+                if status.assigned and @assigned and (status.assigned != @assigned)
+                    dbg("timestamps when project assigned to this host do not match, so files left on host must be from past automatic failover -- delete them and start over")
+                    async.series([
+                        (cb) =>
+                            dbg("ensure closed")
+                            @ensure_closed
+                                force  : true
+                                nosave : true
+                                cb     : cb
+                        (cb) =>
+                            dbg("now get status again")
+                            @_action
+                                action : "status"
+                                cb     : (err, s) =>
+                                    status = s; cb(err)
+                    ], cb)
                 else
-                    @get_quotas
-                        cb : (err, quotas) =>
-                            if err
-                                opts.cb(err)
-                            else
-                                status.host = @host
-                                status.ssh = @host
-                                status.quotas = quotas
-                                opts.cb(undefined, status)
+                    cb()
+            (cb) =>
+                @get_quotas
+                    cb : (err, quotas) =>
+                        if err
+                            cb(err)
+                        else
+                            status.host = @host
+                            status.ssh = @host
+                            status.quotas = quotas
+                            cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, status)
+        )
+
 
     # COMMANDS:
 
@@ -684,7 +817,6 @@ class ProjectClient extends EventEmitter
                                         dbg("start finished -- #{err}")
                 else
                     opts.cb("may only restart when state is opened or running")
-
 
     # kill everything and remove project from this compute
     # node  (must be opened somewhere)
@@ -846,14 +978,50 @@ class ProjectClient extends EventEmitter
     # move project from one compute node to another one
     move: (opts) =>
         opts = defaults opts,
-            target : required  # hostname of a compute server
+            target : undefined # hostname of a compute server; if not given, one (diff than current) will be chosen by load balancing
+            force  : false     # if true, brutally ignore error trying to cleanup/save on current host
             cb     : required
         dbg = @dbg("move(target:'#{opts.target}')")
         async.series([
             (cb) =>
-                dbg("first ensure it is closed/deleted from current host")
-                @ensure_closed
-                    cb   : cb
+                async.parallel([
+                    (cb) =>
+                        dbg("determine target")
+                        if opts.target?
+                            cb()
+                        else
+                            exclude = []
+                            if @host?
+                                exclude.push(@host)
+                            @compute_server.assign_host
+                                exclude : exclude
+                                cb      : (err, host) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        dbg("assigned target = #{host}")
+                                        opts.target = host
+                                        cb()
+                    (cb) =>
+                        dbg("first ensure it is closed/deleted from current host")
+                        @ensure_closed
+                            cb   : (err) =>
+                                if err
+                                    if not opts.force
+                                        cb(err)
+                                    else
+                                        dbg("errors trying to close but force requested so proceeding -- #{err}")
+                                        @ensure_closed
+                                            force  : true
+                                            nosave : true
+                                            cb     : (err) =>
+                                                dbg("second attempt error, but ignoring -- #{err}")
+                                                cb()
+                                else
+                                    cb()
+
+
+                ], cb)
             (cb) =>
                 dbg("update database with new project location")
                 @assigned = new Date() - 0
@@ -900,7 +1068,7 @@ class ProjectClient extends EventEmitter
 
     save: (opts) =>
         opts = defaults opts,
-            max_snapshots : 60
+            max_snapshots : 50
             min_interval  : 10  # fail if there is a snapshot that is younger than this many MINUTES (use 0 to disable)
             cb     : required
         dbg = @dbg("save(max_snapshots:#{opts.max_snapshots}, min_interval:#{opts.min_interval})")
@@ -1577,6 +1745,62 @@ handle_compute_mesg = (mesg, socket, cb) ->
             cb(resp)
     )
 
+handle_status_mesg = (mesg, socket, cb) ->
+    dbg = (m) => winston.debug("handle_status_mesg(hub -> compute, id=#{mesg.id}): #{m}")
+    dbg()
+    status = {nproc:STATS.nproc}
+    async.parallel([
+        (cb) =>
+            sqlite_db.select
+                table   : 'projects'
+                columns : ['state']
+                cb      : (err, result) =>
+                    if err
+                        cb(err)
+                    else
+                        projects = status.projects = {}
+                        for x in result
+                            s = x.state
+                            if not projects[s]?
+                                projects[s] = 1
+                            else
+                                projects[s] += 1
+                        cb()
+        (cb) =>
+            fs.readFile '/proc/loadavg', (err, data) =>
+                if err
+                    cb(err)
+                else
+                    # http://stackoverflow.com/questions/11987495/linux-proc-loadavg
+                    x = misc.split(data.toString())
+                    # this is normalized based on number of procs
+                    status.load = (parseFloat(x[i])/STATS.nproc for i in [0..2])
+                    v = x[3].split('/')
+                    status.num_tasks   = parseInt(v[1])
+                    status.num_active = parseInt(v[0])
+                    cb()
+        (cb) =>
+            fs.readFile '/proc/meminfo', (err, data) =>
+                if err
+                    cb(err)
+                else
+                    # See this about what MemAvailable is:
+                    #   https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=34e431b0ae398fc54ea69ff85ec700722c9da773
+                    x = data.toString()
+                    status.memory = memory = {}
+                    for k in ['MemAvailable', 'SwapTotal', 'MemTotal', 'SwapFree']
+                        i = x.indexOf(k)
+                        y = x.slice(i)
+                        i = y.indexOf('\n')
+                        memory[k] = parseInt(misc.split(y.slice(0,i).split(':')[1]))/1000
+                    cb()
+    ], (err) =>
+        if err
+            cb(message.error(error:err))
+        else
+            cb(message.compute_server_status(status:status))
+    )
+
 handle_mesg = (socket, mesg) ->
     dbg = (m) => winston.debug("handle_mesg(hub -> compute, id=#{mesg.id}): #{m}")
     dbg(misc.to_safe_str(mesg))
@@ -1585,6 +1809,8 @@ handle_mesg = (socket, mesg) ->
         switch mesg.event
             when 'compute'
                 handle_compute_mesg(mesg, socket, cb)
+            when 'compute_server_status'
+                handle_status_mesg(mesg, socket, cb)
             when 'ping'
                 cb(message.pong())
             else
@@ -1617,7 +1843,7 @@ init_sqlite_db = (cb) ->
                 #    state_time -- when switched to current state
                 #    assigned -- when project was first opened on this node.
                 sqlite_db.sql
-                    query : 'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_time INTEGER, mintime INTEGER, assigned INTEGER)'
+                    query : 'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_time INTEGER, mintime INTEGER, assigned INTEGER, )'
                     cb    : cb
     ], cb)
 
@@ -1733,9 +1959,20 @@ start_tcp_server = (cb) ->
     get_port () ->
         listen(cb)
 
+STATS = {}
+init_stats = (cb) =>
+    misc_node.execute_code
+        command : "nproc"
+        cb      : (err, output) =>
+            if err
+                cb(err)
+            else
+                STATS.nproc = parseInt(output.stdout)
+                cb()
+
 start_server = (cb) ->
     winston.debug("start_server")
-    async.series [read_secret_token, init_sqlite_db, init_mintime, start_tcp_server], (err) ->
+    async.series [init_stats, read_secret_token, init_sqlite_db, init_mintime, start_tcp_server], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
         else
