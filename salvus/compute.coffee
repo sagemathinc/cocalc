@@ -533,7 +533,7 @@ class ProjectClient extends EventEmitter
             @_last_save = new Date()
 
     dbg: (method) =>
-        (m) => winston.debug("ProjectClient(#{@project_id},#{@host}).#{method}: #{m}")
+        (m) => winston.debug("ProjectClient(project_id='#{@project_id}','#{@host}').#{method}: #{m}")
 
     clear_state: () =>
         @dbg("clear_state")()
@@ -616,7 +616,7 @@ class ProjectClient extends EventEmitter
             timeout : 30
             cb      : required
         dbg = @dbg("_action(action=#{opts.action})")
-        dbg("params=#{misc.to_safe_str(opts.params)}")
+        dbg("args=#{misc.to_safe_str(opts.args)}")
         dbg("first update host to use the right compute server")
         @update_host
             cb : (err) =>
@@ -1304,7 +1304,7 @@ class ProjectClient extends EventEmitter
                         async.map(misc.keys(opts), f, cb)
                     (cb) =>
                         if opts.network? and commands.indexOf('network') != -1
-                            dbg("update network quota on project")
+                            dbg("update network quota: network=#{opts.network}")
                             @_action
                                 action : 'network'
                                 args   : if opts.network then [] else ['--ban']
@@ -1610,7 +1610,7 @@ class Project
                                 if err
                                     resp = message.error(error:err)
                                 else
-                                    resp = {}
+                                    resp = {network:network}
                                 cb(err)
                             )
                         else
