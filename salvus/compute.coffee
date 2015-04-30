@@ -1309,13 +1309,6 @@ class ProjectClient extends EventEmitter
                                 action : 'network'
                                 args   : if opts.network then [] else ['--ban']
                                 cb     : (err) =>
-                                    if not err
-                                        sqlite_db.update  # record network state in database in case things get restarted.
-                                            table : 'projects'
-                                            set   :
-                                                network : opts.network
-                                            where :
-                                                project_id : opts.project_id
                                     cb(err)
                         else
                             cb()
@@ -1390,7 +1383,7 @@ smc_compute = (opts) =>
     winston.debug("smc_compute: running #{misc.to_json(opts.args)}")
     misc_node.execute_code
         command : "sudo"
-        args    : ["/usr/local/bin/smc_compute.py", "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE].concat(opts.args)
+        args    : ["#{process.env.SALVUS_ROOT}/scripts/smc_compute.py", "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE].concat(opts.args)
         timeout : opts.timeout
         bash    : false
         path    : process.cwd()
@@ -1591,12 +1584,43 @@ class Project
                         resp = {state:next_state, time:new Date()}
                         cb()
                     else
-                        # Fairly quick action that doesn't involve state change
-                        @_command
-                            action : opts.action
-                            args   : opts.args
-                            cb     : (err, r) =>
-                                resp = r; cb(err); opts.after_command_cb?(err)
+                        # A quick action that doesn't involve state change
+                        if opts.action == 'network'  # length==0 is allow network
+                            network = opts.args.length == 0
+                            async.parallel([
+                                (cb) =>
+                                    sqlite_db.update  # store network state in database in case things get restarted.
+                                        table : 'projects'
+                                        set   :
+                                            network : network
+                                        where :
+                                            project_id : @project_id
+                                        cb    : cb
+                                (cb) =>
+                                    uname = @project_id.replace(/-/g,'')
+                                    if network
+                                        args = ['--whitelist_users', uname]
+                                    else
+                                        args = ['--blacklist_users', uname]
+                                    firewall
+                                        command : "outgoing"
+                                        args    : args
+                                        cb      : cb
+                            ], (err) =>
+                                if err
+                                    resp = message.error(error:err)
+                                else
+                                    resp = {}
+                                cb(err)
+                            )
+                        else
+                            @_command
+                                action : opts.action
+                                args   : opts.args
+                                cb     : (err, r) =>
+                                    resp = r; cb(err); opts.after_command_cb?(err)
+
+
             (cb) =>
                 if assigned?
                     # Project was just opened and opening is an allowed command.
@@ -2020,6 +2044,7 @@ get_metadata = (opts) ->
     opts = defaults opts,
         key : required
         cb  : required
+    dbg = (m) -> winston.debug("get_metadata: #{m}")
     value = undefined
     key = "metadata-#{opts.key}"
     async.series([
@@ -2027,14 +2052,15 @@ get_metadata = (opts) ->
             dbg("query google metdata server for #{opts.key}")
             misc_node.execute_code
                 command : "curl"
-                args    : ["http://metadata.google.internal/computeMetadata/v1/project/attributes/{opts.key}",
+                args    : ["http://metadata.google.internal/computeMetadata/v1/project/attributes/#{opts.key}",
                            '-H', 'Metadata-Flavor: Google']
                 cb      : (err, output) ->
                     if err
                         dbg("nonfatal error querying metadata -- #{err}")
                         cb()
                     else
-                        value = output.stdout
+                        if output.stdout.indexOf('not found') == -1
+                            value = output.stdout
                         cb()
         (cb) ->
             if value?
@@ -2070,9 +2096,9 @@ get_whitelisted_users = (opts) ->
         columns : ['project_id']
         cb      : (err, results) ->
             if err
-                cb(err)
+                opts.cb(err)
             else
-                cb(undefined, (x.project_id.replace(/-/g,'') for x in results))
+                opts.cb(undefined, ['root','salvus'].concat((x.project_id.replace(/-/g,'') for x in results)))
 
 firewall = (opts) ->
     opts = defaults opts,
@@ -2081,7 +2107,7 @@ firewall = (opts) ->
         cb      : required
     misc_node.execute_code
         command : 'sudo'
-        args    : ["/usr/local/bin/smc_firewall.py", opts.command].concat(opts.args)
+        args    : ["#{process.env.SALVUS_ROOT}/scripts/smc_firewall.py", opts.command].concat(opts.args)
         bash    : false
         timeout : 30
         path    : process.cwd()
@@ -2089,8 +2115,15 @@ firewall = (opts) ->
 
 #
 # Initialize the iptables based firewall.  Must be run after sqlite db is initialized.
+#
+# How to set metadata for list of web servers from admin node:
+#
+# time gcloud compute project-info add-metadata --metadata incoming_whitelist_hosts=smc1dc5,smc2dc5,smc3dc5,smc4dc5,smc5dc5,smc6dc5,smc1dc6,smc2dc6,smc3dc6,smc4dc6,smc5dc6,smc6dc6,devel1dc5
+#
 init_firewall = (cb) ->
     dbg = (m) -> winston.debug("init_firewall: #{m}")
+    tm = misc.walltime()
+    dbg("starting firewall configuration")
     incoming_whitelist_hosts = ''
     outgoing_whitelist_hosts = 'sagemath.com'
     whitelisted_users        = ''
@@ -2129,7 +2162,10 @@ init_firewall = (cb) ->
                 args    : ["--whitelist_hosts_file", "#{process.env.SALVUS_ROOT}/scripts/outgoing_whitelist_hosts",
                            "--whitelist_users", whitelisted_users]
                 cb      : cb
-    ], cb)
+    ], (err) ->
+        dbg("finished firewall configuration in #{misc.walltime(tm)} seconds")
+        cb(err)
+    )
 
 
 start_server = (cb) ->
