@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-SERVER_STATUS_TIMEOUT_S = 3
+SERVER_STATUS_TIMEOUT_S = 5  # 5 seconds
 
 # todo -- these should be in a table in the database.
 DEFAULT_SETTINGS =
@@ -365,7 +365,7 @@ class ComputeServerClient
                                             if STATES[mesg.state].is_stable
                                                 p.emit('stable', mesg.state)
                                     else
-                                        winston.debug("mesg (hub <- compute): #{misc.to_json(mesg)}")
+                                        winston.debug("mesg (hub <- #{opts.host}): #{misc.to_json(mesg)}")
                             cb()
         ], (err) =>
             opts.cb(err, @_socket_cache[opts.host])
@@ -384,7 +384,7 @@ class ComputeServerClient
             project : undefined
             cb      : required
 
-        dbg = @dbg("call(#{opts.host})")
+        dbg = @dbg("call(hub --> #{opts.host})")
         #dbg("(hub --> compute) #{misc.to_json(opts.mesg)}")
         #dbg("(hub --> compute) #{misc.to_safe_str(opts.mesg)}")
         socket = undefined
@@ -615,8 +615,8 @@ class ProjectClient extends EventEmitter
             args    : undefined
             timeout : 30
             cb      : required
-        dbg = @dbg("_action")
-        dbg("action=#{opts.action}; params=#{misc.to_safe_str(opts.params)}")
+        dbg = @dbg("_action(action=#{opts.action})")
+        dbg("params=#{misc.to_safe_str(opts.params)}")
         dbg("first update host to use the right compute server")
         @update_host
             cb : (err) =>
@@ -635,7 +635,7 @@ class ProjectClient extends EventEmitter
                     timeout : opts.timeout
                     cb      : (err, resp) =>
                         if err
-                            dbg("error calling compute server")
+                            dbg("error calling compute server -- #{err}")
                             opts.cb(err)
                         else
                             dbg("got response #{misc.to_safe_str(resp)}")
