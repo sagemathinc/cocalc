@@ -21,7 +21,7 @@
 #
 ###############################################################################
 
-import hashlib, json, os, re, shutil, signal, stat, sys, tempfile, time
+import json, os, signal, socket, sys, time
 from subprocess import Popen, PIPE
 
 def log(s, *args):
@@ -79,20 +79,37 @@ class Firewall(object):
     def iptables(self, args, **kwds):
         return cmd(['iptables','-v'] + args, **kwds)
 
-    def insert_rule(self, rule):
+    def insert_rule(self, rule, force=False):
         if not self.exists(rule):
             log("insert_rule: %s", rule)
             self.iptables(['-I'] + rule)
+        elif force:
+            self.delete_rule(rule)
+            self.iptables(['-I'] + rule)
 
-    def append_rule(self, rule):
+    def append_rule(self, rule, force=False):
         if not self.exists(rule):
             log("append_rule: %s", rule)
             self.iptables(['-A'] + rule)
+        elif force:
+            self.delete_rule(rule, force=True)
+            self.iptables(['-A'] + rule)
 
-    def delete_rule(self, rule):
-        if not self.exists(rule):
+    def delete_rule(self, rule, force=False):
+        if self.exists(rule):
             log("delete_rule: %s", rule)
-            self.iptables(['-D'] + rule)
+            try:
+                self.iptables(['-D'] + rule)
+            except Exception, mesg:
+                log("delete_rule error -- %s", mesg)
+                # checking for exists is not 100% for uid rules module
+                pass
+        elif force:
+            try:
+                self.iptables(['-D'] + rule)
+            except:
+                pass
+
 
     def exists(self, rule):
         """
@@ -111,10 +128,11 @@ class Firewall(object):
         Remove all firewall rules, making everything completely open.
         """
         self.iptables(['-F'])
+        return {'status':'success'}
 
     def show(self, names=False):
         """
-        Show all firewall rules, making everything completely open.
+        Show all firewall rules.   (NON-JSON interface!)
         """
         if names:
             os.system("iptables -v -L")
@@ -130,6 +148,14 @@ class Firewall(object):
             self.outgoing_whitelist_hosts(whitelist_hosts)
         if whitelist_users or blacklist_users:
             self.outgoing_user(whitelist_users, blacklist_users)
+        # Block absolutely all outgoing traffic *from* lo to not loopback on same
+        # machine: this is to make it so a project
+        # can serve a network service listening on eth0 safely without having to worry
+        # about security at all, and still have it be secure, even from users on
+        # the same machine.  We insert and remove this every time we mess with the firewall
+        # rules to ensure that it is at the very top.
+        self.insert_rule(['OUTPUT', '-o', 'lo', '-d', socket.gethostname(), '-j', 'REJECT'], force=True)
+        return {'status':'success'}
 
     def outgoing_whitelist_hosts(self, whitelist):
         whitelist = [x.strip() for x in whitelist.split()]
@@ -146,8 +172,13 @@ class Firewall(object):
         # Anything that matches this will immediately be accepted to go out.
         self.insert_rule(['OUTPUT', '-d', whitelist, '-j', 'ACCEPT'])
 
+        # Loopback traffic: allow all OUTGOING (so the rule below doesn't cause trouble);
+        # needed, e.g., by Jupyter notebook and probably other services.
+        self.insert_rule(['OUTPUT', '-o', 'lo', '-j', 'ACCEPT'])
+
         # Block all new outgoing connections that we didn't allow above.
         self.append_rule(['OUTPUT', '-m', 'state', '--state', 'NEW', '-j', 'REJECT'])
+
 
     def outgoing_user(self, add='', remove=''):
         def rule(user):
@@ -155,26 +186,33 @@ class Firewall(object):
             return ['OUTPUT', '-m', 'owner', '--uid-owner', user , '-j', 'ACCEPT']
         for user in remove.split(','):
             if user:
-                self.delete_rule(rule(user))
+                self.delete_rule(rule(user), force=True)
         for user in add.split(','):
             if user:
-                self.insert_rule(rule(user))
+                self.insert_rule(rule(user), force=True)
 
-    def incoming(self, whitelist_hosts=''):
+    def incoming(self, whitelist_hosts='', whitelist_ports=''):
         """
-        Allow any incoming ssh (port 22 tcp) connections.
         Deny all other incoming traffic, except from the
         explicitly given whitelist of machines.
         """
-        # allow incoming ssh
-        self.insert_rule(['INPUT', '-p', 'tcp', '--dport', 22, '-j', 'ACCEPT'])
-        # allow incoming anything in the whitelist
-        self.insert_rule(['INPUT', '-s', whitelist_hosts, '-m', 'state', '--state', 'NEW,ESTABLISHED', '-j', 'ACCEPT'])
-        # loopback traffic: allow only ports
-        self.insert_rule(['INPUT', '-i', 'lo', '-j', 'ACCEPT'])
-        #self.insert_rule(['OUTPUT', '-o', 'lo', '-j', 'ACCEPT'])
-        # block everything else
-        self.append_rule(['INPUT', '-j', 'DROP'])
+        # Allow some incoming packets from the whitelist of ports.
+        for p in whitelist_ports.split(','):
+            self.insert_rule(['INPUT', '-p', 'tcp', '--dport', p, '-j', 'ACCEPT'])
+
+        # Allow incoming connections/packets from anything in the whitelist
+        self.insert_rule(['INPUT', '-s', whitelist_hosts, '-j', 'ACCEPT'])
+
+        # Loopback traffic: allow all INCOMING (so the rule below doesn't cause trouble);
+        # needed, e.g., by Jupyter notebook and probably other services.
+        self.append_rule(['INPUT', '-i', 'lo', '-j', 'ACCEPT'])
+
+        # Block *new* packets arriving via a new connection from anywhere else.  We
+        # don't want to block all packages -- e.g., if something on this machine
+        # connects to DNS, it should be allowed to receive the answer back.
+        self.append_rule(['INPUT', '-m', 'state', '--state', 'NEW', '-j', 'DROP'])
+
+        return {'status':'success'}
 
 if __name__ == "__main__":
 
@@ -194,7 +232,7 @@ if __name__ == "__main__":
             except Exception, mesg:
                 raise #-- for debugging
                 errors = True
-                result = {'error':str(mesg), 'project_id':project_id}
+                result = {'error':str(mesg)}
             print json.dumps(result)
             if errors:
                 sys.exit(1)
@@ -208,6 +246,7 @@ if __name__ == "__main__":
 
     parser_incoming = subparsers.add_parser('incoming', help='create firewall to block all incoming traffic except ssh, except explicit whitelist')
     parser_incoming.add_argument('--whitelist_hosts',help="comma separated list of sites to whitelist (should be the hub vm's)", default='')
+    parser_incoming.add_argument('--whitelist_ports',help="comma separated list of ports to whitelist", default='22,80,443')
     f(parser_incoming)
 
     f(subparsers.add_parser('clear', help='clear all rules'))
