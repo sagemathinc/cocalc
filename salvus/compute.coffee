@@ -250,26 +250,56 @@ class ComputeServerClient
                     cb    : cb
         ], (err) => opts.cb?(err))
 
-    # choose a random host for a project from the available compute_servers
-    random_host: (opts) =>
+    # Choose a host from the available compute_servers according to some
+    # notion of load balancing (not really worked out yet)
+    assign_host: (opts) =>
         opts = defaults opts,
+            exclude  : []
             cb       : required
-        dbg = @dbg("random_host")
+        dbg = @dbg("assign_host")
         dbg("querying database")
-        @database.select
-            table     : 'compute_servers'
-            columns   : ['host', 'experimental']
-            objectify : true
-            cb        : (err, s) =>
+        @status
+            cb : (err, nodes) =>
                 if err
-                    dbg("error querying database for servers -- #{err}")
                     opts.cb(err)
                 else
-                    # TODO: take into account load, health, etc.
-                    v = (x.host for x in s when not x.experimental)
-                    dbg("got compute servers: #{misc.to_json(v)}")
-                    opts.cb(undefined, misc.random_choice(v))
-
+                    # Ignore any exclude nodes
+                    for host in opts.exclude
+                        delete nodes[host]
+                    # We want to choose the best (="least loaded?") working node.
+                    v = []
+                    for host, info of nodes
+                        if info.experimental
+                            continue
+                        v.push(info)
+                        info.host = host
+                        if info.error?
+                            info.score = 0
+                        else
+                            # 10 points if no load; 0 points if massive load
+                            info.score = Math.max(0, Math.round(10*(1 - info.load[0])))
+                            # 1 point for each Gigabyte of available RAM that won't
+                            # result in swapping if used
+                            info.score += Math.round(info.memory.MemAvailable/1000)
+                    if v.length == 0
+                        opts.cb("no hosts available")
+                        return
+                    # sort so highest scoring is first.
+                    v.sort (a,b) =>
+                        if a.score < b.score
+                            return 1
+                        else if a.score > b.score
+                            return -1
+                        else
+                            return 0
+                    dbg("scored host info = #{misc.to_json(([info.host,info.score] for info in v))}")
+                    # finally choose one of the hosts with the highest score at random.
+                    best_score = v[0].score
+                    i = 0
+                    while i < v.length and v[i].score == best_score
+                        i += 1
+                    w = v.slice(0,i)
+                    opts.cb(undefined, misc.random_choice(w).host)
 
     # get a socket connection to a particular compute server
     socket: (opts) =>
@@ -550,8 +580,8 @@ class ProjectClient extends EventEmitter
                 if host?
                     cb()
                 else
-                    dbg("assigning random host")
-                    @compute_server.random_host
+                    dbg("assigning some host")
+                    @compute_server.assign_host
                         cb : (err, h) =>
                             if err
                                 dbg("error assigning random host -- #{err}")
@@ -656,10 +686,32 @@ class ProjectClient extends EventEmitter
         async.series([
             (cb) =>
                 dbg("get status from compute server")
-                @_action
-                    action : "status"
-                    cb     : (err, s) =>
-                        status = s; cb(err)
+                f = (cb) =>
+                    @_action
+                        action : "status"
+                        cb     : (err, s) =>
+                            if not err
+                                status = s
+                            cb(err)
+                # we retry getting status with exponential backoff until we hit max_time, which
+                # triggers failover of project to another node.
+                misc.retry_until_success
+                    f           : f
+                    start_delay : 500
+                    max_time    : 15000
+                    cb          : (err) =>
+                        if err
+                            m = "failed to get status -- project not working on #{@host} -- initiating automatic move to a new node -- #{err}"
+                            dbg(m)
+                            cb(m)
+                            # Now we actually initiate the failover, which could take a long time,
+                            # depending on how big the project is.
+                            @move
+                                force : true
+                                cb    : (err) =>
+                                    dbg("result of failover -- #{err}")
+                        else
+                            cb()
             (cb) =>
                 if status.assigned and @assigned and (status.assigned != @assigned)
                     dbg("timestamps when project assigned to this host do not match, so files left on host must be from past automatic failover -- delete them and start over")
@@ -765,7 +817,6 @@ class ProjectClient extends EventEmitter
                                         dbg("start finished -- #{err}")
                 else
                     opts.cb("may only restart when state is opened or running")
-
 
     # kill everything and remove project from this compute
     # node  (must be opened somewhere)
@@ -927,14 +978,50 @@ class ProjectClient extends EventEmitter
     # move project from one compute node to another one
     move: (opts) =>
         opts = defaults opts,
-            target : required  # hostname of a compute server
+            target : undefined # hostname of a compute server; if not given, one (diff than current) will be chosen by load balancing
+            force  : false     # if true, brutally ignore error trying to cleanup/save on current host
             cb     : required
         dbg = @dbg("move(target:'#{opts.target}')")
         async.series([
             (cb) =>
-                dbg("first ensure it is closed/deleted from current host")
-                @ensure_closed
-                    cb   : cb
+                async.parallel([
+                    (cb) =>
+                        dbg("determine target")
+                        if opts.target?
+                            cb()
+                        else
+                            exclude = []
+                            if @host?
+                                exclude.push(@host)
+                            @compute_server.assign_host
+                                exclude : exclude
+                                cb      : (err, host) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        dbg("assigned target = #{host}")
+                                        opts.target = host
+                                        cb()
+                    (cb) =>
+                        dbg("first ensure it is closed/deleted from current host")
+                        @ensure_closed
+                            cb   : (err) =>
+                                if err
+                                    if not opts.force
+                                        cb(err)
+                                    else
+                                        dbg("errors trying to close but force requested so proceeding -- #{err}")
+                                        @ensure_closed
+                                            force  : true
+                                            nosave : true
+                                            cb     : (err) =>
+                                                dbg("second attempt error, but ignoring -- #{err}")
+                                                cb()
+                                else
+                                    cb()
+
+
+                ], cb)
             (cb) =>
                 dbg("update database with new project location")
                 @assigned = new Date() - 0
@@ -981,7 +1068,7 @@ class ProjectClient extends EventEmitter
 
     save: (opts) =>
         opts = defaults opts,
-            max_snapshots : 60
+            max_snapshots : 50
             min_interval  : 10  # fail if there is a snapshot that is younger than this many MINUTES (use 0 to disable)
             cb     : required
         dbg = @dbg("save(max_snapshots:#{opts.max_snapshots}, min_interval:#{opts.min_interval})")
