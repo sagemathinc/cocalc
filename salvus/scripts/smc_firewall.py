@@ -230,7 +230,8 @@ class Firewall(object):
             self.insert_rule(['INPUT', '-p', 'tcp', '--dport', p, '-j', 'ACCEPT'])
 
         # Allow incoming connections/packets from anything in the whitelist
-        self.insert_rule(['INPUT', '-s', whitelist_hosts, '-j', 'ACCEPT'])
+        if whitelist_hosts.strip():
+            self.insert_rule(['INPUT', '-s', whitelist_hosts, '-j', 'ACCEPT'])
 
         # Loopback traffic: allow all INCOMING (so the rule below doesn't cause trouble);
         # needed, e.g., by Jupyter notebook and probably other services.
