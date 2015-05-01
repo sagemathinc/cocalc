@@ -33,16 +33,28 @@ def log(s, *args):
     sys.stderr.write(s+'\n')
     sys.stderr.flush()
 
-def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
+def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True, system=False):
     if isinstance(s, list):
         s = [str(x) for x in s]
+    if isinstance(s, list):
+        c = ' '.join([x if len(x.split()) <=1  else "'%s'"%x for x in s])
+    else:
+        c = s
     if verbose >= 1:
         if isinstance(s, list):
-            t = [x if len(x.split()) <=1  else "'%s'"%x for x in s]
-            log(' '.join(t))
+            log(c)
         else:
             log(s)
     t = time.time()
+
+    if system:
+        if os.system(c):
+            if verbose >= 1:
+                log("(%s seconds)", time.time()-t)
+            if ignore_errors:
+                return
+            else:
+                raise RuntimeError('error executing %s'%t)
 
     mesg = "ERROR"
     if timeout:

@@ -1,7 +1,11 @@
 set -e
 set -v
 
-# partition the local ssd
+# partition the local ssd:
+# Got the file  sfdisk-sdb-ssd.layout by doing it once manually, then doing
+#
+#      sfdisk -d /dev/sdb >  sfdisk-sdb-ssd.layout
+#
 sfdisk /dev/sdb < sfdisk-sdb-ssd.layout
 
 # layout

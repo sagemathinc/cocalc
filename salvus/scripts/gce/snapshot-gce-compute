@@ -4,7 +4,7 @@ set -v
 export NAME=compute-`date +"%Y-%m-%d-%H%M"`
 echo $NAME
 
-time gcloud compute disks snapshot --project="sage-math-inc" "compute1dc5" --snapshot-names $NAME --zone us-central1-f
+time gcloud compute disks snapshot --project="sage-math-inc" "$1" --snapshot-names $NAME --zone us-central1-c
 
 #echo $NAME>BASE
 
