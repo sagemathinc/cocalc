@@ -1145,7 +1145,7 @@ class Project(object):
             log("rsync error: %s", mesg)
             raise
 
-    def migrate_live(self, hostname, port=22, close=False, verbose=False):
+    def migrate_live(self, hostname, port=22, close=False, verbose=False, nosave=False):
         try:
             if not os.path.exists(self.project_path):
                 # for migrate, definitely only open if not already open
@@ -1159,7 +1159,8 @@ class Project(object):
             if not os.system(s):
                 log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
             self.create_snapshot_link()  # rsync deletes this
-            self.save()
+            if not nosave:
+                self.save()
         finally:
             if close:
                 self.close()
@@ -1365,10 +1366,11 @@ if __name__ == "__main__":
     f(parser_archive)
 
     parser_migrate_live = subparsers.add_parser('migrate_live', help='')
-    parser_migrate_live.add_argument("--port", help="path to directory of project_id.tar bup repos or 'gsutil'",
-                                     default=22, type=int)
+    parser_migrate_live.add_argument("--port", help="", default=22, type=int)
     parser_migrate_live.add_argument("--verbose", default=False, action="store_const", const=True)
     parser_migrate_live.add_argument("--close", help="if given, close project after updating (default: DON'T CLOSE)",
+                                     default=False, action="store_const", const=True)
+    parser_migrate_live.add_argument("--nosave", help="if given, don't save (default: DO CLOSE)",
                                      default=False, action="store_const", const=True)
     parser_migrate_live.add_argument("hostname", help="hostname[:path]", type=str)
     f(parser_migrate_live)
