@@ -28,18 +28,15 @@ GS = [G]oogle Cloud Storage / [B]trfs - based project storage system
 
 Use fdisk to make /dev/sdb1 for swap (80GB) and /dev/sdb2 for /projects (rest):
 
-    export SWAP=/dev/sdb1
-    mkswap $SWAP && swapon $SWAP && echo "$SWAP swap swap defaults 0 0" >> /etc/fstab
-
-    export DEV=/dev/sdb2; export MOUNT=/projects
-    mkfs.btrfs $DEV && mkdir -p $MOUNT && mount -o compress-force=lzo,noatime $DEV $MOUNT && btrfs quota enable $MOUNT && chmod og-rw $MOUNT && chmod og+x $MOUNT && btrfs subvolume create $MOUNT/conf && chown salvus. $MOUNT/conf && btrfs subvolume create $MOUNT/.snapshots && btrfs subvolume create $MOUNT/sagemathcloud && sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/ && btrfs subvolume create $MOUNT/tmp && chmod 1777 $MOUNT/tmp && mount -o bind $MOUNT/tmp /tmp/ && echo "$DEV $MOUNT btrfs defaults 0 2" >> /etc/fstab && echo "$MOUNT/tmp  /tmp bind 0 2" >> /etc/fstab 
+    export SWAP=/dev/sdb1; export DEV=/dev/sdb2; export MOUNT=/projects
+    mkswap $SWAP && swapon $SWAP && mkfs.btrfs $DEV && mkdir -p $MOUNT && mount -o compress-force=lzo,noatime $DEV $MOUNT && btrfs quota enable $MOUNT && chmod og-rw $MOUNT && chmod og+x $MOUNT && btrfs subvolume create $MOUNT/conf && chown salvus. $MOUNT/conf && btrfs subvolume create $MOUNT/.snapshots && btrfs subvolume create $MOUNT/sagemathcloud && sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/ && btrfs subvolume create $MOUNT/tmp && chmod 1777 $MOUNT/tmp && mount -o bind $MOUNT/tmp /tmp/
 
 
 
 
 # Start compute server (as user salvus)
 
-    echo 'export SMC_BTRFS=/$MOUNT; export SMC_BUCKET=gs://smc-gb-storageXXX; export SMC_ARCHIVE=gs://smc-gb-archiveXXX' >> $HOME/.bashrc
+    echo 'export SMC_BTRFS=/$MOUNT; export SMC_BUCKET=gs://smc-gb-storage; export SMC_ARCHIVE=gs://smc-gb-archive' >> $HOME/.bashrc
     source $HOME/.bashrc; cd ~/salvus/salvus; . salvus-env; ./compute start
 
 # Database entry:
@@ -257,6 +254,7 @@ class Project(object):
         self._archive  = archive
         self.project_path  = os.path.join(self.btrfs, project_id)
         self.snapshot_path = os.path.join(self.btrfs, ".snapshots", project_id)
+        self.opened_path   = os.path.join(self.snapshot_path, '.opened')
         self.snapshot_link = os.path.join(self.project_path, '.snapshots')
         self.smc_path      = os.path.join(self.project_path, '.sagemathcloud')
         self.uid           = uid(self.project_id)
@@ -315,9 +313,12 @@ class Project(object):
             v = self.snapshot_ls()
             if v:
                 # set from local, which we cache since it is what we want to use for any other subsequent ops.
-                s = cmd("btrfs subvolume show %s|grep Creation"%os.path.join(self.snapshot_path, v[0]))
-                i = s.find(":")
-                self._gs_version = s[i+1:].strip().replace(' ','-').replace(':','')  # safe to cache.
+                if os.path.exists(self.opened_path):
+                    self._gs_version = open(self.opened_path).read()
+                else:
+                    v = time.strftime(TIMESTAMP_FORMAT)
+                    open(self.opened_path, 'w').write(v)
+                    self._gs_version = v
                 return self._gs_version
             else:
                 # set from newest on GCS; don't cache, since could subsequently change, e.g., on save.
