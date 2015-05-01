@@ -26,15 +26,16 @@
 
 GS = [G]oogle Cloud Storage / [B]trfs - based project storage system
 
-    export DEV=/dev/sdX; export MOUNT=/projects
+Use fdisk to make /dev/sdb1 for swap (80GB) and /dev/sdb2 for /projects (rest):
 
-    mkfs.btrfs $DEV && mkdir -p $MOUNT && mount -o compress-force=lzo,noatime $DEV $MOUNT && btrfs quota enable $MOUNT && chmod og-rw $MOUNT && chmod og+x $MOUNT && btrfs subvolume create $MOUNT/conf && chown salvus. $MOUNT/conf && btrfs subvolume create $MOUNT/.snapshots
+    export SWAP=/dev/sdb1
+    mkswap $SWAP && swapon $SWAP && echo "$SWAP swap swap defaults 0 0" >> /etc/fstab
 
-    btrfs subvolume create $MOUNT/sagemathcloud && sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/
+    export DEV=/dev/sdb2; export MOUNT=/projects
+    mkfs.btrfs $DEV && mkdir -p $MOUNT && mount -o compress-force=lzo,noatime $DEV $MOUNT && btrfs quota enable $MOUNT && chmod og-rw $MOUNT && chmod og+x $MOUNT && btrfs subvolume create $MOUNT/conf && chown salvus. $MOUNT/conf && btrfs subvolume create $MOUNT/.snapshots && btrfs subvolume create $MOUNT/sagemathcloud && sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/ && btrfs subvolume create $MOUNT/tmp && chmod 1777 $MOUNT/tmp && mount -o bind $MOUNT/tmp /tmp/ && echo "$DEV $MOUNT btrfs defaults 0 2" >> /etc/fstab && echo "$MOUNT/tmp  /tmp bind 0 2" >> /etc/fstab 
 
-# Worry about tmp, e.g.,
 
-    btrfs subvolume create $MOUNT/tmp && chmod 1777 $MOUNT/tmp && mount -o bind $MOUNT/tmp /tmp/
+
 
 # Start compute server (as user salvus)
 
