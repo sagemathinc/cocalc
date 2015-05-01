@@ -3382,7 +3382,7 @@ x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log(
             (cb) =>
                 if opts.test_limit
                     projects = projects.slice(0, opts.test_limit)
-                dbg("#{projects.length} projects to be updaed")
+                dbg("#{projects.length} projects to be updated")
                 i = 0
                 t = misc.walltime()
                 f = (project, cb) =>
@@ -3396,7 +3396,7 @@ x={};s=require('bup_server').global_client(database:db, cb:(err,c)->console.log(
                         return
                     try
                         misc_node.execute_code
-                            command : '/home/salvus/salvus/salvus/scripts/gb_storage.py'
+                            command : '/home/salvus/salvus/salvus/scripts/smc_compute.py'
                             args    : ['migrate_live', '--port=2222', project.ssh[-1].split(':')[0], project.project_id]
                             timeout : 5000
                             cb      : (err, output) =>
