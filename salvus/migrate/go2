@@ -1,1 +1,1 @@
-cd .. && . salvus-env && ./make_coffee && time sudo coffee migrate/go2.coffee
+cd .. && . salvus-env && ./make_coffee && time sudo -E coffee migrate/go2.coffee > migrate/go2.out 2> migrate/go2.err

@@ -410,7 +410,7 @@ class Project(object):
                 cmd("btrfs send -p %s %s | lz4c > %s"%(os.path.join(self.snapshot_path, snapshot1),
                                    os.path.join(self.snapshot_path, snapshot2), target))
 
-            gsutil(['-q', '-m', 'cp', target, os.path.join(self.gs_path, self.gs_version(), stream)])
+            gsutil(['-o', 'GSUtil:parallel_composite_upload_threshold=150M', '-q', '-m', 'cp', target, os.path.join(self.gs_path, self.gs_version(), stream)])
         finally:
             shutil.rmtree(tmp_path)
 
@@ -912,7 +912,7 @@ class Project(object):
                 tmp_path = tempfile.mkdtemp()
                 local = os.path.join(tmp_path, 'a.tar.%s'%compression)
                 create_tarball(newer, local)
-                gsutil(['-q', '-m', 'cp'] + [local] + [archive])
+                gsutil(['-q', '-o', 'GSUtil:parallel_composite_upload_threshold=150M', '-m', 'cp'] + [local] + [archive])
                 os.unlink(local)
             finally:
                 shutil.rmtree(tmp_path)
