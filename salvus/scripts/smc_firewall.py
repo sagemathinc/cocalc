@@ -54,7 +54,7 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
             if ignore_errors:
                 return
             else:
-                raise RuntimeError('error executing %s'%t)
+                raise RuntimeError('error executing %s'%c)
         return
 
     mesg = "ERROR"

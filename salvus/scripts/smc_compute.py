@@ -57,8 +57,6 @@ TO      = "-to-"
 # appended to end of snapshot name to make it persistent (never automatically deleted)
 PERSIST = "-persist"
 
-UID_WHITELIST = "/root/smc-iptables/uid_whitelist"
-
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 
 # This is the quota for the .sagemathcloud directory; must be
@@ -514,35 +512,6 @@ class Project(object):
                 # ignore cgclassify errors, since processes come and go, etc.
             except:
                 pass  # ps returns an error code if there are NO processes at all
-
-    def network(self, ban=False):
-        """
-        Open or ban outgoing network for user.
-        """
-        # Change the appropriate iptables firewall rule
-        # This doesn't open up our whitelist, so is not sufficient.
-        #self.cmd(["iptables", "-v", "-I", "OUTPUT", "-m", "owner",
-        #         "--uid-owner", self.uid, "-j", "DROP" if ban else "ACCEPT"])
-
-        # Rest of this just edits the uid whitelist file so that if/when
-        # the system-wide firewall is restarted (e.g. to add/remove entries, at
-        # least until I fix it so that that restart isn't required), then
-        # this user will have the correct network access state.
-        change_whitelist = False
-        if not os.path.exists(UID_WHITELIST):
-            open(UID_WHITELIST,'w').close()
-        whitelisted_users = set([x.strip() for x in open(UID_WHITELIST).readlines()])
-        uid = str(self.uid)
-        if not ban and uid not in whitelisted_users:
-            whitelisted_users.add(uid)
-            change_whitelist = True
-        elif ban and uid in whitelisted_users:
-            whitelisted_users.remove(uid)
-            change_whitelist = True
-        if change_whitelist:
-            open(UID_WHITELIST,'w').write('\n'.join(whitelisted_users)+'\n')
-        # we must do this since it opens up the whitelist too.
-        self.cmd("/root/smc-iptables/restart.sh")
 
     def cgclassify(self):
         try:
@@ -1250,11 +1219,6 @@ if __name__ == "__main__":
     parser_compute_quota.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
     parser_compute_quota.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
     f(parser_compute_quota)
-
-    parser_network = subparsers.add_parser('network', help='allow or ban network access for this user')
-    parser_network.add_argument("--ban", help="if given ban access to network (otherwise grant access)",
-                                   dest="ban", default=False, action="store_const", const=True)
-    f(parser_network)
 
     # create Linux user for project
     parser_create_user = subparsers.add_parser('create_user', help='create Linux user')
