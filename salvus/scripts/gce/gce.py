@@ -149,6 +149,22 @@ class GCE(object):
              '--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw',
             ], system=True)
 
+    def set_metadata(self, prefix=''):
+        if not prefix:
+            for p in ['smc', 'compute']:
+                self.set_metadata(p)
+            return
+        names = []
+        for x in cmd(['gcloud', 'compute', 'instances', 'list']).splitlines()[1:]:
+            v = x.split()
+            if v[-1] != 'RUNNING':
+                continue
+            name = v[0]
+            if name.startswith(prefix):
+                names.append(name)
+        names = ','.join(names)
+        cmd(['gcloud', 'compute', 'project-info', 'add-metadata', '--metadata', "%s-servers=%s"%(prefix, names)])
+
     def delete_old_snapshots(self, prefix=''):
         """
         Delete all but the newest snapshot with the given prefix.
@@ -285,6 +301,10 @@ if __name__ == "__main__":
     p.add_argument('--prefix', help="", type=str, default="")
     f(p)
 
+
+    parser_set_metadata = subparsers.add_parser('set_metadata', help='')
+    parser_set_metadata.add_argument('--prefix', help="", type=str, default="")
+    f(parser_set_metadata)
 
     args = parser.parse_args()
     args.func(args)
