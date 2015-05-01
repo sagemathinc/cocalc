@@ -329,6 +329,9 @@ class Project(object):
         """
         Delete all old versions of this project from Google cloud storage.
         """
+        if not self.gs_path:
+            # not using cloud storage
+            return
         versions = gs_ls(self.gs_path)
         for path in versions[:-1]:
             p = os.path.join(self.gs_path, path)
