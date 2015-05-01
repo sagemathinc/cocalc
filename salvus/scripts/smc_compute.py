@@ -557,7 +557,7 @@ class Project(object):
         btrfs(['subvolume', 'create', self.project_path])
         os.chown(self.project_path, self.uid, self.uid)
 
-    def open(self):
+    def open(self, ignore_recv_errors=False):
         if os.path.exists(self.project_path):
             log("open: already open")
             self.create_user()
@@ -604,8 +604,15 @@ class Project(object):
         log("newest_local = %s", newest_local)
         # download all streams from GCS with start >= newest_local
         missing_streams = [stream for stream in gs if newest_local == "" or stream.split(TO)[0] >= newest_local]
-
-        downloaded = self.gs_get(missing_streams)
+ 
+        try:
+            downloaded = self.gs_get(missing_streams)
+        except Exception, mesg:
+            mesg = str(mesg)
+            if not ignore_recv_errors and "could not find parent subvolume" in mesg:
+                raise
+            else:
+                log("WARNING: %s", mesg)
 
         # make self.project_path equal the newest snapshot
         v = self.snapshot_ls()
@@ -1152,7 +1159,7 @@ class Project(object):
         try:
             if not os.path.exists(self.project_path):
                 # for migrate, definitely only open if not already open
-                self.open()
+                self.open(ignore_recv_errors=True)
             if ':' in hostname:
                 remote = hostname
             else:
@@ -1231,7 +1238,9 @@ if __name__ == "__main__":
                         dest='archive', default=os.environ.get("SMC_ARCHIVE",""), type=str)
 
     # open a project
-    f(subparsers.add_parser('open', help='Open project'))
+    parser_open = subparsers.add_parser('open', help='Open project')
+    parser_open.add_argument("--ignore_recv_errors", dest="ignore_recv_errors", default=False, action="store_const", const=True)
+    f(parser_open)
 
     # start project running
     f(subparsers.add_parser('start', help='start project running (open and start daemon)'))
