@@ -26,26 +26,28 @@
 
 GS = [G]oogle Cloud Storage / [B]trfs - based project storage system
 
+    export DEV=/dev/sdX; export MOUNT=/projects
 
-export DEV=/dev/sdX; export MOUNT=/projects
-mkfs.btrfs $DEV && mkdir -p $MOUNT && mount -o compress-force=lzo,noatime $DEV $MOUNT && btrfs quota enable $MOUNT && chmod og-rw $MOUNT && chmod og+x $MOUNT && btrfs subvolume create $MOUNT/conf && chown salvus. $MOUNT/conf && btrfs subvolume create $MOUNT/.snapshots
+    mkfs.btrfs $DEV && mkdir -p $MOUNT && mount -o compress-force=lzo,noatime $DEV $MOUNT && btrfs quota enable $MOUNT && chmod og-rw $MOUNT && chmod og+x $MOUNT && btrfs subvolume create $MOUNT/conf && chown salvus. $MOUNT/conf && btrfs subvolume create $MOUNT/.snapshots
 
     btrfs subvolume create $MOUNT/sagemathcloud && sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/
 
-Worry about tmp, e.g.,
+# Worry about tmp, e.g.,
 
     btrfs subvolume create $MOUNT/tmp && chmod 1777 $MOUNT/tmp && mount -o bind $MOUNT/tmp /tmp/
 
-Start compute server (as user salvus)
+# Start compute server (as user salvus)
 
     echo 'export SMC_BTRFS=/$MOUNT; export SMC_BUCKET=gs://smc-gb-storageXXX; export SMC_ARCHIVE=gs://smc-gb-archiveXXX' >> $HOME/.bashrc
     source $HOME/.bashrc; cd ~/salvus/salvus; . salvus-env; ./compute start
 
-Database entry:
+# Database entry:
 
     cd $MOUNT/conf && echo "update compute_servers set dc='us-central1-c', port=`cat compute.port`, secret='`cat compute.secret`' where host='`hostname`';"
 
-For dedup support:
+
+
+# For dedup support:
 
     cd /tmp && rm -rf duperemove && git clone https://github.com/markfasheh/duperemove && cd duperemove && sudo make install && rm -rf /tmp/duperemove
 
@@ -1141,43 +1143,6 @@ class Project(object):
             log("rsync error: %s", mesg)
             raise
 
-
-    def migrate(self, update=False, source='gsutil'):
-        if not update:
-            try:
-                cmd("gsutil ls %s"%self.gs_path)
-                log("already migrated")
-                return
-            except:
-                pass
-        else:
-            raise NotImplementedError
-        try:
-            tmp_dirs = []
-            if source == 'gsutil':
-                cmd("gsutil cp gs://smc-projects/%s.tar . && ls -lh %s.tar"%(self.project_id, self.project_id))
-                cmd("tar xf %s.tar"%self.project_id)
-                os.unlink("%s.tar"%self.project_id)
-            else:
-                cmd("tar xf %s/%s.tar"%(source, self.project_id))
-            tmp_dirs.append(self.project_id)
-            cmd("bup -d %s ls master/latest"%self.project_id) # error out immediately if bup repo no good
-            self.open()
-            if len(self.snapshot_ls()) == 0:
-                # new migration
-                cmd("bup -d %s restore --outdir=%s/ master/latest/"%(self.project_id, self.project_path))
-            else:
-                # udpate existing migrated.
-                cmd("bup -d %s restore --outdir=%s-out/ master/latest/"%(self.project_id, self.project_id))
-                cmd("rsync -axH --delete %s-out/ %s/"%(self.project_id, self.project_path))
-                tmp_dirs.append("%s-out"%self.project_id)
-            self.save(timestamp=cmd("bup -d %s ls master/|tail -2|head -1"%self.project_id).strip())
-        finally:
-            for x in tmp_dirs:
-                log("removing %s"%x)
-                shutil.rmtree(x)
-            self.close()
-
     def migrate_live(self, hostname, port=22, close=False, verbose=False):
         try:
             if not os.path.exists(self.project_path):
@@ -1396,6 +1361,15 @@ if __name__ == "__main__":
                     help="compression format -- 'lz4' (default), 'gz' or 'bz2'",
                     default="lz4",dest="compression")
     f(parser_archive)
+
+    parser_migrate_live = subparsers.add_parser('migrate_live', help='')
+    parser_migrate_live.add_argument("--port", help="path to directory of project_id.tar bup repos or 'gsutil'",
+                                     default=22, type=int)
+    parser_migrate_live.add_argument("--verbose", default=False, action="store_const", const=True)
+    parser_migrate_live.add_argument("--close", help="if given, close project after updating (default: DON'T CLOSE)",
+                                     default=False, action="store_const", const=True)
+    parser_migrate_live.add_argument("hostname", help="hostname[:path]", type=str)
+    f(parser_migrate_live)
 
     args = parser.parse_args()
     args.func(args)
