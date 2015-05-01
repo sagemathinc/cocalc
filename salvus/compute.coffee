@@ -145,7 +145,7 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 
 TIMEOUT = 60*60
 
-BTRFS   = if process.env.SMC_BTRFS? then process.env.SMC_BTRFS else 'projects'
+BTRFS   = if process.env.SMC_BTRFS? then process.env.SMC_BTRFS else '/projects'
 BUCKET  = process.env.SMC_BUCKET
 ARCHIVE = process.env.SMC_ARCHIVE
 
@@ -164,6 +164,7 @@ exports.compute_server = compute_server = (opts) ->
     opts = defaults opts,
         database : undefined
         keyspace : undefined
+        db_hosts : undefined
         cb       : required
     if compute_server_cache?
         opts.cb(undefined, compute_server_cache)
@@ -175,6 +176,7 @@ class ComputeServerClient
         opts = defaults opts,
             database : undefined
             keyspace : undefined
+            db_hosts : ['localhost']
             cb       : required
         dbg = @dbg("constructor")
         @_project_cache = {}
@@ -191,7 +193,7 @@ class ComputeServerClient
                     winston.debug("warning: no password file -- will only work if there is no password set.")
                     password = ''
                 @database = new cassandra.Salvus
-                    hosts       : ['localhost']
+                    hosts       : opts.db_hosts
                     keyspace    : opts.keyspace
                     username    : 'hub'
                     consistency : cql.types.consistencies.localQuorum
@@ -212,17 +214,26 @@ class ComputeServerClient
 
     ###
     # get info about server and add to database
+
+
+        require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e);s.add_server(host:'compute0-us-central1-c', cb:(e)->console.log("done",e)))
+
          require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);s.add_server(host:'localhost', cb:(e)->console.log("done",e)))
     ###
     add_server: (opts) =>
         opts = defaults opts,
             host         : required
-            dc           : 0         # 0, 1, 2, .etc.
+            dc           : ''        # deduced from hostname (everything after -) if not given
             experimental : false     # if true, don't allocate new projects here
             timeout      : 30
             cb           : undefined
         dbg = @dbg("add_server(#{opts.host})")
         dbg("adding compute server to the database by grabbing conf files, etc.")
+
+        if not opts.host
+            i = opts.host.indexOf('-')
+            if i != -1
+                opts.dc = opts.host.slice(0,i)
 
         get_file = (path, cb) =>
             dbg("get_file: #{path}")
@@ -2147,6 +2158,7 @@ init_firewall = (cb) ->
     incoming_whitelist_hosts = ''
     outgoing_whitelist_hosts = 'sagemath.com'
     whitelisted_users        = ''
+    admin_whitelist = ''
     async.series([
         (cb) ->
             async.parallel([
@@ -2156,6 +2168,13 @@ init_firewall = (cb) ->
                         key : "smc-servers"
                         cb  : (err, w) ->
                             incoming_whitelist_hosts = w
+                            cb(err)
+                (cb) ->
+                    dbg("getting admin whitelist")
+                    get_metadata
+                        key : "admin-servers"
+                        cb  : (err, w) ->
+                            admin_whitelist = w
                             cb(err)
                 (cb) ->
                     dbg('getting whitelisted users')
@@ -2171,6 +2190,8 @@ init_firewall = (cb) ->
                 cb      : cb
         (cb) ->
             dbg("starting firewall -- applying incoming rules")
+            if admin_whitelist
+                incoming_whitelist_hosts += ',' + admin_whitelist
             firewall
                 command : "incoming"
                 args    : ["--whitelist_hosts", incoming_whitelist_hosts]
