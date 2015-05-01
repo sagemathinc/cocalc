@@ -336,7 +336,11 @@ class Project(object):
         for path in versions[:-1]:
             p = os.path.join(self.gs_path, path)
             log("Deleting old version %s", p)
-            gsutil(['rm', '-R', p])
+            try:
+                gsutil(['rm', '-R', p])
+            except Exception, mesg:
+                # non-fatal since it isn't really necessary and/or will just happen later
+                log("WARNING: problem deleting old version %s -- %s ", p, mesg)
 
     def gs_ls(self):
         # list contents of google cloud storage for this project
