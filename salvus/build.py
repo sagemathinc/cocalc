@@ -88,20 +88,6 @@ apt-get update && apt-get upgrade && apt-get install vim git wget iperf dpkg-dev
 
 apt-get remove mlocate
 
-# ZFS: Add this to /etc/apt/sources.list then "apt-get update; apt-get install ubuntu-zfs":
-
-    deb http://ppa.launchpad.net/zfs-native/stable/ubuntu utopic  main
-    deb-src http://ppa.launchpad.net/zfs-native/stable/ubuntu utopic  main
-
-
-# ZFSNAP:
-
-    cd /tmp && rm -rf zfsnap && git clone https://github.com/zfsnap/zfsnap.git && cd zfsnap && cp sbin/zfsnap.sh /usr/local/bin/ && cp -rv share/zfsnap/ /usr/local/share/ && rm -rf zfsnap
-
-
-Up the number of watches (mainly for bup watch):
-
-    echo fs.inotify.max_user_watches=100000 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
 
 # Install https://github.com/williamstein/python-inotify and https://github.com/williamstein/bup-1 systemwide.
 
