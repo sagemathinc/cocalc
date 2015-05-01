@@ -232,6 +232,9 @@ class Firewall(object):
         # Allow incoming connections/packets from anything in the whitelist
         if not whitelist_hosts.strip():
             whitelist_hosts = cmd("curl -s http://metadata.google.internal/computeMetadata/v1/project/attributes/smc-servers -H 'Metadata-Flavor: Google'")
+            s = cmd("curl -s http://metadata.google.internal/computeMetadata/v1/project/attributes/admin-servers -H 'Metadata-Flavor: Google'")
+            if s:
+                whitelist_hosts += ',' + s
 
         self.insert_rule(['INPUT', '-s', whitelist_hosts, '-j', 'ACCEPT'])
 
