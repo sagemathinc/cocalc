@@ -60,8 +60,8 @@ PERSIST = "-persist"
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 
 # This is the quota for the .sagemathcloud directory; must be
-# significantly bigger than that directory.
-SMC_TEMPLATE_QUOTA = '100m'
+# significantly bigger than that directory, and hold user logs.
+SMC_TEMPLATE_QUOTA = '1000m'
 
 import hashlib, json, os, re, shutil, signal, stat, sys, tempfile, time
 from subprocess import Popen, PIPE
