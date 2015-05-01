@@ -8,5 +8,7 @@ chown salvus. -R /mnt/cassandra
 cd /mnt/cassandra
 ln -s /home/salvus/salvus/salvus/data/local/cassandra/lib .
 
+btrfs subvolume create /mnt/cassandra/.snapshots/
+
 # inspect filesystems
 df -h
