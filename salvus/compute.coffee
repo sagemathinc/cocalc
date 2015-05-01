@@ -1304,7 +1304,10 @@ class ProjectClient extends EventEmitter
                         async.map(misc.keys(opts), f, cb)
                     (cb) =>
                         if opts.network? and commands.indexOf('network') != -1
-                            dbg("update network quota: network=#{opts.network}")
+                            dbg("update network: #{opts.network}")
+                            if typeof(opts.network) == 'string' and opts.network == 'false'
+                                # this is messed up in the database due to bad client code...
+                                opts.network = false
                             @_action
                                 action : 'network'
                                 args   : if opts.network then [] else ['--ban']
@@ -2100,11 +2103,15 @@ get_whitelisted_users = (opts) ->
             else
                 opts.cb(undefined, ['root','salvus'].concat((x.project_id.replace(/-/g,'') for x in results)))
 
+NO_OUTGOING_FIREWALL = false
 firewall = (opts) ->
     opts = defaults opts,
         command : required
         args    : []
         cb      : required
+    if opts.command == 'outgoing' and NO_OUTGOING_FIREWALL
+        opts.cb()
+        return
     misc_node.execute_code
         command : 'sudo'
         args    : ["#{process.env.SALVUS_ROOT}/scripts/smc_firewall.py", opts.command].concat(opts.args)
@@ -2156,12 +2163,17 @@ init_firewall = (cb) ->
                 args    : ["--whitelist_hosts", incoming_whitelist_hosts]
                 cb      : cb
         (cb) ->
-            dbg("starting firewall -- applying outgoing rules")
-            firewall
-                command : "outgoing"
-                args    : ["--whitelist_hosts_file", "#{process.env.SALVUS_ROOT}/scripts/outgoing_whitelist_hosts",
-                           "--whitelist_users", whitelisted_users]
-                cb      : cb
+            if incoming_whitelist_hosts.split(',').indexOf(require('os').hostname()) != -1
+                dbg("this is a frontend web node, so not applying outgoing firewall rules (probably being used for development)")
+                NO_OUTGOING_FIREWALL = true
+                cb()
+            else
+                dbg("starting firewall -- applying outgoing rules")
+                firewall
+                    command : "outgoing"
+                    args    : ["--whitelist_hosts_file", "#{process.env.SALVUS_ROOT}/scripts/outgoing_whitelist_hosts",
+                               "--whitelist_users", whitelisted_users]
+                    cb      : cb
     ], (err) ->
         dbg("finished firewall configuration in #{misc.walltime(tm)} seconds")
         cb(err)

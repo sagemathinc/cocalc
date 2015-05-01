@@ -1,5 +1,6 @@
 cloud.sagemath.com
 sagemath.com
+plot.ly
 www.bioconductor.org # (from David Beck <dacb@uw.edu>)
 dl.dropboxusercontent.com
 kaggle.com   # competition - often requested
@@ -48,4 +49,4 @@ geom.math.washington.edu
 mod.math.washington.edu
 sage.math.washington.edu
 combinat.math.washington.edu
-redhawk.math.washington.edu
+

@@ -1098,7 +1098,7 @@ class ProjectPage
                     usage.find(".project-settings-network-access-checkbox").hide()
                     usage.find(".project-settings-unlimited-timeout").hide()
                     timeout = @container.find(".salvus-project-settings-mintime").text()
-
+                    network = @container.find(".salvus-project-settings-network").text() == 'true'
                     salvus_client.project_set_quotas
                         project_id : @project.project_id
                         memory     : Math.round(parseFloat(@container.find(".salvus-project-settings-memory").text())*1000)   # see message.coffee for the units, etc., for all these settings
@@ -1106,7 +1106,7 @@ class ProjectPage
                         cores      : Math.round(@container.find(".salvus-project-settings-cores").text())
                         disk       : Math.round(@container.find(".salvus-userquota-projects").text())
                         mintime    : (if timeout == "∞" then 3600 * 1000000 else Math.round(timeout) * 3600)
-                        network    : @container.find(".salvus-project-settings-network").text()
+                        network    : network
                         cb         : (err, mesg) ->
                             if err
                                 alert_message(type:'error', message:err)
