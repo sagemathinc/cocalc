@@ -577,7 +577,7 @@ class Project(object):
         log("newest_local = %s", newest_local)
         # download all streams from GCS with start >= newest_local
         missing_streams = [stream for stream in gs if newest_local == "" or stream.split(TO)[0] >= newest_local]
- 
+
         try:
             downloaded = self.gs_get(missing_streams)
         except Exception, mesg:
