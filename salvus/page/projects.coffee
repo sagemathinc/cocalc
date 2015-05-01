@@ -530,27 +530,7 @@ exports.open_project = open_project = (opts) ->
     if opts.target?
         proj.load_target(opts.target, opts.switch_to)
 
-    if not project.bup_location?
-        alert_message
-            type    : "info"
-            message : "Opening project #{project.title}... (this takes about 30 seconds)"
-            timeout : 15
-        opts.item?.find(".projects-location").html("<i class='fa-spinner fa-spin'> </i>restoring...")
-        salvus_client.project_info
-            project_id : project.project_id
-            cb         : (err, info) ->
-                if err
-                    opts.item?.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
-                    opts.cb?("error opening project -- #{err}")
-                else
-                    if not info?.bup_location?
-                        opts.item?.find(".projects-location").html("(none)")
-                    else
-                        project.location = info.bup_location
-                        opts.item?.find(".projects-location").text("")
-                    opts.cb?(undefined, proj)
-    else
-        opts.cb?(undefined, proj)
+    opts.cb?(undefined, proj)
 
 ################################################
 # Create a New Project
