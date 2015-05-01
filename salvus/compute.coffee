@@ -32,6 +32,8 @@ id='e7a8a705-1c40-4397-836a-b60e259e1137'; x={};require('compute').compute_serve
 ###
 
 
+# obviously don't want to trigger this too quickly, since it may mean file loss.
+AUTOMATIC_FAILOVER_TIME_S = 30
 
 SERVER_STATUS_TIMEOUT_S = 5  # 5 seconds
 
@@ -712,7 +714,7 @@ class ProjectClient extends EventEmitter
                 misc.retry_until_success
                     f           : f
                     start_delay : 500
-                    max_time    : 15000
+                    max_time    : AUTOMATIC_FAILOVER_TIME_S*1000
                     cb          : (err) =>
                         if err
                             m = "failed to get status -- project not working on #{@host} -- initiating automatic move to a new node -- #{err}"
@@ -2139,7 +2141,7 @@ firewall = (opts) ->
 #
 # How to set metadata for list of web servers from admin node:
 #
-# time gcloud compute project-info add-metadata --metadata incoming_whitelist_hosts=smc1dc5,smc2dc5,smc3dc5,smc4dc5,smc5dc5,smc6dc5,smc1dc6,smc2dc6,smc3dc6,smc4dc6,smc5dc6,smc6dc6,devel1dc5
+# time gcloud compute project-info add-metadata --metadata incoming_whitelist_hosts=smc0-us-central1-c,smc1-us-central1-c,smc2-us-central1-c,smc0-europe-west1-d,smc1-europe-west1-d,smc2-europe-west1-d,smc1dc5,smc2dc5,smc3dc5,smc4dc5,smc5dc5,smc6dc5,smc1dc6,smc2dc6,smc3dc6,smc4dc6,smc5dc6,smc6dc6,devel1dc5
 #
 init_firewall = (cb) ->
     dbg = (m) -> winston.debug("init_firewall: #{m}")
