@@ -1,0 +1,12 @@
+set -e
+set -v
+
+mkfs.btrfs /dev/sdb
+mount /dev/sdb /mnt/cassandra
+chown salvus. -R /mnt/cassandra
+
+cd /mnt/cassandra
+ln -s /home/salvus/salvus/salvus/data/local/cassandra/lib .
+
+# inspect filesystems
+df -h
