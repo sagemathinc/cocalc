@@ -2139,7 +2139,6 @@ firewall = (opts) ->
 #
 # How to set metadata for list of web servers from admin node:
 #
-# time gcloud compute project-info add-metadata --metadata incoming_whitelist_hosts=smc1dc5,smc2dc5,smc3dc5,smc4dc5,smc5dc5,smc6dc5,smc1dc6,smc2dc6,smc3dc6,smc4dc6,smc5dc6,smc6dc6,devel1dc5
 #
 init_firewall = (cb) ->
     dbg = (m) -> winston.debug("init_firewall: #{m}")
@@ -2154,7 +2153,7 @@ init_firewall = (cb) ->
                 (cb) ->
                     dbg("getting incoming_whitelist_hosts")
                     get_metadata
-                        key : "incoming_whitelist_hosts"
+                        key : "smc-servers"
                         cb  : (err, w) ->
                             incoming_whitelist_hosts = w
                             cb(err)

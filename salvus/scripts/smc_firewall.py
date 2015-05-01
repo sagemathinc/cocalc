@@ -230,8 +230,10 @@ class Firewall(object):
             self.insert_rule(['INPUT', '-p', 'tcp', '--dport', p, '-j', 'ACCEPT'])
 
         # Allow incoming connections/packets from anything in the whitelist
-        if whitelist_hosts.strip():
-            self.insert_rule(['INPUT', '-s', whitelist_hosts, '-j', 'ACCEPT'])
+        if not whitelist_hosts.strip():
+            whitelist_hosts = cmd("curl -s http://metadata.google.internal/computeMetadata/v1/project/attributes/smc-servers -H 'Metadata-Flavor: Google'")
+
+        self.insert_rule(['INPUT', '-s', whitelist_hosts, '-j', 'ACCEPT'])
 
         # Loopback traffic: allow all INCOMING (so the rule below doesn't cause trouble);
         # needed, e.g., by Jupyter notebook and probably other services.
@@ -276,7 +278,7 @@ if __name__ == "__main__":
     f(parser_outgoing)
 
     parser_incoming = subparsers.add_parser('incoming', help='create firewall to block all incoming traffic except ssh, except explicit whitelist')
-    parser_incoming.add_argument('--whitelist_hosts',help="comma separated list of sites to whitelist (should be the hub vm's)", default='')
+    parser_incoming.add_argument('--whitelist_hosts',help="comma separated list of sites to whitelist (default: use metadata server to get smc vms)", default='')
     parser_incoming.add_argument('--whitelist_ports',help="comma separated list of ports to whitelist", default='22,80,443')
     f(parser_incoming)
 
