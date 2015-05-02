@@ -71,7 +71,7 @@ STATES =
             start : 'starting'
             close : 'closing'
             save  : 'saving'
-        commands : ['start', 'close', 'save', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
+        commands : ['start', 'close', 'save', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
 
     running:
         desc     : 'The project is opened and ready to be used.'
@@ -79,7 +79,7 @@ STATES =
         to       :
             stop : 'stopping'
             save : 'saving'
-        commands : ['stop', 'save', 'address', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
+        commands : ['stop', 'save', 'address', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
 
     saving:
         desc     : 'The project is being snapshoted and saved to cloud storage.'
