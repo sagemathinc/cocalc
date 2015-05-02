@@ -567,6 +567,7 @@ class ProjectClient extends EventEmitter
         old_host = @host
         @host = host
         if old_host? and host != old_host
+            @dbg("host_changed from #{old_host} to #{host}")
             @emit('host_changed', @host)  # event whenever host changes from one set value to another (e.g., move or failover)
 
     clear_state: () =>
@@ -731,7 +732,7 @@ class ProjectClient extends EventEmitter
                 # triggers failover of project to another node.
                 misc.retry_until_success
                     f           : f
-                    start_delay : 500
+                    start_delay : 1000
                     max_time    : AUTOMATIC_FAILOVER_TIME_S*1000
                     cb          : (err) =>
                         if err
