@@ -1296,12 +1296,13 @@ class ProjectClient extends EventEmitter
                     quotas = {}
                     result = result[0]
                     if result.disk and not result.disk_quota
-                        result.disk_quota = Math.round(result.disk*1.5)
+                        result.disk_quota = Math.round(misc.from_json(result.disk)*1.5)
                     for k, v of DEFAULT_SETTINGS
                         if not result?[k]
                             quotas[k] = v
                         else
                             quotas[k] = misc.from_json(result[k])
+
                     # TODO: this is a temporary workaround until I go through and convert everything in
                     # the database, after the switch.
                     if quotas.memory < 70
