@@ -4577,6 +4577,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             @_update_host_recently_called = true
             setTimeout((()=>@_update_host_recently_called=false),
                        MIN_HOST_CHANGED_FAILOVER_TIME_MS)
+            winston.debug("calling update_host")
             @_project?.update_host()
 
     project: (cb) =>
@@ -4591,14 +4592,14 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     else
                         @_project = project
                         @_project.on 'host_changed', (new_host) =>
-                            winston.debug("local_hub(#{@project_id}): host changed to #{new_host} -- closing all connections")
+                            winston.debug("local_hub(#{@project_id}): host_changed to #{new_host} -- closing all connections")
                             @free_resources()
                         cb(undefined, project)
 
     dbg: (m) =>
         ## only enable when debugging
         if DEBUG
-            winston.debug("local_hub(#{@project_id}): #{misc.to_json(m)}")
+            winston.debug("local_hub(#{@project_id} on #{@_project?.host}): #{misc.to_json(m)}")
 
     move: (opts) =>
         opts = defaults opts,
@@ -4654,15 +4655,18 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
 
     free_resources: () =>
         @dbg("free_resources")
+        delete @address  # so we don't continue trying to use old address
         delete @_status
         try
             @_socket?.end()
+            winston.debug("free_resources: closed main local_hub socket")
         catch e
             winston.debug("free_resources: exception closing main _socket: #{e}")
         delete @_socket
-        for k, s in @_sockets
+        for k, s of @_sockets
             try
                 s.end()
+                winston.debug("free_resources: closed #{k}")
             catch e
                 winston.debug("free_resources: exception closing a socket: #{e}")
         @_sockets = {}
@@ -4675,6 +4679,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             for socket in v
                 try
                     socket.end()
+                    socket.destroy()
                 catch e
                     # do nothing
             delete @_sockets_by_client_id[client_id]
