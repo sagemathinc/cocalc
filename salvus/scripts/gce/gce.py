@@ -145,6 +145,7 @@ class GCE(object):
              '--maintenance-policy', 'MIGRATE', '--scopes',
              'https://www.googleapis.com/auth/devstorage.full_control',
              'https://www.googleapis.com/auth/logging.write',
+             '--tags', 'http-server', 'https-server,
              '--disk', 'name=%s'%name, 'device-name=%s'%name, 'mode=rw', 'boot=yes',
              '--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw',
             ], system=True)
@@ -199,7 +200,7 @@ class GCE(object):
             cost += size * PRICING[typ]
         # no easy way to see local ssd; for now, assume there is one on each compute machine and no others
         local_ssd = len([x for x in cmd(['gcloud', 'compute', 'instances', 'list']).splitlines() if x.startswith('compute')])
-        cost += 375*PRICING['local-ssd']
+        cost += local_ssd*375*PRICING['local-ssd']
 
         log("-"*70)
         log("The cost for disk storage is %s/month", money(cost))
