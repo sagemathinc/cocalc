@@ -1295,6 +1295,8 @@ class ProjectClient extends EventEmitter
                 else
                     quotas = {}
                     result = result[0]
+                    if result.disk and not result.disk_quota
+                        result.disk_quota = int(result.disk*1.5)
                     for k, v of DEFAULT_SETTINGS
                         if not result?[k]
                             quotas[k] = v
