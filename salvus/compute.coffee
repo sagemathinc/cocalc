@@ -563,6 +563,12 @@ class ProjectClient extends EventEmitter
     dbg: (method) =>
         (m) => winston.debug("ProjectClient(project_id='#{@project_id}','#{@host}').#{method}: #{m}")
 
+    _set_host: (host) =>
+        old_host = @host
+        @host = host
+        if old_host? and host != old_host
+            @emit('host_changed', @host)  # event whenever host changes from one set value to another (e.g., move or failover)
+
     clear_state: () =>
         @dbg("clear_state")()
         delete @_state
@@ -571,7 +577,7 @@ class ProjectClient extends EventEmitter
 
     update_host: (opts) =>
         opts = defaults opts,
-            cb : required
+            cb : undefined
         host          = undefined
         assigned      = undefined
         previous_host = @host
@@ -627,14 +633,14 @@ class ProjectClient extends EventEmitter
                                     cb    : cb
         ], (err) =>
             if not err
-                @host     = host
+                @_set_host(host)
                 @assigned = assigned  # when host was assigned
                 dbg("henceforth using host=#{@host} that was assigned #{@assigned}")
                 if host != previous_host
                     @clear_state()
                     dbg("HOST CHANGE: #{previous_host} --> #{host}")
             dbg("time=#{misc.mswalltime(t)}ms")
-            opts.cb(err, host)
+            opts.cb?(err, host)
         )
 
     _action: (opts) =>
@@ -1062,7 +1068,7 @@ class ProjectClient extends EventEmitter
                     cb    : cb
             (cb) =>
                 dbg("open on new host")
-                @host = opts.target
+                @_set_host(opts.target)
                 @open(cb:cb)
         ], opts.cb)
 
@@ -1080,7 +1086,7 @@ class ProjectClient extends EventEmitter
                     cb     : cb
             (cb) =>
                 dbg("now remove project from btrfs stream storage too")
-                @host = undefined
+                @_set_host(undefined)
                 @_action
                     action : "destroy"
                     cb     : cb
