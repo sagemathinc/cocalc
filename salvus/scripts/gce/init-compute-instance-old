@@ -1,0 +1,21 @@
+set -e
+set -v
+
+# partition the local ssd:
+# Got the file  sfdisk-sdb-ssd.layout by doing it once manually, then doing
+#
+#      sfdisk -d /dev/sdb >  sfdisk-sdb-ssd.layout
+#
+sfdisk /dev/sdb < sfdisk-sdb-ssd.layout
+
+# layout
+export SWAP=/dev/sdb1; export DEV=/dev/sdb2; export MOUNT=/projects
+
+# make all the partitions and mounts
+mkswap $SWAP && swapon $SWAP && mkfs.btrfs $DEV && mkdir -p $MOUNT && mount -o compress-force=lzo,noatime $DEV $MOUNT && btrfs quota enable $MOUNT && chmod og-rw $MOUNT && chmod og+x $MOUNT && btrfs subvolume create $MOUNT/conf && chown salvus. $MOUNT/conf && btrfs subvolume create $MOUNT/.snapshots && btrfs subvolume create $MOUNT/sagemathcloud && sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/ && btrfs subvolume create $MOUNT/tmp && chmod 1777 $MOUNT/tmp && mount -o bind $MOUNT/tmp /tmp/ && btrfs qgroup limit 100G /projects/tmp
+
+# inspect filesystems
+df -h
+
+# inspect memory
+free -h
