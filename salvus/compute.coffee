@@ -1295,7 +1295,7 @@ class ProjectClient extends EventEmitter
                 else
                     quotas = {}
                     result = result[0]
-                    if result.disk and not result.disk_quota
+                    if result? and result.disk and not result.disk_quota
                         result.disk_quota = Math.round(misc.from_json(result.disk)*1.5)
                     for k, v of DEFAULT_SETTINGS
                         if not result?[k]
