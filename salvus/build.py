@@ -334,6 +334,10 @@ In /etc/sysctl.conf, put:
 
     vm.swappiness=1
 
+# Critical for compute VM's using google cloud storage:
+
+    sudo pip uninstall crcmod; sudo pip install -U crcmod
+
 
 # Build Sage (as usual)
 

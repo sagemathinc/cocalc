@@ -1849,7 +1849,8 @@ class Services(object):
                                                                   for h, o in v] + ['default=DC0:RAC0'])
 
             for address, o in v:
-                dc = o.get('topology','DC0:RAC0').split(':')[0].lower()  # this must be before o['topology'] line below!
+                #dc = o.get('topology','DC0:RAC0').split(':')[0].lower()  # this must be before o['topology'] line below!
+                dc = 'dc%s'%self.ip_address_to_dc(address)
                 if dc not in self._cassandras_in_dc:
                     self._cassandras_in_dc[dc] = [self._hosts.hostname(address)]
                 else:
