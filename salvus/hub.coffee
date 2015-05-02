@@ -2209,6 +2209,7 @@ class Client extends EventEmitter
             # is very expensive.  This cache does expire, in case user
             # is kicked out of the project.
             cb(undefined, project)
+            project.local_hub.update_host()
             return
 
         dbg()
@@ -4556,7 +4557,9 @@ all_local_hubs = () ->
             v.push(h)
     return v
 
-class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
+MIN_HOST_CHANGED_FAILOVER_TIME_MS = 20000
+
+class LocalHub # use the function "new_local_hub" above; do not construct this directly!
     constructor: (@project_id) ->
         @_local_hub_socket_connecting = false
         @_sockets = {}  # key = session_uuid:client_id
@@ -4564,6 +4567,18 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @_multi_response = {}
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
+
+    # Query database to find out where the project is currently hosted.
+    # If it moves, this will trigger the host_changed event that we listen
+    # for in project below, which kills all connections to the local hub.
+    # Client code should call this frequently in an event driven way.
+    update_host: () =>
+        if not @_update_host_recently_called
+            @_update_host_recently_called = true
+            setTimeout((()=>@_update_host_recently_called=false),
+                       MIN_HOST_CHANGED_FAILOVER_TIME_MS)
+            winston.debug("calling update_host")
+            @_project?.update_host()
 
     project: (cb) =>
         if @_project?
@@ -4576,12 +4591,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         cb(err)
                     else
                         @_project = project
+                        @_project.on 'host_changed', (new_host) =>
+                            winston.debug("local_hub(#{@project_id}): host_changed to #{new_host} -- closing all connections")
+                            @free_resources()
                         cb(undefined, project)
 
     dbg: (m) =>
         ## only enable when debugging
         if DEBUG
-            winston.debug("local_hub(#{@project_id}): #{misc.to_json(m)}")
+            winston.debug("local_hub(#{@project_id} on #{@_project?.host}): #{misc.to_json(m)}")
 
     move: (opts) =>
         opts = defaults opts,
@@ -4637,15 +4655,18 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
     free_resources: () =>
         @dbg("free_resources")
+        delete @address  # so we don't continue trying to use old address
         delete @_status
         try
             @_socket?.end()
+            winston.debug("free_resources: closed main local_hub socket")
         catch e
             winston.debug("free_resources: exception closing main _socket: #{e}")
         delete @_socket
-        for k, s in @_sockets
+        for k, s of @_sockets
             try
                 s.end()
+                winston.debug("free_resources: closed #{k}")
             catch e
                 winston.debug("free_resources: exception closing a socket: #{e}")
         @_sockets = {}
@@ -4658,6 +4679,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             for socket in v
                 try
                     socket.end()
+                    socket.destroy()
                 catch e
                     # do nothing
             delete @_sockets_by_client_id[client_id]
@@ -4972,6 +4994,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     #winston.debug("handling data -- ignore='#{console_socket._ignore}")
                     if not console_socket._ignore
                         console_socket.write(data)
+                        @update_host()
                     else
                         # send a reconnect message, but at most once every 5 seconds.
                         if not recently_sent_reconnect
@@ -5121,6 +5144,7 @@ new_project = (project_id) ->
     if not P?
         P = new Project(project_id)
         _project_cache[project_id] = P
+    P.local_hub.update_host()
     return P
 
 class Project
@@ -5189,7 +5213,6 @@ class Project
                 else
                     @dbg("jupyter_port -- #{resp.port}")
                     opts.cb(undefined, resp.port)
-
 
     # Set project as deleted (which sets a flag in the database)
     delete_project: (opts) =>

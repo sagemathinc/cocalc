@@ -145,7 +145,7 @@ class GCE(object):
              '--maintenance-policy', 'MIGRATE', '--scopes',
              'https://www.googleapis.com/auth/devstorage.full_control',
              'https://www.googleapis.com/auth/logging.write',
-             '--tags', 'http-server', 'https-server,
+             '--tags', 'http-server', 'https-server',
              '--disk', 'name=%s'%name, 'device-name=%s'%name, 'mode=rw', 'boot=yes',
              '--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw',
             ], system=True)
