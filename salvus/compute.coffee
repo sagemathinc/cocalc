@@ -1414,8 +1414,9 @@ class ProjectClient extends EventEmitter
 
     migrate_update: (opts) =>
         opts = defaults opts,
-            cb : required
+            cb : undefined
         bup_location = undefined
+        host = undefined
         async.series([
             (cb) =>
                 @compute_server.database.select_one
@@ -1429,10 +1430,24 @@ class ProjectClient extends EventEmitter
                             bup_location = result[0]
                             cb()
             (cb) =>
-                @compute_server.database.select
-                    table   : 'storage_servers'
-                    columns : ['host']
-
+                @compute_server.database.select_one
+                    table     : 'storage_servers'
+                    columns   : ['ssh']
+                    where     :
+                        dummy     : true
+                        server_id : bup_location
+                    cb        : (err, result) =>
+                        if err
+                            cb(err)
+                        else
+                            host = result[0][-1]
+                            cb()
+            (cb) =>
+                @_action
+                    action : 'migrate_live'
+                    args   : ['--port', '2222', host]
+                    cb     : cb
+        ], (err) -> opts.cb?(err))
 
 #################################################################
 #
