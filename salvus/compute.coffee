@@ -1293,6 +1293,10 @@ class ProjectClient extends EventEmitter
                             quotas[k] = v
                         else
                             quotas[k] = misc.from_json(result[k])
+                    # TODO: this is a temporary workaround until I go through and convert everything in
+                    # the database, after the switch.
+                    if quotas.memory < 70
+                        quotas.memory *= 1000
                     opts.cb(undefined, quotas)
 
     set_quotas: (opts) =>
