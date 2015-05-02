@@ -1129,7 +1129,6 @@ class Project(object):
             raise
 
     def migrate_live(self, hostname, port=22, verbose=False):
-        try:
             if not os.path.exists(self.project_path):
                 # for migrate, definitely only open if not already open
                 self.open(ignore_recv_errors=True)
@@ -1142,9 +1141,6 @@ class Project(object):
             if not os.system(s):
                 log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
             self.create_snapshot_link()  # rsync deletes this
-        finally:
-            if close:
-                self.close()
 
 
 if __name__ == "__main__":
