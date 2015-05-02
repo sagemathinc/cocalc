@@ -114,15 +114,16 @@ smc4dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
 smc5dc6  {'seed':True,   'topology':'DC6:RAC0', 'num_tokens':256}
 smc6dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
 
-# DC7: Commercial google: asia-east1-c
-#smc1dc7  {'seed':True,   'topology':'DC7:RAC0', 'num_tokens':256}
-#smc2dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
-#smc3dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
-#smc4dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
-#smc5dc7  {'seed':True,   'topology':'DC7:RAC0', 'num_tokens':256}
-#smc6dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
-#smc7dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
-#smc8dc7  {'seed':False,  'topology':'DC7:RAC0', 'num_tokens':256}
+# us-central1-c
+smc0-us-central1-c {'seed':True,   'topology':'us-central1:c', 'num_tokens':256}
+smc1-us-central1-c {'seed':False,  'topology':'us-central1:c', 'num_tokens':256}
+smc2-us-central1-c {'seed':True,   'topology':'us-central1:c', 'num_tokens':256}
+
+# us-central1-c
+smc0-europe-west1-d {'seed':True,   'topology':'europe-west1:d', 'num_tokens':256,  'auto_bootstrap': False}
+smc1-europe-west1-d {'seed':False,  'topology':'europe-west1:d', 'num_tokens':256,  'auto_bootstrap': False}
+smc2-europe-west1-d {'seed':True,   'topology':'europe-west1:d', 'num_tokens':256,  'auto_bootstrap': False}
+
 
 
 [stunnel] {'sudo':True}

@@ -32,6 +32,8 @@ id='e7a8a705-1c40-4397-836a-b60e259e1137'; x={};require('compute').compute_serve
 ###
 
 
+# obviously don't want to trigger this too quickly, since it may mean file loss.
+AUTOMATIC_FAILOVER_TIME_S = 30
 
 SERVER_STATUS_TIMEOUT_S = 5  # 5 seconds
 
@@ -143,7 +145,7 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 
 TIMEOUT = 60*60
 
-BTRFS   = if process.env.SMC_BTRFS? then process.env.SMC_BTRFS else 'projects'
+BTRFS   = if process.env.SMC_BTRFS? then process.env.SMC_BTRFS else '/projects'
 BUCKET  = process.env.SMC_BUCKET
 ARCHIVE = process.env.SMC_ARCHIVE
 
@@ -162,6 +164,7 @@ exports.compute_server = compute_server = (opts) ->
     opts = defaults opts,
         database : undefined
         keyspace : undefined
+        db_hosts : undefined
         cb       : required
     if compute_server_cache?
         opts.cb(undefined, compute_server_cache)
@@ -173,6 +176,7 @@ class ComputeServerClient
         opts = defaults opts,
             database : undefined
             keyspace : undefined
+            db_hosts : ['localhost']
             cb       : required
         dbg = @dbg("constructor")
         @_project_cache = {}
@@ -189,7 +193,7 @@ class ComputeServerClient
                     winston.debug("warning: no password file -- will only work if there is no password set.")
                     password = ''
                 @database = new cassandra.Salvus
-                    hosts       : ['localhost']
+                    hosts       : opts.db_hosts
                     keyspace    : opts.keyspace
                     username    : 'hub'
                     consistency : cql.types.consistencies.localQuorum
@@ -210,17 +214,26 @@ class ComputeServerClient
 
     ###
     # get info about server and add to database
+
+
+        require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e);s.add_server(host:'compute0-us-central1-c', cb:(e)->console.log("done",e)))
+
          require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);s.add_server(host:'localhost', cb:(e)->console.log("done",e)))
     ###
     add_server: (opts) =>
         opts = defaults opts,
             host         : required
-            dc           : 0         # 0, 1, 2, .etc.
+            dc           : ''        # deduced from hostname (everything after -) if not given
             experimental : false     # if true, don't allocate new projects here
             timeout      : 30
             cb           : undefined
         dbg = @dbg("add_server(#{opts.host})")
         dbg("adding compute server to the database by grabbing conf files, etc.")
+
+        if not opts.host
+            i = opts.host.indexOf('-')
+            if i != -1
+                opts.dc = opts.host.slice(0,i)
 
         get_file = (path, cb) =>
             dbg("get_file: #{path}")
@@ -712,7 +725,7 @@ class ProjectClient extends EventEmitter
                 misc.retry_until_success
                     f           : f
                     start_delay : 500
-                    max_time    : 15000
+                    max_time    : AUTOMATIC_FAILOVER_TIME_S*1000
                     cb          : (err) =>
                         if err
                             m = "failed to get status -- project not working on #{@host} -- initiating automatic move to a new node -- #{err}"
@@ -2137,9 +2150,6 @@ firewall = (opts) ->
 #
 # Initialize the iptables based firewall.  Must be run after sqlite db is initialized.
 #
-# How to set metadata for list of web servers from admin node:
-#
-# time gcloud compute project-info add-metadata --metadata incoming_whitelist_hosts=smc1dc5,smc2dc5,smc3dc5,smc4dc5,smc5dc5,smc6dc5,smc1dc6,smc2dc6,smc3dc6,smc4dc6,smc5dc6,smc6dc6,devel1dc5
 #
 init_firewall = (cb) ->
     dbg = (m) -> winston.debug("init_firewall: #{m}")
@@ -2148,15 +2158,23 @@ init_firewall = (cb) ->
     incoming_whitelist_hosts = ''
     outgoing_whitelist_hosts = 'sagemath.com'
     whitelisted_users        = ''
+    admin_whitelist = ''
     async.series([
         (cb) ->
             async.parallel([
                 (cb) ->
                     dbg("getting incoming_whitelist_hosts")
                     get_metadata
-                        key : "incoming_whitelist_hosts"
+                        key : "smc-servers"
                         cb  : (err, w) ->
                             incoming_whitelist_hosts = w
+                            cb(err)
+                (cb) ->
+                    dbg("getting admin whitelist")
+                    get_metadata
+                        key : "admin-servers"
+                        cb  : (err, w) ->
+                            admin_whitelist = w
                             cb(err)
                 (cb) ->
                     dbg('getting whitelisted users')
@@ -2172,6 +2190,8 @@ init_firewall = (cb) ->
                 cb      : cb
         (cb) ->
             dbg("starting firewall -- applying incoming rules")
+            if admin_whitelist
+                incoming_whitelist_hosts += ',' + admin_whitelist
             firewall
                 command : "incoming"
                 args    : ["--whitelist_hosts", incoming_whitelist_hosts]

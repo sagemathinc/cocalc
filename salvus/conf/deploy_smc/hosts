@@ -85,9 +85,6 @@
 
 
 
-###############################################################
-# New commercial stuff
-###############################################################
 
 # Important -- last name is the "canonical" one -- don't make it not last!!
 
@@ -135,3 +132,26 @@
 
 #10.7.2.1 dc7 compute-2 compute1dc7
 #10.7.2.2 dc7 compute-2 compute2dc7
+
+
+#######################
+# compute notes in the US:
+
+compute0-us-central1-c us-central1-c gce compute0-us-central1-c
+compute1-us-central1-c us-central1-c gce compute1-us-central1-c
+compute2-us-central1-c us-central1-c gce compute2-us-central1-c
+
+# SMC nodes in the US:
+
+smc0-us-central1-c us-central1-c cassandra hub gce nginx edge smc0-us-central1-c
+smc1-us-central1-c us-central1-c cassandra hub gce nginx edge smc1-us-central1-c
+smc2-us-central1-c us-central1-c cassandra hub gce nginx edge smc2-us-central1-c
+
+
+# SMC nodes in Europe:
+smc0-europe-west1-d europe-west1-d cassandra hub gce nginx edge smc0-europe-west1-d
+smc1-europe-west1-d europe-west1-d cassandra hub gce nginx edge smc1-europe-west1-d
+smc2-europe-west1-d europe-west1-d cassandra hub gce nginx edge smc2-europe-west1-d
+
+
+
