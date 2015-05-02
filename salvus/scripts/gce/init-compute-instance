@@ -16,6 +16,7 @@ mkswap $SWAP && swapon $SWAP && mkfs.btrfs -f $DEV && mkdir -p $MOUNT && mount -
 
 mkfs.ext4 $TMP && mount $TMP /tmp && chmod 1777 /tmp
 
+
 # inspect filesystems
 df -h
 

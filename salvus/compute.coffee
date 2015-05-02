@@ -1412,6 +1412,28 @@ class ProjectClient extends EventEmitter
                 @set_quotas(quotas)
         ], (err) => opts.cb(err))
 
+    migrate_update: (opts) =>
+        opts = defaults opts,
+            cb : required
+        bup_location = undefined
+        async.series([
+            (cb) =>
+                @compute_server.database.select_one
+                    table : 'projects'
+                    where : {project_id : @project_id}
+                    columns : ['bup_location']
+                    cb      : (err, result) =>
+                        if err
+                            cb(err)
+                        else
+                            bup_location = result[0]
+                            cb()
+            (cb) =>
+                @compute_server.database.select
+                    table   : 'storage_servers'
+                    columns : ['host']
+
+
 #################################################################
 #
 # Server code -- runs on the compute server
