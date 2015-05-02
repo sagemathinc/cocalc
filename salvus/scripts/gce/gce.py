@@ -197,6 +197,10 @@ class GCE(object):
             v = x.split()
             size = int(v[2]); typ = v[3]
             cost += size * PRICING[typ]
+        # no easy way to see local ssd; for now, assume there is one on each compute machine and no others
+        local_ssd = len([x for x in cmd(['gcloud', 'compute', 'instances', 'list']).splitlines() if x.startswith('compute')])
+        cost += 375*PRICING['local-ssd']
+
         log("-"*70)
         log("The cost for disk storage is %s/month", money(cost))
         log("-"*70)
