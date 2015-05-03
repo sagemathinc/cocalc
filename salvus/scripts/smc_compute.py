@@ -545,6 +545,13 @@ class Project(object):
         btrfs(['subvolume', 'create', self.project_path])
         os.chown(self.project_path, self.uid, self.uid)
 
+    def create_snapshot_path(self):
+        if not os.path.exists(self.snapshot_path):
+            log("create_snapshot_path")
+            btrfs(['subvolume', 'create', self.snapshot_path])
+            os.chown(self.snapshot_path, 0, self.uid)  # user = root; group = this project
+            os.chmod(self.snapshot_path, 0750)   # -rwxr-x--- = http://www.javascriptkit.com/script/script2/chmodcal3.shtml
+
     def open(self, ignore_recv_errors=False):
         if os.path.exists(self.project_path):
             log("open: already open")
@@ -554,10 +561,7 @@ class Project(object):
         # more carefully check uuid validity before actually making the project
         check_uuid(self.project_id)
 
-        if not os.path.exists(self.snapshot_path):
-            btrfs(['subvolume', 'create', self.snapshot_path])
-            os.chown(self.snapshot_path, 0, self.uid)  # user = root; group = this project
-            os.chmod(self.snapshot_path, 0750)   # -rwxr-x--- = http://www.javascriptkit.com/script/script2/chmodcal3.shtml
+        self.create_snapshot_path()
 
         if not self.gs_path:
             # no google cloud storage configured
@@ -735,6 +739,8 @@ class Project(object):
         - archive = save new incremental tar archive file
         - min_interval = error if there is a snapshot that is younger than this many MINUTES (default: 0=disabled); ignored if timestamp is explicitly provided
         """
+        self.create_snapshot_path()  # this path must exist in order to save
+
         if not timestamp:
             if min_interval:
                 # check if too soon
