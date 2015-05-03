@@ -891,7 +891,7 @@ class Project(object):
                     self.cmd(['tar', opts, target]  + more_opts)
             except Exception, mesg:
                 # make this a warning because taring things like sshfs mounted directories leads to errors
-                # that can't be avoided. 
+                # that can't be avoided.
                 log("WARNING: problem creating tarball -- %s", mesg)
             finally:
                 os.chdir(CUR)
@@ -922,8 +922,24 @@ class Project(object):
             finally:
                 os.chdir(cur)
 
-    def restore_archive(self, subdir=False):
-        raise NotImplementedError
+    def restore_archive(self):
+        log = self._log('restore_archive')
+        # only implemented for lz4
+        archive_path = os.path.join(self._archive, self.project_id)
+        try:
+            tmp_path = tempfile.mkdtemp()
+            log("get files from cloud storage")
+            gsutil(['-m', 'rsync', archive_path, tmp_path])
+            log("extract each tarball in turn")
+            target = os.path.join(self.project_path, "archive")
+            if not os.path.exists(target):
+                os.makedir(target)
+            for tarball in os.listdir(tmp_path):
+                log("extracting %s", tarball)
+                if tarball.endswith('.lz4'):
+                    self.cmd("cd '%s' && cat '%s/%s'  | lz4 -d  - | tar xf -"%(target, tmp_path, tarball))
+        finally:
+            shutil.rmtree(tmp_path)
 
     def directory_listing(self, path, hidden=True, time=True, start=0, limit=-1):
         """
@@ -1358,7 +1374,6 @@ if __name__ == "__main__":
 
 
     parser_restore_archive = subparsers.add_parser('restore_archive', help='restore project by extracting all tarballs in archive')
-    parser_restore_archive.add_argument("--subdir", help="extract them into subdir called archive", default=False, action="store_const", const=True)
     f(parser_restore_archive)
 
     parser_migrate_live = subparsers.add_parser('migrate_live', help='')
