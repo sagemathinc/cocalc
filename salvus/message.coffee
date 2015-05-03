@@ -64,7 +64,7 @@ message
     project_id : required
     state      : required
     time       : required
-    error      : undefined  # error if there was one transitioning to this state
+    state_error : undefined  # error if there was one transitioning to this state
 
 
 ############################################

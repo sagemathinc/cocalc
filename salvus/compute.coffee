@@ -389,7 +389,7 @@ class ComputeServerClient
                                             p._state      = mesg.state
                                             p._state_time = new Date()
                                             p._state_set_by = socket.id
-                                            p._state_error = mesg.error  # error switching to this state
+                                            p._state_error = mesg.state_error  # error switching to this state
                                             p.emit(p._state, p)
                                             if STATES[mesg.state].is_stable
                                                 p.emit('stable', mesg.state)
@@ -705,7 +705,7 @@ class ProjectClient extends EventEmitter
                         dbg("got state='#{@_state}'")
                         @_state       = resp.state
                         @_state_time  = resp.time
-                        @_state_error = resp.error
+                        @_state_error = resp.state_error
                         opts.cb(undefined, resp)
         else
             dbg("getting state='#{@_state}' from cache")
@@ -1614,7 +1614,7 @@ class Project
                 else
                     @_state      = results[0].state
                     @_state_time = new Date(results[0].state_time)
-                    @_state_error= results[0].error
+                    @_state_error= results[0].state_error
                     @_mintime    = results[0].mintime
                     dbg("fetched project info from db: state=#{@_state}, state_time=#{@_state_time}, state_error=#{@_state_error}, mintime=#{@_mintime}s")
                     if not STATES[@_state]?.stable
@@ -1654,7 +1654,7 @@ class Project
             project_id : @project_id
             state      : @_state
             time       : @_state_time
-            error      : @_state_error
+            state_error : @_state_error
         dbg("send message to each of the #{@_state_listeners.length} listeners that the state has been updated = #{misc.to_safe_str(mesg)}")
         for id, socket of @_state_listeners
             dbg("sending mesg to socket #{id}")
