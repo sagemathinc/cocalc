@@ -577,6 +577,9 @@ class ProjectClient extends EventEmitter
         delete @_state_time
         delete @_state_error
         delete @_state_set_by
+        if @_state_cache_timeout?
+             clearTimeout(@_state_cache_timeout)
+             delete @_state_cache_timeout
 
     update_host: (opts) =>
         opts = defaults opts,
@@ -703,9 +706,14 @@ class ProjectClient extends EventEmitter
                         opts.cb(err)
                     else
                         dbg("got state='#{@_state}'")
+                        @clear_state()
                         @_state       = resp.state
                         @_state_time  = resp.time
                         @_state_error = resp.state_error
+                        f = () =>
+                             dbg("clearing cache due to timeout")
+                             @clear_state()
+                        @_state_cache_timeout = setTimeout(f, 30000)
                         opts.cb(undefined, resp)
         else
             dbg("getting state='#{@_state}' from cache")
