@@ -179,7 +179,8 @@ def btrfs_subvolume_usage(subvolume, allow_rescan=True):
     # first sync so that the qgroup numbers are correct
     # "To get accurate information, you must issue a sync before using the qgroup show command."
     # from https://btrfs.wiki.kernel.org/index.php/Quota_support#Known_issues
-    btrfs(['filesystem', 'sync', subvolume])
+    # COMMENTED OUT -- doing a lot of these at once leads to massive deadlock... maybe use a different approach...
+    #btrfs(['filesystem', 'sync', subvolume])
     # now get all usage information (no way to restrict)
     a = btrfs(['qgroup', 'show', subvolume], verbose=0)
     # and filter out what we want.
