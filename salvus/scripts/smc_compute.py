@@ -794,7 +794,13 @@ class Project(object):
                 shutil.rmtree(path)
             except Exception, mesg:
                 log("further problem deleting subvolume %s via rmtree -- %s", path, mesg)
-
+                for x in os.listdir('path'):
+                    try:
+                        btrfs(['subvolume', 'delete', os.path.join(path,x)])
+                    except:
+                        pass
+                btrfs(['subvolume', 'delete', path])
+                
     def destroy(self):
         # delete locally
         self.close(force=True, nosave=True)
