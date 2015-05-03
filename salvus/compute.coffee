@@ -1600,7 +1600,7 @@ class Project
         dbg = @dbg("constructor")
         sqlite_db.select
             table   : 'projects'
-            columns : ['state', 'state_time', 'error', 'mintime']
+            columns : ['state', 'state_time', 'state_error', 'mintime']
             where   : {project_id : @project_id}
             cb      : (err, results) =>
                 if err
