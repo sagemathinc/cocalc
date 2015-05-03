@@ -1619,8 +1619,7 @@ class Project
                     dbg("fetched project info from db: state=#{@_state}, state_time=#{@_state_time}, state_error=#{@_state_error}, mintime=#{@_mintime}s")
                     if not STATES[@_state]?.stable
                         dbg("updating non-stable state")
-                        @_update_state (err) =>
-                            opts.cb(err, @)
+                        @_update_state(@_state_error, ((err) => opts.cb(err, @)))
                         return
                 opts.cb(undefined, @)
 
@@ -1747,8 +1746,7 @@ class Project
                                             set   : {assigned: assigned}
                                             where : {project_id: @project_id}
 
-                                @_update_state (err2) =>
-                                    opts.after_command_cb?(err or err2)
+                                @_update_state(err, ((err2) =>opts.after_command_cb?(err or err2)))
 
                         resp = {state:next_state, time:new Date()}
                         cb()
@@ -1821,7 +1819,7 @@ class Project
                     cb()
         ], (err) => opts.cb?(err, resp))
 
-    _update_state: (cb) =>
+    _update_state: (state_error, cb) =>
         dbg = @dbg("_update_state")
         dbg("state likely changed -- determined what it changed to")
         before = @_state
@@ -1835,7 +1833,7 @@ class Project
                     if r['state'] != before
                         @_state = r['state']
                         @_state_time = new Date()
-                        @_state_error = undefined
+                        @_state_error = state_error
                         dbg("got new state -- #{@_state}")
                         @_update_state_db()
                         @_update_state_listeners()
@@ -1850,7 +1848,7 @@ class Project
             if not opts.update and @_state?
                 cb()
             else
-                @_update_state(cb)
+                @_update_state(@_state_error, cb)
         f (err) =>
             if err
                 opts.cb(err)
