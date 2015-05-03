@@ -793,11 +793,15 @@ class ProjectClient extends EventEmitter
     # open project files on some node
     open: (opts) =>
         opts = defaults opts,
+            ignore_recv_errors : false
             cb     : required
         @dbg("open")()
+        args = [@assigned]
+        if opts.ignore_recv_errors
+            args.push('--ignore_recv_errors')
         @_action
             action : "open"
-            args   : [@assigned]
+            args   : args
             cb     : opts.cb
 
     # start local_hub daemon running (must be opened somewhere)
@@ -878,6 +882,7 @@ class ProjectClient extends EventEmitter
 
     ensure_opened_or_running: (opts) =>
         opts = defaults opts,
+            ignore_recv_errors : false
             cb     : required   # cb(err, state='opened' or 'running')
         state = undefined
         dbg = @dbg("ensure_opened_or_running")
@@ -904,6 +909,7 @@ class ProjectClient extends EventEmitter
                 else if state == 'closed'
                     dbg("opening")
                     @open
+                        ignore_recv_errors : opts.ignore_recv_errors
                         cb : (err) =>
                             if err
                                 cb(err)
@@ -912,6 +918,10 @@ class ProjectClient extends EventEmitter
                                     dbg("it opened")
                                     state = 'opened'
                                     cb()
+                                    # also fire off this, which will check if project hasn't yet
+                                    # been migrated successfully, and if so run one safe
+                                    # rsync --update (so it won't overwrite newer files)
+                                    @migrate_update_if_never_before()
                 else
                     cb("bug -- state=#{state} should be stable but isn't known")
         ], (err) => opts.cb(err, state))
@@ -1416,6 +1426,7 @@ class ProjectClient extends EventEmitter
                 @set_quotas(quotas)
         ], (err) => opts.cb(err))
 
+    # delete this once it has been run on all projects
     migrate_update_if_never_before: (opts) =>
         opts = defaults opts,
             subdir : false
@@ -1430,7 +1441,7 @@ class ProjectClient extends EventEmitter
                     where : {project_id : @project_id}
                     columns : ['migrated']
                     cb      : (err, result) =>
-                        dbg("got #{err}, #{misc.to_safe_str(result)}")
+                        dbg("got err=#{err}, result=#{misc.to_safe_str(result)}")
                         if err
                             cb(err)
                         else
@@ -1441,7 +1452,9 @@ class ProjectClient extends EventEmitter
                     cb()
                 else
                     dbg("not migrated so migrating after first opening")
-                    @ensure_opened_or_running(cb:cb)
+                    @ensure_opened_or_running
+                        ignore_recv_errors : true
+                        cb : cb
             (cb) =>
                 if migrated
                     cb()
@@ -1730,7 +1743,7 @@ class Project
                     # the time the project was assigned to this node, which is the first
                     # argument to open.  We then remove that argument.
                     assigned = opts.args[0]
-                    opts.args = []
+                    opts.args.shift()
                 state_info = STATES[state]
                 if not state_info?
                     err = "bug / internal error -- unknown state '#{misc.to_json(state)}'"
