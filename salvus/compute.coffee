@@ -1414,6 +1414,7 @@ class ProjectClient extends EventEmitter
 
     migrate_update: (opts) =>
         opts = defaults opts,
+            subdir : false
             cb : undefined
         bup_location = undefined
         host = undefined
@@ -1440,12 +1441,16 @@ class ProjectClient extends EventEmitter
                         if err
                             cb(err)
                         else
-                            host = result[0][-1]
+                            host = result[0][-1].split(':')[0]
                             cb()
             (cb) =>
+                args = ['--port', '2222', host]
+                if opts.subdir
+                    args.push("--subdir")
                 @_action
                     action : 'migrate_live'
-                    args   : ['--port', '2222', host]
+                    args   : args
+                    timeout : 2000
                     cb     : cb
         ], (err) -> opts.cb?(err))
 

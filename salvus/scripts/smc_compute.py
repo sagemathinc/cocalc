@@ -1128,7 +1128,7 @@ class Project(object):
             log("rsync error: %s", mesg)
             raise
 
-    def migrate_live(self, hostname, port=22, verbose=False):
+    def migrate_live(self, hostname, port=22, subdir=False, verbose=False):
             if not os.path.exists(self.project_path):
                 # for migrate, definitely only open if not already open
                 self.open(ignore_recv_errors=True)
@@ -1136,7 +1136,10 @@ class Project(object):
                 remote = hostname
             else:
                 remote = "%s:/projects/%s"%(hostname, self.project_id)
-            s = "rsync -%szaxH --max-size=50G --update --ignore-errors %s -e 'ssh -o StrictHostKeyChecking=no -p %s' %s/ %s/ </dev/null"%('v' if verbose else '', ' '.join(self._exclude('')), port, remote, self.project_path)
+            target = self.project_path
+            if subdir:
+                target += "/old/"
+            s = "rsync -%szaxH --max-size=50G --update --ignore-errors %s -e 'ssh -o StrictHostKeyChecking=no -p %s' %s/ %s/ </dev/null"%('v' if verbose else '', ' '.join(self._exclude('')), port, remote, target)
             log(s)
             if not os.system(s):
                 log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
@@ -1342,6 +1345,7 @@ if __name__ == "__main__":
     parser_migrate_live = subparsers.add_parser('migrate_live', help='')
     parser_migrate_live.add_argument("--port", help="", default=22, type=int)
     parser_migrate_live.add_argument("--verbose", default=False, action="store_const", const=True)
+    parser_migrate_live.add_argument("--subdir", default=False, action="store_const", const=True)
     parser_migrate_live.add_argument("hostname", help="hostname[:path]", type=str)
     f(parser_migrate_live)
 
