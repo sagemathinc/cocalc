@@ -1854,9 +1854,9 @@ class Project
                 opts.cb(err)
             else
                 x =
-                    state : @_state
-                    time  : @_state_time
-                    error : @_state_error
+                    state       : @_state
+                    time        : @_state_time
+                    state_error : @_state_error
                 opts.cb(undefined, x)
 
     set_mintime: (opts) =>
