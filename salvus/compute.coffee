@@ -391,7 +391,7 @@ class ComputeServerClient
                                             p._state_set_by = socket.id
                                             p._state_error = mesg.state_error  # error switching to this state
                                             p.emit(p._state, p)
-                                            if STATES[mesg.state].is_stable
+                                            if STATES[mesg.state].stable
                                                 p.emit('stable', mesg.state)
                                     else
                                         winston.debug("mesg (hub <- #{opts.host}): #{misc.to_json(mesg)}")
@@ -1446,6 +1446,22 @@ class ProjectClient extends EventEmitter
                 if migrated
                     cb()
                 else
+                    dbg("verify that open didn't cause error")
+                    @state
+                        cb: (err, state) =>
+                            if err
+                                dbg("failed getting state -- #{err}")
+                                cb(err)
+                            else if state.error
+                                dbg("open failed -- #{state.error}")
+                                cb(state.error)
+                            else
+                                dbg("yes!")
+                                cb()
+            (cb) =>
+                if migrated
+                    cb()
+                else
                     dbg("now migrating")
                     @migrate_update
                         subdir : opts.subdir
@@ -1456,22 +1472,32 @@ class ProjectClient extends EventEmitter
                 else
                     dbg("initiating save")
                     @save
-                        min_interval : 1
+                        min_interval : 0
                         cb           : cb
             (cb) =>
                 if migrated
                     cb()
                 else
                     dbg("waiting until save done")
-                    @once 'stable', (s) =>
+                    @once 'stable', (state) =>
                         dbg("got stable state #{state}")
                         cb()
             (cb) =>
                 if migrated
                     cb()
                 else
-                    dbg("verify that new save was a success")
-
+                    dbg("verify that save was a success")
+                    @state
+                        cb: (err, state) =>
+                            if err
+                                dbg("failed getting state -- #{err}")
+                                cb(err)
+                            else if state.error
+                                dbg("save failed -- #{state.error}")
+                                cb(state.error)
+                            else
+                                dbg("yes!")
+                                cb()
             (cb) =>
                 if migrated
                     cb()
