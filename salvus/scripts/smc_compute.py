@@ -933,11 +933,12 @@ class Project(object):
             log("extract each tarball in turn")
             target = os.path.join(self.project_path, "archive")
             if not os.path.exists(target):
-                os.makedir(target)
+                os.mkdir(target)
             for tarball in os.listdir(tmp_path):
                 log("extracting %s", tarball)
                 if tarball.endswith('.lz4'):
                     self.cmd("cd '%s' && cat '%s/%s'  | lz4 -d  - | tar xf -"%(target, tmp_path, tarball))
+            self.chown(target)
         finally:
             shutil.rmtree(tmp_path)
 
