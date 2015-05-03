@@ -911,6 +911,9 @@ class Project(object):
             finally:
                 os.chdir(cur)
 
+    def restore_archive(self, subdir=False):
+        raise NotImplementedError
+
     def directory_listing(self, path, hidden=True, time=True, start=0, limit=-1):
         """
         Return in JSON-format, listing of files in the given path.
@@ -1341,6 +1344,11 @@ if __name__ == "__main__":
                     help="compression format -- 'lz4' (default), 'gz' or 'bz2'",
                     default="lz4",dest="compression")
     f(parser_archive)
+
+
+    parser_restore_archive = subparsers.add_parser('restore_archive', help='restore project by extracting all tarballs in archive')
+    parser_restore_archive.add_argument("--subdir", help="extract them into subdir called archive", default=False, action="store_const", const=True)
+    f(parser_restore_archive)
 
     parser_migrate_live = subparsers.add_parser('migrate_live', help='')
     parser_migrate_live.add_argument("--port", help="", default=22, type=int)

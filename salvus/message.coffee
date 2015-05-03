@@ -48,7 +48,7 @@ message = (obj) ->
 
 message
     event : 'compute_server_status'
-    status : undefined    
+    status : undefined
 
 # Message for actions using a compute server
 message
@@ -64,8 +64,7 @@ message
     project_id : required
     state      : required
     time       : required
-
-
+    error      : undefined  # error if there was one transitioning to this state
 
 
 ############################################

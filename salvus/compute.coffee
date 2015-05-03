@@ -40,7 +40,7 @@ SERVER_STATUS_TIMEOUT_S = 5  # 5 seconds
 
 # todo -- these should be in a table in the database.
 DEFAULT_SETTINGS =
-    disk_quota : 1000
+    disk_quota : 3000
     cores      : 1
     memory     : 1000
     cpu_shares : 256
@@ -389,6 +389,7 @@ class ComputeServerClient
                                             p._state      = mesg.state
                                             p._state_time = new Date()
                                             p._state_set_by = socket.id
+                                            p._state_error = mesg.error  # error switching to this state
                                             p.emit(p._state, p)
                                             if STATES[mesg.state].is_stable
                                                 p.emit('stable', mesg.state)
@@ -574,6 +575,7 @@ class ProjectClient extends EventEmitter
         @dbg("clear_state")()
         delete @_state
         delete @_state_time
+        delete @_state_error
         delete @_state_set_by
 
     update_host: (opts) =>
@@ -701,14 +703,16 @@ class ProjectClient extends EventEmitter
                         opts.cb(err)
                     else
                         dbg("got state='#{@_state}'")
-                        @_state      = resp.state
-                        @_state_time = resp.time
+                        @_state       = resp.state
+                        @_state_time  = resp.time
+                        @_state_error = resp.error
                         opts.cb(undefined, resp)
         else
             dbg("getting state='#{@_state}' from cache")
             x =
                 state : @_state
                 time  : @_state_time
+                error : @_state_error
             opts.cb(undefined, x)
 
     # information about project (ports, state, etc. )
@@ -1412,6 +1416,74 @@ class ProjectClient extends EventEmitter
                 @set_quotas(quotas)
         ], (err) => opts.cb(err))
 
+    migrate_update_if_never_before: (opts) =>
+        opts = defaults opts,
+            subdir : false
+            cb     : undefined
+        migrated = false
+        dbg = @dbg("migrate_update_if_never_before")
+        async.series([
+            (cb) =>
+                dbg("determine if migrated already")
+                @compute_server.database.select_one
+                    table : 'projects'
+                    where : {project_id : @project_id}
+                    columns : ['migrated']
+                    cb      : (err, result) =>
+                        dbg("got #{err}, #{misc.to_safe_str(result)}")
+                        if err
+                            cb(err)
+                        else
+                            migrated = result[0]
+                            cb()
+            (cb) =>
+                if migrated
+                    cb()
+                else
+                    dbg("not migrated so migrating after first opening")
+                    @ensure_opened_or_running(cb:cb)
+            (cb) =>
+                if migrated
+                    cb()
+                else
+                    dbg("now migrating")
+                    @migrate_update
+                        subdir : opts.subdir
+                        cb     : cb
+            (cb) =>
+                if migrated
+                    cb()
+                else
+                    dbg("initiating save")
+                    @save
+                        min_interval : 1
+                        cb           : cb
+            (cb) =>
+                if migrated
+                    cb()
+                else
+                    dbg("waiting until save done")
+                    @once 'stable', (s) =>
+                        dbg("got stable state #{state}")
+                        cb()
+            (cb) =>
+                if migrated
+                    cb()
+                else
+                    dbg("verify that new save was a success")
+
+            (cb) =>
+                if migrated
+                    cb()
+                else
+                    dbg("finally updating database")
+                    @compute_server.database.update
+                        table : 'projects'
+                        set   : {migrated : true}
+                        where : {project_id : @project_id}
+                        cb      : cb
+        ], (err) => opts.cb?(err))
+
     migrate_update: (opts) =>
         opts = defaults opts,
             subdir : false
@@ -1431,6 +1503,8 @@ class ProjectClient extends EventEmitter
                             bup_location = result[0]
                             cb()
             (cb) =>
+                if not bup_location?
+                    cb(); return
                 @compute_server.database.select_one
                     table     : 'storage_servers'
                     columns   : ['ssh']
@@ -1444,6 +1518,8 @@ class ProjectClient extends EventEmitter
                             host = result[0][-1].split(':')[0]
                             cb()
             (cb) =>
+                if not bup_location?
+                    cb(); return
                 args = ['--port', '2222', host]
                 if opts.subdir
                     args.push("--subdir")
@@ -1524,7 +1600,7 @@ class Project
         dbg = @dbg("constructor")
         sqlite_db.select
             table   : 'projects'
-            columns : ['state', 'state_time', 'mintime']
+            columns : ['state', 'state_time', 'smintime']
             where   : {project_id : @project_id}
             cb      : (err, results) =>
                 if err
@@ -1534,11 +1610,13 @@ class Project
                     dbg("nothing in db")
                     @_state      = undefined
                     @_state_time = new Date()
+                    @_state_error = undefined
                 else
                     @_state      = results[0].state
                     @_state_time = new Date(results[0].state_time)
+                    @_state_error= results[0].error
                     @_mintime    = results[0].mintime
-                    dbg("fetched project info from db: state=#{@_state}, state_time=#{@_state_time}, mintime=#{@_mintime}s")
+                    dbg("fetched project info from db: state=#{@_state}, state_time=#{@_state_time}, state_error=#{@_state_error}, mintime=#{@_mintime}s")
                     if not STATES[@_state]?.stable
                         dbg("updating non-stable state")
                         @_update_state (err) =>
@@ -1564,8 +1642,9 @@ class Project
         sqlite_db.update
             table : 'projects'
             set   :
-                state      : @_state
-                state_time : @_state_time - 0
+                state       : @_state
+                state_time  : @_state_time - 0
+                state_error : if not @_state_error? then '' else @_state_error
             where :
                 project_id : @project_id
             cb : cb
@@ -1576,6 +1655,7 @@ class Project
             project_id : @project_id
             state      : @_state
             time       : @_state_time
+            error      : @_state_error
         dbg("send message to each of the #{@_state_listeners.length} listeners that the state has been updated = #{misc.to_safe_str(mesg)}")
         for id, socket of @_state_listeners
             dbg("sending mesg to socket #{id}")
@@ -1646,6 +1726,7 @@ class Project
                         # respond immediately that it's started.
                         @_state = next_state  # change state
                         @_state_time = new Date()
+                        delete @_state_error
                         @_update_state_db()
                         @_update_state_listeners()
                         @_command      # launch the command: this might take a long time
@@ -1653,6 +1734,7 @@ class Project
                             args   : opts.args
                             cb     : (err, ignored) =>
                                 # finished command -- will transition to new state as result
+                                @_state_error = err
                                 if err
                                     dbg("state change command ERROR -- #{err}")
                                 else
@@ -1753,6 +1835,7 @@ class Project
                     if r['state'] != before
                         @_state = r['state']
                         @_state_time = new Date()
+                        @_state_error = undefined
                         dbg("got new state -- #{@_state}")
                         @_update_state_db()
                         @_update_state_listeners()
@@ -1775,6 +1858,7 @@ class Project
                 x =
                     state : @_state
                     time  : @_state_time
+                    error : @_state_error
                 opts.cb(undefined, x)
 
     set_mintime: (opts) =>
@@ -1995,7 +2079,7 @@ init_sqlite_db = (cb) ->
                         query : query
                         cb    : cb
                 async.map([
-                    'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_time INTEGER, mintime INTEGER, assigned INTEGER, network BOOLEAN)',
+                    'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_error TEXT, state_time INTEGER, mintime INTEGER, assigned INTEGER, network BOOLEAN)',
                     'CREATE TABLE keyvalue(key TEXT PRIMARY KEY, value TEXT)'
                     ], f, cb)
     ], cb)
