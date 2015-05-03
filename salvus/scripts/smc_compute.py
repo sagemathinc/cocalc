@@ -888,6 +888,10 @@ class Project(object):
                         raise RuntimeError("error creating archive tarball -- %s"%s)
                 else:
                     self.cmd(['tar', opts, target]  + more_opts)
+            except Exception, mesg:
+                # make this a warning because taring things like sshfs mounted directories leads to errors
+                # that can't be avoided. 
+                log("WARNING: problem creating tarball -- %s", mesg)
             finally:
                 os.chdir(CUR)
 
