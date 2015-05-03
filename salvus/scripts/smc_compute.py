@@ -421,7 +421,21 @@ class Project(object):
         if not os.path.exists(self.snapshot_path):
             return []
         else:
-            return list(sorted(cmd(['ls', self.snapshot_path], verbose=1).splitlines()))
+            v = list(sorted(cmd(['ls', self.snapshot_path], verbose=1).splitlines()))
+            # workaround a hopefully temporary bug.
+            w = []
+            n = len('2015-05-03-081013')
+            for s in v:
+                try:
+                    time.strptime(s[:n], TIMESTAMP_FORMAT)
+                    w.append(s)
+                except:
+                    try:
+                        os.unlink(os.path.join(self.snapshot_path, s))
+                    except:
+                        pass
+                    pass
+            return w
 
     def chown(self, path):
         cmd(["chown", "%s:%s"%(self.uid, self.uid), '-R', path])
@@ -727,7 +741,7 @@ class Project(object):
                 v = self.snapshot_ls()
                 if len(v) > 0:
                     newest = v[-1]
-                    age    = (time.time() - time.mktime(time.strptime(v[-1], TIMESTAMP_FORMAT)))/60.0
+                    age    = (time.time() - time.mktime(time.strptime(v[-1][:len('2015-05-03-081013')], TIMESTAMP_FORMAT)))/60.0
                     if age  < min_interval:
                         raise RuntimeError("there is a %sm old snapshot, which is younger than min_interval(=%sm)"%(age, min_interval))
 
