@@ -1129,6 +1129,46 @@ class Project(object):
         import base64
         return {'base64':base64.b64encode(content)}
 
+    def makedirs(self, path, chown=True):
+        log = self._log('makedirs')
+        if os.path.exists(path) and not os.path.isdir(path):
+            try:
+                log("moving %s", path)
+                os.rename(path, path+".backup")
+            except:
+                log("ok, then remove %s", path)
+                os.unlink(path)
+
+        if not os.path.exists(path):
+            log("creating %s"%path)
+            os.chdir(self.project_path)
+            def makedirs(name):  # modified from os.makedirs to chown each newly created path segment
+                head, tail = os.path.split(name)
+                if not tail:
+                    head, tail = os.path.split(head)
+                if head and tail and not os.path.exists(head):
+                    try:
+                        makedirs(head)
+                    except OSError, e:
+                        # be happy if someone already created the path
+                        if e.errno != errno.EEXIST:
+                            raise
+                    if tail == os.curdir:           # xxx/newdir/. exists if xxx/newdir exists
+                        return
+                os.mkdir(name, 0700)
+                os.chown(name, self.uid, self.gid)
+            makedirs(path)
+
+    def mkdir(self, path):               # relative path in project; must resolve to be under PROJECTS_PATH/project_id
+        log = self._log("mkdir")
+        log("ensuring path %s exists", path)
+        project_id = self.project_id
+        project_path = self.project_path
+        abspath = os.path.abspath(os.path.join(project_path, path))
+        if not abspath.startswith(project_path):
+            raise RuntimeError("path (=%s) must be contained in project path %s"%(path, project_path))
+        if not os.path.exists(abspath):
+            self.makedirs(abspath)
 
     def copy_path(self,
                   path,                   # relative path to copy; must resolve to be under PROJECTS_PATH/project_id

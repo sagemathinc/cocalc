@@ -71,7 +71,7 @@ STATES =
             start : 'starting'
             close : 'closing'
             save  : 'saving'
-        commands : ['start', 'close', 'save', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
+        commands : ['start', 'close', 'save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
 
     running:
         desc     : 'The project is opened and ready to be used.'
@@ -79,13 +79,13 @@ STATES =
         to       :
             stop : 'stopping'
             save : 'saving'
-        commands : ['stop', 'save', 'address', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
+        commands : ['stop', 'save', 'address', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
 
     saving:
         desc     : 'The project is being snapshoted and saved to cloud storage.'
         to       : {}
         timeout  : 30*60
-        commands : ['address', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
+        commands : ['address', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
     closing:
         desc     : 'The project is in the process of being closed, so the latest changes are being uploaded, everything is stopping, the files will be removed from this computer.'
@@ -104,14 +104,14 @@ STATES =
         to       :
             save : 'saving'
         timeout  : 60
-        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
+        commands : ['save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
     stopping:
         desc     : 'All processes associated to the project are being killed.'
         to       :
             save : 'saving'
         timeout  : 60
-        commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
+        commands : ['save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
 ###
 Here's a picture of the finite state machine:
@@ -1298,7 +1298,6 @@ class ProjectClient extends EventEmitter
                 opts.cb(undefined, address)
         )
 
-    # copy a path using rsync from one project to another
     copy_path: (opts) =>
         opts = defaults opts,
             path              : ""
@@ -1310,6 +1309,7 @@ class ProjectClient extends EventEmitter
             bwlimit           : undefined
             cb                : required
         dbg = @dbg("copy_path")
+        dbg("copy a path using rsync from one project to another")
         if not opts.target_project_id
             opts.target_project_id = @project_id
         args = ["--path", opts.path,
@@ -1349,6 +1349,13 @@ class ProjectClient extends EventEmitter
                                             args.push("--target_hostname")
                                             args.push(target_project.host)
                                             cb()
+            (cb) =>
+                dbg("create containing target directory")
+                @_action
+                    action  : 'mkdir'
+                    args    : [misc.path_split(opts.target_path).head]
+                    timeout : opts.timeout
+                    cb      : cb
             (cb) =>
                 dbg("doing the actual copy")
                 @_action
