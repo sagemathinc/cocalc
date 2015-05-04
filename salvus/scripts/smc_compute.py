@@ -1207,8 +1207,14 @@ class Project(object):
             # do the rsync
             self.cmd(v)
         except Exception, mesg:
+            mesg = str(mesg)
             log("rsync error: %s", mesg)
-            raise
+            # get rid of scary (and pointless) part of message
+            s = "Keyboard-interactive authentication is disabled to avoid man-in-the-middle attacks."
+            i = mesg.find(s)
+            if i != -1:
+                mesg = mesg[i+len(s):]
+            raise RuntimeError(mesg)
 
     def migrate_live(self, hostname, port=22, subdir=False, verbose=False):
             if not os.path.exists(self.project_path):
