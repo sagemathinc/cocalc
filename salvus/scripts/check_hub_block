@@ -1,2 +1,2 @@
 clear
-tail -n 10000 hub-0.log | grep BLOCKED  |sort -k 6 -n |tail -10
+tail -n 10000 $SALVUS_ROOT/data/logs/hub-0.log | grep BLOCKED  |sort -k 6 -n |tail -10
