@@ -1876,6 +1876,7 @@ class Project
                 dbg("get state")
                 @state
                     cb: (err, s) =>
+                        dbg("got state=#{misc.to_json(s)}, #{err}")
                         if err
                             opts.after_command_cb?(err)
                             cb(err)
@@ -1892,12 +1893,14 @@ class Project
                 state_info = STATES[state]
                 if not state_info?
                     err = "bug / internal error -- unknown state '#{misc.to_json(state)}'"
+                    dbg(err)
                     opts.after_command_cb?(err)
                     cb(err)
                     return
                 i = state_info.commands.indexOf(opts.action)
                 if i == -1
                     err = "command #{opts.action} not allowed in state #{state}"
+                    dbg(err)
                     opts.after_command_cb?(err)
                     cb(err)
                 else
@@ -1917,7 +1920,7 @@ class Project
                             args    : opts.args
                             timeout : state_info.timeout
                             cb      : (err, ignored) =>
-                                # finished command -- will transition to new state as result
+                                dbg("finished command -- will transition to new state as result (#{err})")
                                 @_state_error = err
                                 if err
                                     dbg("state change command ERROR -- #{err}")
@@ -1936,8 +1939,9 @@ class Project
                         resp = {state:next_state, time:new Date()}
                         cb()
                     else
-                        # A quick action that doesn't involve state change
+                        dbg("A quick action that doesn't involve state change")
                         if opts.action == 'network'  # length==0 is allow network
+                            dbg("do network setting")
                             # refactor this out
                             network = opts.args.length == 0
                             async.parallel([
@@ -1967,17 +1971,19 @@ class Project
                                 cb(err)
                             )
                         else
+                            dbg("doing action #{opts.action}")
                             @_command
                                 action      : opts.action
                                 args        : opts.args
                                 at_most_one : true
                                 cb          : (err, r) =>
+                                    dbg("got #{misc.to_safe_str(r)}, #{err}")
                                     resp = r
                                     cb(err)
                                     opts.after_command_cb?(err)
             (cb) =>
                 if assigned?
-                    # Project was just opened and opening is an allowed command.
+                    dbg("Project was just opened and opening is an allowed command... so saving that")
                     # Set when this assign happened, so we can return this as
                     # part of the status in the future, which the global hubs use
                     # to see whether the project on this node was some mess left behind
@@ -1991,7 +1997,7 @@ class Project
                     cb()
             (cb) =>
                 if opts.action == 'status'
-                    # additional info from database
+                    dbg("status:  so get additional info from database")
                     sqlite_db.select
                         table   : 'projects'
                         columns : ['assigned']
@@ -2004,7 +2010,14 @@ class Project
                                 cb()
                 else
                     cb()
-        ], (err) => opts.cb?(err, resp))
+        ], (err) =>
+            if err
+                dbg("failed -- #{err}")
+                opts.cb?(err)
+            else
+                dbg("success -- #{misc.to_safe_str(resp)}")
+                opts.cb?(undefined, resp)
+        )
 
     _update_state: (state_error, cb) =>
         dbg = @dbg("_update_state")
