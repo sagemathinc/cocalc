@@ -846,6 +846,7 @@ class ProjectClient extends EventEmitter
                         else
                             cb()
             (cb) =>
+                cb(); return  # disabled 
                 if status.assigned and @assigned and (status.assigned != @assigned)
                     dbg("timestamps when project assigned to this host do not match, so files left on host must be from past automatic failover -- delete them and start over")
                     async.series([
