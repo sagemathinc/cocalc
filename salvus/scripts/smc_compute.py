@@ -647,7 +647,7 @@ class Project(object):
     def btrfs_status(self):
         return btrfs_subvolume_usage(self.project_path)
 
-    def status(self):
+    def status(self, timeout=60):
         log = self._log("status")
         s = {}
 
@@ -663,7 +663,7 @@ class Project(object):
 
         if os.path.exists(os.path.join(self.smc_path, 'status')):
             try:
-                t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=10)
+                t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
                 t = json.loads(t)
                 s.update(t)
                 if bool(t.get('local_hub.pid',False)):
@@ -1275,6 +1275,8 @@ if __name__ == "__main__":
     f(subparsers.add_parser('start', help='start project running (open and start daemon)'))
 
     parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
+    parser_status.add_argument("--timeout", help="seconds to run command", default=60, type=int)
+
     f(parser_status)
 
     # disk quota
