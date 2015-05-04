@@ -319,6 +319,10 @@ Add these two lines two `/etc/security/limits.conf` so that bup works with large
    cp scripts/skel/.sagemathcloud/node_modules/*.js local_hub_template/node_modules/
    ./make_coffee --all
 
+# MPI -- see http://stackoverflow.com/questions/12505476/using-mpich-with-boost-mpi-on-ubuntu
+
+    apt-get install mpich mpich-doc libmpich-dev && update-alternatives --set mpi /usr/include/mpich
+
 # KVM HOSTS
 
 On the VM hosts, some things are critical:

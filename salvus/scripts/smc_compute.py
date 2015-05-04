@@ -421,7 +421,21 @@ class Project(object):
         if not os.path.exists(self.snapshot_path):
             return []
         else:
-            return list(sorted(cmd(['ls', self.snapshot_path], verbose=1).splitlines()))
+            v = list(sorted(cmd(['ls', self.snapshot_path], verbose=1).splitlines()))
+            # workaround a hopefully temporary bug.
+            w = []
+            n = len('2015-05-03-081013')
+            for s in v:
+                try:
+                    time.strptime(s[:n], TIMESTAMP_FORMAT)
+                    w.append(s)
+                except:
+                    try:
+                        os.unlink(os.path.join(self.snapshot_path, s))
+                    except:
+                        pass
+                    pass
+            return w
 
     def chown(self, path):
         cmd(["chown", "%s:%s"%(self.uid, self.uid), '-R', path])
@@ -531,6 +545,13 @@ class Project(object):
         btrfs(['subvolume', 'create', self.project_path])
         os.chown(self.project_path, self.uid, self.uid)
 
+    def create_snapshot_path(self):
+        if not os.path.exists(self.snapshot_path):
+            log("create_snapshot_path")
+            btrfs(['subvolume', 'create', self.snapshot_path])
+            os.chown(self.snapshot_path, 0, self.uid)  # user = root; group = this project
+            os.chmod(self.snapshot_path, 0750)   # -rwxr-x--- = http://www.javascriptkit.com/script/script2/chmodcal3.shtml
+
     def open(self, ignore_recv_errors=False):
         if os.path.exists(self.project_path):
             log("open: already open")
@@ -540,10 +561,7 @@ class Project(object):
         # more carefully check uuid validity before actually making the project
         check_uuid(self.project_id)
 
-        if not os.path.exists(self.snapshot_path):
-            btrfs(['subvolume', 'create', self.snapshot_path])
-            os.chown(self.snapshot_path, 0, self.uid)  # user = root; group = this project
-            os.chmod(self.snapshot_path, 0750)   # -rwxr-x--- = http://www.javascriptkit.com/script/script2/chmodcal3.shtml
+        self.create_snapshot_path()
 
         if not self.gs_path:
             # no google cloud storage configured
@@ -721,13 +739,15 @@ class Project(object):
         - archive = save new incremental tar archive file
         - min_interval = error if there is a snapshot that is younger than this many MINUTES (default: 0=disabled); ignored if timestamp is explicitly provided
         """
+        self.create_snapshot_path()  # this path must exist in order to save
+
         if not timestamp:
             if min_interval:
                 # check if too soon
                 v = self.snapshot_ls()
                 if len(v) > 0:
                     newest = v[-1]
-                    age    = (time.time() - time.mktime(time.strptime(v[-1], TIMESTAMP_FORMAT)))/60.0
+                    age    = (time.time() - time.mktime(time.strptime(v[-1][:len('2015-05-03-081013')], TIMESTAMP_FORMAT)))/60.0
                     if age  < min_interval:
                         raise RuntimeError("there is a %sm old snapshot, which is younger than min_interval(=%sm)"%(age, min_interval))
 
@@ -889,6 +909,10 @@ class Project(object):
                         raise RuntimeError("error creating archive tarball -- %s"%s)
                 else:
                     self.cmd(['tar', opts, target]  + more_opts)
+            except Exception, mesg:
+                # make this a warning because taring things like sshfs mounted directories leads to errors
+                # that can't be avoided.
+                log("WARNING: problem creating tarball -- %s", mesg)
             finally:
                 os.chdir(CUR)
 
@@ -918,8 +942,25 @@ class Project(object):
             finally:
                 os.chdir(cur)
 
-    def restore_archive(self, subdir=False):
-        raise NotImplementedError
+    def restore_archive(self):
+        log = self._log('restore_archive')
+        # only implemented for lz4
+        archive_path = os.path.join(self._archive, self.project_id)
+        try:
+            tmp_path = tempfile.mkdtemp()
+            log("get files from cloud storage")
+            gsutil(['-m', 'rsync', archive_path, tmp_path])
+            log("extract each tarball in turn")
+            target = os.path.join(self.project_path, "archive")
+            if not os.path.exists(target):
+                os.mkdir(target)
+            for tarball in os.listdir(tmp_path):
+                log("extracting %s", tarball)
+                if tarball.endswith('.lz4'):
+                    self.cmd("cd '%s' && cat '%s/%s'  | lz4 -d  - | tar xf -"%(target, tmp_path, tarball))
+            self.chown(target)
+        finally:
+            shutil.rmtree(tmp_path)
 
     def directory_listing(self, path, hidden=True, time=True, start=0, limit=-1):
         """
@@ -1354,7 +1395,6 @@ if __name__ == "__main__":
 
 
     parser_restore_archive = subparsers.add_parser('restore_archive', help='restore project by extracting all tarballs in archive')
-    parser_restore_archive.add_argument("--subdir", help="extract them into subdir called archive", default=False, action="store_const", const=True)
     f(parser_restore_archive)
 
     parser_migrate_live = subparsers.add_parser('migrate_live', help='')

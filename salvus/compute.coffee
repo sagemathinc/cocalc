@@ -533,6 +533,78 @@ class ComputeServerClient
             opts.cb(err, result)
         )
 
+    # open recent projects
+    migrate_recent: (opts) =>
+        opts = defaults opts,
+            number    : 15000
+            limit     : 4         # number to do at once in parallel
+            query_limit : undefined  # how many projects to get from db -- if given basically randomly restricts to a subset
+            cb        : required
+        target = undefined
+        async.series([
+            (cb) =>
+                @database.select
+                    table   : 'projects'
+                    columns : ['project_id', 'last_edited', 'migrated']
+                    stream  : true
+                    limit   : opts.query_limit
+                    cb      : (err, results) =>
+                        if err
+                            cb(err)
+                        else
+                            winston.debug("got them; now processing...")
+                            results = (x for x in results when not x[2])
+                            results.sort (a,b) =>
+                                if not a[1]
+                                    a[1] = ''
+                                if not b[1]
+                                    b[1] = ''
+                                if a[1] < b[1]
+                                    return 1
+                                else if a[1] > b[1]
+                                    return -1
+                                else
+                                    return 0
+                            winston.debug("done sorting")
+                            target = results.slice(0,opts.number)
+                            cb()
+            (cb) =>
+                i = 1
+                n = misc.len(target)
+                winston.debug("next migrate resulting #{n} targets")
+                f0 = (x, cb) =>
+                    j = i + 1
+                    i += 1
+                    winston.debug("*****************************************************")
+                    winston.debug("** #{j}/#{n}: #{x[0]}, #{new Date(x[1])}")
+                    winston.debug("*****************************************************")
+                    @project
+                        project_id : x[0]
+                        cb         : (err, project) =>
+                            if err
+                                cb(err)
+                            else
+                                project.migrate_update_if_never_before
+                                    cb : (err) =>
+                                        winston.debug("*****************************************************")
+                                        winston.debug("** #{j}/#{n}: DONE -- #{x[0]}, #{new Date(x[1])} DONE")
+                                        winston.debug("*****************************************************")
+                                        winston.debug("result of migration of #{x[0]}: #{err}")
+                                        if not err
+                                            cb(); return
+                                        g = () =>
+                                            winston.debug("retry of #{x[0]}...")
+                                            project.migrate_update_if_never_before
+                                                cb : cb
+                                        setTimeout(g, 1000)
+                f = (x, cb) =>
+                    f0 x, (err) =>
+                        if err
+                            fs.writeFileSync("migrate/#{x[0]}", misc.to_json(err))
+                        cb()
+                async.mapLimit(target, opts.limit, f, cb)
+        ], opts.cb)
+
 
 class ProjectClient extends EventEmitter
     constructor: (opts) ->
