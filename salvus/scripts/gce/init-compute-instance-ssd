@@ -12,9 +12,9 @@ sfdisk /dev/sdb < sfdisk-sdb-ssd.layout
 export SWAP=/dev/sdb1; export DEV=/dev/sdb2; export TMP=/dev/sdb3; export MOUNT=/projects
 
 # make all the partitions and mounts
-mkswap $SWAP && swapon $SWAP && mkfs.btrfs $DEV && mkdir -p $MOUNT && mount -o compress-force=lzo,noatime $DEV $MOUNT && btrfs quota enable $MOUNT && chmod og-rw $MOUNT && chmod og+x $MOUNT && btrfs subvolume create $MOUNT/conf && chown salvus. $MOUNT/conf && btrfs subvolume create $MOUNT/.snapshots && btrfs subvolume create $MOUNT/sagemathcloud && sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/ 
+mkswap $SWAP && swapon $SWAP && mkfs.btrfs -f $DEV && mkdir -p $MOUNT && mount -o compress-force=lzo,noatime $DEV $MOUNT && btrfs quota enable $MOUNT && chmod og-rw $MOUNT && chmod og+x $MOUNT && btrfs subvolume create $MOUNT/conf && chown salvus. $MOUNT/conf && btrfs subvolume create $MOUNT/.snapshots && btrfs subvolume create $MOUNT/sagemathcloud && sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/ 
 
-mkfs.ext4 /dev/sdb3
+mkfs.ext4 -f /dev/sdb3
 mount /dev/sdb3 /tmp
 chmod 1777 /tmp
 
