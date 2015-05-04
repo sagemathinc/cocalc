@@ -84,28 +84,33 @@ STATES =
     saving:
         desc     : 'The project is being snapshoted and saved to cloud storage.'
         to       : {}
+        timeout  : 60*60
         commands : ['address', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
     closing:
         desc     : 'The project is in the process of being closed, so the latest changes are being uploaded, everything is stopping, the files will be removed from this computer.'
         to       : {}
+        timeout  : 5*60
         commands : ['status', 'mintime']
 
     opening:
         desc     : 'The project is being opened, so all files and snapshots are being downloaded, the user is being created, etc.'
         to       : {}
+        timeout  : 60*60
         commands : ['status', 'mintime']
 
     starting:
         desc     : 'The project is starting up and getting ready to be used.'
         to       :
             save : 'saving'
+        timeout  : 60
         commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
     stopping:
         desc     : 'All processes associated to the project are being killed.'
         to       :
             save : 'saving'
+        timeout  : 60
         commands : ['save', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
 ###
@@ -970,7 +975,7 @@ class ProjectClient extends EventEmitter
                                     cb : (err) =>
                                         dbg("start finished -- #{err}")
                 else
-                    opts.cb("may only restart when state is opened or running")
+                    opts.cb("may only restart when state is opened or running or starting")
 
     # kill everything and remove project from this compute
     # node  (must be opened somewhere)
@@ -1814,6 +1819,7 @@ class Project
         opts = defaults opts,
             action     : required
             args       : undefined
+            timeout    : TIMEOUT
             cb         : required
         dbg = @dbg("_command(action:'#{opts.action}')")
         @_last[opts.action] = new Date()
@@ -1823,8 +1829,9 @@ class Project
         args.push(@project_id)
         dbg("args=#{misc.to_json(args)}")
         smc_compute
-            args : args
-            cb   : opts.cb
+            args    : args
+            timeout : opts.timeout
+            cb      : opts.cb
 
     command: (opts) =>
         opts = defaults opts,
@@ -1879,9 +1886,10 @@ class Project
                         @_update_state_db()
                         @_update_state_listeners()
                         @_command      # launch the command: this might take a long time
-                            action : opts.action
-                            args   : opts.args
-                            cb     : (err, ignored) =>
+                            action  : opts.action
+                            args    : opts.args
+                            timeout : state_info.timeout
+                            cb      : (err, ignored) =>
                                 # finished command -- will transition to new state as result
                                 @_state_error = err
                                 if err
