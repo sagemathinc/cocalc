@@ -1302,7 +1302,7 @@ if __name__ == "__main__":
 
     f(parser_status)
 
-    parser_state = subparsers.add_parser('status', help='get state of project')  # {state:?}
+    parser_state = subparsers.add_parser('state', help='get state of project')  # {state:?}
     parser_state.add_argument("--timeout", help="seconds to run command", default=60, type=int)
     f(parser_state)
 
