@@ -1308,7 +1308,7 @@ class ProjectClient extends EventEmitter
             timeout           : 5*60
             bwlimit           : undefined
             cb                : required
-        dbg = @dbg("copy_path")
+        dbg = @dbg("copy_path(#{opts.path} to #{opts.target_project_id`})")
         dbg("copy a path using rsync from one project to another")
         if not opts.target_project_id
             opts.target_project_id = @project_id
@@ -1335,11 +1335,12 @@ class ProjectClient extends EventEmitter
                     dbg("getting other project and ensuring that it is already opened")
                     @compute_server.project
                         project_id : opts.target_project_id
-                        cb         : (err, target_project) =>
+                        cb         : (err, x) =>
                             if err
                                 dbg("error ")
                                 cb(err)
                             else
+                                target_project = x
                                 target_project.ensure_opened_or_running
                                     cb : (err) =>
                                         if err
@@ -1351,11 +1352,18 @@ class ProjectClient extends EventEmitter
                                             cb()
             (cb) =>
                 dbg("create containing target directory")
-                target_project._action
-                    action  : 'mkdir'
-                    args    : [misc.path_split(opts.target_path).head]
-                    timeout : opts.timeout
-                    cb      : cb
+                if opts.target_project_id != @project_id
+                    target_project._action
+                        action  : 'mkdir'
+                        args    : [misc.path_split(opts.target_path).head]
+                        timeout : opts.timeout
+                        cb      : cb
+                else
+                    @_action
+                        action  : 'mkdir'
+                        args    : [misc.path_split(opts.target_path).head]
+                        timeout : opts.timeout
+                        cb      : cb
             (cb) =>
                 dbg("doing the actual copy")
                 @_action
