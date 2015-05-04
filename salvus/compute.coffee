@@ -44,7 +44,7 @@ DEFAULT_SETTINGS =
     cores      : 1
     memory     : 1000
     cpu_shares : 256
-    mintime    : 3600   # one hour
+    mintime    : 1800   # half hour
     network    : false
 
 #################################################################
@@ -84,7 +84,7 @@ STATES =
     saving:
         desc     : 'The project is being snapshoted and saved to cloud storage.'
         to       : {}
-        timeout  : 60*60
+        timeout  : 30*60
         commands : ['address', 'copy_path', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
     closing:
@@ -96,7 +96,7 @@ STATES =
     opening:
         desc     : 'The project is being opened, so all files and snapshots are being downloaded, the user is being created, etc.'
         to       : {}
-        timeout  : 60*60
+        timeout  : 30*60
         commands : ['status', 'mintime']
 
     starting:
@@ -792,7 +792,17 @@ class ProjectClient extends EventEmitter
             force  : false   # don't use local cached or value obtained
             update : false   # make server recompute state (forces switch to stable state)
             cb     : required
-        dbg = @dbg("state(force:#{opts.force})")
+        dbg = @dbg("state(force:#{opts.force},update:#{opts.update})")
+
+        if @_state_time? and @_state?
+            timeout = STATES[@_state].timeout * 1000
+            if timeout?
+                time_in_state = new Date() - @_state_time
+                if time_in_state > timeout
+                    dbg("forcing update since time_in_state=#{time_in_state}ms exceeds timeout=#{timeout}ms")
+                    opts.update = true
+                    opts.force  = true
+
         if opts.force or opts.update or (not @_state? or not @_state_time?)
             dbg("calling remote server for state")
             @_action
@@ -1979,14 +1989,19 @@ class Project
 
     _update_state: (state_error, cb) =>
         dbg = @dbg("_update_state")
+        if @_update_state_cbs?
+            dbg("waiting on previously launched status subprocess...")
+            @_update_state_cbs.push(cb)
+            return
+        @_update_state_cbs = [cb]
         dbg("state likely changed -- determined what it changed to")
         before = @_state
         @_command
-            action : 'status'
-            cb     : (err, r) =>
+            action  : 'status'
+            timeout : 60
+            cb      : (err, r) =>
                 if err
                     dbg("error getting status -- #{err}")
-                    cb?(err)
                 else
                     if r['state'] != before
                         @_state = r['state']
@@ -1995,7 +2010,10 @@ class Project
                         dbg("got new state -- #{@_state}")
                         @_update_state_db()
                         @_update_state_listeners()
-                    cb?()
+                v = @_update_state_cbs
+                delete @_update_state_cbs
+                for cb in v
+                    cb?(err)
 
     state: (opts) =>
         opts = defaults opts,
