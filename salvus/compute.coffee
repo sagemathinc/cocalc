@@ -1308,7 +1308,7 @@ class ProjectClient extends EventEmitter
             timeout           : 5*60
             bwlimit           : undefined
             cb                : required
-        dbg = @dbg("copy_path(#{opts.path} to #{opts.target_project_id`})")
+        dbg = @dbg("copy_path(#{opts.path} to #{opts.target_project_id})")
         dbg("copy a path using rsync from one project to another")
         if not opts.target_project_id
             opts.target_project_id = @project_id
